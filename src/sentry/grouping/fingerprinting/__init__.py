@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -80,6 +80,7 @@ class EventAccess:
         self._toplevel = None
         self._tags = None
         self._sdk = None
+        self._family = None
 
     def get_messages(self):
         if self._messages is None:
@@ -89,7 +90,6 @@ class EventAccess:
                 self._messages.append(
                     {
                         "message": message,
-                        "family": get_behavior_family_for_platform(self.event.get("platform")),
                     }
                 )
         return self._messages
@@ -117,7 +117,6 @@ class EventAccess:
                     {
                         "type": exc.get("type"),
                         "value": exc.get("value"),
-                        "family": get_behavior_family_for_platform(self.event.get("platform")),
                     }
                 )
         return self._exceptions
@@ -131,7 +130,6 @@ class EventAccess:
                 "abs_path": frame.get("abs_path") or frame.get("filename"),
                 "filename": frame.get("filename"),
                 "module": frame.get("module"),
-                "family": get_behavior_family_for_platform(platform),
                 "package": frame.get("package"),
                 "app": frame.get("in_app"),
             }
@@ -160,6 +158,12 @@ class EventAccess:
         if self._sdk is None:
             self._sdk = [{"sdk": normalized_sdk_tag_from_event(self.event)}]
         return self._sdk
+
+    def get_family(self):
+        self._family = self._family or [
+            {"family": get_behavior_family_for_platform(self.event.get("platform"))}
+        ]
+        return self._family
 
     def get_values(self, match_group):
         return getattr(self, "get_" + match_group)()
@@ -306,6 +310,8 @@ class Match:
             return "tags"
         if self.key == "sdk":
             return "sdk"
+        if self.key == "family":
+            return "family"
         return "frames"
 
     def matches(self, values):

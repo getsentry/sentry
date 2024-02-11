@@ -1,4 +1,5 @@
-from typing import Any, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
@@ -15,7 +16,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 @register(SentryApp)
 class SentryAppSerializer(Serializer):
-    def get_attrs(self, item_list: List[SentryApp], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: list[SentryApp], user: User, **kwargs: Any):
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP

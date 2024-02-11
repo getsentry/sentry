@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Mapping, Optional, Tuple
+from collections.abc import Mapping
+from typing import Any
 from uuid import UUID
 
 import jsonschema
@@ -34,7 +35,7 @@ class EventLookupError(Exception):
 
 
 def save_event_from_occurrence(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     **kwargs: Any,
 ) -> Event:
     from sentry.event_manager import EventManager
@@ -60,8 +61,8 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 
 def process_event_and_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event_data: Dict[str, Any]
-) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
+) -> tuple[IssueOccurrence, GroupInfo | None]:
     if occurrence_data["event_id"] != event_data["event_id"]:
         raise ValueError(
             f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
@@ -77,7 +78,7 @@ def process_event_and_issue_occurrence(
 
 def lookup_event_and_process_issue_occurrence(
     occurrence_data: IssueOccurrenceData,
-) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+) -> tuple[IssueOccurrence, GroupInfo | None]:
     project_id = occurrence_data["project_id"]
     event_id = occurrence_data["event_id"]
     try:
@@ -123,6 +124,12 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
+
+            if payload.get("initial_issue_priority") is not None:
+                occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
+            else:
+                group_type = get_group_type_by_type_id(occurrence_data["type"])
+                occurrence_data["initial_issue_priority"] = group_type.default_priority
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -208,7 +215,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 def process_occurrence_message(
     message: Mapping[str, Any], txn: Transaction | NoOpSpan
-) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+) -> tuple[IssueOccurrence, GroupInfo | None]:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
@@ -253,9 +260,7 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
-def _process_message(
-    message: Mapping[str, Any]
-) -> Optional[Tuple[IssueOccurrence, Optional[GroupInfo]]]:
+def _process_message(message: Mapping[str, Any]) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     """
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.

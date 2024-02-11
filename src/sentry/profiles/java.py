@@ -1,5 +1,3 @@
-from typing import List, Optional, Tuple
-
 JAVA_BASE_TYPES = {
     "Z": "boolean",
     "B": "byte",
@@ -15,7 +13,7 @@ JAVA_BASE_TYPES = {
 
 # parse_obfuscated_signature will parse an obfuscated signatures into parameter
 # and return types that can be then deobfuscated
-def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
+def parse_obfuscated_signature(signature: str) -> tuple[list[str], str]:
     if signature[0] != "(":
         return [], ""
 
@@ -53,7 +51,7 @@ def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
 
 
 # format_signature formats the types into a human-readable signature
-def format_signature(types: Optional[Tuple[List[str], str]]) -> str:
+def format_signature(types: tuple[list[str], str] | None) -> str:
     if types is None:
         return ""
     parameter_java_types, return_java_type = types
@@ -89,7 +87,7 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
 # deobfuscate_signature will parse and deobfuscate a signature
 # returns a tuple where the first element is the list of the function
 # parameters and the second one is the return type
-def deobfuscate_signature(signature: str, mapper=None) -> Optional[Tuple[List[str], str]]:
+def deobfuscate_signature(signature: str, mapper=None) -> tuple[list[str], str] | None:
     if not signature:
         return None
 

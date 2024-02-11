@@ -1,6 +1,5 @@
 from copy import deepcopy
 from datetime import datetime
-from typing import List
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
@@ -396,7 +395,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListMetricAlertRules", List[AlertRuleSerializerResponse]
+                "ListMetricAlertRules", list[AlertRuleSerializerResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

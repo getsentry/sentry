@@ -26,8 +26,6 @@ class BustTaskRunnerRetryError(Exception):
     `@instrument_task` decorator's retry semantics.
     """
 
-    pass
-
 
 @contextmanager
 def BurstTaskRunner():

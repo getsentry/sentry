@@ -43,10 +43,10 @@ describe('SampleImages', function () {
       render(<SampleImages groupId="group123" projectId={2} />);
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-      expect(screen.queryByTestId('sample-image')).toHaveAttribute(
-        'src',
-        'https://cdn.com/image.png'
-      );
+      const sampleImages = screen.queryAllByTestId('sample-image');
+
+      expect(sampleImages[0]).toHaveAttribute('src', 'https://cdn.com/image.png');
+      expect(sampleImages[1]).toHaveAttribute('src', 'https://cdn.com/image2.png');
     });
   });
 
@@ -119,6 +119,14 @@ const setupMockRequests = (
           [SPAN_DESCRIPTION]: 'https://cdn.com/image.png',
           'any(id)': 'anyId123',
           [RAW_DOMAIN]: '',
+        },
+        {
+          [SPAN_GROUP]: 'group123',
+          [`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]: 1234,
+          project: 'javascript',
+          [SPAN_DESCRIPTION]: '/image2.png',
+          'any(id)': 'anyId123',
+          [RAW_DOMAIN]: 'https://cdn.com',
         },
       ],
     },

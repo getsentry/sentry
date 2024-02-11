@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import MutableMapping, Optional
+from collections.abc import MutableMapping
 
 import pytest
 from confluent_kafka import Consumer, Producer
@@ -96,7 +96,7 @@ def scope_consumers():
     be created once per test session).
 
     """
-    all_consumers: MutableMapping[str, Optional[Consumer]] = {
+    all_consumers: MutableMapping[str, Consumer | None] = {
         # Relay is configured to use this topic for all ingest messages. See
         # `templates/config.yml`.
         "ingest-events": None,

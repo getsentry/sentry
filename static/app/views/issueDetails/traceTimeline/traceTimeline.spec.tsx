@@ -1,15 +1,16 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
+
+jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture({features: ['issues-trace-timeline']});
@@ -32,6 +33,7 @@ describe('TraceTimeline', () => {
         title: 'Slow DB Query',
         id: 'abc',
         issue: 'SENTRY-ABC1',
+        transaction: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -46,23 +48,17 @@ describe('TraceTimeline', () => {
         title: 'AttributeError: Something Failed',
         id: event.id,
         issue: 'SENTRY-2EYS',
+        transaction: 'important.task',
+        'event.type': 'error',
+        'stack.function': ['important.task', 'task.run'],
       },
     ],
     meta: {fields: {}, units: {}},
   };
 
   beforeEach(() => {
-    // Can be removed with issueDetailsNewExperienceQ42023
     ProjectsStore.loadInitialData([project]);
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          issueDetailsNewExperienceQ42023: true,
-        },
-      })
-    );
+    jest.clearAllMocks();
   });
 
   it('renders items and highlights the current event', async () => {
@@ -79,7 +75,74 @@ describe('TraceTimeline', () => {
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByLabelText('Current Event'));
+    await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'shown',
+    });
+  });
+
+  it('displays nothing if the only event is the current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
+  });
+
+  it('displays nothing if there are no events', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
+  });
+
+  it('shows seconds for very short timelines', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    // Checking for the presence of seconds
+    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
   });
 });

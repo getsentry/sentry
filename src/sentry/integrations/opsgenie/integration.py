@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from django import forms
 from django.http import HttpResponse
@@ -115,7 +116,7 @@ class OpsgenieIntegration(IntegrationInstallation):
     def get_keyring_client(self, keyid: str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
-        team = get_team(keyid, org_integration)
+        team = get_team(team_id=keyid, org_integration=org_integration)
         assert team, "Cannot get client for unknown team"
 
         return OpsgenieClient(

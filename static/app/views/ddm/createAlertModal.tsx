@@ -26,7 +26,6 @@ import {
 import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -39,6 +38,7 @@ import {
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 
 interface FormState {
@@ -153,10 +153,9 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       data &&
       getChartTimeseries(data, {
         mri: metricsQuery.mri,
-        displayType: MetricDisplayType.AREA,
         focusedSeries: undefined,
-        groupBy: [],
-        hoveredLegend: undefined,
+        // We are limited to one series in this chart, so we can just use the first color
+        getChartPalette: createChartPalette,
       }),
     [data, metricsQuery.mri]
   );

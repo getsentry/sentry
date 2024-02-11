@@ -39,7 +39,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             )
         )
 
-        custom_mri = "d:custom/page_load@millisecond"
+        custom_mri = "d:custom/PageLoad.2@millisecond"
         self.store_metric(
             self.project.organization.id,
             self.project.id,

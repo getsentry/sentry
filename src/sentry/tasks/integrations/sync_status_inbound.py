@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry import analytics
 from sentry.models.group import Group, GroupStatus

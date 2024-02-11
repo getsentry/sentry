@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional
+from collections.abc import Mapping
 
 import pytest
 
@@ -36,7 +36,7 @@ def test_register_duplicate_confiig() -> None:
         (SpanBuilder().with_description("test description").build(), ["test description"]),
     ],
 )
-def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) -> None:
+def test_raw_description_strategy(span: Span, fingerprint: list[str] | None) -> None:
     assert raw_description_strategy(span) == fingerprint
 
 
@@ -103,7 +103,7 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) 
     ],
 )
 def test_normalized_db_span_in_condition_strategy(
-    span: Span, fingerprint: Optional[List[str]]
+    span: Span, fingerprint: list[str] | None
 ) -> None:
     assert normalized_db_span_in_condition_strategy(span) == fingerprint
 
@@ -156,7 +156,7 @@ def test_normalized_db_span_in_condition_strategy(
     ],
 )
 def test_loose_normalized_db_span_in_condition_strategy(
-    span: Span, fingerprint: Optional[List[str]]
+    span: Span, fingerprint: list[str] | None
 ) -> None:
     assert loose_normalized_db_span_in_condition_strategy(span) == fingerprint
 
@@ -228,7 +228,7 @@ def test_loose_normalized_db_span_in_condition_strategy(
         ),
     ],
 )
-def test_parametrize_db_span_strategy(query: str, fingerprint: Optional[List[str]]) -> None:
+def test_parametrize_db_span_strategy(query: str, fingerprint: list[str] | None) -> None:
     span = SpanBuilder().with_op("db.sql.query").with_description(query).build()
     assert parametrize_db_span_strategy(span) == fingerprint
 
@@ -280,7 +280,7 @@ def test_parametrize_db_span_strategy(query: str, fingerprint: Optional[List[str
     ],
 )
 def test_remove_http_client_query_string_strategy(
-    span: Span, fingerprint: Optional[List[str]]
+    span: Span, fingerprint: list[str] | None
 ) -> None:
     assert remove_http_client_query_string_strategy(span) == fingerprint
 
@@ -295,9 +295,7 @@ def test_remove_http_client_query_string_strategy(
         (SpanBuilder().with_op("db.redis").with_description("INCRBY 'key' 1").build(), ["INCRBY"]),
     ],
 )
-def test_remove_redis_command_arguments_strategy(
-    span: Span, fingerprint: Optional[List[str]]
-) -> None:
+def test_remove_redis_command_arguments_strategy(span: Span, fingerprint: list[str] | None) -> None:
     assert remove_redis_command_arguments_strategy(span) == fingerprint
 
 
@@ -359,7 +357,7 @@ def test_reuse_existing_grouping_results() -> None:
         ),
     ],
 )
-def test_basic_span_grouping_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+def test_basic_span_grouping_strategy(spans: list[Span], expected: Mapping[str, list[str]]) -> None:
     event = {
         "transaction": "transaction name",
         "contexts": {
@@ -477,7 +475,7 @@ def test_basic_span_grouping_strategy(spans: List[Span], expected: Mapping[str, 
         ),
     ],
 )
-def test_default_2021_08_25_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+def test_default_2021_08_25_strategy(spans: list[Span], expected: Mapping[str, list[str]]) -> None:
     event = {
         "transaction": "transaction name",
         "contexts": {
@@ -524,7 +522,7 @@ def test_default_2021_08_25_strategy(spans: List[Span], expected: Mapping[str, L
         ),
     ],
 )
-def test_default_2022_10_04_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+def test_default_2022_10_04_strategy(spans: list[Span], expected: Mapping[str, list[str]]) -> None:
     event = {
         "transaction": "transaction name",
         "contexts": {
@@ -571,7 +569,7 @@ def test_default_2022_10_04_strategy(spans: List[Span], expected: Mapping[str, L
         ),
     ],
 )
-def test_default_2022_10_27_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+def test_default_2022_10_27_strategy(spans: list[Span], expected: Mapping[str, list[str]]) -> None:
     event = {
         "transaction": "transaction name",
         "contexts": {

@@ -1,5 +1,3 @@
-from typing import Union
-
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -72,7 +70,7 @@ class ReleaseThresholdEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> HttpResponse:
         release_thresholds = ReleaseThreshold.objects.filter(project=project)
-        environment_name: Union[str, None] = request.GET.get("environment")
+        environment_name: str | None = request.GET.get("environment")
 
         if environment_name:
             release_thresholds = release_thresholds.filter(environment__name=environment_name)

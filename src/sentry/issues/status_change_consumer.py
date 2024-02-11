@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, Sequence, Tuple
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 
+from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
@@ -72,14 +75,18 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
         )
+    elif new_status == GroupStatus.UNRESOLVED and new_substatus == GroupSubStatus.ESCALATING:
+        manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
         activity_type = None
-        if new_substatus == GroupSubStatus.ESCALATING:
-            activity_type = ActivityType.SET_ESCALATING
-        elif new_substatus == GroupSubStatus.REGRESSED:
+        if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
         elif new_substatus == GroupSubStatus.ONGOING:
-            activity_type = ActivityType.SET_UNRESOLVED
+            if group.substatus == GroupSubStatus.ESCALATING:
+                # If the group was previously escalating, we need to update the priority via AUTO_SET_ONGOING
+                activity_type = ActivityType.AUTO_SET_ONGOING
+            else:
+                activity_type = ActivityType.SET_UNRESOLVED
 
         # We don't support setting the UNRESOLVED status with substatus NEW as it
         # is automatically set on creation. All other issues should be set to ONGOING.
@@ -95,6 +102,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            from_substatus=group.substatus,
         )
     else:
         logger.error(
@@ -107,8 +115,8 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
 
 def bulk_get_groups_from_fingerprints(
-    project_fingerprint_pairs: Iterable[Tuple[int, Sequence[str]]]
-) -> dict[Tuple[int, str], Group]:
+    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
+) -> dict[tuple[int, str], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
 
@@ -128,7 +136,7 @@ def bulk_get_groups_from_fingerprints(
             ).select_related("group")
         )
 
-    result: dict[Tuple[int, str], Group] = {
+    result: dict[tuple[int, str], Group] = {
         (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
     }
 

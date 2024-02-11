@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
@@ -35,14 +35,12 @@ class InternalRpcServiceEndpoint(Endpoint):
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
         with configure_scope() as scope:
-            scope.set_tag("rpc_service", service_name)
-            scope.set_tag("rpc_method", method_name)
-
+            scope.set_tag("rpc_method", f"{service_name}.{method_name}")
         if not self._is_authorized(request):
             raise PermissionDenied
 
         try:
-            arguments: Dict[str, Any] = request.data["args"]
+            arguments: dict[str, Any] = request.data["args"]
         except KeyError as e:
             raise ParseError from e
         if not isinstance(arguments, dict):

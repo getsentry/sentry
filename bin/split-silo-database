@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-from typing import List
-
 import click
 import docker
 from django.apps import apps
@@ -25,7 +22,7 @@ def exec_run(container, command):
     return output
 
 
-def split_database(tables: List[str], source: str, destination: str, reset: bool, verbose: bool):
+def split_database(tables: list[str], source: str, destination: str, reset: bool, verbose: bool):
     click.echo(f">> Dumping tables from {source} database")
     command = ["pg_dump", "-U", "postgres", "-d", source, "--clean"]
     for table in tables:

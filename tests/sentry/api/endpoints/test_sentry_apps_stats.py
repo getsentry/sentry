@@ -1,11 +1,12 @@
 from django.urls import reverse
 
 from sentry.api.serializers.base import serialize
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test
 class SentryAppsStatsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -16,7 +17,7 @@ class SentryAppsStatsTest(APITestCase):
         self.app_1 = self.create_sentry_app(
             name="Test", organization=self.super_org, published=True
         )
-        self.app_1_avatar = SentryAppAvatar.objects.create(
+        self.app_1_avatar = self.create_sentry_app_avatar(
             sentry_app=self.app_1, color=True, avatar_type=0
         )
 

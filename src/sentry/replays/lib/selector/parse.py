@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Union
 
 from cssselect import Selector, SelectorSyntaxError
 from cssselect import parse as cssselect_parse
@@ -10,25 +10,25 @@ SelectorType = Union[Attrib, Class, Element, Hash]
 
 class QueryType:
     def __init__(self):
-        self.alt: Optional[str] = None
-        self.aria_label: Optional[str] = None
-        self.classes: List[str] = []
-        self.id: Optional[str] = None
-        self.component_name: Optional[str] = None
-        self.role: Optional[str] = None
-        self.tag: Optional[str] = None
-        self.testid: Optional[str] = None
-        self.title: Optional[str] = None
+        self.alt: str | None = None
+        self.aria_label: str | None = None
+        self.classes: list[str] = []
+        self.id: str | None = None
+        self.component_name: str | None = None
+        self.role: str | None = None
+        self.tag: str | None = None
+        self.testid: str | None = None
+        self.title: str | None = None
 
 
-def parse_selector(css_selector: str) -> List[QueryType]:
+def parse_selector(css_selector: str) -> list[QueryType]:
     try:
-        selectors: List[Selector] = cssselect_parse(css_selector)
+        selectors: list[Selector] = cssselect_parse(css_selector)
     except SelectorSyntaxError:
         # Invalid selector syntax. No query data can be extracted.
         return []
 
-    queries: List[QueryType] = []
+    queries: list[QueryType] = []
     for selector in selectors:
         if selector.pseudo_element is not None:
             raise ParseError("Pseudo-elements are not supported.")

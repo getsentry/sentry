@@ -83,8 +83,6 @@ export function OrganizationContextProvider({children}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
 
-  const hasMadeFirstFetch = useRef(false);
-
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
 
@@ -110,8 +108,7 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(api, orgSlug, false, hasMadeFirstFetch.current);
-    hasMadeFirstFetch.current = true;
+    fetchOrganizationDetails(api, orgSlug, false, true);
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the

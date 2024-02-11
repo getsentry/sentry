@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import importlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, List
 
 from django.conf import settings
 from django.core.exceptions import ViewDoesNotExist
@@ -134,7 +134,7 @@ class Command(BaseCommand):
                 fh.write(contents)
             self.stdout.write("All done")
 
-    def render(self, url_patterns: List[str], format: str) -> str:
+    def render(self, url_patterns: list[str], format: str) -> str:
         if format == "text":
             return "\n".join(url_patterns)
         if format == "js":
@@ -154,7 +154,7 @@ export default patterns;
 
     def extract_views_from_urlpatterns(
         self, urlpatterns, base: str = "", namespace: str | None = None
-    ) -> List[PatternInfo]:
+    ) -> list[PatternInfo]:
         # Inspired by
         # https://github.com/django-extensions/django-extensions/blob/main/django_extensions/management/commands/show_urls.py
         views = []

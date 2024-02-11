@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from functools import reduce
-from typing import Any, Tuple, Type
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
@@ -24,7 +24,7 @@ def _handle_value(instance: Model, value: Any) -> Any:
     return value
 
 
-def _handle_key(model: Type[Model], key: str, value: Any) -> str:
+def _handle_key(model: type[Model], key: str, value: Any) -> str:
     # XXX(dcramer): we want to support column shortcut on create so we can do
     #  create_or_update(..., {'project': 1})
     if not isinstance(value, Model):
@@ -76,7 +76,7 @@ update.alters_data = True  # type: ignore
 
 
 def update_or_create(
-    model: Type[Model],
+    model: type[Model],
     using: str | None = None,
     **kwargs: Any,
 ) -> tuple[Model, bool]:
@@ -121,8 +121,8 @@ def update_or_create(
 
 
 def create_or_update(
-    model: Type[Model], using: str | None = None, **kwargs: Any
-) -> Tuple[int, bool]:
+    model: type[Model], using: str | None = None, **kwargs: Any
+) -> tuple[int, bool]:
     """
     Similar to get_or_create, either updates a row or creates it.
 

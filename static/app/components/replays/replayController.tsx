@@ -1,28 +1,18 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
-import screenfull from 'screenfull';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {
-  IconContract,
-  IconExpand,
-  IconNext,
-  IconRewind10,
-  IconSettings,
-} from 'sentry/icons';
+import {IconNext, IconRewind10, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
 const SECOND = 1000;
 
@@ -116,24 +106,8 @@ function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) {
-  const user = useUser();
-  const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
-  const isFullscreen = useIsFullscreen();
-
-  // If the browser supports going fullscreen or not. iPhone Safari won't do
-  // it. https://caniuse.com/fullscreen
-  const showFullscreenButton = screenfull.isEnabled;
-
-  const handleFullscreenToggle = useCallback(() => {
-    trackAnalytics('replay.toggle-fullscreen', {
-      organization,
-      user_email: user.email,
-      fullscreen: !isFullscreen,
-    });
-    toggleFullscreen();
-  }, [user.email, isFullscreen, organization, toggleFullscreen]);
 
   const updateIsCompact = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {
@@ -156,15 +130,7 @@ function ReplayControls({
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
-        {showFullscreenButton ? (
-          <Button
-            size="sm"
-            title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-            aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-            icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
-            onClick={handleFullscreenToggle}
-          />
-        ) : null}
+        <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
       </ButtonBar>
     </ButtonGrid>
   );

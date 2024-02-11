@@ -13,6 +13,7 @@ import {
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
+  isSpanMetric,
   isTransactionDuration,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
@@ -28,6 +29,7 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
@@ -41,7 +43,10 @@ type QueryBuilderProps = {
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
-  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+  isCustomMetric(metric) ||
+  isTransactionDuration(metric) ||
+  isMeasurement(metric) ||
+  isSpanMetric(metric);
 
 function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
@@ -54,7 +59,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const {data: meta} = useMetricsMeta(projects);
+  const pageFilters = usePageFilters();
+  const {data: meta} = useMetricsMeta(pageFilters.selection);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
   const breakpoints = useBreakpoints();
@@ -66,7 +72,9 @@ export const QueryBuilder = memo(function QueryBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
+  const {data: tags = [], isLoading: tagsIsLoading} = useMetricsTags(metricsQuery.mri, {
+    projects,
+  });
 
   const displayedMetrics = useMemo(() => {
     if (mriMode) {
@@ -190,7 +198,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                 </Fragment>
               ),
             }))}
-            disabled={!metricsQuery.mri}
+            disabled={!metricsQuery.mri || tagsIsLoading}
             value={metricsQuery.groupBy}
             onChange={handleGroupByChange}
           />
@@ -198,8 +206,6 @@ export const QueryBuilder = memo(function QueryBuilder({
       </FlexBlock>
       <SearchBarWrapper>
         <MetricSearchBar
-          // TODO(aknaus): clean up projectId type in ddm
-          projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => {

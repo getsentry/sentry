@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from datetime import timedelta
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple
+from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -86,7 +87,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_dataclass(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> Tuple[SnubaParams, Dict[str, Any]]:
+    ) -> tuple[SnubaParams, dict[str, Any]]:
         """This will eventually replace the get_snuba_params function"""
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params(dataclass)"):
             if (
@@ -98,7 +99,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
-            filter_params: Dict[str, Any] = self.get_filter_params(request, organization)
+            filter_params: dict[str, Any] = self.get_filter_params(request, organization)
             filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
                 start=filter_params["start"],
@@ -124,7 +125,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
                 len(self.get_field_list(organization, request))
@@ -135,7 +136,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
-            params: Dict[str, Any] = self.get_filter_params(request, organization)
+            params: dict[str, Any] = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
             params["team_id"] = self.get_team_ids(request, organization)
@@ -155,7 +156,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             return params
 
-    def get_orderby(self, request: Request) -> Optional[Sequence[str]]:
+    def get_orderby(self, request: Request) -> Sequence[str] | None:
         sort: Sequence[str] = request.GET.getlist("sort")
         if sort:
             return sort
@@ -166,7 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return orderby
         return None
 
-    def quantize_date_params(self, request: Request, params: Dict[str, Any]) -> Dict[str, Any]:
+    def quantize_date_params(self, request: Request, params: dict[str, Any]) -> dict[str, Any]:
         # We only need to perform this rounding on relative date periods
         if "statsPeriod" not in request.GET:
             return params
@@ -190,7 +191,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Optional[Cursor]) -> str:
+    def build_cursor_link(self, request: Request, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
@@ -223,9 +224,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return use_on_demand_metrics, on_demand_metric_type
 
     def handle_unit_meta(
-        self, meta: Dict[str, str]
-    ) -> Tuple[Dict[str, str], Dict[str, Optional[str]]]:
-        units: Dict[str, Optional[str]] = {}
+        self, meta: dict[str, str]
+    ) -> tuple[dict[str, str], dict[str, str | None]]:
+        units: dict[str, str | None] = {}
         for key, value in meta.items():
             if value in SIZE_UNITS:
                 units[key] = value
@@ -251,10 +252,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         project_ids: Sequence[int],
-        results: Dict[str, Any],
-        standard_meta: Optional[bool] = False,
-        dataset: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        results: dict[str, Any],
+        standard_meta: bool | None = False,
+        dataset: Any | None = None,
+    ) -> dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
@@ -289,8 +290,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         project_ids: Sequence[int],
-        results: Optional[Sequence[Any]],
-    ) -> Optional[Sequence[Any]]:
+        results: Sequence[Any] | None,
+    ) -> Sequence[Any] | None:
         if not results:
             return results
 
@@ -345,18 +346,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [Sequence[str], str, Dict[str, str], int, bool, Optional[timedelta]], SnubaTSResult
+            [Sequence[str], str, dict[str, str], int, bool, timedelta | None], SnubaTSResult
         ],
         top_events: int = 0,
         query_column: str = "count()",
-        params: Optional[Dict[str, Any]] = None,
-        query: Optional[str] = None,
+        params: dict[str, Any] | None = None,
+        query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
-        comparison_delta: Optional[timedelta] = None,
-        additional_query_column: Optional[str] = None,
-        dataset: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        comparison_delta: timedelta | None = None,
+        additional_query_column: str | None = None,
+        dataset: Any | None = None,
+    ) -> dict[str, Any]:
         with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
@@ -524,13 +525,13 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         serializer: BaseSnubaSerializer,
         event_result: SnubaTSResult,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         columns: Sequence[str],
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
-        dataset: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        dataset: Any | None = None,
+    ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
         equations = 0

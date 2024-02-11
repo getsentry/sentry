@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -70,8 +69,8 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[RpcIntegration] | List[RpcOrganizationIntegration],
-        expected: List[Integration] | List[OrganizationIntegration],
+        result: list[RpcIntegration] | list[RpcOrganizationIntegration],
+        expected: list[Integration] | list[OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
         assert len(result) == len(expected)

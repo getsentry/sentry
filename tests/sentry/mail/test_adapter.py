@@ -1,9 +1,9 @@
 import uuid
 import zoneinfo
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from functools import cached_property
-from typing import Mapping, Sequence
 from unittest import mock
 from unittest.mock import ANY
 

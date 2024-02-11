@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import msgpack
@@ -50,8 +50,8 @@ class MonitorConsumerTest(TestCase):
     def send_checkin(
         self,
         monitor_slug: str,
-        guid: Optional[str] = None,
-        ts: Optional[datetime] = None,
+        guid: str | None = None,
+        ts: datetime | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -93,7 +93,7 @@ class MonitorConsumerTest(TestCase):
 
     def send_clock_pulse(
         self,
-        ts: Optional[datetime] = None,
+        ts: datetime | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
@@ -237,6 +237,16 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
+
+    def test_check_in_update_with_reversed_dates(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(monitor.slug, status="in_progress", ts=now)
+        self.send_checkin(monitor.slug, guid=self.guid, ts=now - timedelta(seconds=5))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.duration == 5000
 
     def test_check_in_existing_guid(self):
         monitor = self._create_monitor(slug="my-monitor")

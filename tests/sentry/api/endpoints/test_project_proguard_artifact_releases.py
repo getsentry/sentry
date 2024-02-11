@@ -1,5 +1,3 @@
-from typing import Dict
-
 from django.urls import reverse
 
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
@@ -67,7 +65,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         data_missing_release_name = {
             "proguard_uuid": "660f839b-8bfd-580d-9a7c-ea339a6c9867",
         }
-        data_missing_all: Dict[str, str] = {}
+        data_missing_all: dict[str, str] = {}
 
         self.login_as(user=self.user)
 

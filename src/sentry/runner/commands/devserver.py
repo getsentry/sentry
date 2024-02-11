@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import threading
 import types
-from typing import MutableSequence, NoReturn, Sequence
+from collections.abc import MutableSequence, Sequence
+from typing import NoReturn
 
 import click
 
@@ -329,6 +330,9 @@ def devserver(
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
+
+            if settings.SENTRY_USE_SPANS_BUFFER:
+                kafka_consumers.add("process-spans")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")

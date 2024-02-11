@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -317,8 +318,8 @@ def delete_comment(activity):
 def build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
 ) -> QueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
@@ -390,10 +391,10 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
 
 def get_incident_aggregates(
     incident: Incident,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
-) -> Dict[str, Union[float, int]]:
+) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
@@ -474,7 +475,7 @@ def create_alert_rule(
     dataset=Dataset.Events,
     user=None,
     event_types=None,
-    comparison_delta: Optional[int] = None,
+    comparison_delta: int | None = None,
     **kwargs,
 ):
     """
@@ -1123,8 +1124,8 @@ def create_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1177,14 +1178,14 @@ def update_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     type: ActionService | None = None,
     target_type: ActionTarget | None = None,
-    target_identifier: Optional[str] = None,
+    target_identifier: str | None = None,
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1392,33 +1393,32 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
-    target_value: Optional[str],
+    target_value: str | None,
     organization: RpcOrganizationIntegration,
     integration_id: int,
     use_async_lookup=False,
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.client import OpsgenieClient
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
-    oi = integration_service.get_organization_integration(
-        integration_id=integration_id, organization_id=organization.id
+    integration, oi = integration_service.get_organization_context(
+        organization_id=organization.id, integration_id=integration_id
     )
+    if integration is None or oi is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    integration_key = team["integration_key"]
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        raise InvalidTriggerActionError("Opsgenie integration not found.")
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=oi.id,
-        keyid=team["id"],
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=organization.id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
+
     try:
         client.authorize_integration(type="sentry")
     except ApiError as e:
@@ -1454,7 +1454,7 @@ def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization) -> List[RpcIntegration]:
+def get_available_action_integrations_for_org(organization) -> list[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
@@ -1474,7 +1474,7 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
     )
 
 
-def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+def get_pagerduty_services(organization_id, integration_id) -> list[tuple[int, str]]:
     from sentry.integrations.pagerduty.utils import get_services
 
     org_int = integration_service.get_organization_integration(
@@ -1484,7 +1484,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     return [(s["id"], s["service_name"]) for s in services]
 
 
-def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+def get_opsgenie_teams(organization_id, integration_id) -> list[tuple[str, str]]:
     org_int = integration_service.get_organization_integration(
         organization_id=organization_id, integration_id=integration_id
     )

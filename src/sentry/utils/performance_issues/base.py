@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar, Dict, List, Optional, Union, cast
+from typing import Any, ClassVar, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -89,7 +89,7 @@ class PerformanceDetector(ABC):
     type: ClassVar[DetectorType]
     stored_problems: PerformanceProblemsMap
 
-    def __init__(self, settings: Dict[DetectorType, Any], event: dict[str, Any]) -> None:
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
@@ -162,7 +162,7 @@ class PerformanceDetector(ABC):
         return True
 
     @classmethod
-    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
+    def is_event_eligible(cls, event, project: Project | None = None) -> bool:
         return True
 
 
@@ -227,7 +227,7 @@ def get_url_from_span(span: Span) -> str:
     return ""
 
 
-def fingerprint_spans(spans: List[Span], unique_only: bool = False):
+def fingerprint_spans(spans: list[Span], unique_only: bool = False):
     span_hashes = []
     for span in spans:
         hash = str(span.get("hash", "") or "")
@@ -253,7 +253,7 @@ def fingerprint_span(span: Span):
     return fingerprint
 
 
-def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+def total_span_time(span_list: list[dict[str, Any]]) -> float:
     """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
     # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
     sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
@@ -381,7 +381,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
 
 
 def get_span_evidence_value(
-    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+    span: dict[str, str | float] | None = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"

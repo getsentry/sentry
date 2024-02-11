@@ -1,5 +1,5 @@
 ---
-created: '2024-01-24T14:07:55.778589Z'
+created: '2024-02-07T10:46:28.389774Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -99,7 +99,7 @@ config:
       - '*/readyz'
       - '*/ping'
   groupingConfig:
-    enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
   piiConfig:
     applications:
@@ -121,8 +121,6 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
-  spanAttributes:
-  - exclusive-time
   trustedRelays: []
 disabled: false
 slug: bar

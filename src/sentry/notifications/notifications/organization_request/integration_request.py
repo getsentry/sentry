@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from sentry.notifications.class_manager import register
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification

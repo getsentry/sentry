@@ -48,8 +48,8 @@ class GzipChunk(BytesIO):
 @region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OWNERS_NATIVE
     permission_classes = (OrganizationReleasePermission,)

@@ -1,5 +1,3 @@
-from typing import List
-
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -490,7 +488,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            200: inline_sentry_response_serializer("ListRules", List[RuleSerializerResponse]),
+            200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -30,8 +31,8 @@ OrgId = int
 class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
     _metric_path_key: UseCaseKey
-    _grants: Optional[Sequence[GrantedQuota]]
-    _timestamp: Optional[Timestamp]
+    _grants: Sequence[GrantedQuota] | None
+    _timestamp: Timestamp | None
     keys_to_remove: Sequence[BrokerMeta]
 
 
@@ -40,7 +41,7 @@ def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
+def _construct_quotas(use_case_id: UseCaseID) -> Quota | None:
     """
     Construct write limit's quotas based on current sentry options.
 
@@ -68,7 +69,7 @@ class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
     org_id: int
     name: str
-    tags: Dict[str, str]
+    tags: dict[str, str]
     # now that all messages are getting a use_case_id
     # field via message processing, we can add it here
     use_case_id: UseCaseID
@@ -83,14 +84,13 @@ class TimeseriesCardinalityLimiter:
         self, metric_path_key: UseCaseKey, messages: Mapping[BrokerMeta, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_meta: Mapping[str, Dict[int, BrokerMeta]] = defaultdict(dict)
+        hash_to_meta: Mapping[str, dict[int, BrokerMeta]] = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option
         # for each metric path. ultimately, this can be moved into the
         # loop below to make rollout options occur on a per use case-basis
         rollout_option = {
-            UseCaseKey.EXPERIMENTAL: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
             UseCaseKey.PERFORMANCE: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
             UseCaseKey.RELEASE_HEALTH: "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
         }[metric_path_key]

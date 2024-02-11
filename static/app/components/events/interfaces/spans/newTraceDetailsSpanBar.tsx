@@ -24,6 +24,7 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
+  MetricsBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -53,6 +54,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -692,6 +694,15 @@ export class NewTraceDetailsSpanBar extends Component<
     return errors?.length ? <ErrorBadge /> : null;
   }
 
+  renderMetricsBadge(span: NewTraceDetailsSpanBarProps['span']): React.ReactNode {
+    const hasMetrics =
+      '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
+
+    return hasMetrics && hasDDMExperimentalFeature(this.props.organization) ? (
+      <MetricsBadge />
+    ) : null;
+  }
+
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
@@ -857,6 +868,7 @@ export class NewTraceDetailsSpanBar extends Component<
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderMetricsBadge(this.props.span)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
           {this.renderMissingInstrumentationProfileBadge()}

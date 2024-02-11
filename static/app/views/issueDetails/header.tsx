@@ -28,6 +28,7 @@ import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 
 import GroupActions from './actions';
 import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
@@ -59,7 +60,7 @@ function GroupHeaderTabs({
   const organization = useOrganization();
 
   const {getReplayCountForIssue} = useReplayCountForIssues();
-  const replaysCount = getReplayCountForIssue(group.id);
+  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
 
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
@@ -298,6 +299,12 @@ function GroupHeader({
                   <span>0</span>
                 )}
               </div>
+              {organization.features.includes('issue-priority-ui') && group.priority ? (
+                <PriorityContainer>
+                  <h6 className="nav-header">{t('Priority')}</h6>
+                  <GroupPriority group={group} />
+                </PriorityContainer>
+              ) : null}
             </StatsWrapper>
           )}
         </HeaderRow>
@@ -349,8 +356,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, min-content);
+  display: flex;
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -373,4 +379,9 @@ const IconBadge = styled(Badge)`
 
 const StyledTabList = styled(TabList)`
   margin-top: ${space(2)};
+`;
+
+const PriorityContainer = styled('div')`
+  /* Ensures that the layout doesn't shift when changing priority */
+  min-width: 80px;
 `;

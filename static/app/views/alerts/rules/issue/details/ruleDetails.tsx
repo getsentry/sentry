@@ -475,7 +475,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
             />
           </ErrorBoundary>
           <AlertRuleIssuesList
-            organization={organization}
             project={project}
             rule={rule}
             period={period ?? ''}

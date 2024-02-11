@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import secrets
 import warnings
+from collections.abc import Mapping
 from string import ascii_letters, digits
-from typing import Any, ClassVar, List, Mapping, Optional, Tuple
+from typing import Any, ClassVar
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -304,11 +305,11 @@ class User(BaseModel, AbstractBaseUser):
         for email in email_list:
             self.send_confirm_email_singular(email, is_new_user)
 
-    def outboxes_for_update(self) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self) -> list[ControlOutboxBase]:
         return User.outboxes_for_user_update(self.id)
 
     @staticmethod
-    def outboxes_for_user_update(identifier: int) -> List[ControlOutboxBase]:
+    def outboxes_for_user_update(identifier: int) -> list[ControlOutboxBase]:
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
             region_names=find_regions_for_user(identifier),
             object_identifier=identifier,
@@ -330,7 +331,7 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
         )
 
-        organization_ids: List[int]
+        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
             user_id=from_user.id
         ).values_list("organization_id", flat=True)
@@ -405,7 +406,7 @@ class User(BaseModel, AbstractBaseUser):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -438,7 +439,7 @@ class User(BaseModel, AbstractBaseUser):
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Internal function that factors our some common logic.
         def do_write():
             from sentry.api.endpoints.user_details import (

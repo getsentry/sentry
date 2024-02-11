@@ -3,12 +3,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 from uuid import uuid4
 
 from django.db import IntegrityError, models, router
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask

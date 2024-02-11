@@ -6,6 +6,7 @@ from time import time
 from urllib.parse import parse_qsl, urlencode
 
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
@@ -235,7 +236,7 @@ class OAuth2LoginView(PipelineView):
             "redirect_uri": redirect_uri,
         }
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         for param in ("code", "error", "state"):
             if param in request.GET:

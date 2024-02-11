@@ -108,6 +108,7 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -156,6 +157,22 @@ class DashboardWidgetQueryOnDemand(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
+    def can_extraction_be_auto_overridden(self):
+        """Determines whether tasks can override extraction state"""
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_MANUAL:
+            # Manually disabling a widget will cause it to stay off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_HIGH_CARDINALITY:
+            # High cardinality should remain off until manually re-enabled.
+            return False
+
+        if self.extraction_state == self.OnDemandExtractionState.DISABLED_SPEC_LIMIT:
+            # Spec limits also can only be re-enabled manually.
+            return False
+
+        return True
+
     def extraction_enabled(self):
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
@@ -166,7 +183,7 @@ class DashboardWidgetQueryOnDemand(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetqueryondemand"
 
-    __repr__ = sane_repr("extraction_state", "extraction_enabled")
+    __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
 @region_silo_only_model

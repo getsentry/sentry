@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from sentry.models.auditlogentry import AuditLogEntry
 
@@ -64,7 +63,7 @@ class AuditLogEvent:
     # Simple template for rendering the audit log message using
     # the AuditLogEntry.data fields. For more complicated messages,
     # subclass AuditLogEvent and override the render method.
-    template: Optional[str] = None
+    template: str | None = None
 
     def __init__(self, event_id, name, api_name, template=None):
         self.event_id = event_id

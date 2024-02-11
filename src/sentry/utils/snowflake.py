@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Tuple
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -113,7 +112,7 @@ def get_redis_cluster(redis_key: str):
     return redis.clusters.get("default").get_local_client_for_key(redis_key)
 
 
-def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tuple[int, int]:
+def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> tuple[int, int]:
     cluster = get_redis_cluster(redis_key)
 
     # this is the amount we want to lookback for previous timestamps

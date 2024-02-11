@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 from sentry.backup.dependencies import ImportKind, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -17,7 +15,7 @@ class OverwritableConfigMixin:
     # TODO(getsentry/team-ospo#190): Clean up the type checking in this method.
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Get all unique sets that will potentially cause collisions.
         uniq_sets = dependencies()[get_model_name(self)].get_uniques_without_foreign_keys()  # type: ignore
 

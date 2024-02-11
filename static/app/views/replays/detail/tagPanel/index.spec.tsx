@@ -23,7 +23,7 @@ const mockReplay = ReplayReader.factory({
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
-    <ReplayContextProvider isFetching={false} replay={replay}>
+    <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
       <TagPanel />
     </ReplayContextProvider>
   );

@@ -5,7 +5,6 @@ import logging
 import uuid
 from datetime import timedelta
 from functools import partial, reduce
-from typing import Tuple
 
 import sentry_sdk
 from django.db.models import Count, F
@@ -614,7 +613,7 @@ group_status_to_color = {
 }
 
 
-def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
+def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
     Returns a tuple of (text, background_color, border_color)
     Should be similar to GroupStatusBadge.tsx in the frontend

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
 
 from django.http.request import HttpRequest
 
@@ -26,8 +25,8 @@ map_issue_args = make_type_coercer(
 def unfurl_issues(
     request: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional[User] = None,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack

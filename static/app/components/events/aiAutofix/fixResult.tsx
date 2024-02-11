@@ -2,17 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
 import Anchor from 'sentry/components/links/anchor';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {ExperimentalFeatureBadge} from '../aiSuggestedSolution/experimentalFeatureBadge';
-import {SuggestionLoaderMessage} from '../aiSuggestedSolution/suggestionLoaderMessage';
 
 type Props = {
   autofixData: AutofixData;
@@ -24,94 +19,75 @@ const makeGithubRepoUrl = (repoName: string) => {
 };
 
 export function FixResult({autofixData, onRetry}: Props) {
-  const isLoading = autofixData.status === 'PROCESSING';
-  const hasNoFix = !autofixData.fix;
+  if (autofixData.status === 'PROCESSING') {
+    return null;
+  }
+
+  const hasNoFix = !autofixData.fix && autofixData.status === 'COMPLETED';
   const hasError = autofixData.status === 'ERROR';
 
   return (
-    <Panel>
-      <Header>
-        <Title>
-          {t('AI Autofix')}
-          <ExperimentalFeatureBadge />
-        </Title>
-      </Header>
-      <PanelBody>
-        {isLoading ? (
-          <LoaderWrapper>
-            <SmallerAiLoader className="ai-suggestion-wheel-of-fortune" />
-            <SuggestionLoaderMessage />
-          </LoaderWrapper>
-        ) : hasError ? (
-          <Content>
-            <PreviewContent>
-              {autofixData.errorMessage ? (
-                <Fragment>
-                  <PrefixText>{t('Something went wrong:')}</PrefixText>
-                  {autofixData.errorMessage && <span>{autofixData.errorMessage}</span>}
-                </Fragment>
-              ) : (
-                <span>{t('Something went wrong.')}</span>
-              )}
-            </PreviewContent>
-            <Button size="xs" onClick={onRetry}>
-              {t('Try Again')}
-            </Button>
-          </Content>
-        ) : hasNoFix ? (
-          <Content>
-            <PreviewContent>
-              <span>{t('Could not find a fix.')}</span>
-            </PreviewContent>
-            <Button size="xs" onClick={onRetry}>
-              {t('Try Again')}
-            </Button>
-          </Content>
-        ) : (
-          <Content>
-            <PreviewContent>
-              <PrefixText>
-                {tct('Pull request #[prNumber] created in [repository]:', {
-                  prNumber: autofixData.fix!.prNumber,
-                  repository: (
-                    <RepoLink href={makeGithubRepoUrl(autofixData.fix!.repoName)}>
-                      {autofixData.fix!.repoName}
-                    </RepoLink>
-                  ),
-                })}
-              </PrefixText>
-              <PrTitle>{autofixData.fix!.title}</PrTitle>
-            </PreviewContent>
-            <Anchor href={autofixData.fix!.prUrl}>
+    <div>
+      {hasError ? (
+        <Content>
+          <PreviewContent>
+            {autofixData.error_message ? (
+              <Fragment>
+                <PrefixText>{t('Something went wrong:')}</PrefixText>
+                {autofixData.error_message && <span>{autofixData.error_message}</span>}
+              </Fragment>
+            ) : (
+              <span>{t('Something went wrong.')}</span>
+            )}
+          </PreviewContent>
+          <Button size="xs" onClick={onRetry}>
+            {t('Try Again')}
+          </Button>
+        </Content>
+      ) : hasNoFix ? (
+        <Content>
+          <PreviewContent>
+            <span>{t('Could not find a fix.')}</span>
+          </PreviewContent>
+          <Button size="xs" onClick={onRetry}>
+            {t('Try Again')}
+          </Button>
+        </Content>
+      ) : (
+        <Content>
+          <PreviewContent>
+            <PrefixText>
+              {tct('Pull request #[prNumber] created in [repository]:', {
+                prNumber: autofixData.fix!.pr_number,
+                repository: (
+                  <RepoLink href={makeGithubRepoUrl(autofixData.fix!.repo_name)}>
+                    {autofixData.fix!.repo_name}
+                  </RepoLink>
+                ),
+              })}
+            </PrefixText>
+            <PrTitle>{autofixData.fix!.title}</PrTitle>
+          </PreviewContent>
+          <ButtonBar gap={1}>
+            <Anchor href={autofixData.fix!.pr_url}>
               <Button size="xs" icon={<IconOpen size="xs" />}>
                 {t('View Pull Request')}
               </Button>
             </Anchor>
-          </Content>
-        )}
-      </PanelBody>
-    </Panel>
+            <Button size="xs" onClick={onRetry}>
+              {t('Try Again')}
+            </Button>
+          </ButtonBar>
+        </Content>
+      )}
+    </div>
   );
 }
-
-const Header = styled(PanelHeader)`
-  background: transparent;
-  padding: ${space(1)} ${space(2)};
-  align-items: center;
-  color: ${p => p.theme.gray300};
-`;
-
-const LoaderWrapper = styled('div')`
-  padding: ${space(4)} 0;
-  text-align: center;
-  gap: ${space(2)};
-  display: flex;
-  flex-direction: column;
-`;
 
 const PreviewContent = styled('div')`
   display: flex;
   flex-direction: column;
+  color: ${p => p.theme.textColor};
 `;
 
 const PrefixText = styled('span')`
@@ -122,6 +98,7 @@ const PrefixText = styled('span')`
 const PrTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 600;
+  color: ${p => p.theme.textColor};
 `;
 
 const RepoLink = styled(Anchor)`
@@ -134,16 +111,10 @@ const Content = styled('div')`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-`;
+  gap: ${space(2)};
 
-const SmallerAiLoader = styled('div')`
-  height: 128px;
-`;
-
-const Title = styled('div')`
-  /* to be consistent with the feature badge size */
-  height: ${space(2)};
-  line-height: ${space(2)};
-  display: flex;
-  align-items: center;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;

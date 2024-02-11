@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Sequence
+from typing import Any
 
 import sentry_sdk
 import sqlparse
@@ -325,7 +326,7 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self.formatted_sql_cache: Dict[str, str] = {}
+        self.formatted_sql_cache: dict[str, str] = {}
 
     def get_attrs(self, item_list, user, is_public=False, **kwargs):
         return super().get_attrs(item_list, user, is_public=is_public)
@@ -444,7 +445,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> List[str]:
+    def _get_resolved_with(self, obj: Event) -> list[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]

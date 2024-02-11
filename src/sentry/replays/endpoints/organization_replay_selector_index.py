@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Any, TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +29,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.conditions import IntegerScalar
@@ -39,12 +44,39 @@ from sentry.replays.usecases.query import Paginators, handle_ordering, handle_se
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
 
+ElementResponseType = TypedDict(
+    "ElementResponseType",
+    {
+        "alt": str,
+        "aria_label": str,
+        "class": list[str],
+        "id": str,
+        "role": str,
+        "tag": str,
+        "testid": str,
+        "title": str,
+    },
+)
+
+
+class ReplaySelectorResponseData(TypedDict, total=False):
+    count_dead_clicks: int
+    count_rage_clicks: int
+    dom_element: str
+    element: ElementResponseType
+    project_id: str
+
+
+class ReplaySelectorResponse(TypedDict):
+    data: list[ReplaySelectorResponseData]
+
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     def get_replay_filter_params(self, request, organization):
@@ -59,7 +91,25 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         return filter_params
 
     @handled_snuba_exceptions
+    @extend_schema(
+        operation_id="List an Organization's Selectors",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.ENVIRONMENT,
+            ReplaySelectorValidator,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListSelectors", ReplaySelectorResponse),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=ReplayExamples.GET_SELECTORS,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """Return a list of selectors for a given organization."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
         try:
@@ -100,13 +150,13 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
 
 
 def query_selector_collection(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    sort: Optional[str],
-    limit: Optional[str],
-    offset: Optional[str],
-    search_filters: List[Condition],
+    sort: str | None,
+    limit: str | None,
+    offset: str | None,
+    search_filters: list[Condition],
     organization: Organization,
 ) -> dict:
     """Query aggregated replay collection."""
@@ -130,12 +180,12 @@ def query_selector_collection(
 
 
 def query_selector_dataset(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    search_filters: List[Union[SearchFilter, ParenExpression, str]],
-    pagination: Optional[Paginators],
-    sort: Optional[str],
+    search_filters: list[SearchFilter | ParenExpression | str],
+    pagination: Paginators | None,
+    sort: str | None,
     tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}

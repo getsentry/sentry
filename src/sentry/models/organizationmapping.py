@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
@@ -57,7 +57,7 @@ class OrganizationMapping(Model):
     __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
 
     @staticmethod
-    def find_expected_provisioned(user_id: int, slug: str) -> Optional[OrganizationMapping]:
+    def find_expected_provisioned(user_id: int, slug: str) -> OrganizationMapping | None:
         """
         Attempts to find an already provisioned organization by the given slug that is owned by the user_id
         Returns None if

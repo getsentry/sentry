@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Container, Iterable
 from enum import Enum
-from typing import Any, Collection, Container, Dict, Iterable, List, Set
+from typing import Any
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -82,7 +83,7 @@ class Region:
 
         return urljoin(base_url, path)
 
-    def api_serialize(self) -> Dict[str, Any]:
+    def api_serialize(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "url": self.to_url(""),
@@ -145,7 +146,7 @@ class RegionDirectory:
 def _parse_raw_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
-        config_values = parse_obj_as(List[Region], json_config_values)
+        config_values = parse_obj_as(list[Region], json_config_values)
     else:
         config_values = region_config
 
@@ -297,7 +298,7 @@ def get_local_region() -> Region:
 
 
 @control_silo_function
-def _find_orgs_for_user(user_id: int) -> Set[int]:
+def _find_orgs_for_user(user_id: int) -> set[int]:
     from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
     return {
@@ -307,7 +308,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
 
 
 @control_silo_function
-def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
+def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -321,7 +322,7 @@ def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
 
 
 @control_silo_function
-def find_regions_for_user(user_id: int) -> Set[str]:
+def find_regions_for_user(user_id: int) -> set[str]:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
 
@@ -333,7 +334,7 @@ def find_all_region_names() -> Iterable[str]:
     return get_global_directory().get_region_names()
 
 
-def find_all_multitenant_region_names() -> List[str]:
+def find_all_multitenant_region_names() -> list[str]:
     return list(get_global_directory().get_region_names(RegionCategory.MULTI_TENANT))
 
 

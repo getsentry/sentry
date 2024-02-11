@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import random
 import string
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.http.request import HttpRequest
@@ -141,7 +142,7 @@ def get_organization_id_from_token(token_id: int) -> Any:
 
 
 def get_rate_limit_config(
-    view_cls: Type[object],
+    view_cls: type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
 ) -> RateLimitConfig | None:

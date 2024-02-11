@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from typing_extensions import TypedDict
 
@@ -24,10 +25,10 @@ logger = logging.getLogger(__name__)
 class OrganizationIntegrationResponse(TypedDict):
     id: str
     name: str
-    icon: Optional[str]
-    domainName: Optional[str]
-    accountType: Optional[str]
-    scopes: Optional[List[str]]
+    icon: str | None
+    domainName: str | None
+    accountType: str | None
+    scopes: list[str] | None
     status: str
     provider: Any
     configOrganization: Any
@@ -35,7 +36,7 @@ class OrganizationIntegrationResponse(TypedDict):
     externalId: str
     organizationId: int
     organizationIntegrationStatus: str
-    gracePeriodEnd: Optional[str]
+    gracePeriodEnd: str | None
 
 
 # converts the provider to JSON
@@ -71,7 +72,7 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(
-        self, organization_id: Optional[int] = None, params: Optional[Mapping[str, Any]] = None
+        self, organization_id: int | None = None, params: Mapping[str, Any] | None = None
     ) -> None:
         self.organization_id = organization_id
         self.params = params or {}
@@ -115,7 +116,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
+    def __init__(self, params: Mapping[str, Any] | None = None) -> None:
         self.params = params
 
     def get_attrs(
@@ -127,7 +128,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integrations = integration_service.get_integrations(
             integration_ids=[item.integration_id for item in item_list]
         )
-        integrations_by_id: Dict[int, RpcIntegration] = {i.id: i for i in integrations}
+        integrations_by_id: dict[int, RpcIntegration] = {i.id: i for i in integrations}
         return {
             item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
         }

@@ -1,4 +1,5 @@
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -11,7 +12,9 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import process_widget_specs, schedule_on_demand_check
 from sentry.testutils.factories import Factories
@@ -34,12 +37,12 @@ def owner() -> None:
 
 
 @pytest.fixture
-def organization(owner) -> None:
+def organization(owner: User) -> None:
     return Factories.create_organization(owner=owner)
 
 
 @pytest.fixture
-def project(organization) -> None:
+def project(organization: Organization) -> None:
     return Factories.create_project(organization=organization)
 
 
@@ -48,12 +51,12 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title="Dashboard",
-    id: Optional[int] = None,
-    columns: Optional[Sequence[str]] = None,
-    dashboard: Optional[Dashboard] = None,
-    widget: Optional[DashboardWidget] = None,
-) -> Tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
+    title: str = "Dashboard",
+    id: int | None = None,
+    columns: Sequence[str] | None = None,
+    dashboard: Dashboard | None = None,
+    widget: DashboardWidget | None = None,
+) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
     columns = columns or []
     dashboard = dashboard or Dashboard.objects.create(
         organization=project.organization,
@@ -192,19 +195,19 @@ def create_widget(
 )
 @django_db_all
 def test_schedule_on_demand_check(
-    _query_cardinality,
-    feature_flags,
-    option_enable,
-    option_rollout,
-    option_batch_size,
-    option_total_batches,
-    option_max_widget_cardinality,
-    previous_batch,
-    has_columns,
-    expected_number_of_child_tasks_run,
-    expected_discover_queries_run,
-    expected_cache_set,
-    project,
+    _query_cardinality: Any,
+    feature_flags: set[str],
+    option_enable: bool,
+    option_rollout: bool,
+    option_batch_size: float,
+    option_total_batches: int,
+    option_max_widget_cardinality: int,
+    previous_batch: int,
+    has_columns: bool,
+    expected_number_of_child_tasks_run: int,
+    expected_discover_queries_run: int,
+    expected_cache_set: bool,
+    project: Project,
 ) -> None:
     cache.clear()
     options = {
@@ -288,7 +291,7 @@ def test_schedule_on_demand_check(
         "expected_low_cardinality",
     ],
     [
-        pytest.param({}, False, [], False, 0, None, id="nothing_enabled"),
+        pytest.param({}, False, [], False, 0, False, id="nothing_enabled"),
         pytest.param(_WIDGET_EXTRACTION_FEATURES, True, [1], False, 1, True, id="enabled_low_card"),
         pytest.param({}, True, [1], False, 0, True, id="enabled_low_card_no_features"),
         pytest.param(
@@ -309,15 +312,15 @@ def test_schedule_on_demand_check(
 @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
 @django_db_all
 def test_process_widget_specs(
-    raw_snql_query,
-    _set_cardinality_cache,
-    feature_flags,
-    widget_query_ids,
-    set_high_cardinality,
-    option_enable,
-    expected_discover_queries_run,
-    expected_low_cardinality,
-    project,
+    raw_snql_query: Any,
+    _set_cardinality_cache: Any,
+    feature_flags: set[str],
+    option_enable: bool,
+    widget_query_ids: Sequence[int],
+    set_high_cardinality: bool,
+    expected_discover_queries_run: int,
+    expected_low_cardinality: bool,
+    project: Project,
 ) -> None:
     raw_snql_query.return_value = (
         _SNQL_DATA_HIGH_CARDINALITY if set_high_cardinality else _SNQL_DATA_LOW_CARDINALITY
@@ -362,58 +365,65 @@ def test_process_widget_specs(
             for mock_call in _set_cardinality_cache.mock_calls
         )
 
-    if 1 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=1)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=True,
-            expected_hashes=["43adeb86", "851922a4"],
+    expected_state = ""
+    if not feature_flags:
+        expected_state = OnDemandExtractionState.DISABLED_PREROLLOUT
+    else:
+        expected_state = (
+            OnDemandExtractionState.ENABLED_ENROLLED
+            if expected_low_cardinality
+            else OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
         )
+
+    if 1 in widget_query_ids:
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=1)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                has_features=bool(feature_flags),
+                expected_state=expected_state,
+                expected_hashes={1: ["43adeb86"], 2: ["851922a4"]},
+            )
 
     if 2 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=2)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=True,
-            expected_hashes=["8f74e5da", "581c3968"],
-        )
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=2)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                has_features=bool(feature_flags),
+                expected_state=expected_state,
+                expected_hashes={1: ["8f74e5da"], 2: ["581c3968"]},
+            )
 
     if 3 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=3)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=False,
-            expected_hashes=[],
-        )
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=3)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                has_features=bool(feature_flags),
+                expected_state=OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
+                expected_hashes=None,
+            )
 
 
 def assert_on_demand_model(
     model: DashboardWidgetQueryOnDemand,
-    is_low_cardinality: bool,
     has_features: bool,
-    expected_applicable: bool,
-    expected_hashes: Sequence[str],
+    expected_state: str,
+    expected_hashes: dict[int, list[str]] | None,
 ) -> None:
-    if not expected_applicable:
-        assert model.extraction_state == OnDemandExtractionState.DISABLED_NOT_APPLICABLE
+    assert model.spec_version
+    assert model.extraction_state == expected_state
+
+    if expected_state == OnDemandExtractionState.DISABLED_NOT_APPLICABLE:
+        # This forces the caller to explicitly set the expectations
+        assert expected_hashes is None
         assert model.spec_hashes == []
         return
 
+    assert expected_hashes is not None
     if not has_features:
-        assert model.extraction_state == OnDemandExtractionState.DISABLED_PREROLLOUT
-        assert model.spec_hashes == expected_hashes  # Still include hashes
+        assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
         return
 
-    expected_state = (
-        OnDemandExtractionState.ENABLED_ENROLLED
-        if is_low_cardinality
-        else OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
-    )
-    assert model.extraction_state == expected_state
-    assert model.spec_hashes == expected_hashes
+    assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes

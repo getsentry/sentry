@@ -11,6 +11,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {useGetCachedChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 
 import type {Sample} from './widget';
 import {MetricWidget} from './widget';
@@ -30,6 +31,7 @@ export function MetricScratchpad() {
   const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const getChartPalette = useGetCachedChartPalette();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -68,6 +70,7 @@ export function MetricScratchpad() {
         <MetricWidget
           key={index}
           index={index}
+          getChartPalette={getChartPalette}
           onSelect={setSelectedWidgetIndex}
           isSelected={selectedWidgetIndex === index}
           hasSiblings={widgets.length > 1}
@@ -79,7 +82,9 @@ export function MetricScratchpad() {
           focusArea={focusArea}
           showQuerySymbols={showQuerySymbols}
           onSampleClick={handleSampleClick}
-          highlightedSampleId={highlightedSampleId}
+          highlightedSampleId={
+            selectedWidgetIndex === index ? highlightedSampleId : undefined
+          }
         />
       ))}
     </Wrapper>

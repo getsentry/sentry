@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, Mapping, Tuple
+from typing import Any
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
@@ -208,7 +209,7 @@ handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebho
 
 
 class GitlabWebhookMixin:
-    def _get_external_id(self, request, extra) -> Tuple[str, str] | HttpResponse:
+    def _get_external_id(self, request, extra) -> tuple[str, str] | HttpResponse:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.

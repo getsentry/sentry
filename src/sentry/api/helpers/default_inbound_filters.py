@@ -1,5 +1,3 @@
-from typing import Dict, List, Union
-
 from sentry import features
 from sentry.ingest import inbound_filters
 
@@ -37,7 +35,7 @@ def set_default_inbound_filters(project, organization):
         ]
 
     for filter_id in filters:
-        state: Dict[str, Union[bool, List[str]]] = {}
+        state: dict[str, bool | list[str]] = {}
         if filter_id == "legacy-browsers":
             state["subfilters"] = browser_subfilters
         else:

@@ -7,11 +7,11 @@ from sentry.api.serializers.rest_framework.release import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models.activity import Activity
 from sentry.models.files.file import File
-from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.release import Release, ReleaseProject
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -19,6 +19,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 pytestmark = [requires_snuba]
 
 
+@region_silo_test
 class ReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -47,6 +48,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["newGroups"] == 5
 
 
+@region_silo_test
 class UpdateReleaseDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -170,7 +172,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         project2 = self.create_project(name="bar", organization=project.organization)
 
         good_token_str = generate_token(project.organization.slug, "")
-        OrgAuthToken.objects.create(
+        self.create_org_auth_token(
             organization_id=project.organization.id,
             name="token 1",
             token_hashed=hash_token(good_token_str),
@@ -204,6 +206,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.ref == "master"
 
 
+@region_silo_test
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

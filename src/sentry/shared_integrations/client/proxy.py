@@ -3,8 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import sentry_sdk
@@ -12,6 +13,7 @@ import urllib3
 from django.conf import settings
 from django.utils.encoding import force_str
 from requests import PreparedRequest
+from requests.adapters import Retry
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.http import build_session
@@ -143,11 +145,20 @@ class IntegrationProxyClient(ApiClient):
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to the IP address of the Control Silo.
+
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+            return build_session(
+                is_ipaddress_permitted=is_control_silo_ip_address,
+                max_retries=Retry(
+                    total=5,
+                    backoff_factor=0.1,
+                    status_forcelist=[503],
+                    allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+                ),
+            )
         return build_session()
 
     @staticmethod

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 import requests as requests_
 import sentry_sdk
@@ -523,16 +524,17 @@ class SlackActionEndpoint(Endpoint):
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
-            attachment = SlackIssuesMessageBuilder(
+            blocks = SlackIssuesMessageBuilder(
                 group,
                 identity=identity,
                 actions=[action],
                 tags=original_tags_from_request,
                 rules=[rule] if rule else None,
+                issue_details=True,
                 skip_fallback=True,
             ).build()
             body = self.construct_reply(
-                attachment, is_message=slack_request.callback_data["is_message"]
+                blocks, is_message=slack_request.callback_data["is_message"]
             )
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -619,8 +621,6 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-
         if use_block_kit:
             response = SlackIssuesMessageBuilder(
                 group,
@@ -692,7 +692,7 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> List[MessageAction]:
+    ) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
         if use_block_kit and action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"

@@ -75,7 +75,7 @@ function IssueListActions({
 
   const disableActions = useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 
@@ -322,6 +322,7 @@ function shouldConfirm(
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
     case ConfirmAction.ARCHIVE:
+    case ConfirmAction.SET_PRIORITY:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
@@ -262,6 +260,22 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
+        assigned_org_role = result.get("orgRole") or result.get("role")
+
+        if (
+            ("teamRoles" in result and result["teamRoles"])
+            or ("teams" in result and result["teams"])
+            or member.get_teams()
+        ):
+            new_role = assigned_org_role if assigned_org_role else member.role
+            if not organization_roles.get(new_role).is_team_roles_allowed:
+                return Response(
+                    {
+                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
+                    },
+                    status=400,
+                )
+
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
         if "teamRoles" in result or "teams" in result:
@@ -279,7 +293,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             except InvalidTeam:
                 return Response({"teams": "Invalid team"}, status=400)
 
-        assigned_org_role = result.get("orgRole") or result.get("role")
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
@@ -347,7 +360,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             # null. We do this because such a team role would be effectively
             # invisible in the UI, and would be surprising if it were left behind
             # after the user's org role is lowered again.
-            omts: List[OrganizationMemberTeam] = []
+            omts: list[OrganizationMemberTeam] = []
             for omt in OrganizationMemberTeam.objects.filter(
                 organizationmember=member, role__in=lesser_team_roles
             ):
@@ -385,6 +398,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Remove an organization member.
         """
 
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(

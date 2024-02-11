@@ -11,17 +11,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    ContextManager,
-    Generator,
-    Literal,
-    NamedTuple,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, ContextManager, Literal, NamedTuple, overload
 
 import click
 

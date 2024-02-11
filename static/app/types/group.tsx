@@ -61,6 +61,7 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+  REPLAY = 'replay',
 }
 
 export enum IssueType {
@@ -91,6 +92,9 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'replay_click_rage',
 }
 
 export enum IssueTitle {
@@ -725,6 +729,7 @@ export interface BaseGroup {
   pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
+  priority: PriorityLevel;
   project: Project;
   seenBy: User[];
   shareId: string;

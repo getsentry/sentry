@@ -1,6 +1,7 @@
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, cast
+from typing import cast
 from unittest.mock import ANY, patch
 
 import pytest
@@ -35,8 +36,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def _mock_code_location(
         self,
         filename: str,
-        pre_context: Optional[List[str]] = None,
-        post_context: Optional[List[str]] = None,
+        pre_context: list[str] | None = None,
+        post_context: list[str] | None = None,
     ) -> str:
         code_location = {
             "function": "foo",
@@ -1084,6 +1085,50 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metricSpans="true",
             min="0",
         )
+        metric_spans = response.data["metricSpans"]
+        # We expect to only have returned that span with that measurement, even if the value is 0.
+        assert len(metric_spans) == 1
+
+    def test_get_metric_span_self_time(self):
+        mri = "d:spans/exclusive_time@millisecond"
+
+        self.store_segment(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        # We expect to only have returned that span with that measurement, even if the value is 0.
+        assert len(metric_spans) == 1
+
+    def test_get_metric_span_duration(self):
+        mri = "d:spans/duration@millisecond"
+
+        self.store_segment(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
         metric_spans = response.data["metricSpans"]
         # We expect to only have returned that span with that measurement, even if the value is 0.
         assert len(metric_spans) == 1

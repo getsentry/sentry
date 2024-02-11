@@ -11,7 +11,7 @@ from sentry.tasks.reprocessing2 import reprocess_group
 @region_silo_endpoint
 class GroupReprocessingEndpoint(GroupEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, group) -> Response:

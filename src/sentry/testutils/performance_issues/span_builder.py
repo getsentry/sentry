@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any
 
 from sentry.spans.grouping.strategy.base import Span
 
@@ -6,23 +6,23 @@ from sentry.spans.grouping.strategy.base import Span
 class SpanBuilder:
     def __init__(self) -> None:
         self.trace_id: str = "a" * 32
-        self.parent_span_id: Optional[str] = "a" * 16
+        self.parent_span_id: str | None = "a" * 16
         self.span_id: str = "b" * 16
         self.start_timestamp: float = 0
         self.timestamp: float = 1
         self.same_process_as_parent: bool = True
         self.op: str = "default"
-        self.description: Optional[str] = None
-        self.fingerprint: Optional[List[str]] = None
-        self.tags: Optional[Any] = None
-        self.data: Optional[Any] = None
-        self.hash: Optional[str] = None
+        self.description: str | None = None
+        self.fingerprint: list[str] | None = None
+        self.tags: Any | None = None
+        self.data: Any | None = None
+        self.hash: str | None = None
 
     def with_op(self, op: str) -> "SpanBuilder":
         self.op = op
         return self
 
-    def with_description(self, description: Optional[str]) -> "SpanBuilder":
+    def with_description(self, description: str | None) -> "SpanBuilder":
         self.description = description
         return self
 
@@ -30,7 +30,7 @@ class SpanBuilder:
         self.span_id = span_id
         return self
 
-    def with_fingerprint(self, fingerprint: List[str]) -> "SpanBuilder":
+    def with_fingerprint(self, fingerprint: list[str]) -> "SpanBuilder":
         self.fingerprint = fingerprint
         return self
 

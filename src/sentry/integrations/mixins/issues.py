@@ -3,8 +3,9 @@ from __future__ import annotations
 import enum
 import logging
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from typing import Any, ClassVar, Dict, List, Mapping, Sequence
+from typing import Any, ClassVar
 
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
@@ -104,7 +105,7 @@ class IssueBasicMixin:
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User, **kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -423,4 +424,3 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
-        pass

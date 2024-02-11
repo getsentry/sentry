@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, Generic, Iterator, Optional, Protocol, Sequence, TypeVar, Union
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Generic, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -50,7 +51,7 @@ class VariantProcessor(Protocol):
 def strategy(
     ids: Sequence[str],
     interface: type[Interface],
-    score: Optional[int] = None,
+    score: int | None = None,
 ) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
     """
     Registers a strategy
@@ -68,7 +69,7 @@ def strategy(
         raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc[ConcreteInterface]) -> Strategy[ConcreteInterface]:
-        rv: Optional[Strategy[ConcreteInterface]] = None
+        rv: Strategy[ConcreteInterface] | None = None
 
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
@@ -112,7 +113,7 @@ class GroupingContext:
 
     def get_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> Union[GroupingComponent, ReturnedVariants]:
+    ) -> GroupingComponent | ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -152,7 +153,7 @@ class Strategy(Generic[ConcreteInterface]):
         id: str,
         name: str,
         interface: str,
-        score: Optional[int],
+        score: int | None,
         func: StrategyFunc[ConcreteInterface],
     ):
         self.id = id
@@ -161,7 +162,7 @@ class Strategy(Generic[ConcreteInterface]):
         self.interface = interface
         self.score = score
         self.func = func
-        self.variant_processor_func: Optional[VariantProcessor] = None
+        self.variant_processor_func: VariantProcessor | None = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
@@ -186,8 +187,8 @@ class Strategy(Generic[ConcreteInterface]):
         return func
 
     def get_grouping_component(
-        self, event: Event, context: GroupingContext, variant: Optional[str] = None
-    ) -> Union[None, GroupingComponent, ReturnedVariants]:
+        self, event: Event, context: GroupingContext, variant: str | None = None
+    ) -> None | GroupingComponent | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface)
@@ -271,18 +272,18 @@ class Strategy(Generic[ConcreteInterface]):
 
 class StrategyConfiguration:
     id: str | None
-    base: Optional[type["StrategyConfiguration"]] = None
+    base: type["StrategyConfiguration"] | None = None
     config_class = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
-    changelog: Optional[str] = None
+    changelog: str | None = None
     hidden = False
     risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
-    enhancements_base: Optional[str] = DEFAULT_GROUPING_ENHANCEMENTS_BASE
-    fingerprinting_bases: Optional[Sequence[str]] = DEFAULT_GROUPING_FINGERPRINTING_BASES
+    enhancements_base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: Optional[str] = None, **extra: Any):
+    def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
             enhancements_instance = Enhancements([])
         else:
@@ -315,15 +316,15 @@ class StrategyConfiguration:
 
 def create_strategy_configuration(
     id: str | None,
-    strategies: Optional[Sequence[str]] = None,
-    delegates: Optional[Sequence[str]] = None,
-    changelog: Optional[str] = None,
+    strategies: Sequence[str] | None = None,
+    delegates: Sequence[str] | None = None,
+    changelog: str | None = None,
     hidden: bool = False,
-    base: Optional[type[StrategyConfiguration]] = None,
-    risk: Optional[Risk] = None,
-    initial_context: Optional[ContextDict] = None,
-    enhancements_base: Optional[str] = None,
-    fingerprinting_bases: Optional[Sequence[str]] = None,
+    base: type[StrategyConfiguration] | None = None,
+    risk: Risk | None = None,
+    initial_context: ContextDict | None = None,
+    enhancements_base: str | None = None,
+    fingerprinting_bases: Sequence[str] | None = None,
 ) -> type[StrategyConfiguration]:
     """Declares a new strategy configuration.
 

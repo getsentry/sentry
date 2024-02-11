@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import itertools
 import re
-from typing import Any, Dict, Generator, List, Optional
+from collections.abc import Generator
+from typing import Any
 
 import sentry_sdk
 
@@ -110,7 +111,7 @@ def get_basename(string: str) -> str:
     return _basename_re.split(string)[-1]
 
 
-def get_package_component(package: str, platform: Optional[str]) -> GroupingComponent:
+def get_package_component(package: str, platform: str | None) -> GroupingComponent:
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
@@ -124,8 +125,8 @@ def get_package_component(package: str, platform: Optional[str]) -> GroupingComp
 
 def get_filename_component(
     abs_path: str,
-    filename: Optional[str],
-    platform: Optional[str],
+    filename: str | None,
+    platform: str | None,
     allow_file_origin: bool = False,
 ) -> GroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
@@ -163,9 +164,9 @@ def get_filename_component(
 
 
 def get_module_component(
-    abs_path: Optional[str],
-    module: Optional[str],
-    platform: Optional[str],
+    abs_path: str | None,
+    module: str | None,
+    platform: str | None,
     context: GroupingContext,
 ) -> GroupingComponent:
     """Given an absolute path, module and platform returns the module component
@@ -216,9 +217,9 @@ def get_module_component(
 
 def get_function_component(
     context: GroupingContext,
-    function: Optional[str],
-    raw_function: Optional[str],
-    platform: Optional[str],
+    function: str | None,
+    raw_function: str | None,
+    platform: str | None,
     sourcemap_used: bool = False,
     context_line_available: bool = False,
 ) -> GroupingComponent:
@@ -463,7 +464,7 @@ def frame(
 
 
 def get_contextline_component(
-    frame: Frame, platform: Optional[str], function: str, context: GroupingContext
+    frame: Frame, platform: str | None, function: str, context: GroupingContext
 ) -> GroupingComponent:
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
@@ -516,13 +517,13 @@ def stacktrace(
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: Dict[str, Any]
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> ReturnedVariants:
     variant = context["variant"]
 
     frames = stacktrace.frames
 
-    values: List[GroupingComponent] = []
+    values: list[GroupingComponent] = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
@@ -705,7 +706,7 @@ def chained_exception(
         return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
-    by_name: Dict[str, List[GroupingComponent]] = {}
+    by_name: dict[str, list[GroupingComponent]] = {}
 
     for exception in exceptions:
         for name, component in exception_components[id(exception)].items():
@@ -725,10 +726,10 @@ def chained_exception(
 
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
-    exceptions: List[SingleException],
-    exception_components: Dict[int, GroupingComponent],
+    exceptions: list[SingleException],
+    exception_components: dict[int, GroupingComponent],
     event: Event,
-) -> List[SingleException]:
+) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
@@ -737,13 +738,13 @@ def filter_exceptions_for_exception_groups(
     class ExceptionTreeNode:
         def __init__(
             self,
-            exception: Optional[SingleException] = None,
-            children: Optional[List[SingleException]] = None,
+            exception: SingleException | None = None,
+            children: list[SingleException] | None = None,
         ):
             self.exception = exception
             self.children = children if children else []
 
-    exception_tree: Dict[int, ExceptionTreeNode] = {}
+    exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
         mechanism: Mechanism = exception.mechanism
         if mechanism and mechanism.exception_id is not None:
@@ -761,7 +762,7 @@ def filter_exceptions_for_exception_groups(
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
     # That data is guaranteed to exist at this point.
-    def get_child_exceptions(exception: SingleException) -> List[SingleException]:
+    def get_child_exceptions(exception: SingleException) -> list[SingleException]:
         exception_id = exception.mechanism.exception_id
         node = exception_tree.get(exception_id)
         return node.children if node else []
@@ -866,8 +867,8 @@ def threads(
 
 
 def _filtered_threads(
-    threads: List[Dict[str, Any]], event: Event, context: GroupingContext, meta: Dict[str, Any]
-) -> Optional[ReturnedVariants]:
+    threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
+) -> ReturnedVariants | None:
     if len(threads) != 1:
         return None
 

@@ -11,6 +11,7 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import type {
+  Group,
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetEscalating,
@@ -26,9 +27,10 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 interface AssignedMessageProps {
   activity: GroupActivityAssigned;
   author: React.ReactNode;
+  issueType: string;
 }
 
-function AssignedMessage({activity, author}: AssignedMessageProps) {
+function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
   const {data} = activity;
   let assignee: string | User | undefined = undefined;
   const {teams} = useTeamsById(
@@ -64,10 +66,11 @@ function AssignedMessage({activity, author}: AssignedMessageProps) {
   return (
     <Fragment>
       <div>
-        {tct('[author] [action] this issue to [assignee]', {
+        {tct('[author] [action] this [issueType] to [assignee]', {
           action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
           author,
           assignee,
+          issueType,
         })}
       </div>
       {data.integration && (
@@ -87,6 +90,7 @@ function AssignedMessage({activity, author}: AssignedMessageProps) {
 interface GroupActivityItemProps {
   activity: GroupActivity;
   author: React.ReactNode;
+  group: Group;
   organization: Organization;
   projectId: Project['id'];
 }
@@ -96,8 +100,11 @@ function GroupActivityItem({
   organization,
   projectId,
   author,
+  group,
 }: GroupActivityItemProps) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const isFeedback = (group.issueCategory as string) === 'feedback';
+  const issueType = isFeedback ? t('feedback') : t('issue');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
     const archived = t('archived');
@@ -162,10 +169,14 @@ function GroupActivityItem({
       });
     }
 
-    return tct('[author] [action] this issue forever', {
-      author,
-      action: archived,
-    });
+    return isFeedback
+      ? tct('[author] marked this feedback as spam', {
+          author,
+        })
+      : tct('[author] [action] this issue forever', {
+          author,
+          action: archived,
+        });
   }
 
   function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
@@ -244,7 +255,7 @@ function GroupActivityItem({
         return tct('[author] left a comment', {author});
       case GroupActivityType.SET_RESOLVED:
         if ('integration_id' in activity.data && activity.data.integration_id) {
-          return tct('[author] marked this issue as resolved via [integration]', {
+          return tct('[author] marked this [issueType] as resolved via [integration]', {
             integration: (
               <Link
                 to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
@@ -253,9 +264,10 @@ function GroupActivityItem({
               </Link>
             ),
             author,
+            issueType,
           });
         }
-        return tct('[author] marked this issue as resolved', {author});
+        return tct('[author] marked this [issueType] as resolved', {author, issueType});
       case GroupActivityType.SET_RESOLVED_BY_AGE:
         return tct('[author] marked this issue as resolved due to inactivity', {
           author,
@@ -388,7 +400,7 @@ function GroupActivityItem({
           );
         }
         if ('integration_id' in data && data.integration_id) {
-          return tct('[author] marked this issue as unresolved via [integration]', {
+          return tct('[author] marked this [issueType] as unresolved via [integration]', {
             integration: (
               <Link
                 to={`/settings/${organization.slug}/integrations/${data.provider_key}/${data.integration_id}/`}
@@ -397,9 +409,10 @@ function GroupActivityItem({
               </Link>
             ),
             author,
+            issueType,
           });
         }
-        return tct('[author] marked this issue as unresolved', {author});
+        return tct('[author] marked this [issueType] as unresolved', {author, issueType});
       }
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
@@ -505,12 +518,24 @@ function GroupActivityItem({
         );
       }
       case GroupActivityType.FIRST_SEEN:
+        if (
+          organization.features.includes('issue-priority-ui') &&
+          activity.data.priority
+        ) {
+          return tct(
+            '[author] first saw this issue and marked it as [priority] priority',
+            {author, priority: activity.data.priority}
+          );
+        }
+
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
-        return <AssignedMessage activity={activity} author={author} />;
+        return (
+          <AssignedMessage activity={activity} author={author} issueType={issueType} />
+        );
       }
       case GroupActivityType.UNASSIGNED:
-        return tct('[author] unassigned this issue', {author});
+        return tct('[author] unassigned this [issueType]', {author, issueType});
       case GroupActivityType.MERGE:
         return tn(
           '%2$s merged %1$s issue into this issue',

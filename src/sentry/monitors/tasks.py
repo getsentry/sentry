@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Mapping
 
 import msgpack
 import sentry_sdk

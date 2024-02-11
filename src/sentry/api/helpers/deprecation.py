@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
 
 import isodate
 from croniter import croniter
@@ -32,7 +31,7 @@ def _track_deprecated_metrics(request: Request, deprecation_date: datetime):
     request.deprecation_date = deprecation_date
 
 
-def _serialize_key(key: str) -> Tuple[str, str]:
+def _serialize_key(key: str) -> tuple[str, str]:
     """Converts the key into an option manager key used for the schedule crontab and blackout duration"""
     return f"{key}-cron", f"{key}-duration"
 

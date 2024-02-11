@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def get_assigned_to_data(
-        self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
-    ) -> Dict[str, Any]:
+        self, assigned_to: Team | RpcUser, assignee_type: str, extra: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         data = {
             "assignee": str(assigned_to.id),
             "assigneeEmail": getattr(assigned_to, "email", None),
@@ -70,9 +70,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def remove_old_assignees(
         self,
         group: Group,
-        previous_assignee: Optional[GroupAssignee],
-        new_assignee_id: Optional[int] = None,
-        new_assignee_type: Optional[str] = None,
+        previous_assignee: GroupAssignee | None,
+        new_assignee_id: int | None = None,
+        new_assignee_type: str | None = None,
     ) -> None:
         from sentry.models.team import Team
 
@@ -137,7 +137,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         assigned_to: Team | RpcUser,
         acting_user: User | None = None,
         create_only: bool = False,
-        extra: Dict[str, str] | None = None,
+        extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
     ):
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -204,7 +204,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         group: Group,
         acting_user: User | RpcUser | None = None,
         assigned_to: Team | RpcUser | None = None,
-        extra: Dict[str, str] | None = None,
+        extra: dict[str, str] | None = None,
     ) -> None:
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity

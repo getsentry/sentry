@@ -6,10 +6,11 @@ import os
 import random
 from base64 import b64encode
 from binascii import hexlify
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -23,8 +24,10 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
+from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.hybridcloud.models import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -52,6 +55,8 @@ from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -88,6 +93,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -115,14 +121,17 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
+from sentry.models.userrole import UserRole
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
@@ -402,7 +411,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: List[str] = None, **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(
@@ -543,14 +552,14 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_release(
         project: Project,
-        user: Optional[User] = None,
-        version: Optional[str] = None,
-        date_added: Optional[datetime] = None,
-        additional_projects: Optional[Sequence[Project]] = None,
-        environments: Optional[Sequence[Environment]] = None,
-        date_released: Optional[datetime] = None,
-        adopted: Optional[datetime] = None,
-        unadopted: Optional[datetime] = None,
+        user: User | None = None,
+        version: str | None = None,
+        date_added: datetime | None = None,
+        additional_projects: Sequence[Project] | None = None,
+        environments: Sequence[Environment] | None = None,
+        date_released: datetime | None = None,
+        adopted: datetime | None = None,
+        unadopted: datetime | None = None,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -825,6 +834,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_avatar(*args, **kwargs):
+        return UserAvatar.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_role(*args, **kwargs):
+        return UserRole.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_usersocialauth(
         user: User,
         provider: str | None = None,
@@ -1023,6 +1042,11 @@ class Factories:
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_avatar(*args, **kwargs):
+        return SentryAppAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1273,7 +1297,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_features(
         features=None, doc_integration=None
-    ) -> List[IntegrationFeature]:
+    ) -> list[IntegrationFeature]:
         if not features:
             features = [Feature.API]
         if not doc_integration:
@@ -1660,10 +1684,10 @@ class Factories:
     def create_group_history(
         group: Group,
         status: int,
-        release: Optional[Release] = None,
-        actor: Optional[Actor] = None,
-        prev_history: Optional[GroupHistory] = None,
-        date_added: Optional[datetime] = None,
+        release: Release | None = None,
+        actor: Actor | None = None,
+        prev_history: GroupHistory | None = None,
+        date_added: datetime | None = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1718,8 +1742,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_notification_action(
-        organization: Optional[Organization] = None,
-        projects: Optional[List[Project]] = None,
+        organization: Organization | None = None,
+        projects: list[Project] | None = None,
         **kwargs,
     ):
         if not organization:
@@ -1750,6 +1774,11 @@ class Factories:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_option(*args, **kwargs) -> UserOption:
+        return UserOption.objects.create(*args, **kwargs)
+
+    @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> str:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
@@ -1757,3 +1786,39 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def snooze_rule(**kwargs):
         return RuleSnooze.objects.create(**kwargs)
+
+    @staticmethod
+    def create_request_access(
+        sso_state: RpcMemberSsoState | None = None,
+        permissions: list | None = None,
+        org_context: RpcUserOrganizationContext | None = None,
+        scopes_upper_bound: frozenset | None = frozenset(),
+    ) -> RpcBackedAccess:
+        if not sso_state:
+            sso_state = RpcMemberSsoState()
+        if not permissions:
+            permissions = []
+        if not org_context:
+            org_context = RpcUserOrganizationContext()
+
+        auth_state = RpcAuthState(sso_state=sso_state, permissions=permissions)
+        return RpcBackedAccess(
+            rpc_user_organization_context=org_context,
+            auth_state=auth_state,
+            scopes_upper_bound=scopes_upper_bound,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+        kwargs.update(
+            {
+                "request_method": "POST",
+                "request_path": "/extensions/github/webhook/",
+                "request_headers": '{"Content-Type": "application/json"}',
+                "request_body": "{}",
+            }
+        )
+        return WebhookPayload.objects.create(
+            mailbox_name=mailbox_name, region_name=region_name, **kwargs
+        )

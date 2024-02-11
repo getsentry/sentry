@@ -19,29 +19,24 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
-  startTimeOffsetMs: number;
+  projectSlug: string | undefined;
   startTimestampMs: number;
   width: number;
   className?: string;
 }
 
-function ReplayTimelineEvents({
+export default function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
+  projectSlug,
   startTimestampMs,
-  startTimeOffsetMs,
   width,
 }: Props) {
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(
-    durationMs,
-    frames,
-    totalColumns,
-    startTimeOffsetMs
-  );
+  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
@@ -50,6 +45,7 @@ function ReplayTimelineEvents({
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
+            projectSlug={projectSlug}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -73,10 +69,12 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 function Event({
   frames,
   markerWidth,
+  projectSlug,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
+  projectSlug: string | undefined;
   startTimestampMs: number;
 }) {
   const theme = useTheme();
@@ -94,6 +92,7 @@ function Event({
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      projectSlug={projectSlug}
       startTimestampMs={startTimestampMs}
       traces={undefined}
       onDimensionChange={() => {}}
@@ -218,5 +217,3 @@ const TooltipWrapper = styled('div')`
   max-height: 80vh;
   overflow: auto;
 `;
-
-export default ReplayTimelineEvents;

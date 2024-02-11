@@ -1,5 +1,5 @@
 import itertools
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from django.db import router, transaction
 from rest_framework import status
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
+from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import (
     Status,
@@ -83,6 +83,8 @@ class UserIdentityConfigEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    permission_classes = (UserAndStaffPermission,)
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
@@ -103,8 +105,10 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    permission_classes = (UserAndStaffPermission,)
+
     @staticmethod
-    def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
+    def _get_identity(user, category, identity_id) -> UserIdentityConfig | None:
         identity_id = int(identity_id)
 
         # This fetches and iterates over all the user's identities.

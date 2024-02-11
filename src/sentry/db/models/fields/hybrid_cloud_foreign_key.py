@@ -50,7 +50,7 @@ from django.db import models
 
 __all__ = ("HybridCloudForeignKey",)
 
-from typing import Any, Tuple
+from typing import Any
 
 from django.apps import apps
 
@@ -92,7 +92,7 @@ class HybridCloudForeignKey(models.BigIntegerField):
         kwds.setdefault("db_index", True)
         super().__init__(**kwds)
 
-    def deconstruct(self) -> Tuple[Any, Any, Any, Any]:
+    def deconstruct(self) -> tuple[Any, Any, Any, Any]:
         (name, path, args, kwds) = super().deconstruct()
         # This seems wrong, but due to the way django scrubs defaults, this will inevitably be wrong.
         kwds.setdefault("db_index", False)

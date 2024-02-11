@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, MutableSequence
 from functools import cached_property, reduce
-from typing import Mapping, MutableMapping, MutableSequence
 
 from sentry.digests import Record
 from sentry.digests.notifications import (

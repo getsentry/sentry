@@ -19,10 +19,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   MobileCursors,
@@ -73,7 +76,7 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Mobile'),
+      label: t('Screen Loads'),
       preservePageFilters: true,
     },
     {
@@ -89,9 +92,6 @@ function ScreenLoadSpans() {
     transaction: transactionName,
     spanDescription,
   } = location.query;
-
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
 
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
@@ -140,22 +140,22 @@ function ScreenLoadSpans() {
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                        title: t('TTID (%s)', truncatedPrimary),
+                        title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                        title: t('TTID (%s)', truncatedSecondary),
+                        title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                        title: t('TTFD (%s)', truncatedPrimary),
+                        title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                        title: t('TTFD (%s)', truncatedSecondary),
+                        title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                       },
                       {
                         type: 'count',

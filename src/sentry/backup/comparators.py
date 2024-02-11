@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Callable, Dict, List, Type
 
 from dateutil import parser
 from django.db import models
@@ -68,8 +68,6 @@ class JSONScrubbingComparator(ABC):
         """An abstract method signature, to be implemented by inheriting classes with their own
         comparison logic. Implementations of this method MUST take care not to mutate the method's
         inputs!"""
-
-        pass
 
     def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         """Ensure that all tracked fields on either both models or neither."""
@@ -254,7 +252,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
 
-    def __init__(self, foreign_fields: dict[str, Type[models.base.Model]]):
+    def __init__(self, foreign_fields: dict[str, type[models.base.Model]]):
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
@@ -354,8 +352,6 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
     def truncate(self, data: list[str]) -> list[str]:
         """An abstract method signature which implements a specific truncation algorithm to do the
         actual obfuscation."""
-
-        pass
 
 
 class EmailObfuscatingComparator(ObfuscatingComparator):
@@ -745,8 +741,8 @@ def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
         )
 
 
-ComparatorList = List[JSONScrubbingComparator]
-ComparatorMap = Dict[str, ComparatorList]
+ComparatorList = list[JSONScrubbingComparator]
+ComparatorMap = dict[str, ComparatorList]
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -786,6 +782,7 @@ def get_default_comparators():
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [

@@ -1,10 +1,12 @@
-import {useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
 import {
   IconAdd,
   IconBookmark,
@@ -27,11 +29,16 @@ import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useCreateDashboard} from 'sentry/views/ddm/useCreateDashboard';
 
 interface Props {
-  addCustomMetric: (referrer: string) => void;
+  addCustomMetric: () => void;
+  hasDashboardFeature: boolean;
   showCustomMetricButton: boolean;
 }
 
-export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({
+  showCustomMetricButton,
+  addCustomMetric,
+  hasDashboardFeature,
+}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -47,6 +54,21 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
 
   const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
+  const handleToggleDefaultQuery = useCallback(() => {
+    if (isDefaultQuery) {
+      Sentry.metrics.increment('ddm.remove-default-query');
+      trackAnalytics('ddm.remove-default-query', {
+        organization,
+      });
+      setDefaultQuery(null);
+    } else {
+      Sentry.metrics.increment('ddm.set-default-query');
+      trackAnalytics('ddm.set-default-query', {
+        organization,
+      });
+      setDefaultQuery(router.location.query);
+    }
+  }, [isDefaultQuery, organization, router.location.query, setDefaultQuery]);
   const items = useMemo(
     () => [
       {
@@ -65,7 +87,22 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
-        label: t('Add to Dashboard'),
+        label: hasDashboardFeature ? (
+          <Fragment>{t('Add to Dashboard')}</Fragment>
+        ) : (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features="organizations:dashboards-edit1"
+                hideHelpToggle
+                featureName={t('Dashboard Editing')}
+              />
+            }
+          >
+            {t('Add to Dashboard')}
+          </Hovercard>
+        ),
+        disabled: !hasDashboardFeature,
         onAction: () => {
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
@@ -81,7 +118,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
-    [addWidget, createDashboard, hasEmptyWidget, organization, router]
+    [
+      addWidget,
+      createDashboard,
+      hasEmptyWidget,
+      organization,
+      router,
+      hasDashboardFeature,
+    ]
   );
 
   const alertItems = useMemo(
@@ -137,14 +181,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   return (
     <ButtonBar gap={1}>
       {showCustomMetricButton && (
-        <Button priority="primary" onClick={() => addCustomMetric('header')} size="sm">
+        <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
           {t('Set Up Custom Metrics')}
         </Button>
       )}
       <Button
         size="sm"
         icon={<IconBookmark isSolid={isDefaultQuery} />}
-        onClick={() => setDefaultQuery(isDefaultQuery ? null : router.location.query)}
+        onClick={handleToggleDefaultQuery}
       >
         {isDefaultQuery ? t('Remove Default') : t('Save as default')}
       </Button>

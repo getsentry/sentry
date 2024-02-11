@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Dict
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
@@ -35,7 +34,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: Dict[str, str | int] = {}
+    log_extra: dict[str, str | int] = {}
     enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
@@ -82,10 +81,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_integration_id = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id is None:
+        org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
+        org_integration_id = int(org_integration_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (

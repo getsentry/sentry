@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from django.utils.functional import LazyObject
 
@@ -54,7 +55,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
         # on some servers due to migration history
         args["name"] = ""
 
-    roles: FrozenSet[str] = frozenset()
+    roles: frozenset[str] = frozenset()
     if hasattr(user, "roles") and user.roles is not None:
         roles = frozenset(_flatten(user.roles))
     args["roles"] = roles
@@ -106,7 +107,7 @@ def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
     )
 
 
-def _flatten(iter: Iterable[Any]) -> List[Any]:
+def _flatten(iter: Iterable[Any]) -> list[Any]:
     return (
         ((_flatten(iter[0]) + _flatten(iter[1:])) if len(iter) > 0 else [])
         if type(iter) is list or isinstance(iter, BaseQuerySet)

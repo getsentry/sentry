@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import functools
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
+from typing import Optional
 
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
@@ -13,12 +14,12 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.factories import Factories
 from sentry.utils.auth import login
 
-RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
+RequestFactory = Callable[[], Optional[tuple[HttpRequest, User]]]
 
 
 def request_factory(f):
     @functools.wraps(f)
-    def wrapper(*args, **kwds) -> Tuple[HttpRequest, User] | None:
+    def wrapper(*args, **kwds) -> tuple[HttpRequest, User] | None:
         result = f(*args, **kwds)
         if result is not None:
             request, user = result
@@ -49,7 +50,7 @@ def make_request() -> tuple[HttpRequest, AnonymousUser]:
 
 
 @request_factory
-def make_user_request(org=None) -> Tuple[HttpRequest, User]:
+def make_user_request(org=None) -> tuple[HttpRequest, User]:
     request, _ = make_request()
     user = Factories.create_user()
     org = org or Factories.create_organization()

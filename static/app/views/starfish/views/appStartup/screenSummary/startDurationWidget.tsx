@@ -1,5 +1,4 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -89,10 +88,6 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
     referrer: 'api.starfish.mobile-startup-series',
     initialData: {},
   });
-
-  if (isSeriesLoading) {
-    return <LoadingContainer isLoading />;
-  }
 
   // The expected response is a multi series response, but if there is no data
   // then we get an object representing a single series with all empty values

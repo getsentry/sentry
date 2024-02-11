@@ -1,4 +1,5 @@
-from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union, cast
+from collections.abc import Collection, Mapping, Sequence
+from typing import Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -27,11 +28,11 @@ def string_to_use_case_id(value: str) -> UseCaseID:
 
 
 def reverse_resolve_tag_value(
-    use_case_id: Union[UseCaseID, UseCaseKey],
+    use_case_id: UseCaseID | UseCaseKey,
     org_id: int,
-    index: Union[int, str, None],
+    index: int | str | None,
     weak: bool = False,
-) -> Optional[str]:
+) -> str | None:
     use_case_id = to_use_case_id(use_case_id)
     if isinstance(index, str) or index is None:
         return index
@@ -43,8 +44,8 @@ def reverse_resolve_tag_value(
 
 
 def bulk_reverse_resolve_tag_value(
-    use_case_id: UseCaseID, org_id: int, values: Collection[Union[int, str, None]]
-) -> Mapping[Union[int, str], str]:
+    use_case_id: UseCaseID, org_id: int, values: Collection[int | str | None]
+) -> Mapping[int | str, str]:
     """
     Reverse resolves a mixture of indexes and strings in bulk
 
@@ -67,9 +68,9 @@ def bulk_reverse_resolve_tag_value(
     }
 
     """
-    ret_val: Dict[Union[int, str], str] = {}
+    ret_val: dict[int | str, str] = {}
 
-    indexes_to_resolve: Set[int] = set()
+    indexes_to_resolve: set[int] = set()
     for value in values:
         if isinstance(value, str):
             ret_val[value] = value  # we already have a string no need to reverse resolve it
@@ -84,7 +85,7 @@ def bulk_reverse_resolve_tag_value(
     return {**ret_val, **resolved_indexes}
 
 
-def reverse_resolve(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, index: int) -> str:
+def reverse_resolve(use_case_id: UseCaseID | UseCaseKey, org_id: int, index: int) -> str:
     assert index > 0
     use_case_id = to_use_case_id(use_case_id)
     resolved = indexer.reverse_resolve(use_case_id, org_id, index)
@@ -108,8 +109,8 @@ def bulk_reverse_resolve(
 
 
 def reverse_resolve_weak(
-    use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, index: int
-) -> Optional[str]:
+    use_case_id: UseCaseID | UseCaseKey, org_id: int, index: int
+) -> str | None:
     """
     Resolve an index value back to a string, special-casing 0 to return None.
 
@@ -125,7 +126,7 @@ def reverse_resolve_weak(
 
 
 def resolve(
-    use_case_id: Union[UseCaseID, UseCaseKey],
+    use_case_id: UseCaseID | UseCaseKey,
     org_id: int,
     string: str,
 ) -> int:
@@ -137,7 +138,7 @@ def resolve(
     return resolved
 
 
-def resolve_tag_key(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str) -> str:
+def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
     use_case_id = to_use_case_id(use_case_id)
     resolved = resolve(use_case_id, org_id, string)
     assert isinstance(use_case_id, UseCaseID)
@@ -147,9 +148,7 @@ def resolve_tag_key(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, stri
         return f"tags[{resolved}]"
 
 
-def resolve_tag_value(
-    use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
-) -> Union[str, int]:
+def resolve_tag_value(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str | int:
     use_case_id = to_use_case_id(use_case_id)
     assert isinstance(string, str)
     assert isinstance(use_case_id, UseCaseID)
@@ -159,8 +158,8 @@ def resolve_tag_value(
 
 
 def resolve_tag_values(
-    use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, strings: Sequence[str]
-) -> Sequence[Union[str, int]]:
+    use_case_id: UseCaseID | UseCaseKey, org_id: int, strings: Sequence[str]
+) -> Sequence[str | int]:
     use_case_id = to_use_case_id(use_case_id)
     rv = []
     for string in strings:
@@ -171,7 +170,7 @@ def resolve_tag_values(
     return rv
 
 
-def resolve_weak(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str) -> int:
+def resolve_weak(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 
@@ -188,7 +187,7 @@ def resolve_weak(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string:
 
 
 def resolve_many_weak(
-    use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, strings: Sequence[str]
+    use_case_id: UseCaseID | UseCaseKey, org_id: int, strings: Sequence[str]
 ) -> Sequence[int]:
     """
     Resolve multiple values at once, omitting missing ones. This is useful in

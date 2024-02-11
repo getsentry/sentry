@@ -3,21 +3,19 @@ import psycopg2 as Database
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
+from django.db.backends.postgresql.operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
-from .creation import SentryDatabaseCreation
 from .decorators import (
     auto_reconnect_connection,
     auto_reconnect_cursor,
     capture_transaction_exceptions,
     more_better_error_messages,
 )
-from .operations import DatabaseOperations
+from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
-
-from .schema import DatabaseSchemaEditorProxy
 
 
 def remove_null(value):
@@ -94,7 +92,6 @@ class CursorWrapper:
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    creation_class = SentryDatabaseCreation
     SchemaEditorClass = DatabaseSchemaEditorProxy
 
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -40,7 +40,7 @@ class Visibility:
     OWNER_PINNED = "owner_pinned"
 
     @classmethod
-    def as_choices(cls) -> List[Tuple[str, Any]]:
+    def as_choices(cls) -> list[tuple[str, Any]]:
         # Note that the pinned value may not always be a visibility we want to
         # expose. The pinned search API explicitly will set this visibility,
         # but the saved search API should not allow it to be set

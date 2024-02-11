@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import operator
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
@@ -60,7 +61,7 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 # check is applied
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
-CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 T = TypeVar("T")
 
@@ -110,7 +111,7 @@ class SubscriptionProcessor:
         self._active_incident = active_incident
 
     @property
-    def incident_triggers(self) -> Dict[int, IncidentTrigger]:
+    def incident_triggers(self) -> dict[int, IncidentTrigger]:
         if not hasattr(self, "_incident_triggers"):
             incident = self.active_incident
             incident_triggers = {}
@@ -178,7 +179,7 @@ class SubscriptionProcessor:
 
     def get_comparison_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
-    ) -> Optional[float]:
+    ) -> float | None:
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
@@ -228,7 +229,7 @@ class SubscriptionProcessor:
 
     def get_crash_rate_alert_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -280,7 +281,7 @@ class SubscriptionProcessor:
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """Handle both update formats. Once all subscriptions have been updated
         to v2, we can remove v1 and replace this function with current v2.
         """
@@ -301,7 +302,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v1(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -350,7 +351,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v2(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -386,9 +387,7 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
         elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
@@ -670,7 +669,7 @@ class SubscriptionProcessor:
             return None
 
     def handle_trigger_actions(
-        self, incident_triggers: List[IncidentTrigger], metric_value: float
+        self, incident_triggers: list[IncidentTrigger], metric_value: float
     ) -> None:
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
@@ -785,7 +784,7 @@ class SubscriptionProcessor:
         )
 
 
-def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> List[str]:
+def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> list[str]:
     """
     Builds keys for fetching stats about alert rules
     :return: A list containing the alert rule stat keys
@@ -795,8 +794,8 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
 
 
 def build_trigger_stat_keys(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> List[str]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> list[str]:
     """
     Builds keys for fetching stats about triggers
     :return: A list containing the alert rule trigger stat keys
@@ -829,8 +828,8 @@ def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
 
 
 def get_alert_rule_stats(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> Tuple[datetime, Dict[str, int], Dict[str, int]]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> tuple[datetime, dict[str, int], dict[str, int]]:
     """
     Fetches stats about the alert rule, specific to the current subscription
     :return: A tuple containing the stats about the alert rule and subscription.
@@ -864,8 +863,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[int, int],
-    resolve_counts: Dict[int, int],
+    alert_counts: dict[int, int],
+    resolve_counts: dict[int, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.

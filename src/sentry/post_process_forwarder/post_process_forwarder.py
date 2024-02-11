@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Mapping
+from collections.abc import Mapping
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (

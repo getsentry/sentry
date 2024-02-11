@@ -93,6 +93,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/releases/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/meta/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -355,6 +359,10 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/prompts-activity/',
         body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/meta/',
+        body: [],
       });
     });
 
@@ -1105,13 +1113,15 @@ describe('Dashboards > Detail', function () {
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: '',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: '',
+            }),
+          })
+        );
+      });
     });
 
     it('can save absolute time range in existing dashboard', async () => {
@@ -1476,13 +1486,15 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: ['sentry-android-shop@1.2.0'],
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: ['sentry-android-shop@1.2.0'],
+            }),
+          })
+        );
+      });
     });
 
     it('persists release selections made during search requests that do not appear in default query', async function () {

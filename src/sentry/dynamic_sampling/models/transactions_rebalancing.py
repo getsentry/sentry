@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput, ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
@@ -8,10 +7,10 @@ from sentry.dynamic_sampling.models.full_rebalancing import FullRebalancingInput
 
 @dataclass
 class TransactionsRebalancingInput(ModelInput):
-    classes: List[RebalancedItem]
+    classes: list[RebalancedItem]
     sample_rate: float
-    total_num_classes: Optional[int]
-    total: Optional[float]
+    total_num_classes: int | None
+    total: float | None
     intensity: float
 
     def validate(self) -> bool:
@@ -23,9 +22,9 @@ class TransactionsRebalancingInput(ModelInput):
 
 
 class TransactionsRebalancingModel(
-    Model[TransactionsRebalancingInput, Tuple[List[RebalancedItem], float]]
+    Model[TransactionsRebalancingInput, tuple[list[RebalancedItem], float]]
 ):
-    def _run(self, model_input: TransactionsRebalancingInput) -> Tuple[List[RebalancedItem], float]:
+    def _run(self, model_input: TransactionsRebalancingInput) -> tuple[list[RebalancedItem], float]:
         """
         Adjusts sampling rates to bring the number of samples kept in each class as close to
         the same value as possible while maintaining the overall sampling rate.

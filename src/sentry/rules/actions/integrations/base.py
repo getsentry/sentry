@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import List
 
 from django import forms
 
@@ -50,7 +49,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         _name: str = integration.name
         return _name
 
-    def get_integrations(self) -> List[RpcIntegration]:
+    def get_integrations(self) -> list[RpcIntegration]:
         return integration_service.get_integrations(
             organization_id=self.project.organization_id,
             status=OrganizationStatus.ACTIVE,

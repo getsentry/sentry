@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Iterable, Sequence
 from time import time
-from typing import Iterable, Sequence, Set
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -158,7 +158,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         # the counts in redis are in ms resolution.
         return total_sum / total_time_window / 1000
 
-    def get_lpq_projects(self) -> Set[int]:
+    def get_lpq_projects(self) -> set[int]:
         """
         Fetches the list of projects that are currently using the low priority queue.
 
@@ -197,7 +197,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         self._register_backoffs([project_id])
         return was_added
 
-    def remove_projects_from_lpq(self, project_ids: Set[int]) -> int:
+    def remove_projects_from_lpq(self, project_ids: set[int]) -> int:
         """
         Unassigns projects from the low priority queue.
 

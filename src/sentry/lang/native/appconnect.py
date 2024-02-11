@@ -7,7 +7,7 @@ this.
 import dataclasses
 import logging
 import pathlib
-from typing import Any, Dict, List
+from typing import Any
 
 import jsonschema
 import requests
@@ -36,19 +36,13 @@ SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 class InvalidConfigError(Exception):
     """Invalid configuration for the appStoreConnect symbol source."""
 
-    pass
-
 
 class PendingDsymsError(Exception):
     """dSYM url is currently unavailable."""
 
-    pass
-
 
 class NoDsymsError(Exception):
     """No dSYMs were found."""
-
-    pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -98,7 +92,7 @@ class AppStoreConnectConfig:
                 raise ValueError(f"Missing field: {field.name}")
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> "AppStoreConnectConfig":
+    def from_json(cls, data: dict[str, Any]) -> "AppStoreConnectConfig":
         """Creates a new instance from **deserialised** JSON data.
 
         This will include the JSON schema validation.  You can safely use this to create and
@@ -137,7 +131,7 @@ class AppStoreConnectConfig:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
 
     @staticmethod
-    def all_config_ids(project: Project) -> List[str]:
+    def all_config_ids(project: Project) -> list[str]:
         """Return the config IDs of all appStoreConnect symbol sources configured in the project."""
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
         if not raw:
@@ -149,7 +143,7 @@ class AppStoreConnectConfig:
             if s.get("type") == SYMBOL_SOURCE_TYPE_NAME and s.get("id")
         ]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Creates a dict which can be serialised to JSON. This dict should only be
         used internally and should never be sent to external clients, as it contains
         the raw content of all of the secrets contained in the config.
@@ -169,7 +163,7 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def to_redacted_json(self) -> Dict[str, Any]:
+    def to_redacted_json(self) -> dict[str, Any]:
         """Creates a dict which can be serialised to JSON. This should be used when the
         config is meant to be passed to some external consumer, like the front end client.
         This dict will have its secrets redacted.
@@ -258,7 +252,7 @@ class AppConnectClient:
             app_id=config.appId,
         )
 
-    def list_builds(self) -> List[BuildInfo]:
+    def list_builds(self) -> list[BuildInfo]:
         """Returns the available AppStore builds."""
         return appstore_connect.get_build_info(
             self._session, self._api_credentials, self._app_id, include_expired=True

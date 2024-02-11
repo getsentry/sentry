@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from random import random
-from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
+from typing import Any, Literal, Self, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
+from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
-from typing_extensions import Self
 
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus
@@ -17,14 +18,20 @@ from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.utils import is_response_error, is_response_success
-from sentry.models.organization import Organization
 from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiConnectionResetError, ApiError, ApiHostError, ApiTimeoutError
+from ..exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiHostError,
+    ApiRetryError,
+    ApiTimeoutError,
+)
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
@@ -70,7 +77,7 @@ class BaseApiClient(TrackResponseMixin):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: Any) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
@@ -293,6 +300,10 @@ class BaseApiClient(TrackResponseMixin):
                 self.track_response_data("timeout", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
+            except RetryError as e:
+                self.track_response_data("max_retries", span, e, extra=extra)
+                self.record_error(e)
+                raise ApiRetryError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
                 if error_resp is None:
@@ -442,7 +453,7 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration(buffer)
 
-    def disable_integration(self, buffer) -> None:
+    def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
         rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
@@ -451,7 +462,13 @@ class BaseApiClient(TrackResponseMixin):
 
         org = None
         if len(rpc_org_integrations) > 0:
-            org = Organization.objects.filter(id=rpc_org_integrations[0].organization_id).first()
+            org_context = organization_service.get_organization_by_id(
+                id=rpc_org_integrations[0].organization_id,
+                include_projects=False,
+                include_teams=False,
+            )
+            if org_context:
+                org = org_context.organization
 
         extra = {
             "integration_id": self.integration_id,
@@ -489,7 +506,7 @@ class BaseApiClient(TrackResponseMixin):
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
-                organization=org,
+                organization_id=org.id,
                 target_object=org.id,
                 event=audit_log.get_event_id("INTEGRATION_DISABLED"),
                 data={"provider": rpc_integration.provider},

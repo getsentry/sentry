@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
@@ -101,7 +102,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -196,7 +197,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 

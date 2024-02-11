@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
-from typing import Collection, Iterable, Type
 
 from sentry.models.organization import Organization
 from sentry.models.user import User
@@ -69,7 +69,6 @@ class _EmailResolver:
 
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
             """Hook to call if this step resolves to a single user."""
-            pass
 
     class IsVerified(ResolutionStep):
         """Prefer verified email addresses."""
@@ -105,7 +104,7 @@ class _EmailResolver:
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_primary_email", sample_rate=1.0)
 
-    def get_steps(self) -> Iterable[Type[ResolutionStep]]:
+    def get_steps(self) -> Iterable[type[ResolutionStep]]:
         return (
             self.IsVerified,
             self.HasOrgMembership,

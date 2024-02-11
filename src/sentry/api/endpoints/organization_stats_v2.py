@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Any, Dict, List
+from typing import Any
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -119,16 +119,16 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
 
 
 class _StatsGroup(TypedDict):  # this response is pretty dynamic, leaving generic
-    by: Dict[str, Any]
-    totals: Dict[str, Any]
-    series: Dict[str, Any]
+    by: dict[str, Any]
+    totals: dict[str, Any]
+    series: dict[str, Any]
 
 
 class StatsApiResponse(TypedDict):
     start: str
     end: str
-    intervals: List[str]
-    groups: List[_StatsGroup]
+    intervals: list[str]
+    groups: list[_StatsGroup]
 
 
 @extend_schema(tags=["Organizations"])

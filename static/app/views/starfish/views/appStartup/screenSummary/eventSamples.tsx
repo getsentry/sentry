@@ -7,7 +7,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -21,6 +27,7 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
+  footerAlignedPagination?: boolean;
   showDeviceClassSelector?: boolean;
 };
 
@@ -30,23 +37,34 @@ export function EventSamples({
   release,
   sortKey,
   showDeviceClassSelector,
+  footerAlignedPagination,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
+  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
+
+  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
     `release:${release}`,
-    'span.op:[app.start.cold,app.start.warm]',
+    startType
+      ? `${SpanMetricsField.SPAN_OP}:${
+          startType === COLD_START_TYPE ? 'app.start.cold' : 'app.start.warm'
+        }`
+      : 'span.op:[app.start.cold,app.start.warm]',
     '(',
     'span.description:"Cold Start"',
     'OR',
     'span.description:"Warm Start"',
     ')',
+    // TODO: Add this back in once we have the ability to filter by start type
+    // `${SpanMetricsField.APP_START_TYPE}:${
+    //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
+    // }`,
   ]);
-
-  const deviceClass = decodeScalar(location.query['device.class']);
 
   if (deviceClass) {
     if (deviceClass === 'Unknown') {
@@ -59,7 +77,10 @@ export function EventSamples({
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.id': t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
+    'transaction.id': t(
+      'Event ID (%s)',
+      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+    ),
     profile_id: t('Profile'),
     'span.description': t('Start Type'),
     'span.duration': t('Duration'),
@@ -104,6 +125,7 @@ export function EventSamples({
       showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
+      footerAlignedPagination={footerAlignedPagination}
     />
   );
 }

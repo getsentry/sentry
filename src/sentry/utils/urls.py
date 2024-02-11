@@ -1,5 +1,5 @@
 import re
-from typing import MutableMapping, Sequence, Union
+from collections.abc import MutableMapping, Sequence
 from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlsplit, urlunparse
 
 _scheme_re = re.compile(r"^([a-zA-Z0-9-+]+://)(.*)$")
@@ -43,7 +43,7 @@ def parse_link(url: str) -> str:
     """For data aggregation purposes, remove unique information from URL."""
 
     url_parts = list(urlparse(url))
-    query: MutableMapping[str, Union[Sequence[str], str]] = dict(parse_qs(url_parts[4]))
+    query: MutableMapping[str, Sequence[str] | str] = dict(parse_qs(url_parts[4]))
     for param in query:
         if param == "project":
             query.update({"project": "{project}"})

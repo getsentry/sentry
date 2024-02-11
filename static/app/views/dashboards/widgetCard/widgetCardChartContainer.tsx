@@ -30,6 +30,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
@@ -73,6 +74,7 @@ export function WidgetCardChartContainer({
   showSlider,
   noPadding,
   chartZoomOptions,
+  chartGroup,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -143,6 +145,7 @@ export function WidgetCardChartContainer({
                 showSlider={showSlider}
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
+                chartGroup={chartGroup}
               />
             </Fragment>
           );
@@ -185,6 +188,7 @@ export function WidgetCardChartContainer({
                 showSlider={showSlider}
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
+                chartGroup={chartGroup}
               />
             </Fragment>
           );
@@ -235,6 +239,7 @@ export function WidgetCardChartContainer({
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
               timeseriesResultsTypes={timeseriesResultsTypes}
+              chartGroup={chartGroup}
             />
           </Fragment>
         );
@@ -253,7 +258,7 @@ const StyledTransparentLoadingMask = styled(props => (
   align-items: center;
 `;
 
-function LoadingScreen({loading}: {loading: boolean}) {
+export function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

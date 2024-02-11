@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Mapping
 from copy import copy
-from typing import Any, Iterable, List, Mapping
+from typing import Any
 
 import sentry_sdk
 
@@ -46,14 +47,14 @@ def _get_attachments(
     recipient: RpcActor,
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
-) -> List[SlackAttachment] | SlackBlock:
+) -> list[SlackAttachment] | SlackBlock:
     extra_context = (
         extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
     )
     context = get_context(notification, recipient, shared_context, extra_context)
     cls = get_message_builder(notification.message_builder)
     attachments = cls(notification, context, recipient).build()
-    if isinstance(attachments, List) or features.has(
+    if isinstance(attachments, list) or features.has(
         "organizations:slack-block-kit", notification.organization
     ):
         return attachments
@@ -63,7 +64,7 @@ def _get_attachments(
 def _notify_recipient(
     notification: BaseNotification,
     recipient: RpcActor,
-    attachments: List[SlackAttachment],
+    attachments: list[SlackAttachment],
     channel: str,
     integration: Integration,
     shared_context: Mapping[str, Any],

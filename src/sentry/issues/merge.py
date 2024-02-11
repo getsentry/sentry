@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Dict, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import TypedDict
 from uuid import uuid4
 
 import rest_framework
@@ -22,7 +23,7 @@ class MergedGroup(TypedDict):
 
 def handle_merge(
     group_list: Sequence[Group],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
 ) -> MergedGroup:
     """

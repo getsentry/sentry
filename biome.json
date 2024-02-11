@@ -13,9 +13,32 @@
     "enabled": true,
     "rules": {
       "recommended": false,
+      "a11y": {
+        "noBlankTarget": "error"
+      },
+      "correctness": {
+        "noUnreachable": "error",
+        "useHookAtTopLevel": "error",
+        "useIsNan": "error"
+      },
+      "complexity": {
+        "useFlatMap": "error"
+      },
       "nursery": {
+        "noDuplicateJsonKeys": "error",
+        "noNodejsModules": "error",
         "useExportType": "error",
         "useImportType": "error"
+      },
+      "suspicious": {
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateJsxProps": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noDuplicateCase": "error",
+        "noRedeclare": "error",
+        "useIsArray": "error"
       }
     }
   },
@@ -59,5 +82,27 @@
       "allowComments": true,
       "allowTrailingCommas": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "include": [
+        "api-docs/*.ts",
+        "build-utils/*.ts",
+        "config/webpack.chartcuterie.config.ts",
+        "scripts",
+        "tests/js/sentry-test/loadFixtures.ts",
+        "tests/js/jest-pegjs-transform.js",
+        "tests/js/setup.ts",
+        "tests/js/test-balancer/index.js",
+        "*.config.ts"
+      ],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noNodejsModules": "off"
+          }
+        }
+      }
+    }
+  ]
 }

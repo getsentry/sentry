@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 
 import sentry_sdk
 
@@ -41,7 +41,7 @@ class EventProcessingStore(Service):
             self.inner.set(key, event, self.timeout)
             return key
 
-    def get(self, key: str, unprocessed: bool = False) -> Optional[Event]:
+    def get(self, key: str, unprocessed: bool = False) -> Event | None:
         with sentry_sdk.start_span(op="eventstore.processing.get"):
             if unprocessed:
                 key = self.__get_unprocessed_key(key)

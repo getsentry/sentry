@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING
 
 from sentry.utils.services import Service
 
@@ -37,8 +38,8 @@ class RuleHistoryBackend(Service):
         self,
         rule: Rule,
         group: Group,
-        event_id: Optional[str] = None,
-        notification_uuid: Optional[str] = None,
+        event_id: str | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         """
         Records an instance of an issue alert being fired for a given group.

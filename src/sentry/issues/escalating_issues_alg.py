@@ -10,7 +10,7 @@ import math
 import statistics
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 class IssueForecast(TypedDict):
@@ -19,8 +19,8 @@ class IssueForecast(TypedDict):
 
 
 class GroupCount(TypedDict):
-    intervals: List[str]
-    data: List[int]
+    intervals: list[str]
+    data: list[int]
 
 
 # standard values if no parameters are passed
@@ -40,7 +40,7 @@ tighter_version = ThresholdVariables(4, 4, 7, 2, 4)
 
 def generate_issue_forecast(
     data: GroupCount, start_time: datetime, alg_params: ThresholdVariables = standard_version
-) -> List[IssueForecast]:
+) -> list[IssueForecast]:
     """
     Calculates daily issue spike limits, given an input dataset from snuba.
 
@@ -65,7 +65,7 @@ def generate_issue_forecast(
     """
 
     # output list of dictionaries
-    output: List[IssueForecast] = []
+    output: list[IssueForecast] = []
 
     input_dates = [datetime.strptime(x, "%Y-%m-%dT%H:%M:%S%f%z") for x in data["intervals"]]
     output_dates = [start_time + timedelta(days=x) for x in range(14)]

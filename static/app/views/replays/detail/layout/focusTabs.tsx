@@ -16,9 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
-  // The new Accessibility tab:
-  const hasA11yTab = organization.features.includes('session-replay-a11y-tab');
-
   // The new trace table inside Breadcrumb items:
   const hasTraceTable = organization.features.includes('session-replay-trace-table');
 
@@ -29,7 +26,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: hasTraceTable ? null : t('Trace'),
     [TabKey.PERF]: null,
-    [TabKey.A11Y]: hasA11yTab ? (
+    [TabKey.A11Y]: (
       <Fragment>
         <Tooltip
           isHoverable
@@ -51,7 +48,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
           title={t('This feature is available for early adopters and may change')}
         />
       </Fragment>
-    ) : null,
+    ),
     [TabKey.MEMORY]: t('Memory'),
     [TabKey.TAGS]: t('Tags'),
   };

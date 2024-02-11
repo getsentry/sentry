@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.request import Request
@@ -86,9 +87,9 @@ def get_available_issue_plugins(request: Request, group):
 
 @dataclass
 class GroupStatsQueryArgs:
-    stats_period: Optional[str]
-    stats_period_start: Optional[datetime]
-    stats_period_end: Optional[datetime]
+    stats_period: str | None
+    stats_period_start: datetime | None
+    stats_period_end: datetime | None
 
 
 class GroupStatsMixin:

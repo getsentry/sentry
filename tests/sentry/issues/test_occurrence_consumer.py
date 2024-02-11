@@ -1,9 +1,10 @@
 import datetime
 import logging
 import uuid
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
-from typing import Any, Dict, Optional, Sequence, Type
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -24,6 +25,7 @@ from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -32,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 def get_test_message(
     project_id: int, include_event: bool = True, **overrides: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     now = datetime.datetime.now()
     event_id = uuid.uuid4().hex
     payload = {
@@ -205,20 +207,20 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
 
 
 class ParseEventPayloadTest(IssueOccurrenceTestBase):
-    def run_test(self, message: Dict[str, Any]) -> None:
+    def run_test(self, message: dict[str, Any]) -> None:
         _get_kwargs(message)
 
     def run_invalid_schema_test(
-        self, message: Dict[str, Any], expected_error: Type[Exception]
+        self, message: dict[str, Any], expected_error: type[Exception]
     ) -> None:
         with pytest.raises(expected_error):
             self.run_test(message)
 
     def run_invalid_payload_test(
         self,
-        remove_event_fields: Optional[Sequence[str]] = None,
-        update_event_fields: Optional[Dict[str, Any]] = None,
-        expected_error: Type[Exception] = InvalidEventPayloadError,
+        remove_event_fields: Sequence[str] | None = None,
+        update_event_fields: dict[str, Any] | None = None,
+        expected_error: type[Exception] = InvalidEventPayloadError,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:
@@ -405,3 +407,20 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["culprit"] = "i did it"
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["culprit"] == "i did it"
+
+    def test_priority(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_defaults_to_grouptype(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_overrides_defaults(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = PriorityLevel.HIGH
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH

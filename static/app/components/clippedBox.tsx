@@ -50,7 +50,7 @@ function calculateAddedHeight({
   }
 }
 
-function clearMaxHeight(element?: HTMLElement | null) {
+function clearMaxHeight(element: HTMLElement | null) {
   if (element) {
     element.style.maxHeight = 'none';
   }
@@ -91,7 +91,7 @@ function revealAndDisconnectObserver({
     wrapperRef.current.addEventListener('transitionend', onTransitionEnd);
     wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
   } else {
-    clearMaxHeight();
+    clearMaxHeight(wrapperRef.current);
   }
 
   revealRef.current = true;

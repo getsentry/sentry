@@ -3,7 +3,8 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from typing import TYPE_CHECKING, List, Mapping, Type, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, cast
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
@@ -63,7 +64,7 @@ class IntegrationClassification(BaseClassification):
     logger = logging.getLogger(f"{__name__}.integration")
 
     @property
-    def integration_parsers(self) -> Mapping[str, Type[BaseRequestParser]]:
+    def integration_parsers(self) -> Mapping[str, type[BaseRequestParser]]:
         from .parsers import (
             BitbucketRequestParser,
             BitbucketServerRequestParser,
@@ -80,7 +81,7 @@ class IntegrationClassification(BaseClassification):
             VstsRequestParser,
         )
 
-        active_parsers: List[Type[BaseRequestParser]] = [
+        active_parsers: list[type[BaseRequestParser]] = [
             BitbucketRequestParser,
             BitbucketServerRequestParser,
             DiscordRequestParser,

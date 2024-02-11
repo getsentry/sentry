@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import List
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
@@ -14,7 +13,7 @@ from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
     def create_archived_until_escalating_groups(
         self, num_groups: int, group_type: int = ErrorGroupType.type_id
-    ) -> List[Group]:
+    ) -> list[Group]:
         group_list = []
         project_1 = self.project
         for i in range(num_groups):

@@ -1,12 +1,4 @@
 {
-  "sentry.interfaces.User": {
-    "username": "Example",
-    "data": {
-      "is_admin": false
-    },
-    "id": "3",
-    "email": "example@example.com"
-  },
   "culprit": "-[RNSentry crash]",
   "message": "EXC_BREAKPOINT fatal error | TEST - Sentry Client Crash -[RNSentry crash]",
   "tags": [

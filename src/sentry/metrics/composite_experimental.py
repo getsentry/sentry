@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any
 
 from django.conf import settings
 
@@ -21,13 +21,13 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._deny_prefixes = tuple(kwargs.pop("deny_prefixes", []))
 
     def _initialize_backends(
-        self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
+        self, primary_backend: str | None, primary_backend_args: dict[str, Any]
     ):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
         if primary_backend is None:
             self._primary_backend: MetricsBackend = DummyMetricsBackend()
         else:
-            cls: Type[MetricsBackend] = import_string(primary_backend)
+            cls: type[MetricsBackend] = import_string(primary_backend)
             self._primary_backend = cls(**primary_backend_args)
 
         self._minimetrics: MiniMetricsMetricsBackend = MiniMetricsMetricsBackend()
@@ -46,11 +46,11 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.incr(key, instance, tags, amount, sample_rate, unit)
@@ -69,8 +69,8 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -89,10 +89,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.gauge(key, value, instance, tags, sample_rate, unit)
@@ -111,10 +111,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.distribution(key, value, instance, tags, sample_rate, unit)

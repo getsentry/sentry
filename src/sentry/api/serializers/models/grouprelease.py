@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import timedelta
-from typing import Dict, List
 
 from django.utils import timezone
 
@@ -57,7 +56,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items: Dict[str, List[str]] = {}
+        items: dict[str, list[str]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}

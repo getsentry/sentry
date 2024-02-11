@@ -2,9 +2,9 @@ import functools
 import os
 import re
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import timezone
-from typing import Any, Dict, Optional, Sequence
+from typing import Any
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -98,7 +98,7 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
-def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+def _translate_filter_keys(project_ids, group_ids, environment_ids) -> dict[str, Any]:
     filter_keys = {"project_id": project_ids}
 
     if environment_ids:
@@ -695,7 +695,7 @@ class SnubaTagStorage(TagStorage):
         self,
         group: Group,
         environment_ids: Sequence[int],
-        keys: Optional[Sequence[str]] = None,
+        keys: Sequence[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
         **kwargs,
@@ -988,8 +988,8 @@ class SnubaTagStorage(TagStorage):
     def _get_tag_values_for_semver(
         self,
         projects: Sequence[int],
-        environments: Optional[Sequence[str]],
-        query: Optional[str],
+        environments: Sequence[str] | None,
+        query: str | None,
     ):
         from sentry.api.paginator import SequencePaginator
 

@@ -1,6 +1,7 @@
 import functools
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -49,19 +50,19 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 
 def inbox_search(
     projects: Sequence[Project],
-    environments: Optional[Sequence[Environment]] = None,
+    environments: Sequence[Environment] | None = None,
     limit: int = 100,
-    cursor: Optional[Cursor] = None,
+    cursor: Cursor | None = None,
     count_hits: bool = False,
-    search_filters: Optional[Sequence[SearchFilter]] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-    max_hits: Optional[int] = None,
-    actor: Optional[Any] = None,
+    search_filters: Sequence[SearchFilter] | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    max_hits: int | None = None,
+    actor: Any | None = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
-    end: Optional[datetime] = None
-    end_params: List[datetime] = [
+    end: datetime | None = None
+    end_params: list[datetime] = [
         _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
     ]
     if end_params:
@@ -107,7 +108,7 @@ def inbox_search(
     ).using_replica()
 
     if environments is not None:
-        environment_ids: List[int] = [environment.id for environment in environments]
+        environment_ids: list[int] = [environment.id for environment in environments]
         qs = qs.filter(
             group_id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
             .values_list("group_id", flat=True)

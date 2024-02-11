@@ -1,7 +1,8 @@
 import re
 import zoneinfo
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Tuple, Union, overload
+from typing import Any, overload
 
 from dateutil.parser import parse
 from django.http.request import HttpRequest
@@ -47,11 +48,11 @@ def to_datetime(value: None) -> None:
 
 
 @overload
-def to_datetime(value: Union[float, int]) -> datetime:
+def to_datetime(value: float | int) -> datetime:
     ...
 
 
-def to_datetime(value: Optional[Union[float, int]]) -> Optional[datetime]:
+def to_datetime(value: float | int | None) -> datetime | None:
     """
     Convert a POSIX timestamp to a time zone aware datetime.
 
@@ -71,7 +72,7 @@ def floor_to_utc_day(value: datetime) -> datetime:
     return value.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
+def parse_date(datestr: str, timestr: str) -> datetime | None:
     # format is Y-m-d
     if not (datestr or timestr):
         return None
@@ -88,7 +89,7 @@ def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
             return None
 
 
-def parse_timestamp(value: Any) -> Optional[datetime]:
+def parse_timestamp(value: Any) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
@@ -109,7 +110,7 @@ def parse_timestamp(value: Any) -> Optional[datetime]:
     return rv.replace(tzinfo=timezone.utc)
 
 
-def parse_stats_period(period: str) -> Optional[timedelta]:
+def parse_stats_period(period: str) -> timedelta | None:
     """Convert a value such as 1h into a proper timedelta."""
     m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
@@ -151,7 +152,7 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
 def get_rollup_from_request(
     request: HttpRequest,
     params: Mapping[str, Any],
-    default_interval: Union[None, str],
+    default_interval: None | str,
     error: Exception,
     top_events: int = 0,
 ) -> int:
@@ -183,7 +184,7 @@ def validate_interval(
 
 def outside_retention_with_modified_start(
     start: datetime, end: datetime, organization: Any
-) -> Tuple[bool, datetime]:
+) -> tuple[bool, datetime]:
     """
     Check if a start-end datetime range is outside an
     organizations retention period. Returns an updated

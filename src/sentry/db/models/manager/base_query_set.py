@@ -1,7 +1,8 @@
 import abc
-from typing import Any, List
+from typing import Any
 
 from django.core import exceptions
+from django.core.exceptions import EmptyResultSet
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
 
@@ -28,7 +29,7 @@ class BaseQuerySet(QuerySet, abc.ABC):
         qs._with_post_update_signal = self._with_post_update_signal
         return qs
 
-    def update_with_returning(self, returned_fields: List[str], **kwargs):
+    def update_with_returning(self, returned_fields: list[str], **kwargs):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
@@ -55,13 +56,20 @@ class BaseQuerySet(QuerySet, abc.ABC):
         # Clear any annotations so that they won't be present in subqueries.
         query.annotations = {}
         with transaction.mark_for_rollback_on_error(using=self.db):
-            query_sql, query_params = query.get_compiler(self.db).as_sql()
-            query_sql += f" RETURNING {', '.join(returned_fields)} "
-            using = router.db_for_write(self.model)
+            try:
+                query_sql, query_params = query.get_compiler(self.db).as_sql()
+                query_sql += f" RETURNING {', '.join(returned_fields)} "
+                using = router.db_for_write(self.model)
 
-            with connections[using].cursor() as cursor:
-                cursor.execute(query_sql, query_params)
-                result_ids = cursor.fetchall()
+                with connections[using].cursor() as cursor:
+                    cursor.execute(query_sql, query_params)
+                    result_ids = cursor.fetchall()
+            except EmptyResultSet:
+                # If Django detects that the query cannot return any results it'll raise
+                # EmptyResultSet before we even run the query. Catch it and just return an
+                # empty array of result ids
+                result_ids = []
+
         self._result_cache = None
         return result_ids
 
@@ -71,8 +79,9 @@ class BaseQuerySet(QuerySet, abc.ABC):
         if self._with_post_update_signal:
             pk = self.model._meta.pk.name
             ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
-            updated_fields = list(kwargs.keys())
-            post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
+            if ids:
+                updated_fields = list(kwargs.keys())
+                post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
             return len(ids)
         else:
             return super().update(**kwargs)

@@ -3,9 +3,11 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import random
 import zlib
+from collections.abc import Sequence
 from hashlib import md5
-from typing import Any, Sequence
+from typing import Any, Literal
 
 import msgpack
 import sentry_sdk
@@ -14,6 +16,8 @@ from django.core.cache import cache
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
+from sentry_ophio.enhancers import Cache as RustCache
+from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import options, projectoptions
 from sentry.grouping.component import GroupingComponent
@@ -36,6 +40,10 @@ from .matchers import (
 
 DATADOG_KEY = "save_event.stacktrace"
 logger = logging.getLogger(__name__)
+
+# NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
+# So this leaves quite a bit of headroom for custom enhancement rules as well.
+RUST_CACHE = RustCache(1_000)
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -112,6 +120,143 @@ class StacktraceState:
         return f"{hint} by stack trace rule ({description})"
 
 
+def merge_rust_enhancements(
+    bases: list[str], rust_enhancements: RustEnhancements | None = None
+) -> RustEnhancements | None:
+    """
+    Similar to `iter_rules` in Python, this will also merge the parsed enhancements
+    together with the `bases`. It pretty much concatenates all the rules in `bases`
+    (in order) together with all the rules in the incoming `rust_enhancements`.
+    If `rust_enhancements` is `None`, it means nothing was parsed (either due to it
+    being disabled, or due to a parse error). In that case we do not return anything.
+    """
+    if not rust_enhancements:
+        return None
+
+    try:
+        merged_rust_enhancements = RustEnhancements.empty()
+        for base_id in bases:
+            base = ENHANCEMENT_BASES.get(base_id)
+            if base:
+                if not base.rust_enhancements:
+                    raise Exception("base has no rust_enhancements")
+                merged_rust_enhancements.extend_from(base.rust_enhancements)
+        merged_rust_enhancements.extend_from(rust_enhancements)
+        return merged_rust_enhancements
+    except Exception:
+        logger.exception("failed merging rust enhancers")
+        return None
+
+
+def parse_rust_enhancements(
+    source: Literal["config_structure", "config_string"], input: str | bytes, force_parsing=False
+) -> RustEnhancements | None:
+    """
+    Parses ``RustEnhancements`` from either a msgpack-encoded `config_structure`,
+    or from the text representation called `config_string`.
+
+    Parsing itself is controlled via an option, but can be forced via `force_parsing`.
+    """
+    rust_enhancements = None
+
+    parse_rust_enhancements = force_parsing
+    if not force_parsing:
+        try:
+            parse_rust_enhancements = random.random() < options.get(
+                "grouping.rust_enhancers.parse_rate"
+            )
+        except Exception:
+            parse_rust_enhancements = False
+
+    if parse_rust_enhancements:
+        try:
+            if source == "config_structure":
+                assert isinstance(input, bytes)
+                rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
+            else:
+                assert isinstance(input, str)
+                rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
+
+            metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
+        except Exception:
+            logger.exception("failed parsing Rust Enhancements from `%s`", source)
+
+    return rust_enhancements
+
+
+RustEnhancedFrames = list[tuple[str | None, bool | None]]
+
+
+def apply_rust_enhancements(
+    rust_enhancements: RustEnhancements | None,
+    match_frames: list[dict[str, bytes]],
+    exception_data: dict[str, Any],
+) -> RustEnhancedFrames | None:
+    """
+    If `RustEnhancements` were successfully parsed and usage is enabled,
+    this will apply all the modifications from enhancement rules to `match_frames`,
+    returning a tuple of `(modified category, modified in_app)` for each frame.
+    """
+    if not rust_enhancements:
+        return None
+
+    try:
+        use_rust_enhancements = random.random() < options.get(
+            "grouping.rust_enhancers.modify_frames_rate"
+        )
+    except Exception:
+        use_rust_enhancements = False
+    if not use_rust_enhancements:
+        return None
+
+    try:
+        e = exception_data or {}
+        e = {
+            "ty": e.get("type"),
+            "value": e.get("value"),
+            "mechanism": get_path(e, "mechanism", "type"),
+        }
+        for key in e.keys():
+            value = e[key]
+            if isinstance(value, str):
+                e[key] = value.encode("utf-8")
+
+        rust_enhanced_frames = rust_enhancements.apply_modifications_to_frames(
+            iter(match_frames), e
+        )
+        metrics.incr("rust_enhancements.modifications_run")
+        return rust_enhanced_frames
+    except Exception:
+        logger.exception("failed running Rust Enhancements modifications")
+        return None
+
+
+def compare_rust_enhancers(
+    frames: Sequence[dict[str, Any]], rust_enhanced_frames: RustEnhancedFrames | None
+):
+    """
+    Compares the results of `rust_enhanced_frames` with the frame modifications
+    applied by Python code directly to `frames`.
+
+    This will log an internal error on every mismatch.
+    """
+    if rust_enhanced_frames:
+        python_frames = list((get_path(f, "data", "category"), f.get("in_app")) for f in frames)
+
+        if python_frames != rust_enhanced_frames:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("python_frames", python_frames)
+                scope.set_extra("rust_enhanced_frames", rust_enhanced_frames)
+                sentry_sdk.capture_message("Rust Enhancements mismatch")
+
+
+def prefer_rust_enhancers():
+    try:
+        return random.random() < options.get("grouping.rust_enhancers.prefer_rust_result")
+    except Exception:
+        return False
+
+
 class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
@@ -119,7 +264,7 @@ class Enhancements:
     # See ``_get_project_enhancements_config`` in src/sentry/grouping/api.py.
 
     @sentry_sdk.tracing.trace
-    def __init__(self, rules, version=None, bases=None, id=None):
+    def __init__(self, rules, version=None, bases=None, id=None, rust_enhancements=None):
         self.id = id
         self.rules = rules
         if version is None:
@@ -128,6 +273,8 @@ class Enhancements:
         if bases is None:
             bases = []
         self.bases = bases
+
+        self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
 
         self._modifier_rules: list[Rule] = []
         self._updater_rules: list[Rule] = []
@@ -145,10 +292,24 @@ class Enhancements:
         extra_fingerprint: str = "",
     ) -> None:
         """This applies the frame modifications to the frames itself. This does not affect grouping."""
-        in_memory_cache: dict[str, str] = {}
 
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
+
+        rust_enhanced_frames = apply_rust_enhancements(
+            self.rust_enhancements, match_frames, exception_data
+        )
+
+        if rust_enhanced_frames and prefer_rust_enhancers():
+            for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+                if in_app is not None:
+                    set_in_app(frame, in_app)
+                if category is not None:
+                    set_path(frame, "data", "category", value=category)
+            return
+
+        in_memory_cache: dict[str, str] = {}
+
         # The extra fingerprint mostly makes sense during test execution when two different group configs
         # can share the same set of rules and bases
         stacktrace_fingerprint = _generate_stacktrace_fingerprint(
@@ -161,6 +322,7 @@ class Enhancements:
             frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
             if frames_changed:
                 logger.debug("The frames have been loaded from the cache. Skipping some work.")
+                compare_rust_enhancers(frames, rust_enhanced_frames)
                 return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
@@ -176,6 +338,8 @@ class Enhancements:
 
         if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
+
+        compare_rust_enhancers(frames, rust_enhanced_frames)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
@@ -276,22 +440,11 @@ class Enhancements:
     @sentry_sdk.tracing.trace
     def dumps(self) -> str:
         encoded = msgpack.dumps(self._to_config_structure())
-
-        try:
-            # I don’t want to put DB access into all of the tests ;-)
-            use_zstd = options.get("enhancers.use-zstd")
-        except Exception:
-            use_zstd = False
-
-        if use_zstd:
-            compressed = zstandard.compress(encoded)
-        else:
-            compressed = zlib.compress(encoded)
-
+        compressed = zstandard.compress(encoded)
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data) -> Enhancements:
+    def _from_config_structure(cls, data, rust_enhancements=None) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
@@ -299,6 +452,7 @@ class Enhancements:
             rules=[Rule._from_config_structure(x, version=version) for x in rules],
             version=version,
             bases=bases,
+            rust_enhancements=rust_enhancements,
         )
 
     @classmethod
@@ -315,13 +469,17 @@ class Enhancements:
             else:
                 encoded = zlib.decompress(compressed)
 
-            return cls._from_config_structure(msgpack.loads(encoded, raw=False))
+            rust_enhancements = parse_rust_enhancements("config_structure", encoded)
+
+            return cls._from_config_structure(msgpack.loads(encoded, raw=False), rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(self, s, bases=None, id=None, force_rust_parsing=False) -> Enhancements:
+        rust_enhancements = parse_rust_enhancements("config_string", s, force_rust_parsing)
+
         try:
             tree = enhancements_grammar.parse(s)
             rules = EnhancementsVisitor().visit(tree)
@@ -337,6 +495,7 @@ class Enhancements:
             rules,
             bases=bases,
             id=id,
+            rust_enhancements=rust_enhancements,
         )
 
 
@@ -655,7 +814,12 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")
-                rv[fn[:-4]] = Enhancements.from_config_string(f.read(), id=fn[:-4])
+                # NOTE: we want to force parsing the `RustEnhancements` here, as the base rules
+                # are required for inheritance, and because they are well tested.
+                enhancements = Enhancements.from_config_string(
+                    f.read(), id=fn[:-4], force_rust_parsing=True
+                )
+                rv[fn[:-4]] = enhancements
     return rv
 
 

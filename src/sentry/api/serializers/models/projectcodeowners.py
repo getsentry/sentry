@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 # from sentry.api.endpoints.project_ownership import rename_schema_identifier_for_parsing
 from sentry.api.serializers import Serializer, register, serialize
@@ -56,7 +56,7 @@ class ProjectCodeOwnersSerializer(Serializer):
 
         return attrs
 
-    def rename_schema_identifier_for_parsing(self, schema: Dict[str, Any]) -> None:
+    def rename_schema_identifier_for_parsing(self, schema: dict[str, Any]) -> None:
         """
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend

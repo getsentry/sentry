@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -51,13 +51,13 @@ MATCHERS = {
 }
 
 
-def _get_function_name(frame_data: dict, platform: Optional[str]):
+def _get_function_name(frame_data: dict, platform: str | None):
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
+def create_match_frame(frame_data: dict, platform: str | None) -> dict:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
@@ -72,11 +72,14 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     for key in list(match_frame.keys()):
         value = match_frame[key]
         if isinstance(value, (bytes, str)):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
-
             if isinstance(value, str):
-                match_frame[key] = value.encode("utf-8")
+                value = match_frame[key] = value.encode("utf-8")
+
+            if key in ("package", "path"):
+                # NOTE: path-like matchers are case insensitive, and normalize
+                # file-system separators to `/`.
+                # We do this here in a central place instead of in each matcher separately.
+                value = match_frame[key] = value.lower().replace(b"\\", b"/")
 
     return match_frame
 
@@ -110,12 +113,12 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
-InstanceKey = Tuple[str, str, bool]
+InstanceKey = tuple[str, str, bool]
 
 
 class FrameMatch(Match):
     # Global registry of matchers
-    instances: Dict[InstanceKey, Match] = {}
+    instances: dict[InstanceKey, Match] = {}
     field: Any = None
 
     @classmethod
@@ -231,10 +234,11 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = bool(get_rule_bool(self.pattern))
+        self._ref_val = get_rule_bool(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == bool(match_frame["in_app"])
+        ref_val = self._ref_val
+        return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):
@@ -261,7 +265,7 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
-    field_path: List[str]
+    field_path: list[str]
 
     def matches_frame(self, frames, idx, exception_data, cache):
         match_frame = None

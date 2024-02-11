@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import sentry_kafka_schemas
@@ -96,10 +88,10 @@ class SnubaProtocolEventStream(EventStream):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         received_timestamp: float,
         skip_consume: bool,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
         return {
             "Received-Timestamp": str(received_timestamp),
@@ -112,10 +104,10 @@ class SnubaProtocolEventStream(EventStream):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
         if event.get_tag("sample_event") == "true":
@@ -220,7 +212,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_delete_groups(
         self, project_id: int, group_ids: Sequence[int]
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         if not group_ids:
             return None
 
@@ -247,7 +239,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         if not previous_group_ids:
             return None
 
@@ -272,7 +264,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_unmerge(
         self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         if not hashes:
             return None
 
@@ -296,7 +288,7 @@ class SnubaProtocolEventStream(EventStream):
             state_copy["project_id"], "end_unmerge", extra_data=(state_copy,), asynchronous=False
         )
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Optional[Mapping[str, Any]]:
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any] | None:
         if not tag:
             return None
 
@@ -322,9 +314,9 @@ class SnubaProtocolEventStream(EventStream):
         self,
         project_id: int,
         event_ids: Sequence[str],
-        old_primary_hash: Optional[str] = None,
-        from_timestamp: Optional[datetime] = None,
-        to_timestamp: Optional[datetime] = None,
+        old_primary_hash: str | None = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
     ) -> None:
         """
         Tell Snuba to eventually delete these events.
@@ -362,8 +354,8 @@ class SnubaProtocolEventStream(EventStream):
         project_id: int,
         event_ids: Sequence[str],
         new_group_id: int,
-        from_timestamp: Optional[datetime] = None,
-        to_timestamp: Optional[datetime] = None,
+        from_timestamp: datetime | None = None,
+        to_timestamp: datetime | None = None,
     ) -> None:
         """
         Tell Snuba to move events into a new group ID
@@ -395,9 +387,9 @@ class SnubaProtocolEventStream(EventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[MutableMapping[str, str]] = None,
+        headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -409,9 +401,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[MutableMapping[str, str]] = None,
+        headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -461,10 +453,10 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
         super().insert(

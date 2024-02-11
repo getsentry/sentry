@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, Set, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -198,6 +198,15 @@ class OrgAuthTokenPermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+
+class OrganizationMetricsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:admin"],
     }
 
 
@@ -564,8 +573,8 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization | RpcOrganization,
-        release: Optional[Release] = None,
-        project_ids: Optional[Set[int]] = None,
+        release: Release | None = None,
+        project_ids: set[int] | None = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based

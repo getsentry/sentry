@@ -1,4 +1,4 @@
-import type {Organization, User} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -30,12 +30,24 @@ export function getEventsByColumn(
   return eventsByColumn;
 }
 
-export function hasTraceTimelineFeature(
-  organization: Organization | null,
-  user: User | undefined
-) {
-  const newIssueExperienceEnabled = user?.options?.issueDetailsNewExperienceQ42023;
-  const hasFeature = organization?.features?.includes('issues-trace-timeline');
+export function getChunkTimeRange(
+  startTimestamp: number,
+  chunkIndex: number,
+  chunkDurationMs: number
+): [number, number] {
+  // Calculate the absolute start time of the chunk in milliseconds
+  const chunkStartMs = chunkIndex * chunkDurationMs;
 
-  return !!(newIssueExperienceEnabled && hasFeature);
+  // Add the chunk start time to the overall start timestamp
+  const chunkStartTimestamp = startTimestamp + chunkStartMs;
+
+  // Calculate the end timestamp by adding the chunk duration
+  const chunkEndTimestamp = chunkStartTimestamp + chunkDurationMs;
+
+  // Round up and down to the nearest second
+  return [Math.floor(chunkStartTimestamp), Math.floor(chunkEndTimestamp) + 1];
+}
+
+export function hasTraceTimelineFeature(organization: Organization | null) {
+  return organization?.features?.includes('issues-trace-timeline');
 }

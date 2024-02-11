@@ -22,7 +22,9 @@ import {
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
+  isSpanMetric,
   isTransactionDuration,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import type {
@@ -31,11 +33,11 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {formatMRI} from '../../../../utils/metrics/mri';
+import {useMetricsDashboardContext} from '../metricsContext';
 
 type InlineEditorProps = {
   displayType: MetricDisplayType;
@@ -52,7 +54,10 @@ type InlineEditorProps = {
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
-  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+  isCustomMetric(metric) ||
+  isTransactionDuration(metric) ||
+  isMeasurement(metric) ||
+  isSpanMetric(metric);
 
 export const InlineEditor = memo(function InlineEditor({
   metricsQuery,
@@ -67,9 +72,9 @@ export const InlineEditor = memo(function InlineEditor({
   size = 'sm',
 }: InlineEditorProps) {
   const [editingName, setEditingName] = useState(false);
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const {metricsMeta: meta, isLoading: isMetaLoading} = useMetricsDashboardContext();
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
+  const {data: tags = []} = useMetricsTags(metricsQuery.mri, {projects});
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
@@ -109,6 +114,7 @@ export const InlineEditor = memo(function InlineEditor({
               <WidgetTitleInput
                 value={title}
                 size="sm"
+                placeholder={stringifyMetricWidget(metricsQuery)}
                 onChange={e => {
                   onTitleChange?.(e.target.value);
                 }}
@@ -233,7 +239,6 @@ export const InlineEditor = memo(function InlineEditor({
         <MetricSearchBarWrapper>
           {!editingName && (
             <MetricSearchBar
-              projectIds={projects.map(id => id.toString())}
               mri={metricsQuery.mri}
               disabled={!metricsQuery.mri}
               onChange={query => {
@@ -340,6 +345,8 @@ const InlineEditorWrapper = styled('div')`
   padding: ${space(1)};
   gap: ${space(1)};
   width: 100%;
+  /* minimal z-index that allows dropdowns to expand over other dashboard elements */
+  z-index: 6;
 `;
 
 const QueryDefinitionWrapper = styled('div')`

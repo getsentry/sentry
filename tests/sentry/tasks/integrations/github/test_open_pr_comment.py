@@ -102,6 +102,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "baz.py", "changes": 100, "status": "added"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "hi.py", "changes": 100, "status": "removed"},
             {"filename": "boo.py", "changes": 0, "status": "renamed"},
         ]
         responses.add(
@@ -114,7 +115,6 @@ class TestSafeForComment(GithubCommentTestCase):
         pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
         ]
 
     @responses.activate
@@ -138,7 +138,6 @@ class TestSafeForComment(GithubCommentTestCase):
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
-            {"filename": "bee.py", "changes": 100, "status": "deleted"},
         ]
 
     @responses.activate
@@ -174,7 +173,7 @@ class TestSafeForComment(GithubCommentTestCase):
             status=200,
             json=[
                 {"filename": "foo.py", "changes": 300, "status": "modified"},
-                {"filename": "bar.py", "changes": 300, "status": "deleted"},
+                {"filename": "bar.py", "changes": 300, "status": "modified"},
             ],
         )
 
@@ -267,14 +266,15 @@ class TestGetFilenames(GithubCommentTestCase):
     def test_get_pr_files(self):
         data: JSONData = [
             {"filename": "bar.py", "status": "modified", "patch": "b"},
-            {"filename": "baz.py", "status": "deleted", "patch": "c"},
+            {"filename": "baz.py", "status": "modified"},
         ]
 
         pr_files = get_pr_files(data)
-        for i, pr_file in enumerate(pr_files):
-            file = data[i]
-            assert pr_file.filename == file["filename"]
-            assert pr_file.patch == file["patch"]
+        assert len(pr_files) == 1
+
+        pr_file = pr_files[0]
+        assert pr_file.filename == data[0]["filename"]
+        assert pr_file.patch == data[0]["patch"]
 
     def test_get_projects_and_filenames_from_source_file(self):
         projects = [self.create_project() for _ in range(4)]
@@ -328,7 +328,54 @@ class TestGetFilenames(GithubCommentTestCase):
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, filename
+            self.organization.id, self.gh_repo.id, filename
+        )
+        assert project_list == set(projects)
+        assert sentry_filenames == set(correct_filenames)
+
+    def test_get_projects_and_filenames_from_source_file_filters_repo(self):
+        projects = [self.create_project() for _ in range(3)]
+
+        source_stack_pairs = [
+            ("src/sentry", "sentry/"),
+            ("src/", ""),
+            ("src/sentry/", "sentry/"),
+        ]
+        for i, pair in enumerate(source_stack_pairs):
+            source_root, stack_root = pair
+            self.create_code_mapping(
+                project=projects[i],
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        # other codemapping in different repo, will not match
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/santry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            project=project,
+            url="https://github.com/getsentry/santry",
+        )
+        self.create_code_mapping(
+            project=project,
+            repo=repo,
+            source_root="",
+            stack_root="./",
+            default_branch="master",
+        )
+
+        filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
+        correct_filenames = [
+            "sentry//tasks/integrations/github/open_pr_comment.py",
+            "sentry/tasks/integrations/github/open_pr_comment.py",
+        ]
+
+        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
+            self.organization.id, self.gh_repo.id, filename
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)

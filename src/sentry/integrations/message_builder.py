@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
@@ -165,7 +166,7 @@ def build_attachment_replay_link(
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
-        return f"\n\n{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+        return f"{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
 
     return None
 

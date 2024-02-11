@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Sequence
+from collections.abc import Sequence
 from uuid import uuid4
 
 import rest_framework
@@ -27,7 +27,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: "Project",
-    group_list: List["Group"],
+    group_list: list["Group"],
     delete_type: str,
 ) -> None:
     if not group_list:

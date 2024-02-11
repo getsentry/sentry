@@ -1643,11 +1643,6 @@
   dependencies:
     tslib "^2.4.0"
 
-"@fullstory/babel-plugin-annotate-react@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@fullstory/babel-plugin-annotate-react/-/babel-plugin-annotate-react-2.3.0.tgz#ab4df27dbecaa3771a1b353b898ccf887876e9fb"
-  integrity sha512-gYLUL6Tu0exbvTIhK9nSCaztmqBlQAm07Fvtl/nKTc+lxwFkcX9vR8RrdTbyjJZKbPaA5EMlExQ6GeLCXkfm5g==
-
 "@humanwhocodes/config-array@^0.11.11":
   version "0.11.11"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.11.tgz#88a04c570dbbc7dd943e4712429c3df09bc32844"
@@ -2862,6 +2857,11 @@
     "@sentry/core" "7.99.0"
     "@sentry/types" "7.99.0"
     "@sentry/utils" "7.99.0"
+
+"@sentry/babel-plugin-component-annotate@^2.14.0":
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.14.0.tgz#e62f448dd3c922a6d32e9f1c0a5ae85fa6ec22c2"
+  integrity sha512-FWU4+Lx6fgxjAkwmc3S9j1Q/6pqKZyZzfi52B+8WMNw7a5QjGXgxc5ucBazZYgrcsJKCFBp4QG3PPxNAieFimQ==
 
 "@sentry/browser@7.99.0":
   version "7.99.0"
@@ -6634,11 +6634,6 @@ focus-trap@^7.3.1:
   integrity sha512-bX/u4FJ+F0Pp6b/8Q9W8Br/JaLJ7rrhOJAzai9JU8bh4BPdOjEATy4pxHcbBBxFjPN4d1oHy7/KqknEdOetm9w==
   dependencies:
     tabbable "^6.1.1"
-
-focus-visible@^5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/focus-visible/-/focus-visible-5.2.0.tgz#3a9e41fccf587bd25dcc2ef045508284f0a4d6b3"
-  integrity sha512-Rwix9pBtC1Nuy5wysTmKy+UjbDJpIfg8eHjw0rjZ1mX4GNLz1Bmd16uDpI3Gk1i70Fgcs8Csg2lPm8HULFg9DQ==
 
 follow-redirects@^1.0.0, follow-redirects@^1.15.4:
   version "1.15.5"

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Optional, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from django import forms
 
@@ -138,7 +139,7 @@ class NotifyEventServiceAction(EventAction):
         return title
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 

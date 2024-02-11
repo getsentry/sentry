@@ -1,5 +1,3 @@
-from typing import List
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -51,7 +49,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         operation_id="List an Organization's Replays",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
         responses={
-            200: inline_sentry_response_serializer("ListReplays", List[ReplayDetailsResponse]),
+            200: inline_sentry_response_serializer("ListReplays", list[ReplayDetailsResponse]),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },

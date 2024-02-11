@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 import rest_framework
@@ -22,6 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.priority import PRIORITY_UPDATE_CHOICES, update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -187,6 +189,8 @@ def update_groups(
     else:
         group_list = None
 
+    has_priority = False
+
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
@@ -203,6 +207,8 @@ def update_groups(
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
+        if not has_priority and features.has("projects:issue-priority", project, actor=user):
+            has_priority = True
 
     if serializer is None:
         return
@@ -254,6 +260,12 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
+    if has_priority and "priority" in result:
+        handle_priority(
+            priority=result["priority"],
+            group_list=group_list,
+            actor=acting_user,
+        )
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
@@ -655,9 +667,11 @@ def update_groups(
                 "referer": (
                     "issue stream"
                     if re.search(issue_stream_regex, referer)
-                    else "similar issues tab"
-                    if re.search(similar_issues_tab_regex, referer)
-                    else "unknown"
+                    else (
+                        "similar issues tab"
+                        if re.search(similar_issues_tab_regex, referer)
+                        else "unknown"
+                    )
                 ),
             },
         )
@@ -709,7 +723,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
 ) -> None:
     """
@@ -764,6 +778,16 @@ def handle_has_seen(
                 )
     elif has_seen is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+
+
+def handle_priority(priority: str, group_list: Sequence[Group], actor: User) -> None:
+    for group in group_list:
+        update_priority(
+            group=group,
+            priority=PRIORITY_UPDATE_CHOICES[priority] if priority else None,
+            actor=actor,
+        )
+        group.update(priority_locked_at=django_timezone.now())
 
 
 def handle_is_public(

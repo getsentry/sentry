@@ -354,15 +354,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   ) {
     return (
       <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
-        <OpenInLink
-          onClick={e => onOpenLink(e, frame.sourceLink)}
-          href={frame.sourceLink}
-          openInNewTab
-          hasInFrameFeature={hasInFrameFeature}
-        >
-          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {t('GitHub')}
-        </OpenInLink>
+        <Tooltip title={t('Open this line in GitHub')} skipWrapper>
+          <OpenInLink
+            onClick={e => onOpenLink(e, frame.sourceLink)}
+            href={frame.sourceLink}
+            openInNewTab
+            hasInFrameFeature={hasInFrameFeature}
+            aria-label={t('GitHub')}
+          >
+            <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+          </OpenInLink>
+        </Tooltip>
       </StacktraceLinkWrapper>
     );
   }
@@ -421,7 +423,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
             hasInFrameFeature={hasInFrameFeature}
           />
-        ) : shouldShowCodecovPrompt(organization, match) ? (
+        ) : shouldShowCodecovPrompt(organization, match) && !hasInFrameFeature ? (
           <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>
@@ -467,7 +469,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
             hasInFrameFeature={hasInFrameFeature}
           />
-        ) : shouldShowCodecovPrompt(organization, match) ? (
+        ) : shouldShowCodecovPrompt(organization, match) && !hasInFrameFeature ? (
           <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>
@@ -557,12 +559,11 @@ const StacktraceLinkWrapper = styled('div')<{
 
   ${p =>
     p.hasInFrameFeature
-      ? `
+      ? css`
       padding: ${space(0)} ${space(1)};
-      flex-wrap: wrap;
       gap: ${space(1)}
     `
-      : `
+      : css`
       background-color: ${p.theme.background};
       border-bottom: 1px solid ${p.theme.border};
       padding: ${space(0.25)} ${space(3)};
@@ -579,7 +580,7 @@ const FixMappingButton = styled(Button)<{
 
   ${p =>
     p.hasInFrameFeature
-      ? `
+      ? css`
       &:hover {
         color: ${p.theme.subText};
         text-decoration: underline;

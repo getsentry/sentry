@@ -4,9 +4,10 @@ import logging
 import pickle
 import re
 import time
+from collections.abc import MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any, Dict, List, MutableMapping, Sequence, Union
+from typing import Any
 from unittest.mock import Mock, call
 
 import pytest
@@ -291,7 +292,7 @@ set_payloads: list[dict[str, Any]] = [
 
 def __translated_payload(
     payload, indexer=None
-) -> Dict[str, Union[str, int, List[int], MutableMapping[int, int]]]:
+) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
     in addition to adding the retention_days

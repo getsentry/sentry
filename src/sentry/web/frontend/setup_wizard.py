@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, List
+from typing import Any
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
@@ -141,7 +141,7 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
 
-def get_token(mappings: List[OrganizationMapping], user: RpcUser):
+def get_token(mappings: list[OrganizationMapping], user: RpcUser):
     can_use_org_tokens = len(mappings) == 1
 
     # If only one org, try to generate an org auth token

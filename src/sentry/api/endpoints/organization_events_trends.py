@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Dict, Match, Optional, TypedDict
+from re import Match
+from typing import TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -57,7 +58,7 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 class TrendQueryBuilder(QueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = aggregate_filter.key.name
 
         if name in self.params.aliases:
@@ -68,9 +69,9 @@ class TrendQueryBuilder(QueryBuilder):
     def resolve_function(
         self,
         function: str,
-        match: Optional[Match[str]] = None,
+        match: Match[str] | None = None,
         resolve_only=False,
-        overwrite_alias: Optional[str] = None,
+        overwrite_alias: str | None = None,
     ) -> SelectType:
         if function in self.params.aliases:
             return self.params.aliases[function].resolved_function
@@ -232,7 +233,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         }
 
     @staticmethod
-    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> Dict[str, Alias]:
+    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> dict[str, Alias]:
         """Construct a dict of aliases
 
         this is because certain conditions behave differently depending on the trend type

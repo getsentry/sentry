@@ -19,6 +19,8 @@ def dump_obj(obj):
     for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
+        elif key == "rust_enhancements":
+            continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
@@ -51,21 +53,14 @@ family:native                                   max-frames=3
 
     insta_snapshot(dump_obj(enhancement))
 
-    dumped = enhancement.dumps()
-    assert Enhancements.loads(dumped).dumps() == dumped
-    assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
-    assert isinstance(dumped, str)
-
-    with override_options({"enhancers.use-zstd": True}):
-        dumped_zstd = enhancement.dumps()
-
-        assert dumped_zstd is not dumped
-        assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
+    rust_parsing = 1.0 if version == 2 else 0.0
+    with override_options({"grouping.rust_enhancers.parse_rate": rust_parsing}):
+        dumped = enhancement.dumps()
+        assert Enhancements.loads(dumped).dumps() == dumped
         assert (
-            Enhancements.loads(dumped_zstd)._to_config_structure()
-            == enhancement._to_config_structure()
+            Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
         )
-        assert isinstance(dumped_zstd, str)
+        assert isinstance(dumped, str)
 
 
 def test_parsing_errors():
@@ -85,6 +80,10 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 def test_flipflop_inapp():
     enhancement = Enhancements.from_config_string(
         """
@@ -235,6 +234,15 @@ def test_app_matching():
             app_no_rule, [{"abs_path": "/test.c", "in_app": True}], "native"
         )
     )
+
+
+def test_invalid_app_matcher():
+    enhancements = Enhancements.from_config_string("app://../../src/some-file.ts -app")
+    (rule,) = enhancements.rules
+
+    assert not bool(_get_matching_frame_actions(rule, [{}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": True}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": False}], "javascript"))
 
 
 def test_package_matching():
@@ -479,6 +487,10 @@ def test_sentinel_and_prefix(action, type):
     assert getattr(component, f"is_{type}_frame") is expected
 
 
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 @pytest.mark.parametrize(
     "frame",
     [

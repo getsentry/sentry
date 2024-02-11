@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, ClassVar, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, ClassVar
 from uuid import uuid1
 
 import sentry_sdk

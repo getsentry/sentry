@@ -10,7 +10,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
@@ -105,7 +105,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       for (const row of tableData) {
         const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
         if (encodedSize >= 2147483647) {
-          setPageInfo(RESOURCE_SIZE_ALERT);
+          setPageInfo(RESOURCE_SIZE_ALERT, {dismissId: DismissId.RESOURCE_SIZE_ALERT});
           break;
         }
       }

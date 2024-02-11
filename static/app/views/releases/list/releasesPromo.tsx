@@ -21,7 +21,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SentryApp} from 'sentry/types';
+import type {
+  NewInternalAppApiToken,
+  Organization,
+  Project,
+  SentryApp,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useApiRequests from 'sentry/utils/useApiRequests';
@@ -102,7 +107,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
     ],
   });
   const api = useApi();
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<SentryApp[]>([]);
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
@@ -144,17 +149,13 @@ const ReleasesPromo = ({organization, project}: Props) => {
     });
   }, [organization, project.id]);
 
-  const fetchToken = async sentryAppSlug => {
-    const tokens = await api.requestPromise(`/sentry-apps/${sentryAppSlug}/api-tokens/`);
-    if (!tokens.length) {
-      const newToken = await generateToken(sentryAppSlug);
-      return setToken(newToken);
-    }
-    return setToken(tokens[0].token);
+  const generateAndSetNewToken = async (sentryAppSlug: string) => {
+    const newToken = await generateToken(sentryAppSlug);
+    return setToken(newToken);
   };
 
   const generateToken = async (sentryAppSlug: string) => {
-    const newToken = await api.requestPromise(
+    const newToken: NewInternalAppApiToken = await api.requestPromise(
       `/sentry-apps/${sentryAppSlug}/api-tokens/`,
       {
         method: 'POST',
@@ -250,7 +251,7 @@ sentry-cli releases finalize "$VERSION"`,
                 alignMenu="left"
                 onSelect={({label, value}) => {
                   selectItem({label, value});
-                  fetchToken(value.slug);
+                  generateAndSetNewToken(value.slug);
                 }}
                 itemSize="small"
                 searchPlaceholder={t('Select Internal Integration')}
@@ -278,7 +279,7 @@ sentry-cli releases finalize "$VERSION"`,
                                   label,
                                   value,
                                 });
-                                fetchToken(value.slug);
+                                generateAndSetNewToken(value.slug);
                                 trackQuickstartCreatedIntegration(integration);
                               },
                               onCancel: () => {

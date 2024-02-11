@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Optional, Sequence
 
 from sentry.event_manager import HIGH_SEVERITY_THRESHOLD
 from sentry.eventstore.models import GroupEvent
@@ -16,7 +16,7 @@ class HighPriorityIssueCondition(EventCondition):
     id = "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
     label = "Sentry marks an issue as high priority"
 
-    def is_new_high_severity(self, state: EventState, group: Optional[Group]) -> bool:
+    def is_new_high_severity(self, state: EventState, group: Group | None) -> bool:
         if not group or not state.is_new:
             return False
 

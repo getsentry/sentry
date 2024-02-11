@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any
 
 from sentry.models.release_threshold.constants import TriggerType
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def is_new_issue_count_healthy(
     ethreshold: EnrichedThreshold, new_issue_counts: dict[str, Any]
-) -> Tuple[bool, int]:
+) -> tuple[bool, int]:
     new_issue_count = new_issue_counts.get(str(ethreshold["id"]), 0)
     if ethreshold["trigger_type"] == TriggerType.OVER_STR:
         # If total is under/equal the threshold value, then it is healthy

@@ -6,8 +6,9 @@ from __future__ import annotations
 import logging
 import math
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, TypedDict
+from typing import Any, TypedDict
 
 import jsonschema
 from django.db.models.signals import post_save
@@ -70,10 +71,10 @@ GroupsCountResponse = TypedDict(
     {"group_id": int, "hourBucket": str, "count()": int, "project_id": int},
 )
 
-ParsedGroupsCount = Dict[int, GroupCount]
+ParsedGroupsCount = dict[int, GroupCount]
 
 
-def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountResponse]:
+def query_groups_past_counts(groups: Sequence[Group]) -> list[GroupsCountResponse]:
     """Query Snuba for the counts for every group bucketed into hours.
 
     It optimizes the query by guaranteeing that we look at group_ids that are from the same project id.
@@ -97,8 +98,8 @@ def query_groups_past_counts(groups: Sequence[Group]) -> List[GroupsCountRespons
     start_date, end_date = _start_and_end_dates()
 
     # Error groups use the events dataset while profile and perf groups use the issue platform dataset
-    error_groups: List[Group] = []
-    other_groups: List[Group] = []
+    error_groups: list[Group] = []
+    other_groups: list[Group] = []
     for g in groups:
         if g.issue_category == GroupCategory.ERROR:
             error_groups.append(g)
@@ -116,7 +117,7 @@ def _process_groups(
     start_date: datetime,
     end_date: datetime,
     category: GroupCategory | None = None,
-) -> List[GroupsCountResponse]:
+) -> list[GroupsCountResponse]:
     """Given a list of groups, query Snuba for their hourly bucket count.
     The category defines which Snuba dataset and entity we query."""
     all_results = []  # type: ignore[var-annotated]
@@ -166,7 +167,7 @@ def _query_with_pagination(
     start_date: datetime,
     end_date: datetime,
     category: GroupCategory | None = None,
-) -> List[GroupsCountResponse]:
+) -> list[GroupsCountResponse]:
     """Query Snuba for event counts for the given list of project ids and groups ids in
     a time range."""
     all_results = []
@@ -201,7 +202,7 @@ def _query_metrics_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
-    all_results: List[GroupsCountResponse],
+    all_results: list[GroupsCountResponse],
     category: GroupCategory | None = None,
 ):
     """
@@ -255,11 +256,11 @@ def _query_metrics_with_pagination(
             )
 
 
-def transform_to_groups_count_response(data: dict) -> List[GroupsCountResponse]:
+def transform_to_groups_count_response(data: dict) -> list[GroupsCountResponse]:
     """
     Transforms results from `get_series` metrics query to List[GroupsCountResponse]
     """
-    result: List[GroupsCountResponse] = []
+    result: list[GroupsCountResponse] = []
 
     for group in data["groups"]:
         project_id = group["by"]["project_id"]
@@ -371,15 +372,15 @@ def _generate_entity_dataset_query(
     )
 
 
-def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> Tuple[datetime, datetime]:
+def _start_and_end_dates(hours: int = BUCKETS_PER_GROUP) -> tuple[datetime, datetime]:
     """Return the start and end date of N hours time range."""
     end_datetime = datetime.now()
     return end_datetime - timedelta(hours=hours), end_datetime
 
 
-def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[int]]:
+def _extract_project_and_group_ids(groups: Sequence[Group]) -> dict[int, list[int]]:
     """Return all project and group IDs from a list of Group"""
-    group_ids_by_project: Dict[int, List[int]] = defaultdict(list)
+    group_ids_by_project: dict[int, list[int]] = defaultdict(list)
     for group in groups:
         group_ids_by_project[group.project_id].append(group.id)
 
@@ -388,10 +389,10 @@ def _extract_project_and_group_ids(groups: Sequence[Group]) -> Dict[int, List[in
 
 def _extract_organization_and_project_and_group_ids(
     groups: Sequence[Group],
-) -> Dict[int, Dict[int, List[int]]]:
+) -> dict[int, dict[int, list[int]]]:
     """Returns an object of organization by project by list of group ids from a list of Group"""
     group_ids_by_project = _extract_project_and_group_ids(groups)
-    group_ids_by_organization: Dict[int, Dict[int, List[int]]] = defaultdict(dict)
+    group_ids_by_organization: dict[int, dict[int, list[int]]] = defaultdict(dict)
     for group in groups:
         group_ids_by_organization[group.project.organization_id].update(
             {group.project_id: group_ids_by_project[group.project_id]}
@@ -435,7 +436,7 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
-def is_escalating(group: Group) -> Tuple[bool, int | None]:
+def is_escalating(group: Group) -> tuple[bool, int | None]:
     """
     Return whether the group is escalating and the daily forecast if it exists.
     """
@@ -510,7 +511,6 @@ def manage_issue_states(
                 )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
-            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
             has_forecast = (
                 True if data and activity_data and "forecast" in activity_data.keys() else False
@@ -538,6 +538,7 @@ def manage_issue_states(
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_ESCALATING, data=data
             )
+            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(

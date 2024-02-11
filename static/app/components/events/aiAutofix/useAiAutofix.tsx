@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import type {
   AutofixData,
@@ -7,10 +7,16 @@ import type {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 2500;
 
 export const useAiAutofix = (group: GroupWithAutofix) => {
   const api = useApi();
+
+  const [additionalContext, setAdditionalContext] = useState('');
+  const [overwriteData, setOverwriteData] = useState<AutofixData | null>(null);
+  const autofixData = overwriteData ?? group.metadata?.autofix ?? null;
+  const isPolling = autofixData?.status === 'PROCESSING';
+
   const {
     data: apiData,
     isError,
@@ -19,7 +25,7 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
   } = useApiQuery<{autofix: AutofixData | null}>([`/issues/${group.id}/ai-autofix/`], {
     staleTime: Infinity,
     retry: false,
-    enabled: !group.metadata?.autofix, // Enabled only when no autofix data present
+    enabled: !autofixData?.status || autofixData.status === 'PROCESSING',
     refetchInterval: data => {
       if (data?.[0]?.autofix?.status === 'PROCESSING') {
         return POLL_INTERVAL;
@@ -28,18 +34,36 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
     },
   });
 
-  const [additionalContext, setAdditionalContext] = useState<string>('');
-
-  const autofixData = apiData?.autofix ?? group.metadata?.autofix ?? null;
-  const isPolling = autofixData?.status === 'PROCESSING';
+  useEffect(() => {
+    if (apiData?.autofix) {
+      setOverwriteData(apiData.autofix);
+    }
+  }, [apiData?.autofix]);
 
   const triggerAutofix = useCallback(async () => {
-    await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
-      method: 'POST',
-      data: {
-        additional_context: additionalContext,
-      },
+    setOverwriteData({
+      status: 'PROCESSING',
+      steps: [
+        {
+          id: '1',
+          index: 0,
+          status: 'PROCESSING',
+          title: 'Starting Autofix...',
+        },
+      ],
+      created_at: new Date().toISOString(),
     });
+
+    try {
+      await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
+        method: 'POST',
+        data: {
+          additional_context: additionalContext,
+        },
+      });
+    } catch (e) {
+      // Don't need to do anything, error should be in the metadata
+    }
 
     dataRefetch();
   }, [api, group.id, dataRefetch, additionalContext]);

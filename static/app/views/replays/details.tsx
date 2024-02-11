@@ -95,7 +95,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
   if (fetchError) {
-    if (fetchError.statusText === 'Not Found') {
+    if (fetchError.status === 404) {
       return (
         <Page
           orgSlug={orgSlug}
@@ -145,6 +145,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   return (
     <ReplayContextProvider
+      analyticsContext="replay_details"
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={initialTimeOffsetMs}

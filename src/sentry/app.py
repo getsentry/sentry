@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from threading import local
-from typing import Any, List
+from typing import Any
 
 from django.http.request import HttpRequest
 
 
 class State(local):
     request: HttpRequest | None = None
-    request_stack: List[HttpRequest] | None = None
+    request_stack: list[HttpRequest] | None = None
     data: dict[str, Any] = {}
 
     def clear(self) -> None:

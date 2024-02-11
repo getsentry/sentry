@@ -4,8 +4,9 @@ import copy
 import logging
 import random
 import sys
+from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
-from typing import TYPE_CHECKING, Any, Generator, List, Mapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
@@ -38,6 +39,7 @@ UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
+    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -219,6 +221,14 @@ def traces_sampler(sampling_context):
 
 
 def before_send_transaction(event, _):
+    # Discard generic redirects.
+    # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
+    if (
+        event.get("tags", {}).get("http.status_code") == "301"
+        and event.get("transaction_info", {}).get("source") == "url"
+    ):
+        return None
+
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = num_of_spans >= 1000
@@ -472,7 +482,7 @@ def configure_sdk():
             ThreadingIntegration(propagate_hub=True),
             OpenAiIntegration(capture_prompts=True),
         ],
-        spotlight=settings.IS_DEV,
+        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 
@@ -566,7 +576,7 @@ def check_current_scope_transaction(
     values.
 
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
-    been set maunually. (See the `transaction_start` decorator, for example.)
+    been set maunually.
     """
 
     with configure_scope() as scope:
@@ -635,7 +645,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | list[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a

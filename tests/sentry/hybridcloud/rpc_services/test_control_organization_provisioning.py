@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 import pytest
 from django.db import IntegrityError, router, transaction
 
@@ -48,8 +46,8 @@ class TestControlOrganizationProvisioningBase(TestCase):
         name: str,
         slug: str,
         default_team: bool,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
+        user_id: int | None = None,
+        email: str | None = None,
     ) -> OrganizationProvisioningOptions:
         return OrganizationProvisioningOptions(
             provision_options=OrganizationOptions(
@@ -71,12 +69,12 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
     def get_slug_reservations_for_organization(
         self, organization_id: int
-    ) -> List[OrganizationSlugReservation]:
+    ) -> list[OrganizationSlugReservation]:
         with assume_test_silo_mode(SiloMode.CONTROL):
             return OrganizationSlugReservation.objects.filter(organization_id=organization_id)
 
     def assert_slug_reservation_and_org_exist(
-        self, rpc_org_slug: RpcOrganizationSlugReservation, user_id: Optional[int] = None
+        self, rpc_org_slug: RpcOrganizationSlugReservation, user_id: int | None = None
     ):
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_slug_reservation = OrganizationSlugReservation.objects.get(

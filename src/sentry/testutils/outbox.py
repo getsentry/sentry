@@ -3,18 +3,12 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import functools
-from typing import Any, List
+from typing import Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
 
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxBase,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, OutboxBase, OutboxCategory, OutboxScope
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox_jobs_control
 from sentry.testutils.silo import assume_test_silo_mode
@@ -64,23 +58,10 @@ def assert_no_webhook_outboxes():
     assert outboxes == 0, "No outboxes should be created"
 
 
-# DEPRECATED: use assert_webhook_outboxes_for_integration instead
-def assert_webhook_outboxes(
-    factory_request: WSGIRequest,
-    webhook_identifier: WebhookProviderIdentifier,
-    region_names: List[str],
-):
-    assert_webhook_outboxes_with_shard_id(
-        factory_request=factory_request,
-        expected_shard_id=webhook_identifier.value,
-        region_names=region_names,
-    )
-
-
 def assert_webhook_outboxes_with_shard_id(
     factory_request: WSGIRequest,
     expected_shard_id: int,
-    region_names: List[str],
+    region_names: list[str],
 ):
     """
     A test method for asserting that a webhook outbox is properly queued for

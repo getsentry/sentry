@@ -6,8 +6,9 @@ import functools
 import itertools
 import threading
 import typing
+from collections.abc import Callable, Generator, Iterable
 from enum import Enum
-from typing import Any, Callable, Generator, Iterable
+from typing import Any
 
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region

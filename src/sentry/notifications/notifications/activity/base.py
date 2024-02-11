@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Mapping, MutableMapping
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import format_html
@@ -37,7 +38,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     @abc.abstractmethod
     def title(self) -> str:
         """The header for Workflow notifications."""
-        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
@@ -81,7 +81,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         super().__init__(activity)
         self.group = activity.group
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         raise NotImplementedError
 
     def get_group_link(self) -> str:

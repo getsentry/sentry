@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from django.db import router, transaction
 
 from sentry.api.serializers import ProjectSerializer
@@ -39,8 +37,8 @@ class DatabaseBackedProjectService(ProjectService):
         self,
         *,
         region_name: str,
-        organization_ids: List[int],
-    ) -> List[RpcProject]:
+        organization_ids: list[int],
+    ) -> list[RpcProject]:
         projects = Project.objects.filter(
             organization__in=organization_ids,
             status=ObjectStatus.ACTIVE,
@@ -72,9 +70,9 @@ class DatabaseBackedProjectService(ProjectService):
         *,
         organization_id: int,
         filter: ProjectFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+    ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
 
         if as_user is None and auth_context:
@@ -97,7 +95,7 @@ class DatabaseBackedProjectService(ProjectService):
         project_name: str,
         platform: str,
         user_id: int,
-        add_org_default_team: Optional[bool] = False,
+        add_org_default_team: bool | None = False,
     ) -> RpcProject:
         with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(
@@ -134,7 +132,7 @@ class DatabaseBackedProjectService(ProjectService):
         project_name: str,
         platform: str,
         user_id: int,
-        add_org_default_team: Optional[bool] = False,
+        add_org_default_team: bool | None = False,
     ) -> RpcProject:
         project_query = Project.objects.filter(
             organization_id=organization_id,

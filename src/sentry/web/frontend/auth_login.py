@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from random import randint
-from typing import Any, Optional, Union
+from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
@@ -243,7 +243,7 @@ class AuthLoginView(BaseView):
 
         return HttpResponseRedirect(redirect_to=redirect_uri)
 
-    def get_auth_provider_if_exists(self, org_slug: str) -> Union[AuthProvider, None]:
+    def get_auth_provider_if_exists(self, org_slug: str) -> AuthProvider | None:
         """
         Returns the auth provider for the given org, or None if there isn't one.
         """
@@ -464,7 +464,7 @@ class AuthLoginView(BaseView):
         return self.redirect(url=get_login_redirect(request=request))
 
     def _handle_login(
-        self, request: Request, user: User, organization: Optional[RpcOrganization]
+        self, request: Request, user: User, organization: RpcOrganization | None
     ) -> None:
         """
         Logs a user in and determines their active org.
@@ -543,9 +543,7 @@ class AuthLoginView(BaseView):
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
 
-    def get_join_request_link(
-        self, organization: RpcOrganization, request: Request
-    ) -> Union[str, None]:
+    def get_join_request_link(self, organization: RpcOrganization, request: Request) -> str | None:
         if not organization:
             return None
 

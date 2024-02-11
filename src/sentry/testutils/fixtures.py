@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import pytest
 from django.utils.functional import cached_property
@@ -255,6 +256,12 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
+    def create_user_avatar(self, *args, **kwargs):
+        return Factories.create_user_avatar(*args, **kwargs)
+
+    def create_user_role(self, *args, **kwargs):
+        return Factories.create_user_role(*args, **kwargs)
+
     def create_usersocialauth(
         self,
         user: User | None = None,
@@ -302,6 +309,9 @@ class Fixtures:
 
     def create_sentry_app(self, *args, **kwargs):
         return Factories.create_sentry_app(*args, **kwargs)
+
+    def create_sentry_app_avatar(self, *args, **kwargs):
+        return Factories.create_sentry_app_avatar(*args, **kwargs)
 
     def create_internal_integration(self, *args, **kwargs):
         return Factories.create_internal_integration(*args, **kwargs)
@@ -413,6 +423,9 @@ class Fixtures:
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
+    def create_user_option(self, *args, **kwargs):
+        return Factories.create_user_option(*args, **kwargs)
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
@@ -448,7 +461,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: Optional[RpcUser] = None,
+        user: RpcUser | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
@@ -535,6 +548,12 @@ class Fixtures:
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)
+
+    def create_request_access(self, *args, **kwargs):
+        return Factories.create_request_access(*args, **kwargs)
+
+    def create_webhook_payload(self, *args, **kwargs):
+        return Factories.create_webhook_payload(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

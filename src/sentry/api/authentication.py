@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, List, Optional, Tuple
+from collections.abc import Callable, Iterable
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -100,7 +101,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> Tuple[Optional[Relay], bool]:
+def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -141,7 +142,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         request_auth: Any,
         entity_id_tag: str | None = None,
         **tags,
-    ) -> Tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
+    ) -> tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
             user = user_service.get_user(user_id=user)
         elif isinstance(user, User):
@@ -437,7 +438,7 @@ class RpcSignatureAuthentication(StandardAuthentication):
 
     token_name = b"rpcsignature"
 
-    def accepts_auth(self, auth: List[bytes]) -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not auth or len(auth) < 2:
             return False
         return auth[0].lower() == self.token_name

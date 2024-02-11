@@ -41,6 +41,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
+import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
@@ -375,6 +377,8 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     text: event.id,
   });
 
+  const hasTraceTimeline = hasTraceTimelineFeature(organization);
+
   return (
     <CarouselAndButtonsWrapper>
       <div>
@@ -423,7 +427,11 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        <QuickTrace event={event} organization={organization} location={location} />
+        {hasTraceTimeline ? (
+          <TraceLink event={event} />
+        ) : (
+          <QuickTrace event={event} organization={organization} location={location} />
+        )}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

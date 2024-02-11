@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Sequence, Set, TypedDict
+from typing import Any, Optional, TypedDict
 
 import sentry_sdk
 
@@ -24,10 +25,10 @@ class MetricsBlockingStateRelayConfig(TypedDict):
 @dataclass(frozen=True)
 class MetricOperation:
     metric_mri: str
-    block_tags: Set[str]
-    unblock_tags: Set[str]
+    block_tags: set[str]
+    unblock_tags: set[str]
     # This can be None, since if it is None, it implies that no state change will be applied to the metric.
-    block_metric: Optional[bool] = None
+    block_metric: bool | None = None
 
     def to_metric_blocking(self) -> "MetricBlocking":
         return MetricBlocking(
@@ -41,7 +42,7 @@ class MetricOperation:
 class MetricBlocking:
     metric_mri: str
     is_blocked: bool
-    blocked_tags: Set[str]
+    blocked_tags: set[str]
 
     @classmethod
     def empty(cls, metric_mri: str) -> "MetricBlocking":
@@ -79,7 +80,7 @@ class MetricBlocking:
 @dataclass
 class MetricsBlockingState:
     # We store the data in a map keyed by the metric_mri in order to make the merging more efficient.
-    metrics: Dict[str, MetricBlocking]
+    metrics: dict[str, MetricBlocking]
 
     @classmethod
     def load_from_project(cls, project: Project, repair: bool = False) -> "MetricsBlockingState":
@@ -105,7 +106,7 @@ class MetricsBlockingState:
                 f"The metrics blocking state payload is not a list for project {project.id}"
             )
 
-        metrics: Dict[str, MetricBlocking] = {}
+        metrics: dict[str, MetricBlocking] = {}
         for blocked_metric_payload in metrics_blocking_state_payload:
             blocked_metric = MetricBlocking.from_dict(blocked_metric_payload)
             if blocked_metric is not None:
@@ -123,7 +124,7 @@ class MetricsBlockingState:
         json_payload = json.dumps(metrics_blocking_state_payload)
         project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
-    def apply_metric_operation(self, metric_operation: MetricOperation) -> Optional[MetricBlocking]:
+    def apply_metric_operation(self, metric_operation: MetricOperation) -> MetricBlocking | None:
         metric_mri = metric_operation.metric_mri
         if (existing_metric := self.metrics.get(metric_mri)) is not None:
             metric_blocking = existing_metric.apply(metric_operation)
@@ -188,7 +189,7 @@ def unblock_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int,
 
 
 def block_tags_of_metric(
-    metric_mri: str, tags: Set[str], projects: Sequence[Project]
+    metric_mri: str, tags: set[str], projects: Sequence[Project]
 ) -> Mapping[int, MetricBlocking]:
     return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=tags, unblock_tags=set()), projects
@@ -196,7 +197,7 @@ def block_tags_of_metric(
 
 
 def unblock_tags_of_metric(
-    metric_mri: str, tags: Set[str], projects: Sequence[Project]
+    metric_mri: str, tags: set[str], projects: Sequence[Project]
 ) -> Mapping[int, MetricBlocking]:
     return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=set(), unblock_tags=tags), projects
@@ -216,7 +217,7 @@ def get_metrics_blocking_state(projects: Sequence[Project]) -> Mapping[int, Metr
 
 def get_metrics_blocking_state_for_relay_config(
     project: Project,
-) -> Optional[MetricsBlockingStateRelayConfig]:
+) -> MetricsBlockingStateRelayConfig | None:
     try:
         metrics_blocking_state = get_metrics_blocking_state([project])[project.id]
     except MalformedBlockedMetricsPayloadError as e:

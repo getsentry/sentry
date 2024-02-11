@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, TypedDict
-
-from typing_extensions import NotRequired
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry import analytics
 from sentry.api.utils import Timer
@@ -21,7 +19,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ReposityLinkOutcome(TypedDict):
+class RepositoryLinkOutcome(TypedDict):
     sourceUrl: NotRequired[str]
     error: NotRequired[str]
     attemptedUrl: NotRequired[str]
@@ -31,11 +29,11 @@ class ReposityLinkOutcome(TypedDict):
 def get_link(
     config: RepositoryProjectPathConfig,
     src_path: str,
-    version: Optional[str] = None,
-    group_id: Optional[str] = None,
-    frame_abs_path: Optional[str] = None,
-) -> ReposityLinkOutcome:
-    result: ReposityLinkOutcome = {}
+    version: str | None = None,
+    group_id: str | None = None,
+    frame_abs_path: str | None = None,
+) -> RepositoryLinkOutcome:
+    result: RepositoryLinkOutcome = {}
 
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
@@ -84,7 +82,7 @@ def get_link(
 
 class StacktraceLinkConfig(TypedDict):
     config: RepositoryProjectPathConfig
-    outcome: ReposityLinkOutcome
+    outcome: RepositoryLinkOutcome
     repository: Repository
 
 
@@ -96,7 +94,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 
 def get_stacktrace_config(
-    configs: List[RepositoryProjectPathConfig],
+    configs: list[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {

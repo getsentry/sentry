@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError

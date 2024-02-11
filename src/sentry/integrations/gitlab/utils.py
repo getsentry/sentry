@@ -1,5 +1,5 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Mapping, Optional
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 
@@ -49,7 +49,7 @@ class GitLabApiClientPath:
 
 def get_rate_limit_info_from_response(
     response: BaseApiResponse,
-) -> Optional[GitLabRateLimitInfo]:
+) -> GitLabRateLimitInfo | None:
     """
     Extract rate limit info from response headers
     See https://docs.gitlab.com/ee/administration/settings/user_and_ip_rate_limits.html#response-headers

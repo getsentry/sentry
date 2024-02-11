@@ -12,7 +12,6 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from string import Template
-from typing import Optional, Tuple
 
 import pytest
 import requests
@@ -283,7 +282,7 @@ def dyn_sampling_data():
     return inner
 
 
-_snapshot_writeback: Optional[str] = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
+_snapshot_writeback: str | None = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
 if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":
@@ -309,7 +308,7 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
         return True
 
 
-def read_snapshot_file(reference_file: str) -> Tuple[str, str]:
+def read_snapshot_file(reference_file: str) -> tuple[str, str]:
     with open(reference_file, encoding="utf-8") as f:
         match = _yaml_snap_re.match(f.read())
         if match is None:

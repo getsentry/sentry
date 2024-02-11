@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any, List, Set
+from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
@@ -17,35 +17,33 @@ stackframe_function_name = lambda i: Function(
 class LanguageParser(ABC):
     @staticmethod
     @abstractmethod
-    def extract_functions_from_patch(patch: str) -> Set[str]:
+    def extract_functions_from_patch(patch: str) -> set[str]:
         pass
 
     @staticmethod
     @abstractmethod
-    def generate_multi_if(function_names: List[str]) -> List[Function]:
+    def generate_multi_if(function_names: list[str]) -> list[Function]:
         """
         Function to generate the multi-if condition for the Snuba request.
         This is to fetch the proper function name from the stacktrace, which is an array.
         """
-        pass
 
     @staticmethod
     @abstractmethod
     def generate_function_name_conditions(
-        function_names: List[str], stack_frame: int
+        function_names: list[str], stack_frame: int
     ) -> BooleanCondition | Condition:
         """
         Function to generate the WHERE condition for matching function names from a list to function names in the stack trace in the Snuba request.
         Must be applied to each frame of the stacktrace up to STACKFRAME_COUNT.
         """
-        pass
 
 
 class PythonParser(LanguageParser):
     issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
 
     @staticmethod
-    def extract_functions_from_patch(patch: str) -> Set[str]:
+    def extract_functions_from_patch(patch: str) -> set[str]:
         r"""
         Function header regex pattern
         ^           - Asserts the start of a line.
@@ -64,7 +62,7 @@ class PythonParser(LanguageParser):
         return set(re.findall(python_function_regex, patch, flags=re.M))
 
     @staticmethod
-    def generate_multi_if(function_names: List[str]) -> List[Function]:
+    def generate_multi_if(function_names: list[str]) -> list[Function]:
         """
         Fetch the function name from the stackframe that matches a name within the list of function names.
         """
@@ -89,7 +87,7 @@ class PythonParser(LanguageParser):
         return multi_if
 
     @staticmethod
-    def generate_function_name_conditions(function_names: List[str], stack_frame: int) -> Condition:
+    def generate_function_name_conditions(function_names: list[str], stack_frame: int) -> Condition:
         """Check if the function name in the stack frame is within the list of function names."""
         return Condition(
             stackframe_function_name(stack_frame),
@@ -102,7 +100,7 @@ class JavascriptParser(LanguageParser):
     issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** `Affected Users:` **{affected_users}** |"
 
     @staticmethod
-    def extract_functions_from_patch(patch: str) -> Set[str]:
+    def extract_functions_from_patch(patch: str) -> set[str]:
         r"""
         Type of function declaration    Example
         Function declaration:           function hello(argument1, argument2)
@@ -135,7 +133,7 @@ class JavascriptParser(LanguageParser):
         return functions
 
     @staticmethod
-    def _get_function_name_conditions(stackframe_level: int, function_names: List[str]):
+    def _get_function_name_conditions(stackframe_level: int, function_names: list[str]):
         """
         For Javascript we need a special case of matching both for the function name itself and for
         "." + the function name, because sometimes Snuba stores the function name as "className.FunctionName".
@@ -159,7 +157,7 @@ class JavascriptParser(LanguageParser):
         return function_name_conditions
 
     @staticmethod
-    def _get_function_name_functions(stackframe_level: int, function_names: List[str]):
+    def _get_function_name_functions(stackframe_level: int, function_names: list[str]):
         """
         This is used in the multi_if. We need to account for the special Javascript cases in order to
         properly fetch the function name -- "className.FunctionName" or simply "functionName" depending
@@ -188,7 +186,7 @@ class JavascriptParser(LanguageParser):
         return function_name_conditions
 
     @staticmethod
-    def generate_multi_if(function_names: List[str]) -> List[Function]:
+    def generate_multi_if(function_names: list[str]) -> list[Function]:
         """
         Fetch the function name from the stackframe that matches a name within the list of function names.
         """
@@ -210,7 +208,7 @@ class JavascriptParser(LanguageParser):
         return multi_if
 
     @staticmethod
-    def generate_function_name_conditions(function_names: List[str], stack_frame: int) -> Condition:
+    def generate_function_name_conditions(function_names: list[str], stack_frame: int) -> Condition:
         """Check if the function name in the stack frame is within the list of function names."""
         return BooleanCondition(
             BooleanOp.OR,
@@ -225,4 +223,6 @@ BETA_PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
+    "ts": JavascriptParser,
+    "tsx": JavascriptParser,
 }

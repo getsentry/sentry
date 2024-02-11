@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -68,7 +69,10 @@ class StaffPermissionMixin:
     """
     Sentry endpoints that should be accessible by staff but have an existing permission
     class (that is not StaffPermission) require this mixin because staff does not give
-    any scopes. See 'OrganizationAndStaffPermission' for an example of this.
+    any scopes.
+    NOTE: This mixin MUST be the leftmost parent class in the child class declaration in
+    order to work properly. See 'OrganizationAndStaffPermission' for an example of this or
+    https://www.python.org/download/releases/2.3/mro/ to learn more.
     """
 
     def has_permission(self, request, *args, **kwargs):

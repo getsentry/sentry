@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence, cast
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, cast
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

@@ -35,7 +35,6 @@ class LostPasswordHashService(RpcService):
         This method returns a valid RpcLostPasswordHash for a user
         :return:
         """
-        pass
 
 
 lost_password_hash_service = LostPasswordHashService.create_delegation()

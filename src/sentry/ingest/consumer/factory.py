@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, TypeVar
+from collections.abc import Callable, Mapping, MutableMapping
+from functools import partial
+from typing import Any, NamedTuple, TypeVar
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -30,8 +32,8 @@ class MultiProcessConfig(NamedTuple):
     num_processes: int
     max_batch_size: int
     max_batch_time: int
-    input_block_size: Optional[int]
-    output_block_size: Optional[int]
+    input_block_size: int | None
+    output_block_size: int | None
 
 
 TInput = TypeVar("TInput")
@@ -42,7 +44,7 @@ def maybe_multiprocess_step(
     mp: MultiProcessConfig | None,
     function: Callable[[Message[TInput]], TOutput],
     next_step: ProcessingStrategy[FilteredPayload | TOutput],
-    pool: Optional[MultiprocessingPool],
+    pool: MultiprocessingPool | None,
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
         assert pool is not None
@@ -69,8 +71,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
-        input_block_size: Optional[int],
-        output_block_size: Optional[int],
+        input_block_size: int | None,
+        output_block_size: int | None,
     ):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
@@ -81,9 +83,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # XXX: Attachment topic has two multiprocessing strategies chained together so we use
         # two pools.
         if self.is_attachment_topic:
-            self._attachments_pool: Optional[MultiprocessingPool] = MultiprocessingPool(
-                num_processes
-            )
+            self._attachments_pool: MultiprocessingPool | None = MultiprocessingPool(num_processes)
         else:
             self._attachments_pool = None
         if num_processes > 1:
@@ -103,9 +103,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         final_step = CommitOffsets(commit)
 
         if not self.is_attachment_topic:
-            next_step = maybe_multiprocess_step(
-                mp, process_simple_event_message, final_step, self._pool
-            )
+            event_function = partial(process_simple_event_message, consumer_type=self.consumer_type)
+            next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
             return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
         # The `attachments` topic is a bit different, as it allows multiple event types:
@@ -130,8 +129,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
+        attachment_function = partial(decode_and_process_chunks, consumer_type=self.consumer_type)
         step_1 = maybe_multiprocess_step(
-            mp, decode_and_process_chunks, filter_step, self._pool  # type:ignore
+            mp, attachment_function, filter_step, self._pool  # type:ignore
         )
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
@@ -150,8 +150,8 @@ def get_ingest_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: Optional[int],
-    output_block_size: Optional[int],
+    input_block_size: int | None,
+    output_block_size: int | None,
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:

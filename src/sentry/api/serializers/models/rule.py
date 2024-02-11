@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import List, Optional
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -40,12 +39,12 @@ class RuleCreatedBy(TypedDict):
 
 
 class RuleSerializerResponseOptional(TypedDict, total=False):
-    owner: Optional[str]
-    createdBy: Optional[RuleCreatedBy]
-    environment: Optional[str]
-    lastTriggered: Optional[str]
-    snoozeCreatedBy: Optional[str]
-    snoozeForEveryone: Optional[bool]
+    owner: str | None
+    createdBy: RuleCreatedBy | None
+    environment: str | None
+    lastTriggered: str | None
+    snoozeCreatedBy: str | None
+    snoozeForEveryone: bool | None
 
 
 class RuleSerializerResponse(RuleSerializerResponseOptional):
@@ -54,15 +53,15 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     """
 
     id: str
-    conditions: List[dict]
-    filters: List[dict]
-    actions: List[dict]
+    conditions: list[dict]
+    filters: list[dict]
+    actions: list[dict]
     actionMatch: str
     filterMatch: str
     frequency: int
     name: str
     dateCreated: str
-    projects: List[str]
+    projects: list[str]
     status: str
     snooze: bool
 
@@ -123,7 +122,7 @@ class RuleSerializer(Serializer):
         sentry_app_map = {
             install.sentry_app.id: install.sentry_app for install in sentry_app_installs
         }
-        sentry_app_ids: List[int] = list(sentry_app_map.keys())
+        sentry_app_ids: list[int] = list(sentry_app_map.keys())
 
         sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
             organization_ids=[rule.project.organization_id for rule in rules.values()],

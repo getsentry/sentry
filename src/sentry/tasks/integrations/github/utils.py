@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
 
 from django.utils import timezone
 
@@ -19,9 +18,9 @@ class PullRequestIssue:
     title: str
     subtitle: str
     url: str
-    affected_users: Optional[int] = None
-    event_count: Optional[int] = None
-    function_name: Optional[str] = None
+    affected_users: int | None = None
+    event_count: int | None = None
+    function_name: str | None = None
 
 
 @dataclass
@@ -42,7 +41,7 @@ def create_or_update_comment(
     pr_key: int,
     comment_body: str,
     pullrequest_id: int,
-    issue_list: List[int],
+    issue_list: list[int],
     metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
     language: str | None = "not found",

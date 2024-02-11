@@ -1,10 +1,8 @@
-from typing import Dict
-
 from django.conf import settings
 
 from sentry.snuba.dataset import Dataset
 
-topic_to_dataset: Dict[str, Dataset] = {
+topic_to_dataset: dict[str, Dataset] = {
     settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
     settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
     settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,

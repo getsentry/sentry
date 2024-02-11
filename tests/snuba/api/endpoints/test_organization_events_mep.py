@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -3126,6 +3126,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert not meta["isMetricsData"]
 
 
+@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -3146,9 +3147,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def _on_demand_query_check(
         self,
         params: dict[str, Any],
-        groupbys: Optional[list[str]] = None,
-        expected_on_demand_query: Optional[bool] = True,
-        expected_dataset: Optional[str] = "metricsEnhanced",
+        groupbys: list[str] | None = None,
+        expected_on_demand_query: bool | None = True,
+        expected_dataset: str | None = "metricsEnhanced",
     ) -> Response:
         """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
         for field in params["field"]:
@@ -3205,6 +3206,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         }
 
 
+@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
@@ -44,7 +45,7 @@ class SDKCrashDetection:
 
     def detect_sdk_crash(
         self, event: Event | GroupEvent, configs: Sequence[SDKCrashDetectionConfig]
-    ) -> Optional[Event]:
+    ) -> Event | None:
         """
         Checks if the passed-in event is an SDK crash and stores the stripped event to a Sentry
         project specified with project_id in the configs.

@@ -3,7 +3,8 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, ClassVar, Dict, Sequence, Type
+from collections.abc import Callable, Sequence
+from typing import Any, ClassVar
 
 from django import forms
 
@@ -51,7 +52,7 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleBase(abc.ABC):
-    form_cls: Type[forms.Form] = None  # type: ignore
+    form_cls: type[forms.Form] = None  # type: ignore
 
     logger = logging.getLogger("sentry.rules")
 
@@ -100,11 +101,11 @@ class RuleBase(abc.ABC):
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
         return {}
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         raise NotImplementedError
 

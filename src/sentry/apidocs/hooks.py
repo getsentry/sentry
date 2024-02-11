@@ -2,7 +2,8 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
+from collections.abc import Mapping
+from typing import Any, Literal, TypedDict
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
@@ -18,14 +19,14 @@ from sentry.apidocs.utils import SentryApiBuildError
 HTTP_METHOD_NAME = Literal[
     "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
 ]
-HTTP_METHODS_SET = Set[HTTP_METHOD_NAME]
+HTTP_METHODS_SET = set[HTTP_METHOD_NAME]
 
 
 class EndpointRegistryType(TypedDict):
     methods: HTTP_METHODS_SET
 
 
-PUBLIC_ENDPOINTS: Dict[str, EndpointRegistryType] = {}
+PUBLIC_ENDPOINTS: dict[str, EndpointRegistryType] = {}
 
 _DEFINED_TAG_SET = {t["name"] for t in OPENAPI_TAGS}
 _OWNERSHIP_FILE = "api_ownership_stats_dont_modify.json"
@@ -40,7 +41,7 @@ EXCLUSION_PATH_PREFIXES = [
 ]
 
 
-def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
+def __get_explicit_endpoints() -> list[tuple[str, str, str, Any]]:
     """
     We have a few endpoints which are wrapped by `method_dispatch`, which DRF
     will ignore (see [0]). To still have these endpoints properly included in
@@ -107,7 +108,7 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
+def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
@@ -150,7 +151,7 @@ class CustomGenerator(SchemaGenerator):
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
-    ownership_data: Dict[ApiOwner, Dict] = {}
+    ownership_data: dict[ApiOwner, dict] = {}
     for path, path_regex, method, callback in endpoints:
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:

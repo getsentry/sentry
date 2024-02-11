@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
 from django.http import HttpRequest
 from django.urls import reverse
@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 
 def get_invite_state(
     member_id: int,
-    organization_slug: Optional[str],
+    organization_slug: str | None,
     user_id: int,
     request: HttpRequest,
-) -> Optional[RpcUserInviteContext]:
+) -> RpcUserInviteContext | None:
     if organization_slug is None:
         member_mapping: OrganizationMemberMapping | None = None
         member_mappings: Mapping[int, OrganizationMemberMapping] = {
@@ -101,7 +101,7 @@ class AcceptOrganizationInvite(Endpoint):
         return ApiInviteHelper(request=request, token=token, invite_context=invite_context)
 
     def get(
-        self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
+        self, request: Request, member_id: int, token: str, organization_slug: str | None = None
     ) -> Response:
         invite_context = get_invite_state(
             member_id=int(member_id),
@@ -195,7 +195,7 @@ class AcceptOrganizationInvite(Endpoint):
         return response
 
     def post(
-        self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
+        self, request: Request, member_id: int, token: str, organization_slug: str | None = None
     ) -> Response:
         invite_context = get_invite_state(
             member_id=int(member_id),

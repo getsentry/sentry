@@ -1,5 +1,6 @@
 import datetime
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -24,9 +25,9 @@ from sentry.utils import snuba
 @region_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:
@@ -125,7 +126,7 @@ class NoHierarchicalHash(Exception):
     pass
 
 
-def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
+def _split_group(group: Group, hash: str, hierarchical_hashes: Sequence[str] | None = None):
     # Sanity check to see if what we're splitting here is a hierarchical hash.
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
@@ -145,7 +146,7 @@ def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence
     grouphash.save()
 
 
-def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[str]]:
+def _get_full_hierarchical_hashes(group: Group, hash: str) -> Sequence[str] | None:
     query = (
         Query(Entity("events"))
         .set_select(
@@ -181,7 +182,7 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[
     return data[0]["hierarchical_hashes"]
 
 
-def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
+def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Sequence[str] | None = None):
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
 
@@ -238,12 +239,12 @@ def _get_group_filters(group: Group):
 
 
 def _add_hash(
-    trees: List[Dict[str, Any]],
+    trees: list[dict[str, Any]],
     group: Group,
     user,
-    parent_hash: Optional[str],
+    parent_hash: str | None,
     hash: str,
-    child_hash: Optional[str],
+    child_hash: str | None,
     event_count: int,
     last_seen,
     latest_event_id,

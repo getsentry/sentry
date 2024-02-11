@@ -6,12 +6,13 @@ import os
 import re
 import time
 from collections import namedtuple
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -120,6 +121,7 @@ SPAN_COLUMN_MAP = {
     "profile_id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
+    "raw_domain": "sentry_tags[raw_domain]",
     "release": "sentry_tags[release]",
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
@@ -581,10 +583,10 @@ def get_query_params_to_update_for_organizations(query_params):
 
 
 def _prepare_start_end(
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: datetime | None,
+    end: datetime | None,
     organization_id: int,
-    group_ids: Optional[Sequence[int]],
+    group_ids: Sequence[int] | None,
 ) -> tuple[datetime, datetime]:
     if not start:
         start = datetime(2008, 5, 8)
@@ -789,13 +791,14 @@ def raw_query(
 
 SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
-SnubaQueryBody = tuple[SnubaQuery, Translator, Translator]
+RequestQueryBody = tuple[Request, Translator, Translator]
+LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
 
 
 def raw_snql_query(
     request: Request,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> Mapping[str, Any]:
     """
@@ -809,7 +812,7 @@ def raw_snql_query(
 
 def bulk_snql_query(
     requests: list[Request],
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> ResultSet:
     """
@@ -820,7 +823,7 @@ def bulk_snql_query(
 
 def bulk_snuba_queries(
     requests: list[Request],
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> ResultSet:
     """
@@ -838,7 +841,7 @@ def bulk_snuba_queries(
             request.tenant_ids = request.tenant_ids or dict()
             request.tenant_ids["referrer"] = referrer
 
-    params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
+    params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -846,15 +849,19 @@ def bulk_snuba_queries(
 # It should eventually be removed
 def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
-    referrer: Optional[str] = None,
-    use_cache: Optional[bool] = False,
+    referrer: str | None = None,
+    use_cache: bool | None = False,
 ) -> ResultSet:
     """
     Used to make queries using the (very) old JSON format for Snuba queries. Queries submitted here
     will be converted to SnQL queries before being sent to Snuba.
     """
     params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+    request_bodies = [
+        (json_to_snql(query, query["dataset"]), forward, reverse)
+        for query, forward, reverse in params
+    ]
+    return _apply_cache_and_build_results(request_bodies, referrer=referrer, use_cache=use_cache)
 
 
 def get_cache_key(query: SnubaQuery) -> str:
@@ -868,9 +875,9 @@ def get_cache_key(query: SnubaQuery) -> str:
 
 
 def _apply_cache_and_build_results(
-    snuba_param_list: Sequence[SnubaQueryBody],
-    referrer: Optional[str] = None,
-    use_cache: Optional[bool] = False,
+    snuba_param_list: Sequence[RequestQueryBody],
+    referrer: str | None = None,
+    use_cache: bool | None = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
@@ -884,7 +891,7 @@ def _apply_cache_and_build_results(
     if use_cache:
         cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: list[tuple[int, SnubaQueryBody, Optional[str]]] = []
+        to_query: list[tuple[int, RequestQueryBody, str | None]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -911,7 +918,7 @@ def _apply_cache_and_build_results(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: Sequence[SnubaQueryBody],
+    snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
     query_referrer = headers.get("referer", "<unknown>")
@@ -925,12 +932,6 @@ def _bulk_snuba_query(
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        # This is confusing because this function is overloaded right now with two cases:
-        # 1. A SnQL query of a legacy query (_legacy_snql_query)
-        # 2. A direct SnQL query using the new SDK (_snuba_query)
-        query_fn = _legacy_snql_query
-        if isinstance(snuba_param_list[0][0], Request):
-            query_fn = _snuba_query
 
         parent_api: str = "<missing>"
         with sentry_sdk.configure_scope() as scope:
@@ -940,7 +941,7 @@ def _bulk_snuba_query(
         if len(snuba_param_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
-                    query_fn,
+                    _snuba_query,
                     [
                         (params, Hub(Hub.current), headers, parent_api)
                         for params in snuba_param_list
@@ -949,13 +950,15 @@ def _bulk_snuba_query(
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
+            query_results = [
+                _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
+            ]
 
     results = []
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data)
+            body = json.loads(response.data, skip_trace=True)
             if SNUBA_INFO:
                 if "sql" in body:
                     print(  # NOQA: only prints when an env variable is set
@@ -978,13 +981,15 @@ def _bulk_snuba_query(
             error_query = snuba_param_list[index][0]
             if isinstance(error_query, Request):
                 query_str = error_query.serialize()
+                query_type = "mql" if isinstance(error_query.query, MetricsQuery) else "snql"
             else:
                 query_str = json.dumps(error_query)
+                query_type = "snql"
             sentry_sdk.add_breadcrumb(
                 category="query_info",
                 level="info",
-                message="mql_query",
-                data={"mql": query_str},
+                message=f"{query_type}_query",
+                data={query_type: query_str},
             )
 
             if body.get("error"):
@@ -1012,29 +1017,24 @@ def _bulk_snuba_query(
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(
-    params: tuple[
-        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
-    ]
-) -> RawResult:
+def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
     # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
     return _snuba_query(params)
 
 
 def _snuba_query(
     params: tuple[
-        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]],
+        RequestQueryBody,
         Hub,
         Mapping[str, str],
         str,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
-    # the params here than in the calling function.
-    query_data, thread_hub, headers, parent_api = params
-    request, forward, reverse = query_data
+    # the params here than in the calling function. (bc of thread .map)
+    query_body, thread_hub, headers, parent_api = params
+    request, forward, reverse = query_body
     request.parent_api = parent_api
-    assert isinstance(request, Request)
     try:
         referrer = headers.get("referer", "unknown")
         if SNUBA_INFO:
@@ -1051,22 +1051,6 @@ def _snuba_query(
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
-
-
-def _legacy_snql_query(params: tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
-    # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers, parent_api = params
-    query_params, forward, reverse = query_data
-
-    try:
-        snql_entity = query_params["dataset"]
-        request = json_to_snql(query_params, snql_entity)
-        request.parent_api = parent_api
-        result = _raw_snql_query(request, Hub(thread_hub), headers)
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
-
-    return result, forward, reverse
 
 
 def _raw_mql_query(
@@ -1313,8 +1297,8 @@ def _aliased_query_impl(**kwargs):
 
 
 def resolve_conditions(
-    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
-) -> Optional[Sequence[Any]]:
+    conditions: Sequence[Any] | None, column_resolver: Callable[[str], str]
+) -> Sequence[Any] | None:
     if conditions is None:
         return conditions
 
@@ -1532,9 +1516,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 )
             )(col, fwd_map)
             rev = (
-                lambda col, trans: lambda row: replace(row, col, trans[row[col]])
-                if col in row
-                else row
+                lambda col, trans: lambda row: (
+                    replace(row, col, trans[row[col]]) if col in row else row
+                )
             )(col, rev_map)
 
         if fwd is not None:
@@ -1545,18 +1529,20 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     # Extra reverse translator for time column.
     reverse = compose(
         reverse,
-        lambda row: replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
-        if "time" in row
-        else row,
+        lambda row: (
+            replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+            if "time" in row
+            else row
+        ),
     )
     # Extra reverse translator for bucketed_end column.
     reverse = compose(
         reverse,
-        lambda row: replace(
-            row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"])))
-        )
-        if "bucketed_end" in row
-        else row,
+        lambda row: (
+            replace(row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"]))))
+            if "bucketed_end" in row
+            else row
+        ),
     )
 
     return (forward, reverse)

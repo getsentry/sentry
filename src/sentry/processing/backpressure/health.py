@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from collections.abc import Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -37,6 +37,20 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
 
     if not options.get("backpressure.checking.enabled"):
         return True
+
+    # it's never valid to have checking enabled without monitoring.
+    # log an error and return False immediately
+    if not options.get("backpressure.monitoring.enabled"):
+        logger.error(
+            "Invalid state: `backpressure.checking.enabled` is `True`, but "
+            "`backpressure.monitoring.enabled` "
+            "is `False`.\n\nIf you meant to disable backpressure checking, set "
+            "`backpressure.checking.enabled` to `False`. Otherwise set "
+            "`backpressure.monitoring.enabled` to `True` or the backpressure "
+            "system will not work correctly."
+        )
+        return False
+
     # check if queue is healthy by pinging Redis
     try:
         consumer_healthy = service_monitoring_cluster.get(_consumer_key(consumer_name))

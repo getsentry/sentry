@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
@@ -18,7 +17,7 @@ from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimi
 
 
 class ArtifactFile:
-    def __init__(self, file_path: str, info: Dict[str, str]):
+    def __init__(self, file_path: str, info: dict[str, str]):
         self.file_path = file_path
         self.info = info
 
@@ -37,7 +36,7 @@ class ArtifactBundleSource:
         self._files = files
 
     @cached_property
-    def sorted_and_filtered_files(self) -> List[ArtifactFile]:
+    def sorted_and_filtered_files(self) -> list[ArtifactFile]:
         return sorted(
             [
                 ArtifactFile(file_path=file_path, info=info)
@@ -108,7 +107,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 project.organization.id, artifact_bundle
             )
 
-            def format_date(date: Optional[datetime]) -> Optional[str]:
+            def format_date(date: datetime | None) -> str | None:
                 return None if date is None else date.isoformat()[:19] + "Z"
 
             return serialize(

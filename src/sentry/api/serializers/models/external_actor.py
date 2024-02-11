@@ -1,4 +1,5 @@
-from typing import Any, List, Mapping, MutableMapping, Optional
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from typing_extensions import TypedDict
 
@@ -24,7 +25,7 @@ class ExternalActorResponse(ExternalActorResponseOptional):
 @register(ExternalActor)
 class ExternalActorSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[ExternalActor], user: User, **kwargs: Any
+        self, item_list: list[ExternalActor], user: User, **kwargs: Any
     ) -> MutableMapping[ExternalActor, MutableMapping[str, Any]]:
         # create a mapping of external actor to a set of attributes.
         # Those attributes are either {"user": user.id} or {"team": team.id}.
@@ -42,7 +43,7 @@ class ExternalActorSerializer(Serializer):
         obj: ExternalActor,
         attrs: Mapping[str, Any],
         user: User,
-        key: Optional[str] = None,
+        key: str | None = None,
         **kwargs: Any,
     ) -> ExternalActorResponse:
         provider = get_provider_string(obj.provider)

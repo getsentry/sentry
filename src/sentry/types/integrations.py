@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence, Set
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
@@ -22,7 +22,7 @@ class ExternalProviders(ValueEqualityEnum):
     CUSTOM = 700
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         return get_provider_name(self.value)
 
 
@@ -73,7 +73,7 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
 ]
 
 
-def get_provider_name(value: int) -> Optional[str]:
+def get_provider_name(value: int) -> str | None:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
 
 
@@ -81,11 +81,11 @@ def get_provider_string(provider_int: int) -> str:
     return get_provider_name(provider_int) or "unknown"
 
 
-def get_provider_enum(value: Optional[str]) -> Optional[ExternalProviders]:
+def get_provider_enum(value: str | None) -> ExternalProviders | None:
     return {v: k for k, v in EXTERNAL_PROVIDERS.items()}.get(value)
 
 
-def get_provider_choices(providers: Set[ExternalProviders]) -> Sequence[str]:
+def get_provider_choices(providers: set[ExternalProviders]) -> Sequence[str]:
     return list(EXTERNAL_PROVIDERS.get(i) for i in providers)
 
 

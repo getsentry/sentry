@@ -6,7 +6,6 @@ will produce new outboxes incrementally to replicate those models.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple, Type, Union
 
 from django.apps import apps
 from django.db import router, transaction
@@ -36,8 +35,8 @@ def get_backfill_key(table_name: str) -> str:
     return f"outbox_backfill.{table_name}"
 
 
-def get_processing_state(table_name: str) -> Tuple[int, int]:
-    result: Tuple[int, int]
+def get_processing_state(table_name: str) -> tuple[int, int]:
+    result: tuple[int, int]
     with redis.clusters.get("default").get_local_client_for_key("backfill_outboxes") as client:
         key = get_backfill_key(table_name)
         v = client.get(key)
@@ -69,7 +68,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
+    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
     force_synchronous=False,
 ) -> int:
     """
@@ -89,7 +88,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: Union[Type[ControlOutboxProducingModel], Type[RegionOutboxProducingModel], Type[User]],
+    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
     *,
     batch_size: int,
     force_synchronous=False,
@@ -113,7 +112,7 @@ def _chunk_processing_batch(
 
 
 def process_outbox_backfill_batch(
-    model: Type[Model], batch_size: int, force_synchronous=False
+    model: type[Model], batch_size: int, force_synchronous=False
 ) -> BackfillBatch | None:
     if (
         not issubclass(model, RegionOutboxProducingModel)

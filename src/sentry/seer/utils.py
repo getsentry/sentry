@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 from django.conf import settings
 from urllib3 import Retry
@@ -23,7 +23,7 @@ class BreakpointData(TypedDict):
 
 
 class BreakpointResponse(TypedDict):
-    data: List[BreakpointData]
+    data: list[BreakpointData]
 
 
 seer_connection_pool = connection_from_url(
@@ -44,3 +44,44 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
         headers={"content-type": "application/json;charset=utf-8"},
     )
     return json.loads(response.data)
+
+
+class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
+    k: int
+    threshold: float
+
+
+class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
+    group_id: int
+    project_id: int
+    stacktrace: str
+    message: str
+
+
+class SimilarIssuesEmbeddingsData(TypedDict):
+    parent_group_id: int
+    stacktrace_similarity: float
+    message_similarity: float
+    should_group: bool
+
+
+class SimilarIssuesEmbeddingsResponse(TypedDict):
+    responses: list[SimilarIssuesEmbeddingsData | None]
+
+
+def get_similar_issues_embeddings(
+    similar_issues_request: SimilarIssuesEmbeddingsRequest,
+) -> SimilarIssuesEmbeddingsResponse:
+    """Call /v0/issues/similar-issues endpoint from timeseries-analysis-service."""
+    response = seer_connection_pool.urlopen(
+        "POST",
+        "/v0/issues/similar-issues",
+        body=json.dumps(similar_issues_request),
+        headers={"Content-Type": "application/json;charset=utf-8"},
+    )
+
+    try:
+        return json.loads(response.data.decode("utf-8"))
+    except AttributeError:
+        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
+        return empty_response

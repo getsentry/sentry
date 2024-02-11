@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.column import Column
@@ -19,11 +19,11 @@ from sentry.utils import snuba
 def get_errors_counts_timeseries_by_project_and_release(
     end: datetime,
     organization_id: int,
-    project_id_list: List[int],
-    release_value_list: List[str],
+    project_id_list: list[int],
+    release_value_list: list[str],
     start: datetime,
-    environments_list: List[str] | None = None,
-) -> List[Dict[str, Any]]:
+    environments_list: list[str] | None = None,
+) -> list[dict[str, Any]]:
     additional_conditions = []
     if environments_list:
         additional_conditions.append(Condition(Column("environment"), Op.IN, environments_list))

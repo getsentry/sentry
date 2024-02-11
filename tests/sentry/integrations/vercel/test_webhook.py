@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-from typing import Optional
 
 import responses
 from rest_framework.response import Response
@@ -19,6 +18,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -56,7 +56,7 @@ class VercelReleasesTest(APITestCase):
             digestmod=hashlib.sha1,
         ).hexdigest()
 
-    def _get_response(self, message: str, signature: Optional[str] = None) -> Response:
+    def _get_response(self, message: str, signature: str | None = None) -> Response:
         signature = signature or self.get_signature(message)
         return self.client.post(
             path=self.webhook_url,
@@ -132,6 +132,7 @@ class VercelReleasesTest(APITestCase):
             assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
+    @with_feature("organizations:vercel-integration-webhooks")
     def test_create_release_new(self):
         responses.add(
             responses.POST,
@@ -303,6 +304,7 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
+@control_silo_test
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
 

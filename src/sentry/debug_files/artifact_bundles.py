@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Set, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -82,7 +81,7 @@ def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_
 
 def index_artifact_bundles_for_release(
     organization_id: int,
-    artifact_bundles: List[Tuple[ArtifactBundle, ArtifactBundleArchive | None]],
+    artifact_bundles: list[tuple[ArtifactBundle, ArtifactBundleArchive | None]],
 ) -> None:
     """
     This indexes the contents of `artifact_bundles` into the database, using the given `release` and `dist` pair.
@@ -195,7 +194,7 @@ def index_urls_in_bundle(
 
 
 @sentry_sdk.tracing.trace
-def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: List[str]):
+def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
         return
 
@@ -240,7 +239,7 @@ def refresh_artifact_bundles_in_use():
             break
 
 
-def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
+def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -301,8 +300,8 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
 
 
 def _maybe_renew_and_return_bundles(
-    bundles: Dict[int, Tuple[datetime, str]]
-) -> List[Tuple[int, str]]:
+    bundles: dict[int, tuple[datetime, str]]
+) -> list[tuple[int, str]]:
     maybe_renew_artifact_bundles(
         {id: date_added for id, (date_added, _resolved) in bundles.items()}
     )
@@ -316,7 +315,7 @@ def query_artifact_bundles_containing_file(
     dist: str,
     url: str,
     debug_id: str | None,
-) -> List[Tuple[int, str]]:
+) -> list[tuple[int, str]]:
     """
     This looks up the artifact bundles that satisfy the query consisting of
     `release`, `dist`, `url` and `debug_id`.
@@ -360,9 +359,9 @@ def query_artifact_bundles_containing_file(
     # We keep track of all the discovered artifact bundles, by the various means of lookup.
     # We are intentionally overwriting the `resolved` flag, as we want to rank these from
     # coarse-grained to fine-grained.
-    artifact_bundles: Dict[int, Tuple[datetime, str]] = dict()
+    artifact_bundles: dict[int, tuple[datetime, str]] = dict()
 
-    def update_bundles(bundles: Set[Tuple[int, datetime]], resolved: str):
+    def update_bundles(bundles: set[tuple[int, datetime]], resolved: str):
         for bundle_id, date_added in bundles:
             artifact_bundles[bundle_id] = (date_added, resolved)
 
@@ -399,7 +398,7 @@ def query_artifact_bundles_containing_file(
 
 def get_bundles_indexing_state(
     org_or_project: Project | Organization, release_name: str, dist_name: str
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
     Returns the number of total bundles, and the number of fully indexed bundles
     associated with the given `release` / `dist`.
@@ -432,7 +431,7 @@ def get_bundles_indexing_state(
 
 def get_artifact_bundles_containing_debug_id(
     project: Project, debug_id: str
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns the most recently uploaded artifact bundle containing the given `debug_id`.
     """
@@ -449,7 +448,7 @@ def get_artifact_bundles_containing_debug_id(
 
 def get_artifact_bundles_containing_url(
     project: Project, release_name: str, dist_name: str, url: str
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
     """
@@ -472,7 +471,7 @@ def get_artifact_bundles_by_release(
     project: Project,
     release_name: str,
     dist_name: str,
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns up to N most recently uploaded bundles for the given `release` and `dist`.
     """

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 from django.db.models import CharField, Count, Q, QuerySet, Value
 
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def get_new_issue_counts(
-    organization_id: int, thresholds: List[EnrichedThreshold]
+    organization_id: int, thresholds: list[EnrichedThreshold]
 ) -> dict[str, int]:
     """
     constructs a query for each threshold, filtering on project

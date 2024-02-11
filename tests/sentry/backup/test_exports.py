@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
@@ -139,12 +139,12 @@ class FilteringTests(ExportTestCase):
     """
 
     @staticmethod
-    def count(data: JSONData, model: Type[models.base.BaseModel]) -> int:
+    def count(data: JSONData, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
 
     @staticmethod
     def exists(
-        data: JSONData, model: Type[models.base.BaseModel], key: str, value: Any | None = None
+        data: JSONData, model: type[models.base.BaseModel], key: str, value: Any | None = None
     ) -> bool:
         for d in data:
             if d["model"] == str(get_model_name(model)):

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Literal, Set, Type
+from typing import Literal
 
 from django.db import models
 
@@ -18,7 +19,7 @@ from sentry.utils.json import JSONData
 
 
 def verify_models_in_output(
-    expected_models: list[Type[models.Model]], actual_json: JSONData
+    expected_models: list[type[models.Model]], actual_json: JSONData
 ) -> None:
     """
     A helper context manager that checks that every model that a test "targeted" was actually seen
@@ -110,7 +111,7 @@ def verify_models_in_output(
             raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
 
 
-def expect_models(group: set[NormalizedModelName], *marking: Type | Literal["__all__"]) -> Callable:
+def expect_models(group: set[NormalizedModelName], *marking: type | Literal["__all__"]) -> Callable:
     """
     A function that runs at module load time and marks all models that appear in a given test
     function. The first argument stores the tracked models in a global group, which we then check in
@@ -120,7 +121,7 @@ def expect_models(group: set[NormalizedModelName], *marking: Type | Literal["__a
     """
 
     all: Literal["__all__"] = "__all__"
-    target_models: Set[Type[models.Model]] = set()
+    target_models: set[type[models.Model]] = set()
     for model in marking:
         if model == all:
             all_models = get_exportable_sentry_models()
@@ -143,7 +144,7 @@ def expect_models(group: set[NormalizedModelName], *marking: Type | Literal["__a
 
 def get_matching_exportable_models(
     matcher: Callable[[ModelRelations], bool] = lambda mr: True
-) -> set[Type[models.Model]]:
+) -> set[type[models.Model]]:
     """
     Helper function that returns all of the model class definitions that return true for the provided matching function. Models will be iterated in the order specified by the `sorted_dependencies` function.
     """

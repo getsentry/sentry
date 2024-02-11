@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterator, Protocol, Sequence, Tuple, TypeVar, Union
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Protocol, TypeVar, Union
 
 from sentry.utils.json import JSONData
 
@@ -111,7 +112,7 @@ class CursorResult(Sequence[T]):
 
 def _build_next_values(
     cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
-) -> Tuple[CursorValue, int, bool]:
+) -> tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev
@@ -172,7 +173,7 @@ def _build_next_values(
 
 def _build_prev_values(
     cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
-) -> Tuple[CursorValue, int, bool]:
+) -> tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
 from time import time
-from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any
 
 import msgpack
 import sentry_sdk
@@ -32,7 +33,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
 Profile = MutableMapping[str, Any]
-CallTrees = Mapping[str, List[Any]]
+CallTrees = Mapping[str, list[Any]]
 
 
 class VroomTimeout(Exception):
@@ -54,7 +55,7 @@ class VroomTimeout(Exception):
     silo_mode=SiloMode.REGION,
 )
 def process_profile_task(
-    profile: Optional[Profile] = None,
+    profile: Profile | None = None,
     payload: Any = None,
     sampled: bool = True,
     **kwargs: Any,
@@ -159,7 +160,7 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
 
 
-def get_profile_platforms(profile: Profile) -> List[str]:
+def get_profile_platforms(profile: Profile) -> list[str]:
     platforms = [profile["platform"]]
 
     if "version" in profile and profile["platform"] in SHOULD_SYMBOLICATE_JS:
@@ -336,10 +337,10 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 def _prepare_frames_from_profile(
     profile: Profile, platform: str
-) -> Tuple[List[Any], List[Any], set[int]]:
+) -> tuple[list[Any], list[Any], set[int]]:
     with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
         modules = profile["debug_meta"]["images"]
-        frames: List[Any] = []
+        frames: list[Any] = []
         frames_sent: set[int] = set()
 
         if platform is None:
@@ -417,8 +418,8 @@ def _prepare_frames_from_profile(
 def symbolicate(
     symbolicator: Symbolicator,
     profile: Profile,
-    modules: List[Any],
-    stacktraces: List[Any],
+    modules: list[Any],
+    stacktraces: list[Any],
     platform: str,
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
@@ -442,10 +443,10 @@ class SymbolicationTimeout(Exception):
 def run_symbolicate(
     project: Project,
     profile: Profile,
-    modules: List[Any],
-    stacktraces: List[Any],
+    modules: list[Any],
+    stacktraces: list[Any],
     platform: str,
-) -> Tuple[List[Any], List[Any], bool]:
+) -> tuple[list[Any], list[Any], bool]:
     symbolication_start_time = time()
 
     def on_symbolicator_request():
@@ -505,8 +506,8 @@ def run_symbolicate(
 @metrics.wraps("process_profile.symbolicate.process")
 def _process_symbolicator_results(
     profile: Profile,
-    modules: List[Any],
-    stacktraces: List[Any],
+    modules: list[Any],
+    stacktraces: list[Any],
     frames_sent: set[int],
     platform: str,
 ) -> None:
@@ -533,11 +534,11 @@ def _process_symbolicator_results(
 
 
 def _process_symbolicator_results_for_sample(
-    profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: str
+    profile: Profile, stacktraces: list[Any], frames_sent: set[int], platform: str
 ) -> None:
     if platform == "rust":
 
-        def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
+        def truncate_stack_needed(frames: list[dict[str, Any]], stack: list[Any]) -> list[Any]:
             # remove top frames related to the profiler (top of the stack)
             if frames[stack[0]].get("function", "") == "perf_signal_handler":
                 stack = stack[2:]
@@ -549,9 +550,9 @@ def _process_symbolicator_results_for_sample(
     elif platform == "cocoa":
 
         def truncate_stack_needed(
-            frames: List[dict[str, Any]],
-            stack: List[Any],
-        ) -> List[Any]:
+            frames: list[dict[str, Any]],
+            stack: list[Any],
+        ) -> list[Any]:
             # remove bottom frames we can't symbolicate
             if frames[stack[-1]].get("instruction_addr", "") == "0xffffffffc":
                 return stack[:-2]
@@ -560,9 +561,9 @@ def _process_symbolicator_results_for_sample(
     else:
 
         def truncate_stack_needed(
-            frames: List[dict[str, Any]],
-            stack: List[Any],
-        ) -> List[Any]:
+            frames: list[dict[str, Any]],
+            stack: list[Any],
+        ) -> list[Any]:
             return stack
 
     symbolicated_frames = stacktraces[0]["frames"]
@@ -609,8 +610,8 @@ def _process_symbolicator_results_for_sample(
 
     if platform in SHOULD_SYMBOLICATE:
 
-        def get_stack(stack: List[int]) -> List[int]:
-            new_stack: List[int] = []
+        def get_stack(stack: list[int]) -> list[int]:
+            new_stack: list[int] = []
             for index in stack:
                 if index in symbolicated_frames_dict:
                     # the new stack extends the older by replacing
@@ -624,7 +625,7 @@ def _process_symbolicator_results_for_sample(
 
     else:
 
-        def get_stack(stack: List[int]) -> List[int]:
+        def get_stack(stack: list[int]) -> list[int]:
             return stack
 
     stacks = []
@@ -641,7 +642,7 @@ def _process_symbolicator_results_for_sample(
     profile["profile"]["stacks"] = stacks
 
 
-def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
+def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: list[Any]) -> None:
     for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
         # remove bottom frames we can't symbolicate
         if (
@@ -653,7 +654,7 @@ def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[
             original["frames"] = symbolicated["frames"]
 
 
-def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
+def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: list[Any]) -> None:
     for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
         for frame in symbolicated["frames"]:
             frame.pop("pre_context", None)
@@ -700,8 +701,8 @@ The sorting order is callee to caller (child to parent)
 """
 
 
-def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
-    index_map: dict[int, List[int]] = {}
+def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
+    index_map: dict[int, list[int]] = {}
     for i, frame in enumerate(frames):
         # In case we don't have an `original_index` field, we default to using
         # the index of the frame in order to still produce a data structure
@@ -893,7 +894,7 @@ def _track_outcome(
     profile: Profile,
     project: Project,
     outcome: Outcome,
-    reason: Optional[str] = None,
+    reason: str | None = None,
 ) -> None:
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)

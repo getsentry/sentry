@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Collection, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, Any, ClassVar, Collection, List, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
@@ -36,7 +37,7 @@ def default_uuid():
 
 
 class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstallation"]):
-    def get_organization_filter_kwargs(self, organization_ids: List[int]):
+    def get_organization_filter_kwargs(self, organization_ids: list[int]):
         return {
             "organization_id__in": organization_ids,
             "status": SentryAppInstallationStatus.INSTALLED,
@@ -60,8 +61,8 @@ class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstalla
 
     def get_related_sentry_app_components(
         self,
-        organization_ids: List[int],
-        sentry_app_ids: List[int],
+        organization_ids: list[int],
+        sentry_app_ids: list[int],
         type: str,
         group_by="sentry_app_id",
     ):
@@ -182,7 +183,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     def outbox_region_names(self) -> Collection[str]:
         return find_regions_for_orgs([self.organization_id])
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
@@ -238,7 +239,7 @@ def prepare_sentry_app_components(
     installation: SentryAppInstallation,
     component_type: str,
     project_slug: str | None = None,
-    values: List[Mapping[str, Any]] | None = None,
+    values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
@@ -256,7 +257,7 @@ def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
-    values: List[Mapping[str, Any]] | None = None,
+    values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer

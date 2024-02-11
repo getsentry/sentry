@@ -1,5 +1,5 @@
 import os
-from typing import MutableMapping
+from collections.abc import MutableMapping
 
 import psutil
 import pytest

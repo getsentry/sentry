@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -17,7 +17,9 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';
@@ -26,20 +28,24 @@ import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
-  const {metricsMeta, isLoading} = useDDMContext();
-  const hasMetrics = !isLoading && metricsMeta.length > 0;
+  const organization = useOrganization();
+  const {hasMetrics} = useDDMContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const addCustomMetric = useCallback(
-    (referrer: string) => {
+    (referrer: 'header' | 'onboarding_panel') => {
       Sentry.metrics.increment('ddm.add_custom_metric', 1, {
         tags: {
           referrer,
         },
       });
+      trackAnalytics('ddm.open-onboarding', {
+        organization,
+        source: referrer,
+      });
       activateSidebar();
     },
-    [activateSidebar]
+    [activateSidebar, organization]
   );
 
   return (
@@ -58,10 +64,18 @@ export const DDMLayout = memo(() => {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <PageHeaderActions
-            showCustomMetricButton={hasMetrics}
-            addCustomMetric={addCustomMetric}
-          />
+          <Feature
+            hookName="feature-disabled:dashboards-edit"
+            features="organizations:dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <PageHeaderActions
+                showCustomMetricButton={hasMetrics}
+                addCustomMetric={() => addCustomMetric('header')}
+                hasDashboardFeature={hasFeature}
+              />
+            )}
+          </Feature>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -74,9 +88,7 @@ export const DDMLayout = memo(() => {
               <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
-          {isLoading ? (
-            <LoadingIndicator />
-          ) : hasMetrics ? (
+          {hasMetrics ? (
             <Fragment>
               <Queries />
               <MetricScratchpad />

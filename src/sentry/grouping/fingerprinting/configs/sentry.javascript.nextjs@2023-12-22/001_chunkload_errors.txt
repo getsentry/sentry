@@ -1,2 +1,0 @@
-sdk:sentry.javascript.nextjs error.type:"ChunkLoadError" -> chunkloaderror
-sdk:sentry.javascript.nextjs error.value:"ChunkLoadError*" -> chunkloaderror

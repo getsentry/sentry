@@ -1,5 +1,4 @@
 import re
-from typing import Optional, Set
 
 from rest_framework import serializers
 
@@ -22,7 +21,7 @@ def _out_of_range_string(param: str, minimum: int, maximum: int, actual: int) ->
 
 
 def is_valid_provider(
-    provider: str, available_providers: Optional[Set[ExternalProviders]] = None
+    provider: str, available_providers: set[ExternalProviders] | None = None
 ) -> bool:
     try:
         validate_provider(provider, available_providers)
@@ -31,7 +30,7 @@ def is_valid_provider(
     return True
 
 
-def validate_external_id_option(external_id: Optional[str]) -> Optional[str]:
+def validate_external_id_option(external_id: str | None) -> str | None:
     if not external_id:
         return None
 

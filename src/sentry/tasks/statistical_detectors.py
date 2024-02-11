@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator, Iterable
 from datetime import datetime, timedelta
-from typing import Any, Dict, Generator, Iterable, List, Tuple
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone as django_timezone
@@ -74,7 +75,7 @@ RUN_FREQUENCY = timedelta(hours=1)  # runs hourly
 DISPATCH_STEP = timedelta(seconds=17)
 
 
-def get_performance_issue_settings(projects: List[Project]):
+def get_performance_issue_settings(projects: list[Project]):
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -95,7 +96,7 @@ def get_performance_issue_settings(projects: List[Project]):
     return project_settings
 
 
-def all_projects_with_flags() -> Generator[Tuple[int, int], None, None]:
+def all_projects_with_flags() -> Generator[tuple[int, int], None, None]:
     yield from RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
         result_value_getter=lambda item: item[0],
@@ -144,9 +145,9 @@ def compute_delay(
 
 
 def dispatch_performance_projects(
-    all_projects: Generator[Tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int], None, None],
     timestamp: datetime,
-) -> Generator[Tuple[int, int], None, None]:
+) -> Generator[tuple[int, int], None, None]:
     projects = []
     count = 0
 
@@ -188,9 +189,9 @@ def dispatch_performance_projects(
 
 
 def dispatch_profiling_projects(
-    all_projects: Generator[Tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int], None, None],
     timestamp: datetime,
-) -> Generator[Tuple[int, int], None, None]:
+) -> Generator[tuple[int, int], None, None]:
     projects = []
     count = 0
 
@@ -250,7 +251,7 @@ class EndpointRegressionDetector(RegressionDetector):
     @classmethod
     def query_payloads(
         cls,
-        projects: List[Project],
+        projects: list[Project],
         start: datetime,
     ) -> Iterable[DetectorPayload]:
         return query_transactions(projects, start)
@@ -258,10 +259,10 @@ class EndpointRegressionDetector(RegressionDetector):
     @classmethod
     def query_timeseries(
         cls,
-        objects: List[Tuple[Project, int | str]],
+        objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-    ) -> Iterable[Tuple[int, int | str, SnubaTSResult]]:
+    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
         return query_transactions_timeseries(objects, start, function)
 
 
@@ -292,18 +293,18 @@ class FunctionRegressionDetector(RegressionDetector):
     @classmethod
     def query_payloads(
         cls,
-        projects: List[Project],
+        projects: list[Project],
         start: datetime,
-    ) -> List[DetectorPayload]:
+    ) -> list[DetectorPayload]:
         return query_functions(projects, start)
 
     @classmethod
     def query_timeseries(
         cls,
-        objects: List[Tuple[Project, int | str]],
+        objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-    ) -> Iterable[Tuple[int, int | str, SnubaTSResult]]:
+    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
         return query_functions_timeseries(objects, start, function)
 
 
@@ -313,7 +314,7 @@ class FunctionRegressionDetector(RegressionDetector):
     max_retries=0,
 )
 def detect_transaction_trends(
-    _org_ids: List[int], project_ids: List[int], start: datetime, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -322,7 +323,6 @@ def detect_transaction_trends(
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:performance-statistical-detectors-ema",
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
@@ -354,13 +354,13 @@ def detect_transaction_trends(
     max_retries=0,
 )
 def detect_transaction_change_points(
-    transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
     _detect_transaction_change_points(transactions, start, *args, **kwargs)
 
 
 def _detect_transaction_change_points(
-    transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -371,11 +371,10 @@ def _detect_transaction_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in transactions],
-            feature_name="organizations:performance-statistical-detectors-breakpoint",
         )
     }
 
-    transaction_pairs: List[Tuple[Project, int | str]] = [
+    transaction_pairs: list[tuple[Project, int | str]] = [
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
@@ -403,7 +402,7 @@ def _detect_transaction_change_points(
     queue="profiling.statistical_detector",
     max_retries=0,
 )
-def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwargs) -> None:
+def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -411,7 +410,6 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:profiling-statistical-detectors-ema",
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -442,13 +440,13 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     max_retries=0,
 )
 def detect_function_change_points(
-    functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
     _detect_function_change_points(functions_list, start, *args, **kwargs)
 
 
 def _detect_function_change_points(
-    functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -459,11 +457,10 @@ def _detect_function_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in functions_list],
-            feature_name="organizations:profiling-statistical-detectors-breakpoint",
         )
     }
 
-    function_pairs: List[Tuple[Project, int | str]] = [
+    function_pairs: list[tuple[Project, int | str]] = [
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
@@ -495,8 +492,8 @@ def _detect_function_change_points(
 
 
 def emit_function_regression_issue(
-    projects_by_id: Dict[int, Project],
-    regressions: List[BreakpointData],
+    projects_by_id: dict[int, Project],
+    regressions: list[BreakpointData],
     start: datetime,
 ) -> int:
     start = start - timedelta(hours=1)
@@ -505,7 +502,7 @@ def emit_function_regression_issue(
     project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "start": start,
         "end": start + timedelta(minutes=1),
         "project_id": project_ids,
@@ -594,10 +591,10 @@ BACKEND_TRANSACTION_OPS = [
 
 
 def query_transactions(
-    projects: List[Project],
+    projects: list[Project],
     start: datetime,
     transactions_per_project: int = TRANSACTIONS_PER_PROJECT,
-) -> List[DetectorPayload]:
+) -> list[DetectorPayload]:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
     end = start + timedelta(hours=1)
@@ -718,10 +715,10 @@ def query_transactions(
 
 
 def query_transactions_timeseries(
-    transactions: List[Tuple[Project, int | str]],
+    transactions: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[Tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
     start = end - timedelta(days=days_to_query)
@@ -874,14 +871,14 @@ def query_transactions_timeseries(
         yield project_id, transaction_name, formatted_result
 
 
-def query_functions(projects: List[Project], start: datetime) -> List[DetectorPayload]:
+def query_functions(projects: list[Project], start: datetime) -> list[DetectorPayload]:
     # The functions dataset only supports 1 hour granularity.
     # So we always look back at the last full hour that just elapsed.
     # And since the timestamps are truncated to the start of the hour
     # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "start": start,
         "end": start + timedelta(minutes=1),
         "project_id": [project.id for project in projects],
@@ -922,16 +919,16 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
 
 
 def query_functions_timeseries(
-    functions_list: List[Tuple[Project, int | str]],
+    functions_list: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[Tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
     projects = [project for project, _ in functions_list]
     project_ids = [project.id for project in projects]
 
     # take the last 14 days as our window
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "start": end - timedelta(days=14),
         "end": end,
         "project_id": project_ids,
@@ -939,7 +936,7 @@ def query_functions_timeseries(
     }
     interval = 3600  # 1 hour
 
-    chunk: List[Dict[str, Any]] = [
+    chunk: list[dict[str, Any]] = [
         {
             "project.id": project.id,
             "fingerprint": fingerprint,
@@ -974,10 +971,10 @@ def query_functions_timeseries(
 
 
 def get_detector_enabled_projects(
-    project_ids: List[int],
+    project_ids: list[int],
     feature_name: str | None = None,
     project_option: InternalProjectOptions | None = None,
-) -> List[Project]:
+) -> list[Project]:
     projects = Project.objects.filter(id__in=project_ids)
 
     if feature_name is None:

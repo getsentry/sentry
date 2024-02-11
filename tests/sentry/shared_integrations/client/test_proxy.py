@@ -14,12 +14,12 @@ from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
 
 
-@override_settings(SENTRY_SUBNET_SECRET=secret, SENTRY_CONTROL_ADDRESS=control_address)
+@region_silo_test
 class IntegrationProxyClientTest(TestCase):
     oi_id = 24
     base_url = "https://example.com"
@@ -34,6 +34,7 @@ class IntegrationProxyClientTest(TestCase):
 
         self.client_cls = TestClient
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_noop(self):
         prepared_request = Request(method="GET", url=self.test_url).prepare()
         raw_headers = prepared_request.headers
@@ -41,6 +42,7 @@ class IntegrationProxyClientTest(TestCase):
         client.authorize_request(prepared_request)
         assert prepared_request.headers == raw_headers
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_basic(self):
         prepared_request = Request(method="POST", url=self.test_url).prepare()
 
@@ -76,7 +78,6 @@ class IntegrationProxyClientTest(TestCase):
             assert prepared_request.headers == raw_headers
 
     @patch.object(IntegrationProxyClient, "authorize_request")
-    @override_settings(SILO_MODE=SiloMode.REGION)
     def test_finalize_request_region(self, mock_authorize):
         """In a region silo, should change the URL and headers"""
         prepared_request = Request(method="DELETE", url=self.test_url).prepare()
@@ -94,7 +95,6 @@ class IntegrationProxyClientTest(TestCase):
             assert header in prepared_request.headers
         assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_invalid_control_silo_ip_address(
@@ -111,7 +111,6 @@ class IntegrationProxyClientTest(TestCase):
         err = mock_capture_exception.call_args.args[0]
         assert err.args == ("Disallowed Control Silo IP address: 172.31.255.255",)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")

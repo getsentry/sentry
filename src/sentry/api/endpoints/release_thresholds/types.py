@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Any, Dict, TypedDict
+from typing import Any, TypedDict
 
 
 class SerializedThreshold(TypedDict):
     id: str
     date: datetime
-    environment: Dict[str, Any] | None
-    project: Dict[str, Any]
+    environment: dict[str, Any] | None
+    project: dict[str, Any]
     release: str
     threshold_type: int
     trigger_type: str

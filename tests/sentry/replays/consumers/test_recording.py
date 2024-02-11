@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 import uuid
 import zlib
+from collections.abc import Mapping
 from datetime import datetime
-from typing import List, Mapping
 from unittest.mock import ANY, patch
 
 import msgpack
@@ -107,7 +107,7 @@ class RecordingTestCase(TransactionTestCase):
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
-    ) -> List[ReplayRecording]:
+    ) -> list[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
             {
@@ -171,6 +171,47 @@ class RecordingTestCase(TransactionTestCase):
             platform=self.project.platform,
             user_id=self.organization.default_owner_id,
         )
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_json(self, emit_replay_actions, mock_record, mock_onboarding_task):
+        """Assert invalid JSON does not break ingestion.
+
+        In production, we'll never received invalid JSON. Its validated in Relay. However, we
+        may still encounter issues when deserializing JSON that are not encountered in Relay
+        (e.g. max depth). These issues should not break ingestion.
+        """
+        segment_id = 0
+        self.submit(
+            self.nonchunked_messages(segment_id=segment_id, compressed=True, message=b"[{]")
+        )
+
+        # Data was persisted even though an error was encountered.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes == zlib.compress(b"[{]")
+
+        # Onboarding and billing tasks were called.
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+
+        mock_record.assert_called_with(
+            "first_replay.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
+        )
+
+        # No replay actions were emitted because JSON deserialization failed.
+        assert not emit_replay_actions.called
 
 
 class ThreadedRecordingTestCase(RecordingTestCase):

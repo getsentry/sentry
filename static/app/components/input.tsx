@@ -49,7 +49,7 @@ export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p.theme.focusBorder};
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;

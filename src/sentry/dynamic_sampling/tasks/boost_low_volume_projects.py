@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence, Tuple
 
 from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import (
@@ -109,7 +109,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
     projects_with_tx_count_and_rates: Sequence[
-        Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+        tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
@@ -117,10 +117,10 @@ def boost_low_volume_projects_of_org(
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
-    org_ids: List[int],
-    granularity: Optional[Granularity] = None,
-    query_interval: Optional[timedelta] = None,
-) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
+    org_ids: list[int],
+    granularity: Granularity | None = None,
+    query_interval: timedelta | None = None,
+) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
@@ -238,7 +238,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 def adjust_sample_rates_of_projects(
     org_id: int,
-    projects_with_tx_count: Sequence[Tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    projects_with_tx_count: Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.
