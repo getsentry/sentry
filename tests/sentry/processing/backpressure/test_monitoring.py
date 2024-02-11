@@ -56,6 +56,7 @@ def test_check_redis_health() -> None:
 @override_options(
     {
         "backpressure.checking.enabled": True,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
