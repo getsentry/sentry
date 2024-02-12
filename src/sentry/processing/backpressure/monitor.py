@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, MutableMapping
 from dataclasses import dataclass
 from typing import Union
 
@@ -77,8 +77,8 @@ def assert_all_services_defined(services: dict[str, Service]) -> None:
             )
 
 
-def check_service_health(services: Mapping[str, Service]) -> Mapping[str, UnhealthyReasons]:
-    unhealthy_services = {}
+def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str, UnhealthyReasons]:
+    unhealthy_services: MutableMapping[str, UnhealthyReasons] = {}
 
     for name, service in services.items():
         high_watermark = options.get(f"backpressure.high_watermarks.{name}")
@@ -100,10 +100,11 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, Unheal
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
-            reasons = e
+            unhealthy_services[name] = e
+        else:
+            unhealthy_services[name] = reasons
 
-        unhealthy_services[name] = reasons
-        logger.info("  => healthy: %s", not reasons)
+        logger.info("  => healthy: %s", not unhealthy_services[name])
 
     return unhealthy_services
 

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -85,7 +86,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
         for name, unhealthy_reasons in unhealthy_services.items():
             pipeline.set(_service_key(name), "false" if unhealthy_reasons else "true", ex=key_ttl)
 
-            extra = {}
+            extra: dict[str, Any] = {}
             if unhealthy_reasons:
                 if isinstance(unhealthy_reasons, Exception):
                     extra = {"exception": unhealthy_reasons}

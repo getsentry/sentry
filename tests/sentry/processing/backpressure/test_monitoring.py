@@ -1,7 +1,13 @@
+from collections.abc import MutableMapping
+
 import pytest
 from django.test.utils import override_settings
 
-from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_health
+from sentry.processing.backpressure.health import (
+    UnhealthyReasons,
+    is_consumer_healthy,
+    record_consumer_health,
+)
 from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
@@ -60,7 +66,7 @@ def test_check_redis_health() -> None:
     }
 )
 def test_record_consumer_health() -> None:
-    unhealthy_services = {
+    unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
         "celery": [],
         "attachments-store": [],
         "processing-store": [],
