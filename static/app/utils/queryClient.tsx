@@ -43,8 +43,11 @@ const PERSIST_IN_FLIGHT = true;
 type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
+  Data = Record<string, any>,
 > = {
+  data?: Data;
   headers?: Headers;
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
   query?: Query;
 };
 
@@ -52,7 +55,11 @@ export type ApiQueryKey =
   | readonly [url: string]
   | readonly [
       url: string,
-      options: QueryKeyEndpointOptions<Record<string, string>, Record<string, any>>,
+      options: QueryKeyEndpointOptions<
+        Record<string, string>,
+        Record<string, any>,
+        Record<string, any>
+      >,
     ];
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
@@ -146,7 +153,8 @@ export function fetchDataQuery(api: Client) {
 
     return api.requestPromise(url, {
       includeAllArgs: true,
-      method: 'GET',
+      method: opts?.method ?? 'GET',
+      data: opts?.data,
       query: opts?.query,
       headers: opts?.headers,
     });
