@@ -209,9 +209,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
-    def _device_class_filter_converter(self, alias: str) -> SelectType:
+    def _device_class_filter_converter(self, search_filter: SearchFilter) -> SelectType:
         return filter_aliases.device_class_converter(
-            self.builder, alias, {**DEVICE_CLASS, "Unknown": {""}}
+            self.builder, search_filter, {**DEVICE_CLASS, "Unknown": {""}}
         )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:

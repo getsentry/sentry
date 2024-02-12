@@ -481,9 +481,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 0,
             )
 
-    def _device_class_filter_converter(self, alias: str) -> SelectType:
+    def _device_class_filter_converter(self, search_filter: SearchFilter) -> SelectType:
         return filter_aliases.device_class_converter(
-            self.builder, alias, {**DEVICE_CLASS, "Unknown": {""}}
+            self.builder, search_filter, {**DEVICE_CLASS, "Unknown": {""}}
         )
 
     def _resolve_span_module(self, alias: str) -> SelectType:

@@ -289,7 +289,7 @@ def semver_build_filter_converter(
 def device_class_converter(
     builder: builder.QueryBuilder,
     search_filter: SearchFilter,
-    device_class_map: Mapping[str, set[str]] | None,
+    device_class_map: Mapping[str, set[str]] | None = None,
 ) -> WhereType | None:
     if not device_class_map:
         device_class_map = DEVICE_CLASS
