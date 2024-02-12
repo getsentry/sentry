@@ -1,6 +1,7 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
+
 from __future__ import annotations
 
 import os
@@ -844,6 +845,7 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
+    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -1234,6 +1236,7 @@ for queue in CELERY_QUEUES:
 PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
+    "events.process_event_proguard",
     "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
@@ -2877,26 +2880,32 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-            if not ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": (
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
+                if not ARM64
+                # altinity provides clickhouse support to other companies
+                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+            ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
             # from the environment in loc_config.xml, thus, hard-coding it there
             "volumes": {
-                "clickhouse_dist"
-                if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                else "clickhouse": {"bind": "/var/lib/clickhouse"},
+                (
+                    "clickhouse_dist"
+                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                    else "clickhouse"
+                ): {"bind": "/var/lib/clickhouse"},
                 os.path.join(
                     settings.DEVSERVICES_CONFIG_DIR,
                     "clickhouse",
-                    "dist_config.xml"
-                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                    else "loc_config.xml",
+                    (
+                        "dist_config.xml"
+                        if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                        else "loc_config.xml"
+                    ),
                 ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
             },
         }
@@ -2914,22 +2923,24 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": ""
-                if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",
+                "DEFAULT_BROKERS": (
+                    ""
+                    if "snuba" in settings.SENTRY_EVENTSTREAM
+                    else "{containers[kafka][name]}:9093"
+                ),
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
                 "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
-                if settings.SENTRY_USE_ISSUE_OCCURRENCE
-                else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
+                    "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
+                ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
-                if settings.SENTRY_USE_GROUP_ATTRIBUTES
-                else "",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
+                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
