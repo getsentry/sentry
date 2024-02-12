@@ -253,21 +253,19 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
 
-        expected_seer_request_params = json.dumps(
-            {
-                "group_id": self.group.id,
-                "project_id": self.project.id,
-                "stacktrace": EXPECTED_STACKTRACE_STRING,
-                "message": self.group.message,
-                "k": 1,
-                "threshold": 0.98,
-            }
-        )
+        expected_seer_request_params = {
+            "group_id": self.group.id,
+            "project_id": self.project.id,
+            "stacktrace": EXPECTED_STACKTRACE_STRING,
+            "message": self.group.message,
+            "k": 1,
+            "threshold": 0.98,
+        }
 
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=expected_seer_request_params,
+            body=json.dumps(expected_seer_request_params),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
