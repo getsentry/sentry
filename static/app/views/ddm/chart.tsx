@@ -344,7 +344,7 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
 });
 
 function getWidthFactor(bucketSize: number) {
-  // If the bucket size is >= 5 minutes the fog of war should only the last bucket
+  // If the bucket size is >= 5 minutes the fog of war should only cover the last bucket
   if (bucketSize >= 5 * 60_000) {
     return 1;
   }
