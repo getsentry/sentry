@@ -2,6 +2,7 @@ import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
@@ -53,27 +54,33 @@ export function Queries() {
               mri: widget.mri,
               op: widget.op,
               groupBy: widget.groupBy,
-              title: widget.title,
               query: widget.query,
             }}
             displayType={widget.displayType}
             isEdit
             projects={selection.projects}
           />
-          <MetricQueryContextMenu
-            displayType={widget.displayType}
-            widgetIndex={index}
-            metricsQuery={{
-              mri: widget.mri,
-              query: widget.query,
-              op: widget.op,
-              groupBy: widget.groupBy,
-              projects: selection.projects,
-              datetime: selection.datetime,
-              environments: selection.environments,
-              title: widget.title,
-            }}
-          />
+          <Feature
+            hookName="feature-disabled:dashboards-edit"
+            features="organizations:dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <MetricQueryContextMenu
+                displayType={widget.displayType}
+                widgetIndex={index}
+                hasDashboardFeature={hasFeature}
+                metricsQuery={{
+                  mri: widget.mri,
+                  query: widget.query,
+                  op: widget.op,
+                  groupBy: widget.groupBy,
+                  projects: selection.projects,
+                  datetime: selection.datetime,
+                  environments: selection.environments,
+                }}
+              />
+            )}
+          </Feature>
         </Row>
       ))}
     </Wrapper>

@@ -99,14 +99,12 @@ export const MetricWidget = memo(
         projects,
         datetime,
         environments,
-        title: widget.title,
       }),
       [
         widget.mri,
         widget.query,
         widget.op,
         widget.groupBy,
-        widget.title,
         projects,
         datetime,
         environments,
@@ -144,7 +142,7 @@ export const MetricWidget = memo(
       };
     }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
 
-    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
+    const widgetTitle = stringifyMetricWidget(metricsQuery);
 
     return (
       <MetricWidgetPanel
@@ -255,7 +253,7 @@ const MetricWidgetBody = memo(
         environments,
         datetime,
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+      {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'ddm'}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
@@ -380,17 +378,15 @@ const MetricWidgetBody = memo(
           focusArea={focusArea}
           group={chartGroup}
         />
-        {metricsQuery.showSummaryTable && (
-          <SummaryTable
-            series={chartSeries}
-            onSortChange={handleSortChange}
-            sort={sort}
-            operation={metricsQuery.op}
-            onRowClick={setSeriesVisibility}
-            onColorDotClick={toggleSeriesVisibility}
-            setHoveredSeries={setHoveredSeries}
-          />
-        )}
+        <SummaryTable
+          series={chartSeries}
+          onSortChange={handleSortChange}
+          sort={sort}
+          operation={metricsQuery.op}
+          onRowClick={setSeriesVisibility}
+          onColorDotClick={toggleSeriesVisibility}
+          setHoveredSeries={setHoveredSeries}
+        />
       </StyledMetricWidgetBody>
     );
   }
