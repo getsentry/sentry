@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -1152,7 +1152,7 @@ def query(
 
 
 def nest_groups(
-    data: MutableMapping[Any, Any], groups: Optional[list[str]], aggregate_cols: list[str]
+    data: MutableMapping[Any, Any], groups: list[str] | None, aggregate_cols: list[str]
 ) -> MutableMapping[Any, Any] | None:
     """
     Build a nested mapping from query response rows. Each group column
