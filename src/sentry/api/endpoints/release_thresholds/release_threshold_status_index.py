@@ -52,13 +52,13 @@ if TYPE_CHECKING:
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
     start = serializers.DateTimeField(
         help_text="The start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
-        "Use along with `end`",
+        "Use along with `end`.",
         required=True,
     )
     end = serializers.DateTimeField(
         help_text=(
             "The inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
-            "Use along with `start`"
+            "Use along with `start`."
         ),
         required=True,
     )
@@ -113,8 +113,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         List all derived statuses of releases that fall within the provided start/end datetimes.
 
-        Constructs a response key'd off `release_version`, `project_slug`, and lists thresholds with their status for *specified* projects.
-        Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status.
+        Constructs a response key'd off `{release_version}-{project_slug}` that lists thresholds with their status for *specified* projects.
+        Each returned enriched threshold will contain the full serialized `release_threshold` instance as well as it's derived health statuses.
         """
         # TODO: We should limit/paginate results (this could get really bulky)
         # ========================================================================
