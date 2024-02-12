@@ -5,6 +5,8 @@ from time import time
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest import (
@@ -15,6 +17,7 @@ from sentry.grouping.ingest import (
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_return_values
 from sentry.testutils.skips import requires_snuba
 
@@ -219,4 +222,189 @@ def get_results_from_saving_event(
             "secondary_grouphash_existed_already": secondary_grouphash_existed_already,
             "primary_grouphash_exists_now": primary_grouphash_exists_now,
             "secondary_grouphash_exists_now": secondary_grouphash_exists_now,
+        }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
+)
+def test_new_group(
+    in_transition: bool,
+    default_project: Project,
+):
+    project = default_project
+    event_data = {"message": "testing, testing, 123"}
+
+    results = get_results_from_saving_event(
+        event_data=event_data,
+        project=project,
+        primary_config=NEWSTYLE_CONFIG,
+        secondary_config=LEGACY_CONFIG,
+        in_transition=in_transition,
+    )
+
+    if in_transition:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": True,
+            "hashes_different": True,
+            "primary_hash_found": False,
+            "secondary_hash_found": False,
+            "new_group_created": True,
+            "primary_grouphash_existed_already": False,
+            "secondary_grouphash_existed_already": False,
+            "primary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": True,
+            # Moot since no existing group was passed
+            "event_assigned_to_given_existing_group": None,
+        }
+    else:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": False,
+            "primary_hash_found": False,
+            "new_group_created": True,
+            "primary_grouphash_existed_already": False,
+            "primary_grouphash_exists_now": True,
+            # The rest are moot since no existing group was passed and no secondary hash was
+            # calculated.
+            "event_assigned_to_given_existing_group": None,
+            "hashes_different": None,
+            "secondary_hash_found": None,
+            "secondary_grouphash_existed_already": None,
+            "secondary_grouphash_exists_now": None,
+        }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
+)
+def test_existing_group_no_new_hash(
+    in_transition: bool,
+    default_project: Project,
+):
+    project = default_project
+    event_data = {"message": "testing, testing, 123"}
+
+    # Set the stage by creating a group with the soon-to-be-secondary hash
+    existing_event = save_event_with_grouping_config(event_data, project, LEGACY_CONFIG)
+
+    # Now save a new, identical, event with an updated grouping config
+    results = get_results_from_saving_event(
+        event_data=event_data,
+        project=project,
+        primary_config=NEWSTYLE_CONFIG,
+        secondary_config=LEGACY_CONFIG,
+        in_transition=in_transition,
+        existing_group_id=existing_event.group_id,
+    )
+
+    if in_transition:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": True,
+            "hashes_different": True,
+            "primary_hash_found": False,
+            "secondary_hash_found": True,
+            "new_group_created": False,
+            "event_assigned_to_given_existing_group": True,
+            "primary_grouphash_existed_already": False,
+            "secondary_grouphash_existed_already": True,
+            "primary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": True,
+        }
+    else:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": False,
+            "primary_hash_found": False,
+            "new_group_created": True,
+            "event_assigned_to_given_existing_group": False,
+            "primary_grouphash_existed_already": False,
+            "primary_grouphash_exists_now": True,
+            # The rest are moot since no secondary hash was calculated.
+            "hashes_different": None,
+            "secondary_hash_found": None,
+            "secondary_grouphash_existed_already": None,
+            "secondary_grouphash_exists_now": None,
+        }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
+)
+@pytest.mark.parametrize(
+    "secondary_hash_exists",
+    (True, False),
+    ids=(" secondary_hash_exists: True ", " secondary_hash_exists: False "),
+)
+def test_existing_group_new_hash_exists(
+    secondary_hash_exists: bool,
+    in_transition: bool,
+    default_project: Project,
+):
+    project = default_project
+    event_data = {"message": "testing, testing, 123"}
+
+    # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
+    if secondary_hash_exists:
+        existing_event = save_event_with_grouping_config(
+            event_data, project, NEWSTYLE_CONFIG, LEGACY_CONFIG, True
+        )
+        assert (
+            GroupHash.objects.filter(
+                project_id=project.id, group_id=existing_event.group_id
+            ).count()
+            == 2
+        )
+    else:
+        existing_event = save_event_with_grouping_config(event_data, project, NEWSTYLE_CONFIG)
+        assert (
+            GroupHash.objects.filter(
+                project_id=project.id, group_id=existing_event.group_id
+            ).count()
+            == 1
+        )
+
+    # Now save a new, identical, event
+    results = get_results_from_saving_event(
+        event_data=event_data,
+        project=project,
+        primary_config=NEWSTYLE_CONFIG,
+        secondary_config=LEGACY_CONFIG,
+        in_transition=in_transition,
+        existing_group_id=existing_event.group_id,
+    )
+
+    if in_transition:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": True,
+            "hashes_different": True,
+            "primary_hash_found": True,
+            "secondary_hash_found": False,  # We found the new hash first and quit looking
+            "new_group_created": False,
+            "event_assigned_to_given_existing_group": True,
+            "primary_grouphash_existed_already": True,
+            "secondary_grouphash_existed_already": secondary_hash_exists,
+            "primary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": True,
+        }
+    else:
+        assert results == {
+            "primary_hash_calculated": True,
+            "secondary_hash_calculated": False,
+            "primary_hash_found": True,
+            "new_group_created": False,
+            "event_assigned_to_given_existing_group": True,
+            "primary_grouphash_existed_already": True,
+            "primary_grouphash_exists_now": True,
+            # The rest are moot since no secondary hash was calculated.
+            "hashes_different": None,
+            "secondary_hash_found": None,
+            "secondary_grouphash_existed_already": None,
+            "secondary_grouphash_exists_now": None,
         }
