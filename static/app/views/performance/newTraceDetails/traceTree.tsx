@@ -12,8 +12,10 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
+  isRootNode,
   isSiblingAutogroupedNode,
   isSpanNode,
+  isTraceNode,
   isTransactionNode,
 } from './guards';
 
@@ -88,7 +90,6 @@ import {
  * - connector generation should live in the UI layer, not in the tree. Same with depth calculation. It is more convenient
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
- *
  */
 
 export declare namespace TraceTree {
@@ -171,6 +172,7 @@ function maybeInsertMissingInstrumentationSpan(
 
   parent.spanChildren.push(missingInstrumentationSpan);
 }
+
 export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
@@ -300,8 +302,6 @@ export class TraceTree {
     return this._list;
   }
 
-  // Span chain grouping is when multiple spans with the same op are nested as direct and only children
-  // @TODO Abdk: simplify the chaining logic
   static AutogroupDirectChildrenSpanNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): void {
@@ -370,8 +370,6 @@ export class TraceTree {
   }
 
   static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
-    // Span sibling grouping is when min 5 consecutive spans without children have matching op and description
-    // Span chain grouping is when multiple spans with the same op are nested as direct and only children
     const queue = [root];
 
     while (queue.length > 0) {
@@ -615,6 +613,13 @@ export class TraceTree {
         if (isMissingInstrumentationNode(t)) {
           return padding + 'missing_instrumentation';
         }
+        if (isRootNode(t)) {
+          return padding + 'Root';
+        }
+        if (isTraceNode(t)) {
+          return padding + 'Trace';
+        }
+
         throw new Error('Not implemented');
       })
       .filter(Boolean)
@@ -744,7 +749,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
    * would have been to create an invisible meta node that always points to the correct children.
    */
   get children(): TraceTreeNode<TraceTree.NodeValue>[] {
-    // if node is not a autogrouped node, return children
     if (isAutogroupedNode(this)) {
       return this._children;
     }
@@ -791,20 +795,23 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   getVisibleChildrenCount(): number {
-    if (!this.children.length) {
-      return 0;
+    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    let count = 0;
+
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+        stack.push(this.children[i]);
+      }
     }
 
-    let count = 0;
-    const queue = [...this.children];
-
-    while (queue.length > 0) {
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       count++;
-      const next = queue.pop()!;
-
-      if (next.expanded || isParentAutogroupedNode(next)) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+      // Since we're using a stack and it's LIFO, reverse the children before pushing them
+      // to ensure they are processed in the original left-to-right order.
+      if (node.expanded || isParentAutogroupedNode(node)) {
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
         }
       }
     }
@@ -813,28 +820,28 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
-    if (!this.children.length) {
-      return [];
+    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+        stack.push(this.children[i]);
+      }
     }
 
-    // @TODO: should be a proper FIFO queue as shift is O(n)
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
-
-    function visit(node) {
-      visibleChildren.push(node);
-
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      children.push(node);
+      // Since we're using a stack and it's LIFO, reverse the children before pushing them
+      // to ensure they are processed in the original left-to-right order.
       if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = 0; i < node.children.length; i++) {
-          visit(node.children[i]);
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
         }
       }
     }
 
-    for (const child of this.children) {
-      visit(child);
-    }
-
-    return visibleChildren;
+    return children;
   }
 
   static Root() {
