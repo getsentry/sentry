@@ -98,6 +98,19 @@ class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermissio
 class OrganizationAuditPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
 
+    def has_object_permission(
+        self,
+        request: Request,
+        view: object,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        if super().has_object_permission(request, view, organization):
+            return True
+
+        # the GET requires org:write, but we want both superuser read-only +
+        # write to be able to access this GET. read-only only has :read scopes
+        return is_active_superuser(request)
+
 
 class OrganizationEventPermission(OrganizationPermission):
     scope_map = {
