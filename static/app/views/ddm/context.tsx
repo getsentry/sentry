@@ -11,19 +11,18 @@ import isEqual from 'lodash/isEqual';
 
 import {
   getAbsoluteDateTimeRange,
-  getDefaultMetricDisplayType,
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
+import {emptyWidget} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
+import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 
 export type FocusAreaProps = {
   onAdd?: (area: FocusAreaSelection) => void;
@@ -70,38 +69,19 @@ export function useDDMContext() {
   return useContext(DDMContext);
 }
 
+const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyWidget];
+
 export function useMetricWidgets() {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricWidgetQueryParams[]>(() => {
-      const currentWidgets = JSON.parse(
-        router.location.query.widgets ?? JSON.stringify([emptyWidget])
-      );
-
-      return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-        return {
-          mri: widget.mri,
-          op: widget.op,
-          query: widget.query,
-          groupBy: decodeList(widget.groupBy),
-          displayType:
-            widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
-          focusedSeries:
-            widget.focusedSeries &&
-            // Switch existing focused series to array (it was once a string)
-            // TODO: remove this after some time (added 08.02.2024)
-            (Array.isArray(widget.focusedSeries)
-              ? widget.focusedSeries
-              : [widget.focusedSeries]),
-          showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-          powerUserMode: widget.powerUserMode,
-          sort: widget.sort ?? DEFAULT_SORT_STATE,
-          title: widget.title,
-        };
-      });
-    }, [router.location.query.widgets])
+    useMemo<MetricWidgetQueryParams[]>(
+      () =>
+        parseMetricWidgetsQueryParam(router.location.query.widgets) ??
+        DEFAULT_WIDGETS_STATE,
+      [router.location.query.widgets]
+    )
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback

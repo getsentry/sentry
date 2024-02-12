@@ -1,3 +1,4 @@
+import time
 from collections.abc import Mapping, MutableMapping, Sequence
 
 
@@ -164,7 +165,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
                 {"name": "npm:@sentry/react-native", "version": "5.15.2"},
             ],
         },
-        "timestamp": 1704969036.875,
+        "timestamp": time.time(),
         "type": "error",
         "user": {
             "email": "philipp@example.com",
