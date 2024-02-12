@@ -123,7 +123,7 @@ function BreadcrumbItem({
               replay={replay}
               leftTimestamp={frame.offsetMs}
               rightTimestamp={
-                (frame.data.mutations.next.timestamp as number) -
+                (frame.data.mutations.next?.timestamp ?? 0) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
             />
