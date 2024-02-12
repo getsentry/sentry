@@ -53,7 +53,7 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

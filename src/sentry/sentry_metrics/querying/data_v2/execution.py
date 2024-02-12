@@ -1,8 +1,7 @@
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Optional, cast
+from typing import Any
 
 import sentry_sdk
 from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request
@@ -11,12 +10,17 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
-from sentry.sentry_metrics.querying.visitors import QueriedMetricsVisitor
+from sentry.sentry_metrics.querying.visitors import (
+    QueriedMetricsVisitor,
+    TimeseriesConditionInjectionVisitor,
+    UsedGroupBysVisitor,
+)
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import to_intervals
@@ -102,8 +106,7 @@ class ExecutableQuery:
 
     identifier: str
     metrics_query: MetricsQuery
-    group_bys: Sequence[str] | None
-    order_by: str | None
+    order: QueryOrder | None
     limit: int | None
 
     def is_empty(self) -> bool:
@@ -164,7 +167,7 @@ class ExecutableQuery:
             return self
 
         # We perform a transformation in the form [(key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3)].
-        snuba_filters = []
+        groups_filters = []
         for groups in groups_collection:
             inner_snuba_filters = []
             for filter_key, filter_value in groups:
@@ -172,20 +175,20 @@ class ExecutableQuery:
 
             # In case we have more than one filter, we have to group them into an `AND`.
             if len(inner_snuba_filters) > 1:
-                snuba_filters.append(BooleanCondition(BooleanOp.AND, inner_snuba_filters))
+                groups_filters.append(BooleanCondition(BooleanOp.AND, inner_snuba_filters))
             else:
-                snuba_filters.append(inner_snuba_filters[0])
+                groups_filters.append(inner_snuba_filters[0])
 
         # In case we have more than one filter, we have to group them into an `OR`.
-        if len(snuba_filters) > 1:
-            snuba_filters = [BooleanCondition(BooleanOp.OR, snuba_filters)]
+        if len(groups_filters) > 1:
+            groups_filters = [BooleanCondition(BooleanOp.OR, groups_filters)]
 
-        original_filters = self.metrics_query.query.filters or []
+        merged_query = TimeseriesConditionInjectionVisitor(groups_filters).visit(
+            self.metrics_query.query
+        )
         return replace(
             self,
-            metrics_query=self.metrics_query.set_query(
-                self.metrics_query.query.set_filters(original_filters + snuba_filters)
-            ),
+            metrics_query=self.metrics_query.set_query(merged_query),
         )
 
     def filter_blocked_projects(
@@ -291,15 +294,42 @@ class QueryResult:
         return _extract_groups_from_seq(self.totals or self.series)
 
     @property
-    def group_bys(self) -> list[str] | None:
+    def group_bys(self) -> list[str]:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
-        # that we can correctly render groups in case they are not returned from the db.
-        return cast(
-            Optional[list[str]],
-            (
-                cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
-            ).group_bys,
-        )
+        # that we can correctly render groups in case they are not returned from the db because of missing data.
+        #
+        # Sorting of the groups is done to maintain consistency across function calls.
+        if self.series_executable_query:
+            return sorted(
+                UsedGroupBysVisitor().visit(self.series_executable_query.metrics_query.query)
+            )
+
+        if self.totals_executable_query:
+            return sorted(
+                UsedGroupBysVisitor().visit(self.totals_executable_query.metrics_query.query)
+            )
+
+        return []
+
+    @property
+    def order(self) -> str | None:
+        if self.series_executable_query and self.series_executable_query.order is not None:
+            return self.series_executable_query.order.value
+
+        if self.totals_executable_query and self.totals_executable_query.order is not None:
+            return self.totals_executable_query.order.value
+
+        return None
+
+    @property
+    def limit(self) -> int | None:
+        if self.series_executable_query:
+            return self.series_executable_query.limit
+
+        if self.totals_executable_query:
+            return self.totals_executable_query.limit
+
+        return None
 
     @property
     def length(self) -> int:
@@ -312,39 +342,6 @@ class QueryResult:
             return len(self.totals)
 
         return 0
-
-    def align_with(self, reference_query_result: "QueryResult") -> "QueryResult":
-        """
-        Aligns the series and totals results with a reference query.
-
-        Note that the alignment performs a mutation of the current object.
-        """
-        # Alignment keys define the order in which fields are used for indexing purposes when aligning different
-        # sequences.
-        alignment_keys = reference_query_result.group_bys
-        if not alignment_keys:
-            return self
-
-        # For timeseries, we want to align based on the time also, since group bys + time are the common values
-        # across separate queries.
-        indexed_series = _build_indexed_seq(self.series, alignment_keys + ["time"])
-        indexed_totals = _build_indexed_seq(self.totals, alignment_keys)
-
-        aligned_series = _build_aligned_seq(
-            self.series, reference_query_result.series, alignment_keys + ["time"], indexed_series
-        )
-        aligned_totals = _build_aligned_seq(
-            self.totals, reference_query_result.totals, alignment_keys, indexed_totals
-        )
-
-        # We only mutate with the aligned data, only if we have data, since if it's empty it could be that we are
-        # trying to align on a query that has no data, and we want to avoid deleting the data of this query.
-        if aligned_series:
-            self.result["series"]["data"] = aligned_series
-        if aligned_totals:
-            self.result["totals"]["data"] = aligned_totals
-
-        return self
 
     def align_series_to_totals(self) -> "QueryResult":
         """
@@ -422,9 +419,7 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    def _execute(
-        self, executable_query: ExecutableQuery, is_reference_query: bool = False
-    ) -> QueryResult:
+    def _execute(self, executable_query: ExecutableQuery) -> QueryResult:
         """
         Executes a query as series and/or totals and returns the result.
         """
@@ -459,23 +454,17 @@ class QueryExecutor:
             totals_executable_query = executable_query
             totals_result = None
             if executable_query.with_totals:
-                # For totals queries, if there is a limit passed by the user, we will honor that and apply it only for
-                # the reference query, since we want to load the data for all groups that are decided by the reference
-                # query.
-                if is_reference_query and executable_query.limit:
+                # If there is an order by, we apply it only on the totals query. We can't order a series query, for this
+                # reason we have to perform ordering here.
+                if executable_query.order:
+                    totals_executable_query = totals_executable_query.replace_order_by(
+                        executable_query.order.to_snuba_order()
+                    )
+
+                # Only in totals, if there is a limit passed by the user, we will honor that and apply it.
+                if executable_query.limit:
                     totals_executable_query = totals_executable_query.replace_limit(
                         executable_query.limit
-                    )
-                else:
-                    totals_executable_query = totals_executable_query.replace_limit()
-
-                if executable_query.order_by:
-                    order_by_direction = Direction.ASC
-                    if executable_query.order_by.startswith("-"):
-                        order_by_direction = Direction.DESC
-
-                    totals_executable_query = totals_executable_query.replace_order_by(
-                        order_by_direction
                     )
 
                 self._number_of_executed_queries += 1
@@ -488,13 +477,12 @@ class QueryExecutor:
             series_executable_query = executable_query
             series_result = None
             if executable_query.with_series:
-                # For series queries, we always want to use the default limit.
-                series_executable_query = series_executable_query.replace_limit()
+                # For series queries, we always want to use the default Snuba limit.
+                series_executable_query = series_executable_query.replace_limit(SNUBA_QUERY_LIMIT)
 
-                # There is a case in which we need to apply the totals groups directly on the series, which happens only
-                # when the reference queries are executed. The reason for this is that if we don't filter the values,
-                # we might hit the limit in the series query and lose data.
-                if is_reference_query and totals_result:
+                # In order to have at least the same groups, we need to pass down the groups obtained in the
+                # previous totals query to the series query.
+                if totals_result:
                     series_executable_query = series_executable_query.add_group_filters(
                         _extract_groups_from_seq(totals_result["data"])
                     )
@@ -534,52 +522,6 @@ class QueryExecutor:
             sentry_sdk.capture_exception(e)
             raise MetricsQueryExecutionError("An error occurred while executing the query")
 
-    def _derive_next_interval(self, result: QueryResult) -> int:
-        """
-        Computes the best possible interval, given a fixed set of available intervals, which can fit in the limit
-        of rows that Snuba can return.
-        """
-        # We try to estimate the number of groups.
-        groups_number = len(result.groups)
-
-        # We compute the ideal number of intervals that can fit with a given number of groups.
-        intervals_number = math.floor(SNUBA_QUERY_LIMIT / groups_number)
-
-        # We compute the optimal size of each interval in seconds.
-        optimal_interval_size = math.floor(
-            (result.modified_end - result.modified_start).total_seconds() / intervals_number
-        )
-
-        # Get the smallest interval that is larger than optimal out of a set of defined intervals in the product.
-        for index, interval in enumerate(self._interval_choices):
-            if interval >= optimal_interval_size:
-                # We have to put the choice, otherwise we end up in an infinite recursion.
-                self._interval_choices.pop(index)
-                return interval
-
-        raise MetricsQueryExecutionError(
-            "Unable to find an interval to satisfy the query because too many results "
-            "are returned"
-        )
-
-    def _find_reference_query(self) -> int:
-        """
-        Finds the reference query among the _schedule_queries.
-
-        A reference query is the first query which is run, and it's used to determine the ordering of the follow-up
-        queries.
-        """
-        if not self._scheduled_queries:
-            raise InvalidMetricsQueryError(
-                "Can't find a reference query because no queries were supplied"
-            )
-
-        for index, query in enumerate(self._scheduled_queries):
-            if query.order_by:
-                return index
-
-        return 0
-
     def _serial_execute(self) -> Sequence[QueryResult]:
         """
         Executes serially all the queries that are supplied to the QueryExecutor.
@@ -587,56 +529,19 @@ class QueryExecutor:
         The execution will try to satisfy the query by dynamically changing its interval, in the case in which the
         Snuba limit is reached.
         """
-        if not self._scheduled_queries:
-            return []
+        results = []
+        for query in self._scheduled_queries:
+            with metrics.timer(key="ddm.metrics_api.metrics_query.execution_time"):
+                query_result = self._execute(executable_query=query)
+                results.append(query_result.align_series_to_totals())
 
-        # We execute the first reference query which will dictate the order of the follow-up queries.
-        reference_query = self._scheduled_queries.pop(self._find_reference_query())
-        reference_query_result = self._execute(
-            executable_query=reference_query, is_reference_query=True
-        )
+        return results
 
-        # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
-        # assumption that data doesn't change much between queries.
-        if reference_query_result.length < SNUBA_QUERY_LIMIT:
-            # Snuba supports order by only for totals, thus we need to align the series to the totals ordering before
-            # we can run the other queries and align them on this reference query.
-            reference_query_result.align_series_to_totals()
-
-            results = [reference_query_result]
-            reference_groups = reference_query_result.groups
-            metrics.distribution(
-                key="ddm.metrics_api.groups_cardinality", value=len(reference_groups)
-            )
-
-            for query in self._scheduled_queries:
-                query_result = self._execute(
-                    executable_query=query.add_group_filters(reference_groups),
-                    is_reference_query=False,
-                )
-
-                query_result.align_with(reference_query_result)
-                results.append(query_result)
-
-            return results
-
-        # Case 2: we have more results than the limit. In this case we want to determine a new interval that
-        # will result in less than limit data points.
-        new_interval = self._derive_next_interval(reference_query_result)
-
-        # We update the scheduled queries to use the new interval. It's important to note that we also add back the
-        # reference query, since we need to execute it again.
-        self._scheduled_queries = [
-            query.replace_interval(new_interval)
-            for query in [reference_query] + self._scheduled_queries
-        ]
-
-        return self._serial_execute()
-
-    def execute(self) -> Sequence[QueryResult]:
+    def execute(self, batch: bool = False) -> Sequence[QueryResult]:
         """
         Executes the scheduled queries serially.
         """
+        # TODO: implement batch execution when there will be the support for it.
         results = self._serial_execute()
         metrics.distribution(
             key="ddm.metrics_api.queries_executed", value=self._number_of_executed_queries
@@ -646,10 +551,8 @@ class QueryExecutor:
 
     def schedule(
         self,
-        identifier: str,
         query: MetricsQuery,
-        group_bys: Sequence[str] | None,
-        order_by: str | None,
+        order: QueryOrder | None,
         limit: int | None,
     ):
         """
@@ -660,10 +563,10 @@ class QueryExecutor:
         executable_query = ExecutableQuery(
             with_series=True,
             with_totals=True,
-            identifier=identifier,
+            # We identify the query with its index.
+            identifier=str(len(self._scheduled_queries)),
             metrics_query=query,
-            group_bys=group_bys,
-            order_by=order_by,
+            order=order,
             limit=limit,
         )
         self._scheduled_queries.append(executable_query)

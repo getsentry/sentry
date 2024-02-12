@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -63,10 +64,18 @@ export const DDMLayout = memo(() => {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <PageHeaderActions
-            showCustomMetricButton={hasMetrics}
-            addCustomMetric={() => addCustomMetric('header')}
-          />
+          <Feature
+            hookName="feature-disabled:dashboards-edit"
+            features="organizations:dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <PageHeaderActions
+                showCustomMetricButton={hasMetrics}
+                addCustomMetric={() => addCustomMetric('header')}
+                hasDashboardFeature={hasFeature}
+              />
+            )}
+          </Feature>
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>

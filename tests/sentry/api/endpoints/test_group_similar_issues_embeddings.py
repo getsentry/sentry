@@ -67,6 +67,38 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
+    def create_exception_values(
+        self,
+        num_values: int,
+        num_frames_per_value: int,
+        starting_frame_number: int = 1,
+        in_app: bool = True,
+    ) -> list[dict[str, Any]]:
+        """
+        Return an exception value dictionary, where the line number corresponds to the total frame
+        number
+        """
+        exception_values = []
+        frame_count = starting_frame_number
+        for _ in range(num_values):
+            value: dict[str, Any] = {"type": "Error", "value": "this is an error"}
+            frames = []
+            for _ in range(num_frames_per_value):
+                frame = {
+                    "function": "function",
+                    "module": "__main__",
+                    "filename": "python_onboarding.py",
+                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                    "lineno": frame_count,
+                    "context_line": "function()",
+                    "in_app": in_app,
+                }
+                frames.append(frame)
+                frame_count += 1
+            value.update({"stacktrace": {"frames": frames}})
+            exception_values.append(value)
+        return exception_values
+
     def get_expected_response(
         self,
         group_ids: Sequence[int],
@@ -99,6 +131,76 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         stacktrace_string = get_stacktrace_string({"values": []}, self.event)
         assert stacktrace_string == ""
 
+    def test_get_stacktrace_string_50_frames(self):
+        """Test that when there are 50 frames, all frames are included"""
+
+        # Exception value where the line number corresponds to the total frame number
+        exception_values = self.create_exception_values(num_values=5, num_frames_per_value=10)
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that we take all exception frames
+        for line_no in range(1, 51):
+            assert str(line_no) in stacktrace_string
+
+    def test_get_stacktrace_string_over_50_frames(self):
+        """Test that when there are 60 frames, frames 1-45, and frames 56-60 are included"""
+
+        # Exception value where the line number corresponds to the total frame number
+        exception_values = self.create_exception_values(num_values=4, num_frames_per_value=15)
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that we take only the last 5 frames of the last exception
+        for line_no in range(46, 56):
+            assert str(line_no) not in stacktrace_string
+        for line_no in range(56, 61):
+            assert str(line_no) in stacktrace_string
+
+    def test_get_stacktrace_string_non_in_app_frames(self):
+        """Test that only in-app frames are included and count towards the frame count limit of 50"""
+        # Make 20 in-app frames
+        exception_values_in_app_start = self.create_exception_values(
+            num_values=2, num_frames_per_value=10
+        )
+        # Make 10 non in-app frames
+        exception_values_non_in_app = self.create_exception_values(
+            num_values=1, num_frames_per_value=10, starting_frame_number=21, in_app=False
+        )
+        # Make 30 in-app frames
+        exception_values_in_app_end = self.create_exception_values(
+            num_values=3, num_frames_per_value=10, starting_frame_number=31
+        )
+
+        exception_values = (
+            exception_values_in_app_start
+            + exception_values_non_in_app
+            + exception_values_in_app_end
+        )
+
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that the only the in-app frames are taken
+        for line_no in range(1, 21):
+            assert str(line_no) in stacktrace_string
+        for line_no in range(21, 31):
+            assert str(line_no) not in stacktrace_string
+        for line_no in range(31, 61):
+            assert str(line_no) in stacktrace_string
+
     def test_get_formatted_results(self):
         new_group = self.create_group(project=self.project)
         response_1: SimilarIssuesEmbeddingsData = {
@@ -127,7 +229,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_simple(self, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -156,6 +258,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "k": 1,
@@ -167,7 +270,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
         similar_group_over_threshold = self.create_group(project=self.project)
         similar_group_under_threshold = self.create_group(project=self.project)
@@ -221,7 +324,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_invalid_return(self, mock_seer_request):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
@@ -251,7 +354,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_empty_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
@@ -267,7 +370,99 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    def test_no_stacktrace(self, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": self.similar_group.id,
+                    "should_group": False,
+                    "stacktrace_similarity": 0.00,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        error_trace_no_stacktrace = {
+            "fingerprint": ["my-route", "{{ default }}"],
+            "exception": {"values": []},
+        }
+        event_no_stacktrace = self.store_event(
+            data=error_trace_no_stacktrace, project_id=self.project
+        )
+        group_no_stacktrace = event_no_stacktrace.group
+        assert group_no_stacktrace
+        response = self.client.get(
+            f"/api/0/issues/{group_no_stacktrace.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [self.similar_group.id], [0.95], [0.00], ["No"]
+        )
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": group_no_stacktrace.id,
+                    "project_id": self.project.id,
+                    "stacktrace": "",
+                    "message": group_no_stacktrace.message,
+                    "k": 1,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    def test_no_exception(self, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": self.similar_group.id,
+                    "should_group": False,
+                    "stacktrace_similarity": 0.00,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        event_no_exception = self.store_event(data={}, project_id=self.project)
+        group_no_exception = event_no_exception.group
+        assert group_no_exception
+        response = self.client.get(
+            f"/api/0/issues/{group_no_exception.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [self.similar_group.id], [0.95], [0.00], ["No"]
+        )
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": group_no_exception.id,
+                    "project_id": self.project.id,
+                    "stacktrace": "",
+                    "message": group_no_exception.message,
+                    "k": 1,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
@@ -297,6 +492,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                 },
@@ -319,6 +515,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "k": 1,
@@ -342,6 +539,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "threshold": 0.98,

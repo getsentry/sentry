@@ -58,7 +58,7 @@ const filterDescriptions = {
       'Filter transactions that match most [commonNamingPatterns:common naming patterns] for health checks.',
       {
         commonNamingPatterns: (
-          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-healthcheck" />
+          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-health-check" />
         ),
       }
     ),
@@ -262,7 +262,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         {!disabled && (
           <div>
             <BulkFilter>
-              <FieldLabel>{t('Legacy Browser Filters')}:</FieldLabel>
+              <FieldLabel>{t('Filter out legacy browsers')}:</FieldLabel>
               <ButtonBar gap={1}>
                 <Button
                   priority="link"
@@ -282,7 +282,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             </BulkFilter>
             <FieldHelp>
               {t(
-                'The browser versions filtered out will be periodically evaluated and updated'
+                'The browser versions filtered out will be periodically evaluated and updated.'
               )}
             </FieldHelp>
           </div>

@@ -323,7 +323,6 @@ def detect_transaction_trends(
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:performance-statistical-detectors-ema",
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
@@ -372,7 +371,6 @@ def _detect_transaction_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in transactions],
-            feature_name="organizations:performance-statistical-detectors-breakpoint",
         )
     }
 
@@ -389,7 +387,7 @@ def _detect_transaction_change_points(
 
     for regression in regressions:
         breakpoint_count += 1
-        send_regression_to_platform(regression, True)
+        send_regression_to_platform(regression)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
@@ -412,7 +410,6 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:profiling-statistical-detectors-ema",
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -460,7 +457,6 @@ def _detect_function_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in functions_list],
-            feature_name="organizations:profiling-statistical-detectors-breakpoint",
         )
     }
 
@@ -569,7 +565,6 @@ def emit_function_regression_issue(
                 "trend_percentage": regression["trend_percentage"],
                 "unweighted_p_value": regression["unweighted_p_value"],
                 "unweighted_t_value": regression["unweighted_t_value"],
-                "released": True,
             }
         )
 
