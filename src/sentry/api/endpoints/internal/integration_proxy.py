@@ -81,11 +81,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_id_header = request.headers.get(PROXY_OI_HEADER)
-        if org_id_header is None or not org_id_header.isnumeric():
+        org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
-        org_integration_id = int(org_id_header)
+        org_integration_id = int(org_integration_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (

@@ -17,8 +17,6 @@ import type {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-import RuleBuilder from './ruleBuilder';
-
 const defaultProps = {
   urls: [] as string[],
   paths: [] as string[],
@@ -167,26 +165,11 @@ class OwnerInput extends Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText, dateUpdated} =
-      this.props;
+    const {disabled, initialText, dateUpdated} = this.props;
     const {hasChanges, text, error} = this.state;
-
-    const hasStreamlineTargetingFeature = organization.features.includes(
-      'streamline-targeting-context'
-    );
 
     return (
       <Fragment>
-        {!hasStreamlineTargetingFeature && (
-          <RuleBuilder
-            urls={urls}
-            paths={paths}
-            organization={organization}
-            project={project}
-            onAddRule={this.handleAddRule.bind(this)}
-            disabled={disabled}
-          />
-        )}
         <div
           style={{position: 'relative'}}
           onKeyDown={e => {
