@@ -17,6 +17,10 @@ from sentry.tsdb.base import TSDBModel
 pytestmark = [requires_snuba]
 
 
+LEGACY_CONFIG = "legacy:2019-03-12"
+NEWSTYLE_CONFIG = "newstyle:2023-01-11"
+
+
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
     return [call for call in mock_fn.call_args_list if call.args[0] == key]
 
@@ -119,7 +123,7 @@ class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
     def test_records_num_calculations(self, mock_metrics_incr: MagicMock):
         project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", LEGACY_CONFIG)
         project.update_option("sentry:secondary_grouping_config", None)
 
         save_new_event({"message": "Dogs are great!"}, self.project)
@@ -130,8 +134,8 @@ class EventManagerGroupingMetricsTest(TestCase):
         assert len(hashes_calculated_calls) == 1
         assert hashes_calculated_calls[0].kwargs["amount"] == 1
 
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         save_new_event({"message": "Dogs are great!"}, self.project)
@@ -146,8 +150,8 @@ class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.grouping.ingest._should_run_secondary_grouping", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
 
         cases = [
             # primary_hashes, secondary_hashes, expected_tag
