@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 
-class SerializedThreshold(TypedDict):
+class SerializedThreshold(TypedDict, metric_value=None):
     id: str
     date: datetime
     environment: dict[str, Any] | None
