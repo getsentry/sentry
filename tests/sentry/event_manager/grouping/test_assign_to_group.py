@@ -13,6 +13,7 @@ from sentry.grouping.ingest import (
     _calculate_primary_hash,
     _calculate_secondary_hash,
     find_existing_grouphash,
+    find_existing_grouphash_new,
 )
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -32,6 +33,9 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
     wrapped_find_existing_grouphash = capture_return_values(find_existing_grouphash, return_values)
+    wrapped_find_existing_grouphash_new = capture_return_values(
+        find_existing_grouphash_new, return_values
+    )
     wrapped_calculate_primary_hash = capture_return_values(_calculate_primary_hash, return_values)
     wrapped_calculate_secondary_hash = capture_return_values(
         _calculate_secondary_hash, return_values
@@ -42,6 +46,10 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             "sentry.event_manager.find_existing_grouphash",
             wraps=wrapped_find_existing_grouphash,
         ) as find_existing_grouphash_spy,
+        mock.patch(
+            "sentry.event_manager.find_existing_grouphash_new",
+            wraps=wrapped_find_existing_grouphash_new,
+        ) as find_existing_grouphash_new_spy,
         mock.patch(
             "sentry.grouping.ingest._calculate_primary_hash",
             wraps=wrapped_calculate_primary_hash,
@@ -59,6 +67,7 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
     ):
         yield {
             "find_existing_grouphash": find_existing_grouphash_spy,
+            "find_existing_grouphash_new": find_existing_grouphash_new_spy,
             "_calculate_primary_hash": calculate_primary_hash_spy,
             "_calculate_secondary_hash": calculate_secondary_hash_spy,
             "_create_group": create_group_spy,
@@ -126,6 +135,10 @@ def get_results_from_saving_event(
     existing_group_id: int | None = None,
     new_logic_enabled: bool = False,
 ):
+    find_existing_grouphash_fn = (
+        "find_existing_grouphash_new" if new_logic_enabled else "find_existing_grouphash"
+    )
+
     # Whether or not these are assigned a value depends on the values of `in_transition` and
     # `existing_group_id`. Everything else we'll return will definitely get a value and therefore
     # doesn't need to be initialized.
@@ -158,7 +171,7 @@ def get_results_from_saving_event(
         )
 
         new_event = save_new_event(event_data, project)
-        hash_search_result = return_values["find_existing_grouphash"][0][0]
+        hash_search_result = return_values[find_existing_grouphash_fn][0][0]
         post_save_grouphashes = {
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }

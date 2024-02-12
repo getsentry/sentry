@@ -48,6 +48,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
     find_existing_grouphash,
+    find_existing_grouphash_new,
     get_hash_values,
     update_grouping_config_if_needed,
 )
@@ -1634,7 +1635,7 @@ def _save_aggregate_new(
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
+    existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1696,7 +1697,7 @@ def _save_aggregate_new(
 
             flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
-            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
+            existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
