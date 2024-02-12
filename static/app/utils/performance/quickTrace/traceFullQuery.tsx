@@ -112,15 +112,9 @@ export function TraceFullQuery(
 }
 
 export function TraceFullDetailedQuery(
-  props: Omit<
-    QueryProps<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>,
-    'detailed'
-  >
+  props: Omit<QueryProps<TraceSplitResults<TraceFullDetailed>>, 'detailed'>
 ) {
   return (
-    <GenericTraceFullQuery<TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>>
-      {...props}
-      detailed
-    />
+    <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} detailed />
   );
 }
