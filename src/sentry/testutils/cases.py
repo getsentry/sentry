@@ -2013,6 +2013,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.login_as(user=self.user)
         self._index_metric_strings()
 
