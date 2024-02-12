@@ -21,6 +21,7 @@ from sentry.search.events.fields import (
     with_default,
 )
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 
 
 class SpansIndexedDatasetConfig(DatasetConfig):
@@ -36,9 +37,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
-            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
-                self.builder, search_filter
-            ),
+            constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
             constants.SPAN_IS_SEGMENT_ALIAS: filter_aliases.span_is_segment_converter,
         }
 
@@ -209,6 +208,11 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _device_class_filter_converter(self, alias: str) -> SelectType:
+        return filter_aliases.device_class_converter(
+            self.builder, alias, {**DEVICE_CLASS, "Unknown": {""}}
+        )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)

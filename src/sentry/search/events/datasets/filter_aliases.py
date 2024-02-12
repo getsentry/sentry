@@ -17,7 +17,6 @@ from sentry.search.events.filter import (
 )
 from sentry.search.events.types import WhereType
 from sentry.search.utils import DEVICE_CLASS, parse_release
-from sentry.snuba.dataset import Dataset
 from sentry.utils.strings import oxfordize_list
 
 
@@ -288,15 +287,13 @@ def semver_build_filter_converter(
 
 
 def device_class_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: builder.QueryBuilder,
+    search_filter: SearchFilter,
+    device_class_map: Mapping[str, set[str]] | None,
 ) -> WhereType | None:
-    # Spans data stores "Unknown" for unknown device classes unlike
-    # the events dataset which stores null
-    device_class_map = (
-        {**DEVICE_CLASS, "Unknown": {""}}
-        if builder.dataset in (Dataset.SpansIndexed, Dataset.PerformanceMetrics)
-        else DEVICE_CLASS
-    )
+    if not device_class_map:
+        device_class_map = DEVICE_CLASS
+
     value = search_filter.value.value
     if value not in device_class_map:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")
