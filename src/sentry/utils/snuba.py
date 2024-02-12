@@ -6,7 +6,7 @@ import os
 import re
 import time
 from collections import namedtuple
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
@@ -1174,7 +1174,7 @@ def nest_groups(
 
 
 def resolve_column(dataset) -> Callable:
-    def _resolve_column(col: Any) -> Any:
+    def _resolve_column(col):
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -1330,7 +1330,7 @@ def aliased_query_params(
     having=None,
     dataset=None,
     orderby=None,
-    condition_resolver=None,
+    condition_resolver: Callable | None = None,
     **kwargs,
 ) -> Mapping[str, Any]:
     if dataset is None:
@@ -1352,9 +1352,7 @@ def aliased_query_params(
 
     if conditions:
         if condition_resolver:
-            column_resolver: Callable[[Any], Callable] = functools.partial(
-                condition_resolver, dataset=dataset
-            )
+            column_resolver: Callable = functools.partial(condition_resolver, dataset=dataset)
         else:
             column_resolver = resolve_func
         resolved_conditions = resolve_conditions(conditions, column_resolver)
@@ -1576,7 +1574,7 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def shrink_time_window(issues, start: datetime) -> datetime:
+def shrink_time_window(issues: Collection | None, start: datetime) -> datetime:
     """\
     If a single issue is passed in, shrink the `start` parameter to be briefly before
     the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
