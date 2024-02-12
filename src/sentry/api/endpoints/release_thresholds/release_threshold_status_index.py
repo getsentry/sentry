@@ -51,13 +51,13 @@ if TYPE_CHECKING:
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
     start = serializers.DateTimeField(
-        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+        help_text="The start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
         "Use along with `end`",
         required=True,
     )
     end = serializers.DateTimeField(
         help_text=(
-            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+            "The inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
             "Use along with `start`"
         ),
         required=True,
@@ -66,19 +66,19 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         required=False,
         allow_empty=True,
         child=serializers.CharField(),
-        help_text=("Provide a list of environment names to filter your results by"),
+        help_text=("A list of environment names to filter your results by."),
     )
     projectSlug = serializers.ListField(
         required=False,
         allow_empty=True,
         child=serializers.CharField(),
-        help_text=("Provide a list of project slugs to filter your results by"),
+        help_text=("A list of project slugs to filter your results by."),
     )
     release = serializers.ListField(
         required=False,
         allow_empty=True,
         child=serializers.CharField(),
-        help_text=("Provide a list of release versions to filter your results by"),
+        help_text=("A list of release versions to filter your results by."),
     )
 
     def validate(self, data):
