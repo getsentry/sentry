@@ -701,7 +701,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         # There's no data, so `sometag` should be low cardinality
-        assert len(response.data) == 0
+        assert len(response.data["warnings"]) == 0
         # We cache so we shouldn't call query cardinality again
         with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
             self.client.post(f"{self.url()}?environment=mock_env", data)
@@ -729,6 +729,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -783,6 +784,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -822,6 +824,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -833,3 +836,61 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(warnings["queries"]) == 1
         assert warnings["queries"][0] == "disabled:query-error"
         assert response.data["queries"][0]["conditions"], response.data
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_first_query_without_ondemand_but_second_with(self, mock_max):
+        # create another widget so we already have a widget spec
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
+            widget=self.widget_1,
+            name=self.anon_users_query["name"],
+            fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
+            conditions=self.anon_users_query["conditions"],
+            order=0,
+        )
+
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                },
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
+                },
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert len(warnings["queries"]) == 2
+        assert warnings["queries"][0] is None
+        assert warnings["queries"][1] == "disabled:spec-limit"
