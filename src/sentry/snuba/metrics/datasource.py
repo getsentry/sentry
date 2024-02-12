@@ -80,6 +80,8 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
+    entity_key_to_metric_type,
+    get_entity_keys_of_use_case_id,
     get_intervals,
     to_intervals,
 )
@@ -289,30 +291,9 @@ def get_stored_metrics_of_projects(
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
-    # To reduce the number of queries, we scope down the number of entity keys, since we know that sessions are stored
-    # separately from all the other entity keys.
-    if use_case_id == UseCaseID.SESSIONS:
-        entity_keys = {
-            EntityKey.MetricsCounters,
-            EntityKey.MetricsSets,
-            EntityKey.MetricsDistributions,
-        }
-    elif use_case_id == UseCaseID.TRANSACTIONS:
-        entity_keys = {
-            EntityKey.GenericMetricsCounters,
-            EntityKey.GenericMetricsSets,
-            EntityKey.GenericMetricsDistributions,
-        }
-    else:
-        entity_keys = {
-            EntityKey.GenericMetricsCounters,
-            EntityKey.GenericMetricsSets,
-            EntityKey.GenericMetricsDistributions,
-            EntityKey.GenericMetricsGauges,
-        }
-
     stored_metrics = []
-    for entity_key in entity_keys:
+    entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
+    for entity_key in entity_keys or ():
         stored_metrics += _get_metrics_by_project_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,
@@ -504,16 +485,8 @@ def _fetch_tags_or_values_for_mri(
     # entity by validating that the ids of the constituent metrics all lie in the same entity
     supported_metric_ids_in_entities = {}
 
-    release_health_metric_types = ("counter", "set", "distribution")
-    performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
-
-    if use_case_id == UseCaseID.SESSIONS:
-        metric_types = release_health_metric_types
-    else:
-        metric_types = performance_metric_types
-
-    for metric_type in metric_types:
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+    entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
+    for entity_key in entity_keys or ():
         rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column(column)],
@@ -535,7 +508,11 @@ def _fetch_tags_or_values_for_mri(
                     tag_or_value_ids_per_metric_id[metric_id].append(value_id)
             else:
                 tag_or_value_ids_per_metric_id[metric_id].extend(row[column])
-            supported_metric_ids_in_entities.setdefault(metric_type, []).append(row["metric_id"])
+
+            if (metric_type := entity_key_to_metric_type(entity_key)) is not None:
+                supported_metric_ids_in_entities.setdefault(metric_type, []).append(
+                    row["metric_id"]
+                )
 
     # If we get not results back from snuba, then raise an InvalidParams with an appropriate
     # error message
@@ -650,18 +627,15 @@ def get_all_tags(
     """Get all metric tags for the given projects and metric_names."""
     assert projects
 
-    try:
-        tags, _ = _fetch_tags_or_values_for_metrics(
-            projects=projects,
-            metric_names=metric_names,
-            column="tags.key",
-            referrer="snuba.metrics.meta.get_tags",
-            use_case_id=use_case_id,
-            start=start,
-            end=end,
-        )
-    except InvalidParams:
-        return []
+    tags, _ = _fetch_tags_or_values_for_metrics(
+        projects=projects,
+        metric_names=metric_names,
+        column="tags.key",
+        referrer="snuba.metrics.meta.get_tags",
+        use_case_id=use_case_id,
+        start=start,
+        end=end,
+    )
 
     return tags
 
