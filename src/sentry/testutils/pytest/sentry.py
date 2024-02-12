@@ -50,11 +50,14 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
-DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.REGION
 
 
 def _configure_test_env_regions() -> None:
-    settings.SILO_MODE = DEFAULT_SILO_MODE_FOR_TEST_CASES
+    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+    settings.SILO_MODE = (
+        DEFAULT_SILO_MODE_FOR_TEST_CASES if not SENTRY_USE_MONOLITH_DBS else SiloMode.MONOLITH
+    )
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
