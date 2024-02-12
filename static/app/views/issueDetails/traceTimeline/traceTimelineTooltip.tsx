@@ -40,7 +40,9 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
       <EventItemsWrapper>
-        <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>
+        {(filteredTimelineEvents.length > 1 || displayYouAreHere) && (
+          <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>
+        )}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
           const project = projects.find(p => p.slug === timelineEvent.project);
           return (

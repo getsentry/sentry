@@ -169,7 +169,7 @@ function NodeGroup({
               )}
               {!isCurrentNode &&
                 groupEvents
-                  .slice(0, 4)
+                  .slice(0, 5)
                   .map(groupEvent =>
                     'event.type' in groupEvent ? (
                       <IconNode key={groupEvent.id} />
@@ -226,12 +226,12 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
-  border: 1px solid ${p => p.theme.red300};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
+  border: 1px solid ${p => p.theme.red300};
 `;
 
 const CurrentNodeContainer = styled('div')`
