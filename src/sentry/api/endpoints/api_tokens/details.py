@@ -66,19 +66,37 @@ class ApiTokenDetailsEndpoint(Endpoint):
         serializer = ApiTokenUpdateSerializer(data=request.data)
 
         if serializer.is_valid():
+            with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
+                try:
+                    token = ApiToken.objects.get(
+                        id=token_id, user_id=request.user.id, application_id=None
+                    )
+
+                    new_name = serializer.validated_data.get("name", token.name)
+
+                    if token.name != new_name:
+                        token.name = new_name
+                        token.save(update_fields=["name"])
+
+                    return Response(status=HTTP_204_NO_CONTENT)
+                except ApiToken.DoesNotExist:
+                    return Response(status=HTTP_404_NOT_FOUND)
+
+        return Response(status=HTTP_400_BAD_REQUEST)
+
+    @method_decorator(never_cache)
+    def delete(self, request: Request, token_id: int) -> Response:
+        with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
             try:
-                token = ApiToken.objects.get(
+                token_to_delete = ApiToken.objects.get(
                     id=token_id, user_id=request.user.id, application_id=None
                 )
+
+                token_to_delete.delete()
+
+                analytics.record("api_token.deleted", user_id=request.user.id)
+
             except ApiToken.DoesNotExist:
                 return Response(status=HTTP_404_NOT_FOUND)
 
-            new_name = serializer.validated_data.get("name", token.name)
-
-            if token.name != new_name:
-                token.name = new_name
-                token.save(update_fields=["name"])
-
             return Response(status=HTTP_204_NO_CONTENT)
-
-        return Response(status=HTTP_400_BAD_REQUEST)
