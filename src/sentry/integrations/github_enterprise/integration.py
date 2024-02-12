@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from datetime import timezone
 from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import http

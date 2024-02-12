@@ -7,7 +7,6 @@ import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
-from isodate import parse_datetime
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider

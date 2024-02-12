@@ -1427,7 +1427,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
     @with_feature("organizations:commit-context")
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
@@ -1445,12 +1445,14 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 event=self.created_event,
             )
 
+        assert not mock_get_commit_context.called
+
     @with_feature("organizations:commit-context")
     @patch(
-        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context",
-        return_value=github_blame_return_value,
+        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context_all_frames",
     )
     def test_github_enterprise(self, mock_get_commit_context):
+        mock_get_commit_context.return_value = self.github_blame_all_files_return_value
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()

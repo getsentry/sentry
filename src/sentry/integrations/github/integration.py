@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection, Mapping, Sequence
-from datetime import timezone
 from typing import Any
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
