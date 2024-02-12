@@ -1629,8 +1629,6 @@ def _save_aggregate_new(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
-    root_hierarchical_grouphash = None
-
     # In principle the group gets the same metadata as the event, so common
     # attributes can be defined in eventtypes.
     #
@@ -1674,8 +1672,6 @@ def _save_aggregate_new(
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
-
-            root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
@@ -1741,11 +1737,7 @@ def _save_aggregate_new(
 
     is_new = False
 
-    if root_hierarchical_grouphash is None:
-        # No hierarchical grouping was run, only consider flat hashes
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-    else:
-        new_hashes = []
+    new_hashes = [h for h in flat_grouphashes if h.group_id is None]
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
