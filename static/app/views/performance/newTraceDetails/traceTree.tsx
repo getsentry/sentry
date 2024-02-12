@@ -218,14 +218,25 @@ export class TraceTree {
     traceNode.expanded = true;
     tree.root.children.push(traceNode);
 
+    let traceStart = Number.POSITIVE_INFINITY;
+    let traceEnd = Number.NEGATIVE_INFINITY;
+
     for (const transaction of trace.transactions) {
+      if (transaction.start_timestamp < traceStart) {
+        traceStart = transaction.start_timestamp;
+      }
+      if (transaction.timestamp > traceEnd) {
+        traceEnd = transaction.timestamp;
+      }
       visit(traceNode, transaction);
     }
 
     for (const trace_error of trace.orphan_errors) {
+      // @TODO -> check if trace error has start_timestamp too and adjust it
       visit(traceNode, trace_error);
     }
 
+    traceNode.space = [traceStart, traceEnd - traceStart];
     return tree.build();
   }
 
@@ -359,6 +370,10 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
+      autoGroupedNode.space = [
+        head.value.start_timestamp,
+        tail.value.timestamp - head.value.start_timestamp,
+      ];
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -421,15 +436,15 @@ export class TraceTree {
           );
 
           // Copy the children under the new node.
-          autoGroupedNode.children = node.children.slice(startIndex, matchCount + 1);
           autoGroupedNode.groupCount = matchCount + 1;
+
+          for (let j = startIndex; j < matchCount + 1; j++) {
+            autoGroupedNode.children.push(node.children[j]);
+            autoGroupedNode.children[j].parent = autoGroupedNode;
+          }
 
           // Remove the old children from the parent and insert the new node.
           node.children.splice(startIndex, matchCount + 1, autoGroupedNode);
-
-          for (let j = 0; j < autoGroupedNode.children.length; j++) {
-            autoGroupedNode.children[j].parent = autoGroupedNode;
-          }
         }
 
         startIndex = i;
@@ -646,6 +661,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     event_id: undefined,
   };
 
+  space: [number, number] | null = null;
+
   private _depth: number | undefined;
   private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _spanChildren: TraceTreeNode<
@@ -661,6 +678,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     this.parent = parent ?? null;
     this.value = value;
     this.metadata = metadata;
+
+    if (value && 'timestamp' in value && 'start_timestamp' in value) {
+      this.space = [value.start_timestamp, value.timestamp - value.start_timestamp];
+    }
 
     if (isTransactionNode(this)) {
       this.expanded = true;
