@@ -1661,10 +1661,10 @@ def _save_aggregate_new(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            all_grouphash_ids = [h.id for h in flat_grouphashes]
-
             flat_grouphashes = list(
-                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+                GroupHash.objects.filter(
+                    id__in=[h.id for h in flat_grouphashes],
+                ).select_for_update()
             )
 
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
