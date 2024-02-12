@@ -390,10 +390,12 @@ def _get_metrics_filter_ids(
                     derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
+
     if None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
+
     return metric_ids
 
 
@@ -627,15 +629,18 @@ def get_all_tags(
     """Get all metric tags for the given projects and metric_names."""
     assert projects
 
-    tags, _ = _fetch_tags_or_values_for_metrics(
-        projects=projects,
-        metric_names=metric_names,
-        column="tags.key",
-        referrer="snuba.metrics.meta.get_tags",
-        use_case_id=use_case_id,
-        start=start,
-        end=end,
-    )
+    try:
+        tags, _ = _fetch_tags_or_values_for_metrics(
+            projects=projects,
+            metric_names=metric_names,
+            column="tags.key",
+            referrer="snuba.metrics.meta.get_tags",
+            use_case_id=use_case_id,
+            start=start,
+            end=end,
+        )
+    except InvalidParams:
+        return []
 
     return tags
 
