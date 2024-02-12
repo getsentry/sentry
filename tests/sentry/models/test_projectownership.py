@@ -83,12 +83,12 @@ class ProjectOwnershipTestCase(TestCase):
 
     def test_get_owners_default(self):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_get_owners_no_record(self):
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_get_owners_basic(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
@@ -99,7 +99,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
         # Match only rule_a
         self.assert_ownership_equals(
@@ -125,11 +125,7 @@ class ProjectOwnershipTestCase(TestCase):
             ([ActorTuple(self.team.id, Team), ActorTuple(self.user.id, User)], [rule_a, rule_b]),
         )
 
-        assert ProjectOwnership.get_owners(
-            self.project.id, {"stacktrace": {"frames": [{"filename": "xxxx"}]}}
-        ) == (ProjectOwnership.Everyone, None)
-
-        # When fallthrough = False, we don't implicitly assign to Everyone
+        # We should be ignoring the fallthrough flag
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
         owner.fallthrough = False
         owner.save()
@@ -602,7 +598,7 @@ class ProjectOwnershipTestCase(TestCase):
             suspect_committer_auto_assignment=False,
             auto_assignment=False,
         )
-        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+        assert ProjectOwnership.get_owners(self.project.id, {}) == ([], None)
 
     def test_force_handle_auto_assignment(self):
         # Run auto-assignment first
