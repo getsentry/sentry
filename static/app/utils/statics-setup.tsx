@@ -1,6 +1,6 @@
 /* eslint no-native-reassign:0 */
 
-// eslint-disable-next-line no-var
+// biome-ignore lint/style/noVar: Not required
 declare var __webpack_public_path__: string;
 
 /**
