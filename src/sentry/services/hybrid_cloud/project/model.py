@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from typing import TypedDict
+
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
