@@ -1663,11 +1663,9 @@ def _save_aggregate_new(
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
 
-            all_grouphashes = list(
+            flat_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
             )
-
-            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
                 project, flat_grouphashes, hashes.hierarchical_hashes
