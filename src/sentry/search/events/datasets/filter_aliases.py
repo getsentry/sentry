@@ -293,7 +293,7 @@ def device_class_converter(
     # Spans data stores "Unknown" for unknown device classes unlike
     # the events dataset which stores null
     device_class_map = (
-        {**DEVICE_CLASS, "Unknown": {"Unknown"}}
+        {**DEVICE_CLASS, "Unknown": {""}}
         if builder.dataset in (Dataset.SpansIndexed, Dataset.PerformanceMetrics)
         else DEVICE_CLASS
     )

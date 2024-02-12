@@ -1001,7 +1001,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             123,
             internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
-            tags={"device.class": "Unknown"},
+            tags={"device.class": ""},
         )
         response = self.do_request(
             {

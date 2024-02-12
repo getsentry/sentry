@@ -99,14 +99,12 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
     def test_device_class_filter_unknown(self):
         self.store_spans(
             [
-                self.create_span(
-                    {"sentry_tags": {"device.class": "Unknown"}}, start_ts=self.ten_mins_ago
-                ),
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
             ]
         )
         response = self.do_request(
             {
-                "field": ["sentry_tags[device.class]", "count()"],
+                "field": ["device.class", "count()"],
                 "query": "device.class:Unknown",
                 "orderby": "count()",
                 "project": self.project.id,
@@ -118,5 +116,5 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["sentry_tags[device.class]"] == "Unknown"
+        assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == "spansIndexed"
