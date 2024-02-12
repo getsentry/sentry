@@ -26,28 +26,33 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def add_owner_id_to_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
-        if not hasattr(codeowner, "schema") or (
-            codeowner.schema
-            and codeowner.schema.get("rules")
-            and "id" not in codeowner.schema["rules"][0]["owners"][0].keys()
+    def refresh_codeowners_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
+        if (
+            not hasattr(codeowner, "schema")
+            or codeowner.schema is None
+            or codeowner.schema.get("rules") is None
         ):
-            # Convert raw to issue owners syntax so that the schema can be created
-            raw = codeowner.raw
-            associations, _ = validate_codeowners_associations(codeowner.raw, project)
-            codeowner.raw = convert_codeowners_syntax(
-                codeowner.raw,
-                associations,
-                codeowner.repository_project_path_config,
-            )
-            codeowner.schema = create_schema_from_issue_owners(
-                codeowner.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
-            )
+            return
 
-            # Convert raw back to codeowner type to be saved
-            codeowner.raw = raw
+        # Convert raw to issue owners syntax so that the schema can be created
+        raw = codeowner.raw
+        associations, _ = validate_codeowners_associations(codeowner.raw, project)
+        codeowner.raw = convert_codeowners_syntax(
+            codeowner.raw,
+            associations,
+            codeowner.repository_project_path_config,
+        )
+        codeowner.schema = create_schema_from_issue_owners(
+            codeowner.raw,
+            project.id,
+            add_owner_ids=True,
+            remove_deleted_owners=True,
+        )
 
-            codeowner.save()
+        # Convert raw back to codeowner type to be saved
+        codeowner.raw = raw
+
+        codeowner.save()
 
     def get(self, request: Request, project: Project) -> Response:
         """
@@ -66,12 +71,10 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         expand.append("errors")
 
         codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
-
-        if codeowners:
-            for codeowner in codeowners:
-                self.add_owner_id_to_schema(codeowner, project)
-            expand.append("renameIdentifier")
-            expand.append("hasTargetingContext")
+        for codeowner in codeowners:
+            self.refresh_codeowners_schema(codeowner, project)
+        expand.append("renameIdentifier")
+        expand.append("hasTargetingContext")
 
         return Response(
             serialize(
