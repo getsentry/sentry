@@ -3181,7 +3181,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response, False)
 
-    def test_user_misery_group_by_transaction(self) -> None:
+    def test_transaction_user_misery(self) -> None:
         user_misery_field = "user_misery(300)"
         apdex_field = "apdex(300)"
         params = {
