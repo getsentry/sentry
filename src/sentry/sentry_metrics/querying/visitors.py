@@ -154,19 +154,18 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         self._query_namespace = None
         self._query_entity = None
         self._query_group_bys = None
+        self._query_group_bys_stack: list[list[str]] = []
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
-        visited_formula = super()._visit_formula(formula)
+        # We already add the flattened group bys in the stack, to avoid re-computation for every leaf.
+        self._query_group_bys_stack.append(self._flatten_group_bys(formula.groupby))
 
-        # Formulas can optionally not have group bys, since only leaf `Timeseries` nodes can have them,
-        # thus we do not perform any validation in case they are not set.
-        #
-        # We might need to rework this implementation in case the group bys in the `Formula` are merged
-        # to all the ones in the leafs.
-        if formula.groupby is not None:
-            self._validate_group_bys(formula.groupby)
+        for parameter in formula.parameters:
+            self.visit(parameter)
 
-        return visited_formula
+        self._query_group_bys_stack.pop()
+
+        return formula
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         if timeseries.metric.mri is None:
@@ -195,15 +194,28 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
                 "Querying metrics with different metrics type is not currently supported"
             )
 
-        # If group bys are `None` for a `Timeseries`, we treat them as an empty list of group bys.
-        self._validate_group_bys(timeseries.groupby or [])
+        self._validate_accumulated_group_bys(timeseries)
 
         return timeseries
 
-    def _validate_group_bys(self, group_bys: list[Column | AliasedExpression] | None):
-        # We use a deduplicated and sorted representation of the group by fields used in the query, since
-        # we need to understand whether the same groups are used even across `Column`(s) and `AliasedExpression`(s).
-        sorted_group_bys = self._sort_group_bys(group_bys)
+    def _validate_accumulated_group_bys(self, timeseries: Timeseries):
+        """
+        Validates that the group bys on a given `Timeseries` are equal to the ones previously encountered (if any).
+
+        To obtain the group bys of the `Timeseries` all the group bys of the upstream `Formulas` are merged and ordered
+        together with the ones of the `Timeseries`.
+        """
+        group_bys = []
+
+        # We first add all the group bys that we got at each stack frame.
+        for upstream_group_bys in self._query_group_bys_stack:
+            group_bys += upstream_group_bys
+
+        # We then add all the group bys of the timeseries itself.
+        group_bys += self._flatten_group_bys(timeseries.groupby)
+
+        # We deduplicate and sort all the merged group bys in order to have a consistent view of the used group bys.
+        sorted_group_bys = sorted(set(group_bys))
         if self._query_group_bys is None:
             self._query_group_bys = sorted_group_bys
         elif self._query_group_bys != sorted_group_bys:
@@ -211,9 +223,12 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
                 "Querying metrics with different group bys is not allowed"
             )
 
-    def _sort_group_bys(
-        self, group_bys: list[Column | AliasedExpression] | None
-    ) -> list[str] | None:
+    def _flatten_group_bys(self, group_bys: list[Column | AliasedExpression] | None) -> list[str]:
+        """
+        Flattens a list of group bys by converting it to a flat list of strings, representing the names of the column
+        that the query is grouping by.
+        """
+
         def _column_name(group_by: Column | AliasedExpression) -> str:
             if isinstance(group_by, Column):
                 return group_by.name
@@ -223,9 +238,9 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
             return ""
 
         if group_bys is None:
-            return None
+            return []
 
-        return list(set(map(_column_name, group_bys)))
+        return list(map(_column_name, group_bys))
 
 
 class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
