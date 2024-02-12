@@ -12,8 +12,10 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
+  isRootNode,
   isSiblingAutogroupedNode,
   isSpanNode,
+  isTraceNode,
   isTransactionNode,
 } from './guards';
 
@@ -611,6 +613,13 @@ export class TraceTree {
         if (isMissingInstrumentationNode(t)) {
           return padding + 'missing_instrumentation';
         }
+        if (isRootNode(t)) {
+          return padding + 'Root';
+        }
+        if (isTraceNode(t)) {
+          return padding + 'Trace';
+        }
+
         throw new Error('Not implemented');
       })
       .filter(Boolean)
@@ -740,7 +749,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
    * would have been to create an invisible meta node that always points to the correct children.
    */
   get children(): TraceTreeNode<TraceTree.NodeValue>[] {
-    // if node is not a autogrouped node, return children
     if (isAutogroupedNode(this)) {
       return this._children;
     }
@@ -787,54 +795,46 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   getVisibleChildrenCount(): number {
-    if (!this.children.length) {
-      return 0;
-    }
-
-    const queue = new FifoQueue<TraceTreeNode<TraceTree.NodeValue>>();
-    for (const child of this.children) {
-      queue.enqueue(child);
-    }
-
+    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     let count = 0;
-    let node = queue.dequeu();
-    while (node) {
-      count++;
 
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      stack.push(this.children[i]);
+    }
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      count++;
+      // Since we're using a stack and it's LIFO, reverse the children before pushing them
+      // to ensure they are processed in the original left-to-right order.
       if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = 0; i < node.children.length; i++) {
-          queue.enqueue(node.children[i]);
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
         }
       }
-
-      node = queue.dequeu();
     }
 
     return count;
   }
 
   getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
-    if (!this.children.length) {
-      return [];
-    }
-
-    const queue = new FifoQueue<TraceTreeNode<TraceTree.NodeValue>>();
-
-    for (const child of this.children) {
-      queue.enqueue(child);
-    }
-
+    const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    let node = queue.dequeu();
 
-    while (node) {
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      stack.push(this.children[i]);
+    }
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
       children.push(node);
+      // Since we're using a stack and it's LIFO, reverse the children before pushing them
+      // to ensure they are processed in the original left-to-right order.
       if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = 0; i < node.children.length; i++) {
-          queue.enqueue(node.children[i]);
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          stack.push(node.children[i]);
         }
       }
-      node = queue.dequeu();
     }
 
     return children;
@@ -883,46 +883,5 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     metadata: TraceTree.Metadata
   ) {
     super(parent, node, metadata);
-  }
-}
-
-interface Node<T> {
-  next: Node<T> | null;
-  value: T;
-}
-
-class FifoQueue<T> {
-  private head: Node<T> | null = null;
-  private tail: Node<T> | null = null;
-
-  enqueue(value: T) {
-    const node: Node<T> = {
-      next: null,
-      value,
-    };
-
-    if (this.tail) {
-      this.tail.next = node;
-    }
-    this.tail = node;
-
-    if (!this.head) {
-      this.head = node;
-    }
-  }
-
-  dequeu(): T | undefined {
-    if (!this.head) {
-      return undefined;
-    }
-
-    const value = this.head.value;
-    this.head = this.head.next;
-
-    if (!this.head) {
-      this.tail = null;
-    }
-
-    return value;
   }
 }
