@@ -9,7 +9,7 @@ import type {
 } from '@tanstack/react-query';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
-import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {APIRequestMethod, ApiResult, Client, ResponseMeta} from 'sentry/api';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -47,7 +47,7 @@ type QueryKeyEndpointOptions<
 > = {
   data?: Data;
   headers?: Headers;
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
+  method?: APIRequestMethod;
   query?: Query;
 };
 
