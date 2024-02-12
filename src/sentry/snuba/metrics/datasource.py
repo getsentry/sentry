@@ -639,7 +639,8 @@ def get_all_tags(
             start=start,
             end=end,
         )
-    except InvalidParams:
+    except InvalidParams as e:
+        sentry_sdk.capture_exception(e)
         return []
 
     return tags
