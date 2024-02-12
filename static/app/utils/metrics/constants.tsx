@@ -32,5 +32,4 @@ export const emptyWidget: MetricWidgetQueryParams = {
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
-  title: undefined,
 };

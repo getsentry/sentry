@@ -22,7 +22,7 @@ export function convertToDashboardWidget(
 ): Widget {
   // @ts-expect-error TODO: pass interval
   return {
-    title: metricsQuery.title || getDDMWidgetName(metricsQuery),
+    title: getDDMWidgetName(metricsQuery),
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
     limit: !metricsQuery.groupBy?.length ? 1 : 10,

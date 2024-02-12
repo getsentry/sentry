@@ -54,7 +54,6 @@ export function Queries() {
               mri: widget.mri,
               op: widget.op,
               groupBy: widget.groupBy,
-              title: widget.title,
               query: widget.query,
             }}
             displayType={widget.displayType}
@@ -78,7 +77,6 @@ export function Queries() {
                   projects: selection.projects,
                   datetime: selection.datetime,
                   environments: selection.environments,
-                  title: widget.title,
                 }}
               />
             )}
