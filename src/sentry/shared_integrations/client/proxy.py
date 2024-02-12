@@ -15,6 +15,7 @@ from django.utils.encoding import force_str
 from requests import PreparedRequest
 from requests.adapters import Retry
 
+from sentry import options
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.http import build_session
 from sentry.integrations.client import ApiClient
@@ -153,7 +154,7 @@ class IntegrationProxyClient(ApiClient):
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
                 max_retries=Retry(
-                    total=5,
+                    total=options.get("hybrid_cloud.integrationproxy.retries"),
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
