@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -82,12 +83,19 @@ export function WidgetDetails() {
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
-              <SampleTable
-                mri={selectedWidget?.mri}
-                query={queryWithFocusedSeries}
-                {...focusArea?.selection?.range}
-                onRowHover={handleSampleRowHover}
-              />
+              {organization.features.includes('metrics-samples-list') ? (
+                <MetricSamplesTable
+                  mri={selectedWidget?.mri}
+                  query={queryWithFocusedSeries}
+                />
+              ) : (
+                <SampleTable
+                  mri={selectedWidget?.mri}
+                  query={queryWithFocusedSeries}
+                  {...focusArea?.selection?.range}
+                  onRowHover={handleSampleRowHover}
+                />
+              )}
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />
