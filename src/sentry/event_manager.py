@@ -1639,21 +1639,7 @@ def _save_aggregate_new(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
-    if root_hierarchical_hash is not None:
-        root_hierarchical_grouphash = GroupHash.objects.get_or_create(
-            project=project, hash=root_hierarchical_hash
-        )[0]
-
-        metadata.update(
-            hashes.group_metadata_from_hash(
-                existing_grouphash.hash
-                if existing_grouphash is not None
-                else root_hierarchical_hash
-            )
-        )
-
-    else:
-        root_hierarchical_grouphash = None
+    root_hierarchical_grouphash = None
 
     # In principle the group gets the same metadata as the event, so common
     # attributes can be defined in eventtypes.
@@ -1688,8 +1674,6 @@ def _save_aggregate_new(
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
             all_grouphash_ids = [h.id for h in flat_grouphashes]
-            if root_hierarchical_grouphash is not None:
-                all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
             all_grouphashes = list(
                 GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
@@ -1701,12 +1685,7 @@ def _save_aggregate_new(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
-            if root_hierarchical_hash is not None:
-                root_hierarchical_grouphash = GroupHash.objects.get_or_create(
-                    project=project, hash=root_hierarchical_hash
-                )[0]
-            else:
-                root_hierarchical_grouphash = None
+            root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
@@ -1723,10 +1702,7 @@ def _save_aggregate_new(
                         },
                     )
 
-                if root_hierarchical_grouphash is not None:
-                    new_hashes = [root_hierarchical_grouphash]
-                else:
-                    new_hashes = list(flat_grouphashes)
+                new_hashes = list(flat_grouphashes)
 
                 GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
@@ -1784,11 +1760,6 @@ def _save_aggregate_new(
     elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-    elif root_hierarchical_grouphash.group_id is None:
-        # The root hash is not assigned to a group.
-        # We ran multiple grouping algorithms
-        # (see secondary grouping), and the hierarchical hash is new
-        new_hashes = [root_hierarchical_grouphash]
     else:
         new_hashes = []
 
