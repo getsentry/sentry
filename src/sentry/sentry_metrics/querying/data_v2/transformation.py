@@ -115,7 +115,7 @@ class QueryTransformer:
             rows: Sequence[Mapping[str, Any]],
             group_bys: list[str],
             query_groups: OrderedDict[GroupKey, GroupValue],
-            block: Callable[[Mapping[str, Any], GroupValue], None],
+            add_to_group: Callable[[Mapping[str, Any], GroupValue], None],
         ):
             for row in rows:
                 grouped_values = []
@@ -124,7 +124,7 @@ class QueryTransformer:
                     grouped_values.append((group_by, cast(str, row.get(group_by))))
 
                 group_value = query_groups.setdefault(tuple(grouped_values), GroupValue.empty())
-                block(row, group_value)
+                add_to_group(row, group_value)
 
         for query_result in self._query_results:
             # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
@@ -190,8 +190,8 @@ class QueryTransformer:
         # We build the intervals that we will return to the API user.
         intervals = _build_intervals(start, end, interval)
 
-        # We build the translated groups given the intermediate groups.
-        translated_queries_groups = []
+        # We build the transformed groups given the intermediate groups.
+        transformed_queries_groups = []
         for query_groups in queries_groups:
             translated_query_groups = []
             for group_key, group_value in query_groups.items():
@@ -209,17 +209,17 @@ class QueryTransformer:
                     }
                 )
 
-            translated_queries_groups.append(translated_query_groups)
+            transformed_queries_groups.append(translated_query_groups)
 
-        # We build the translated meta given the intermediate meta.
-        translated_queries_meta = []
+        # We build the transformed meta given the intermediate meta.
+        transformed_queries_meta = []
         for query_meta in queries_meta:
-            translated_queries_meta.append([meta.meta for meta in query_meta])
+            transformed_queries_meta.append([meta.meta for meta in query_meta])
 
         return {
             "intervals": intervals,
-            "data": translated_queries_groups,
-            "meta": translated_queries_meta,
+            "data": transformed_queries_groups,
+            "meta": transformed_queries_meta,
             "start": start,
             "end": end,
         }
