@@ -37,6 +37,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     children: [],
     start_timestamp: 0,
     timestamp: 1,
+    transaction: 'transaction',
     'transaction.op': '',
     'transaction.status': '',
     ...overrides,
@@ -312,9 +313,11 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(tree.list).toHaveLength(3);
+    expect(tree.list).toHaveLength(5);
 
-    tree.expand(tree.list[1], true);
+    expect(tree.expand(tree.list[1], false)).toBe(true);
+    expect(tree.list).toHaveLength(3);
+    expect(tree.expand(tree.list[1], true)).toBe(true);
     expect(tree.list).toHaveLength(5);
     expect(tree.list[2].value).toBe(firstChild);
     expect(tree.list[3].value).toBe(secondChild);
@@ -337,8 +340,7 @@ describe('TraceTree', () => {
       })
     );
 
-    expect(tree.list).toHaveLength(3);
-    tree.expand(tree.list[1], true);
+    expect(tree.list).toHaveLength(4);
     expect(tree.list[2].parent?.value).toBe(tree.list[1].value);
   });
 
@@ -477,6 +479,8 @@ describe('TraceTree', () => {
 
       const node = tree.list[1];
 
+      expect(tree.expand(node, false)).toBe(true);
+
       expect(tree.list.length).toBe(2);
       expect(node.expanded).toBe(false);
       expect(tree.expand(node, true)).toBe(true);
@@ -503,30 +507,28 @@ describe('TraceTree', () => {
     });
 
     it('preserves children expanded state', () => {
-      const lastChildExpandedTxn = makeTransaction({start_timestamp: 1000});
-      const lastTransaction = makeTransaction({start_timestamp: 5});
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [
             makeTransaction({
               children: [
-                makeTransaction({children: [lastChildExpandedTxn]}),
-                lastTransaction,
+                makeTransaction({children: [makeTransaction({start_timestamp: 1000})]}),
+                makeTransaction({start_timestamp: 5}),
               ],
             }),
           ],
         })
       );
 
-      expect(tree.expand(tree.list[1], true)).toBe(true);
-      expect(tree.expand(tree.list[2], true)).toBe(true);
-      // Assert that the list has been updated
-      expect(tree.list).toHaveLength(5);
-
       expect(tree.expand(tree.list[2], false)).toBe(true);
-      expect(tree.list.length).toBe(4);
+      // Assert that the list has been updated
+      expect(tree.list).toHaveLength(4);
+
       expect(tree.expand(tree.list[2], true)).toBe(true);
-      expect(tree.list[tree.list.length - 1].value).toBe(lastTransaction);
+      expect(tree.list.length).toBe(5);
+      expect(tree.list[tree.list.length - 1].value).toEqual(
+        makeTransaction({start_timestamp: 5})
+      );
     });
 
     it('expanding or collapsing a zoomed in node doesnt do anything', async () => {
@@ -992,11 +994,11 @@ describe('TraceTree', () => {
         method: 'GET',
         body: makeEvent({}, [
           makeRawSpan({description: 'parent span', op: 'http', span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', parent_span_id: '1'}),
+          makeRawSpan({description: 'span', op: 'db', span_id: '2', parent_span_id: '1'}),
+          makeRawSpan({description: 'span', op: 'db', span_id: '3', parent_span_id: '1'}),
+          makeRawSpan({description: 'span', op: 'db', span_id: '4', parent_span_id: '1'}),
+          makeRawSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '1'}),
+          makeRawSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '1'}),
         ]),
       });
 
