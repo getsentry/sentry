@@ -9,6 +9,7 @@ from sentry.api.serializers.base import serialize
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
 
@@ -19,6 +20,7 @@ class DocIntegrationsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="jinx@lol.com")
         self.superuser = self.create_user(email="vi@lol.com", is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.doc_1 = self.create_doc_integration(name="test_1", is_draft=False, has_avatar=True)
         self.doc_2 = self.create_doc_integration(name="test_2", is_draft=True, has_avatar=True)
         self.doc_3 = self.create_doc_integration(
@@ -36,7 +38,30 @@ class DocIntegrationsTest(APITestCase):
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
-    def test_read_docs_for_superuser(self):
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_staff_read_docs(self):
+        """
+        Tests that all DocIntegrations are returned for staff users,
+        along with serialized versions of their avatars and IntegrationFeatures
+        """
+        self.login_as(user=self.staff_user, staff=True)
+        response = self.get_success_response(status_code=status.HTTP_200_OK)
+        assert len(response.data) == 3
+        for doc in [self.doc_1, self.doc_2, self.doc_3]:
+            assert serialize(doc) in response.data
+        # Check that DocIntegrationAvatars were serialized
+        for doc in [self.doc_1, self.doc_2]:
+            assert doc.avatar.exists()
+            assert serialize(doc.avatar.get()) in self.get_avatars(response)
+        # Check that IntegrationFeatures were also serialized
+        features = IntegrationFeature.objects.filter(
+            target_id=self.doc_3.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        for feature in features:
+            assert serialize(feature) in serialize(self.doc_3)["features"]
+
+    # TODO(schew2381): Change test to check superuser can only fetch non-draft DocIntegrations
+    def test_superuser_read_docs(self):
         """
         Tests that all DocIntegrations are returned for super users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -93,7 +118,32 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
     }
     ignored_keys = ["is_draft", "metadata"]
 
-    def test_create_doc_for_superuser(self):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.staff_user, staff=True)
+
+    def test_staff_create_doc(self):
+        """
+        Tests that a draft DocIntegration is created for superuser requests along
+        with all the appropriate IntegrationFeatures
+        """
+        response = self.get_success_response(status_code=status.HTTP_201_CREATED, **self.payload)
+        doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
+        assert serialize(doc) == response.data
+        assert doc.is_draft
+        features = IntegrationFeature.objects.filter(
+            target_id=doc.id, target_type=IntegrationTypes.DOC_INTEGRATION.value
+        )
+        assert features.exists()
+        assert len(features) == 3
+        for feature in features:
+            # Ensure payload features are in the database
+            assert feature.feature in self.payload["features"]
+            # Ensure they are also serialized in the response
+            assert serialize(feature) in response.data["features"]
+
+    # TODO(schew2381): Change test to check superuser can't access POST
+    def test_superuser_create_doc(self):
         """
         Tests that a draft DocIntegration is created for superuser requests along
         with all the appropriate IntegrationFeatures
@@ -125,7 +175,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         """
         Tests that repeated names throw errors when generating slugs
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "name": self.doc_1.name}
         response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
         assert "name" in response.data.keys()
@@ -134,7 +183,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         """
         Tests that generated slug based on name is not entirely numeric
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "name": "1234"}
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
 
@@ -146,7 +194,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         """
         Tests that incorrectly structured metadata throws an error
         """
-        self.login_as(user=self.superuser, superuser=True)
         invalid_resources = {
             "not_an_array": {},
             "extra_keys": [{**self.payload["resources"][0], "extra": "key"}],
@@ -162,7 +209,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         Tests that sending no metadata keys does not trigger any
         server/database errors
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload}
         del payload["resources"]
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
@@ -173,7 +219,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         Tests that certain reserved keys cannot be overridden by the
         request payload. They must be created by the API.
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "is_draft": False, "metadata": {"should": "not override"}}
         self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
@@ -186,7 +231,6 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         Tests that providing duplicate keys do not result in a server
         error; instead, the excess are ignored.
         """
-        self.login_as(user=self.superuser, superuser=True)
         payload = {**self.payload, "features": [0, 0, 0, 0, 1, 1, 1, 2]}
         self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])

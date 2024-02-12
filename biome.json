@@ -13,6 +13,14 @@
     "enabled": true,
     "rules": {
       "recommended": false,
+      "a11y": {
+        "noBlankTarget": "error"
+      },
+      "correctness": {
+        "noUnreachable": "error",
+        "useHookAtTopLevel": "error",
+        "useIsNan": "error"
+      },
       "complexity": {
         "useFlatMap": "error"
       },
@@ -23,7 +31,18 @@
         "useImportType": "error"
       },
       "suspicious": {
+        "noDebugger": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateJsxProps": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noDuplicateCase": "error",
+        "noRedeclare": "error",
         "useIsArray": "error"
+      },
+      "style": {
+        "noVar": "error",
+        "useConst": "error"
       }
     }
   },
@@ -85,6 +104,16 @@
         "rules": {
           "nursery": {
             "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/sentry/templates/sentry/error-page-embed.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noVar": "off"
           }
         }
       }
