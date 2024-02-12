@@ -59,6 +59,9 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
 
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
+  const activeRepoName: string | undefined = activeReleaseRepo
+    ? activeReleaseRepo.name
+    : reposToRender[0];
 
   return (
     <Layout.Body>
@@ -80,18 +83,16 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
         {commitListError && <LoadingError onRetry={refetch} />}
         {isLoadingCommitList ? (
           <LoadingIndicator />
-        ) : commitList.length ? (
+        ) : commitList.length && activeRepoName ? (
           <Fragment>
-            {reposToRender.map(repoName => (
-              <Panel key={repoName}>
-                <PanelHeader>{repoName}</PanelHeader>
-                <PanelBody>
-                  {commitsByRepository[repoName]?.map(commit => (
-                    <CommitRow key={commit.id} commit={commit} />
-                  ))}
-                </PanelBody>
-              </Panel>
-            ))}
+            <Panel>
+              <PanelHeader>{activeRepoName}</PanelHeader>
+              <PanelBody>
+                {commitsByRepository[activeRepoName]?.map(commit => (
+                  <CommitRow key={commit.id} commit={commit} />
+                ))}
+              </PanelBody>
+            </Panel>
             <Pagination pageLinks={getResponseHeader?.('Link')} />
           </Fragment>
         ) : (
