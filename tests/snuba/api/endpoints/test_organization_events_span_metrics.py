@@ -996,6 +996,29 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["device.class"] == level
         assert meta["fields"]["device.class"] == "string"
 
+    def test_device_class_filter_unknown(self):
+        self.store_span_metric(
+            123,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.min_ago,
+            tags={"device.class": ""},
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert meta["fields"]["device.class"] == "string"
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
