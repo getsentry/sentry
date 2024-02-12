@@ -95,3 +95,28 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert len(data) == 1
         assert data[0]["sentry_tags[transaction.method]"] == "foo"
         assert meta["dataset"] == "spansIndexed"
+
+    def test_device_class_filter_unknown(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "Unknown"}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["sentry_tags[device.class]", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sentry_tags[device.class]"] == "Unknown"
+        assert meta["dataset"] == "spansIndexed"
