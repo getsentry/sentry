@@ -1615,16 +1615,6 @@ def _save_aggregate_new(
 
     group_creation_kwargs = _get_group_creation_kwargs(job)
 
-    # Because this logic is not complex enough we want to special case the situation where we
-    # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-    # there needs to be special logic to not create orphaned hashes in migration cases
-    # but it wants a different logic to implement splitting of hierarchical hashes.
-    migrate_off_hierarchical = bool(
-        secondary_hashes
-        and secondary_hashes.hierarchical_hashes
-        and not primary_hashes.hierarchical_hashes
-    )
-
     flat_grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
@@ -1751,13 +1741,7 @@ def _save_aggregate_new(
 
     is_new = False
 
-    # For the migration from hierarchical to non hierarchical we want to associate
-    # all group hashes
-    if migrate_off_hierarchical:
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
-            new_hashes.append(root_hierarchical_grouphash)
-    elif root_hierarchical_grouphash is None:
+    if root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
     else:
