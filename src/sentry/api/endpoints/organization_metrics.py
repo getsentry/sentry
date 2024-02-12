@@ -12,7 +12,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.api import FormulaOrder, MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -334,13 +334,13 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     # Number of groups returned by default for each query.
     default_limit = 20
 
-    def _validate_order(self, order: str | None) -> FormulaOrder | None:
+    def _validate_order(self, order: str | None) -> QueryOrder | None:
         if order is None:
             return None
 
-        formula_order = FormulaOrder.from_string(order)
+        formula_order = QueryOrder.from_string(order)
         if formula_order is None:
-            order_choices = [v.value for v in FormulaOrder]
+            order_choices = [v.value for v in QueryOrder]
             raise InvalidMetricsQueryError(
                 f"The provided `order` is not a valid, only {order_choices} are supported"
             )
