@@ -141,14 +141,6 @@ describe('IssueRuleEditor', function () {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/ownership/`,
-      method: 'GET',
-      body: {
-        fallthrough: false,
-        autoAssignment: false,
-      },
-    });
-    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/preview/',
       method: 'POST',
       body: [],

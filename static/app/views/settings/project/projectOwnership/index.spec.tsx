@@ -140,16 +140,12 @@ describe('Project Ownership', () => {
       });
     });
 
-    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
-      const org = {
-        ...organization,
-        features: ['issue-alert-fallback-targeting'],
-      };
+    it('should hide issue owners', () => {
       render(
         <ProjectOwnership
           {...routerProps}
           params={{projectId: project.slug}}
-          organization={org}
+          organization={organization}
           project={project}
         />
       );
