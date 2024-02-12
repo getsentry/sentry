@@ -21,7 +21,15 @@ from sentry.utils import json
     }
 )
 def test_backpressure_unhealthy():
-    record_consumer_health({"celery": False})
+    record_consumer_health(
+        {
+            "celery": Exception("Couldn't check celery"),
+            "attachments-store": [],
+            "processing-store": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
     with raises(MessageRejected):
         process_one_message()
 
@@ -37,11 +45,11 @@ def test_backpressure_unhealthy():
 def test_backpressure_healthy(process_profile_task):
     record_consumer_health(
         {
-            "celery": True,
-            "attachments-store": True,
-            "processing-store": True,
-            "processing-locks": True,
-            "post-process-locks": True,
+            "celery": [],
+            "attachments-store": [],
+            "processing-store": [],
+            "processing-locks": [],
+            "post-process-locks": [],
         }
     )
     process_one_message()
