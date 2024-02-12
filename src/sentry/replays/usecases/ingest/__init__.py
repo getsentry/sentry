@@ -85,8 +85,9 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", message.replay_id)
+    except Exception:
+        # TODO: DLQ
+        logger.warning("Valid headers could not be found %s", message.replay_id, exc_info=True)
         return None
 
     # Normalize ingest data into a standardized ingest format.
@@ -154,12 +155,10 @@ def track_initial_segment_event(
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
 def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders, bytes]:
-    try:
-        recording_headers, recording_segment = bytes_with_headers.split(b"\n", 1)
-    except ValueError:
-        raise MissingRecordingSegmentHeaders
-    else:
-        return json.loads(recording_headers, use_rapid_json=True), recording_segment
+    recording_headers_json, recording_segment = bytes_with_headers.split(b"\n", 1)
+    recording_headers = json.loads(recording_headers_json)
+    assert isinstance(recording_headers.get("segment_id"), int)
+    return recording_headers, recording_segment
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
