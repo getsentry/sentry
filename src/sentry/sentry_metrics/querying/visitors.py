@@ -199,6 +199,12 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         return timeseries
 
     def _validate_accumulated_group_bys(self, timeseries: Timeseries):
+        """
+        Validates that the group bys on a given `Timeseries` are equal to the ones previously encountered (if any).
+
+        To obtain the group bys of the `Timeseries` all the group bys of the upstream `Formulas` are merged and ordered
+        together with the ones of the `Timeseries`.
+        """
         group_bys = []
 
         # We first add all the group bys that we got at each stack frame.
@@ -218,6 +224,11 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
             )
 
     def _flatten_group_bys(self, group_bys: list[Column | AliasedExpression] | None) -> list[str]:
+        """
+        Flattens a list of group bys by converting it to a flat list of strings, representing the names of the column
+        that the query is grouping by.
+        """
+
         def _column_name(group_by: Column | AliasedExpression) -> str:
             if isinstance(group_by, Column):
                 return group_by.name
@@ -229,7 +240,6 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         if group_bys is None:
             return []
 
-        # Here we are converting to sorted deduplicated list of strings.
         return list(map(_column_name, group_bys))
 
 

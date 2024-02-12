@@ -844,7 +844,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("($query_1 * $query_2 / $query_1) by (release)")
+            .apply_formula("((($query_1 * $query_2) by (release)) / $query_1) by (browser)")
         )
 
         with pytest.raises(InvalidMetricsQueryError):
