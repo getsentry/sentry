@@ -565,7 +565,6 @@ def emit_function_regression_issue(
                 "trend_percentage": regression["trend_percentage"],
                 "unweighted_p_value": regression["unweighted_p_value"],
                 "unweighted_t_value": regression["unweighted_t_value"],
-                "released": True,
             }
         )
 
