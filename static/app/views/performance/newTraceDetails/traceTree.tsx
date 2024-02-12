@@ -799,7 +799,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     let count = 0;
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      stack.push(this.children[i]);
+      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+        stack.push(this.children[i]);
+      }
     }
 
     while (stack.length > 0) {
@@ -822,7 +824,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      stack.push(this.children[i]);
+      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+        stack.push(this.children[i]);
+      }
     }
 
     while (stack.length > 0) {
