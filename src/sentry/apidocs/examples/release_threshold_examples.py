@@ -25,7 +25,7 @@ class ReleaseThresholdExamples:
                         "is_healthy": True,
                         "start": "2022-02-14T19:00:00Z",
                         "end": "2022-02-28T18:03:00Z",
-                        "metric_value": 0,
+                        "metric_value": 0.1,
                     },
                 ],
             },
