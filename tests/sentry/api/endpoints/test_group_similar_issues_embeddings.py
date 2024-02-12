@@ -392,6 +392,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data=error_trace_no_stacktrace, project_id=self.project
         )
         group_no_stacktrace = event_no_stacktrace.group
+        assert group_no_stacktrace
         response = self.client.get(
             f"/api/0/issues/{group_no_stacktrace.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
@@ -432,11 +433,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         }
         mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
-        error_trace_no_exception = {}
-        event_no_exception = self.store_event(
-            data=error_trace_no_exception, project_id=self.project
-        )
+        event_no_exception = self.store_event(data={}, project_id=self.project)
         group_no_exception = event_no_exception.group
+        assert group_no_exception
         response = self.client.get(
             f"/api/0/issues/{group_no_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
