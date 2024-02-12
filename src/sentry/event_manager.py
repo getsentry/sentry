@@ -1331,8 +1331,7 @@ def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> G
         )
         and not has_mobile_config
     ):
-        # This will be updated to the new logic once it's written
-        group_info = _save_aggregate(
+        group_info = _save_aggregate_new(
             event=event,
             job=job,
             release=job["release"],
