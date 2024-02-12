@@ -495,7 +495,9 @@ function Sidebar() {
         <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
           <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
+          {hasSuperuserSession && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
         </DropdownSidebarSection>
 
         <PrimaryItems>
