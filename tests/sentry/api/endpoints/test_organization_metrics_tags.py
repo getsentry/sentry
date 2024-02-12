@@ -257,3 +257,24 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
                 statsPeriod=stats_period,
             )
             assert len(response.data) == expected_count
+
+    def test_metric_tags_with_gauge(self):
+        mri = "g:custom/page_load@millisecond"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "gauge",
+            mri,
+            {"transaction": "/hello", "release": "1.0", "environment": "prod"},
+            int(self.now.timestamp()),
+            10,
+            UseCaseID.CUSTOM,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert len(response.data) == 3
