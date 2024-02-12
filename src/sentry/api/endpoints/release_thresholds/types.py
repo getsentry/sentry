@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 
-class SerializedThreshold(TypedDict, metric_value=None):
+class SerializedThreshold(TypedDict, total=False):
     id: str
     date: datetime
     environment: dict[str, Any] | None
@@ -14,7 +14,7 @@ class SerializedThreshold(TypedDict, metric_value=None):
     window_in_seconds: int
 
 
-class EnrichedThreshold(SerializedThreshold, metric_value=None):
+class EnrichedThreshold(SerializedThreshold):
     end: datetime
     is_healthy: bool
     key: str
