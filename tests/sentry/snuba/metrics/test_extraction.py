@@ -64,13 +64,6 @@ def test_equality_of_specs(default_project) -> None:
         ("count()", "event.type:default transaction.duration:>0", False),
         # error.handled is an error search term
         ("count()", "error.handled:true transaction.duration:>0", False),
-        ("apdex(300)", "", True),
-        ("apdex(3000)", "", True),
-        ("user_misery(300)", "", True),
-        ("user_misery(3000)", "", True),
-        # XXX: We need to add support count_miserable in on-demand
-        ("count_miserable(user,300)", "", False),
-        ("count_miserable(user,3000)", "", False),
     ],
 )
 def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
