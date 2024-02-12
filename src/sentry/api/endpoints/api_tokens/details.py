@@ -1,9 +1,8 @@
-from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
-from rest_framework.fields import CharField
+from rest_framework.fields import CharField, IntegerField
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,15 +13,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
-from sentry.security.utils import capture_security_activity
+
+from .utils import get_appropriate_user_id
 
 
 class ApiTokenUpdateSerializer(serializers.Serializer):
+    user_id = IntegerField(min_value=1, required=False)
     name = CharField(max_length=255, allow_blank=True, required=False)
 
     def to_internal_value(self, data):
@@ -55,7 +54,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:
         try:
-            token = ApiToken.objects.get(id=token_id, user_id=request.user.id, application_id=None)
+            user_id = get_appropriate_user_id(request)
+            token = ApiToken.objects.get(id=token_id, user_id=user_id, application_id=None)
         except ApiToken.DoesNotExist:
             return Response(status=HTTP_404_NOT_FOUND)
 
@@ -68,9 +68,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
         if serializer.is_valid():
             with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
                 try:
-                    token = ApiToken.objects.get(
-                        id=token_id, user_id=request.user.id, application_id=None
-                    )
+                    user_id = get_appropriate_user_id(request)
+                    token = ApiToken.objects.get(id=token_id, user_id=user_id, application_id=None)
 
                     new_name = serializer.validated_data.get("name", token.name)
 
@@ -88,8 +87,9 @@ class ApiTokenDetailsEndpoint(Endpoint):
     def delete(self, request: Request, token_id: int) -> Response:
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
             try:
+                user_id = get_appropriate_user_id(request)
                 token_to_delete = ApiToken.objects.get(
-                    id=token_id, user_id=request.user.id, application_id=None
+                    id=token_id, user_id=user_id, application_id=None
                 )
 
                 token_to_delete.delete()

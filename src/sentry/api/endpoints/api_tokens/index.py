@@ -20,6 +20,8 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
 
+from .utils import get_appropriate_user_id
+
 
 class ApiTokenSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
@@ -30,36 +32,15 @@ class ApiTokenSerializer(serializers.Serializer):
 class ApiTokensEndpoint(Endpoint):
     owner = ApiOwner.SECURITY
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @classmethod
-    def _get_appropriate_user_id(cls, request: Request) -> str:
-        """
-        Gets the user id to use for the request, based on what the current state of the request is.
-        If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
-        Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
-
-        The user_id to use comes from the GET or BODY parameter based on the request type.
-        For GET endpoints, the GET dict is used.
-        For all others, the DATA dict is used.
-        """
-        # Get the user id for the user that made the current request as a baseline default
-        user_id = request.user.id
-        if is_active_superuser(request):
-            datastore = request.GET if request.GET else request.data
-            # If a userId override is not found, use the id for the user who made the request
-            user_id = datastore.get("userId", user_id)
-
-        return user_id
-
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-        user_id = self._get_appropriate_user_id(request=request)
+        user_id = get_appropriate_user_id(request)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -96,25 +77,3 @@ class ApiTokensEndpoint(Endpoint):
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
-
-    @method_decorator(never_cache)
-    def delete(self, request: Request):
-        user_id = self._get_appropriate_user_id(request=request)
-        token_id = request.data.get("tokenId", None)
-        # Account for token_id being 0, which can be considered valid
-        if token_id is None:
-            return Response({"tokenId": token_id}, status=400)
-
-        with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            token_to_delete: ApiToken | None = ApiToken.objects.filter(
-                id=token_id, application__isnull=True, user_id=user_id
-            ).first()
-
-            if token_to_delete is None:
-                return Response({"tokenId": token_id, "userId": user_id}, status=400)
-
-            token_to_delete.delete()
-
-        analytics.record("api_token.deleted", user_id=request.user.id)
-
-        return Response(status=204)
