@@ -137,7 +137,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("threshold"):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
-        logger.info("Similar issues embeddings payload", extra=json.dumps(similar_issues_params))
+        logger.info("Similar issues embeddings parameters", extra=json.dumps(similar_issues_params))
 
         results = get_similar_issues_embeddings(similar_issues_params)
 

@@ -272,7 +272,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
         mock_logger.info.assert_called_with(
-            "Similar issues embeddings payload", extra=expected_seer_request_params
+            "Similar issues embeddings parameters", extra=expected_seer_request_params
         )
 
     @with_feature("projects:similarity-embeddings")
