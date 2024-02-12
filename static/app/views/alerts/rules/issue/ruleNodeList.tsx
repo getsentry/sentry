@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueOwnership, Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
@@ -23,7 +23,7 @@ import {
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode, {hasStreamlineTargeting} from './ruleNode';
+import RuleNode from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -50,23 +50,18 @@ type Props = {
   project: Project;
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
-  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
 const createSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
+  actions: IssueAlertRuleActionTemplate[]
 ): Array<{
   label: React.ReactNode;
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
-      let label = t('Issue Owners, Team, or Member');
-      if (hasStreamlineTargeting(organization)) {
-        label = t('Suggested Assignees, Team, or Member');
-      }
+      const label = t('Suggested Assignees, Team, or Member');
       return {
         value: node,
         label,
@@ -99,10 +94,7 @@ const groupLabels = {
 /**
  * Group options by category
  */
-const groupSelectOptions = (
-  actions: IssueAlertRuleActionTemplate[],
-  organization: Organization
-) => {
+const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   const grouped = actions.reduce<
     Record<
       keyof typeof groupLabels,
@@ -142,7 +134,7 @@ const groupSelectOptions = (
     .map(([key, values]) => {
       return {
         label: groupLabels[key],
-        options: createSelectOptions(values, organization),
+        options: createSelectOptions(values),
       };
     });
 };
@@ -251,7 +243,6 @@ class RuleNodeList extends Component<Props> {
       placeholder,
       items,
       organization,
-      ownership,
       project,
       disabled,
       error,
@@ -264,8 +255,8 @@ class RuleNodeList extends Component<Props> {
 
     const options =
       selectType === 'grouped'
-        ? groupSelectOptions(enabledNodes, organization)
-        : createSelectOptions(enabledNodes, organization);
+        ? groupSelectOptions(enabledNodes)
+        : createSelectOptions(enabledNodes);
 
     return (
       <Fragment>
@@ -284,7 +275,6 @@ class RuleNodeList extends Component<Props> {
                 organization={organization}
                 project={project}
                 disabled={disabled}
-                ownership={ownership}
                 incompatibleRule={incompatibleRules?.includes(idx)}
                 incompatibleBanner={incompatibleBanner === idx}
               />

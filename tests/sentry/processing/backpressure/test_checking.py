@@ -17,6 +17,7 @@ from sentry.utils import json
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
@@ -26,11 +27,25 @@ def test_backpressure_unhealthy():
         process_one_message()
 
 
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": False,
+        "backpressure.status_ttl": 60,
+    }
+)
+def test_bad_config():
+    with raises(MessageRejected):
+        process_one_message()
+
+
 @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
 @override_options(
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )

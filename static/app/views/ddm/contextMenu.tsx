@@ -1,10 +1,12 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
 import {
   IconClose,
   IconCopy,
@@ -33,6 +35,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
+  hasDashboardFeature: boolean;
   metricsQuery: MetricsQuery;
   widgetIndex: number;
 };
@@ -41,6 +44,7 @@ export function MetricQueryContextMenu({
   metricsQuery,
   displayType,
   widgetIndex,
+  hasDashboardFeature,
 }: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
@@ -88,8 +92,22 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashoard',
-        label: t('Add to Dashboard'),
-        disabled: !createDashboardWidget,
+        label: hasDashboardFeature ? (
+          <Fragment>{t('Add to Dashboard')}</Fragment>
+        ) : (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features="organizations:dashboards-edit"
+                hideHelpToggle
+                featureName={t('Dashboard Editing')}
+              />
+            }
+          >
+            {t('Add to Dashboard')}
+          </Hovercard>
+        ),
+        disabled: !hasDashboardFeature || !createDashboardWidget,
         onAction: () => {
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
@@ -129,6 +147,7 @@ export function MetricQueryContextMenu({
       },
     ],
     [
+      hasDashboardFeature,
       createAlert,
       createDashboardWidget,
       metricsQuery.mri,

@@ -2943,9 +2943,6 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 
 class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
-    def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
-
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)

@@ -48,7 +48,9 @@ export function TraceLink({event}: TraceLinkProps) {
     >
       <span>
         {t('View Full Trace')}
-        {data.length > 0 && tn(' (%s issue)', ' (%s issues)', data.length)}
+        {data.length >= 100
+          ? t(' (100+ issues)')
+          : tn(' (%s issue)', ' (%s issues)', data.length)}
       </span>
       <IconChevron direction="right" size="xs" />
     </StyledLink>
