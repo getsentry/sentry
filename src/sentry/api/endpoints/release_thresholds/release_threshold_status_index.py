@@ -96,7 +96,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
     }
 
     @extend_schema(
-        operation_id="Retrieve status of a release threshold (Alpha)",
+        operation_id="Retrieve Statuses of Release Thresholds (Alpha)",
         parameters=[GlobalParams.ORG_SLUG, ReleaseThresholdStatusIndexSerializer],
         request=None,
         responses={
@@ -111,10 +111,10 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         **`[WARNING]`**: This API is an experimental Alpha feature and is subject to change!
 
-        List all derived statuses of releases that fall within the provided start/end datetimes
+        List all derived statuses of releases that fall within the provided start/end datetimes.
 
-        Constructs a response key'd off release_version, project_slug, and lists thresholds with their status for *specified* projects
-        Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
+        Constructs a response key'd off `release_version`, `project_slug`, and lists thresholds with their status for *specified* projects.
+        Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status.
         """
         # TODO: We should limit/paginate results (this could get really bulky)
         # ========================================================================
