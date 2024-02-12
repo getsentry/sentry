@@ -736,9 +736,9 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         warnings = response.data["warnings"]
-        assert "fields" in warnings
-        assert len(warnings["fields"]) == 1
-        assert warnings["fields"]["sometag"] == "disabled:high-cardinality"
+        assert "columns" in warnings
+        assert len(warnings["columns"]) == 1
+        assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
 
         # We queried sometag already, we shouldn't call the cardinality query again
         data["queries"][0]["fields"] = ["sometag"]

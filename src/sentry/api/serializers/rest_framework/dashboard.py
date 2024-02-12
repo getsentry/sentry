@@ -278,7 +278,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
     has_warnings = False
-    query_warnings = {"queries": [], "fields": {}}
+    query_warnings = {"queries": [], "columns": {}}
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -298,7 +298,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         all_columns = set()
         has_query_error = False
         self.has_warnings = False
-        self.query_warnings = {"queries": [], "fields": {}}
+        self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
         if data.get("queries"):
@@ -414,7 +414,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
-                    self.query_warnings["fields"][
+                    self.query_warnings["columns"][
                         field
                     ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
                     self.has_warnings = True
