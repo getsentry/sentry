@@ -294,6 +294,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         query_errors = []
         all_columns = set()
         has_query_error = False
+        self.has_warnings = False
+        self.query_warnings = {"queries": [], "fields": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
         if data.get("queries"):

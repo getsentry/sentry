@@ -701,7 +701,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         # There's no data, so `sometag` should be low cardinality
-        assert len(response.data["warnings"]) == 0
+        assert len(response.data) == 0
         # We cache so we shouldn't call query cardinality again
         with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
             self.client.post(f"{self.url()}?environment=mock_env", data)
