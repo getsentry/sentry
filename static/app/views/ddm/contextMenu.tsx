@@ -98,7 +98,7 @@ export function MetricQueryContextMenu({
           <Hovercard
             body={
               <FeatureDisabled
-                features="organizations:dashboards-edit1"
+                features="organizations:dashboards-edit"
                 hideHelpToggle
                 featureName={t('Dashboard Editing')}
               />
