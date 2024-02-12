@@ -1162,7 +1162,8 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-        if args["satisfaction"] is not None:
+        # breakpoint()
+        if args["satisfaction"] is not None and args["satisfaction"] != 300.0:
             raise IncompatibleMetricsQuery(
                 "Cannot query user_misery with a threshold parameter on the metrics dataset"
             )

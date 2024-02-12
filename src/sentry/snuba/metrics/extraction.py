@@ -1155,6 +1155,13 @@ class OnDemandMetricSpec:
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
         spec_version: SpecVersion | None = None,
     ):
+        # XXX: Adding support for this would prevent code paths from making on-demand metrics by mistake
+        # We need a different PR to handle this well for the known cases
+        # We need to also handle the 300 value correctly since projects can define it
+        if field in ["user_misery(300)"]:
+            raise Exception(
+                f"{field} is support in standard metrics. Do not use on-demand metrics."
+            )
         self.field = field
         self.query = query
         self.spec_type = spec_type

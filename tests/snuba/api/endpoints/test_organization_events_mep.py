@@ -3164,7 +3164,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def _assert_on_demand_response(
         self,
         response: Response,
-        expected_on_demand_query: bool,
+        expected_on_demand_query: bool | None = True,
         expected_dataset: str | None = "metricsEnhanced",
     ) -> None:
         """Basic assertions for an on-demand request."""
@@ -3189,21 +3189,81 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "project": self.project.id,
             "query": "",
         }
+        response = self._make_on_demand_request(params, expected_on_demand_query=False)
+        self._assert_on_demand_response(response)
+
+    # XXX: Mixing on-demand with standard metrics should return more clear values
+    def test_mixing_user_misery_and_apdex_group_by_transaction(self) -> None:
+        user_misery_field = "user_misery(300)"
+        apdex_field = "apdex(300)"
+        params = {"field": [user_misery_field], "project": self.project.id, "query": ""}
         specs = self._create_specs(params, groupbys=["transaction"])
         for spec in specs:
             self.store_on_demand_metric(1, spec=spec)
         response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response, False)
+        self._assert_on_demand_response(response, expected_on_demand_query=False)
         assert response.data == {
             "data": [{user_misery_field: 0.0, apdex_field: 0.0}],
             "meta": {
                 "fields": {user_misery_field: "number", apdex_field: "number"},
                 "units": {user_misery_field: None, apdex_field: None},
                 "isMetricsData": False,
+                # Only apdex(300) is on-demand as it, thus, this should have been true
                 "isMetricsExtractedData": False,
-                # XXX: What does this mean?
+                # We have tried user_misery as if it was on-demand, thus, these
+                # two fields have information about the user_misery field
                 "tips": {"query": None, "columns": None},
                 "datasetReason": "'user_misery(300)'",
+                "dataset": "metricsEnhanced",
+            },
+        }
+
+    def test_user_misery_group_by_transaction(self) -> None:
+        """user_misery uses standard metrics when there's no query and uses the default value"""
+        # XXX: I think we should use create_widgets here instead of _create_specs
+        user_misery_field = "user_misery(300)"
+        # If the query was different than the empty string we would need on-demand metrics
+        params = {"field": [user_misery_field], "project": self.project.id, "query": ""}
+        # XXX: We need to store normal metrics for the data to be not None
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=False)
+        assert response.data == {
+            # Ideally, we write the test so we have some data
+            "data": [{user_misery_field: None}],
+            "meta": {
+                "fields": {user_misery_field: "number"},
+                "units": {user_misery_field: None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
+
+        # Now, we will modify the query which will make it an on-demand metric
+        params = {
+            "field": [user_misery_field],
+            "project": self.project.id,
+            "query": "transaction.duration:>0",
+        }
+        specs = self._create_specs(params)
+        assert specs
+        # We will now store some metrics since we now have specs
+        for spec in specs:
+            self.store_on_demand_metric(1, spec=spec)
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data == {
+            # Ideally, we write the test so we have some data
+            "data": [{user_misery_field: 0.05}],
+            "meta": {
+                "fields": {user_misery_field: "number"},
+                "units": {user_misery_field: None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,  # This is now True
+                "tips": {},
+                "datasetReason": "unchanged",
                 "dataset": "metricsEnhanced",
             },
         }
