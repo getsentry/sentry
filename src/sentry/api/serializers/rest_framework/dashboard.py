@@ -17,6 +17,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
@@ -31,6 +32,8 @@ from sentry.utils.dates import parse_stats_period
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
+
+OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 
 def is_equation(field: str) -> bool:
@@ -336,10 +339,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     widget_specs = _get_widget_on_demand_specs(widget_query, organization)
                     if len(widget_specs) == 0:
                         # In the case the query errors, we should still disbale
-                        self.query_warnings["queries"].append("disabled:query-error")
+                        self.query_warnings["queries"].append(
+                            OnDemandExtractionState.DISABLED_QUERY_ERROR
+                        )
                         self.has_warnings = True
                     elif widget_exceeds_max_specs(widget_specs, current_widget_specs, organization):
-                        self.query_warnings["queries"].append("disabled:spec-limit")
+                        self.query_warnings["queries"].append(
+                            OnDemandExtractionState.DISABLED_SPEC_LIMIT
+                        )
                         self.has_warnings = True
                     else:
                         self.query_warnings["queries"].append(None)
@@ -407,7 +414,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
-                    self.query_warnings["fields"][field] = "disabled:cardinality-limit"
+                    self.query_warnings["fields"][
+                        field
+                    ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
                     self.has_warnings = True
         return data
 

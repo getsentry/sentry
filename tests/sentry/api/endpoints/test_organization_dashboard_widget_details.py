@@ -738,7 +738,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         warnings = response.data["warnings"]
         assert "fields" in warnings
         assert len(warnings["fields"]) == 1
-        assert warnings["fields"]["sometag"] == "disabled:cardinality-limit"
+        assert warnings["fields"]["sometag"] == "disabled:high-cardinality"
 
         # We queried sometag already, we shouldn't call the cardinality query again
         data["queries"][0]["fields"] = ["sometag"]
