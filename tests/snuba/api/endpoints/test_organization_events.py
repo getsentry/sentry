@@ -5676,6 +5676,27 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 12.5
         assert data[0]["floored_epm()"] == 10
 
+    def test_user_misery_foo(self):
+        """This test is used to determine data differences between on-demand and this."""
+        self._setup_user_misery()
+
+        query = {"field": ["user_misery(300)"]}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "data": [{"user_misery(300)": 0.07299794661190964}],
+            "meta": {
+                "fields": {"user_misery(300)": "number"},
+                "units": {"user_misery(300)": None},
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {"query": None, "columns": None},
+                "datasetReason": "unchanged",
+                "dataset": "discover",
+            },
+        }
+
 
 @region_silo_test
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
