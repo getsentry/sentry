@@ -224,7 +224,7 @@ _SEARCH_TO_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "p95": "p95",
     "p99": "p99",
     # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
-    "p100": "max"
+    "p100": "max",
     # generic percentile is not supported by metrics layer.
 }
 

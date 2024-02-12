@@ -43,13 +43,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         self.additional_params = dict()
 
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
-
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
@@ -976,14 +969,10 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
-
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+        self.features = {
+            "organizations:on-demand-metrics-extraction-widgets": True,
+            "organizations:on-demand-metrics-extraction": True,
+        }
 
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"
@@ -1392,7 +1381,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
     ) -> None:
-        features = {"organizations:on-demand-metrics-extraction": True}
         spec = OnDemandMetricSpec(
             field="count()",
             query="transaction.duration:>1s",
@@ -1400,7 +1388,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         self.store_on_demand_metric(1, spec=spec)
-        response = self.do_request(params, features=features)
+        response = self.do_request(params)
 
         assert response.status_code == 200, response.content
         meta = response.data["meta"]

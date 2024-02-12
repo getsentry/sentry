@@ -1024,9 +1024,11 @@ class MetricsQueryBuilder(QueryBuilder):
             # Need this otherwise top_events returns only 1 item
             groupbys = [Column(col) for col in self._get_group_bys()]
         groupby_aliases = [
-            groupby.alias
-            if isinstance(groupby, (AliasedExpression, CurriedFunction))
-            else groupby.name
+            (
+                groupby.alias
+                if isinstance(groupby, (AliasedExpression, CurriedFunction))
+                else groupby.name
+            )
             for groupby in groupbys
             if not (
                 isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
@@ -1074,9 +1076,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                     if not (
                                         isinstance(groupby, CurriedFunction)
@@ -1172,9 +1176,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                 ],
                             ),
@@ -1845,9 +1851,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                             get_series(
                                 projects=self.params.projects,
                                 metrics_query=metrics_query,
-                                use_case_id=UseCaseID.TRANSACTIONS
-                                if self.is_performance
-                                else UseCaseID.SESSIONS,
+                                use_case_id=(
+                                    UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS
+                                ),
                                 include_meta=True,
                                 tenant_ids=self.tenant_ids,
                             )

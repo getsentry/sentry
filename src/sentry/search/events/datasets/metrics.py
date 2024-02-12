@@ -918,9 +918,9 @@ class MetricsDatasetConfig(DatasetConfig):
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-            org_id=self.builder.params.organization.id
-            if self.builder.params.organization
-            else None,
+            org_id=(
+                self.builder.params.organization.id if self.builder.params.organization else None
+            ),
             project_ids=self.builder.params.project_ids,
         )
 
@@ -1104,9 +1104,11 @@ class MetricsDatasetConfig(DatasetConfig):
             f"histogramIf({num_buckets})",
             [
                 Column("value"),
-                Function("and", [zoom_params, metric_condition])
-                if zoom_params
-                else metric_condition,
+                (
+                    Function("and", [zoom_params, metric_condition])
+                    if zoom_params
+                    else metric_condition
+                ),
             ],
             alias,
         )
@@ -1725,9 +1727,11 @@ class MetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
-                args["interval"]
-                if interval is None
-                else Function("divide", [args["interval"], interval]),
+                (
+                    args["interval"]
+                    if interval is None
+                    else Function("divide", [args["interval"], interval])
+                ),
             ],
             alias,
         )
