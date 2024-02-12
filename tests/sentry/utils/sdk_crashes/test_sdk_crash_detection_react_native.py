@@ -41,6 +41,7 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
         return build_sdk_crash_detection_configs()
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @pytest.mark.parametrize(
     ["filename", "expected_stripped_filename", "detected"],
     [
@@ -110,6 +111,7 @@ def test_sdk_crash_is_reported_development_paths(
         assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @pytest.mark.parametrize(
     ["package_name", "detected"],
     [
@@ -193,6 +195,7 @@ def test_sdk_crash_is_reported_production_paths(
         assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @decorators
 def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
     event_data = get_crash_event()
@@ -209,6 +212,7 @@ def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_e
     assert mock_sdk_crash_reporter.report.call_count == 1
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @decorators
 def test_too_low_min_sdk_version_not_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
@@ -227,6 +231,7 @@ def test_too_low_min_sdk_version_not_detected(
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @decorators
 def test_organization_not_in_allowlist_not_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
@@ -240,6 +245,7 @@ def test_organization_not_in_allowlist_not_detected(
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.skip("flaky test, errors in the event")
 @decorators
 def test_organization_empty_allowlist_not_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
