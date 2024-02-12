@@ -205,24 +205,12 @@ class GitHubIssueBasic(IssueBasicMixin):
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
-        if group.issue_category == GroupCategory.FEEDBACK:
-            comment = (
-                "Sentry feedback: [{issue_id}]({url})".format(
-                    url=absolute_uri(
-                        group.get_absolute_url(params={"referrer": "github_integration"})
-                    ),
-                    issue_id=group.qualified_short_id,
-                ),
-            )
-        else:
-            comment = (
-                "Sentry issue: [{issue_id}]({url})".format(
-                    url=absolute_uri(
-                        group.get_absolute_url(params={"referrer": "github_integration"})
-                    ),
-                    issue_id=group.qualified_short_id,
-                ),
-            )
+
+        def get_linked_issue_comment_prefix(group: Group) -> str:
+            if group.issue_category == GroupCategory.FEEDBACK:
+                return "Sentry feedback"
+            else:
+                return "Sentry issue"
 
         return [
             {
@@ -247,7 +235,15 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": comment,
+                "default": (
+                    get_linked_issue_comment_prefix(group)
+                    + ": [{issue_id}]({url})".format(
+                        url=absolute_uri(
+                            group.get_absolute_url(params={"referrer": "github_integration"})
+                        ),
+                        issue_id=group.qualified_short_id,
+                    ),
+                ),
                 "type": "textarea",
                 "required": False,
                 "autosize": True,
