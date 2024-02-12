@@ -1593,6 +1593,244 @@ def _save_aggregate(
     return GroupInfo(group, is_new, is_regression)
 
 
+def _save_aggregate_new(
+    event: Event,
+    job: Job,
+    release: Release | None,
+    received_timestamp: int | float,
+    metric_tags: MutableTags,
+) -> GroupInfo | None:
+    project = event.project
+
+    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+
+    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
+    # hashes, we're free to perform a config update if needed. Future events will use the new
+    # config, but will also be grandfathered into the current config for a week, so as not to
+    # erroneously create new groups.
+    update_grouping_config_if_needed(project)
+
+    _materialize_metadata_many([job])
+    metadata = dict(job["event_metadata"])
+
+    group_creation_kwargs = _get_group_creation_kwargs(job)
+
+    # Because this logic is not complex enough we want to special case the situation where we
+    # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+    # there needs to be special logic to not create orphaned hashes in migration cases
+    # but it wants a different logic to implement splitting of hierarchical hashes.
+    migrate_off_hierarchical = bool(
+        secondary_hashes
+        and secondary_hashes.hierarchical_hashes
+        and not primary_hashes.hierarchical_hashes
+    )
+
+    flat_grouphashes = [
+        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
+    ]
+
+    # The root_hierarchical_hash is the least specific hash within the tree, so
+    # typically hierarchical_hashes[0], unless a hash `n` has been split in
+    # which case `root_hierarchical_hash = hierarchical_hashes[n + 1]`. Chosing
+    # this for select_for_update mostly provides sufficient synchronization
+    # when groups are created and also relieves contention by locking a more
+    # specific hash than `hierarchical_hashes[0]`.
+    existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
+        project, flat_grouphashes, hashes.hierarchical_hashes
+    )
+
+    if root_hierarchical_hash is not None:
+        root_hierarchical_grouphash = GroupHash.objects.get_or_create(
+            project=project, hash=root_hierarchical_hash
+        )[0]
+
+        metadata.update(
+            hashes.group_metadata_from_hash(
+                existing_grouphash.hash
+                if existing_grouphash is not None
+                else root_hierarchical_hash
+            )
+        )
+
+    else:
+        root_hierarchical_grouphash = None
+
+    # In principle the group gets the same metadata as the event, so common
+    # attributes can be defined in eventtypes.
+    #
+    # Additionally the `last_received` key is set for group metadata, later in
+    # _save_aggregate
+    group_creation_kwargs["data"] = materialize_metadata(
+        event.data,
+        get_event_type(event.data),
+        metadata,
+    )
+    group_creation_kwargs["data"]["last_received"] = received_timestamp
+
+    if existing_grouphash is None:
+        if killswitch_matches_context(
+            "store.load-shed-group-creation-projects",
+            {
+                "project_id": project.id,
+                "platform": event.platform,
+            },
+        ):
+            raise HashDiscarded("Load shedding group creation", reason="load_shed")
+
+        with sentry_sdk.start_span(
+            op="event_manager.create_group_transaction"
+        ) as span, metrics.timer(
+            "event_manager.create_group_transaction"
+        ) as metric_tags, transaction.atomic(
+            router.db_for_write(GroupHash)
+        ):
+            span.set_tag("create_group_transaction.outcome", "no_group")
+            metric_tags["create_group_transaction.outcome"] = "no_group"
+
+            all_grouphash_ids = [h.id for h in flat_grouphashes]
+            if root_hierarchical_grouphash is not None:
+                all_grouphash_ids.append(root_hierarchical_grouphash.id)
+
+            all_grouphashes = list(
+                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+            )
+
+            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
+
+            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
+                project, flat_grouphashes, hashes.hierarchical_hashes
+            )
+
+            if root_hierarchical_hash is not None:
+                root_hierarchical_grouphash = GroupHash.objects.get_or_create(
+                    project=project, hash=root_hierarchical_hash
+                )[0]
+            else:
+                root_hierarchical_grouphash = None
+
+            if existing_grouphash is None:
+                group = _create_group(project, event, **group_creation_kwargs)
+
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
+
+                if root_hierarchical_grouphash is not None:
+                    new_hashes = [root_hierarchical_grouphash]
+                else:
+                    new_hashes = list(flat_grouphashes)
+
+                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+                    state=GroupHash.State.LOCKED_IN_MIGRATION
+                ).update(group=group)
+
+                is_new = True
+                is_regression = False
+
+                span.set_tag("create_group_transaction.outcome", "new_group")
+                metric_tags["create_group_transaction.outcome"] = "new_group"
+
+                metrics.incr(
+                    "group.created",
+                    skip_internal=True,
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                    },
+                )
+
+                # This only applies to events with stacktraces
+                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+                if frame_mix:
+                    metrics.incr(
+                        "grouping.in_app_frame_mix",
+                        sample_rate=1.0,
+                        tags={
+                            "platform": event.platform or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
+                            "frame_mix": frame_mix,
+                        },
+                    )
+
+                return GroupInfo(group, is_new, is_regression)
+
+    group = Group.objects.get(id=existing_grouphash.group_id)
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return None
+
+    is_new = False
+
+    # For the migration from hierarchical to non hierarchical we want to associate
+    # all group hashes
+    if migrate_off_hierarchical:
+        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+        if root_hierarchical_grouphash and root_hierarchical_grouphash.group_id is None:
+            new_hashes.append(root_hierarchical_grouphash)
+    elif root_hierarchical_grouphash is None:
+        # No hierarchical grouping was run, only consider flat hashes
+        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+    elif root_hierarchical_grouphash.group_id is None:
+        # The root hash is not assigned to a group.
+        # We ran multiple grouping algorithms
+        # (see secondary grouping), and the hierarchical hash is new
+        new_hashes = [root_hierarchical_grouphash]
+    else:
+        new_hashes = []
+
+    if new_hashes:
+        # There may still be secondary hashes that we did not use to find an
+        # existing group. A classic example is when grouping makes changes to
+        # the app-hash (changes to in_app logic), but the system hash stays
+        # stable and is used to find an existing group. Associate any new
+        # hashes with the group such that event saving continues to be
+        # resilient against grouping algorithm changes.
+        #
+        # There is a race condition here where two processes could "steal"
+        # hashes from each other. In practice this should not be user-visible
+        # as group creation is synchronized. Meaning the only way hashes could
+        # jump between groups is if there were two processes that:
+        #
+        # 1) have BOTH found an existing group
+        #    (otherwise at least one of them would be in the group creation
+        #    codepath which has transaction isolation/acquires row locks)
+        # 2) AND are looking at the same set, or an overlapping set of hashes
+        #    (otherwise they would not operate on the same rows)
+        # 3) yet somehow also sort their event into two different groups each
+        #    (otherwise the update would not change anything)
+        #
+        # We think this is a very unlikely situation. A previous version of
+        # _save_aggregate had races around group creation which made this race
+        # more user visible. For more context, see 84c6f75a and d0e22787, as
+        # well as GH-5085.
+        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+            state=GroupHash.State.LOCKED_IN_MIGRATION
+        ).update(group=group)
+
+    is_regression = _process_existing_aggregate(
+        group=group,
+        event=event,
+        incoming_group_values=group_creation_kwargs,
+        release=release,
+    )
+
+    return GroupInfo(group, is_new, is_regression)
+
+
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
