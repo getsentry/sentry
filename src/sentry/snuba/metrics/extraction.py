@@ -29,7 +29,11 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
+from sentry.search.events.constants import (
+    DEFAULT_PROJECT_THRESHOLD,
+    VITAL_THRESHOLDS,
+    get_configurable_aggregates,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -684,12 +688,39 @@ def _get_args_support(fields: Sequence[str], used_in_function: str | None = None
     if len(fields) == 0:
         return SupportedBy.both()
 
-    if used_in_function == "apdex":
-        # apdex can have two variations, either apdex() or apdex(value).
-        return SupportedBy(on_demand_metrics=True, standard_metrics=False)
+    if support := _configurable_aggregates_supported_by(fields, used_in_function):
+        return support
 
     arg = fields[0]
     return _get_field_support(arg)
+
+
+def _configurable_aggregates_supported_by(
+    fields: Sequence[str], used_in_function: str | None = ""
+) -> SupportedBy | None:
+    supported_by = None
+    # All usage of apdex is on-demand until we can confirm that apdex(300) can be used on alerts
+    # with standard metrics. For details, see test_get_metric_extraction_config_with_no_spec in
+    # tests/sentry/relay/config/test_metric_extraction.py
+    # Remove this block and update tests once confirmed.
+    if used_in_function == "apdex":
+        return SupportedBy(on_demand_metrics=True, standard_metrics=False)
+
+    if used_in_function in get_configurable_aggregates():
+        value = fields[0]
+        if used_in_function == "count_miserable":
+            value = fields[1]
+            # XXX: Remove this line once we support count_miserable
+            return SupportedBy(on_demand_metrics=False, standard_metrics=True)
+
+        supported_by = (
+            SupportedBy.both()
+            # XXX: Note that a customer can change the default in their project settings
+            if value == str(DEFAULT_PROJECT_THRESHOLD)
+            else SupportedBy(on_demand_metrics=True, standard_metrics=False)
+        )
+
+    return supported_by
 
 
 def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:

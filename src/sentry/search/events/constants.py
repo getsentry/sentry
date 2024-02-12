@@ -192,6 +192,12 @@ CONFIGURABLE_AGGREGATES = {
     "user_misery()": "user_misery({threshold}) as user_misery",
     "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
 }
+
+
+def get_configurable_aggregates() -> list[str]:
+    return [function.split("(")[0] for function in CONFIGURABLE_AGGREGATES.keys()]
+
+
 TREND_FUNCTION_TYPE_MAP = {
     "trend_percentage()": "percentage",
     "count_percentage()": "percentage",

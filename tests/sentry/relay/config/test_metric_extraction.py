@@ -1713,6 +1713,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
 
 @django_db_all
 def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> None:
+    # XXX: Should we make apdex(300) supported by standar metrics?
     create_alert(
         "apdex(300)",
         "",
