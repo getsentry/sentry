@@ -1615,12 +1615,12 @@ def _save_aggregate_new(
 
     group_creation_kwargs = _get_group_creation_kwargs(job)
 
-    flat_grouphashes = [
+    grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
 
     existing_grouphash, _ = find_existing_grouphash_new(
-        project, flat_grouphashes, hashes.hierarchical_hashes
+        project, grouphashes, hashes.hierarchical_hashes
     )
 
     # In principle the group gets the same metadata as the event, so common
@@ -1655,14 +1655,14 @@ def _save_aggregate_new(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            flat_grouphashes = list(
+            grouphashes = list(
                 GroupHash.objects.filter(
-                    id__in=[h.id for h in flat_grouphashes],
+                    id__in=[h.id for h in grouphashes],
                 ).select_for_update()
             )
 
             existing_grouphash, _ = find_existing_grouphash_new(
-                project, flat_grouphashes, hashes.hierarchical_hashes
+                project, grouphashes, hashes.hierarchical_hashes
             )
 
             if existing_grouphash is None:
@@ -1680,7 +1680,7 @@ def _save_aggregate_new(
                         },
                     )
 
-                new_hashes = list(flat_grouphashes)
+                new_hashes = list(grouphashes)
 
                 GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
@@ -1729,7 +1729,7 @@ def _save_aggregate_new(
 
     is_new = False
 
-    new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+    new_hashes = [h for h in grouphashes if h.group_id is None]
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
