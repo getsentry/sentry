@@ -524,7 +524,7 @@ def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int
 
 def get_query_params_to_update_for_projects(
     query_params: SnubaQueryParams, with_org: bool = False
-) -> tuple[int, MutableMapping[str, Any]]:
+) -> tuple[int, dict[str, Any]]:
     """
     Get the project ID and query params that need to be updated for project
     based datasets, before we send the query to Snuba.
@@ -551,7 +551,7 @@ def get_query_params_to_update_for_projects(
 
     organization_id = get_organization_id_from_project_ids(project_ids)
 
-    params: MutableMapping[str, Any] = {"project": project_ids}
+    params: dict[str, Any] = {"project": project_ids}
     if with_org:
         params["organization"] = organization_id
 
@@ -1152,8 +1152,10 @@ def query(
 
 
 def nest_groups(
-    data: MutableMapping[Any, Any], groups: list[str] | None, aggregate_cols: list[str]
-) -> MutableMapping[Any, Any] | None:
+    data: Sequence[MutableMapping],
+    groups: Sequence[str] | None,
+    aggregate_cols: Sequence[str],
+) -> dict | Any:
     """
     Build a nested mapping from query response rows. Each group column
     gives a new level of nesting and the leaf result is the aggregate
@@ -1214,7 +1216,7 @@ def resolve_column(dataset) -> Callable:
     return _resolve_column
 
 
-def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> Sequence[Any]:
+def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> list:
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
@@ -1304,8 +1306,8 @@ def _aliased_query_impl(**kwargs):
 
 
 def resolve_conditions(
-    conditions: Sequence[Any] | None, column_resolver: Callable[[Any], Any]
-) -> Sequence[Any] | None:
+    conditions: Sequence | None, column_resolver: Callable[[Any], Any]
+) -> list | None:
     if conditions is None:
         return conditions
 
@@ -1332,7 +1334,7 @@ def aliased_query_params(
     orderby=None,
     condition_resolver: Callable | None = None,
     **kwargs,
-) -> Mapping[str, Any]:
+) -> dict[str, Any]:
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
