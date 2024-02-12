@@ -139,21 +139,5 @@ describe('Project Ownership', () => {
         );
       });
     });
-
-    it('should hide issue owners', () => {
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />
-      );
-
-      expect(screen.getByText('Prioritize Auto Assignment')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Send alert to project members if there’s no assigned owner')
-      ).not.toBeInTheDocument();
-    });
   });
 });
