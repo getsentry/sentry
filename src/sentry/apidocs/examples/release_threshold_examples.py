@@ -10,9 +10,11 @@ class ReleaseThresholdExamples:
             value={
                 f"{BASE_PROJECT['slug']}-v1.0.0": [
                     {
-                        "project_id": BASE_PROJECT["id"],
+                        "project_id": int(BASE_PROJECT["id"]),
                         "project_slug": BASE_PROJECT["slug"],
-                        "environment": "production",
+                        "environment": {
+                            "name": "production",
+                        },
                         "project": BASE_PROJECT,
                         "threshold_type": 0,
                         "trigger_type": "over",

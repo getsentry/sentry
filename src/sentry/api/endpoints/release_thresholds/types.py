@@ -14,7 +14,7 @@ class SerializedThreshold(TypedDict):
     window_in_seconds: int
 
 
-class EnrichedThreshold(SerializedThreshold):
+class EnrichedThreshold(SerializedThreshold, metric_value=None):
     end: datetime
     is_healthy: bool
     key: str
