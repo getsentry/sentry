@@ -108,12 +108,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         examples=ReleaseThresholdExamples.THRESHOLD_STATUS_RESPONSE,
     )
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
-        """
+        r"""
         **`[WARNING]`**: This API is an experimental Alpha feature and is subject to change!
 
         List all derived statuses of releases that fall within the provided start/end datetimes.
 
-        Constructs a response key'd off `{release_version}-{project_slug}` that lists thresholds with their status for *specified* projects.
+        Constructs a response key'd off \{`release_version`\}-\{`project_slug`\} that lists thresholds with their status for *specified* projects.
         Each returned enriched threshold will contain the full serialized `release_threshold` instance as well as it's derived health statuses.
         """
         # TODO: We should limit/paginate results (this could get really bulky)
