@@ -9,6 +9,7 @@ from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.pagination import override_pagination_limit
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -868,6 +869,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
         ]
 
+    @override_pagination_limit(5)
     def test_get_key_transaction_list_pagination(self):
         user = self.create_user()
         self.login_as(user=user)
@@ -875,7 +877,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         project = self.create_project(name="baz", organization=org)
 
         teams = []
-        for i in range(123):
+        for i in range(8):
             team = self.create_team(organization=org, name=f"Team {i:02d}")
             self.create_team_membership(team, user=user)
             project.add_team(team)
@@ -893,7 +895,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 100
+        assert len(response.data) == 5
         links = {
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()
@@ -915,7 +917,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 23
+        assert len(response.data) == 3
         links = {
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()
