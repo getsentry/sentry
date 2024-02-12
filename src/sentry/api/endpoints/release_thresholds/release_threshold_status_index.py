@@ -109,7 +109,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
     )
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
         """
-        WARNING: This API is an experimental Alpha feature and is subject to change!
+        **`[WARNING]`**: This API is an experimental Alpha feature and is subject to change!
 
         List all derived statuses of releases that fall within the provided start/end datetimes
 
