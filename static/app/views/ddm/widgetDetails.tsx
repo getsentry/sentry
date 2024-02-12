@@ -1,6 +1,7 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -12,24 +13,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
+import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
 
 enum Tab {
   SAMPLES = 'samples',
   CODE_LOCATIONS = 'codeLocations',
 }
 
-const constructQueryString = (queryObject: Record<string, string>) => {
-  return Object.entries(queryObject)
-    .map(([key, value]) => `${key}:"${value}"`)
-    .join(' ');
-};
-
 export function WidgetDetails() {
   const organization = useOrganization();
   const {selectedWidgetIndex, widgets, focusArea, setHighlightedSampleId} =
     useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
-  // the tray is minimized when the main content is maximized
+
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
     | undefined;
@@ -39,6 +35,11 @@ export function WidgetDetails() {
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
   }
+
+  const queryWithFocusedSeries = useMemo(
+    () => selectedWidget && getQueryWithFocusedSeries(selectedWidget),
+    [selectedWidget]
+  );
 
   const handleSampleRowHover = useCallback(
     (sampleId?: string) => {
@@ -82,18 +83,19 @@ export function WidgetDetails() {
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
-              <SampleTable
-                mri={selectedWidget?.mri}
-                query={
-                  selectedWidget?.focusedSeries?.groupBy
-                    ? `${selectedWidget.query} ${constructQueryString(
-                        selectedWidget.focusedSeries.groupBy
-                      )}`.trim()
-                    : selectedWidget?.query
-                }
-                {...focusArea?.selection?.range}
-                onRowHover={handleSampleRowHover}
-              />
+              {organization.features.includes('metrics-samples-list') ? (
+                <MetricSamplesTable
+                  mri={selectedWidget?.mri}
+                  query={queryWithFocusedSeries}
+                />
+              ) : (
+                <SampleTable
+                  mri={selectedWidget?.mri}
+                  query={queryWithFocusedSeries}
+                  {...focusArea?.selection?.range}
+                  onRowHover={handleSampleRowHover}
+                />
+              )}
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />

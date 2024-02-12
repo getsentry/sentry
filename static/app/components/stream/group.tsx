@@ -44,6 +44,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -87,7 +88,7 @@ function BaseGroupRow({
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
-  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
+  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
   useFilteredStats = false,
   useTintRow = true,
   narrowGroups = false,
@@ -454,6 +455,12 @@ function BaseGroupRow({
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
+          {organization.features.includes('issue-priority-ui') &&
+          withColumns.includes('priority') ? (
+            <PriorityWrapper narrowGroups={narrowGroups}>
+              {group.priority ? <GroupPriority group={group} /> : null}
+            </PriorityWrapper>
+          ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
               <AssigneeSelector
@@ -585,8 +592,7 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
 
-  @media (max-width: ${p =>
-    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+  @media (max-width: ${p => (p.narrowGroups ? '1600px' : p.theme.breakpoints.xlarge)}) {
     display: none;
   }
 `;
@@ -603,8 +609,21 @@ const EventCountsWrapper = styled('div')`
   }
 `;
 
+const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
+  width: 85px;
+  margin: 0 ${space(2)};
+  align-self: center;
+  display: flex;
+  justify-content: flex-end;
+
+  @media (max-width: ${p =>
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
 const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
-  width: 80px;
+  width: 60px;
   margin: 0 ${space(2)};
   align-self: center;
 

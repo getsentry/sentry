@@ -32,6 +32,7 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {APP_START_SPANS} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,
   WARM_START_TYPE,
@@ -55,16 +56,6 @@ type Props = {
   transaction?: string;
 };
 
-const IOS_STARTUP_SPANS = ['app.start.cold', 'app.start.warm'];
-const ANDROID_STARTUP_SPANS = [
-  'app.start.cold',
-  'app.start.warm',
-  'contentprovider.load',
-  'application.load',
-  'activity.load',
-];
-export const STARTUP_SPANS = new Set([...IOS_STARTUP_SPANS, ...ANDROID_STARTUP_SPANS]);
-
 export function SpanOperationTable({
   transaction,
   primaryRelease,
@@ -80,16 +71,20 @@ export function SpanOperationTable({
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
 
   const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    'has:span.description',
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    // Exclude this span because we can get TTID contributing spans instead
+    '!span.description:"Initial Frame Render"',
+    'has:span.description',
+    'transaction.op:ui.load',
+    `transaction:${transaction}`,
+    `has:ttid`,
     `${SpanMetricsField.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
-    `${SpanMetricsField.SPAN_OP}:${spanOp || `[${[...STARTUP_SPANS].join(',')}]`}`,
+    `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
+    ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
   const queryStringPrimary = appendReleaseFilters(

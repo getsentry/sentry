@@ -1,16 +1,26 @@
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization import (
+    NoProjects,
+    OrganizationEndpoint,
+    OrganizationMetricsPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import run_metrics_query
+from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -26,6 +36,7 @@ from sentry.snuba.metrics import (
     get_single_metric_info,
     get_tag_values,
 )
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
@@ -304,3 +315,146 @@ class MetricsDataSeriesPaginator(GenericOffsetPaginator):
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
+
+
+@region_silo_endpoint
+class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationMetricsPermission,)
+
+    """
+    Queries one or more metrics over a time range.
+    """
+
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
+
+    # Number of groups returned by default for each query.
+    default_limit = 20
+
+    def _validate_order(self, order: str | None) -> QueryOrder | None:
+        if order is None:
+            return None
+
+        formula_order = QueryOrder.from_string(order)
+        if formula_order is None:
+            order_choices = [v.value for v in QueryOrder]
+            raise InvalidMetricsQueryError(
+                f"The provided `order` is not a valid, only {order_choices} are supported"
+            )
+
+        return formula_order
+
+    def _validate_limit(self, limit: str | None) -> int:
+        if not limit:
+            return self.default_limit
+
+        try:
+            return int(limit)
+        except ValueError:
+            raise InvalidMetricsQueryError(
+                "The provided `limit` is not valid, an integer is required"
+            )
+
+    def _interval_from_request(self, request: Request) -> int:
+        """
+        Extracts the interval of the query from the request payload.
+        """
+        interval = parse_stats_period(request.data.get("interval", "1h"))
+        return int(3600 if interval is None else interval.total_seconds())
+
+    def _metrics_queries_plan_from_request(self, request: Request) -> MetricsQueriesPlan:
+        """
+        Extracts the metrics queries plan from the request payload.
+        """
+        metrics_queries_plan = MetricsQueriesPlan()
+
+        queries = request.data.get("queries") or []
+        for query in queries:
+            metrics_queries_plan.declare_query(name=query["name"], mql=query["mql"])
+
+        formulas = request.data.get("formulas") or []
+        for formula in formulas:
+            metrics_queries_plan.apply_formula(
+                mql=formula["mql"],
+                order=self._validate_order(formula.get("order")),
+                limit=self._validate_limit(formula.get("limit")),
+            )
+
+        return metrics_queries_plan
+
+    def post(self, request: Request, organization) -> Response:
+        try:
+            start, end = get_date_range_from_params(request.GET)
+            interval = self._interval_from_request(request)
+            metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+
+            results = run_metrics_queries_plan(
+                metrics_queries_plan=metrics_queries_plan,
+                start=start,
+                end=end,
+                interval=interval,
+                organization=organization,
+                # TODO: figure out how to make these methods work with HTTP body.
+                projects=self.get_projects(request, organization),
+                environments=self.get_environments(request, organization),
+                referrer=Referrer.API_DDM_METRICS_QUERY.value,
+            )
+        except InvalidMetricsQueryError as e:
+            return Response(status=400, data={"detail": str(e)})
+        except LatestReleaseNotFoundError as e:
+            return Response(status=404, data={"detail": str(e)})
+        except MetricsQueryExecutionError as e:
+            return Response(status=500, data={"detail": str(e)})
+
+        return Response(status=200, data=results)
+
+
+class MetricsSamplesSerializer(serializers.Serializer):
+    mri = serializers.CharField(required=True)
+    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+
+    def validate_mri(self, mri: str):
+        if not is_mri(mri):
+            raise serializers.ValidationError(f"Invalid MRI: {mri}")
+
+        return mri
+
+
+@region_silo_endpoint
+class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:metrics-samples-list", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        serializer = MetricsSamplesSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        serialized = serializer.validated_data
+
+        assert params
+        assert serialized
+
+        return Response(status=200)

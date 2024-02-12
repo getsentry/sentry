@@ -61,9 +61,10 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
             column - 1,
             durationMs / totalColumns
           );
+          const hasCurrentEvent = colEvents.some(e => e.id === event.id);
           return (
             <EventColumn
-              key={column}
+              key={`${column}-${hasCurrentEvent ? 'current-event' : 'regular'}`}
               // Add 1 to the column to account for the padding
               style={{gridColumn: Math.floor(column) + 1, width: columnSize}}
             >
@@ -156,7 +157,10 @@ function NodeGroup({
         {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
-            <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+            <EventColumn
+              key={`${column}-currrent-event`}
+              style={{gridColumn: Math.floor(column)}}
+            >
               {isCurrentNode && (
                 <CurrentNodeContainer aria-label={t('Current Event')}>
                   <CurrentNodeRing />
@@ -165,7 +169,7 @@ function NodeGroup({
               )}
               {!isCurrentNode &&
                 groupEvents
-                  .slice(0, 4)
+                  .slice(0, 5)
                   .map(groupEvent =>
                     'event.type' in groupEvent ? (
                       <IconNode key={groupEvent.id} />
@@ -222,12 +226,12 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
-  border: 1px solid ${p => p.theme.red300};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
+  border: 1px solid ${p => p.theme.red300};
 `;
 
 const CurrentNodeContainer = styled('div')`

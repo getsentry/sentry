@@ -385,6 +385,8 @@ from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
+    OrganizationMetricsQueryEndpoint,
+    OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -530,7 +532,6 @@ from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndp
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
-from .endpoints.project_stacktrace_links import ProjectStacktraceLinksEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
@@ -1982,6 +1983,16 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-data",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/query/$",
+        OrganizationMetricsQueryEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-query",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/samples/$",
+        OrganizationMetricsSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-samples",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
@@ -2584,11 +2595,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-links/$",
-        ProjectStacktraceLinksEndpoint.as_view(),
-        name="sentry-api-0-project-stacktrace-links",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",

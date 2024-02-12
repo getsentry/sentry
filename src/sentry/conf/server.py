@@ -1,6 +1,7 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
+
 from __future__ import annotations
 
 import os
@@ -89,6 +90,8 @@ def env(
 _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
+
+NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
 
 IS_DEV = ENVIRONMENT == "development"
 
@@ -844,6 +847,7 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
+    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -1234,6 +1238,7 @@ for queue in CELERY_QUEUES:
 PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
+    "events.process_event_proguard",
     "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
@@ -1629,8 +1634,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable issue similarity embeddings
-    "organizations:issues-similarity-embeddings": False,
     # Enable the trace timeline on issue details
     "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
@@ -1651,6 +1654,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
+    # Enables the new samples list experience
+    "organizations:metrics-samples-list": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1681,6 +1686,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
+    "organizations:on-demand-metrics-ui-widgets": False,
     # This spec version includes the environment in the query hash
     "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
@@ -1748,12 +1755,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable performance statistical detectors breakpoint detection
-    "organizations:performance-statistical-detectors-breakpoint": False,
-    # Enable performance statistical detectors ema detection
-    "organizations:performance-statistical-detectors-ema": False,
-    # Enable performance statistical detectors breakpoint lifecycles
-    "organizations:performance-statistical-detectors-lifecycles": False,
     # Enable trace details page with embedded spans
     "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
@@ -1774,32 +1775,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable profiling battery usage chart
-    "organizations:profiling-battery-usage-chart": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enables production profiling in sentry browser application
     "organizations:profiling-browser": False,
-    # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart": False,
-    # Enables differential flamegraph in profiling
-    "organizations:profiling-differential-flamegraph": False,
     # Enables separate differential flamegraph page
     "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
-    # Enable profiling Memory chart
-    "organizations:profiling-memory-chart": False,
-    # Enable stacktrace linking of multiple frames in profiles
-    "organizations:profiling-stacktrace-links": False,
-    # Enable profiling statistical detectors breakpoint detection
-    "organizations:profiling-statistical-detectors-breakpoint": False,
-    # Enable profiling statistical detectors ema detection
-    "organizations:profiling-statistical-detectors-ema": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable ui frames in flamecharts
-    "organizations:profiling-ui-frames": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Enable profiling view
@@ -1949,6 +1934,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Use ReplayClipPreview inside the User Feedback Details panel
+    "organizations:user-feedback-replay-clip": False,
     # Enable User Feedback spam auto filtering feature UI
     "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
@@ -2897,26 +2884,32 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-            if not ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": (
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
+                if not ARM64
+                # altinity provides clickhouse support to other companies
+                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+            ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
             # from the environment in loc_config.xml, thus, hard-coding it there
             "volumes": {
-                "clickhouse_dist"
-                if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                else "clickhouse": {"bind": "/var/lib/clickhouse"},
+                (
+                    "clickhouse_dist"
+                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                    else "clickhouse"
+                ): {"bind": "/var/lib/clickhouse"},
                 os.path.join(
                     settings.DEVSERVICES_CONFIG_DIR,
                     "clickhouse",
-                    "dist_config.xml"
-                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                    else "loc_config.xml",
+                    (
+                        "dist_config.xml"
+                        if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                        else "loc_config.xml"
+                    ),
                 ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
             },
         }
@@ -2934,22 +2927,24 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": ""
-                if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",
+                "DEFAULT_BROKERS": (
+                    ""
+                    if "snuba" in settings.SENTRY_EVENTSTREAM
+                    else "{containers[kafka][name]}:9093"
+                ),
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
                 "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
-                if settings.SENTRY_USE_ISSUE_OCCURRENCE
-                else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
+                    "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
+                ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
-                if settings.SENTRY_USE_GROUP_ATTRIBUTES
-                else "",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
+                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
@@ -3056,7 +3051,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.1.1"
+SELF_HOSTED_STABLE_VERSION = "24.1.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
