@@ -11,6 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
@@ -28,9 +29,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             constants.SPAN_DOMAIN_ALIAS: self._span_domain_filter_converter,
-            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
-                self.builder, search_filter
-            ),
+            constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
         }
 
     @property
@@ -481,6 +480,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
+
+    def _device_class_filter_converter(self, search_filter: SearchFilter) -> SelectType:
+        return filter_aliases.device_class_converter(
+            self.builder, search_filter, {**DEVICE_CLASS, "Unknown": {""}}
+        )
 
     def _resolve_span_module(self, alias: str) -> SelectType:
         return field_aliases.resolve_span_module(self.builder, alias)
