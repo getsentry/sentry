@@ -80,6 +80,8 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
+    entity_key_to_metric_type,
+    get_entity_keys_of_use_case_id,
     get_intervals,
     to_intervals,
 )
@@ -244,7 +246,11 @@ def get_metrics_meta(
     for metric_mri, project_ids in stored_metrics.items():
         parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
-            sentry_sdk.capture_message(f"Invalid metric MRI {metric_mri} detected")
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("project_ids", project_ids)
+                scope.set_extra("metric_mri", metric_mri)
+                sentry_sdk.capture_message("Invalid metric MRI detected")
+
             continue
 
         blocking_status = []
@@ -289,30 +295,9 @@ def get_stored_metrics_of_projects(
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
-    # To reduce the number of queries, we scope down the number of entity keys, since we know that sessions are stored
-    # separately from all the other entity keys.
-    if use_case_id == UseCaseID.SESSIONS:
-        entity_keys = {
-            EntityKey.MetricsCounters,
-            EntityKey.MetricsSets,
-            EntityKey.MetricsDistributions,
-        }
-    elif use_case_id == UseCaseID.TRANSACTIONS:
-        entity_keys = {
-            EntityKey.GenericMetricsCounters,
-            EntityKey.GenericMetricsSets,
-            EntityKey.GenericMetricsDistributions,
-        }
-    else:
-        entity_keys = {
-            EntityKey.GenericMetricsCounters,
-            EntityKey.GenericMetricsSets,
-            EntityKey.GenericMetricsDistributions,
-            EntityKey.GenericMetricsGauges,
-        }
-
     stored_metrics = []
-    for entity_key in entity_keys:
+    entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
+    for entity_key in entity_keys or ():
         stored_metrics += _get_metrics_by_project_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,
@@ -409,10 +394,12 @@ def _get_metrics_filter_ids(
                     derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
+
     if None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
+
     return metric_ids
 
 
@@ -504,16 +491,8 @@ def _fetch_tags_or_values_for_mri(
     # entity by validating that the ids of the constituent metrics all lie in the same entity
     supported_metric_ids_in_entities = {}
 
-    release_health_metric_types = ("counter", "set", "distribution")
-    performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
-
-    if use_case_id == UseCaseID.SESSIONS:
-        metric_types = release_health_metric_types
-    else:
-        metric_types = performance_metric_types
-
-    for metric_type in metric_types:
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+    entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
+    for entity_key in entity_keys or ():
         rows = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id"), Column(column)],
@@ -535,7 +514,11 @@ def _fetch_tags_or_values_for_mri(
                     tag_or_value_ids_per_metric_id[metric_id].append(value_id)
             else:
                 tag_or_value_ids_per_metric_id[metric_id].extend(row[column])
-            supported_metric_ids_in_entities.setdefault(metric_type, []).append(row["metric_id"])
+
+            if (metric_type := entity_key_to_metric_type(entity_key)) is not None:
+                supported_metric_ids_in_entities.setdefault(metric_type, []).append(
+                    row["metric_id"]
+                )
 
     # If we get not results back from snuba, then raise an InvalidParams with an appropriate
     # error message
@@ -660,7 +643,8 @@ def get_all_tags(
             start=start,
             end=end,
         )
-    except InvalidParams:
+    except InvalidParams as e:
+        sentry_sdk.capture_exception(e)
         return []
 
     return tags

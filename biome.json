@@ -39,6 +39,10 @@
         "noDuplicateCase": "error",
         "noRedeclare": "error",
         "useIsArray": "error"
+      },
+      "style": {
+        "noVar": "error",
+        "useConst": "error"
       }
     }
   },
@@ -100,6 +104,16 @@
         "rules": {
           "nursery": {
             "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/sentry/templates/sentry/error-page-embed.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noVar": "off"
           }
         }
       }

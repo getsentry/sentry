@@ -319,7 +319,6 @@ function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
     op: parsed.op,
     query: query.conditions,
     groupBy: query.columns,
-    title: widget.title,
     displayType: toMetricDisplayType(widget.displayType),
   };
 }
