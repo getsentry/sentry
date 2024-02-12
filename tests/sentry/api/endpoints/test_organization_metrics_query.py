@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -19,20 +20,35 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+        for transaction, value, hours in (("/hello", 10, 0), ("/world", 5, 1), ("/foo", 3, 2)):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+                hours_before_now=hours,
+            )
+
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_query_simple(self):
-        self.get_success_response(
+        response = self.get_success_response(
             self.project.organization.slug,
             status_code=200,
-            queries="",
-            formulas="",
+            queries=[{"name": "query_1", "mql": f"sum({TransactionMRI.DURATION.value})"}],
+            formulas=[{"mql": "$query_1"}],
             qs_params={
-                "statsPeriod": "24h",
+                "statsPeriod": "3h",
                 "interval": "1h",
                 "project": [self.project.id],
                 "environment": [],
             },
         )
+        assert response.data["data"] == [[{"by": {}, "series": [3.0, 5.0, 10.0], "totals": 18.0}]]
+        assert response.data["meta"] == [
+            [
+                {"name": "aggregate_value", "type": "Float64"},
+                {"group_bys": [], "limit": 20, "order": None},
+            ]
+        ]

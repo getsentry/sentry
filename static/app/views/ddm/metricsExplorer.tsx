@@ -14,9 +14,7 @@ export default function MetricsExplorer() {
     groupBy: [],
     displayType: MetricDisplayType.LINE,
     powerUserMode: true,
-    showSummaryTable: true,
     sort: {name: 'name', order: 'asc'},
-    title: undefined,
   });
 
   return (
