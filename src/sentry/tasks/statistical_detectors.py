@@ -387,7 +387,7 @@ def _detect_transaction_change_points(
 
     for regression in regressions:
         breakpoint_count += 1
-        send_regression_to_platform(regression, True)
+        send_regression_to_platform(regression)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
@@ -565,7 +565,6 @@ def emit_function_regression_issue(
                 "trend_percentage": regression["trend_percentage"],
                 "unweighted_p_value": regression["unweighted_p_value"],
                 "unweighted_t_value": regression["unweighted_t_value"],
-                "released": True,
             }
         )
 
