@@ -115,34 +115,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         Constructs a response key'd off release_version, project_slug, and lists thresholds with their status for *specified* projects
         Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
-
-        {
-            {proj}-{release}: [
-                {
-                    project_id,
-                    project_slug,
-                    environment,
-                    ...,
-                    key: {proj}-{release},
-                    release: str,
-                    is_healthy: True/False,
-                    start: datetime,
-                    end: datetime,
-                    metric_value: int,
-                },
-                {...},
-                {...}
-            ],
-            {proj}-{release}: [...],
-        }
-
-        ``````````````````
-
-        :param start: timestamp of the beginning of the specified date range
-        :param end: timestamp of the end of the specified date range
-        :return: dict key'd off per project-release,
-            containing a list of enriched threshold objects with orginal threshold data
-            and healthy status, start/end datetimes, and metric values
         """
         # TODO: We should limit/paginate results (this could get really bulky)
         # ========================================================================
