@@ -36,6 +36,9 @@ filterwarnings = [
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
 
+    # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
+    "ignore:Type google\\._upb.*",
+
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
     # with django.utils.timezone.
