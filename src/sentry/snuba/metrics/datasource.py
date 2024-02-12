@@ -244,7 +244,11 @@ def get_metrics_meta(
     for metric_mri, project_ids in stored_metrics.items():
         parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
-            sentry_sdk.capture_message(f"Invalid metric MRI {metric_mri} detected")
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("project_ids", project_ids)
+                scope.set_extra("metric_mri", metric_mri)
+                sentry_sdk.capture_message("Invalid metric MRI detected")
+
             continue
 
         blocking_status = []
