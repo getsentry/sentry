@@ -20,6 +20,7 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
+from sentry.utils import json
 from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params.update({"k": int(request.GET["k"])})
         if request.GET.get("threshold"):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
+
+        logger.info("Similar issues embeddings payload", extra=json.dumps(similar_issues_params))
 
         results = get_similar_issues_embeddings(similar_issues_params)
 

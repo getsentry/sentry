@@ -230,7 +230,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_simple(self, mock_seer_request):
+    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
+    def test_simple(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -252,20 +253,26 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
 
+        expected_seer_request_params = json.dumps(
+            {
+                "group_id": self.group.id,
+                "project_id": self.project.id,
+                "stacktrace": EXPECTED_STACKTRACE_STRING,
+                "message": self.group.message,
+                "k": 1,
+                "threshold": 0.98,
+            }
+        )
+
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
-            body=json.dumps(
-                {
-                    "group_id": self.group.id,
-                    "project_id": self.project.id,
-                    "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
-                    "k": 1,
-                    "threshold": 0.98,
-                },
-            ),
+            body=expected_seer_request_params,
             headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+        mock_logger.info.assert_called_with(
+            "Similar issues embeddings payload", extra=expected_seer_request_params
         )
 
     @with_feature("projects:similarity-embeddings")
