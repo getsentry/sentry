@@ -31,24 +31,6 @@ module.exports = {
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
-
-    // TODO(@anonrig): Remove these rules from eslint-sentry-config.
-    'import/no-nodejs-modules': 'off',
-    semi: 'off',
-    'use-isnan': 'off',
-    curly: 'off',
-    eqeqeq: 'off',
-    'no-extra-semi': 'off',
-    'no-eq-null': 'off',
-    'comma-dangle': 'off',
-    'react/jsx-no-target-blank': 'off',
-    'react/jsx-no-duplicate-props': 'off',
-    'react-hooks/rules-of-hooks': 'off',
-    'no-duplicate-case': 'off',
-    'no-dupe-keys': 'off',
-    'no-redeclare': 'off',
-    'no-debugger': 'off',
-    'no-unreachable': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -57,25 +39,6 @@ module.exports = {
     {
       files: ['tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],
-      rules: {
-        // TODO(@anonrig): Remove these rules from eslint-sentry-config.
-        'import/no-nodejs-modules': 'off',
-        semi: 'off',
-        'use-isnan': 'off',
-        curly: 'off',
-        eqeqeq: 'off',
-        'no-extra-semi': 'off',
-        'no-eq-null': 'off',
-        'comma-dangle': 'off',
-        'react/jsx-no-target-blank': 'off',
-        'react/jsx-no-duplicate-props': 'off',
-        'react-hooks/rules-of-hooks': 'off',
-        'no-duplicate-case': 'off',
-        'no-dupe-keys': 'off',
-        'no-redeclare': 'off',
-        'no-debugger': 'off',
-        'no-unreachable': 'off',
-      },
     },
     {
       files: ['*.ts', '*.tsx'],
