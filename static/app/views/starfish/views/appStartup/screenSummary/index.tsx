@@ -34,6 +34,7 @@ type Query = {
   primaryRelease: string;
   project: string;
   secondaryRelease: string;
+  spanAppStartType: string;
   spanDescription: string;
   spanGroup: string;
   spanOp: string;
@@ -52,6 +53,7 @@ function ScreenSummary() {
     spanGroup,
     spanDescription,
     spanOp,
+    spanAppStartType,
   } = location.query;
 
   const startupModule: LocationDescriptor = {
@@ -61,6 +63,7 @@ function ScreenSummary() {
         QueryParameterNames.SPANS_SORT,
         'transaction',
         SpanMetricsField.SPAN_OP,
+        SpanMetricsField.APP_START_TYPE,
       ]),
     },
   };
@@ -192,8 +195,11 @@ function ScreenSummary() {
               <SamplesContainer>
                 <SamplesTables transactionName={transactionName} />
               </SamplesContainer>
-              {spanGroup && spanOp && (
+              {spanGroup && spanOp && spanAppStartType && (
                 <ScreenLoadSpanSamples
+                  additionalFilters={{
+                    [SpanMetricsField.APP_START_TYPE]: spanAppStartType,
+                  }}
                   groupId={spanGroup}
                   transactionName={transactionName}
                   spanDescription={spanDescription}

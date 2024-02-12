@@ -21,6 +21,7 @@ import {ScreenLoadSampleContainer} from 'sentry/views/starfish/views/screens/scr
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFilters?: Record<string, string>;
   onClose?: () => void;
   spanDescription?: string;
   spanOp?: string;
@@ -36,6 +37,7 @@ export function ScreenLoadSpanSamples({
   onClose,
   transactionRoute = '/performance/summary/',
   spanOp,
+  additionalFilters,
 }: Props) {
   const router = useRouter();
 
@@ -118,6 +120,7 @@ export function ScreenLoadSpanSamples({
               sectionTitle={t('Release 1')}
               project={project}
               spanOp={spanOp}
+              additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
@@ -129,6 +132,7 @@ export function ScreenLoadSpanSamples({
               sectionTitle={t('Release 2')}
               project={project}
               spanOp={spanOp}
+              additionalFilters={additionalFilters}
             />
           </ChartsContainerItem>
         </ChartsContainer>
