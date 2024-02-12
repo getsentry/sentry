@@ -322,21 +322,97 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     props.node instanceof ParentAutogroupNode &&
     !props.node.tail.children.length;
 
-  return (
-    <Fragment>
-      {/*
-        @TODO count of rendered connectors could be % 3 as we can
-        have up to 3 connectors per node, 1 div, 1 before and 1 after
-      */}
-      {props.node.connectors.map((c, i) => {
-        return (
+  const getLeftOffset = (connector: number, relativeDepth: number): number => {
+    return -(Math.abs(Math.abs(connector) - relativeDepth) * 23);
+  };
+
+  const getBorderDecoration = (connector: number): string => {
+    return connector < 0 ? 'dashed' : 'solid';
+  };
+
+  // Renders upto 3 connectors per node using 1 div, 1 before and
+  // 1 safter
+  const renderConnectors = () => {
+    let i = props.node.connectors.length;
+    const connectors: React.ReactNode[] = [];
+
+    while (i > 0) {
+      const index = i - 1;
+      const currentConnector = props.node.connectors[index];
+
+      if (i % 3 === 0) {
+        // Case 1: Render 3 connectors
+        const firstSibling = props.node.connectors[index - 1];
+        const secondSibling = props.node.connectors[index - 2];
+
+        const currentOffset = getLeftOffset(currentConnector, props.node.depth);
+        const firstSiblingOffset = getLeftOffset(firstSibling, currentConnector);
+        const secondSiblingOffset = getLeftOffset(secondSibling, currentConnector);
+
+        const style = {
+          '--first-sibling-offset': `${firstSiblingOffset - 2}px`,
+          '--second-sibling-offset': `${secondSiblingOffset - 2}px`,
+          '--first-sibling-border-decoration': getBorderDecoration(firstSibling),
+          '--second-sibling-border-decoration': getBorderDecoration(secondSibling),
+          left: currentOffset,
+        } as React.CSSProperties;
+
+        connectors.push(
           <div
             key={i}
-            style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 23)}}
-            className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
+            style={style}
+            className={`TraceVerticalConnectorV1 ${
+              currentConnector < 0 ? 'Orphaned' : ''
+            }`}
           />
         );
-      })}
+
+        i = i - 3;
+      } else if (i % 3 === 2) {
+        // Case 2: Render 2 connectors.
+        const firstSibling = props.node.connectors[index - 1];
+        const currentOffset = getLeftOffset(currentConnector, props.node.depth);
+        const firstSiblingOffset = getLeftOffset(firstSibling, currentConnector);
+        const style = {
+          '--first-sibling-offset': `${firstSiblingOffset - 2}px`,
+          '--first-sibling-border-decoration': getBorderDecoration(firstSibling),
+          left: currentOffset,
+        } as React.CSSProperties;
+
+        connectors.push(
+          <div
+            key={i}
+            style={style}
+            className={`TraceVerticalConnectorV2 ${
+              currentConnector < 0 ? 'Orphaned' : ''
+            }`}
+          />
+        );
+
+        i = i - 2;
+      } else {
+        // Case 3: Render 1 connector.
+        connectors.push(
+          <div
+            key={i}
+            style={{
+              left: -(Math.abs(Math.abs(currentConnector) - props.node.depth) * 23),
+            }}
+            className={`TraceVerticalConnectorV0 ${
+              currentConnector < 0 ? 'Orphaned' : ''
+            }`}
+          />
+        );
+
+        i--;
+      }
+    }
+    return connectors;
+  };
+
+  return (
+    <Fragment>
+      {renderConnectors()}
       {showVerticalConnector && !hideVerticalConnector ? (
         <div className="TraceExpandedVerticalConnector" />
       ) : null}
@@ -482,7 +558,7 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
-  .TraceVerticalConnector {
+  .TraceVerticalConnectorV0 {
     position: absolute;
     left: 0;
     top: 0;
@@ -493,6 +569,70 @@ const TraceStylingWrapper = styled('div')`
 
     &.Orphaned {
       border-left: 2px dashed ${p => p.theme.border};
+    }
+  }
+
+  .TraceVerticalConnectorV1 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 2px;
+    border-left: 2px solid ${p => p.theme.border};
+
+    &.Orphaned {
+      border-left: 2px dashed ${p => p.theme.border};
+    }
+
+    &::before{
+      content: '';
+      display: block;
+      position: absolute;
+      left: var(--first-sibling-offset);
+      top: 0;
+      bottom: 0;
+      height: 100%;
+      width: 2px;
+      border-left: 2px var(--first-sibling-border-decoration) ${p => p.theme.border};
+    }
+
+    &::after{
+      content: '';
+      display: block;
+      position: absolute;
+      left: var(--second-sibling-offset);
+      top: 0;
+      bottom: 0;
+      height: 100%;
+      width: 2px;
+      border-left: 2px var(--second-sibling-border-decoration) ${p => p.theme.border};
+    }
+  }
+
+  .TraceVerticalConnectorV2 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 2px;
+    border-left: 2px solid ${p => p.theme.border};
+
+    &.Orphaned {
+      border-left: 2px dashed ${p => p.theme.border};
+    }
+
+    &::before{
+      content: '';
+      display: block;
+      position: absolute;
+      left: var(--first-sibling-offset);
+      top: 0;
+      bottom: 0;
+      height: 100%;
+      width: 2px;
+      border-left: 2px var(--first-sibling-border-decoration) ${p => p.theme.border};
     }
   }
 
