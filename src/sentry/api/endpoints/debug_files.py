@@ -507,7 +507,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

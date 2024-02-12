@@ -48,7 +48,7 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
