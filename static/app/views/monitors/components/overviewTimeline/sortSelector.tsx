@@ -6,11 +6,11 @@ import {t} from 'sentry/locale';
 import useRouter from 'sentry/utils/useRouter';
 
 export enum MonitorSortOrder {
-  ASCENDING = 'ascending',
-  DESCENDING = 'descending',
+  ASCENDING = '1',
+  DESCENDING = '0',
 }
 
-export enum MonitorSortOptions {
+export enum MonitorSortOption {
   STATE = 'state',
   NAME = 'name',
   MUTED = 'muted',
@@ -22,24 +22,31 @@ const ORDER_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  {label: t('State'), value: MonitorSortOptions.STATE},
-  {label: t('Name'), value: MonitorSortOptions.NAME},
-  {label: t('Muted'), value: MonitorSortOptions.MUTED},
+  {label: t('State'), value: MonitorSortOption.STATE},
+  {label: t('Name'), value: MonitorSortOption.NAME},
+  {label: t('Muted'), value: MonitorSortOption.MUTED},
 ];
 
 interface Props {
-  onChangeOrder: (order: SelectOption<MonitorSortOrder>) => void;
-  onChangeSort: (sort: SelectOption<MonitorSortOptions>) => void;
+  onChangeOrder?: (order: SelectOption<MonitorSortOrder>) => void;
+  onChangeSort?: (sort: SelectOption<MonitorSortOption>) => void;
   order?: MonitorSortOrder;
-  sort?: MonitorSortOptions;
+  sort?: MonitorSortOption;
 }
 
 export function SortSelector({onChangeOrder, onChangeSort, order, sort}: Props) {
-  const {location} = useRouter();
+  const {replace, location} = useRouter();
 
-  const selectedSort = sort ?? location.query?.monitorSort ?? MonitorSortOptions.STATE;
-  const selectedOrder =
-    order ?? location.query?.monitorSortOrder ?? MonitorSortOrder.DESCENDING;
+  const selectedSort = sort ?? location.query?.sort ?? MonitorSortOption.STATE;
+  const selectedOrder = order ?? location.query?.asc ?? MonitorSortOrder.DESCENDING;
+
+  const defaultOnChange = (newSort: MonitorSortOption, newOrder: MonitorSortOrder) => {
+    replace({...location, query: {...location.query, asc: newOrder, sort: newSort}});
+  };
+  const handleChangeSort =
+    onChangeSort ?? (newSort => defaultOnChange(newSort.value, selectedOrder));
+  const handleChangeOrder =
+    onChangeOrder ?? (newOrder => defaultOnChange(selectedSort, newOrder.value));
 
   return (
     <CompositeSelect
@@ -55,13 +62,15 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort}: Props) 
       )}
     >
       <CompositeSelect.Region
+        aria-label={t('Sort Options')}
         value={selectedSort}
-        onChange={onChangeSort}
+        onChange={handleChangeSort}
         options={SORT_OPTIONS}
       />
       <CompositeSelect.Region
+        aria-label={t('Sort Order Options')}
         value={selectedOrder}
-        onChange={onChangeOrder}
+        onChange={handleChangeOrder}
         options={ORDER_OPTIONS}
       />
     </CompositeSelect>
