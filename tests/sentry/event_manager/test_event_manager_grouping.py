@@ -39,12 +39,6 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group_id == event2.group_id
 
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-        assert group.message == event2.message
-
     def test_puts_events_with_different_fingerprints_in_different_groups(self):
         event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
@@ -116,6 +110,31 @@ class EventManagerGroupingTest(TestCase):
         event = save_new_event({"exception": None}, self.project)
 
         assert event.group
+
+    def test_updates_group_metadata(self):
+        event1 = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
+        )
+
+        group = Group.objects.get(id=event1.group_id)
+
+        assert group.times_seen == 1
+        assert group.last_seen == event1.datetime
+        assert group.message == event1.message
+
+        # Normally this should go into a different group, since the messages don't match, but the
+        # fingerprint takes precedence. (We need to make the messages different in order to show
+        # that the group's message gets updated.)
+        event2 = save_new_event(
+            {"message": "Adopt don't shop", "fingerprint": ["maisey"]}, self.project
+        )
+
+        assert event1.group_id == event2.group_id
+        group = Group.objects.get(id=event2.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+        assert group.message == event2.message
 
 
 @region_silo_test
