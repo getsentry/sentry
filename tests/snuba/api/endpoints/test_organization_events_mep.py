@@ -3179,7 +3179,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         for spec in specs:
             self.store_on_demand_metric(1, spec=spec)
         response = self._make_on_demand_request(params)
-        self._assert_on_demand_response(response, False)
+        self._assert_on_demand_response(response)
 
     def test_transaction_user_misery(self) -> None:
         user_misery_field = "user_misery(300)"
