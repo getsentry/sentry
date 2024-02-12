@@ -386,6 +386,7 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsQueryEndpoint,
+    OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -1985,6 +1986,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^/]+)/metrics/query/$",
         OrganizationMetricsQueryEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-query",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/samples/$",
+        OrganizationMetricsSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-samples",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/tags/$",
