@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -36,6 +37,7 @@ export function Trace(props: TraceProps) {
   const api = useApi();
   const organization = useOrganization();
   const virtualizedListRef = useRef<List>(null);
+  const theme = useTheme();
 
   const traceTree = useMemo(() => {
     if (!props.trace) {
@@ -118,6 +120,7 @@ export function Trace(props: TraceProps) {
               return (
                 <RenderRow
                   key={p.key}
+                  theme={theme}
                   startIndex={
                     (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
                   }
@@ -171,6 +174,7 @@ function RenderRow(props: {
   space: [number, number] | null;
   startIndex: number;
   style: React.CSSProperties;
+  theme: Theme;
   trace_id: string;
   viewManager: VirtualizedViewManager;
 }) {
@@ -219,6 +223,8 @@ function RenderRow(props: {
           ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -284,6 +290,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -350,6 +358,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -393,6 +403,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -447,6 +459,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -502,6 +516,7 @@ function RenderRow(props: {
         className="TraceRightColumn"
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
+          backgroundColor: props.index % 2 ? undefined : props.theme.backgroundSecondary,
         }}
       >
         {/* @TODO: figure out what to do with trace errors */}
@@ -619,6 +634,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     position: absolute;
     width: 100%;
+    transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
 
     &:hover {
