@@ -836,3 +836,25 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 environments=[],
                 referrer="metrics.data.api",
             )
+
+    def test_query_with_complex_group_by(self):
+        query_1 = self.mql("min", "d:custom/page_click@none", group_by="environment")
+        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("((($query_1 * $query_2) by (release)) / $query_1) by (browser)")
+        )
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
