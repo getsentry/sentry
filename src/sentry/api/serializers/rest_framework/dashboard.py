@@ -139,7 +139,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     orderby = serializers.CharField(required=False, allow_blank=True)
 
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
-    on_demand_extraction_enabled = serializers.BooleanField(required=False)
+    on_demand_extraction_disabled = serializers.BooleanField(required=False)
 
     required_for_create = {"fields", "conditions"}
 
@@ -316,7 +316,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 else:
                     query_errors.append({})
 
-                if query.get("on_demand_extraction_enabled", False):
+                if not query.get("on_demand_extraction_disabled", False):
                     if query.get("columns"):
                         all_columns = all_columns.union(query.get("columns"))
                     # If this query wants ondemand check if we'll go over spec

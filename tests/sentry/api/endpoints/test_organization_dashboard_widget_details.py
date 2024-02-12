@@ -729,7 +729,6 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
-                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -784,7 +783,6 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
-                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -824,7 +822,6 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
-                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -875,6 +872,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
                 },
                 {
                     "name": "",
@@ -882,7 +880,6 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
-                    "onDemandExtractionEnabled": True,
                 },
             ],
         }
