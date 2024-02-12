@@ -50,3 +50,15 @@ export function isTraceErrorNode(
 ): node is TraceTreeNode<TraceTree.TraceError> {
   return !!(node.value && 'level' in node.value);
 }
+
+export function isRootNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<null> {
+  return !!(node.value && node.value === null);
+}
+
+export function isTraceNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Trace> {
+  return !!(node.value && 'orphan_errors' in node.value);
+}
