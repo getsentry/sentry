@@ -78,7 +78,7 @@ class DuplicateRuleEvaluator:
 
         self._keys_to_check: set[str] = self._get_keys_to_check()
 
-        self._matcher_funcs_by_key: dict[str, Callable[[], MatcherResult]] = {
+        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], MatcherResult]] = {
             self.ENVIRONMENT_KEY: self._environment_matcher,
             self.ACTIONS_KEY: self._actions_matcher,
         }
@@ -214,7 +214,7 @@ class DuplicateRuleEvaluator:
         return True
 
     @classmethod
-    def _get_clean_actions_dict(cls, actions_dict: dict[any, any]) -> dict[any, any]:
+    def _get_clean_actions_dict(cls, actions_dict: dict[Any, Any]) -> dict[Any, Any]:
         """
         Returns a dictionary where None is substituted with empty string to help compare DB values vs serialized values
         """
