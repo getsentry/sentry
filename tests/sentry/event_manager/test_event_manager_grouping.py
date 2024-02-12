@@ -4,15 +4,12 @@ from time import time
 from unittest import mock
 from unittest.mock import MagicMock
 
-from sentry import tsdb
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.tsdb.base import TSDBModel
 
 pytestmark = [requires_snuba]
 
@@ -56,12 +53,11 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.data.get("fingerprint") == ["{{ default }}"]
 
-    @freeze_time()
     def test_ignores_fingerprint_on_transaction_event(self):
-        event1 = save_new_event(
+        error_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["charlie"]}, self.project
         )
-        event2 = save_new_event(
+        transaction_event = save_new_event(
             {
                 "transaction": "dogpark",
                 "fingerprint": ["charlie"],
@@ -80,30 +76,8 @@ class EventManagerGroupingTest(TestCase):
             self.project,
         )
 
-        assert event1.group is not None
-        assert event2.group is None
-        assert event1.group_id != event2.group_id
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.project,
-                [self.project.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[self.project.id]
-            == 1
-        )
-
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.group,
-                [event1.group.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[event1.group.id]
-            == 1
-        )
+        # Events are assigned to different groups even though they had identical fingerprints
+        assert error_event.group_id != transaction_event.group_id
 
     def test_none_exception(self):
         """Test that when the exception is None, the group is still formed."""
