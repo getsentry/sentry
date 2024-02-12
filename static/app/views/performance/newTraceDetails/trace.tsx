@@ -25,71 +25,7 @@ import {
   isTransactionNode,
 } from './guards';
 import {ParentAutogroupNode, TraceTree, type TraceTreeNode} from './traceTree';
-
-type ViewColumn = {
-  column_refs: HTMLElement[];
-  width: number;
-};
-
-class ViewManager {
-  width: number = 0;
-
-  container: HTMLElement | null = null;
-  resizeObserver: ResizeObserver | null = null;
-
-  columns: {
-    list: ViewColumn;
-    span_list: ViewColumn;
-  };
-
-  constructor(columns: {
-    list: ViewColumn;
-    span_list: ViewColumn;
-  }) {
-    this.columns = columns;
-  }
-
-  onContainerRef(container: HTMLElement | null) {
-    if (container) {
-      this.initialize(container);
-    } else {
-      this.teardown();
-    }
-  }
-
-  registerColumnRef(column: string, ref: HTMLElement | null, index: number) {
-    if (!ref) {
-      return;
-    }
-
-    if (!this.columns[column]) {
-      throw new TypeError('Invalid column');
-    }
-
-    this.columns[column].column_refs[index] = ref;
-  }
-
-  initialize(container: HTMLElement) {
-    this.teardown();
-
-    this.container = container;
-    this.resizeObserver = new ResizeObserver(entries => {
-      const entry = entries[0];
-      if (!entry) {
-        throw new Error('ResizeObserver entry is undefined');
-      }
-      this.width = entry.contentRect.width;
-    });
-
-    this.resizeObserver.observe(container);
-  }
-
-  teardown() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
-  }
-}
+import {VirtualizedViewManager} from './virtualizedViewManager';
 
 interface TraceProps {
   trace: TraceSplitResults<TraceFullDetailed> | null;
@@ -111,9 +47,9 @@ export function Trace(props: TraceProps) {
 
   const [_rerender, setRender] = useState(0);
 
-  const viewManager = useRef<ViewManager | null>(null);
+  const viewManager = useRef<VirtualizedViewManager | null>(null);
   if (!viewManager.current) {
-    viewManager.current = new ViewManager({
+    viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
       span_list: {width: 0.5, column_refs: []},
     });
@@ -162,13 +98,13 @@ export function Trace(props: TraceProps) {
     <TraceStylingWrapper
       ref={r => viewManager.current?.onContainerRef(r)}
       style={{
-        padding: 24,
         backgroundColor: '#FFF',
         height: '100%',
         width: '100%',
         position: 'absolute',
       }}
     >
+      <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
       <AutoSizer>
         {({width, height}) => (
           <List
@@ -204,6 +140,28 @@ export function Trace(props: TraceProps) {
   );
 }
 
+const TraceDivider = styled('div')`
+  position: absolute;
+  height: 100%;
+  background-color: transparent;
+  top: 0;
+  z-index: 1;
+  cursor: col-resize;
+
+  &:before {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background-color: ${p => p.theme.border};
+    left: 50%;
+  }
+
+  &:hover&:before {
+    background-color: ${p => p.theme.purple300};
+  }
+`;
+
 function RenderRow(props: {
   index: number;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -214,7 +172,7 @@ function RenderRow(props: {
   startIndex: number;
   style: React.CSSProperties;
   trace_id: string;
-  viewManager: ViewManager;
+  viewManager: VirtualizedViewManager;
 }) {
   const virtualizedIndex = props.index - props.startIndex;
   if (!props.node.value) {
@@ -654,6 +612,8 @@ function TraceBar(props: TraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
+  position: relative;
+
   .TraceRow {
     display: flex;
     align-items: center;
@@ -685,6 +645,7 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
     overflow: hidden;
+    will-change: width;
 
     .TraceLeftColumnInner {
       width: 100%;
@@ -700,6 +661,7 @@ const TraceStylingWrapper = styled('div')`
     position: relative;
     display: flex;
     align-items: center;
+    will-change: width;
   }
 
   .TraceBar {
