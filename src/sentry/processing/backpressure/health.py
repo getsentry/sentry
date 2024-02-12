@@ -119,6 +119,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                     sentry_sdk.set_tag("consumer", name)
                     logger.error(
                         "Consumer `%s` marked as unhealthy",
+                        name,
                         extra={"unhealthy_dependencies": unhealthy_dependencies},
                     )
 
