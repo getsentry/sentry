@@ -26,7 +26,6 @@ class WebhookPayload(Model):
     region_name = models.CharField(null=False)
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
-    organization_id = models.BigIntegerField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now, null=False)
 

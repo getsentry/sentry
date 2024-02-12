@@ -39,7 +39,6 @@ class Migration(CheckedMigration):
                 ("mailbox_name", models.CharField()),
                 ("region_name", models.CharField()),
                 ("integration_id", models.BigIntegerField(null=True)),
-                ("organization_id", models.BigIntegerField(null=True)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "schedule_for",
