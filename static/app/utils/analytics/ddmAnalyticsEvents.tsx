@@ -17,7 +17,11 @@ export type DDMEventParameters = {
   'ddm.set-default-query': {};
   'ddm.widget.add': {};
   'ddm.widget.duplicate': {};
+  'ddm.widget.filter': {};
+  'ddm.widget.group': {};
+  'ddm.widget.metric': {};
   'ddm.widget.metric-settings': {};
+  'ddm.widget.operation': {};
   'ddm.widget.sort': {
     by: string;
     order: string;
@@ -37,4 +41,8 @@ export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.add-to-dashboard': 'DDM: Add to Dashboard',
   'ddm.code-location': 'DDM: Code Location',
   'ddm.sample-table-interaction': 'DDM: Sample Table Interaction',
+  'ddm.widget.filter': 'DDM: Change query filter',
+  'ddm.widget.group': 'DDM: Change query grouping',
+  'ddm.widget.metric': 'DDM: Change query metric',
+  'ddm.widget.operation': 'DDM: Change query operation',
 };
