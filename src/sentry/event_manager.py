@@ -1619,13 +1619,7 @@ def _save_aggregate_new(
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
 
-    # The root_hierarchical_hash is the least specific hash within the tree, so
-    # typically hierarchical_hashes[0], unless a hash `n` has been split in
-    # which case `root_hierarchical_hash = hierarchical_hashes[n + 1]`. Chosing
-    # this for select_for_update mostly provides sufficient synchronization
-    # when groups are created and also relieves contention by locking a more
-    # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
+    existing_grouphash, _ = find_existing_grouphash_new(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1667,7 +1661,7 @@ def _save_aggregate_new(
                 ).select_for_update()
             )
 
-            existing_grouphash, root_hierarchical_hash = find_existing_grouphash_new(
+            existing_grouphash, _ = find_existing_grouphash_new(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
