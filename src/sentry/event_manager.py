@@ -1602,7 +1602,7 @@ def _save_aggregate_new(
 ) -> GroupInfo | None:
     project = event.project
 
-    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+    _, _, hashes = get_hash_values(project, job, metric_tags)
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
