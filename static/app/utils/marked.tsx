@@ -1,6 +1,6 @@
 import dompurify from 'dompurify';
 import type {MarkedOptions} from 'marked'; // eslint-disable-line no-restricted-imports
-import {marked} from 'marked'; // eslint-disable-line no-restricted-imports
+import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
 import {NODE_ENV} from 'sentry/constants';
