@@ -3927,9 +3927,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
-# Controls whether the SDK will send the metrics upstream to the S4S transport.
-SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
-
 # Backwards compatibility for URLs that don't
 # have enough context to route via organization.
 # New usage of these endpoints should use the region domains,
