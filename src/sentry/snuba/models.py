@@ -40,6 +40,8 @@ class SnubaQuery(Model):
     aggregate = models.TextField()
     time_window = models.IntegerField()
     resolution = models.IntegerField()
+    # TODO: Modify snuba query creation to make use of `start_time` if provided (eg. query all events _after_ provided start_date)
+    start_time = models.DateTimeField(null=True, default=None)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
