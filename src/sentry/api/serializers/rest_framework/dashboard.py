@@ -307,7 +307,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         current_widget_specs = None
         organization = self.context["organization"]
 
-        ondemand_feature = features.has("organizations:on-demand-metrics-extraction", organization)
+        ondemand_feature = features.has("organizations:on-demand-metrics-extraction-widgets", organization)
 
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
