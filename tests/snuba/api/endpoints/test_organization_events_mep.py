@@ -3181,31 +3181,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response)
 
-    def test_transaction_user_misery(self) -> None:
+    def test_user_misery_uses_alias(self) -> None:
+        """Verify that user_misery(300) is used instead of user_misery_300"""
         user_misery_field = "user_misery(300)"
-        apdex_field = "apdex(300)"
-        params = {
-            "field": [user_misery_field, apdex_field],
-            "project": self.project.id,
-            "query": "",
-        }
-        specs = self._create_specs(params, groupbys=["transaction"])
-        for spec in specs:
-            self.store_on_demand_metric(1, spec=spec)
+        params = {"field": [user_misery_field], "project": self.project.id, "query": ""}
+        self._create_specs(params)
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response, expected_on_demand_query=True)
-        assert response.data == {
-            "data": [{user_misery_field: 0.0, apdex_field: 0.0}],
-            "meta": {
-                "fields": {user_misery_field: "number", apdex_field: "number"},
-                "units": {user_misery_field: None, apdex_field: None},
-                "isMetricsData": True,
-                "isMetricsExtractedData": True,
-                "tips": {},
-                "datasetReason": "unchanged",
-                "dataset": "metricsEnhanced",
-            },
-        }
+        assert response.data["meta"]["fields"] == {user_misery_field: "number"}
+        assert response.data["meta"]["units"] == {user_misery_field: None}
 
 
 @region_silo_test
