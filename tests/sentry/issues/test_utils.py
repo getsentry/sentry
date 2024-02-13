@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 from django.utils import timezone
 
@@ -17,6 +17,14 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
+
+
+class OccurrenceTestMixinProtocol(Protocol):
+    def store_event(self, *args, **kwargs) -> Event:
+        ...
+
+    def build_occurrence(self, **overrides: Any) -> IssueOccurrence:
+        ...
 
 
 class OccurrenceTestMixin:
@@ -68,7 +76,7 @@ class OccurrenceTestMixin:
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
 
     def process_occurrence(
-        self, event_data: dict[str, Any] | None = None, **overrides
+        self, event_data: dict[str, Any], **overrides
     ) -> tuple[IssueOccurrence, GroupInfo | None]:
         """
         Testutil to build and process occurrence data instead of going through Kafka.
@@ -83,7 +91,7 @@ class OccurrenceTestMixin:
         return process_event_and_issue_occurrence(occurrence_data, event_data)
 
 
-class SearchIssueTestMixin(OccurrenceTestMixin):
+class SearchIssueTestMixin(OccurrenceTestMixin, OccurrenceTestMixinProtocol):
     def store_search_issue(
         self,
         project_id: int,
