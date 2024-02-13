@@ -36,7 +36,13 @@ interface UseTraceTimelineEventsOptions {
 export function useTraceTimelineEvents(
   {event}: UseTraceTimelineEventsOptions,
   isEnabled: boolean = true
-) {
+): {
+  endTimestamp: number;
+  isError: boolean;
+  isLoading: boolean;
+  startTimestamp: number;
+  traceEvents: TimelineEvent[];
+} {
   const organization = useOrganization();
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
@@ -150,7 +156,7 @@ export function useTraceTimelineEvents(
   ]);
 
   return {
-    data: eventData.data,
+    traceEvents: eventData.data,
     startTimestamp: eventData.startTimestamp,
     endTimestamp: eventData.endTimestamp,
     isLoading: isLoadingIssuePlatform || isLoadingDiscover,

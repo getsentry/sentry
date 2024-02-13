@@ -24,14 +24,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
   const hasFeature = hasTraceTimelineFeature(organization);
-  const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
+  const {isError, isLoading, traceEvents} = useTraceTimelineEvents({event}, hasFeature);
 
   const hasTraceId = !!event.contexts?.trace?.trace_id;
 
   let timelineStatus: string | undefined;
   if (hasFeature) {
     if (hasTraceId && !isLoading) {
-      timelineStatus = data.length > 1 ? 'shown' : 'empty';
+      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
     } else if (!hasTraceId) {
       timelineStatus = 'no_trace_id';
     }
@@ -42,10 +42,12 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     return null;
   }
 
-  const noEvents = !isLoading && data.length === 0;
+  const noEvents = !isLoading && traceEvents.length === 0;
   // Timelines with only the current event are not useful
   const onlySelfEvent =
-    !isLoading && data.length > 0 && data.every(item => item.id === event.id);
+    !isLoading &&
+    traceEvents.length > 0 &&
+    traceEvents.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
     return <div style={{height: 38}} data-test-id="trace-timeline-empty" />;
