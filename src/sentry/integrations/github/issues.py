@@ -206,6 +206,12 @@ class GitHubIssueBasic(IssueBasicMixin):
             "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
+        def get_linked_issue_comment_prefix(group: Group) -> str:
+            if group.issue_category == GroupCategory.FEEDBACK:
+                return "Sentry feedback"
+            else:
+                return "Sentry issue"
+
         return [
             {
                 "name": "repo",
@@ -229,11 +235,14 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
-                    url=absolute_uri(
-                        group.get_absolute_url(params={"referrer": "github_integration"})
+                "default": (
+                    get_linked_issue_comment_prefix(group)
+                    + ": [{issue_id}]({url})".format(
+                        url=absolute_uri(
+                            group.get_absolute_url(params={"referrer": "github_integration"})
+                        ),
+                        issue_id=group.qualified_short_id,
                     ),
-                    issue_id=group.qualified_short_id,
                 ),
                 "type": "textarea",
                 "required": False,

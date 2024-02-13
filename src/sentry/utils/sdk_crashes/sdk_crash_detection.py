@@ -6,6 +6,7 @@ from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
+from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
@@ -89,6 +90,12 @@ class SDKCrashDetection:
         if not frames:
             return None
 
+        # If sdk name or version are None, detector.should_detect_sdk_crash returns False above, and we don't reach this point.
+        sdk_name = get_path(event.data, "sdk", "name")
+        sdk_version = get_path(event.data, "sdk", "version")
+        metric_tags = {"sdk_name": sdk_name, "sdk_version": sdk_version}
+        metrics.incr("post_process.sdk_crash_monitoring.detecting_sdk_crash", tags=metric_tags)
+
         if sdk_crash_detector.is_sdk_crash(frames):
             if random.random() >= sample_rate:
                 return None
@@ -110,6 +117,8 @@ class SDKCrashDetection:
 
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
+
+            metrics.incr("post_process.sdk_crash_monitoring.sdk_crash_detected", tags=metric_tags)
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, project_id)
 

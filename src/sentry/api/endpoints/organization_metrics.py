@@ -1,18 +1,26 @@
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationMetricsPermission
+from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases.organization import (
+    NoProjects,
+    OrganizationEndpoint,
+    OrganizationMetricsPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.api import FormulaOrder, MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -28,6 +36,7 @@ from sentry.snuba.metrics import (
     get_single_metric_info,
     get_tag_values,
 )
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
@@ -334,13 +343,13 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     # Number of groups returned by default for each query.
     default_limit = 20
 
-    def _validate_order(self, order: str | None) -> FormulaOrder | None:
+    def _validate_order(self, order: str | None) -> QueryOrder | None:
         if order is None:
             return None
 
-        formula_order = FormulaOrder.from_string(order)
+        formula_order = QueryOrder.from_string(order)
         if formula_order is None:
-            order_choices = [v.value for v in FormulaOrder]
+            order_choices = [v.value for v in QueryOrder]
             raise InvalidMetricsQueryError(
                 f"The provided `order` is not a valid, only {order_choices} are supported"
             )
@@ -362,7 +371,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         """
         Extracts the interval of the query from the request payload.
         """
-        interval = parse_stats_period(request.data.get("interval", "1h"))
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
         return int(3600 if interval is None else interval.total_seconds())
 
     def _metrics_queries_plan_from_request(self, request: Request) -> MetricsQueriesPlan:
@@ -410,3 +419,42 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             return Response(status=500, data={"detail": str(e)})
 
         return Response(status=200, data=results)
+
+
+class MetricsSamplesSerializer(serializers.Serializer):
+    mri = serializers.CharField(required=True)
+    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+
+    def validate_mri(self, mri: str):
+        if not is_mri(mri):
+            raise serializers.ValidationError(f"Invalid MRI: {mri}")
+
+        return mri
+
+
+@region_silo_endpoint
+class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:metrics-samples-list", organization, actor=request.user):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        serializer = MetricsSamplesSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        serialized = serializer.validated_data
+
+        assert params
+        assert serialized
+
+        return Response(status=200)

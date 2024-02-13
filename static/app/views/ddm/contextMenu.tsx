@@ -1,12 +1,12 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Hovercard} from 'sentry/components/hovercard';
 import {
   IconClose,
   IconCopy,
@@ -35,7 +35,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
-  hasDashboardFeature: boolean;
   metricsQuery: MetricsQuery;
   widgetIndex: number;
 };
@@ -44,7 +43,6 @@ export function MetricQueryContextMenu({
   metricsQuery,
   displayType,
   widgetIndex,
-  hasDashboardFeature,
 }: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
@@ -91,24 +89,25 @@ export function MetricQueryContextMenu({
       },
       {
         leadingItems: [<IconDashboard key="icon" />],
-        key: 'add-dashoard',
-        label: hasDashboardFeature ? (
-          <Fragment>{t('Add to Dashboard')}</Fragment>
-        ) : (
-          <Hovercard
-            body={
-              <FeatureDisabled
-                features="organizations:dashboards-edit1"
-                hideHelpToggle
-                featureName={t('Dashboard Editing')}
-              />
-            }
+        key: 'add-dashboard',
+        label: (
+          <Feature
+            organization={organization}
+            hookName="feature-disabled:dashboards-edit"
+            features="dashboards-edit"
           >
-            {t('Add to Dashboard')}
-          </Hovercard>
+            {({hasFeature}) => (
+              <AddToDashboardItem disabled={!hasFeature}>
+                {t('Add to Dashboard')}
+              </AddToDashboardItem>
+            )}
+          </Feature>
         ),
-        disabled: !hasDashboardFeature || !createDashboardWidget,
+        disabled: !createDashboardWidget,
         onAction: () => {
+          if (!organization.features.includes('dashboards-edit')) {
+            return;
+          }
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
             source: 'widget',
@@ -147,7 +146,6 @@ export function MetricQueryContextMenu({
       },
     ],
     [
-      hasDashboardFeature,
       createAlert,
       createDashboardWidget,
       metricsQuery.mri,
@@ -232,3 +230,7 @@ export function useCreateDashboardWidget(
       });
   }, [metricsQuery, datetime, displayType, environments, organization, projects, router]);
 }
+
+const AddToDashboardItem = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;
