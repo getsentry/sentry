@@ -20,6 +20,7 @@ from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -3264,7 +3265,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             if event[1] > 300:
                 tags["satisfaction"] = "frustrated"
             self.store_on_demand_metric(
-                (index + 1) * 5,
+                index,
                 spec=spec,
                 additional_tags=tags,
                 timestamp=self.day_ago + timedelta(hours=index),
@@ -3291,7 +3292,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         )
         assert resp.data == {
-            "data": [{field: 0.09606060606060605}],
+            "data": [{field: user_misery_formula(miserable_users=3, unique_users=4)}],
             "meta": {
                 "fields": {field: "number"},
                 "units": {field: None},

@@ -5676,7 +5676,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["epm()"] == 12.5
         assert data[0]["floored_epm()"] == 10
 
-    def test_user_misery_foo(self):
+    def test_user_misery_using_discover(self) -> None:
         """This test is used to determine data differences between on-demand and this."""
         self._setup_user_misery()
 
@@ -5685,7 +5685,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "data": [{"user_misery(300)": 0.07299794661190964}],
+            "data": [{"user_misery(300)": user_misery_formula(miserable_users=3, unique_users=4)}],
             "meta": {
                 "fields": {"user_misery(300)": "number"},
                 "units": {"user_misery(300)": None},
