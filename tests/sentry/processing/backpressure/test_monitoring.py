@@ -1,13 +1,7 @@
-from collections.abc import MutableMapping
-
 import pytest
 from django.test.utils import override_settings
 
-from sentry.processing.backpressure.health import (
-    UnhealthyReasons,
-    is_consumer_healthy,
-    record_consumer_health,
-)
+from sentry.processing.backpressure.health import is_consumer_healthy, record_consumer_health
 from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
@@ -46,8 +40,8 @@ def test_check_redis_health() -> None:
             "backpressure.high_watermarks.redis": 1.0,
         }
     ):
-        unhealthy_services = check_service_health(services)
-        assert not unhealthy_services["redis"]
+        service_health = check_service_health(services)
+        assert service_health["redis"] is True
 
     with override_options(
         {
@@ -55,8 +49,8 @@ def test_check_redis_health() -> None:
             "backpressure.high_watermarks.redis": 0.0,
         }
     ):
-        unhealthy_services = check_service_health(services)
-        assert unhealthy_services["redis"]
+        service_health = check_service_health(services)
+        assert service_health["redis"] is False
 
 
 @override_options(
@@ -67,27 +61,27 @@ def test_check_redis_health() -> None:
     }
 )
 def test_record_consumer_health() -> None:
-    unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
-        "celery": [],
-        "attachments-store": [],
-        "processing-store": [],
-        "processing-locks": [],
-        "post-process-locks": [],
+    service_health = {
+        "celery": True,
+        "attachments-store": True,
+        "processing-store": True,
+        "processing-locks": True,
+        "post-process-locks": True,
     }
-    record_consumer_health(unhealthy_services)
+    record_consumer_health(service_health)
     assert is_consumer_healthy() is True
 
-    unhealthy_services["celery"] = Exception("Couldn't check celery")
-    record_consumer_health(unhealthy_services)
+    service_health["celery"] = False
+    record_consumer_health(service_health)
     assert is_consumer_healthy() is False
 
     with pytest.raises(KeyError):
         record_consumer_health(
             {
-                "sellerie": [],  # oops
-                "attachments-store": [],
-                "processing-store": [],
-                "processing-locks": [],
-                "post-process-locks": [],
+                "sellerie": True,  # oops
+                "attachments-store": True,
+                "processing-store": True,
+                "processing-locks": True,
+                "post-process-locks": True,
             }
         )
