@@ -201,7 +201,7 @@ register_strategy_config(
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
-    fingerprinting_bases=["sentry.javascript@2024-02-02"],
+    fingerprinting_bases=["javascript@2024-02-02"],
 )
 
 
