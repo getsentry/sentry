@@ -25,6 +25,11 @@ type Props = {
   group?: Group;
 };
 
+const CLIP_OFFSETS = {
+  durationAfterMs: 5_000,
+  durationBeforeMs: 5_000,
+};
+
 function EventReplayContent({
   event,
   group,
@@ -100,7 +105,11 @@ function EventReplayContent({
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReactLazyLoad debounce={50} height={448} offset={0} once>
             {hasReplayClipFeature ? (
-              <LazyLoad {...commonProps} component={replayClipPreview} />
+              <LazyLoad
+                {...commonProps}
+                component={replayClipPreview}
+                clipOffsets={CLIP_OFFSETS}
+              />
             ) : (
               <LazyLoad {...commonProps} component={replayPreview} />
             )}
