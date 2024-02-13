@@ -57,7 +57,7 @@ function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
   ]);
 }
 
-interface SamplesTableProps extends SelectionRange {
+export interface SamplesTableProps extends SelectionRange {
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;

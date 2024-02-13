@@ -12,6 +12,7 @@ import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import type {SamplesTableProps} from 'sentry/views/ddm/sampleTable';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
 import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
 
@@ -83,19 +84,12 @@ export function WidgetDetails() {
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
-              {organization.features.includes('metrics-samples-list') ? (
-                <MetricSamplesTable
-                  mri={selectedWidget?.mri}
-                  query={queryWithFocusedSeries}
-                />
-              ) : (
-                <SampleTable
-                  mri={selectedWidget?.mri}
-                  query={queryWithFocusedSeries}
-                  {...focusArea?.selection?.range}
-                  onRowHover={handleSampleRowHover}
-                />
-              )}
+              <MetricSamplesTab
+                mri={selectedWidget?.mri}
+                query={queryWithFocusedSeries}
+                {...focusArea?.selection?.range}
+                onRowHover={handleSampleRowHover}
+              />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />
@@ -105,6 +99,15 @@ export function WidgetDetails() {
       </Tabs>
     </TrayWrapper>
   );
+}
+
+export function MetricSamplesTab({mri, query, onRowHover, ...range}: SamplesTableProps) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('metrics-samples-list')) {
+    return <MetricSamplesTable mri={mri} query={query} />;
+  }
+  return <SampleTable mri={mri} query={query} {...range} onRowHover={onRowHover} />;
 }
 
 const TrayWrapper = styled('div')`
