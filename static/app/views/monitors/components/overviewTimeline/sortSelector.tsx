@@ -11,7 +11,7 @@ export enum MonitorSortOrder {
 }
 
 export enum MonitorSortOption {
-  STATE = 'state',
+  STATUS = 'status',
   NAME = 'name',
   MUTED = 'muted',
 }
@@ -22,7 +22,7 @@ const ORDER_OPTIONS = [
 ];
 
 const SORT_OPTIONS = [
-  {label: t('State'), value: MonitorSortOption.STATE},
+  {label: t('Status'), value: MonitorSortOption.STATUS},
   {label: t('Name'), value: MonitorSortOption.NAME},
   {label: t('Muted'), value: MonitorSortOption.MUTED},
 ];
@@ -37,7 +37,7 @@ interface Props {
 export function SortSelector({onChangeOrder, onChangeSort, order, sort}: Props) {
   const {replace, location} = useRouter();
 
-  const selectedSort = sort ?? location.query?.sort ?? MonitorSortOption.STATE;
+  const selectedSort = sort ?? location.query?.sort ?? MonitorSortOption.STATUS;
   const selectedOrder = order ?? location.query?.asc ?? MonitorSortOrder.DESCENDING;
 
   const defaultOnChange = (newSort: MonitorSortOption, newOrder: MonitorSortOrder) => {
