@@ -25,7 +25,7 @@ export default class TextareaField extends InputField<InputField['props'], State
   }
 
   /**
-   * only defined to satisfy abstract class
+   * Unused, only defined to satisfy abstract class
    */
   getType() {
     return '';
