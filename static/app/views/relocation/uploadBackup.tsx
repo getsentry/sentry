@@ -75,7 +75,7 @@ export function UploadBackup({onComplete}: StepProps) {
   };
 
   const onFileUploadLinkClick = () => {
-    inputFileRef.current && inputFileRef.current.click();
+    inputFileRef.current?.click();
   };
 
   const handleStartRelocation = async () => {

@@ -39,8 +39,7 @@ function UnmemoizedConsoleLogRow({
   style,
 }: Props) {
   const handleDimensionChange = useCallback(
-    (path, expandedState, e) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState, e),
+    (path, expandedState, e) => onDimensionChange?.(index, path, expandedState, e),
     [onDimensionChange, index]
   );
 

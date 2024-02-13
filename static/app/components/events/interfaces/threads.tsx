@@ -248,7 +248,7 @@ export function Threads({
                 </Wrapper>
               )}
             </EventDataSection>
-            {activeThread && activeThread.state && (
+            {activeThread?.state && (
               <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}

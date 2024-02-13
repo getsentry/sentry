@@ -120,7 +120,7 @@ function SourceCodeIntegrationLink({
     projectSlug: project.slug,
   });
 
-  if (match && match.config && match.sourceUrl && frame.lineNo && !isLoading) {
+  if (match?.config && match.sourceUrl && frame.lineNo && !isLoading) {
     return (
       <DeemphasizedExternalLink
         href={getIntegrationSourceUrl(

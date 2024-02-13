@@ -11,8 +11,9 @@ function TestComponent({other}: {other: string}) {
   return (
     <div>
       <span>{other}</span>
-      {releases &&
-        releases.map(release => <em key={release.version}>{release.version}</em>)}
+      {releases?.map(release => (
+        <em key={release.version}>{release.version}</em>
+      ))}
       {`loading: ${loading}`}
     </div>
   );

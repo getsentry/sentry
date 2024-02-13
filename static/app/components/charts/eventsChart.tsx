@@ -226,7 +226,7 @@ class Chart extends Component<ChartProps, State> {
     }
 
     // Temporary fix to improve performance on pages with a high number of releases.
-    const releases = releaseSeries && releaseSeries[0];
+    const releases = releaseSeries?.[0];
     const hideReleasesByDefault =
       Array.isArray(releaseSeries) &&
       (releases as any)?.markLine?.data &&
@@ -267,7 +267,7 @@ class Chart extends Component<ChartProps, State> {
           ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
         ]
       : undefined;
-    if (chartColors && chartColors.length && hasOther) {
+    if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);
     }
     const chartOptions = {

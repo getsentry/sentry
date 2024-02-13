@@ -446,8 +446,7 @@ class EventView {
 
   static getFields(saved: NewQuery | SavedQuery) {
     return saved.fields.map((field, i) => {
-      const width =
-        saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
+      const width = saved.widths?.[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
       return {field, width};
     });
@@ -722,7 +721,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      if (this[field] && this[field].length) {
+      if (this[field]?.length) {
         output[field] = this[field];
       }
     }
@@ -1134,7 +1133,7 @@ class EventView {
   }
 
   normalizeDateSelection(location: Location) {
-    const query = (location && location.query) || {};
+    const query = location?.query || {};
 
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
@@ -1230,7 +1229,7 @@ class EventView {
   getResultsViewShortUrlTarget(slug: string): {pathname: string; query: Query} {
     const output = {id: this.id};
     for (const field of [...Object.values(URL_PARAM), 'cursor']) {
-      if (this[field] && this[field].length) {
+      if (this[field]?.length) {
         output[field] = this[field];
       }
     }
@@ -1260,7 +1259,7 @@ class EventView {
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
-      if (this[field] && this[field].length) {
+      if (this[field]?.length) {
         output[field] = this[field];
       }
     }

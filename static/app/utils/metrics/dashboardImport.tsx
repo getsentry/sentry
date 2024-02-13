@@ -277,7 +277,7 @@ export class WidgetParser {
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
 
-    if (metric && metric.includes('.')) {
+    if (metric?.includes('.')) {
       const lastIndex = metric.lastIndexOf('.');
       const metricName = metric.slice(0, lastIndex);
       const operationSuffix = metric.slice(lastIndex + 1);

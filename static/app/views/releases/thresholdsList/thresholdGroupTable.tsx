@@ -50,20 +50,19 @@ export default function ThresholdGroupTable({
         emptyMessage={t('No thresholds found.')}
         headers={[t('Environment'), t('Window'), t('Condition'), t(' ')]}
       >
-        {sortedThreshold &&
-          sortedThreshold.map((threshold, idx) => {
-            return (
-              <ThresholdGroupRows
-                key={threshold.id}
-                project={project}
-                allEnvironmentNames={allEnvironmentNames}
-                threshold={threshold}
-                refetch={refetch}
-                setTempError={setTempError}
-                isLastRow={idx === sortedThreshold.length - 1}
-              />
-            );
-          })}
+        {sortedThreshold?.map((threshold, idx) => {
+          return (
+            <ThresholdGroupRows
+              key={threshold.id}
+              project={project}
+              allEnvironmentNames={allEnvironmentNames}
+              threshold={threshold}
+              refetch={refetch}
+              setTempError={setTempError}
+              isLastRow={idx === sortedThreshold.length - 1}
+            />
+          );
+        })}
       </StyledPanelTable>
     </div>
   );

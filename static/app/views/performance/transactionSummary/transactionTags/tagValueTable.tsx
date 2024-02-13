@@ -307,7 +307,7 @@ export class TagValueTable extends Component<Props, State> {
         >
           <GridEditable
             isLoading={isLoading}
-            data={tableData && tableData.data ? tableData.data : []}
+            data={tableData?.data ? tableData.data : []}
             columnOrder={newColumns}
             columnSortBy={[]}
             grid={{

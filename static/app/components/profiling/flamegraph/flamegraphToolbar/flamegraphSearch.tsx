@@ -167,7 +167,7 @@ function yieldingRafFrameSearch(
   const lowercaseQuery = query.toLowerCase();
   const [_, lookup, flags] = isRegExpSearch ? regexp : ['', '', ''];
 
-  const forcedGlobalFlags = flags && flags.includes('g') ? flags : (flags || '') + 'g';
+  const forcedGlobalFlags = flags?.includes('g') ? flags : (flags || '') + 'g';
 
   const searchFramesFunction = isRegExpSearch ? searchFrameRegExp : searchFrameFzf;
   const searchSpansFunction = isRegExpSearch ? searchSpanRegExp : searchSpanFzf;

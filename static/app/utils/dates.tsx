@@ -218,10 +218,10 @@ export function statsPeriodToDays(
   start?: DateString,
   end?: DateString
 ) {
-  if (statsPeriod && statsPeriod.endsWith('d')) {
+  if (statsPeriod?.endsWith('d')) {
     return parseInt(statsPeriod.slice(0, -1), 10);
   }
-  if (statsPeriod && statsPeriod.endsWith('h')) {
+  if (statsPeriod?.endsWith('h')) {
     return parseInt(statsPeriod.slice(0, -1), 10) / 24;
   }
   if (start && end) {

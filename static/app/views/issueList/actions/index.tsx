@@ -285,7 +285,7 @@ function useSelectedGroupsState() {
   const selected = SelectedGroupStore.getSelectedIds();
   const projects = [...selected]
     .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);

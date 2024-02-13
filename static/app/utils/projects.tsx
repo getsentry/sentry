@@ -406,7 +406,7 @@ class BaseProjects extends Component<Props, State> {
       // while we load actual project data
       projects: this.state.initiallyLoaded
         ? [...this.state.fetchedProjects, ...this.state.projectsFromStore]
-        : (slugs && slugs.map(slug => ({slug}))) || [],
+        : slugs?.map(slug => ({slug})) || [],
 
       // This is set when we fail to find some slugs from both store and API
       isIncomplete: this.state.isIncomplete,
@@ -472,7 +472,7 @@ async function fetchProjects(
     collapse: ['latestDeploys'],
   };
 
-  if (slugs && slugs.length) {
+  if (slugs?.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
   }
 

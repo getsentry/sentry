@@ -48,7 +48,7 @@ function getFrameSuggestions(eventData?: Event) {
   }
 
   // Only display in-app frames
-  frames = frames.filter(frame => frame && frame.inApp).reverse();
+  frames = frames.filter(frame => frame?.inApp).reverse();
 
   return uniq(frames.map(frame => frame.filename || frame.absPath || ''));
 }

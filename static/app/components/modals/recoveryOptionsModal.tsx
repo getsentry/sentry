@@ -43,7 +43,7 @@ class RecoveryOptionsModal extends DeprecatedAsyncComponent<Props, State> {
       },
       {}
     );
-    const recoveryEnrolled = recovery && recovery.isEnrolled;
+    const recoveryEnrolled = recovery?.isEnrolled;
     const displaySmsPrompt =
       sms && !sms.isEnrolled && !skipSms && !sms.disallowNewEnrollment;
 

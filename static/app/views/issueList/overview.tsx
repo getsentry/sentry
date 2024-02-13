@@ -673,7 +673,7 @@ class IssueListOverview extends Component<Props, State> {
         // If this is a direct hit, we redirect to the intended result directly.
         if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
-          if (data[0] && data[0].matchingEventId) {
+          if (data[0]?.matchingEventId) {
             const {id, matchingEventId} = data[0];
             redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
           } else {
@@ -969,7 +969,7 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     let path: string;
 
-    if (savedSearch && savedSearch.id) {
+    if (savedSearch?.id) {
       path = `/organizations/${organization.slug}/issues/searches/${savedSearch.id}/`;
 
       // Remove the query as saved searches bring their own query string.

@@ -60,7 +60,7 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-          {renderContextMenu && renderContextMenu()}
+          {renderContextMenu?.()}
         </CardFooter>
       </StyledDashboardCard>
     </Link>

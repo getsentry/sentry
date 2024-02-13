@@ -410,7 +410,7 @@ const storeConfig: GroupStoreDefinition = {
     this.items = this.items.filter(
       item =>
         !mergedIdSet.has(item.id) ||
-        (response && response.merge && item.id === response.merge.parent)
+        (response?.merge && item.id === response.merge.parent)
     );
 
     if (ids.length > 0) {

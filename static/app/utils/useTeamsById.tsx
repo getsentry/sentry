@@ -33,7 +33,7 @@ type TeamQuery = [field: string, ids: string[]];
 function buildTeamsQueryKey(orgSlug: string, teamQuery: TeamQuery | null): ApiQueryKey {
   const query: {query?: string} = {};
 
-  if (teamQuery && teamQuery[1].length) {
+  if (teamQuery?.[1].length) {
     query.query = `${teamQuery[0]}:${teamQuery[1].join(',')}`;
   }
 

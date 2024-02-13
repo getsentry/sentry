@@ -202,7 +202,7 @@ class MiniGraph extends Component<Props> {
           const chartColors = allSeries.length
             ? [...theme.charts.getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))]
             : undefined;
-          if (chartColors && chartColors.length && hasOther) {
+          if (chartColors?.length && hasOther) {
             chartColors.push(theme.chartOther);
           }
           const chartOptions = {

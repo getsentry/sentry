@@ -123,15 +123,10 @@ function TagsHeatMap(
 
   const xValues = new Set();
 
-  const histogramData =
-    tableData &&
-    tableData.histogram &&
-    tableData.histogram.data &&
-    tableData.histogram.data.length
-      ? tableData.histogram.data
-      : undefined;
-  const tagData =
-    tableData && tableData.tags && tableData.tags.data ? tableData.tags.data : undefined;
+  const histogramData = tableData?.histogram?.data?.length
+    ? tableData.histogram.data
+    : undefined;
+  const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
 
   const rowKey = histogramData && findRowKey(histogramData[0]);
 

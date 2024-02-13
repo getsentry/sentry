@@ -89,7 +89,7 @@ class OwnerInput extends Component<Props, State> {
             hasChanges: false,
             text,
           },
-          () => onSave && onSave(text)
+          () => onSave?.(text)
         );
         trackIntegrationAnalytics('project_ownership.saved', {
           page,

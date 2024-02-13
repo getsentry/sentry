@@ -33,7 +33,7 @@ export function getIncidentDiscoverUrl(opts: {
 
   const discoverQuery: NewQuery = {
     id: undefined,
-    name: (incident && incident.title) || '',
+    name: incident?.title || '',
     orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
     yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
     query: incident?.discoverQuery ?? '',

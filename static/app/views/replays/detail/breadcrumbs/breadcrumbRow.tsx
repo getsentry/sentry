@@ -51,8 +51,7 @@ export default function BreadcrumbRow({
     [onDimensionChange, index]
   );
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState, e) =>
-      onInspectorExpanded && onInspectorExpanded(index, path, expandedState, e),
+    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
     [index, onInspectorExpanded]
   );
 

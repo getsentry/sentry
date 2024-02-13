@@ -120,8 +120,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
-      const errorMessage =
-        (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
+      const errorMessage = resp?.responseJSON?.detail || t('Could not save...');
       this.setState({busy: false});
       addErrorMessage(errorMessage);
     }

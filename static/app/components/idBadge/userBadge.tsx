@@ -39,7 +39,7 @@ function UserBadge({
       <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName hideEmail={!!hideEmail}>{title}</StyledName>
-        {!hideEmail && <StyledEmail>{displayEmail || (user && user.email)}</StyledEmail>}
+        {!hideEmail && <StyledEmail>{displayEmail || user?.email}</StyledEmail>}
       </StyledNameAndEmail>
     </StyledUserBadge>
   );

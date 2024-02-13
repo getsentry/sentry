@@ -163,11 +163,7 @@ function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
         valueFormatter: (value, seriesName) => {
           return tooltipFormatter(
             value,
-            aggregateOutputType(
-              affectedEvents && affectedEvents.length
-                ? affectedEvents[0].seriesName
-                : seriesName
-            )
+            aggregateOutputType(affectedEvents.at(0)?.seriesName ?? seriesName)
           );
         },
       }}

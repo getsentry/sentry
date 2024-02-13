@@ -66,7 +66,7 @@ class QueryCard extends PureComponent<Props> {
                 </DateStatus>
               ) : null}
             </DateSelected>
-            {renderContextMenu && renderContextMenu()}
+            {renderContextMenu?.()}
           </QueryCardFooter>
         </StyledQueryCard>
       </Link>

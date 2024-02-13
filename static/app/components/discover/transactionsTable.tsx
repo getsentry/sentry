@@ -129,7 +129,7 @@ class TransactionsTable extends PureComponent<Props> {
     } = this.props;
     const fields = eventView.getFields();
 
-    if (titles && titles.length) {
+    if (titles?.length) {
       // Slice to match length of given titles
       columnOrder = columnOrder.slice(0, titles.length);
     }
@@ -221,8 +221,7 @@ class TransactionsTable extends PureComponent<Props> {
   render() {
     const {isLoading, tableData} = this.props;
 
-    const hasResults =
-      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
+    const hasResults = tableData?.meta && tableData.data?.length > 0;
 
     // Custom set the height so we don't have layout shift when results are loaded.
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;

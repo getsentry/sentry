@@ -154,8 +154,7 @@ function NoteInput({
     (errorJSON &&
       (typeof errorJSON.detail === 'string'
         ? errorJSON.detail
-        : (errorJSON.detail && errorJSON.detail.message) ||
-          t('Unable to post comment'))) ||
+        : errorJSON.detail?.message || t('Unable to post comment'))) ||
     null;
 
   return (

@@ -136,7 +136,7 @@ class Table extends PureComponent<TableProps, TableState> {
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
           data: {
-            status: resp && resp.status,
+            status: resp?.status,
           },
         });
         if (this.state.tableFetchID !== tableFetchID) {

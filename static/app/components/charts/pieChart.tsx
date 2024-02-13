@@ -101,8 +101,7 @@ class PieChart extends Component<Props> {
       <BaseChart
         ref={this.chart}
         colors={
-          firstSeries &&
-          firstSeries.data && [...theme.charts.getColorPalette(firstSeries.data.length)]
+          firstSeries?.data && [...theme.charts.getColorPalette(firstSeries.data.length)]
         }
         // when legend highlights it does NOT pass dataIndex :(
         onHighlight={({name}) => {

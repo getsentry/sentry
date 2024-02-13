@@ -316,7 +316,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     });
 
     GroupStore.onUpdateSuccess('', [this.getGroup().id], {stale: true} as StaleGroup);
-    this.props.onSuccess && this.props.onSuccess(data);
+    this.props.onSuccess?.(data);
   }
 
   createIssue() {

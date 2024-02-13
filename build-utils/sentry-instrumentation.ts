@@ -1,10 +1,9 @@
 /* eslint-env node */
+import type Sentry from '@sentry/node';
+import type {Transaction} from '@sentry/types';
 import crypto from 'node:crypto';
 import https from 'node:https';
 import os from 'node:os';
-
-import type Sentry from '@sentry/node';
-import type {Transaction} from '@sentry/types';
 import type webpack from 'webpack';
 
 const {
@@ -72,7 +71,7 @@ class SentryInstrumentation {
     sentry.setTag('arch', os.arch());
     sentry.setTag(
       'cpu',
-      cpus && cpus.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
+      cpus?.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
     );
 
     this.Sentry = sentry;

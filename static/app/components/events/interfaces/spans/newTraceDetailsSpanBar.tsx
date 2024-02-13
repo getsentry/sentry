@@ -504,7 +504,7 @@ export class NewTraceDetailsSpanBar extends Component<
             if (groupType === GroupType.SIBLINGS && 'op' in span) {
               toggleSiblingSpanGroup?.(span, groupOccurrence ?? 0);
             } else {
-              toggleSpanGroup && toggleSpanGroup();
+              toggleSpanGroup?.();
             }
           }}
         >

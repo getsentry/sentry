@@ -1,8 +1,7 @@
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Project, Scope, Team} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-
-import {hasEveryAccess} from '../../../components/acl/access';
 
 type Props = {
   /**
@@ -35,7 +34,7 @@ export function useAccess({access = [], team, project}: Props) {
   project = project ?? undefined;
 
   const hasAccess = hasEveryAccess(access, {organization, team, project});
-  const hasSuperuser = !!(user && user.isSuperuser);
+  const hasSuperuser = Boolean(user?.isSuperuser);
 
   return {
     hasAccess,

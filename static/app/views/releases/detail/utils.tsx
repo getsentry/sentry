@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
+import type {Moment} from 'moment';
 import moment from 'moment';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -248,8 +249,10 @@ export function generateReleaseMarkLines(
     return markLines;
   }
 
-  const releaseAdopted = adoptionStages?.adopted && moment(adoptionStages.adopted);
-  if (releaseAdopted && releaseAdopted.isBetween(start, end)) {
+  const releaseAdopted: Moment | undefined = adoptionStages?.adopted
+    ? moment(adoptionStages.adopted)
+    : undefined;
+  if (releaseAdopted?.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.adopted,
@@ -260,8 +263,10 @@ export function generateReleaseMarkLines(
     );
   }
 
-  const releaseReplaced = adoptionStages?.unadopted && moment(adoptionStages.unadopted);
-  if (releaseReplaced && releaseReplaced.isBetween(start, end)) {
+  const releaseReplaced: Moment | undefined = adoptionStages?.unadopted
+    ? moment(adoptionStages.unadopted)
+    : undefined;
+  if (releaseReplaced?.isBetween(start, end)) {
     markLines.push(
       generateReleaseMarkLine(
         releaseMarkLinesLabels.unadopted,

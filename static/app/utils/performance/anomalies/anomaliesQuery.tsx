@@ -85,7 +85,7 @@ function AnomaliesSeriesQuery(props: Props) {
     >
       {({tableData, ...rest}) => {
         return props.children({
-          data: tableData && tableData.y ? transformPayload(tableData) : null,
+          data: tableData?.y ? transformPayload(tableData) : null,
           ...rest,
         });
       }}

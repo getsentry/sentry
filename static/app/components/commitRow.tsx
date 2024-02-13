@@ -120,7 +120,7 @@ function CommitRow({
         </Meta>
       </CommitMessage>
 
-      {commit.pullRequest && commit.pullRequest.externalUrl && (
+      {commit.pullRequest?.externalUrl && (
         <Button
           external
           href={commit.pullRequest.externalUrl}

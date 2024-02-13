@@ -23,7 +23,8 @@
         "useIsNan": "error"
       },
       "complexity": {
-        "useFlatMap": "error"
+        "useFlatMap": "error",
+        "useOptionalChain": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",

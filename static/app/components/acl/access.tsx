@@ -63,7 +63,7 @@ function Access({
   project = project ?? undefined;
 
   const hasAccess = hasEveryAccess(access, {organization, team, project});
-  const hasSuperuser = !!(user && user.isSuperuser);
+  const hasSuperuser = Boolean(user?.isSuperuser);
 
   const renderProps: ChildRenderProps = {
     hasAccess,

@@ -100,7 +100,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries
-          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+          if (eventView.name?.toLowerCase().includes(needleSearch)) {
             return sum + 1;
           }
 

@@ -84,7 +84,7 @@ function HookOrDefault<H extends HookName>({
       };
     }, []);
 
-    const hookExists = hooks && hooks.length;
+    const hookExists = hooks?.length;
     const componentFromHook = hooks[0]?.();
     // Defining the props here is unnecessary and slow for typescript
     const HookComponent: React.ComponentType<any> =

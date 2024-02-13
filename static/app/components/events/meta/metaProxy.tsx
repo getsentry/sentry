@@ -32,7 +32,7 @@ export class MetaProxy {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return key => {
-        if (this.local && this.local[key] && this.local[key]['']) {
+        if (this.local?.[key]?.['']) {
           // TODO: Error checks
           const meta = this.local[key][''];
 
@@ -60,7 +60,7 @@ export class MetaProxy {
 
     // Make sure we apply proxy to all children (objects and arrays)
     // Do we need to check for annotated inside of objects?
-    return new Proxy(value, new MetaProxy(this.local && this.local[prop]));
+    return new Proxy(value, new MetaProxy(this.local?.[prop]));
   }
 }
 

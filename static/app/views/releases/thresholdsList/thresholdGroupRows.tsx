@@ -447,7 +447,7 @@ export function ThresholdGroupRows({
                     icon={<IconAdd color="activeText" isCircled />}
                     onClick={() =>
                       initializeNewThreshold(
-                        initialThreshold && initialThreshold.environment
+                        initialThreshold?.environment
                           ? initialThreshold.environment.name
                           : undefined,
                         initialThreshold ? initialThreshold.window_in_seconds : 0

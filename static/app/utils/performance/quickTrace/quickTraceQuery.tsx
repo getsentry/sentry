@@ -158,11 +158,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current
               // event could not be found
-              type:
-                traceFullResults.traces?.transactions &&
-                traceFullResults.traces?.transactions.length
-                  ? 'missing'
-                  : 'empty',
+              type: traceFullResults.traces?.transactions?.length ? 'missing' : 'empty',
               currentEvent: null,
             });
           }}

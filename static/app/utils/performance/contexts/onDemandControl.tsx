@@ -125,7 +125,7 @@ export const shouldUseOnDemandMetrics = (
     return false;
   }
 
-  if (onDemandControlContext && onDemandControlContext.isControlEnabled) {
+  if (onDemandControlContext?.isControlEnabled) {
     return onDemandControlContext.forceOnDemand;
   }
 

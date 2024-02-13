@@ -58,7 +58,7 @@ function withLatestContext<P extends InjectedLatestContextProps>(
       // of orgs but not full org details
       const latestOrganization =
         organization ||
-        (organizations && organizations.length
+        (organizations?.length
           ? organizations.find(
               ({slug}) => slug === ConfigStore.get('lastOrganization')
             ) || organizations[0]
