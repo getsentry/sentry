@@ -238,7 +238,7 @@ class EventSerializer(Serializer):
             # Sentry at one point attempted to record invalid types here.
             # Remove after June 2 2016
             try:
-                received = datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc)
+                received = datetime.fromtimestamp(received, timezone.utc)
             except TypeError:
                 received = None
 

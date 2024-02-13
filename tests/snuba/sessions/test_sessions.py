@@ -43,12 +43,12 @@ def parametrize_backend(cls):
 
 def format_timestamp(dt):
     if not isinstance(dt, datetime):
-        dt = datetime.utcfromtimestamp(dt)
+        dt = datetime.fromtimestamp(dt)
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 def make_24h_stats(ts, adjust_start=False):
-    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=timezone.utc), 3600, 24)
+    ret_val = _make_stats(datetime.fromtimestamp(ts, timezone.utc), 3600, 24)
 
     if adjust_start:
         # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
@@ -447,14 +447,14 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
 
         expected_formatted_lower_bound = (
-            datetime.utcfromtimestamp(self.session_started - 3600 * 2)
+            datetime.fromtimestamp(self.session_started - 3600 * 2)
             .replace(minute=0)
             .isoformat()[:19]
             + "Z"
         )
 
         expected_formatted_upper_bound = (
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
+            datetime.fromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release

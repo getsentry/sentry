@@ -145,7 +145,7 @@ def track_initial_segment_event(
         key_id=key_id,
         outcome=Outcome.ACCEPTED,
         reason=None,
-        timestamp=datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc),
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
         event_id=replay_id,
         category=DataCategory.REPLAY,
         quantity=1,

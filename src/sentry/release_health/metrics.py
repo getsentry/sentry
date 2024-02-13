@@ -493,7 +493,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         def iso_format_snuba_datetime(date: str) -> str:
             return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
 
-        formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        formatted_unix_start_time = datetime.fromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
         def clean_date_string(d: str | None) -> str | None:
             # This check is added because if there are no sessions found, then the

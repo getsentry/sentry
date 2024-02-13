@@ -80,13 +80,13 @@ class FlatFileMeta:
 
     @staticmethod
     def build_none():
-        return FlatFileMeta(id=-1, date=datetime.utcfromtimestamp(0))
+        return FlatFileMeta(id=-1, date=datetime.fromtimestamp(0))
 
     def to_string(self) -> str:
         return f"bundle_index/{self.id}/{int(self.date.timestamp() * 1000)}"
 
     def is_none(self):
-        return self.id == -1 and self.date == datetime.utcfromtimestamp(0)
+        return self.id == -1 and self.date == datetime.fromtimestamp(0)
 
 
 class FlatFileIdentifier(NamedTuple):

@@ -162,7 +162,7 @@ class Staff(ElevatedMode):
             current_datetime = django_timezone.now()
 
         try:
-            data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
+            data["idl"] = datetime.fromtimestamp(float(data["idl"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-idle-expiration",
@@ -179,7 +179,7 @@ class Staff(ElevatedMode):
             return
 
         try:
-            data["exp"] = datetime.utcfromtimestamp(float(data["exp"])).replace(tzinfo=timezone.utc)
+            data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-expiration",

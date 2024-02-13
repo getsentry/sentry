@@ -20,7 +20,7 @@ from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, Ins
 from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
-UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
+UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat()
 
 
 class ScrubbedData:
