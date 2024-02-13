@@ -51,7 +51,7 @@ class GithubRateLimitInfo:
         self.used = info["used"]
 
     def next_window(self) -> str:
-        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"

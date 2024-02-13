@@ -68,7 +68,21 @@ OVERRIDE_OPTIONS = {
 }
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
-SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
+
+
+def log_snuba_info(content):
+    if SNUBA_INFO_FILE:
+        with open(SNUBA_INFO_FILE, "a") as file:
+            file.writelines(content)
+    else:
+        print(content)  # NOQA: only prints when an env variable is set
+
+
+SNUBA_INFO = (
+    os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
+)
+
 if SNUBA_INFO:
     import sqlparse
 
@@ -966,14 +980,14 @@ def _bulk_snuba_query(
             body = json.loads(response.data, skip_trace=True)
             if SNUBA_INFO:
                 if "sql" in body:
-                    print(  # NOQA: only prints when an env variable is set
+                    log_snuba_info(
                         "{}.sql:\n {}".format(
                             headers.get("referer", "<unknown>"),
                             sqlparse.format(body["sql"], reindent_aligned=True),
                         )
                     )
                 if "error" in body:
-                    print(  # NOQA: only prints when an env variable is set
+                    log_snuba_info(
                         "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
                     )
         except ValueError:
@@ -1045,9 +1059,7 @@ def _snuba_query(
         if SNUBA_INFO:
             import pprint
 
-            print(  # NOQA: only prints when an env variable is set
-                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
-            )
+            log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
             request.flags.debug = True
 
         if isinstance(request.query, MetricsQuery):

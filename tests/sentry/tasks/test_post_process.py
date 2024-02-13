@@ -24,8 +24,8 @@ from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
-    PerformanceDurationRegressionGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
@@ -2462,7 +2462,7 @@ class PostProcessGroupAggregateEventTest(
 ):
     def create_event(self, data, project_id):
         group = self.create_group(
-            type=PerformanceDurationRegressionGroupType.type_id,
+            type=PerformanceP95EndpointRegressionGroupType.type_id,
         )
 
         event = self.store_event(data=data, project_id=project_id)
@@ -2489,7 +2489,7 @@ class PostProcessGroupAggregateEventTest(
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(
-            PerformanceDurationRegressionGroupType.build_post_process_group_feature_name()
+            PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
         ):
             post_process_group(
                 is_new=is_new,
