@@ -13,7 +13,7 @@ from sentry.digests.utils import (
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -79,7 +79,11 @@ def assert_get_personalized_digests(
 ):
     result_user_ids = []
     participants_by_provider_by_event = get_participants_by_event(
-        digest, project, target_type, target_identifier
+        digest,
+        project,
+        target_type,
+        target_identifier,
+        fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
     )
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
     for actor, user_digest in personalized_digests.items():

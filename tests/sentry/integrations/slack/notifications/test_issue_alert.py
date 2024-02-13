@@ -21,7 +21,7 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner
 from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
@@ -344,10 +344,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 "actions": [action_data],
             },
         )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.ISSUE_OWNERS,
+            self.user.id,
+            FallthroughChoiceType.ACTIVE_MEMBERS,
         )
 
         with self.tasks():
@@ -390,10 +393,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 "actions": [action_data],
             },
         )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.ISSUE_OWNERS,
+            self.user.id,
+            FallthroughChoiceType.ACTIVE_MEMBERS,
         )
 
         with self.tasks():
@@ -444,10 +450,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             environment_id=environment.id,
         )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.ISSUE_OWNERS,
+            self.user.id,
+            FallthroughChoiceType.ACTIVE_MEMBERS,
         )
 
         with self.tasks():
@@ -498,10 +507,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             environment_id=environment.id,
         )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
+            Notification(event=event, rule=rule),
+            ActionTargetType.ISSUE_OWNERS,
+            self.user.id,
+            FallthroughChoiceType.ACTIVE_MEMBERS,
         )
 
         with self.tasks():
@@ -562,9 +574,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
-        )
+        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([rule]))
 
         event = self.store_event(
             data={
@@ -655,9 +665,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([g_rule]), fallthrough=True
-        )
+        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([g_rule]))
 
         event = self.store_event(
             data={
@@ -736,9 +744,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
-        )
+        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([rule]))
 
         event = self.store_event(
             data={
@@ -827,9 +833,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             )
 
         g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([g_rule]), fallthrough=True
-        )
+        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([g_rule]))
 
         event = self.store_event(
             data={
@@ -1255,11 +1259,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        key = f"mail:p:{self.project.id}"
+        key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
 
         with self.tasks():
@@ -1284,11 +1288,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        key = f"mail:p:{self.project.id}"
+
+        key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
 
         with self.tasks():

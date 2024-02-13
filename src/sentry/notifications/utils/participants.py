@@ -409,13 +409,6 @@ def get_send_to(
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
-    if not features.has(
-        "organizations:issue-alert-fallback-targeting",
-        project.organization,
-        actor=None,
-    ):
-        return []
-
     if not fallthrough_choice:
         logger.warning("Missing fallthrough type in project: %s", project)
         return []

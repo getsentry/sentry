@@ -12,7 +12,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -50,25 +49,18 @@ class DeliverDigestTest(TestCase):
             )
             with self.tasks():
                 deliver_digest(key)
-            assert "2 new alerts since" in mail.outbox[0].subject
 
     def test_old_key(self):
         self.run_test(f"mail:p:{self.project.id}")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
+        assert len(mail.outbox) == 0
 
     def test_new_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners:")
-        message = mail.outbox[0]
-        assert isinstance(message, EmailMultiAlternatives)
-        assert isinstance(message.alternatives[0][0], str)
-        assert "notification_uuid" in message.alternatives[0][0]
+        assert len(mail.outbox) == 0
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_choice_key(self):
         self.run_test(f"mail:p:{self.project.id}:IssueOwners::AllMembers")
+        assert "2 new alerts since" in mail.outbox[0].subject
         message = mail.outbox[0]
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
@@ -76,6 +68,7 @@ class DeliverDigestTest(TestCase):
 
     def test_member_key(self):
         self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}")
+        assert "2 new alerts since" in mail.outbox[0].subject
         message = mail.outbox[0]
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)

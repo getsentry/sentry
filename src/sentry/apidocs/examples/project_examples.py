@@ -287,7 +287,6 @@ DETAILED_PROJECT = {
             "profile-file-io-main-thread-ingest",
             "customer-domains",
             "performance-file-io-main-thread-post-process-group",
-            "issue-alert-fallback-targeting",
             "performance-render-blocking-asset-span-visible",
             "ds-sliding-window-org",
             "performance-consecutive-http-ingest",

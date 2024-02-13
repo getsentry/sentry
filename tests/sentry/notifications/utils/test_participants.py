@@ -400,14 +400,10 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    def test_fallthrough(self):
+    def test_no_fallthrough(self):
         event = self.store_event_owners("no_rule.cpp")
 
-        self.assert_recipients_are(
-            self.get_send_to_owners(event),
-            email=[self.user.id, self.user2.id, self.user_suspect_committer.id],
-            slack=[self.user.id, self.user2.id, self.user_suspect_committer.id],
-        )
+        self.assert_recipients_are(self.get_send_to_owners(event), email=[], slack=[])
 
     def test_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
@@ -760,15 +756,13 @@ class GetOwnersCase(_ParticipantsTest):
         self.assert_recipients(expected=[], received=recipients)
         assert outcome == "empty"
 
-    # If no match, and fallthrough is enabled
-    def test_get_owners_everyone(self):
+    # If no match, and fallthrough is still ignored
+    def test_get_owners_fallthrough_ignored(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
         recipients, outcome = get_owners(project=self.project, event=event)
-        self.assert_recipients(
-            expected=[self.user_1, self.user_2, self.user_3], received=recipients
-        )
-        assert outcome == "everyone"
+        self.assert_recipients(expected=[], received=recipients)
+        assert outcome == "empty"
 
     # If matched, and all-recipients flag
     def test_get_owners_match(self):
@@ -905,25 +899,11 @@ class GetSendToFallthroughTest(_ParticipantsTest):
     def store_event(self, filename: str, project: Project) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=project.id)
 
-    def test_feature_off_no_owner(self):
-        event = self.store_event("empty.lol", self.project)
-        assert get_fallthrough_recipients(self.project, FallthroughChoiceType.ACTIVE_MEMBERS) == []
-        assert self.get_send_to_fallthrough(event, self.project, None) == {}
-
-    def test_feature_off_with_owner(self):
-        event = self.store_event("empty.py", self.project)
-        self.assert_recipients_are(
-            self.get_send_to_fallthrough(event, self.project, None),
-            email=[self.user.id, self.user2.id],
-        )
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_invalid_fallthrough_choice(self):
         with pytest.raises(NotImplementedError) as e:
             get_fallthrough_recipients(self.project, "invalid")  # type: ignore[arg-type]
         assert str(e.value).startswith("Unknown fallthrough choice: invalid")
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_setting_on(self):
         """
         Test that the new fallthrough choice takes precedence even if the fallthrough setting is on.
@@ -939,14 +919,12 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_no_fallthrough(self):
         """
         Test the new fallthrough choice when no fallthrough choice is provided."""
         event = self.store_event("none.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, fallthrough_choice=None) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_no_owners(self):
         """
         Test the fallthrough when there is no ProjectOwnership set.
@@ -960,12 +938,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         )
         assert ret == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_no_one(self):
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_all_members_no_owner(self):
         empty_project = self.create_project(organization=self.organization)
         ProjectOwnership.objects.create(
@@ -984,7 +960,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_all_members_multiple_teams(self):
         team3 = self.create_team(organization=self.organization, members=[self.user2, self.user3])
         self.project.add_team(team3)
@@ -995,7 +970,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[self.user.id, self.user2.id, self.user3.id],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_inactive_users(self):
         notified_users = [self.user, self.user2]
         for i in range(2):
@@ -1022,7 +996,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             email=[user.id for user in [self.user, self.user2]],
         )
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
         notifiable_users = [self.user, self.user2]
         for i in range(10):
@@ -1052,7 +1025,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == 12
         assert notified_users == expected_notified_users
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
         notifiable_users = [self.user, self.user2]
         for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
@@ -1082,7 +1054,6 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_recipients_active_member_ordering(self):
         present = timezone.now()
 
