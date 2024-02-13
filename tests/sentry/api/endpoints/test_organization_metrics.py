@@ -1,4 +1,5 @@
 import copy
+import uuid
 from functools import partial
 
 import pytest
@@ -16,7 +17,8 @@ from sentry.snuba.metrics import (
     complement,
     division_float,
 )
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 
@@ -101,15 +103,16 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
 
 @region_silo_test
-class OrganizationMetricsSamplesEndpointTest(APITestCase):
+class OrganizationMetricsSamplesEndpointTest(APITestCase, BaseSpansTestCase):
     view = "sentry-api-0-organization-metrics-samples"
+    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
         self.login_as(user=self.user)
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = []
+            features = self.default_features
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
@@ -120,26 +123,26 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase):
 
     def test_feature_flag(self):
         query = {
-            "mri": "d:transactions/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [self.project.id],
         }
 
-        response = self.do_request(query)
-        assert response.status_code == 404
+        response = self.do_request(query, features=[])
+        assert response.status_code == 404, response.data
 
         response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
 
     def test_no_project(self):
         query = {
-            "mri": "d:transactions/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [],
         }
 
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 404
+        response = self.do_request(query)
+        assert response.status_code == 404, response.data
 
     def test_bad_params(self):
         query = {
@@ -148,9 +151,26 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase):
             "project": [self.project.id],
         }
 
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 400
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
         assert response.data == {
             "mri": [ErrorDetail(string="Invalid MRI: foo", code="invalid")],
             "field": [ErrorDetail(string="This field is required.", code="required")],
         }
+
+    def test_span_duration_samples(self):
+        self.store_segment(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=10),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
+        )
+
+        query = {
+            "mri": "d:spans/duration@millisecond",
+            "field": ["id", "span.self_time"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data

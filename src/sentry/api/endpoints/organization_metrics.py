@@ -16,7 +16,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
@@ -26,6 +26,7 @@ from sentry.sentry_metrics.querying.errors import (
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
 )
+from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -42,7 +43,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import get_rollup_from_request, parse_stats_period
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -424,6 +425,8 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 class MetricsSamplesSerializer(serializers.Serializer):
     mri = serializers.CharField(required=True)
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+    query = serializers.CharField(required=False)
+    referrer = serializers.CharField(required=False)
 
     def validate_mri(self, mri: str):
         if not is_mri(mri):
@@ -444,9 +447,19 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        try:
+            rollup = get_rollup_from_request(
+                request,
+                params,
+                default_interval=None,
+                error=InvalidSearchQuery(),
+            )
+        except InvalidSearchQuery:
+            rollup = 3600  # use a default of 1 hour
 
         serializer = MetricsSamplesSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -454,7 +467,28 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         serialized = serializer.validated_data
 
-        assert params
-        assert serialized
+        executor_cls = get_sample_list_executor_cls(serialized["mri"])
+        if not executor_cls:
+            raise ParseError(f"Unsupported MRI: {serialized['mri']}")
 
-        return Response(status=200)
+        executor = executor_cls(
+            serialized["mri"],
+            params,
+            snuba_params,
+            serialized.get("query", ""),
+            serialized["field"],
+            rollup,
+            Referrer.API_ORGANIZATION_METRICS_SAMPLES,
+        )
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=executor.execute),
+            on_results=lambda results: self.handle_results_with_meta(
+                request,
+                organization,
+                params["project_id"],
+                results,
+                standard_meta=True,
+            ),
+        )
