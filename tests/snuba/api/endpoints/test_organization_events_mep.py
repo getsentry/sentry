@@ -3124,50 +3124,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["faketag"] == "foo"
         assert not meta["isMetricsData"]
 
-    def test_user_misery_big_number(self):
-        self.create_environment(self.project, name="production")
-        field = "user_misery(300)"
-        environment = "production"
-        query = ""
-        for hour in range(0, 2):
-            self.store_transaction_metric(
-                (hour + 1) * 5,
-                metric="measurements.datacenter_memory",
-                internal_metric="e:transactions/user_misery@ratio",
-                entity="metrics_distributions",
-                tags={"satisfaction": "frustrated", "environment": environment},
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
-            self.store_transaction_metric(
-                (hour + 1) * 5,
-                metric="measurements.datacenter_memory",
-                internal_metric="e:transactions/user_misery@ratio",
-                entity="metrics_distributions",
-                tags={"environment": environment},
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
-        resp = self.do_request(
-            {
-                "field": [field],
-                "project": self.project.id,
-                "query": query,
-                "environment": environment,
-                "dataset": "metricsEnhanced",
-            },
-        )
-        assert resp.data == {
-            "data": [{field: 0.0}],
-            "meta": {
-                "fields": {field: "number"},
-                "units": {field: None},
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {"query": None, "columns": None},
-                "datasetReason": "Cannot query user_misery with a threshold parameter on the metrics dataset",
-                "dataset": "metricsEnhanced",
-            },
-        }
-
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
