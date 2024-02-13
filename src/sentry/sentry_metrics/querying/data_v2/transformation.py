@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
-from sentry.sentry_metrics.querying.data_v2.utils import get_identity, nan_to_none
+from sentry.sentry_metrics.querying.data_v2.utils import nan_to_none
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Totals
 
@@ -199,11 +199,7 @@ class QueryTransformer:
                     {
                         "by": {name: value for name, value in group_key},
                         "series": _generate_full_series(
-                            int(start.timestamp()),
-                            len(intervals),
-                            interval,
-                            group_value.series,
-                            get_identity(group_value.totals),
+                            int(start.timestamp()), len(intervals), interval, group_value.series
                         ),
                         "totals": nan_to_none(group_value.totals),
                     }
