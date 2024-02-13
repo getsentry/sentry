@@ -237,6 +237,7 @@ export class TraceTree {
     }
 
     traceNode.space = [traceStart, traceEnd - traceStart];
+    tree.root.space = [traceStart, traceEnd - traceStart];
     return tree.build();
   }
 

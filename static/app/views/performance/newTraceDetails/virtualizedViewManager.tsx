@@ -1,9 +1,11 @@
 const DIVIDER_WIDTH = 6;
 
 type ViewColumn = {
-  column_refs: HTMLDivElement[];
+  column_refs: (HTMLElement | undefined)[];
   width: number;
 };
+
+type Matrix2D = [number, number, number, number, number, number];
 
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
@@ -13,16 +15,25 @@ type ViewColumn = {
 export class VirtualizedViewManager {
   width: number = 0;
 
-  container: HTMLDivElement | null = null;
-  dividerRef: HTMLDivElement | null = null;
+  container: HTMLElement | null = null;
+  dividerRef: HTMLElement | null = null;
   resizeObserver: ResizeObserver | null = null;
 
   dividerStartVec: [number, number] | null = null;
+
+  spanDrawMatrix: Matrix2D = [1, 0, 0, 1, 0, 0];
+  spanScalingFactor: number = 1;
+  minSpanScalingFactor: number = 0.02;
+
+  spanSpace: [number, number] = [0, 1000];
+  spanView: [number, number] = [0, 1000];
 
   columns: {
     list: ViewColumn;
     span_list: ViewColumn;
   };
+
+  span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
   constructor(columns: {
     list: ViewColumn;
@@ -35,7 +46,7 @@ export class VirtualizedViewManager {
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
   }
 
-  onContainerRef(container: HTMLDivElement | null) {
+  onContainerRef(container: HTMLElement | null) {
     if (container) {
       this.initialize(container);
     } else {
@@ -43,7 +54,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  registerDividerRef(ref: HTMLDivElement | null) {
+  registerDividerRef(ref: HTMLElement | null) {
     if (!ref) {
       if (this.dividerRef) {
         this.dividerRef.removeEventListener('mousedown', this.onDividerMouseDown);
@@ -101,31 +112,47 @@ export class VirtualizedViewManager {
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.width;
 
+    this.computeSpanDrawMatrix(
+      this.width,
+      this.columns.span_list.width - distancePercentage
+    );
+
     this.dividerRef.style.transform = `translateX(${
       this.width * (this.columns.list.width + distancePercentage) - DIVIDER_WIDTH / 2
     }px)`;
 
     const listWidth = this.columns.list.width * 100 + distancePercentage * 100 + '%';
     const spanWidth = this.columns.span_list.width * 100 - distancePercentage * 100 + '%';
+
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      this.columns.list.column_refs[i].style.width = listWidth;
-      this.columns.span_list.column_refs[i].style.width = spanWidth;
+      const list = this.columns.list.column_refs[i];
+      if (list) {
+        list.style.width = listWidth;
+      }
+      const span = this.columns.span_list.column_refs[i];
+      if (span) {
+        span.style.width = spanWidth;
+      }
+      const span_bar = this.span_bars[i];
+      if (span_bar) {
+        span_bar.ref.style.transform = this.computeSpanMatrixTransform(span_bar.space);
+      }
     }
   }
 
-  registerColumnRef(column: string, ref: HTMLDivElement | null, index: number) {
-    if (!ref) {
-      return;
-    }
+  registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
+    this.span_bars[index] = ref ? {ref, space} : undefined;
+  }
 
+  registerColumnRef(column: string, ref: HTMLElement | null, index: number) {
     if (!this.columns[column]) {
       throw new TypeError('Invalid column');
     }
 
-    this.columns[column].column_refs[index] = ref;
+    this.columns[column].column_refs[index] = ref ?? undefined;
   }
 
-  initialize(container: HTMLDivElement) {
+  initialize(container: HTMLElement) {
     this.teardown();
 
     this.container = container;
@@ -136,6 +163,7 @@ export class VirtualizedViewManager {
       }
 
       this.width = entry.contentRect.width;
+      this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
 
       if (this.dividerRef) {
         this.dividerRef.style.transform = `translateX(${
@@ -146,6 +174,51 @@ export class VirtualizedViewManager {
 
     this.resizeObserver.observe(container);
   }
+
+  initializeSpanSpace(spanSpace: [number, number], spanView?: [number, number]) {
+    this.spanSpace = [...spanSpace];
+    this.spanView = spanView ?? [...spanSpace];
+
+    this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
+  }
+
+  computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix
+    // biome-ignore format: off
+    const mat3: Matrix2D = [
+      1, 0, 0,
+      1, 0, 0,
+    ];
+
+    if (this.spanSpace[1] === 0 || this.spanView[1] === 0) {
+      return mat3;
+    }
+
+    const spanColumnWidth = width * span_column_width;
+    const viewToSpace = this.spanSpace[1] / this.spanView[1];
+    const physicalToView = spanColumnWidth / this.spanView[1];
+
+    mat3[0] = viewToSpace * physicalToView;
+
+    this.spanScalingFactor = viewToSpace;
+    this.minSpanScalingFactor = window.devicePixelRatio / this.width;
+    this.spanDrawMatrix = mat3;
+    return mat3;
+  }
+
+  computeSpanMatrixTransform(span_space: [number, number]): string {
+    const scale = Math.max(
+      this.minSpanScalingFactor,
+      (span_space[1] / this.spanView[1]) * this.spanScalingFactor
+    );
+
+    const x = span_space[0] - this.spanView[0];
+    const translateInPixels = x * this.spanDrawMatrix[0];
+
+    return `matrix(${scale},0,0,1,${translateInPixels},0)`;
+  }
+
+  draw() {}
 
   teardown() {
     if (this.resizeObserver) {

@@ -38,6 +38,7 @@ export function Trace(props: TraceProps) {
   const organization = useOrganization();
   const virtualizedListRef = useRef<List>(null);
   const theme = useTheme();
+  const viewManager = useRef<VirtualizedViewManager | null>(null);
 
   const traceTree = useMemo(() => {
     if (!props.trace) {
@@ -49,12 +50,19 @@ export function Trace(props: TraceProps) {
 
   const [_rerender, setRender] = useState(0);
 
-  const viewManager = useRef<VirtualizedViewManager | null>(null);
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
       span_list: {width: 0.5, column_refs: []},
     });
+  }
+
+  if (
+    traceTree.root.space &&
+    (traceTree.root.space[0] !== viewManager.current.spanSpace[0] ||
+      traceTree.root.space[1] !== viewManager.current.spanSpace[1])
+  ) {
+    viewManager.current.initializeSpanSpace(traceTree.root.space);
   }
 
   const treeRef = useRef<TraceTree>(traceTree);
@@ -91,11 +99,6 @@ export function Trace(props: TraceProps) {
     }, {});
   }, [projects]);
 
-  const containerSpace = useRef<[number, number] | null>(null);
-  if (!containerSpace.current) {
-    containerSpace.current = traceTree.list?.[0]?.space;
-  }
-
   return (
     <TraceStylingWrapper
       ref={r => viewManager.current?.onContainerRef(r)}
@@ -127,7 +130,6 @@ export function Trace(props: TraceProps) {
                   index={p.index}
                   style={p.style}
                   trace_id={props.trace_id}
-                  space={containerSpace.current}
                   projects={projectLookup}
                   node={treeRef.current.list?.[p.index]}
                   viewManager={viewManager.current!}
@@ -171,7 +173,6 @@ function RenderRow(props: {
   onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   projects: Record<Project['slug'], Project>;
-  space: [number, number] | null;
   startIndex: number;
   style: React.CSSProperties;
   theme: Theme;
@@ -228,8 +229,9 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
             color={pickBarColor('autogrouping')}
-            space={props.space}
             node_space={props.node.space}
           />
         </div>
@@ -295,8 +297,9 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
             color={pickBarColor(props.node.value['transaction.op'])}
-            space={props.space}
             node_space={props.node.space}
           />
         </div>
@@ -363,8 +366,9 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
             color={pickBarColor(props.node.value.op)}
-            space={props.space}
             node_space={props.node.space}
           />
         </div>
@@ -408,8 +412,9 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
             color={pickBarColor('missing-instrumentation')}
-            space={props.space}
             node_space={props.node.space}
           />
         </div>
@@ -464,8 +469,9 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
             color={pickBarColor('missing-instrumentation')}
-            space={props.space}
             node_space={props.node.space}
           />
         </div>
@@ -597,23 +603,23 @@ function ChildrenCountButton(props: {
 interface TraceBarProps {
   color: string;
   node_space: [number, number] | null;
-  space: [number, number] | null;
+  viewManager: VirtualizedViewManager;
+  virtualizedIndex: number;
 }
 function TraceBar(props: TraceBarProps) {
-  if (!props.space || !props.node_space) {
-    return <Fragment>missing space or node space</Fragment>;
+  if (!props.node_space) {
+    return null;
   }
-
-  const scaleX = props.node_space[1] / props.space[1];
-  const left = (props.node_space[0] - props.space[0]) / props.space[1];
 
   return (
     <div
+      ref={r =>
+        props.viewManager.registerSpanBarRef(r, props.node_space!, props.virtualizedIndex)
+      }
       className="TraceBar"
       style={{
-        left: `${left * 100}%`,
         position: 'absolute',
-        transform: `matrix(${scaleX}, 0, 0, 1, ${0}, 0)`,
+        transform: props.viewManager.computeSpanMatrixTransform(props.node_space),
         backgroundColor: props.color,
       }}
     />
