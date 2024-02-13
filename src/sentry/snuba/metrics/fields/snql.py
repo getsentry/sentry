@@ -1016,6 +1016,8 @@ def on_demand_eps_snql_factory(
     return rate_snql_factory(aggregate_filter, interval, 1, alias)
 
 
+# Compare with discover:
+# https://github.com/getsentry/sentry/blob/4dc9c8b46538c1c4d8397344c9ccaf6ad8fd8d52/src/sentry/search/events/datasets/discover.py#L1506-L1553
 def on_demand_user_misery_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str | None = None
 ) -> Function:

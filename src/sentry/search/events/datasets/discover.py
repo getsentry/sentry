@@ -1507,6 +1507,8 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
+    # Compare with on-demand
+    # https://github.com/getsentry/sentry/blob/4dc9c8b46538c1c4d8397344c9ccaf6ad8fd8d52/src/sentry/snuba/metrics/fields/snql.py#L1019-L1035
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if satisfaction := args["satisfaction"]:
             column = self.builder.column("transaction.duration")
