@@ -111,7 +111,7 @@ openapi-spec-validator==0.7.1
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
-parsimonious==0.9.0
+parsimonious==0.10.0
 pathable==0.4.3
 pathspec==0.9.0
 pep517==0.12.0
@@ -186,7 +186,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==2.0.25
+snuba-sdk==2.0.28
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
