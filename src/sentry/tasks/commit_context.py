@@ -25,6 +25,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -463,6 +464,7 @@ def process_commit_context(
                         owner.delete()
 
             # Success. We will debounce this task until this Suspect Committer hits the TTL of PREFERRED_GROUP_OWNER_AGE
+            ProjectOwnership.handle_auto_assignment(project_id=project.id, group=group_owner.group)
             cache.set(cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds())
             logger.info(
                 "process_commit_context.success",
