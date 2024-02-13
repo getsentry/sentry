@@ -449,7 +449,7 @@ export class TagExplorer extends Component<Props> {
               </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
-                data={tableData && tableData.data ? tableData.data : []}
+                data={tableData?.data ? tableData.data : []}
                 columnOrder={columns}
                 columnSortBy={columnSortBy}
                 grid={{
