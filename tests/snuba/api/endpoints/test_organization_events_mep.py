@@ -3206,7 +3206,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
-    def _setup_user_misery(self, spec: OnDemandMetricSpec):
+    def _setup_user_misery(self, spec: OnDemandMetricSpec) -> None:
         events = [
             ("one", 300),
             ("two", 300),
