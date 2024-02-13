@@ -22,6 +22,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
@@ -629,7 +630,7 @@ function RenderPlaceholderRow(props: {
 function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
-    (props.node.value && 'autogrouped_by' in props.node.value);
+    (props.node.value && isParentAutogroupedNode(props.node));
 
   // If the tail node of the collapsed node has no children,
   // we don't want to render the vertical connector as no children
