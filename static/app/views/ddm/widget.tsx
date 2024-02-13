@@ -48,6 +48,7 @@ type MetricWidgetProps = {
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: PageFilters['projects'];
   widget: MetricWidgetQueryParams;
+  chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
@@ -82,6 +83,7 @@ export const MetricWidget = memo(
     focusArea,
     onSampleClick,
     highlightedSampleId,
+    chartHeight = 300,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
@@ -186,7 +188,7 @@ export const MetricWidget = memo(
                 onChange={handleChange}
                 focusArea={focusArea}
                 samples={samples}
-                chartHeight={300}
+                chartHeight={chartHeight}
                 chartGroup={DDM_CHART_GROUP}
                 {...widget}
               />
