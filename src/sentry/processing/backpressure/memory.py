@@ -46,8 +46,10 @@ Cluster = Union[RedisCluster, rb.Cluster]
 def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     # or alternatively: `used_memory_rss`?
     memory_used = info.get("used_memory", 0)
-    # `maxmemory` might be 0 in development
-    memory_available = info.get("maxmemory", 0) or info["total_system_memory"]
+    # `maxmemory` might be 0 in development. We also sometimes see responses from redis
+    # that are missing keys in production, so just being defensive here and defaulting to 0
+    # rather than erroring
+    memory_available = info.get("maxmemory", 0) or info.get("total_system_memory", 0)
 
     return ServiceMemory(node_id, memory_used, memory_available)
 
