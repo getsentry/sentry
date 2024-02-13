@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import random
 import time
 from collections.abc import MutableMapping, Sequence
@@ -25,7 +26,10 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.issues.grouptype import GroupCategory
+from sentry.killswitches import killswitch_matches_context
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -36,6 +40,8 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+
+logger = logging.getLogger("sentry.events")
 
 Job = MutableMapping[str, Any]
 
@@ -403,3 +409,73 @@ def get_hash_values(
         job["finest_tree_label"] = all_hashes.finest_tree_label
 
     return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def record_new_group_metrics(event: Event):
+    metrics.incr(
+        "group.created",
+        skip_internal=True,
+        tags={
+            "platform": event.platform or "unknown",
+            "sdk": normalized_sdk_tag_from_event(event),
+        },
+    )
+
+    # This only applies to events with stacktraces
+    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+    if frame_mix:
+        metrics.incr(
+            "grouping.in_app_frame_mix",
+            sample_rate=1.0,
+            tags={
+                "platform": event.platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(event),
+                "frame_mix": frame_mix,
+            },
+        )
+
+
+def check_for_group_creation_load_shed(project: Project, event: Event):
+    """
+    Raise a `HashDiscarded` error if the load-shed killswitch is enabled
+    """
+    if killswitch_matches_context(
+        "store.load-shed-group-creation-projects",
+        {
+            "project_id": project.id,
+            "platform": event.platform,
+        },
+    ):
+        raise HashDiscarded("Load shedding group creation", reason="load_shed")
+
+
+def add_group_id_to_grouphashes(
+    group: Group,
+    grouphashes: list[GroupHash],
+) -> None:
+    """
+    Link the given group to any grouphash which doesn't yet have a group assigned.
+    """
+
+    new_grouphash_ids = [gh.id for gh in grouphashes if gh.group_id is None]
+
+    GroupHash.objects.filter(id__in=new_grouphash_ids).exclude(
+        state=GroupHash.State.LOCKED_IN_MIGRATION
+    ).update(group=group)
+
+
+def check_for_category_mismatch(group: Group) -> bool:
+    """
+    Make sure an error event hasn't hashed to a value assigned to a non-error-type group
+    """
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return True
+
+    return False
