@@ -37,7 +37,6 @@ def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollecti
     for data in seq:
         inner_group = []
         for key, value in data.items():
-            # TODO: check if time can be used as a tag key.
             if key not in ["aggregate_value", "time"]:
                 inner_group.append((key, value))
 
@@ -204,9 +203,6 @@ class ScheduledQuery:
 
         return updated_metrics_query
 
-    def has_next(self):
-        return self.next is not None
-
     def is_empty(self) -> bool:
         return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
 
@@ -259,16 +255,28 @@ class QueryResult:
         assert self.series_executable_query or self.totals_executable_query
 
     @classmethod
-    def empty_from(cls, metrics_query: MetricsQuery) -> "QueryResult":
+    def empty_from(cls, scheduled_query: ScheduledQuery) -> "QueryResult":
+        series_metrics_query = None
+        totals_metrics_query = None
+
+        if scheduled_query.next is not None:
+            totals_metrics_query = scheduled_query.metrics_query
+            series_metrics_query = scheduled_query.next.metrics_query
+        else:
+            if scheduled_query.type == ScheduledQueryType.SERIES:
+                series_metrics_query = scheduled_query.metrics_query
+            elif scheduled_query.type == ScheduledQueryType.TOTALS:
+                totals_metrics_query = scheduled_query.metrics_query
+
         return QueryResult(
-            series_executable_query=metrics_query,
-            totals_executable_query=metrics_query,
+            series_executable_query=series_metrics_query,
+            totals_executable_query=totals_metrics_query,
             result={
                 "series": {"data": {}, "meta": {}},
                 "totals": {"data": {}, "meta": {}},
                 # We want to honor the date ranges of the supplied query.
-                "modified_start": metrics_query.start,
-                "modified_end": metrics_query.end,
+                "modified_start": scheduled_query.metrics_query.start,
+                "modified_end": scheduled_query.metrics_query.end,
             },
         )
 
@@ -366,11 +374,9 @@ class QueryResult:
 
     @property
     def limit(self) -> int | None:
-        if self.series_executable_query:
-            return self.series_executable_query.limit
-
+        # The totals limit is the only one that controls the number of groups that are returned.
         if self.totals_executable_query:
-            return self.totals_executable_query.limit
+            return self.totals_executable_query.limit.limit
 
         return None
 
@@ -484,8 +490,17 @@ class QueryExecutor:
                 "A partial query must have an initial query of type totals"
             )
 
+        next_scheduled_query = partial_query_result.scheduled_query.next
+        if next_scheduled_query is None:
+            raise MetricsQueryExecutionError(
+                "A partial query must have a next query to be executed"
+            )
+
+        # We compute the groups that were returned by the query that was executed. We then inject those groups in each
+        # `Timeseries` of the next query to execute. We do this in order to have at least the same groups returned by
+        # the next query.
         groups_collection = _extract_groups_from_seq(partial_query_result.executed_result["data"])
-        next_metrics_query = partial_query_result.scheduled_query.next.metrics_query
+        next_metrics_query = next_scheduled_query.metrics_query
         next_metrics_query = _push_down_group_filters(next_metrics_query, groups_collection)
 
         return self._build_request(next_metrics_query)
@@ -498,14 +513,30 @@ class QueryExecutor:
             raise MetricsQueryExecutionError("An error occurred while executing the query")
 
     def _bulk_execute(self) -> Sequence[QueryResult]:
+        # We build all the requests that can be scheduled together in the first step.
         bulk_requests = []
-        for query in self._scheduled_queries:
-            bulk_requests.append(self._build_request(query.metrics_query))
+        # We collect all the indexes of the queries which are empty and should not be executed.
+        empty_queries_indexes = []
+        for query_index, scheduled_query in enumerate(self._scheduled_queries):
+            if scheduled_query.is_empty():
+                empty_queries_indexes.append(query_index)
+            else:
+                bulk_requests.append(self._build_request(scheduled_query.metrics_query))
 
+        # We run the requests in bulk and obtain a list of pending query results, which can include both
+        # `QueryResult`(s) that are done and `PartialQueryResult`(s) which require a second pass.
         query_results = self._bulk_run_query(bulk_requests)
+        # We inject into the results all the empty values belonging to the empty queries.
+        for empty_query_index in empty_queries_indexes:
+            query_results.insert(empty_query_index, {})
+
         for query_index, query_result in enumerate(query_results):
             scheduled_query = self._scheduled_queries[query_index]
-            if scheduled_query.has_next():
+            if scheduled_query.is_empty():
+                self._pending_query_results.append(
+                    QueryResult.empty_from(scheduled_query=scheduled_query)
+                )
+            elif scheduled_query.next is not None:
                 self._pending_query_results.append(
                     PartialQueryResult(
                         scheduled_query=scheduled_query,
@@ -521,6 +552,7 @@ class QueryExecutor:
                     )
                 )
 
+        # We build all the requests for the `PendingQueryResult`(s) which will again be executed in parallel.
         bulk_requests = []
         mappings = []
         for query_index, pending_query_result in enumerate(self._pending_query_results):
@@ -528,34 +560,45 @@ class QueryExecutor:
                 bulk_requests.append(self._build_request_for_partial(pending_query_result))
                 mappings.append(query_index)
 
+        # We run the requests in bulk to obtain a list of `QueryResult`(s). In order to do so, the `QueryResult` objects
+        # from the first and second query are merged.
         query_results = self._bulk_run_query(bulk_requests)
         for query_index, query_result in zip(mappings, query_results):
             partial_query_result = self._pending_query_results[query_index]
-            next_scheduled_query = partial_query_result.scheduled_query.next
-            if next_scheduled_query is None:
-                raise MetricsQueryExecutionError(
-                    f"No next query was scheduled for query at index {query_index}"
+            if isinstance(partial_query_result, PartialQueryResult):
+                next_scheduled_query = partial_query_result.scheduled_query.next
+                # If, for some reason, there is a `None` next at this point, we will just dump the partial query as a
+                # `QueryResult`.
+                if next_scheduled_query is None:
+                    self._pending_query_results[
+                        query_index
+                    ] = partial_query_result.to_query_result()
+                    continue
+
+                # If there is a next query, we will merge the first and second queries into a single `QueryResult`.
+                first_query_result = partial_query_result.to_query_result()
+                second_query_result = QueryResult.from_query_type(
+                    query_type=next_scheduled_query.type,
+                    query=next_scheduled_query.metrics_query,
+                    query_result=query_result,
+                )
+                self._pending_query_results[query_index] = first_query_result.merge(
+                    second_query_result
                 )
 
-            first_query_result = partial_query_result.to_query_result()
-            second_query_result = QueryResult.from_query_type(
-                query_type=next_scheduled_query.type,
-                query=next_scheduled_query.metrics_query,
-                query_result=query_result,
-            )
-
-            self._pending_query_results[query_index] = first_query_result.merge(second_query_result)
-
-        # TODO: PROPERLY HANDLE RETURNING ONLY QUERY RESULT OBJECTS.
+        # For now, we naively cast to a list of `QueryResult` since we assume that the chaining is used with at most
+        # a depth of 2 (e.g., query_1 -> query_2), so by this point we should NOT have anymore `PartialQueryResult`(s)
+        # left.
         return cast(Sequence[QueryResult], self._pending_query_results)
 
     def execute(self) -> Sequence[QueryResult]:
         """
         Executes the scheduled queries serially.
         """
-        # TODO: add execution metrics.
-        results = self._bulk_execute()
-        return results
+        if not self._scheduled_queries:
+            return []
+
+        return self._bulk_execute()
 
     def schedule(
         self,
@@ -568,6 +611,8 @@ class QueryExecutor:
 
         Note that this method won't execute the query, since it's lazy in nature.
         """
+        # For now, we are always building a (totals -> series) query, but the execution engine is fully capable of
+        # supporting either a single totals or series query.
         executable_query = ScheduledQuery(
             type=ScheduledQueryType.TOTALS,
             next=ScheduledQuery(
@@ -581,6 +626,8 @@ class QueryExecutor:
             order=order,
             limit=limit,
         )
+        # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
+        # (e.g., adding `totals` to a totals query...).
         executable_query = executable_query.initialize(
             self._organization, self._projects, self._blocked_metrics_for_projects
         )

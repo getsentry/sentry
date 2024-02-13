@@ -184,6 +184,10 @@ class QueryTransformer:
         """
         Transforms the query results into the Sentry's API format.
         """
+        # If we have not run any queries, we won't return anything back.
+        if not self._query_results:
+            return {}
+
         # We first build intermediate results that we can work efficiently with.
         queries_groups, queries_meta = self._build_intermediate_results()
 
