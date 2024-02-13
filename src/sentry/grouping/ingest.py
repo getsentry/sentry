@@ -309,14 +309,7 @@ def find_existing_grouphash_new(
     all_grouphashes = []
     root_hierarchical_hash = None
 
-    found_split = False
-    if not found_split:
-        # In case of a split we want to avoid accidentally finding the split-up
-        # group again via flat hashes, which are very likely associated with
-        # whichever group is attached to the split hash. This distinction will
-        # become irrelevant once we start moving existing events into child
-        # groups and delete the parent group.
-        all_grouphashes.extend(flat_grouphashes)
+    all_grouphashes.extend(flat_grouphashes)
 
     for group_hash in all_grouphashes:
         if group_hash.group_id is not None:
