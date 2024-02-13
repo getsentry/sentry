@@ -509,8 +509,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 class SourceMapsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
