@@ -1,5 +1,5 @@
 import dompurify from 'dompurify';
-import {marked} from 'marked'; // eslint-disable-line no-restricted-imports
+import {marked, type MarkedOptions} from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -80,10 +80,11 @@ marked.setOptions({
   silent: NODE_ENV === 'test',
 });
 
-const sanitizedMarked = (...args: Parameters<typeof marked>) =>
-  dompurify.sanitize(marked(...args));
+const sanitizedMarked = (src: string, options?: MarkedOptions) => {
+  return dompurify.sanitize(marked(src, options));
+};
 
-const singleLineRenderer = (text: string, options: marked.MarkedOptions = {}) =>
+const singleLineRenderer = (text: string, options: MarkedOptions = {}) =>
   sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
 
 export {singleLineRenderer};
