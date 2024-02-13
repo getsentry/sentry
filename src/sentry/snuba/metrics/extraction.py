@@ -1155,10 +1155,6 @@ class OnDemandMetricSpec:
         self._metric_type = metric_type
         self._arguments = arguments or []
 
-        sentry_sdk.start_span(
-            op="OnDemandMetricSpec.spec_type", description=self.spec_type
-        ).finish()
-
     @property
     def field_to_extract(self):
         if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
