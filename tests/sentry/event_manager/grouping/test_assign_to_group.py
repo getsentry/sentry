@@ -171,10 +171,14 @@ def get_results_from_saving_event(
         )
 
         new_event = save_new_event(event_data, project)
-        hash_search_result = return_values[find_existing_grouphash_fn][0][0]
         post_save_grouphashes = {
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }
+
+        hash_search_result = return_values[find_existing_grouphash_fn][0]
+        # The current logic wraps the search result in an extra layer which we need to unwrap
+        if not new_logic_enabled:
+            hash_search_result = hash_search_result[0]
 
         # We should never call any of these more than once, regardless of the test
         assert calculate_primary_hash_spy.call_count <= 1

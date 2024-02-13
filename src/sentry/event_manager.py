@@ -1607,9 +1607,7 @@ def _save_aggregate_new(
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
 
-    existing_grouphash, _ = find_existing_grouphash_new(
-        project, grouphashes, hashes.hierarchical_hashes
-    )
+    existing_grouphash = find_existing_grouphash_new(grouphashes)
 
     # In principle the group gets the same metadata as the event, so common
     # attributes can be defined in eventtypes.
@@ -1649,9 +1647,7 @@ def _save_aggregate_new(
                 ).select_for_update()
             )
 
-            existing_grouphash, _ = find_existing_grouphash_new(
-                project, grouphashes, hashes.hierarchical_hashes
-            )
+            existing_grouphash = find_existing_grouphash_new(grouphashes)
 
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_creation_kwargs)
