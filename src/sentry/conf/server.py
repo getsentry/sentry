@@ -722,7 +722,7 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
-    "sentry.hybridcloud.tasks",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
