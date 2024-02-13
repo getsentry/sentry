@@ -23,15 +23,15 @@ class ProjectOwnershipResponse(ProjectOwnershipResponseOptional):
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs) -> ProjectOwnershipResponse:
+    def serialize(
+        self, obj, attrs, user, should_return_schema=False, **kwargs
+    ) -> ProjectOwnershipResponse:
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment
-            else (
-                "Auto Assign to Issue Owner"
-                if obj.auto_assignment and not obj.suspect_committer_auto_assignment
-                else "Turn off Auto-Assignment"
-            )
+            else "Auto Assign to Issue Owner"
+            if obj.auto_assignment and not obj.suspect_committer_auto_assignment
+            else "Turn off Auto-Assignment"
         )
 
         project_ownership_data: ProjectOwnershipResponse = {
@@ -43,6 +43,8 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
-        project_ownership_data["schema"] = obj.schema
+
+        if should_return_schema:
+            project_ownership_data["schema"] = obj.schema
 
         return project_ownership_data
