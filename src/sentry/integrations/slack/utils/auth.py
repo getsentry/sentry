@@ -1,6 +1,6 @@
 import hmac
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from typing import TYPE_CHECKING, TypedDict
 
@@ -27,7 +27,7 @@ class SigningSecretKwargs(TypedDict):
 
 def set_signing_secret(secret: str, data: bytes) -> SigningSecretKwargs:
     """Note: this is currently only used in tests."""
-    timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
+    timestamp = str(int(time.mktime(datetime.now(timezone.utc).timetuple())))
     signature = _encode_data(secret, data, timestamp)
     return {
         "HTTP_X_SLACK_REQUEST_TIMESTAMP": timestamp,

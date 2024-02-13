@@ -59,8 +59,8 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         super().setUp()
 
         self.db = SnubaTSDB()
-        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        self.now = (datetime.now(timezone.utc) - timedelta(hours=4)).replace(
+            hour=0, minute=0, second=0, microsecond=0
         )
         self.proj1 = self.create_project()
         env1 = "test"
@@ -631,8 +631,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         super().setUp()
 
         self.db = SnubaTSDB()
-        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        self.now = (datetime.now(timezone.utc) - timedelta(hours=4)).replace(
+            hour=0, minute=0, second=0, microsecond=0
         )
         self.proj1 = self.create_project()
 
@@ -711,8 +711,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
 
     def test_range_groups_mult(self):
-        now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        now = (datetime.now(timezone.utc) - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -748,8 +748,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
     def test_range_groups_simple(self):
         project = self.create_project()
-        now = (datetime.utcnow() - timedelta(days=1)).replace(
-            hour=10, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        now = (datetime.now(timezone.utc) - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0
         )
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]

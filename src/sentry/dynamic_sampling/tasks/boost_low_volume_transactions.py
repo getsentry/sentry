@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterator, Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TypedDict, cast
 
 import sentry_sdk
@@ -311,9 +311,10 @@ class FetchProjectTransactionTotals:
                         Condition(
                             Column("timestamp"),
                             Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                            datetime.now(timezone.utc)
+                            - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                         ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],
@@ -483,9 +484,10 @@ class FetchProjectTransactionVolumes:
                         Condition(
                             Column("timestamp"),
                             Op.GTE,
-                            datetime.utcnow() - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+                            datetime.now(timezone.utc)
+                            - BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
                         ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],

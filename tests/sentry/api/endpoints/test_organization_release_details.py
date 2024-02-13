@@ -230,7 +230,7 @@ class ReleaseDetailsTest(APITestCase):
         Test that ensures that in the case we are trying to get prev and next release to a current
         release with exact same date then we fallback to id comparison
         """
-        date_now = datetime.utcnow()
+        date_now = datetime.now(timezone.utc)
         release_1 = Release.objects.create(
             date_added=date_now, organization_id=self.organization.id, version="foobar@1.0.0"
         )
@@ -416,7 +416,7 @@ class ReleaseDetailsTest(APITestCase):
         )
         release_2.add_project(self.project1)
 
-        date_added_from_8d = datetime.utcnow() - timedelta(days=8)
+        date_added_from_8d = datetime.now(timezone.utc) - timedelta(days=8)
         release_3 = Release.objects.create(
             organization_id=self.organization.id,
             version="foobar@3.0.0",
@@ -472,7 +472,7 @@ class ReleaseDetailsTest(APITestCase):
         retrieved correctly in the case when all releases have the same exact datetime and we
         need to fallback to comparison with id
         """
-        date_now = datetime.utcnow()
+        date_now = datetime.now(timezone.utc)
         release_2 = self.create_release(
             project=self.project1, version="foobar@2.0.0", date_added=date_now
         )
@@ -984,7 +984,9 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": org.slug, "version": release.version},
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(
+            url, data={"dateReleased": datetime.now(timezone.utc).isoformat() + "Z"}
+        )
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -1018,7 +1020,9 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": org.slug, "version": release.version},
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(
+            url, data={"dateReleased": datetime.now(timezone.utc).isoformat() + "Z"}
+        )
 
         assert response.status_code == 200, (response.status_code, response.content)
 

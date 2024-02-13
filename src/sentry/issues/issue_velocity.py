@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -167,7 +167,7 @@ def update_threshold(
     client = get_redis_client()
     with client.pipeline() as p:
         p.set(threshold_key, threshold, ex=ttl)
-        p.set(stale_date_key, str(datetime.utcnow()), ex=ttl)
+        p.set(stale_date_key, str(datetime.now(timezone.utc)), ex=ttl)
         p.execute()
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": False})
     return threshold
@@ -185,7 +185,7 @@ def fallback_to_stale_or_zero(
     ttl = FALLBACK_TTL
     # current datetime - the amount of time a threshold is valid for + how much time to wait before trying to query Snuba for the threshold again
     stale_date = (
-        datetime.utcnow()
+        datetime.now(timezone.utc)
         - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
         + timedelta(seconds=FALLBACK_TTL)
     )
@@ -224,7 +224,7 @@ def get_latest_threshold(project: Project) -> float:
     stale_date = None
     if cache_results[1] is not None:
         stale_date = datetime.strptime(cache_results[1], STRING_TO_DATETIME)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if (
         stale_date is None
         or threshold is None

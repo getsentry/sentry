@@ -2,7 +2,7 @@ import math
 import time
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Protocol
 
@@ -249,9 +249,11 @@ class GetActiveOrgs:
                     ],
                     where=[
                         Condition(
-                            Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval
+                            Column("timestamp"),
+                            Op.GTE,
+                            datetime.now(timezone.utc) - self.time_interval,
                         ),
-                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                     ],
                     orderby=[
@@ -424,8 +426,8 @@ class GetActiveOrgsVolumes:
         ]
 
         where = [
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - self.time_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("timestamp"), Op.GTE, datetime.now(timezone.utc) - self.time_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
             Condition(Column("metric_id"), Op.EQ, self.metric_id),
         ]
 
@@ -528,8 +530,8 @@ def fetch_orgs_with_total_root_transactions_count(
         str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
     )
     where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("timestamp"), Op.GTE, datetime.now(timezone.utc) - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
         Condition(Column("metric_id"), Op.EQ, count_per_root_metric_id),
         Condition(Column("org_id"), Op.IN, list(org_ids)),
     ]

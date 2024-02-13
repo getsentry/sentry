@@ -621,7 +621,7 @@ def _prepare_start_end(
     if not start:
         start = datetime(2008, 5, 8)
     if not end:
-        end = datetime.utcnow() + timedelta(seconds=1)
+        end = datetime.now(timezone.utc) + timedelta(seconds=1)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
@@ -769,7 +769,7 @@ class SnubaQueryParams:
         # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
         # We generally however require that the API user is aware of the exclusive
         # end.
-        self.end = end or datetime.utcnow() + timedelta(seconds=1)
+        self.end = end or datetime.now(timezone.utc) + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
     is_error_count_healthy,
@@ -40,7 +40,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         - no environment
         - multiple timestamps both before and after our threshold window
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeseries = [
             {
                 "release": self.release1.version,
@@ -193,7 +193,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         assert is_healthy
 
     def test_multiple_releases_within_timeseries(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeseries = [
             {
                 "release": self.release1.version,
@@ -302,7 +302,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         assert not is_healthy
 
     def test_multiple_projects_within_timeseries(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeseries = [
             {
                 "release": self.release1.version,
@@ -412,7 +412,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         assert not is_healthy
 
     def test_multiple_environments_within_timeseries(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeseries = [
             {
                 "release": self.release1.version,
@@ -529,7 +529,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         - multiple timestamps both before and after our threshold window
         - all disorganized
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeseries = [
             {
                 "release": self.release1.version,

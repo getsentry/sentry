@@ -29,7 +29,6 @@ WEEK_IN_HOURS = 7 * 24
 class IssueVelocityTests(TestCase, SnubaTestCase):
     def setUp(self):
         self.now = timezone.now()
-        self.utcnow = datetime.utcnow()
         super().setUp()
 
     def test_calculation_simple(self):
@@ -169,7 +168,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         """
         redis_client = get_redis_client()
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.1)
-        redis_client.set(STALE_DATE_KEY.format(project_id=self.project.id), str(self.utcnow))
+        redis_client.set(STALE_DATE_KEY.format(project_id=self.project.id), str(self.now))
         threshold = get_latest_threshold(self.project)
         mock_update.assert_not_called()
         assert threshold == 0.1
@@ -183,7 +182,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1.2)
         redis_client.set(
             STALE_DATE_KEY.format(project_id=self.project.id),
-            str(self.utcnow - timedelta(days=1)),
+            str(self.now - timedelta(days=1)),
         )
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
@@ -205,7 +204,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.7)
         redis_client.set(
             STALE_DATE_KEY.format(project_id=self.project.id),
-            str(self.utcnow - timedelta(days=1)),
+            str(self.now - timedelta(days=1)),
         )
 
         lock = locks.get(
@@ -245,11 +244,9 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         assert redis_client.get("threshold-key") == "5"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
-        # self.utcnow and the datetime.utcnow() used in the update method may vary in milliseconds so we can't do a direct comparison
+        # self.now and the datetime.now() used in the update method may vary in milliseconds so we can't do a direct comparison
         assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
+            0 <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.now).total_seconds() < 1
         )
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
         assert redis_client.ttl("date-key") == DEFAULT_TTL
@@ -286,9 +283,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
         assert (
-            0
-            <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.utcnow).total_seconds()
-            < 1
+            0 <= (datetime.strptime(stored_date, STRING_TO_DATETIME) - self.now).total_seconds() < 1
         )
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
 
@@ -309,7 +304,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             <= (
                 datetime.strptime(stored_date, STRING_TO_DATETIME)
                 - (
-                    self.utcnow
+                    self.now
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
                     + timedelta(seconds=FALLBACK_TTL)
                 )
@@ -335,7 +330,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             <= (
                 datetime.strptime(stored_date, STRING_TO_DATETIME)
                 - (
-                    self.utcnow
+                    self.now
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
                     + timedelta(seconds=FALLBACK_TTL)
                 )
@@ -360,7 +355,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             <= (
                 datetime.strptime(stored_date, STRING_TO_DATETIME)
                 - (
-                    self.utcnow
+                    self.now
                     - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
                     + timedelta(seconds=FALLBACK_TTL)
                 )

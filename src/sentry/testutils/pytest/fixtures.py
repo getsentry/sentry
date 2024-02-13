@@ -10,7 +10,7 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from string import Template
 
 import pytest
@@ -383,7 +383,7 @@ def insta_snapshot(request, log):
                     % (
                         yaml.safe_dump(
                             {
-                                "created": datetime.utcnow().isoformat() + "Z",
+                                "created": datetime.now(timezone.utc).isoformat() + "Z",
                                 "creator": "sentry",
                                 "source": source,
                             },

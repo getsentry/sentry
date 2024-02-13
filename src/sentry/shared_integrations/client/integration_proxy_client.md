@@ -59,7 +59,7 @@ def authorize_request(self, prepared_request: PreparedRequest) -> PreparedReques
         return prepared_request
 
     token_data = integration.metadata["auth_data"]
-    if token["expiration"] > datetime.utcnow():
+    if token["expiration"] > datetime.now(timezone.utc):
         token_data = self._refresh_and_save_token_data()
 
     prepared_request.headers["Authorization"] = f"Bearer {token_data["token"]}"

@@ -477,8 +477,8 @@ class BackupTestCase(TransactionTestCase):
         IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=datetime.utcnow() - timedelta(hours=24),
-                end=datetime.utcnow(),
+                start=datetime.now(timezone.utc) - timedelta(hours=24),
+                end=datetime.now(timezone.utc),
                 values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
                 period=1,
             ),
@@ -494,7 +494,7 @@ class BackupTestCase(TransactionTestCase):
 
         # *Snapshot
         PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=datetime.utcnow() + timedelta(hours=4)
+            incident=incident, target_run_date=datetime.now(timezone.utc) + timedelta(hours=4)
         )
 
         # Dashboard

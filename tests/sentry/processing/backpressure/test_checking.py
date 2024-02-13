@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import msgpack
@@ -93,7 +93,7 @@ def process_one_message():
         "organization_id": 1,
         "project_id": 1,
         "key_id": 1,
-        "received": int(datetime.utcnow().timestamp()),
+        "received": int(datetime.now(timezone.utc).timestamp()),
         "payload": json.dumps({"platform": "android", "profile": ""}),
     }
     payload = msgpack.packb(message_dict)

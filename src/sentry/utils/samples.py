@@ -184,7 +184,7 @@ def load_data(
 
     # Generate a timestamp in the present.
     if timestamp is None:
-        timestamp = datetime.utcnow() - timedelta(minutes=1)
+        timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
         timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
     timestamp = timestamp.replace(tzinfo=timezone.utc)
     data.setdefault("timestamp", to_timestamp(timestamp))

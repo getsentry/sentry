@@ -1,6 +1,6 @@
 from collections import namedtuple
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
@@ -117,7 +117,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = datetime.now(timezone.utc).isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence()
         with self.assertRaisesMessage(
@@ -388,7 +388,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
         create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
-        event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
+        event_data["event"]["timestamp"] = datetime.now(timezone.utc).isoformat()
         event = self.store_event(data=event_data["event"], project_id=project_id)
         occurrence = self.build_occurrence(event_id=event.event_id)
         group_info = save_issue_from_occurrence(occurrence, event, None)

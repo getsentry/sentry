@@ -85,7 +85,7 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
         super().__init__()
 
     def get_token(self):
-        if not self.token or self.expires_at < datetime.datetime.utcnow():
+        if not self.token or self.expires_at < datetime.datetime.now(datetime.UTC):
             res = self.create_token()
             self.token = res["token"]
             self.expires_at = datetime.datetime.strptime(res["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
@@ -93,7 +93,7 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
         return self.token
 
     def get_jwt(self):
-        exp = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+        exp = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=10)
         exp = calendar.timegm(exp.timetuple())
         # Generate the JWT
         payload = {

@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from snuba_sdk import (
     Column,
@@ -187,8 +187,8 @@ def fetch_projects_with_total_root_transactions_count(
         str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
     )
     where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("timestamp"), Op.GTE, datetime.now(timezone.utc) - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
         Condition(Column("metric_id"), Op.EQ, count_per_root_metric_id),
         Condition(Column("org_id"), Op.IN, list(org_ids)),
     ]

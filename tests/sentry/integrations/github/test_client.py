@@ -40,7 +40,7 @@ GITHUB_CODEOWNERS = {
 class GitHubAppsClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
-        ten_days = datetime.utcnow() + timedelta(days=10)
+        ten_days = datetime.now(timezone.utc) + timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",

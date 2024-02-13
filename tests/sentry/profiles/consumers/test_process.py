@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -28,7 +28,7 @@ class TestProcessProfileConsumerStrategy(TestCase):
             "organization_id": 1,
             "project_id": 1,
             "key_id": 1,
-            "received": int(datetime.utcnow().timestamp()),
+            "received": int(datetime.now(timezone.utc).timestamp()),
             "payload": json.dumps({"platform": "android", "profile": ""}),
         }
         payload = msgpack.packb(message_dict)

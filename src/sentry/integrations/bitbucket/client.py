@@ -80,8 +80,8 @@ class BitbucketApiClient(IntegrationProxyClient):
         path = path.split("?")[0]
         jwt_payload = {
             "iss": BITBUCKET_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "iat": datetime.datetime.now(datetime.UTC),
+            "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
                 uri=path, method=prepared_request.method.upper(), query_params=url_params
             ),

@@ -5,7 +5,7 @@ import logging
 import os
 import random
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import jsonschema
@@ -191,7 +191,7 @@ def _last_upload_key(project_id: int) -> str:
 
 
 def record_last_upload(project: Project):
-    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
     _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 

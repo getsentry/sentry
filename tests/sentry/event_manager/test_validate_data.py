@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -16,7 +16,7 @@ def test_timestamp():
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     data = validate_and_normalize({"timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
     assert "errors" not in data
 

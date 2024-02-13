@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
@@ -111,7 +111,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+                "expires_at": iso_format(datetime.now(timezone.utc) + timedelta(days=14)),
             },
         )
         integration.add_organization(self.organization, self.user)

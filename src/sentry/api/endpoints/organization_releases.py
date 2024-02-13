@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.db import IntegrityError
 from django.db.models import F, Q
@@ -352,8 +352,8 @@ class OrganizationReleasesEndpoint(
                     release_versions,
                     filter_params["start"]
                     if filter_params["start"]
-                    else datetime.utcnow() - timedelta(days=90),
-                    filter_params["end"] if filter_params["end"] else datetime.utcnow(),
+                    else datetime.now(timezone.utc) - timedelta(days=90),
+                    filter_params["end"] if filter_params["end"] else datetime.now(timezone.utc),
                 )
                 valid_versions = [
                     rv for rv in release_versions if rv not in releases_with_session_data

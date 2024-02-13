@@ -1245,7 +1245,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.login_as(user=user)
 
         release = Release.objects.create(
-            version="1.2.1", date_released=datetime.utcnow(), organization=org
+            version="1.2.1", date_released=datetime.now(timezone.utc), organization=org
         )
         release.add_project(project)
 
@@ -1281,7 +1281,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.login_as(user=user)
 
         release = Release.objects.create(
-            version="x" * 65, date_released=datetime.utcnow(), organization=org
+            version="x" * 65, date_released=datetime.now(timezone.utc), organization=org
         )
         release.add_project(project)
 

@@ -1,6 +1,6 @@
 import secrets
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sentry import options
 from sentry.utils import hashlib, json
@@ -20,7 +20,7 @@ def generate_token(org_slug: str, region_url: str):
         raise SystemUrlPrefixMissingException
 
     payload = {
-        "iat": datetime.utcnow().timestamp(),
+        "iat": datetime.now(timezone.utc).timestamp(),
         "url": sentry_url,
         "region_url": region_url,
         "org": org_slug,

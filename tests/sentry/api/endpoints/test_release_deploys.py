@@ -24,7 +24,7 @@ class ReleaseDeploysListTest(APITestCase):
             ).id,
             organization_id=project.organization_id,
             release=release,
-            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+            date_finished=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1),
         )
         Deploy.objects.create(
             environment_id=Environment.objects.create(

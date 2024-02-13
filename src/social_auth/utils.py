@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
@@ -56,7 +56,7 @@ def expiration_datetime(instance: UserSocialAuth | RpcUserSocialAuth) -> timedel
         except (ValueError, TypeError):
             return None
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Detect if expires is a timestamp
         if expires > time.mktime(now.timetuple()):

@@ -36,7 +36,7 @@ class GitHubAppsClientTest(TestCase):
         patcher_2.start()
         self.addCleanup(patcher_2.stop)
 
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10)
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",

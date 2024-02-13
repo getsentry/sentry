@@ -18,7 +18,7 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
         github_id = options.get("github-app.id")
     if github_private_key is None:
         github_private_key = options.get("github-app.private-key")
-    exp_ = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+    exp_ = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=10)
     exp = calendar.timegm(exp_.timetuple())
     # Generate the JWT
     payload = {

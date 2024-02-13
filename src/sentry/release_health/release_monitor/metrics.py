@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from snuba_sdk import (
     Column,
@@ -49,9 +49,11 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         groupby=[Column("org_id"), Column("project_id")],
                         where=[
                             Condition(
-                                Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)
+                                Column("timestamp"),
+                                Op.GTE,
+                                datetime.now(timezone.utc) - timedelta(hours=6),
                             ),
-                            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                            Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
                             Condition(
                                 Column("metric_id"),
                                 Op.EQ,
@@ -124,9 +126,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Condition(
                                 Column("timestamp"),
                                 Op.GTE,
-                                datetime.utcnow() - timedelta(hours=6),
+                                datetime.now(timezone.utc) - timedelta(hours=6),
                             ),
-                            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                            Condition(Column("timestamp"), Op.LT, datetime.now(timezone.utc)),
                             Condition(Column("org_id"), Op.EQ, org_id),
                             Condition(Column("project_id"), Op.IN, project_ids),
                             Condition(

@@ -30,7 +30,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",

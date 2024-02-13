@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -285,7 +285,7 @@ def shim_to_feedback(
             feedback_event["tags"] = [list(item) for item in event.tags]
 
         else:
-            feedback_event["timestamp"] = datetime.utcnow().timestamp()
+            feedback_event["timestamp"] = datetime.now(timezone.utc).timestamp()
             feedback_event["platform"] = "other"
             feedback_event["level"] = report.get("level", "info")
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from django.conf import settings
@@ -234,8 +234,8 @@ def test_separate_namespacing() -> None:
 
 
 def test_is_valid_timestamp() -> None:
-    stale_ts = int((datetime.utcnow() - timedelta(hours=5)).timestamp())
-    new_ts = int((datetime.utcnow() - timedelta(hours=1)).timestamp())
+    stale_ts = int((datetime.now(timezone.utc) - timedelta(hours=5)).timestamp())
+    new_ts = int((datetime.now(timezone.utc) - timedelta(hours=1)).timestamp())
 
     assert not indexer_cache._is_valid_timestamp(str(stale_ts))
     assert indexer_cache._is_valid_timestamp(str(new_ts))

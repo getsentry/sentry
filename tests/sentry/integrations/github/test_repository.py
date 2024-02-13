@@ -21,7 +21,7 @@ from sentry.utils import json
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
-        ten_hours = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+        ten_hours = datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",

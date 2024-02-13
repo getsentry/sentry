@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentry.api.endpoints.release_thresholds.health_checks import is_new_issue_count_healthy
@@ -15,7 +15,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
 
     def test_success(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         mock_threshold: EnrichedThreshold = {
             "id": "1",
             "date": now,
@@ -43,7 +43,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert metric_value == 0
 
     def test_multiple_thresholds(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         threshold: EnrichedThreshold = {
             "id": "1",
             "date": now,
@@ -119,7 +119,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert metric_value == 100
 
     def test_success_under(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         mock_threshold: EnrichedThreshold = {
             "id": "1",
             "date": now,
@@ -147,7 +147,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
         assert metric_value == 0
 
     def test_no_new_issues(self):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         mock_threshold: EnrichedThreshold = {
             "id": "1",
             "date": now,

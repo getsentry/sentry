@@ -436,7 +436,7 @@ class SnubaEventStorage(EventStorage):
         next_filter.conditions = next_filter.conditions or []
         next_filter.conditions.extend(get_after_event_condition(event))
         next_filter.start = event.datetime
-        next_filter.end = datetime.utcnow()
+        next_filter.end = timezone.now()
         next_filter.orderby = ASC_ORDERING
 
         dataset = self._get_dataset_for_event(event)

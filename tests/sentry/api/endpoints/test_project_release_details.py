@@ -125,7 +125,9 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(
+            url, data={"dateReleased": datetime.now(timezone.utc).isoformat() + "Z"}
+        )
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -155,7 +157,9 @@ class UpdateReleaseDetailsTest(APITestCase):
                 "version": release.version,
             },
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(
+            url, data={"dateReleased": datetime.now(timezone.utc).isoformat() + "Z"}
+        )
 
         assert response.status_code == 200, (response.status_code, response.content)
 
