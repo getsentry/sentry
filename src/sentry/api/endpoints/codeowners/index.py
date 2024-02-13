@@ -43,8 +43,8 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
             codeowner.repository_project_path_config,
         )
         codeowner.schema = create_schema_from_issue_owners(
-            codeowner.raw,
-            project.id,
+            project_id=project.id,
+            issue_owners=codeowner.raw,
             add_owner_ids=True,
             remove_deleted_owners=True,
         )
