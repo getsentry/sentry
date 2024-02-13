@@ -7,9 +7,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventGroupInfo, Group} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types';
+import {EventGroupVariantType, IssueCategory} from 'sentry/types';
+import type {Event, EventGroupVariant} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
@@ -31,35 +31,83 @@ type GroupingInfoProps = {
 };
 
 type EventGroupingInfoResponse = {
-  [variant: string]: EventGroupInfo;
+  [variant: string]: EventGroupVariant;
 };
 
-function generatePerformanceGroupInfo({event, group}: {event: Event; group: Group}) {
+function generatePerformanceGroupInfo({
+  event,
+  group,
+}: {event: Event; group: Group}): EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
   }
 
   const {evidenceData} = event.occurrence;
 
-  const variant = group
+  const hash = event.occurrence?.fingerprint[0] || '';
+
+  return group
     ? {
         [group.issueType]: {
           description: t('performance problem'),
           hash: event.occurrence?.fingerprint[0] || '',
-          hasMismatch: false,
+          hashMismatch: false,
           key: group.issueType,
-          type: 'performance-problem',
+          type: EventGroupVariantType.PERFORMANCE_PROBLEM,
           evidence: {
             op: evidenceData?.op,
             parent_span_ids: evidenceData?.parentSpanIds,
             cause_span_ids: evidenceData?.causeSpanIds,
             offender_span_ids: evidenceData?.offenderSpanIds,
+            desc: t('performance problem'),
+            fingerprint: hash,
           },
         },
       }
     : null;
+}
 
-  return variant;
+function GroupConfigSelect({
+  event,
+  configOverride,
+  setConfigOverride,
+}: {
+  configOverride: string | null;
+  event: Event;
+  setConfigOverride: (value: string) => void;
+}) {
+  const organization = useOrganization();
+
+  if (!event.groupingConfig) {
+    return null;
+  }
+
+  const configId = configOverride ?? event.groupingConfig?.id;
+
+  return (
+    <GroupingConfigSelect
+      organizationSlug={organization.slug}
+      eventConfigId={event.groupingConfig.id}
+      configId={configId}
+      onSelect={selection => setConfigOverride(selection.value)}
+    />
+  );
+}
+
+function GroupInfoSummary({groupInfo}: {groupInfo: EventGroupingInfoResponse | null}) {
+  const groupedBy = groupInfo
+    ? Object.values(groupInfo)
+        .filter(variant => variant.hash !== null && variant.description !== null)
+        .map(variant => variant.description)
+        .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
+        .join(', ')
+    : t('nothing');
+
+  return (
+    <p data-test-id="loaded-grouping-info">
+      <strong>{t('Grouped by:')}</strong> {groupedBy}
+    </p>
+  );
 }
 
 export function EventGroupingInfo({
@@ -87,79 +135,17 @@ export function EventGroupingInfo({
 
   const groupInfo = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
-    : data;
+    : data ?? null;
 
-  const renderGroupConfigSelect = () => {
-    if (!event.groupingConfig) {
-      return null;
-    }
-
-    const configId = configOverride ?? event.groupingConfig?.id;
-
-    return (
-      <GroupingConfigSelect
-        organizationSlug={organization.slug}
-        eventConfigId={event.groupingConfig.id}
-        configId={configId}
-        onSelect={selection => setConfigOverride(selection.value)}
-      />
-    );
-  };
-
-  const renderGroupInfo = () => {
-    const variants = groupInfo
-      ? Object.values(groupInfo).sort((a, b) =>
-          a.hash && !b.hash
-            ? -1
-            : a.description
-                ?.toLowerCase()
-                .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
-        )
-      : [];
-
-    return (
-      <Fragment>
-        <ConfigHeader>
-          <div>{showGroupingConfig && renderGroupConfigSelect()}</div>
-          <FeatureFeedback
-            featureName="grouping"
-            feedbackTypes={groupingFeedbackTypes}
-            buttonProps={{size: 'sm'}}
-          />
-        </ConfigHeader>
-        {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
-        {isLoading && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
-        {hasPerformanceGrouping || isSuccess
-          ? variants.map((variant, index) => (
-              <Fragment key={variant.key}>
-                <GroupVariant
-                  event={event}
-                  variant={variant}
-                  showGroupingConfig={showGroupingConfig}
-                />
-                {index < variants.length - 1 && <VariantDivider />}
-              </Fragment>
-            ))
-          : null}
-      </Fragment>
-    );
-  };
-
-  const renderGroupInfoSummary = () => {
-    const groupedBy = groupInfo
-      ? Object.values(groupInfo)
-          .filter(variant => variant.hash !== null && variant.description !== null)
-          .map(variant => variant.description)
-          .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
-          .join(', ')
-      : t('nothing');
-
-    return (
-      <p data-test-id="loaded-grouping-info">
-        <strong>{t('Grouped by:')}</strong> {groupedBy}
-      </p>
-    );
-  };
+  const variants = groupInfo
+    ? Object.values(groupInfo).sort((a, b) =>
+        a.hash && !b.hash
+          ? -1
+          : a.description
+              ?.toLowerCase()
+              .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
+      )
+    : [];
 
   return (
     <EventDataSection
@@ -167,7 +153,43 @@ export function EventGroupingInfo({
       title={t('Event Grouping Information')}
       actions={<SectionToggleButton isExpanded={isOpen} onExpandChange={setIsOpen} />}
     >
-      {isOpen ? renderGroupInfo() : renderGroupInfoSummary()}
+      {!isOpen ? <GroupInfoSummary groupInfo={groupInfo} /> : null}
+      {isOpen ? (
+        <Fragment>
+          <ConfigHeader>
+            <div>
+              {showGroupingConfig && (
+                <GroupConfigSelect
+                  event={event}
+                  configOverride={configOverride}
+                  setConfigOverride={setConfigOverride}
+                />
+              )}
+            </div>
+            <FeatureFeedback
+              featureName="grouping"
+              feedbackTypes={groupingFeedbackTypes}
+              buttonProps={{size: 'sm'}}
+            />
+          </ConfigHeader>
+          {isError ? (
+            <LoadingError message={t('Failed to fetch grouping info.')} />
+          ) : null}
+          {isLoading && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
+          {hasPerformanceGrouping || isSuccess
+            ? variants.map((variant, index) => (
+                <Fragment key={variant.key}>
+                  <GroupVariant
+                    event={event}
+                    variant={variant}
+                    showGroupingConfig={showGroupingConfig}
+                  />
+                  {index < variants.length - 1 && <VariantDivider />}
+                </Fragment>
+              ))
+            : null}
+        </Fragment>
+      ) : null}
     </EventDataSection>
   );
 }
