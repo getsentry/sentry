@@ -16,7 +16,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.tasks import on_demand_metrics
-from sentry.tasks.on_demand_metrics import process_widget_specs, schedule_on_demand_check
+from sentry.tasks.on_demand_metrics import (
+    _query_cardinality,
+    process_widget_specs,
+    schedule_on_demand_check,
+)
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -427,3 +431,10 @@ def assert_on_demand_model(
         return
 
     assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
+
+
+@django_db_all
+@mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+def test_query_cardinality(mock_query, project, organization):
+    _query_cardinality(["sometag"], organization)
+    assert mock_query.called

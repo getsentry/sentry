@@ -573,6 +573,8 @@ class BaseQueryBuilder:
         if self.end:
             conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
+        if len(self.params.project_ids) == 0:
+            raise InvalidSearchQuery("Querying without projects will not return any results")
         conditions.append(
             Condition(
                 self.column("project_id"),

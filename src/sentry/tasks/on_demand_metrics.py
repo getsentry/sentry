@@ -373,9 +373,11 @@ def _get_widget_query_low_cardinality(
 def _query_cardinality(
     query_columns: list[str], organization: Organization
 ) -> tuple[EventsResponse, list[str]]:
+    projects = Project.objects.filter(organization=organization)
     params: dict[str, Any] = {
         "statsPeriod": "30m",
         "organization_id": organization.id,
+        "project_objects": projects,
     }
     start, end = get_date_range_from_params(params)
     params["start"] = start
