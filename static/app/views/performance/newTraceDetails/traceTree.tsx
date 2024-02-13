@@ -803,17 +803,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     let count = 0;
 
-<<<<<<< HEAD
-    for (let i = this.children.length - 1; i >= 0; i--) {
-      if (
-        this.children[i].expanded ||
-        isParentAutogroupedNode(this.children[i]) ||
-        isMissingInstrumentationNode(this.children[i])
-      ) {
-=======
-    if (this.expanded || isParentAutogroupedNode(this)) {
+    if (
+      this.expanded ||
+      isParentAutogroupedNode(this) ||
+      isMissingInstrumentationNode(this)
+    ) {
       for (let i = this.children.length - 1; i >= 0; i--) {
->>>>>>> 3cc387bf29 (feat(trace): fix autogrouping)
         stack.push(this.children[i]);
       }
     }
@@ -837,17 +832,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
-<<<<<<< HEAD
-    for (let i = this.children.length - 1; i >= 0; i--) {
-      if (
-        this.children[i].expanded ||
-        isParentAutogroupedNode(this.children[i]) ||
-        isMissingInstrumentationNode(this.children[i])
-      ) {
-=======
-    if (this.expanded || isParentAutogroupedNode(this)) {
+    if (
+      this.expanded ||
+      isParentAutogroupedNode(this) ||
+      isMissingInstrumentationNode(this)
+    ) {
       for (let i = this.children.length - 1; i >= 0; i--) {
->>>>>>> 3cc387bf29 (feat(trace): fix autogrouping)
         stack.push(this.children[i]);
       }
     }
@@ -926,7 +916,6 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   }
 }
 
-<<<<<<< HEAD
 function partialTransaction(
   partial: Partial<TraceTree.Transaction>
 ): TraceTree.Transaction {
@@ -998,7 +987,8 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
   const tree = TraceTree.FromTrace(trace);
 
   return tree;
-=======
+}
+
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
   const padding = ' '.repeat(t.depth + offset);
@@ -1030,5 +1020,4 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   throw new Error('Not implemented');
->>>>>>> 3cc387bf29 (feat(trace): fix autogrouping)
 }

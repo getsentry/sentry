@@ -282,15 +282,9 @@ describe('TraceTree', () => {
         span_id: '1',
         op: 'span 1',
       }),
-<<<<<<< HEAD
-      makeRawSpan({
+      makeSpan({
         start_timestamp: date + 2,
         timestamp: date + 4,
-=======
-      makeSpan({
-        start_timestamp: date + 200,
-        timestamp: date + 400,
->>>>>>> 3cc387bf29 (feat(trace): fix autogrouping)
         op: 'span 2',
         span_id: '2',
       }),
