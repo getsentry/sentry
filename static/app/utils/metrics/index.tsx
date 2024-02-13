@@ -366,7 +366,7 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
     result += `{${query.trim()}}`;
   }
 
-  if (groupBy && groupBy.length) {
+  if (groupBy?.length) {
     result += ` by ${groupBy.join(', ')}`;
   }
 

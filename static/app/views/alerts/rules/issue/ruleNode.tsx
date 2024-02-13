@@ -337,7 +337,7 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {node.formFields && node.formFields.hasOwnProperty(key)
+          {node.formFields?.hasOwnProperty(key)
             ? getField(key, node.formFields[key])
             : part}
         </Separator>

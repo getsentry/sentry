@@ -92,7 +92,7 @@ class TriggerFormItem extends PureComponent<Props> {
         label={triggerLabel}
         help={fieldHelp}
         required={isCritical}
-        error={error && error.alertThreshold}
+        error={error?.alertThreshold}
       >
         <ThresholdControl
           disabled={disabled}
@@ -219,7 +219,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               api={api}
               config={config}
               disabled={disabled}
-              error={errors && errors.get(index)}
+              error={errors?.get(index)}
               trigger={trigger}
               thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
@@ -260,7 +260,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           api={api}
           config={config}
           disabled={disabled}
-          error={errors && errors.get(2)}
+          error={errors?.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
           thresholdPeriod={thresholdPeriod}

@@ -105,7 +105,7 @@ class PluginComponentBase<
       },
       () => {
         addLoadingMessage(t('Saving changes\u2026'));
-        callback && callback();
+        callback?.();
       }
     );
   }
@@ -116,7 +116,7 @@ class PluginComponentBase<
       {
         state: FormState.READY,
       },
-      () => callback && callback()
+      () => callback?.()
     );
 
     window.clearTimeout(this.successMessageTimeout);
@@ -131,7 +131,7 @@ class PluginComponentBase<
       {
         state: FormState.ERROR,
       },
-      () => callback && callback()
+      () => callback?.()
     );
 
     window.clearTimeout(this.errorMessageTimeout);
@@ -143,7 +143,7 @@ class PluginComponentBase<
   onSaveComplete(callback, ...args) {
     clearIndicators();
     callback = callbackWithArgs(this, callback, ...args);
-    callback && callback();
+    callback?.();
   }
 
   renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {
