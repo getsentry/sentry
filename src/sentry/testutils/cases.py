@@ -3054,6 +3054,7 @@ class MonitorTestCase(APITestCase):
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.user.id,
                 "targetType": "Member",
+                "uuid": str(uuid4()),
             },
         ]
         rule = Creator(

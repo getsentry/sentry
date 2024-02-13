@@ -328,7 +328,12 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.label == "Monitor Alert: new-name"
-        assert monitor_rule.data["actions"] == [
+
+        monitor_rule_actions = monitor_rule.data["actions"].copy()
+        assert len(monitor_rule_actions) == 1
+        monitor_rule_actions[0].pop("uuid")
+
+        assert monitor_rule_actions == [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": new_user.id,
