@@ -3061,6 +3061,46 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_count_starts_returns_all_counts_when_no_arg_is_passed(self):
+        self.store_transaction_metric(
+            200,
+            metric="measurements.app_start_warm",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            100,
+            metric="measurements.app_start_warm",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            10,
+            metric="measurements.app_start_cold",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "count_total_starts()",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["count_total_starts()"] == 3
+
+        assert meta["isMetricsData"]
+
     def test_timestamp_groupby(self):
         self.store_transaction_metric(
             0.03,
@@ -3284,6 +3324,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_starts(self):
         super().test_count_starts()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_starts_returns_all_counts_when_no_arg_is_passed(self):
+        super().test_count_starts_returns_all_counts_when_no_arg_is_passed()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_timestamp_groupby(self):
