@@ -94,7 +94,7 @@ def parse_timestamp(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(value, timezone.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
