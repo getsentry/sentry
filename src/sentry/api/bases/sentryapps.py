@@ -429,7 +429,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
         )
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
