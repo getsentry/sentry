@@ -168,7 +168,11 @@ class QueryTransformer:
 
             # We add additional metadata from the query themselves to make the API more transparent.
             query_meta.append(
-                QueryMeta(group_bys=group_bys, order=query_result.order, limit=query_result.limit)
+                QueryMeta(
+                    group_bys=group_bys,
+                    order=query_result.order.value if query_result.order else None,
+                    limit=query_result.limit,
+                )
             )
 
             queries_groups.append(query_groups)
