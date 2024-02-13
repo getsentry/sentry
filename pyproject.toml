@@ -372,7 +372,6 @@ module = [
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
     "sentry.issues.escalating_group_forecast",
-    "sentry.issues.issue_occurrence",
     "sentry.issues.occurrence_consumer",
     "sentry.issues.search",
     "sentry.issues.status_change",
