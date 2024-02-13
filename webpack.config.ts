@@ -345,14 +345,12 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
-        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
-        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
-      },
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
     }),
 
     /**
