@@ -3249,44 +3249,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
+    def _setup_user_misery(self, spec: OnDemandMetricSpec):
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for index, event in enumerate(events):
+            email = f"{event[0]}@example.com"
+            tags = {"user.email": email}
+            if event[1] > 300:
+                tags["satisfaction"] = "frustrated"
+            self.store_on_demand_metric(
+                (index + 1) * 5,
+                spec=spec,
+                additional_tags=tags,
+                timestamp=self.day_ago + timedelta(hours=index),
+            )
+
     def test_on_demand_user_misery_big_number(self):
-        self.create_environment(self.project, name="production")
-        # This is a non-standard threshold, thus, we can't use MEP to fetch it
         field = "user_misery(300)"
-        environment = "production"
         query = ""
         spec = OnDemandMetricSpec(
             field=field,
             query=query,
-            environment=environment,
             spec_type=MetricSpecType.DYNAMIC_QUERY,
         )
-        for hour in range(0, 2):
-            self.store_on_demand_metric(
-                (hour + 1) * 5,
-                spec=spec,
-                additional_tags={"satisfaction": "frustrated", "environment": environment},
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
-            self.store_on_demand_metric(
-                (hour + 1) * 5,
-                spec=spec,
-                additional_tags={"environment": environment},
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
+        self._setup_user_misery(spec)
+
         resp = self.do_request(
             {
                 "field": [field],
                 "project": self.project.id,
                 "query": query,
-                "environment": environment,
                 "dataset": "metricsEnhanced",
                 "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
         )
         assert resp.data == {
-            "data": [{field: 0.06586638830897704}],
+            "data": [{field: 0.09606060606060605}],
             "meta": {
                 "fields": {field: "number"},
                 "units": {field: None},
