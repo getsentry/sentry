@@ -429,6 +429,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         # assert comment wording for linked feedback is correct
         assert "Sentry Feedback" in resp[2]["default"]
 
+        # ensure linked comment is a string
+        assert isinstance(resp[1]["default"], str)
+        assert isinstance(resp[0]["default"], str)
+
     @responses.activate
     def after_link_issue(self):
         responses.add(
