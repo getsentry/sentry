@@ -142,7 +142,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self._create_monitor(name="A monitor"),
             self._create_monitor(name="ZA monitor"),
         ]
-        monitors.sort(key=lambda m: (not m.is_muted, m.name))
+        monitors.sort(key=lambda m: (m.is_muted, m.name))
 
         response = self.get_success_response(self.organization.slug, sort="muted")
         self.check_valid_response(response, monitors)
@@ -182,13 +182,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
         response = self.get_success_response(self.organization.slug, sort="muted")
         expected = [
-            muted_monitor_2,
-            muted_monitor_1,
-            muted_env_monitor,
-            muted_other_env_monitor,
             non_muted_monitor_2,
             non_muted_monitor_1,
             not_muted_env_monitor,
+            muted_env_monitor,
+            muted_other_env_monitor,
+            muted_monitor_2,
+            muted_monitor_1,
         ]
         self.check_valid_response(response, expected)
 
@@ -200,13 +200,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self.organization.slug, sort="muted", environment=["prod"]
         )
         expected = [
-            muted_monitor_2,
-            muted_monitor_1,
-            muted_env_monitor,
             non_muted_monitor_2,
             non_muted_monitor_1,
             muted_other_env_monitor,
             not_muted_env_monitor,
+            muted_env_monitor,
+            muted_monitor_2,
+            muted_monitor_1,
         ]
         self.check_valid_response(response, expected)
 
