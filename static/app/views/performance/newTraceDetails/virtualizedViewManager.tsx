@@ -125,6 +125,7 @@ export class VirtualizedViewManager {
     const spanWidth = this.columns.span_list.width * 100 - distancePercentage * 100 + '%';
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+<<<<<<< HEAD
       const list = this.columns.list.column_refs[i];
       if (list) {
         list.style.width = listWidth;
@@ -136,13 +137,28 @@ export class VirtualizedViewManager {
       const span_bar = this.span_bars[i];
       if (span_bar) {
         span_bar.ref.style.transform = this.computeSpanMatrixTransform(span_bar.space);
+=======
+      if (this.columns.list.column_refs[i]) {
+        this.columns.list.column_refs[i].style.width = listWidth;
+      }
+      if (this.columns.span_list.column_refs[i]) {
+        this.columns.span_list.column_refs[i].style.width = spanWidth;
+>>>>>>> 387f535e78 (feat(loading): setup view)
       }
     }
   }
 
+<<<<<<< HEAD
   registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
+=======
+  registerColumnRef(column: string, ref: HTMLDivElement | null, index: number) {
+    if (!ref) {
+      this.columns[column].column_refs[index] = undefined;
+      return;
+    }
+>>>>>>> 387f535e78 (feat(loading): setup view)
 
   registerColumnRef(column: string, ref: HTMLElement | null, index: number) {
     if (!this.columns[column]) {
