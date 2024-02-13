@@ -190,7 +190,8 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
 
-    organization_project_issue_substatus_summaries(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_substatus_summaries"):
+        organization_project_issue_substatus_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -204,7 +205,8 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
-    report_is_available = not check_if_ctx_is_empty(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
 
     if not report_is_available:

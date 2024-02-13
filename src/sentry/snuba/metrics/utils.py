@@ -188,6 +188,11 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.MetricsSets,
         EntityKey.MetricsDistributions,
     },
+    UseCaseID.SPANS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
     UseCaseID.TRANSACTIONS: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,

@@ -130,29 +130,27 @@ def test_bind_organization_context(default_organization):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback(settings, default_organization):
+def test_bind_organization_context_with_callback(default_organization):
     create_default_projects()
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
         scope.set_tag("organization.test", "1")
 
-    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
-    bind_organization_context(default_organization)
-
-    assert Hub.current.scope._tags["organization.test"] == "1"
+    with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+        bind_organization_context(default_organization)
+        assert Hub.current.scope._tags["organization.test"] == "1"
 
 
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback_error(settings, default_organization):
+def test_bind_organization_context_with_callback_error(default_organization):
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
         1 / 0
 
-    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
-    bind_organization_context(default_organization)
-
-    assert Hub.current.scope._tags["organization"] == default_organization.id
+    with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+        bind_organization_context(default_organization)
+        assert Hub.current.scope._tags["organization"] == default_organization.id

@@ -344,12 +344,12 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
 });
 
 function getWidthFactor(bucketSize: number) {
-  // In general, fog of war should cover the last bucket
-  if (bucketSize > 30 * 60_000) {
+  // If the bucket size is >= 5 minutes the fog of war should only cover the last bucket
+  if (bucketSize >= 5 * 60_000) {
     return 1;
   }
 
-  // for 10s timeframe we want to show a fog of war that spans last 10 buckets
+  // for buckets <= 10s we want to show a fog of war that spans last 10 buckets
   // because on average, we are missing last 90 seconds of data
   if (bucketSize <= 10_000) {
     return 10;

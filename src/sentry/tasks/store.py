@@ -706,7 +706,7 @@ def create_failed_event(
     raw_event = RawEvent.objects.create(
         project_id=project_id,
         event_id=event_id,
-        datetime=datetime.utcfromtimestamp(data["timestamp"]).replace(tzinfo=timezone.utc),
+        datetime=datetime.fromtimestamp(data["timestamp"], timezone.utc),
         data=data,
     )
 

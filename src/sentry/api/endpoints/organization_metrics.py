@@ -371,7 +371,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         """
         Extracts the interval of the query from the request payload.
         """
-        interval = parse_stats_period(request.data.get("interval", "1h"))
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
         return int(3600 if interval is None else interval.total_seconds())
 
     def _metrics_queries_plan_from_request(self, request: Request) -> MetricsQueriesPlan:
