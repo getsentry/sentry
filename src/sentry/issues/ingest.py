@@ -67,7 +67,7 @@ def save_issue_occurrence(
     return occurrence, group_info
 
 
-def process_occurrence_data(data: Mapping[str, Any]) -> None:
+def process_occurrence_data(data: dict[str, Any]) -> None:
     if "fingerprint" not in data:
         return
 
@@ -118,6 +118,7 @@ class OccurrenceMetadata(TypedDict):
     title: str
     location: str | None
     last_received: str
+    initial_priority: int | None
 
 
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
@@ -260,7 +261,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    eventstream.insert(
+    eventstream.backend.insert(
         event=group_event,
         is_new=group_info.is_new,
         is_regression=group_info.is_regression,

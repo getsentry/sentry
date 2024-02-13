@@ -188,7 +188,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {}
 
 
-def plugin_is_regression(group: Group, event: Event) -> bool:
+def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
         result = safe_execute(
@@ -1781,7 +1781,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release | None) -> bool | None:
+def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1924,7 +1924,10 @@ def _handle_regression(group: Group, event: Event, release: Release | None) -> b
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Release | None
+    group: Group,
+    event: BaseEvent,
+    incoming_group_values: Mapping[str, Any],
+    release: Release | None,
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values: dict[str, Any] = {"last_seen": last_seen}
