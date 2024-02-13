@@ -304,14 +304,11 @@ def find_existing_grouphash(
 
 
 def find_existing_grouphash_new(
-    flat_grouphashes: Sequence[GroupHash],
+    grouphashes: Sequence[GroupHash],
 ) -> tuple[GroupHash | None, str | None]:
-    all_grouphashes = []
     root_hierarchical_hash = None
 
-    all_grouphashes.extend(flat_grouphashes)
-
-    for group_hash in all_grouphashes:
+    for group_hash in grouphashes:
         if group_hash.group_id is not None:
             return group_hash, root_hierarchical_hash
 
