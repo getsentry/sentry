@@ -303,6 +303,27 @@ def find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
+def find_existing_grouphash_new(
+    grouphashes: Sequence[GroupHash],
+) -> GroupHash | None:
+    for group_hash in grouphashes:
+        if group_hash.group_id is not None:
+            return group_hash
+
+        # TODO: When refactoring for hierarchical grouping, we noticed that a
+        # tombstone may get ignored entirely if there is another hash *before*
+        # that happens to have a group_id. This bug may not have been noticed
+        # for a long time because most events only ever have 1-2 hashes.
+        if group_hash.group_tombstone_id is not None:
+            raise HashDiscarded(
+                "Matches group tombstone %s" % group_hash.group_tombstone_id,
+                reason="discard",
+                tombstone_id=group_hash.group_tombstone_id,
+            )
+
+    return None
+
+
 def get_hash_values(
     project: Project,
     job: Job,

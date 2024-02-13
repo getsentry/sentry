@@ -139,25 +139,5 @@ describe('Project Ownership', () => {
         );
       });
     });
-
-    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
-      const org = {
-        ...organization,
-        features: ['issue-alert-fallback-targeting'],
-      };
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={org}
-          project={project}
-        />
-      );
-
-      expect(screen.getByText('Prioritize Auto Assignment')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Send alert to project members if there’s no assigned owner')
-      ).not.toBeInTheDocument();
-    });
   });
 });

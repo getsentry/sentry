@@ -229,7 +229,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_simple(self, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -270,7 +270,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_multiple(self, mock_seer_request, mock_record):
         similar_group_over_threshold = self.create_group(project=self.project)
         similar_group_under_threshold = self.create_group(project=self.project)
@@ -324,7 +324,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_invalid_return(self, mock_seer_request):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
@@ -354,7 +354,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_empty_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
@@ -370,7 +370,99 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    def test_no_stacktrace(self, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": self.similar_group.id,
+                    "should_group": False,
+                    "stacktrace_similarity": 0.00,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        error_trace_no_stacktrace = {
+            "fingerprint": ["my-route", "{{ default }}"],
+            "exception": {"values": []},
+        }
+        event_no_stacktrace = self.store_event(
+            data=error_trace_no_stacktrace, project_id=self.project
+        )
+        group_no_stacktrace = event_no_stacktrace.group
+        assert group_no_stacktrace
+        response = self.client.get(
+            f"/api/0/issues/{group_no_stacktrace.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [self.similar_group.id], [0.95], [0.00], ["No"]
+        )
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": group_no_stacktrace.id,
+                    "project_id": self.project.id,
+                    "stacktrace": "",
+                    "message": group_no_stacktrace.message,
+                    "k": 1,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
+    def test_no_exception(self, mock_seer_request):
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": self.similar_group.id,
+                    "should_group": False,
+                    "stacktrace_similarity": 0.00,
+                }
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        event_no_exception = self.store_event(data={}, project_id=self.project)
+        group_no_exception = event_no_exception.group
+        assert group_no_exception
+        response = self.client.get(
+            f"/api/0/issues/{group_no_exception.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [self.similar_group.id], [0.95], [0.00], ["No"]
+        )
+
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": group_no_exception.id,
+                    "project_id": self.project.id,
+                    "stacktrace": "",
+                    "message": group_no_exception.message,
+                    "k": 1,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
+        )
+
+    @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.

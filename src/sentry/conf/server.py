@@ -1,6 +1,7 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
+
 from __future__ import annotations
 
 import os
@@ -721,6 +722,7 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
@@ -818,6 +820,7 @@ CELERY_QUEUES_CONTROL = [
     ),
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
+    Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -844,6 +847,7 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
+    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
@@ -950,7 +954,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 10 seconds as integration webhooks are delivered by this task
+        # Run every 10 seconds to keep consistency times low
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "outbox.control"},
     },
@@ -975,6 +979,12 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
+    },
+    "deliver-webhooks-control": {
+        "task": "sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "webhook.control"},
     },
 }
 
@@ -1234,6 +1244,7 @@ for queue in CELERY_QUEUES:
 PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
+    "events.process_event_proguard",
     "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
@@ -1256,6 +1267,7 @@ PROCESSING_QUEUES = [
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
+    "deliver-webhooks-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",
@@ -1424,7 +1436,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
-    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1895,8 +1906,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Allow organizations to configure all symbol sources.
@@ -1927,6 +1936,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Use ReplayClipPreview inside the User Feedback Details panel
+    "organizations:user-feedback-replay-clip": False,
     # Enable User Feedback spam auto filtering feature UI
     "organizations:user-feedback-spam-filter-ui": False,
     # Enable User Feedback spam auto filtering feature ingest
@@ -2875,26 +2886,32 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-            if not ARM64
-            # altinity provides clickhouse support to other companies
-            # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
-            # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
+            "image": (
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
+                if not ARM64
+                # altinity provides clickhouse support to other companies
+                # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
+                # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
+                else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm"
+            ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
             # The arm image does not properly load the MAX_MEMORY_USAGE_RATIO
             # from the environment in loc_config.xml, thus, hard-coding it there
             "volumes": {
-                "clickhouse_dist"
-                if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                else "clickhouse": {"bind": "/var/lib/clickhouse"},
+                (
+                    "clickhouse_dist"
+                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                    else "clickhouse"
+                ): {"bind": "/var/lib/clickhouse"},
                 os.path.join(
                     settings.DEVSERVICES_CONFIG_DIR,
                     "clickhouse",
-                    "dist_config.xml"
-                    if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
-                    else "loc_config.xml",
+                    (
+                        "dist_config.xml"
+                        if settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+                        else "loc_config.xml"
+                    ),
                 ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
             },
         }
@@ -2912,22 +2929,24 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
                 "CLICKHOUSE_PORT": "9000",
                 "CLICKHOUSE_HTTP_PORT": "8123",
-                "DEFAULT_BROKERS": ""
-                if "snuba" in settings.SENTRY_EVENTSTREAM
-                else "{containers[kafka][name]}:9093",
+                "DEFAULT_BROKERS": (
+                    ""
+                    if "snuba" in settings.SENTRY_EVENTSTREAM
+                    else "{containers[kafka][name]}:9093"
+                ),
                 "REDIS_HOST": "{containers[redis][name]}",
                 "REDIS_PORT": "6379",
                 "REDIS_DB": "1",
                 "ENABLE_SENTRY_METRICS_DEV": "1" if settings.SENTRY_USE_METRICS_DEV else "",
                 "ENABLE_PROFILES_CONSUMER": "1" if settings.SENTRY_USE_PROFILING else "",
                 "ENABLE_SPANS_CONSUMER": "1" if settings.SENTRY_USE_SPANS else "",
-                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": "1"
-                if settings.SENTRY_USE_ISSUE_OCCURRENCE
-                else "",
+                "ENABLE_ISSUE_OCCURRENCE_CONSUMER": (
+                    "1" if settings.SENTRY_USE_ISSUE_OCCURRENCE else ""
+                ),
                 "ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES": "1",
-                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": "1"
-                if settings.SENTRY_USE_GROUP_ATTRIBUTES
-                else "",
+                "ENABLE_GROUP_ATTRIBUTES_CONSUMER": (
+                    "1" if settings.SENTRY_USE_GROUP_ATTRIBUTES else ""
+                ),
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,

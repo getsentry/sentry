@@ -2,7 +2,6 @@ import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
-import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
@@ -39,37 +38,25 @@ export function Queries() {
     <Wrapper showQuerySymbols={showQuerySymbols}>
       {widgets.map((widget, index) => (
         <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-          {showQuerySymbols && (
-            <StyledQuerySymbol
-              index={index}
-              isSelected={index === selectedWidgetIndex}
-              onClick={() => setSelectedWidgetIndex(index)}
-              role="button"
-              aria-label={t('Select query')}
-            />
-          )}
-          <QueryBuilder
+          <Query
+            widget={widget}
             onChange={data => handleChange(index, data)}
-            metricsQuery={{
-              mri: widget.mri,
-              op: widget.op,
-              groupBy: widget.groupBy,
-              title: widget.title,
-              query: widget.query,
-            }}
-            displayType={widget.displayType}
-            isEdit
             projects={selection.projects}
-          />
-          <Feature
-            hookName="feature-disabled:dashboards-edit"
-            features="organizations:dashboards-edit"
-          >
-            {({hasFeature}) => (
+            symbol={
+              showQuerySymbols && (
+                <StyledQuerySymbol
+                  index={index}
+                  isSelected={index === selectedWidgetIndex}
+                  onClick={() => setSelectedWidgetIndex(index)}
+                  role="button"
+                  aria-label={t('Select query')}
+                />
+              )
+            }
+            contextMenu={
               <MetricQueryContextMenu
                 displayType={widget.displayType}
                 widgetIndex={index}
-                hasDashboardFeature={hasFeature}
                 metricsQuery={{
                   mri: widget.mri,
                   query: widget.query,
@@ -78,16 +65,52 @@ export function Queries() {
                   projects: selection.projects,
                   datetime: selection.datetime,
                   environments: selection.environments,
-                  title: widget.title,
                 }}
               />
-            )}
-          </Feature>
+            }
+          />
         </Row>
       ))}
     </Wrapper>
   );
 }
+
+interface Props {
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  projects: number[];
+  widget: MetricWidgetQueryParams;
+  contextMenu?: React.ReactNode;
+  symbol?: React.ReactNode;
+}
+
+export function Query({widget, projects, onChange, contextMenu, symbol}: Props) {
+  return (
+    <QueryWrapper hasSymbol={!!symbol}>
+      {symbol}
+      <QueryBuilder
+        onChange={onChange}
+        metricsQuery={{
+          mri: widget.mri,
+          op: widget.op,
+          groupBy: widget.groupBy,
+          query: widget.query,
+        }}
+        displayType={widget.displayType}
+        isEdit
+        projects={projects}
+      />
+      {contextMenu}
+    </QueryWrapper>
+  );
+}
+
+const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
+  display: grid;
+  gap: ${space(1)};
+  padding-bottom: ${space(1)};
+  grid-template-columns: 1fr max-content;
+  ${p => p.hasSymbol && `grid-template-columns: min-content 1fr max-content;`}
+`;
 
 const StyledQuerySymbol = styled(QuerySymbol)`
   margin-top: 10px;
@@ -96,15 +119,6 @@ const StyledQuerySymbol = styled(QuerySymbol)`
 
 const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
   padding-bottom: ${space(2)};
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
-
-  ${p =>
-    p.showQuerySymbols &&
-    `
-    grid-template-columns: min-content 1fr max-content;
-  `}
 `;
 
 const Row = styled('div')`

@@ -306,16 +306,13 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    if features.has("organizations:streamline-targeting-context", project.organization):
-        try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
-            suggested_assignees.extend(suspect_commit_users)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            logger.info("Skipping suspect committers because release does not exist.")
-        except Exception:
-            logger.exception("Could not get suspect committers. Continuing execution.")
+    try:
+        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suggested_assignees.extend(suspect_commit_users)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -475,9 +472,11 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group)
-            if not use_block_kit
-            else get_option_groups_block_kit(group),
+            option_groups=(
+                get_option_groups(group)
+                if not use_block_kit
+                else get_option_groups_block_kit(group)
+            ),
         )
         return assign_button
 
@@ -629,7 +628,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up text block
         if text:
             text = text.lstrip(" ")
-            blocks.append(self.get_rich_text_preformatted_block(text))
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                blocks.append(self.get_rich_text_preformatted_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:

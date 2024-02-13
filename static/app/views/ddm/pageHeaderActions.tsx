@@ -1,12 +1,12 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Hovercard} from 'sentry/components/hovercard';
 import {
   IconAdd,
   IconBookmark,
@@ -30,15 +30,10 @@ import {useCreateDashboard} from 'sentry/views/ddm/useCreateDashboard';
 
 interface Props {
   addCustomMetric: () => void;
-  hasDashboardFeature: boolean;
   showCustomMetricButton: boolean;
 }
 
-export function PageHeaderActions({
-  showCustomMetricButton,
-  addCustomMetric,
-  hasDashboardFeature,
-}: Props) {
+export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -87,23 +82,23 @@ export function PageHeaderActions({
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
-        label: hasDashboardFeature ? (
-          <Fragment>{t('Add to Dashboard')}</Fragment>
-        ) : (
-          <Hovercard
-            body={
-              <FeatureDisabled
-                features="organizations:dashboards-edit1"
-                hideHelpToggle
-                featureName={t('Dashboard Editing')}
-              />
-            }
+        label: (
+          <Feature
+            organization={organization}
+            hookName="feature-disabled:dashboards-edit"
+            features="dashboards-edit"
           >
-            {t('Add to Dashboard')}
-          </Hovercard>
+            {({hasFeature}) => (
+              <AddToDashboardItem disabled={!hasFeature}>
+                {t('Add to Dashboard')}
+              </AddToDashboardItem>
+            )}
+          </Feature>
         ),
-        disabled: !hasDashboardFeature,
         onAction: () => {
+          if (!organization.features.includes('dashboards-edit')) {
+            return;
+          }
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
             source: 'global',
@@ -118,14 +113,7 @@ export function PageHeaderActions({
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
-    [
-      addWidget,
-      createDashboard,
-      hasEmptyWidget,
-      organization,
-      router,
-      hasDashboardFeature,
-    ]
+    [addWidget, createDashboard, hasEmptyWidget, organization, router]
   );
 
   const alertItems = useMemo(
@@ -226,3 +214,7 @@ export function PageHeaderActions({
     </ButtonBar>
   );
 }
+
+const AddToDashboardItem = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;

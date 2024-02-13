@@ -3,14 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from typing import Any, Final, TypedDict, cast
 
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
-from typing_extensions import TypedDict
 
 from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
