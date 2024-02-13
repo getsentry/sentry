@@ -155,7 +155,7 @@ def _calculate_event_grouping(
         return hashes
 
 
-def _maybe_run_background_grouping(project: Project, job: Job) -> None:
+def maybe_run_background_grouping(project: Project, job: Job) -> None:
     """
     Optionally run a fraction of events with an experimental grouping config.
 
@@ -388,7 +388,7 @@ def get_hash_values(
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
-    _maybe_run_background_grouping(project, job)
+    maybe_run_background_grouping(project, job)
 
     secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
         project, job, metric_tags
