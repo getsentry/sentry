@@ -29,8 +29,9 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -125,6 +126,125 @@ export function TraceView() {
   );
 }
 
+type TraceHeaderProps = {
+  metaResults: TraceMetaQueryChildrenProps;
+  organization: Organization;
+  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  traces: TraceSplitResults<TraceFullDetailed> | null;
+};
+
+function TraceHeader(props: TraceHeaderProps) {
+  const {metaResults, rootEventResults, traces, organization} = props;
+  const {meta, isLoading: metaLoading} = metaResults;
+  const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
+  const errors = meta?.errors || 0;
+  const performanceIssues = meta?.performance_issues || 0;
+  const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
+  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
+  const loadingIndicator = <LoadingIndicator size={20} mini />;
+
+  return (
+    <TraceHeaderContainer>
+      <TraceHeaderRow>
+        <MetaData
+          headingText={t('User')}
+          tooltipText=""
+          bodyText={
+            rootEventLoading
+              ? loadingIndicator
+              : rootEvent?.user?.email ?? rootEvent?.user?.name ?? '\u2014'
+          }
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Browser')}
+          tooltipText=""
+          bodyText={
+            rootEventLoading ? (
+              loadingIndicator
+            ) : rootEvent ? (
+              <BrowserDisplay event={rootEvent} showVersion />
+            ) : (
+              '\u2014'
+            )
+          }
+          subtext={null}
+        />
+        {replay_id && (
+          <MetaData
+            headingText={t('Replay')}
+            tooltipText=""
+            bodyText={
+              <Link
+                to={normalizeUrl(
+                  `/organizations/${organization.slug}/replays/${replay_id}/`
+                )}
+              >
+                <ReplayLinkBody>
+                  {getShortEventId(replay_id)}
+                  <IconPlay size="xs" />
+                </ReplayLinkBody>
+              </Link>
+            }
+            subtext={null}
+          />
+        )}
+      </TraceHeaderRow>
+      <TraceHeaderRow>
+        <GuideAnchor target="trace_view_guide_breakdown">
+          <MetaData
+            headingText={t('Events')}
+            tooltipText=""
+            bodyText={metaLoading ? loadingIndicator : meta?.transactions ?? '\u2014'}
+            subtext={null}
+          />
+        </GuideAnchor>
+        <MetaData
+          headingText={t('Issues')}
+          tooltipText=""
+          bodyText={
+            <Tooltip
+              title={
+                errors + performanceIssues > 0 ? (
+                  <Fragment>
+                    <div>{tn('%s error issue', '%s error issues', errors)}</div>
+                    <div>
+                      {tn(
+                        '%s performance issue',
+                        '%s performance issues',
+                        performanceIssues
+                      )}
+                    </div>
+                  </Fragment>
+                ) : null
+              }
+              showUnderline
+              position="bottom"
+            >
+              {metaLoading
+                ? loadingIndicator
+                : errors || performanceIssues
+                  ? errors + performanceIssues
+                  : 0}
+            </Tooltip>
+          }
+          subtext={null}
+        />
+        <MetaData
+          headingText={t('Total Duration')}
+          tooltipText=""
+          bodyText={
+            traceInfo.startTimestamp && traceInfo.endTimestamp
+              ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
+              : loadingIndicator
+          }
+          subtext={null}
+        />
+      </TraceHeaderRow>
+    </TraceHeaderContainer>
+  );
+}
+
 type TraceViewContentProps = {
   location: Location;
   metaResults: TraceMetaQueryChildrenProps;
@@ -135,10 +255,10 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const {organization, traces, traceSlug, location, traceEventView} = props;
+  const {organization, traces, traceSlug, location, traceEventView, metaResults} = props;
 
   const root = traces?.transactions?.[0];
-  const {data: rootEvent, isLoading: rootEventLoading} = useApiQuery<EventTransaction>(
+  const rootEventResults = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
@@ -153,116 +273,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
   );
 
-  const renderTraceHeader = () => {
-    const {meta, isLoading: metaLoading} = props.metaResults;
-    const errors = meta?.errors || 0;
-    const performanceIssues = meta?.performance_issues || 0;
-    const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
-    const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
-    const loadingIndicator = <LoadingIndicator size={20} mini />;
-
-    return (
-      <TraceHeaderContainer>
-        <TraceHeaderRow>
-          <MetaData
-            headingText={t('User')}
-            tooltipText=""
-            bodyText={
-              rootEventLoading
-                ? loadingIndicator
-                : rootEvent?.user?.email ?? rootEvent?.user?.name ?? '\u2014'
-            }
-            subtext={null}
-          />
-          <MetaData
-            headingText={t('Browser')}
-            tooltipText=""
-            bodyText={
-              rootEventLoading ? (
-                loadingIndicator
-              ) : rootEvent ? (
-                <BrowserDisplay event={rootEvent} showVersion />
-              ) : (
-                '\u2014'
-              )
-            }
-            subtext={null}
-          />
-          {replay_id && (
-            <MetaData
-              headingText={t('Replay')}
-              tooltipText=""
-              bodyText={
-                <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/replays/${replay_id}/`
-                  )}
-                >
-                  <ReplayLinkBody>
-                    {getShortEventId(replay_id)}
-                    <IconPlay size="xs" />
-                  </ReplayLinkBody>
-                </Link>
-              }
-              subtext={null}
-            />
-          )}
-        </TraceHeaderRow>
-        <TraceHeaderRow>
-          <GuideAnchor target="trace_view_guide_breakdown">
-            <MetaData
-              headingText={t('Events')}
-              tooltipText=""
-              bodyText={metaLoading ? loadingIndicator : meta?.transactions ?? '\u2014'}
-              subtext={null}
-            />
-          </GuideAnchor>
-          <MetaData
-            headingText={t('Issues')}
-            tooltipText=""
-            bodyText={
-              <Tooltip
-                title={
-                  errors + performanceIssues > 0 ? (
-                    <Fragment>
-                      <div>{tn('%s error issue', '%s error issues', errors)}</div>
-                      <div>
-                        {tn(
-                          '%s performance issue',
-                          '%s performance issues',
-                          performanceIssues
-                        )}
-                      </div>
-                    </Fragment>
-                  ) : null
-                }
-                showUnderline
-                position="bottom"
-              >
-                {metaLoading
-                  ? loadingIndicator
-                  : errors || performanceIssues
-                    ? errors + performanceIssues
-                    : 0}
-              </Tooltip>
-            }
-            subtext={null}
-          />
-          <MetaData
-            headingText={t('Total Duration')}
-            tooltipText=""
-            bodyText={
-              traceInfo.startTimestamp && traceInfo.endTimestamp
-                ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
-                : loadingIndicator
-            }
-            subtext={null}
-          />
-        </TraceHeaderRow>
-      </TraceHeaderContainer>
-    );
-  };
-
   return (
     <Fragment>
       <Layout.Header>
@@ -271,8 +281,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             organization={organization}
             location={location}
             transaction={{
-              project: rootEvent?.projectID ?? '',
-              name: rootEvent?.title ?? '',
+              project: rootEventResults.data?.projectID ?? '',
+              name: rootEventResults.data?.title ?? '',
             }}
             traceSlug={traceSlug}
           />
@@ -298,7 +308,12 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {renderTraceHeader()}
+          <TraceHeader
+            rootEventResults={rootEventResults}
+            metaResults={metaResults}
+            organization={organization}
+            traces={traces}
+          />
           <Trace trace={traces} trace_id={traceSlug} />
         </Layout.Main>
       </Layout.Body>
