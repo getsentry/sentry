@@ -305,12 +305,12 @@ def find_existing_grouphash(
 
 def find_existing_grouphash_new(
     grouphashes: Sequence[GroupHash],
-) -> tuple[GroupHash | None, str | None]:
+) -> GroupHash | None:
     root_hierarchical_hash = None
 
     for group_hash in grouphashes:
         if group_hash.group_id is not None:
-            return group_hash, root_hierarchical_hash
+            return group_hash
 
         # When refactoring for hierarchical grouping, we noticed that a
         # tombstone may get ignored entirely if there is another hash *before*
@@ -327,7 +327,7 @@ def find_existing_grouphash_new(
                 tombstone_id=group_hash.group_tombstone_id,
             )
 
-    return None, root_hierarchical_hash
+    return None
 
 
 def get_hash_values(
