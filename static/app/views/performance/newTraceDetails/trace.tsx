@@ -22,6 +22,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isParentAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
@@ -42,6 +43,8 @@ export function Trace(props: TraceProps) {
   const organization = useOrganization();
 
   const virtualizedListRef = useRef<List>(null);
+  const viewManager = useRef<VirtualizedViewManager | null>(null);
+
   const [_rerender, setRender] = useState(0);
 
   const traceTree = useMemo(() => {
@@ -55,7 +58,6 @@ export function Trace(props: TraceProps) {
     return TraceTree.FromTrace(props.trace);
   }, [props.trace, props.trace_id, projects]);
 
-  const viewManager = useRef<VirtualizedViewManager | null>(null);
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
@@ -250,7 +252,7 @@ function RenderRow(props: {
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
-            color={props.theme.blue300}
+            color={pickBarColor('autogrouping')}
             node_space={props.node.space}
           />
         </div>
@@ -433,7 +435,7 @@ function RenderRow(props: {
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
-            color={props.theme.gray200}
+            color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
           />
         </div>
@@ -628,7 +630,7 @@ function RenderPlaceholderRow(props: {
 function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
-    (props.node.value && 'autogrouped_by' in props.node.value);
+    (props.node.value && isParentAutogroupedNode(props.node));
 
   // If the tail node of the collapsed node has no children,
   // we don't want to render the vertical connector as no children
@@ -713,7 +715,6 @@ interface TraceBarProps {
   viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
 }
-
 function TraceBar(props: TraceBarProps) {
   if (!props.node_space) {
     return null;
