@@ -371,7 +371,6 @@ module = [
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
-    "sentry.issues.occurrence_consumer",
     "sentry.issues.search",
     "sentry.issues.status_change",
     "sentry.middleware.access_log",
