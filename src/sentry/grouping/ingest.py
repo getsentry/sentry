@@ -306,8 +306,6 @@ def find_existing_grouphash(
 def find_existing_grouphash_new(
     grouphashes: Sequence[GroupHash],
 ) -> GroupHash | None:
-    root_hierarchical_hash = None
-
     for group_hash in grouphashes:
         if group_hash.group_id is not None:
             return group_hash
