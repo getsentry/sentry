@@ -25,7 +25,6 @@ export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   focusedSeries?: FocusedMetricsSeries[];
   highlightedSample?: string | null;
   powerUserMode?: boolean;
-  showSummaryTable?: boolean;
   sort?: SortState;
 }
 
@@ -47,13 +46,9 @@ export type MetricsQuery = {
   groupBy?: string[];
   op?: string;
   query?: string;
-  title?: string;
 };
 
-export type MetricsQuerySubject = Pick<
-  MetricsQuery,
-  'mri' | 'op' | 'query' | 'groupBy' | 'title'
->;
+export type MetricsQuerySubject = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;

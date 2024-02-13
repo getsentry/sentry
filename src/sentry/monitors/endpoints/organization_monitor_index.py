@@ -184,9 +184,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         elif sort == "muted":
             queryset = queryset.annotate(
                 muted_ordering=Case(
-                    When(is_muted=True, then=Value(0)),
+                    When(is_muted=True, then=Value(2)),
                     When(Exists(monitor_environments_query.filter(is_muted=True)), then=Value(1)),
-                    default=2,
+                    default=0,
                 ),
             )
             sort_fields = ["muted_ordering", "name"]

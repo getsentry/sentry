@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -48,7 +49,13 @@ export function TraceLink({event}: TraceLinkProps) {
     >
       <span>
         {t('View Full Trace')}
-        {data.length > 0 && tn(' (%s issue)', ' (%s issues)', data.length)}
+        {data.length > 0 && (
+          <Fragment>
+            {data.length >= 100
+              ? t(' (100+ issues)')
+              : tn(' (%s issue)', ' (%s issues)', data.length)}
+          </Fragment>
+        )}
       </span>
       <IconChevron direction="right" size="xs" />
     </StyledLink>

@@ -13,7 +13,7 @@ datadog>=0.44
 django-crispy-forms>=1.14.0
 django-csp>=3.7
 django-pg-zero-downtime-migrations>=0.13
-Django>=5,<6
+Django>=5.0.2,<6
 djangorestframework>=3.14.0
 drf-spectacular>=0.26.3
 email-reply-parser>=0.5.12
@@ -73,7 +73,7 @@ statsd>=3.3
 structlog>=22
 symbolic==12.8.0
 toronado>=0.1.0
-typing-extensions>=4.0.0
+typing-extensions>=4.9.0
 ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2

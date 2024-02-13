@@ -39,7 +39,7 @@ cssutils==2.9.0
 datadog==0.44.0
 distlib==0.3.4
 distro==1.8.0
-django==5.0.1
+django==5.0.2
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
@@ -218,7 +218,7 @@ types-redis==3.5.18
 types-requests==2.31.0.20231231
 types-setuptools==65.3.0
 types-simplejson==3.17.7.2
-typing-extensions==4.5.0
+typing-extensions==4.9.0
 tzdata==2023.3
 ua-parser==0.10.0
 unidiff==0.7.4

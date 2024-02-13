@@ -2,11 +2,14 @@ import {useCallback} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -20,6 +23,11 @@ type Props = {
   event: Event;
   projectSlug: string;
   group?: Group;
+};
+
+const CLIP_OFFSETS = {
+  durationAfterMs: 5_000,
+  durationBeforeMs: 5_000,
 };
 
 function EventReplayContent({
@@ -84,6 +92,11 @@ function EventReplayContent({
         organization,
       },
     },
+    loadingFallback: (
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    ),
   };
 
   return (
@@ -92,7 +105,11 @@ function EventReplayContent({
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReactLazyLoad debounce={50} height={448} offset={0} once>
             {hasReplayClipFeature ? (
-              <LazyLoad {...commonProps} component={replayClipPreview} />
+              <LazyLoad
+                {...commonProps}
+                component={replayClipPreview}
+                clipOffsets={CLIP_OFFSETS}
+              />
             ) : (
               <LazyLoad {...commonProps} component={replayPreview} />
             )}
@@ -128,4 +145,9 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 // The min-height here is due to max-height that is set in replayPreview.tsx
 const ReplaySectionMinHeight = styled(EventReplaySection)`
   min-height: 508px;
+`;
+
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: 400px;
+  margin-bottom: ${space(2)};
 `;
