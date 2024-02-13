@@ -6,7 +6,7 @@ from typing import Any
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data.execution import QueryResult
-from sentry.sentry_metrics.querying.data.utils import get_identity, nan_to_none
+from sentry.sentry_metrics.querying.data.utils import nan_to_none
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Total
 
@@ -182,11 +182,9 @@ class QueryTransformer:
                 series = metric_values.series
                 total = metric_values.total
 
-                # We generate the full series by passing as default value the identity of the totals, which is the
-                # default value applied in the timeseries. This function already aligns the series by sorting it in
-                # ascending order so there is no need to have the series elements sorted beforehand.
+                # We generate the full series with a default value of `null` in case no series data is returned.
                 translated_serieses[metric_name] = _generate_full_series(
-                    int(start.timestamp()), len(intervals), interval, series, get_identity(total)
+                    int(start.timestamp()), len(intervals), interval, series
                 )
                 # In case we get nan, we will cast it to None but this can be changed in case there is the need.
                 translated_totals[metric_name] = nan_to_none(total)
