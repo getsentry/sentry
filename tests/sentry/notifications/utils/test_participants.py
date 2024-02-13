@@ -487,7 +487,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user.id, self.user2.id, member.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     def test_send_to_suspect_committers(self):
         """
         Test suspect committer is added as suggested assignee, where "organizations:commit-context"
@@ -528,7 +527,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id, self.user.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
         """
@@ -557,7 +555,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id, self.user.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
         """
@@ -612,7 +609,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             slack=[self.user_suspect_committer.id],
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
         """
@@ -639,7 +635,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
         """
@@ -666,7 +661,6 @@ class GetSendToOwnersTest(_ParticipantsTest):
             self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
-    @with_feature("organizations:streamline-targeting-context")
     @with_feature("organizations:commit-context")
     def test_send_to_suspect_committers_not_project_member_commit_context_feature_flag(self):
         """
