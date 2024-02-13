@@ -1909,6 +1909,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page
