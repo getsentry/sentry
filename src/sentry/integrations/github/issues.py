@@ -208,9 +208,22 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         def get_linked_issue_comment_prefix(group: Group) -> str:
             if group.issue_category == GroupCategory.FEEDBACK:
-                return "Sentry feedback"
+                return "Sentry Feedback"
             else:
-                return "Sentry issue"
+                return "Sentry Issue"
+
+        def get_default_comment(group: Group) -> str:
+            prefix = get_linked_issue_comment_prefix(group)
+            url = group.get_absolute_url(params={"referrer": "github_integration"})
+            issue_id = group.qualified_short_id
+
+            return (
+                "{prefix}: [{issue_id}]({url})".format(
+                    prefix=prefix,
+                    url=absolute_uri(url),
+                    issue_id=issue_id,
+                ),
+            )
 
         return [
             {
@@ -235,15 +248,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": (
-                    get_linked_issue_comment_prefix(group)
-                    + ": [{issue_id}]({url})".format(
-                        url=absolute_uri(
-                            group.get_absolute_url(params={"referrer": "github_integration"})
-                        ),
-                        issue_id=group.qualified_short_id,
-                    ),
-                ),
+                "default": get_default_comment(group),
                 "type": "textarea",
                 "required": False,
                 "autosize": True,
