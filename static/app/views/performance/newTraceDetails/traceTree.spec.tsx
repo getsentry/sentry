@@ -1088,10 +1088,10 @@ describe('TraceTree', () => {
           last.children.push(autogroupBreakingSpan);
           last = autogroupBreakingSpan;
         } else {
-          for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
             const node = new TraceTreeNode(
               last,
-              makeSpan({span_id: `span${i}`, description: `span${i}`, op: 'http'}),
+              makeSpan({span_id: `span${j}`, description: `span${j}`, op: 'http'}),
               {
                 project_slug: '',
                 event_id: '',
@@ -1109,7 +1109,7 @@ describe('TraceTree', () => {
       assertAutogroupedNode(root.children[0].children[0].children[0]);
     });
 
-    it('sibling autogrouping', async () => {
+    it('sibling autogrouping', () => {
       // db          db
       //  http        sibling autogrouped (5)
       //  http
@@ -1139,7 +1139,7 @@ describe('TraceTree', () => {
       assertAutogroupedNode(root.children[0]);
     });
 
-    it.only('multuple sibling autogrouping', async () => {
+    it('multiple sibling autogrouping', () => {
       // db          db
       //  http        sibling autogrouped (5)
       //  http        db
@@ -1161,7 +1161,7 @@ describe('TraceTree', () => {
         }
       );
 
-      for (let i = 0; i < 11; i++) {
+      for (let i = 0; i < 10; i++) {
         if (i === 5) {
           root.children.push(
             new TraceTreeNode(
@@ -1188,9 +1188,9 @@ describe('TraceTree', () => {
       }
 
       TraceTree.AutogroupSiblingSpanNodes(root);
-      root.print();
       assertAutogroupedNode(root.children[0]);
-      // assertAutogroupedNode(root.children[2]);
+      expect(root.children).toHaveLength(3);
+      assertAutogroupedNode(root.children[2]);
     });
 
     it('renders children of autogrouped direct children nodes', async () => {

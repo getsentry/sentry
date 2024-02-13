@@ -408,32 +408,26 @@ export class TraceTree {
 
       let index = 0;
       let matchCount = 0;
-
-      while (index < node.children.length - 1) {
-        const current = node.children[
-          index - matchCount
-        ] as TraceTreeNode<TraceTree.Span>;
-
+      while (index < node.children.length) {
+        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
         const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
 
         if (
+          next &&
           next.children.length === 0 &&
           current.children.length === 0 &&
-          // @TODO this should check for typeof op and description
-          // to be of type string for runtime safety. Afaik it is impossible
-          // for these to be anything else but a string, but we should still check
           next.value.op === current.value.op &&
           next.value.description === current.value.description
         ) {
           matchCount++;
-          if (index < node.children.length - 2) {
+          // If the next node is the last node in the list, we keep iterating
+          if (index + 1 < node.children.length) {
             index++;
             continue;
           }
         }
 
         if (matchCount >= 4) {
-          console.log('Autogrouping sibling spans', index - matchCount, index);
           const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
@@ -449,22 +443,21 @@ export class TraceTree {
             }
           );
 
-          // Copy the children under the new node.
           autoGroupedNode.groupCount = matchCount + 1;
-
-          // Push children to the autogrouped node
-          for (let j = index - matchCount; j < index; j++) {
-            console.log('Collect children from', index, 'to', index + matchCount);
+          const start = index - matchCount;
+          for (let j = start; j < index - 1; j++) {
             autoGroupedNode.children.push(node.children[j]);
-            autoGroupedNode.children[j].parent = autoGroupedNode;
+            autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
+              autoGroupedNode;
           }
 
-          // Remove the old children from the parent and insert the new node.
-          node.children.splice(index, matchCount + 1, autoGroupedNode);
+          node.children.splice(start, matchCount + 1, autoGroupedNode);
+          index = start + 1;
+          matchCount = 0;
+        } else {
+          index++;
+          matchCount = 0;
         }
-
-        index++;
-        matchCount = 0;
       }
     }
   }
