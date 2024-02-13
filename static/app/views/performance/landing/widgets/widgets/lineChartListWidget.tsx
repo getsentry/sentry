@@ -654,7 +654,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       {...props}
       location={location}
       Subtitle={() => (
-        <Subtitle>{props.subTitle ?? t('Suggested transactions')}</Subtitle>
+        <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
       HeaderActions={provided => getContainerActions(provided)}
       InteractiveTitle={
