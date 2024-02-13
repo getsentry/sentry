@@ -17,6 +17,7 @@
         "noBlankTarget": "error"
       },
       "correctness": {
+        "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
         "useIsNan": "error"
@@ -28,7 +29,11 @@
         "noDuplicateJsonKeys": "error",
         "noNodejsModules": "error",
         "useExportType": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useShorthandFunctionType": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error"
       },
       "suspicious": {
         "noDebugger": "error",
@@ -37,10 +42,17 @@
         "noDuplicateObjectKeys": "error",
         "noDuplicateParameters": "error",
         "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
         "noRedeclare": "error",
+        "noSparseArray": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnsafeNegation": "error",
         "useIsArray": "error"
       },
       "style": {
+        "noCommaOperator": "error",
+        "noShoutyConstants": "error",
+        "noParameterProperties": "error",
         "noVar": "error",
         "useConst": "error"
       }

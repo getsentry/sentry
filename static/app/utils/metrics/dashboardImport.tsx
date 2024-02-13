@@ -1,8 +1,7 @@
 import {Client} from 'sentry/api';
+import type {MetricMeta, MRI} from 'sentry/types';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-
-import type {MetricMeta, MRI} from '../../types/metrics';
 
 // import types
 export type ImportDashboard = {
@@ -115,11 +114,13 @@ const METRIC_SUFFIX_TO_OP = {
 export class WidgetParser {
   private errors: string[] = [];
   private api = new Client();
+  private importedWidget: ImportWidget;
+  private availableMetrics: MetricMeta[];
 
-  constructor(
-    private importedWidget: ImportWidget,
-    private availableMetrics: MetricMeta[]
-  ) {}
+  constructor(importedWidget: ImportWidget, availableMetrics: MetricMeta[]) {
+    this.importedWidget = importedWidget;
+    this.availableMetrics = availableMetrics;
+  }
 
   // Parsing functions
   public async parse() {
