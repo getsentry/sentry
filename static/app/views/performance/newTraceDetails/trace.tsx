@@ -435,6 +435,7 @@ function RenderRow(props: {
             viewManager={props.viewManager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
+            isMissingIntrumentationBar
           />
         </div>
       </div>
@@ -712,6 +713,7 @@ interface TraceBarProps {
   node_space: [number, number] | null;
   viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
+  isMissingIntrumentationBar?: boolean;
 }
 
 function TraceBar(props: TraceBarProps) {
@@ -724,7 +726,9 @@ function TraceBar(props: TraceBarProps) {
       ref={r =>
         props.viewManager.registerSpanBarRef(r, props.node_space!, props.virtualizedIndex)
       }
-      className="TraceBar"
+      className={`TraceBar ${
+        props.isMissingIntrumentationBar && 'MissingInstrumentation'
+      }`}
       style={{
         position: 'absolute',
         transform: props.viewManager.computeSpanMatrixTransform(props.node_space),
@@ -834,6 +838,11 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     background-color: black;
     transform-origin: left center;
+
+    &.MissingInstrumentation{
+      background-image: linear-gradient(153deg, #f4f2f7 25%, #dedae3 25%, #dedae3 50%, #f4f2f7 50%, #f4f2f7 75%, #dedae3 75%, #dedae3 100%);
+      background-size: 88.11px 44.89px;
+    }
   }
 
   .TraceChildrenCount {
