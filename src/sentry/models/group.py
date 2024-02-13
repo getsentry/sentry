@@ -602,6 +602,7 @@ class Group(Model):
             models.Index(fields=("project", "status", "substatus", "id")),
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),
