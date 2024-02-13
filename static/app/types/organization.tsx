@@ -173,8 +173,6 @@ export interface Member {
    * User may be null when the member represents an invited member
    */
   user: User | null;
-  // TODO: Move to global store
-  groupOrgRoles?: {role: OrgRole; teamSlug: string}[];
 }
 
 /**
