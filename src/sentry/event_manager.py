@@ -1944,7 +1944,10 @@ def _handle_regression(group: Group, event: Event, release: Release | None) -> b
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Release | None
+    group: Group,
+    event: BaseEvent,
+    incoming_group_values: Mapping[str, Any],
+    release: Release | None,
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values: dict[str, Any] = {"last_seen": last_seen}
