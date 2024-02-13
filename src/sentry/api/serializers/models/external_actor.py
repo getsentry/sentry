@@ -1,7 +1,5 @@
 from collections.abc import Mapping, MutableMapping
-from typing import Any
-
-from typing_extensions import TypedDict
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.integrations.external_actor import ExternalActor

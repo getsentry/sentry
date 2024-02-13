@@ -4,10 +4,9 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, AbstractSet, Any
+from typing import TYPE_CHECKING, AbstractSet, Any, TypedDict
 
 from django.db.models import Count
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize

@@ -3,10 +3,9 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import TypedDict
 
 from sentry.replays.validators import VALID_FIELD_SET
 

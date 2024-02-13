@@ -1,8 +1,8 @@
 from collections import defaultdict
+from typing import TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
-from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
