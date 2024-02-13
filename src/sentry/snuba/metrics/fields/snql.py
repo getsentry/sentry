@@ -1028,7 +1028,6 @@ def on_demand_user_misery_snql_factory(
         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
         TransactionSatisfactionTagValue.FRUSTRATED.value,
     )
-
     unique_users = Function("uniqIf", [Column("value"), aggregate_filter])
     # (count_miserable(users, threshold) + 5.8875) / (count_unique(users) + 5.8875 + 111.8625)
     # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
