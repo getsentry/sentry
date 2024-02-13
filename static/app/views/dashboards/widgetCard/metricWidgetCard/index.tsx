@@ -286,6 +286,19 @@ export function MetricWidgetChartContainer({
   );
 }
 
+function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
+  const query = widget.queries[0];
+  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+
+  return {
+    mri: parsed.mri,
+    op: parsed.op,
+    query: query.conditions,
+    groupBy: query.columns,
+    displayType: toMetricDisplayType(widget.displayType),
+  };
+}
+
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
     return query;
@@ -308,19 +321,6 @@ function convertToQuery(dashboardFilters: DashboardFilters) {
   }
 
   return `release:[${release.join(',')}]`;
-}
-
-function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
-  return {
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
 }
 
 const WidgetHeaderWrapper = styled('div')`

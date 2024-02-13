@@ -184,6 +184,14 @@ class DashboardDetail extends Component<Props, State> {
           pageLinks,
           totalIssuesCount,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          onUpdateMetricWidget: updatedWidget => {
+            const widgets = [...dashboard.widgets];
+
+            const index = widgets.findIndex(({id}) => id === updatedWidget.id);
+            widgets[index] = {...widgets[index], ...updatedWidget};
+
+            this.handleUpdateWidgetList(widgets);
+          },
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -697,21 +705,6 @@ class DashboardDetail extends Component<Props, State> {
         widgets,
       },
     }));
-  };
-
-  onUpdateMetricWidget = (widgets: Widget[]) => {
-    this.setState(
-      (state: State) => ({
-        ...state,
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        dashboardState: DashboardState.EDIT,
-        modifiedDashboard: {
-          ...(state.modifiedDashboard || this.props.dashboard),
-          widgets,
-        },
-      }),
-      () => this.onCommit()
-    );
   };
 
   renderWidgetBuilder() {
