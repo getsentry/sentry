@@ -83,7 +83,7 @@ export const MetricWidget = memo(
     focusArea,
     onSampleClick,
     highlightedSampleId,
-    chartHeight = 300
+    chartHeight = 300,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
