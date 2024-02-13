@@ -3,7 +3,7 @@ from typing import Any
 
 from sentry.api.serializers.rest_framework.rule import (
     ACTION_UUID_KEY,
-    _ensure_action_uuid,
+    ensure_action_uuid,
     validate_actions,
 )
 
@@ -15,7 +15,7 @@ class TestEnsureActionUuid:
             "uuid": original_bad_key,
         }
 
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] != original_bad_key
         assert uuid.UUID(action[ACTION_UUID_KEY])
@@ -23,7 +23,7 @@ class TestEnsureActionUuid:
     def test_when_key_is_empty(self) -> None:
         action = {"uuid": ""}
 
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] != ""
         assert uuid.UUID(action[ACTION_UUID_KEY])
@@ -31,7 +31,7 @@ class TestEnsureActionUuid:
     def test_when_key_is_none(self) -> None:
         action = {"uuid": None}
 
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] is not None
         assert uuid.UUID(action[ACTION_UUID_KEY])
@@ -42,7 +42,7 @@ class TestEnsureActionUuid:
             "uuid": original_good_key,
         }
 
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] == original_good_key
         assert uuid.UUID(action[ACTION_UUID_KEY])
@@ -52,7 +52,7 @@ class TestEnsureActionUuid:
             "some_other_key": "foo",
         }
 
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
 
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] is not None
@@ -60,7 +60,7 @@ class TestEnsureActionUuid:
 
     def test_ignores_empty_dicts(self) -> None:
         action: dict[Any, Any] = {}
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
         assert ACTION_UUID_KEY not in action
 
 

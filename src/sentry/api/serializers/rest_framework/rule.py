@@ -190,7 +190,7 @@ class RuleSerializer(RuleSetSerializer):
 ACTION_UUID_KEY = "uuid"
 
 
-def _ensure_action_uuid(action: dict[Any, Any]) -> None:
+def ensure_action_uuid(action: dict[Any, Any]) -> None:
     """
     Ensure that each action is uniquely identifiable.
     The function will check that a UUID key and value exists in the action.
@@ -220,7 +220,7 @@ def validate_actions(attrs):
     # project_rule(_details) endpoints by setting it on attrs
     actions = attrs.get("actions", tuple())
     for action in actions:
-        _ensure_action_uuid(action)
+        ensure_action_uuid(action)
 
         if action.get("name"):
             del action["name"]
