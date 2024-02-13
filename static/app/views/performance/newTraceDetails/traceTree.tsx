@@ -152,8 +152,7 @@ function maybeInsertMissingInstrumentationSpan(
     return;
   }
 
-  const gapInMs = (node.value.start_timestamp - lastInsertedSpan.value.timestamp) * 1000;
-  if (gapInMs < 100) {
+  if (node.value.start_timestamp - lastInsertedSpan.value.timestamp < 0.1) {
     return;
   }
 
@@ -831,7 +830,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     let count = 0;
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+      if (
+        this.children[i].expanded ||
+        isParentAutogroupedNode(this.children[i]) ||
+        isMissingInstrumentationNode(this.children[i])
+      ) {
         stack.push(this.children[i]);
       }
     }
