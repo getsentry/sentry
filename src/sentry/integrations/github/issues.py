@@ -215,15 +215,9 @@ class GitHubIssueBasic(IssueBasicMixin):
         def get_default_comment(group: Group) -> str:
             prefix = get_linked_issue_comment_prefix(group)
             url = group.get_absolute_url(params={"referrer": "github_integration"})
-            issue_id = group.qualified_short_id
+            issue_short_id = group.qualified_short_id
 
-            return (
-                "{prefix}: [{issue_id}]({url})".format(
-                    prefix=prefix,
-                    url=absolute_uri(url),
-                    issue_id=issue_id,
-                ),
-            )
+            return f"{prefix}: [{issue_short_id}]({absolute_uri(url)})"
 
         return [
             {
