@@ -304,9 +304,7 @@ def find_existing_grouphash(
 
 
 def find_existing_grouphash_new(
-    project: Project,
     flat_grouphashes: Sequence[GroupHash],
-    hierarchical_hashes: Sequence[str] | None,
 ) -> tuple[GroupHash | None, str | None]:
     all_grouphashes = []
     root_hierarchical_hash = None
