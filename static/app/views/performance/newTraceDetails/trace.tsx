@@ -18,6 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
+  isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -146,10 +147,16 @@ function RenderRow(props: {
             {props.node.groupCount}{' '}
           </ChildrenCountButton>
         </div>
-
         <span className="TraceOperation">{t('Autogrouped')}</span>
         <strong className="TraceEmDash"> — </strong>
-        <span className="TraceDescription">{props.node.value.autogrouped_by.op}</span>
+        {isSiblingAutogroupedNode(props.node) && (
+          <Fragment>
+            <strong className="TraceEmDash"> — </strong>
+            <span className="TraceDescription">
+              {props.node.value.autogrouped_by.description}
+            </span>
+          </Fragment>
+        )}
       </div>
     );
   }
@@ -311,7 +318,7 @@ function RenderRow(props: {
 function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
-    (props.node.value && 'autogrouped_by' in props.node.value);
+    props.node instanceof ParentAutogroupNode;
 
   // If the tail node of the collapsed node has no children,
   // we don't want to render the vertical connector as no children

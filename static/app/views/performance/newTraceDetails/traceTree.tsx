@@ -382,12 +382,19 @@ export class TraceTree {
         continue;
       }
 
+      const n = node.children.length;
       let startIndex = 0;
       let matchCount = 0;
+      let netLengthChange = 0;
 
-      for (let i = 0; i < node.children.length - 1; i++) {
-        const current = node.children[i] as TraceTreeNode<TraceTree.Span>;
-        const next = node.children[i + 1] as TraceTreeNode<TraceTree.Span>;
+      for (let i = 0; i < n - 1; i++) {
+        // Must account for change in the length of node's
+        // children since we are removing elements from it
+        // as we group siblings.
+        const index = i - netLengthChange;
+
+        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
+        const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
 
         if (
           next.children.length === 0 &&
@@ -399,7 +406,7 @@ export class TraceTree {
           next.value.description === current.value.description
         ) {
           matchCount++;
-          if (i < node.children.length - 2) {
+          if (index < node.children.length - 2) {
             continue;
           }
         }
@@ -423,6 +430,13 @@ export class TraceTree {
           // Copy the children under the new node.
           autoGroupedNode.children = node.children.slice(startIndex, matchCount + 1);
           autoGroupedNode.groupCount = matchCount + 1;
+          netLengthChange = netLengthChange + matchCount;
+
+          for (let j = startIndex; j < startIndex + matchCount + 1; j++) {
+            autoGroupedNode.children.push(node.children[j]);
+            autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
+              autoGroupedNode;
+          }
 
           // Remove the old children from the parent and insert the new node.
           node.children.splice(startIndex, matchCount + 1, autoGroupedNode);
@@ -432,7 +446,7 @@ export class TraceTree {
           }
         }
 
-        startIndex = i;
+        startIndex = index + 1;
         matchCount = 0;
       }
     }
@@ -799,7 +813,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     let count = 0;
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+      if (this.children[i].expanded || isAutogroupedNode(this.children[i])) {
         stack.push(this.children[i]);
       }
     }
@@ -824,7 +838,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+      if (this.children[i].expanded || isAutogroupedNode(this.children[i])) {
         stack.push(this.children[i]);
       }
     }

@@ -849,6 +849,47 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
+    it('autogroups multiple groups of siblings from the same parent', () => {
+      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      root.children.push(
+        new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'http'}), {
+          project_slug: '',
+          event_id: '',
+        })
+      );
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      expect(root.children.length).toBe(11);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(3);
+
+      assertAutogroupedNode(root.children[0]);
+      assertAutogroupedNode(root.children[2]);
+    });
+
     it('autogroups when number of children is > 5', () => {
       const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), {
         project_slug: '',
