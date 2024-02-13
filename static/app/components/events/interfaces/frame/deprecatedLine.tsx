@@ -141,7 +141,7 @@ export class DeprecatedLine extends Component<Props, State> {
   };
 
   toggleContext = evt => {
-    evt && evt.preventDefault();
+    evt?.preventDefault();
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -235,7 +235,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
   leadsToApp() {
     const {data, nextFrame} = this.props;
-    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+    return !data.inApp && (nextFrame?.inApp || !nextFrame);
   }
 
   isFoundByStackScanning() {

@@ -116,20 +116,17 @@ function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
     };
   }
 
-  const isLoading =
-    docKeys &&
-    docKeys.some(key => {
-      if (key in loadingDocsRef.current) {
-        return !!loadingDocsRef.current[key];
-      }
-      return true;
-    });
+  const isLoading = docKeys?.some(key => {
+    if (key in loadingDocsRef.current) {
+      return !!loadingDocsRef.current[key];
+    }
+    return true;
+  });
 
   return {
     docKeys,
     isLoading,
-    hasOnboardingContents:
-      docKeys && docKeys.every(key => typeof docContents[key] === 'string'),
+    hasOnboardingContents: docKeys?.every(key => typeof docContents[key] === 'string'),
     docContents,
   };
 }

@@ -120,7 +120,7 @@ function NativeFrame({
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
     !isHoverPreviewed;
 
-  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable =
     !leadsToApp || includeSystemFrames
       ? isExpandable({

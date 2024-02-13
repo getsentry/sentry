@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, TypedDict
 
 import sentry_sdk
 from django.db.models import QuerySet
@@ -8,7 +8,6 @@ from packaging.version import Version
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner

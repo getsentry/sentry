@@ -15,7 +15,7 @@ export default function getConfiguration({
   organization,
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
-  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
+  const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),

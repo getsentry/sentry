@@ -44,7 +44,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   color: ${p => p.theme.chartLabel};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   transition: color 300ms;
-  ${p => p.textCss && p.textCss(p)}
+  ${p => p.textCss?.(p)}
 `;
 
 function PerformanceScoreRing({

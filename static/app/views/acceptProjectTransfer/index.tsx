@@ -68,7 +68,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
       },
       error: error => {
         const errorMsg =
-          error && error.responseJSON && typeof error.responseJSON.detail === 'string'
+          error?.responseJSON && typeof error.responseJSON.detail === 'string'
             ? error.responseJSON.detail
             : '';
 
@@ -83,7 +83,7 @@ class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
     let disableLog = false;
     // Check if there is an error message with `transferDetails` endpoint
     // If so, show as toast and ignore, otherwise log to sentry
-    if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
+    if (error?.responseJSON && typeof error.responseJSON.detail === 'string') {
       addErrorMessage(error.responseJSON.detail);
       disableLog = true;
     }
