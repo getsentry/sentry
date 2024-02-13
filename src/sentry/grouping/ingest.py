@@ -310,14 +310,10 @@ def find_existing_grouphash_new(
         if group_hash.group_id is not None:
             return group_hash
 
-        # When refactoring for hierarchical grouping, we noticed that a
+        # TODO: When refactoring for hierarchical grouping, we noticed that a
         # tombstone may get ignored entirely if there is another hash *before*
         # that happens to have a group_id. This bug may not have been noticed
-        # for a long time because most events only ever have 1-2 hashes. It
-        # will definitely get more noticeable with hierarchical grouping and
-        # it's not clear what good behavior would look like. Do people want to
-        # be able to tombstone `hierarchical_hashes[4]` while still having a
-        # group attached to `hierarchical_hashes[0]`? Maybe.
+        # for a long time because most events only ever have 1-2 hashes.
         if group_hash.group_tombstone_id is not None:
             raise HashDiscarded(
                 "Matches group tombstone %s" % group_hash.group_tombstone_id,
