@@ -422,12 +422,12 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert issue_event.group is not None
         resp = self.install.get_link_issue_config(group=issue_event.group, **data)
         # assert comment wording for linked issue is correct
-        assert "Sentry issue" in resp[2]["default"][0]
+        assert "Sentry Issue" in resp[2]["default"]
 
         # link a feedback issue
         resp = self.install.get_link_issue_config(group=feedback_issue, **data)
         # assert comment wording for linked feedback is correct
-        assert "Sentry feedback" in resp[2]["default"][0]
+        assert "Sentry Feedback" in resp[2]["default"]
 
     @responses.activate
     def after_link_issue(self):
