@@ -164,7 +164,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       event.preventDefault();
 
       const newOptionGroups = makeOptions(options, partialTerm, hideFieldOptions);
-      const flattenedOptions = newOptionGroups.map(group => group.options).flat();
+      const flattenedOptions = newOptionGroups.flatMap(group => group.options);
       if (flattenedOptions.length === 0) {
         return;
       }

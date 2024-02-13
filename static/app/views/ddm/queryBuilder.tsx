@@ -1,4 +1,4 @@
-import {Fragment, memo, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -8,6 +8,7 @@ import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDefaultMetricDisplayType,
   isAllowedOp,
@@ -29,6 +30,8 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
@@ -58,7 +61,9 @@ export const QueryBuilder = memo(function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const {data: meta} = useMetricsMeta(projects);
+  const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {data: meta} = useMetricsMeta(pageFilters.selection);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
   const breakpoints = useBreakpoints();
@@ -70,7 +75,9 @@ export const QueryBuilder = memo(function QueryBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
+  const {data: tags = [], isLoading: tagsIsLoading} = useMetricsTags(metricsQuery.mri, {
+    projects,
+  });
 
   const displayedMetrics = useMemo(() => {
     if (mriMode) {
@@ -95,42 +102,65 @@ export const QueryBuilder = memo(function QueryBuilder({
     mri: metricsQuery.mri,
   });
 
-  const handleMRIChange = ({value}) => {
-    const availableOps = getOpsForMRI(value, meta);
-    const selectedOp = availableOps.includes((metricsQuery.op ?? '') as MetricsOperation)
-      ? metricsQuery.op
-      : availableOps?.[0];
+  const handleMRIChange = useCallback(
+    ({value}) => {
+      const availableOps = getOpsForMRI(value, meta);
+      const selectedOp = availableOps.includes(
+        (metricsQuery.op ?? '') as MetricsOperation
+      )
+        ? metricsQuery.op
+        : availableOps?.[0];
 
-    const queryChanges = {
-      mri: value,
-      op: selectedOp,
-      groupBy: undefined,
-      displayType: getDefaultMetricDisplayType(value, selectedOp),
-    };
+      const queryChanges = {
+        mri: value,
+        op: selectedOp,
+        groupBy: undefined,
+        displayType: getDefaultMetricDisplayType(value, selectedOp),
+      };
 
-    incrementQueryMetric('ddm.widget.metric', queryChanges);
-    onChange({
-      ...queryChanges,
-      focusedSeries: undefined,
-    });
-  };
+      trackAnalytics('ddm.widget.metric', {organization});
+      incrementQueryMetric('ddm.widget.metric', queryChanges);
+      onChange({
+        ...queryChanges,
+        focusedSeries: undefined,
+      });
+    },
+    [incrementQueryMetric, meta, metricsQuery.op, onChange, organization]
+  );
 
-  const handleOpChange = ({value}) => {
-    incrementQueryMetric('ddm.widget.operation', {op: value});
-    onChange({
-      op: value,
-    });
-  };
+  const handleOpChange = useCallback(
+    ({value}) => {
+      trackAnalytics('ddm.widget.operation', {organization});
+      incrementQueryMetric('ddm.widget.operation', {op: value});
+      onChange({
+        op: value,
+      });
+    },
+    [incrementQueryMetric, onChange, organization]
+  );
 
-  const handleGroupByChange = (options: SelectOption<string>[]) => {
-    incrementQueryMetric('ddm.widget.group', {
-      groupBy: options.map(o => o.value),
-    });
-    onChange({
-      groupBy: options.map(o => o.value),
-      focusedSeries: undefined,
-    });
-  };
+  const handleGroupByChange = useCallback(
+    (options: SelectOption<string>[]) => {
+      trackAnalytics('ddm.widget.group', {organization});
+      incrementQueryMetric('ddm.widget.group', {
+        groupBy: options.map(o => o.value),
+      });
+      onChange({
+        groupBy: options.map(o => o.value),
+        focusedSeries: undefined,
+      });
+    },
+    [incrementQueryMetric, onChange, organization]
+  );
+
+  const handleQueryChange = useCallback(
+    (query: string) => {
+      trackAnalytics('ddm.widget.filter', {organization});
+      incrementQueryMetric('ddm.widget.filter', {query});
+      onChange({query});
+    },
+    [incrementQueryMetric, onChange, organization]
+  );
 
   const mriOptions = useMemo(
     () =>
@@ -194,7 +224,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                 </Fragment>
               ),
             }))}
-            disabled={!metricsQuery.mri}
+            disabled={!metricsQuery.mri || tagsIsLoading}
             value={metricsQuery.groupBy}
             onChange={handleGroupByChange}
           />
@@ -202,14 +232,9 @@ export const QueryBuilder = memo(function QueryBuilder({
       </FlexBlock>
       <SearchBarWrapper>
         <MetricSearchBar
-          // TODO(aknaus): clean up projectId type in ddm
-          projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
-          onChange={query => {
-            incrementQueryMetric('ddm.widget.filter', {query});
-            onChange({query});
-          }}
+          onChange={handleQueryChange}
           query={metricsQuery.query}
         />
       </SearchBarWrapper>

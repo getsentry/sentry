@@ -102,12 +102,6 @@ def ingest_monitors_options() -> list[click.Option]:
             default=10,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
-        click.Option(
-            ["--max-workers", "max_workers"],
-            type=int,
-            default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
-        ),
     ]
     return options
 
@@ -292,17 +286,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
     },
-    "ingest-generic-metrics-experimental": {
-        "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
-        "click_options": [
-            *_METRICS_INDEXER_OPTIONS,
-            click.Option(["--indexer-db"], default="experimental"),
-        ],
-        "static_args": {
-            "ingest_profile": "experimental",
-        },
-    },
     "generic-metrics-last-seen-updater": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
@@ -339,6 +322,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+    },
+    "process-spans": {
+        "topic": settings.KAFKA_SNUBA_SPANS,
+        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

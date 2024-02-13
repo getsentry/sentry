@@ -52,13 +52,13 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
-    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1

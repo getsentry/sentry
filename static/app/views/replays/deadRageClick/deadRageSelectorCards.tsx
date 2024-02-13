@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -51,7 +50,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -74,7 +72,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>

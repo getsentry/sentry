@@ -867,6 +867,7 @@ class GitHubClientFileBlameBase(TestCase):
         )
 
 
+@region_silo_test
 class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files builds the correct GraphQL query
@@ -1209,6 +1210,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         assert json.loads(responses.calls[1].request.body)["query"] == query
 
 
+@region_silo_test
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
     Tests that get_blame_for_files handles the GraphQL response correctly
@@ -1623,6 +1625,7 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
         )
 
 
+@region_silo_test
 class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
     """
     Tests that rate limits are handled correctly

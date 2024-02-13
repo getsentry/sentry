@@ -716,7 +716,7 @@ def _get_release_sessions_time_bounds(project_id, release, org_id, environments=
         referrer="sessions.release-sessions-time-bounds",
     )["data"]
 
-    formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    formatted_unix_start_time = datetime.fromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     if rows:
         rv = rows[0]

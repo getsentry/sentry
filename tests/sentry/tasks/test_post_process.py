@@ -24,12 +24,11 @@ from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
-    PerformanceDurationRegressionGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -72,7 +71,7 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
@@ -2487,7 +2486,7 @@ class PostProcessGroupAggregateEventTest(
 ):
     def create_event(self, data, project_id):
         group = self.create_group(
-            type=PerformanceDurationRegressionGroupType.type_id,
+            type=PerformanceP95EndpointRegressionGroupType.type_id,
         )
 
         event = self.store_event(data=data, project_id=project_id)
@@ -2514,7 +2513,7 @@ class PostProcessGroupAggregateEventTest(
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(
-            PerformanceDurationRegressionGroupType.build_post_process_group_feature_name()
+            PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
         ):
             post_process_group(
                 is_new=is_new,

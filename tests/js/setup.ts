@@ -1,10 +1,8 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import {TextDecoder, TextEncoder} from 'util';
-
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
+import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -151,12 +149,12 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // eslint-disable-next-line no-var
+  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // eslint-disable-next-line no-var
+  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 

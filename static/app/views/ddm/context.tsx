@@ -11,19 +11,18 @@ import isEqual from 'lodash/isEqual';
 
 import {
   getAbsoluteDateTimeRange,
-  getDefaultMetricDisplayType,
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
+import {emptyWidget} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
+import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 
 export type FocusAreaProps = {
   onAdd?: (area: FocusAreaSelection) => void;
@@ -35,9 +34,8 @@ export type FocusAreaProps = {
 interface DDMContextValue {
   addWidget: () => void;
   duplicateWidget: (index: number) => void;
+  hasMetrics: boolean;
   isDefaultQuery: boolean;
-  isLoading: boolean;
-  metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
@@ -54,8 +52,7 @@ export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
   isDefaultQuery: false,
-  isLoading: false,
-  metricsMeta: [],
+  hasMetrics: false,
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
@@ -72,32 +69,19 @@ export function useDDMContext() {
   return useContext(DDMContext);
 }
 
+const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyWidget];
+
 export function useMetricWidgets() {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricWidgetQueryParams[]>(() => {
-      const currentWidgets = JSON.parse(
-        router.location.query.widgets ?? JSON.stringify([emptyWidget])
-      );
-
-      return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-        return {
-          mri: widget.mri,
-          op: widget.op,
-          query: widget.query,
-          groupBy: decodeList(widget.groupBy),
-          displayType:
-            widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
-          focusedSeries: widget.focusedSeries,
-          showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-          powerUserMode: widget.powerUserMode,
-          sort: widget.sort ?? DEFAULT_SORT_STATE,
-          title: widget.title,
-        };
-      });
-    }, [router.location.query.widgets])
+    useMemo<MetricWidgetQueryParams[]>(
+      () =>
+        parseMetricWidgetsQueryParam(router.location.query.widgets) ??
+        DEFAULT_WIDGETS_STATE,
+      [router.location.query.widgets]
+    )
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -198,6 +182,21 @@ const useDefaultQuery = () => {
   );
 };
 
+function useSelectedProjects() {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    if (selection.projects.length === 0) {
+      return projects.filter(project => project.isMember);
+    }
+    if (selection.projects.includes(-1)) {
+      return projects;
+    }
+    return projects.filter(project => selection.projects.includes(Number(project.id)));
+  }, [selection.projects, projects]);
+}
+
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
@@ -210,7 +209,16 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
-  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
+
+  const selectedProjects = useSelectedProjects();
+  const hasMetrics = useMemo(
+    () =>
+      selectedProjects.some(
+        project =>
+          project.hasCustomMetrics || project.hasSessions || project.firstTransactionEvent
+      ),
+    [selectedProjects]
+  );
 
   const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
     () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),
@@ -284,8 +292,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
@@ -300,8 +307,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleUpdateWidget,
       removeWidget,
       handleDuplicate,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,

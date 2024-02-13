@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.issues.grouptype import (
-    PerformanceDurationRegressionGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
@@ -122,7 +122,7 @@ class ScheduleAutoResolutionTest(TestCase):
             project=project,
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
-            type=PerformanceDurationRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
+            type=PerformanceP95EndpointRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
         )
 
         mock_backend.get_size.return_value = 0

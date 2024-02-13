@@ -44,7 +44,7 @@ enum BlockingStatusTab {
 
 function ProjectMetrics({project, location}: Props) {
   const {data: meta, isLoading} = useMetricsMeta(
-    [parseInt(project.id, 10)],
+    {projects: [parseInt(project.id, 10)]},
     ['custom'],
     false
   );

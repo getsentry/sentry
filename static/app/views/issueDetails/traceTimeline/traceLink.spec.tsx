@@ -29,7 +29,6 @@ describe('TraceLink', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        issue: 'SENTRY-ABC1',
         transaction: '/api/slow/',
       },
     ],
@@ -44,7 +43,6 @@ describe('TraceLink', () => {
         'project.name': project.name,
         title: 'AttributeError: Something Failed',
         id: event.id,
-        issue: 'SENTRY-2EYS',
         transaction: 'important.task',
         'event.type': 'error',
       },
@@ -71,5 +69,10 @@ describe('TraceLink', () => {
     expect(
       await screen.findByRole('link', {name: 'View Full Trace (2 issues)'})
     ).toBeInTheDocument();
+  });
+
+  it('renders no trace available', async () => {
+    render(<TraceLink event={EventFixture({})} />, {organization});
+    expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
   });
 });

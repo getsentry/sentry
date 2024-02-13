@@ -13,7 +13,7 @@ datadog>=0.44
 django-crispy-forms>=1.14.0
 django-csp>=3.7
 django-pg-zero-downtime-migrations>=0.13
-Django>=5,<6
+Django>=5.0.2,<6
 djangorestframework>=3.14.0
 drf-spectacular>=0.26.3
 email-reply-parser>=0.5.12
@@ -42,7 +42,7 @@ phonenumberslite>=8.12.32
 Pillow>=10.2.0
 progressbar2>=3.41.0
 python-rapidjson>=1.4
-psycopg2-binary>=2.9.7
+psycopg2-binary>=2.9.9
 PyJWT>=2.4.0
 pydantic>=1.10.9
 python-dateutil>=2.8.2
@@ -50,7 +50,7 @@ pymemcache
 python-u2flib-server>=5.0.0
 fido2>=0.9.2
 python3-saml>=1.15.0
-PyYAML>=5.4
+PyYAML>=6.0.1
 rb>=1.9.0
 redis-py-cluster>=2.1.0
 redis>=3.4.1
@@ -73,7 +73,7 @@ statsd>=3.3
 structlog>=22
 symbolic==12.8.0
 toronado>=0.1.0
-typing-extensions>=4.0.0
+typing-extensions>=4.9.0
 ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2
@@ -82,13 +82,13 @@ pyuwsgi==2.0.23
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 
-msgpack>=1.0.4
+msgpack>=1.0.7
 cryptography>=38.0.3
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio>=1.47.0
+grpcio>=1.59.0
 
 # not directly used, but provides a speedup for redis
 hiredis>=0.3.1

@@ -30,7 +30,7 @@ const getMetricsConfigureSnippet = () => `
 use function \\Sentry\\init;
 
 \\Sentry\\init([
-    'metric_code_locations' => true,
+    'attach_metric_code_locations' => true,
 ]);`;
 
 const getVerifySnippet = () => `
