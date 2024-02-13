@@ -43,15 +43,16 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   analyticsContext: string;
+  clipOffsets: {
+    durationAfterMs: number;
+    durationBeforeMs: number;
+  };
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
-
-const CLIP_DURATION_BEFORE_EVENT = 5_000;
-const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -145,6 +146,7 @@ function ReplayPreviewPlayer({
 
 function ReplayClipPreview({
   analyticsContext,
+  clipOffsets,
   eventTimestampMs,
   orgSlug,
   replaySlug,
@@ -152,10 +154,10 @@ function ReplayClipPreview({
 }: Props) {
   const clipWindow = useMemo(
     () => ({
-      startTimestampMs: eventTimestampMs - CLIP_DURATION_BEFORE_EVENT,
-      endTimestampMs: eventTimestampMs + CLIP_DURATION_AFTER_EVENT,
+      startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
+      endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
     }),
-    [eventTimestampMs]
+    [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
