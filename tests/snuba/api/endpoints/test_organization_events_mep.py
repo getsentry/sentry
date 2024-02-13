@@ -3221,7 +3221,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             if event[1] > 300 * 4:
                 tags[constants.METRIC_SATISFACTION_TAG_KEY] = constants.METRIC_FRUSTRATED_TAG_VALUE
             self.store_on_demand_metric(
-                index,
+                email,
                 spec=spec,
                 additional_tags=tags,
                 timestamp=self.day_ago + timedelta(hours=index),
@@ -3248,7 +3248,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         )
         assert resp.data == {
-            "data": [{field: user_misery_formula(miserable_users=6, unique_users=6)}],
+            "data": [{field: user_misery_formula(miserable_users=4, unique_users=4)}],
             "meta": {
                 "fields": {field: "number"},
                 "units": {field: None},
