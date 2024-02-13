@@ -152,7 +152,7 @@ function maybeInsertMissingInstrumentationSpan(
     return;
   }
 
-  if (node.value.start_timestamp - lastInsertedSpan.value.timestamp < 100) {
+  if (node.value.start_timestamp - lastInsertedSpan.value.timestamp < 0.1) {
     return;
   }
 
@@ -830,7 +830,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     let count = 0;
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+      if (
+        this.children[i].expanded ||
+        isParentAutogroupedNode(this.children[i]) ||
+        isMissingInstrumentationNode(this.children[i])
+      ) {
         stack.push(this.children[i]);
       }
     }
@@ -855,7 +859,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
     for (let i = this.children.length - 1; i >= 0; i--) {
-      if (this.children[i].expanded || isParentAutogroupedNode(this.children[i])) {
+      if (
+        this.children[i].expanded ||
+        isParentAutogroupedNode(this.children[i]) ||
+        isMissingInstrumentationNode(this.children[i])
+      ) {
         stack.push(this.children[i]);
       }
     }

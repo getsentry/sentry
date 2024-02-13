@@ -49,7 +49,7 @@ function makeRawSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
     op: '',
     description: '',
     start_timestamp: 0,
-    timestamp: 1,
+    timestamp: 10,
     ...overrides,
   } as RawSpanType;
 }
@@ -205,13 +205,13 @@ describe('TraceTree', () => {
     const node = TraceTree.FromSpans(root, [
       makeRawSpan({
         start_timestamp: date,
-        timestamp: date + 100,
+        timestamp: date + 1,
         span_id: '1',
         op: 'span 1',
       }),
       makeRawSpan({
-        start_timestamp: date + 200,
-        timestamp: date + 400,
+        start_timestamp: date + 2,
+        timestamp: date + 4,
         op: 'span 2',
         span_id: '2',
       }),

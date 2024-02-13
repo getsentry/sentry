@@ -250,7 +250,7 @@ function RenderRow(props: {
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
-            color={pickBarColor('autogrouping')}
+            color={props.theme.blue300}
             node_space={props.node.space}
           />
         </div>
@@ -433,7 +433,7 @@ function RenderRow(props: {
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
-            color={pickBarColor('missing-instrumentation')}
+            color={props.theme.gray200}
             node_space={props.node.space}
           />
         </div>
