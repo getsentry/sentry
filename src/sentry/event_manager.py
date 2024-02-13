@@ -184,7 +184,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {}
 
 
-def plugin_is_regression(group: Group, event: Event) -> bool:
+def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
         result = safe_execute(
@@ -1801,7 +1801,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release | None) -> bool | None:
+def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
     if not group.is_resolved():
         return None
 
