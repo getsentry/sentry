@@ -49,7 +49,7 @@ export function TraceLink({event}: TraceLinkProps) {
     >
       <span>
         {t('View Full Trace')}
-        {data.length !== 0 && (
+        {data.length > 0 && (
           <Fragment>
             {data.length >= 100
               ? t(' (100+ issues)')
