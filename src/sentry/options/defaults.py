@@ -1756,7 +1756,7 @@ register(
 )
 register(
     "on_demand.max_widget_cardinality.on_query_count",
-    default=100,
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

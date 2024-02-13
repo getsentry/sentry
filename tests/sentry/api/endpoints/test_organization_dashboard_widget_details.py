@@ -698,14 +698,43 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 }
             ],
         }
-        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         # There's no data, so `sometag` should be low cardinality
-        assert len(response.data) == 0
-        # We cache so we shouldn't call query cardinality again
-        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
-            self.client.post(f"{self.url()}?environment=mock_env", data)
-            assert len(mock_query.mock_calls) == 0
+        assert len(response.data) == 1
+        assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
+        # We cache so we shouldn't call query cardinality again if all the keys are the same
+        with self.feature(ONDEMAND_FEATURES):
+            with mock.patch(
+                "sentry.tasks.on_demand_metrics._query_cardinality", return_value=([], [])
+            ) as mock_query:
+                self.client.post(f"{self.url()}?environment=mock_env", data)
+                assert len(mock_query.mock_calls) == 0
+
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["someothertag", "sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        # If there's a new key we should only query that key
+        with self.feature(ONDEMAND_FEATURES):
+            with mock.patch(
+                "sentry.tasks.on_demand_metrics._query_cardinality", return_value=([], [])
+            ) as mock_query:
+                self.client.post(f"{self.url()}?environment=mock_env", data)
+                mock_query.assert_called_once()
+                assert mock_query.mock_calls[0] == mock.call(["someothertag"], mock.ANY, "1h")
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
@@ -733,7 +762,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         warnings = response.data["warnings"]
         assert "columns" in warnings
@@ -742,7 +772,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         # We queried sometag already, we shouldn't call the cardinality query again
         data["queries"][0]["fields"] = ["sometag"]
-        self.client.post(f"{self.url()}?environment=mock_env", data)
+        with self.feature(ONDEMAND_FEATURES):
+            self.client.post(f"{self.url()}?environment=mock_env", data)
         assert len(mock_query.mock_calls) == 1
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
@@ -798,7 +829,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         with self.feature(ONDEMAND_FEATURES):
             response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
-        assert response.data == {}
+        assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_warnings_show_up_with_error(self, mock_query):
@@ -826,12 +857,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 400, response.data
         warnings = response.data["warnings"]
         assert "queries" in warnings
         assert len(warnings["queries"]) == 1
-        assert warnings["queries"][0] == "disabled:query-error"
+        assert warnings["queries"][0] == "disabled:not-applicable"
         assert response.data["queries"][0]["conditions"], response.data
 
     @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
@@ -891,3 +923,82 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert len(warnings["queries"]) == 2
         assert warnings["queries"][0] is None
         assert warnings["queries"][1] == "disabled:spec-limit"
+
+    def test_on_demand_doesnt_query(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        # There's no data, so `sometag` should be low cardinality
+
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
+                }
+            ],
+        }
+        # With extraction disabled we shouldn't check
+        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
+            self.client.post(f"{self.url()}?environment=mock_env", data)
+            assert len(mock_query.mock_calls) == 0
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_ondemand_disabled_adds_queries(self, mock_max):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
+                },
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "onDemandExtractionDisabled": True,
+                },
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert len(warnings["queries"]) == 2
+        assert response.data == {"warnings": {"columns": {}, "queries": [None, None]}}

@@ -277,7 +277,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
-    has_warnings = False
     query_warnings = {"queries": [], "columns": {}}
 
     def validate_display_type(self, display_type):
@@ -297,10 +296,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         query_errors = []
         all_columns = set()
         has_query_error = False
-        self.has_warnings = False
         self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
+        organization = self.context["organization"]
+
+        ondemand_feature = features.has("organizations:on-demand-metrics-extraction", organization)
+
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
@@ -319,11 +321,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 else:
                     query_errors.append({})
 
-                if not query.get("on_demand_extraction_disabled", False):
+                if ondemand_feature and not query.get("on_demand_extraction_disabled", False):
                     if query.get("columns"):
                         all_columns = all_columns.union(query.get("columns"))
                     # If this query wants ondemand check if we'll go over spec
-                    organization = self.context["organization"]
                     widget_query = DashboardWidgetQuery(
                         fields=query["fields"],
                         aggregates=query.get("aggregates"),
@@ -340,14 +341,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     if len(widget_specs) == 0:
                         # In the case the query errors, we should still disbale
                         self.query_warnings["queries"].append(
-                            OnDemandExtractionState.DISABLED_QUERY_ERROR
+                            OnDemandExtractionState.DISABLED_NOT_APPLICABLE
                         )
-                        self.has_warnings = True
                     elif widget_exceeds_max_specs(widget_specs, current_widget_specs, organization):
                         self.query_warnings["queries"].append(
                             OnDemandExtractionState.DISABLED_SPEC_LIMIT
                         )
-                        self.has_warnings = True
                     else:
                         self.query_warnings["queries"].append(None)
                 else:
@@ -410,14 +409,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                             )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
-                all_columns, self.context["organization"], max_cardinality_allowed
+                all_columns, self.context["organization"], max_cardinality_allowed, period="1h"
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
                     self.query_warnings["columns"][
                         field
                     ] = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
-                    self.has_warnings = True
         return data
 
 

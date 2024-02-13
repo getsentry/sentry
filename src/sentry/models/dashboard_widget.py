@@ -144,8 +144,6 @@ class DashboardWidgetQueryOnDemand(Model):
         DISABLED_HIGH_CARDINALITY = "disabled:high-cardinality", gettext_lazy(
             "disabled:high-cardinality"
         )
-        """ This widget has a query which errors so we shouldn't extract anything """
-        DISABLED_QUERY_ERROR = "disabled:query-error", gettext_lazy("disabled:query-error")
         """ This widget query was disabled by the cardinality cron due to one of the columns having high cardinality """
         ENABLED_ENROLLED = "enabled:enrolled", gettext_lazy("enabled:enrolled")
         """ This widget query was enabled automatically during rollout for automatic support for users migrating from AM1. """

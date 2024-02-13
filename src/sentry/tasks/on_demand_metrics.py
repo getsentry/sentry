@@ -39,7 +39,7 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24 * 7  # Cardinality outcome is valid for 7 days.
-_COLUMN_CARDINALITY_TTL = 3600 * 24  # Cardinality outcome is valid for 1 days.
+_COLUMN_CARDINALITY_TTL = 3600  # Cardinality outcome is valid for 1 hour to match the widget check.
 
 
 def _get_widget_processing_batch_key() -> str:
@@ -352,6 +352,7 @@ def check_field_cardinality(
     max_cardinality: int,
     widget_cache_key: str | None = None,
     widget_query: DashboardWidgetQuery | None = None,
+    period: str = "30m",
 ) -> dict[str, str]:
     if not query_columns:
         return None
@@ -364,7 +365,7 @@ def check_field_cardinality(
     if len(cardinality_map) == len(query_columns):
         return cardinality_map
 
-    query_columns = [col for col in query_columns if col not in cardinality_map]
+    query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
     with sentry_sdk.push_scope() as scope:
         if widget_query:
@@ -375,7 +376,9 @@ def check_field_cardinality(
             scope.set_tag("cardinality_check.org_slug", organization.slug)
 
         try:
-            processed_results, columns_to_check = _query_cardinality(query_columns, organization)
+            processed_results, columns_to_check = _query_cardinality(
+                query_columns, organization, period
+            )
             for column in columns_to_check:
                 count = processed_results["data"][0][f"count_unique({column})"]
                 column_low_cardinality = count <= max_cardinality
@@ -402,10 +405,13 @@ def check_field_cardinality(
 
 
 def _query_cardinality(
-    query_columns: list[str], organization: Organization
+    query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:
+    # Restrict period down to an allowlist so we're not slamming snuba with giant queries
+    if period not in ["30m", "1h"]:
+        raise Exception("Cardinality can only be queried with 1h or 30m")
     params: dict[str, Any] = {
-        "statsPeriod": "30m",
+        "statsPeriod": period,
         "organization_id": organization.id,
     }
     start, end = get_date_range_from_params(params)
