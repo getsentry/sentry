@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventGroupInfo, Group} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
-import type {Event, EventOccurrence} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
@@ -30,15 +30,22 @@ type GroupingInfoProps = {
   group?: Group;
 };
 
+type EventGroupingInfoResponse = {
+  [variant: string]: EventGroupInfo;
+};
+
 function generatePerformanceGroupInfo({event, group}: {event: Event; group: Group}) {
-  const {occurrence} = event;
-  const {evidenceData} = occurrence as EventOccurrence;
+  if (!event.occurrence) {
+    return null;
+  }
+
+  const {evidenceData} = event.occurrence;
 
   const variant = group
     ? {
         [group.issueType]: {
           description: t('performance problem'),
-          hash: occurrence?.fingerprint[0] || '',
+          hash: event.occurrence?.fingerprint[0] || '',
           hasMismatch: false,
           key: group.issueType,
           type: 'performance-problem',
@@ -63,14 +70,14 @@ export function EventGroupingInfo({
 }: GroupingInfoProps) {
   const organization = useOrganization();
   const [isOpen, setIsOpen] = useState(false);
-  const [configOverride, setConfigOverride] = useState(null);
+  const [configOverride, setConfigOverride] = useState<string | null>(null);
 
   const hasPerformanceGrouping =
     event.occurrence &&
     group?.issueCategory === IssueCategory.PERFORMANCE &&
     event.type === 'transaction';
 
-  const {data, isLoading, isError, isSuccess} = useApiQuery<EventGroupInfo>(
+  const {data, isLoading, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
     [
       `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
       {query: configOverride ? {config: configOverride} : {}},
