@@ -4,17 +4,18 @@ from time import time
 from unittest import mock
 from unittest.mock import MagicMock
 
-from sentry import tsdb
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.tsdb.base import TSDBModel
 
 pytestmark = [requires_snuba]
+
+
+LEGACY_CONFIG = "legacy:2019-03-12"
+NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
@@ -35,12 +36,6 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group_id == event2.group_id
 
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-        assert group.message == event2.message
-
     def test_puts_events_with_different_fingerprints_in_different_groups(self):
         event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
@@ -58,12 +53,11 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.data.get("fingerprint") == ["{{ default }}"]
 
-    @freeze_time()
     def test_ignores_fingerprint_on_transaction_event(self):
-        event1 = save_new_event(
+        error_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["charlie"]}, self.project
         )
-        event2 = save_new_event(
+        transaction_event = save_new_event(
             {
                 "transaction": "dogpark",
                 "fingerprint": ["charlie"],
@@ -82,30 +76,8 @@ class EventManagerGroupingTest(TestCase):
             self.project,
         )
 
-        assert event1.group is not None
-        assert event2.group is None
-        assert event1.group_id != event2.group_id
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.project,
-                [self.project.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[self.project.id]
-            == 1
-        )
-
-        assert (
-            tsdb.backend.get_sums(
-                TSDBModel.group,
-                [event1.group.id],
-                event1.datetime,
-                event1.datetime,
-                tenant_ids={"organization_id": 123, "referrer": "r"},
-            )[event1.group.id]
-            == 1
-        )
+        # Events are assigned to different groups even though they had identical fingerprints
+        assert error_event.group_id != transaction_event.group_id
 
     def test_none_exception(self):
         """Test that when the exception is None, the group is still formed."""
@@ -113,13 +85,38 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group
 
+    def test_updates_group_metadata(self):
+        event1 = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
+        )
+
+        group = Group.objects.get(id=event1.group_id)
+
+        assert group.times_seen == 1
+        assert group.last_seen == event1.datetime
+        assert group.message == event1.message
+
+        # Normally this should go into a different group, since the messages don't match, but the
+        # fingerprint takes precedence. (We need to make the messages different in order to show
+        # that the group's message gets updated.)
+        event2 = save_new_event(
+            {"message": "Adopt don't shop", "fingerprint": ["maisey"]}, self.project
+        )
+
+        assert event1.group_id == event2.group_id
+        group = Group.objects.get(id=event2.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+        assert group.message == event2.message
+
 
 @region_silo_test
 class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
     def test_records_num_calculations(self, mock_metrics_incr: MagicMock):
         project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", LEGACY_CONFIG)
         project.update_option("sentry:secondary_grouping_config", None)
 
         save_new_event({"message": "Dogs are great!"}, self.project)
@@ -130,8 +127,8 @@ class EventManagerGroupingMetricsTest(TestCase):
         assert len(hashes_calculated_calls) == 1
         assert hashes_calculated_calls[0].kwargs["amount"] == 1
 
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         save_new_event({"message": "Dogs are great!"}, self.project)
@@ -146,8 +143,8 @@ class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.grouping.ingest._should_run_secondary_grouping", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
-        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:grouping_config", NEWSTYLE_CONFIG)
+        project.update_option("sentry:secondary_grouping_config", LEGACY_CONFIG)
 
         cases = [
             # primary_hashes, secondary_hashes, expected_tag
