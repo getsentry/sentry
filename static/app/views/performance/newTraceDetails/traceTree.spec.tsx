@@ -44,12 +44,13 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
   } as TraceFullDetailed;
 }
 
-function makeRawSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
+function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
   return {
     op: '',
     description: '',
+    span_id: '',
     start_timestamp: 0,
-    timestamp: 1,
+    timestamp: 10,
     ...overrides,
   } as RawSpanType;
 }
@@ -120,6 +121,78 @@ function assertParentAutogroupedNode(
 //   }
 // }
 
+describe('TreeNode', () => {
+  it('expands transaction nodes by default', () => {
+    const node = new TraceTreeNode(null, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    expect(node.expanded).toBe(true);
+  });
+  it('points parent to node', () => {
+    const root = new TraceTreeNode(null, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    const child = new TraceTreeNode(root, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    expect(child.parent).toBe(root);
+  });
+  it('depth', () => {
+    const root = new TraceTreeNode(null, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    const child = new TraceTreeNode(root, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    const grandChild = new TraceTreeNode(child, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+    expect(grandChild.depth).toBe(1);
+  });
+  it('getVisibleChildren', () => {
+    const root = new TraceTreeNode(null, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+
+    const child = new TraceTreeNode(root, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+
+    root.children.push(child);
+    expect(root.getVisibleChildren()).toHaveLength(1);
+    expect(root.getVisibleChildren()[0]).toBe(child);
+
+    root.expanded = false;
+    expect(root.getVisibleChildren()).toHaveLength(0);
+  });
+
+  it('getVisibleChildrenCount', () => {
+    const root = new TraceTreeNode(null, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+
+    const child = new TraceTreeNode(root, makeTransaction(), {
+      project_slug: '',
+      event_id: '',
+    });
+
+    root.children.push(child);
+    expect(root.getVisibleChildrenCount()).toBe(1);
+
+    root.expanded = false;
+    expect(root.getVisibleChildrenCount()).toBe(0);
+  });
+});
+
 describe('TraceTree', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -169,10 +242,10 @@ describe('TraceTree', () => {
     );
 
     const node = TraceTree.FromSpans(root, [
-      makeRawSpan({start_timestamp: 0, op: '1', span_id: '1'}),
-      makeRawSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
-      makeRawSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
-      makeRawSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
+      makeSpan({start_timestamp: 0, op: '1', span_id: '1'}),
+      makeSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
+      makeSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
+      makeSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
     ]);
 
     if (!isSpanNode(node.children[0])) {
@@ -203,15 +276,15 @@ describe('TraceTree', () => {
     const date = new Date().getTime();
 
     const node = TraceTree.FromSpans(root, [
-      makeRawSpan({
+      makeSpan({
         start_timestamp: date,
-        timestamp: date + 100,
+        timestamp: date + 1,
         span_id: '1',
         op: 'span 1',
       }),
-      makeRawSpan({
-        start_timestamp: date + 200,
-        timestamp: date + 400,
+      makeSpan({
+        start_timestamp: date + 2,
+        timestamp: date + 4,
         op: 'span 2',
         span_id: '2',
       }),
@@ -250,15 +323,15 @@ describe('TraceTree', () => {
       url: '/organizations/org-slug/events/undefined:undefined/',
       method: 'GET',
       body: makeEvent({startTimestamp: 0}, [
-        makeRawSpan({start_timestamp: 1, op: 'span 1', span_id: '1'}),
-        makeRawSpan({
+        makeSpan({start_timestamp: 1, op: 'span 1', span_id: '1'}),
+        makeSpan({
           start_timestamp: 2,
           op: 'span 2',
           span_id: '2',
           parent_span_id: '1',
         }),
-        makeRawSpan({start_timestamp: 3, op: 'span 3', parent_span_id: '2'}),
-        makeRawSpan({start_timestamp: 4, op: 'span 4', parent_span_id: '1'}),
+        makeSpan({start_timestamp: 3, op: 'span 3', parent_span_id: '2'}),
+        makeSpan({start_timestamp: 4, op: 'span 4', parent_span_id: '1'}),
       ]),
     });
 
@@ -445,9 +518,7 @@ describe('TraceTree', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [
-          makeRawSpan({start_timestamp: 0, op: 'span', span_id: '1'}),
-        ]),
+        body: makeEvent({}, [makeSpan({start_timestamp: 0, op: 'span', span_id: '1'})]),
       });
 
       expect(tree.list.length).toBe(2);
@@ -601,7 +672,7 @@ describe('TraceTree', () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan()]),
+        body: makeEvent({}, [makeSpan()]),
       });
 
       const node = tree.list[1];
@@ -632,7 +703,7 @@ describe('TraceTree', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan({span_id: 'span1', description: 'span1'})]),
+        body: makeEvent({}, [makeSpan({span_id: 'span1', description: 'span1'})]),
       });
       tree.zoomIn(tree.list[1], true, {
         api: new MockApiClient(),
@@ -669,7 +740,7 @@ describe('TraceTree', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan({span_id: 'span 1', description: 'span1'})]),
+        body: makeEvent({}, [makeSpan({span_id: 'span 1', description: 'span1'})]),
       });
       // Zoom in
       tree.zoomIn(tree.list[1], true, {
@@ -723,7 +794,7 @@ describe('TraceTree', () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/other_project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan({description: 'span1'})]),
+        body: makeEvent({}, [makeSpan({description: 'span1'})]),
       });
       tree.expand(tree.list[1], true);
       tree.zoomIn(tree.list[2], true, {
@@ -767,8 +838,8 @@ describe('TraceTree', () => {
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
         body: makeEvent({}, [
-          makeRawSpan({description: 'span1'}),
-          makeRawSpan({description: 'span2'}),
+          makeSpan({description: 'span1'}),
+          makeSpan({description: 'span2'}),
         ]),
       });
 
@@ -799,14 +870,14 @@ describe('TraceTree', () => {
 
   describe('autogrouping', () => {
     it('auto groups sibling spans and preserves tail spans', () => {
-      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
         event_id: '',
       });
 
       for (let i = 0; i < 5; i++) {
         root.children.push(
-          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), {
+          new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
             project_slug: '',
             event_id: '',
           })
@@ -814,7 +885,7 @@ describe('TraceTree', () => {
       }
 
       root.children.push(
-        new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'http'}), {
+        new TraceTreeNode(root, makeSpan({description: 'span', op: 'http'}), {
           project_slug: '',
           event_id: '',
         })
@@ -828,14 +899,14 @@ describe('TraceTree', () => {
     });
 
     it('autogroups when number of children is exactly 5', () => {
-      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
         event_id: '',
       });
 
       for (let i = 0; i < 5; i++) {
         root.children.push(
-          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), {
+          new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
             project_slug: '',
             event_id: '',
           })
@@ -850,14 +921,14 @@ describe('TraceTree', () => {
     });
 
     it('autogroups when number of children is > 5', () => {
-      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
         event_id: '',
       });
 
       for (let i = 0; i < 7; i++) {
         root.children.push(
-          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), {
+          new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
             project_slug: '',
             event_id: '',
           })
@@ -871,46 +942,46 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
-    it('autogroups children case', () => {
-      // span1 : db
-      // ---span2 : http
-      // ------ span3 : http
+    it('autogroups direct children case', () => {
+      // db             db                           db
+      //  http    ->     parent autogroup (3) ->      parent autogroup (3)
+      //   http                                        http
+      //    http                                        http
+      //                                                 http
 
-      // to
-
-      // span1 : db
-      // ---autogrouped(span2) : http
-      // ------ span2 : http
-      // --------- span3 : http
-
-      const root = new TraceTreeNode(
+      const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
         null,
-        makeRawSpan({description: 'span1', span_id: '1', op: 'db'}),
-        {
-          project_slug: '',
-          event_id: '',
-        }
+        makeSpan({
+          description: `span1`,
+          span_id: `1`,
+          op: 'db',
+        }),
+        {project_slug: '', event_id: ''}
       );
 
-      const child = new TraceTreeNode(
-        root,
-        makeRawSpan({description: 'span2', span_id: '2', op: 'http'}),
-        {
-          project_slug: '',
-          event_id: '',
-        }
-      );
-      root.children.push(child);
+      let last: TraceTreeNode<any> = root;
 
-      const grandChild = new TraceTreeNode(
-        child,
-        makeRawSpan({description: 'span3', span_id: '3', op: 'http'}),
-        {
-          project_slug: '',
-          event_id: '',
-        }
-      );
-      child.children.push(grandChild);
+      for (let i = 0; i < 3; i++) {
+        const node = new TraceTreeNode(
+          last,
+          makeSpan({
+            description: `span${i}`,
+            span_id: `${i}`,
+            op: 'http',
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+
+        last.children.push(node);
+        last = node;
+      }
+
+      if (!root) {
+        throw new Error('root is null');
+      }
 
       expect(root.children.length).toBe(1);
       expect(root.children[0].children.length).toBe(1);
@@ -919,106 +990,201 @@ describe('TraceTree', () => {
 
       expect(root.children.length).toBe(1);
 
-      const autoGroupedNode = root.children[0];
-      expect(autoGroupedNode.children.length).toBe(0);
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].children.length).toBe(0);
 
-      autoGroupedNode.expanded = true;
-
-      expect((autoGroupedNode.children[0].value as RawSpanType).description).toBe(
-        'span2'
+      root.children[0].expanded = true;
+      expect((root.children[0].children[0].value as RawSpanType).description).toBe(
+        'span0'
       );
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {
+      // db            db                     db
+      //  http          autogrouped (3)        autogrouped (3)
+      //   http   ->     db               ->    http
+      //    http                                 http
+      //     db                                   http
+      //                                           db
       const root = new TraceTreeNode(
         null,
-        makeRawSpan({span_id: 'span1', description: 'span1', op: 'db'}),
+        makeSpan({span_id: 'span1', description: 'span1', op: 'db'}),
         {
           project_slug: '',
           event_id: '',
         }
       );
 
-      const child = new TraceTreeNode(
-        root,
-        makeRawSpan({span_id: 'span2', description: 'span2', op: 'http'}),
-        {
-          project_slug: '',
-          event_id: '',
-        }
-      );
-      root.children.push(child);
-
-      const grandChild = new TraceTreeNode(
-        child,
-        makeRawSpan({span_id: 'span3', description: 'span3', op: 'http'}),
-        {
-          project_slug: '',
-          event_id: '',
-        }
-      );
-      child.children.push(grandChild);
-
-      expect(root.children.length).toBe(1);
-      expect(root.children[0].children.length).toBe(1);
+      let last = root;
+      for (let i = 0; i < 4; i++) {
+        const node = new TraceTreeNode(
+          last,
+          makeSpan({
+            span_id: `span`,
+            description: `span`,
+            op: i === 3 ? 'db' : 'http',
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        last.children.push(node);
+        last = node;
+      }
 
       TraceTree.AutogroupDirectChildrenSpanNodes(root);
 
-      expect(root.children.length).toBe(1);
-
       const autoGroupedNode = root.children[0];
-      expect(autoGroupedNode.children.length).toBe(0);
+      assertAutogroupedNode(autoGroupedNode);
+
+      expect(autoGroupedNode.children.length).toBe(1);
+      expect((autoGroupedNode.children[0].value as RawSpanType).op).toBe('db');
 
       autoGroupedNode.expanded = true;
-
-      expect((autoGroupedNode.children[0].value as RawSpanType).description).toBe(
-        'span2'
-      );
+      expect(autoGroupedNode.children.length).toBe(1);
+      expect((autoGroupedNode.children[0].value as RawSpanType).op).toBe('http');
     });
 
-    it('renders children of autogrouped sibling nodes', async () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction({
-              transaction: '/',
-              project_slug: 'project',
-              event_id: 'event_id',
-            }),
-          ],
-        })
+    it('nested direct autogrouping', () => {
+      // db             db                           db
+      //  http    ->     parent autogroup (3) ->      parent autogroup (3)
+      //   http           db                             http
+      //    http           parent autogroup (3)           http
+      //     db                                            http
+      //      http                                          db
+      //       http                                          parent autogrouped (3)
+      //        http                                          http
+      //                                                       http
+      //                                                        http
+      const root = new TraceTreeNode(
+        null,
+        makeSpan({span_id: 'span', description: 'span', op: 'db'}),
+        {
+          project_slug: '',
+          event_id: '',
+        }
       );
 
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project:event_id/',
-        method: 'GET',
-        body: makeEvent({}, [
-          makeRawSpan({description: 'parent span', op: 'http', span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '2', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '3', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '4', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '1'}),
-        ]),
-      });
+      let last = root;
 
-      expect(tree.list.length).toBe(2);
-      tree.zoomIn(tree.list[1], true, {
-        api: new MockApiClient(),
-        organization: OrganizationFixture(),
-      });
+      for (let i = 0; i < 3; i++) {
+        if (i === 1) {
+          const autogroupBreakingSpan = new TraceTreeNode(
+            last,
+            makeSpan({span_id: 'span', description: 'span', op: 'db'}),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          );
 
-      await waitFor(() => {
-        expect(tree.list.length).toBe(4);
-      });
+          last.children.push(autogroupBreakingSpan);
+          last = autogroupBreakingSpan;
+        } else {
+          for (let j = 0; j < 3; j++) {
+            const node = new TraceTreeNode(
+              last,
+              makeSpan({span_id: `span${j}`, description: `span${j}`, op: 'http'}),
+              {
+                project_slug: '',
+                event_id: '',
+              }
+            );
+            last.children.push(node);
+            last = node;
+          }
+        }
+      }
 
-      const autogroupedNode = tree.list[tree.list.length - 1];
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
 
-      assertAutogroupedNode(autogroupedNode);
-      expect(autogroupedNode.value.autogrouped_by).toBeTruthy();
-      expect(autogroupedNode.children.length).toBe(5);
-      tree.expand(autogroupedNode, true);
-      expect(tree.list.length).toBe(9);
+      assertAutogroupedNode(root.children[0]);
+      assertAutogroupedNode(root.children[0].children[0].children[0]);
+    });
+
+    it('sibling autogrouping', () => {
+      // db          db
+      //  http        sibling autogrouped (5)
+      //  http
+      //  http  ->
+      //  http
+      //  http
+      const root = new TraceTreeNode(
+        null,
+        makeTransaction({start_timestamp: 0, timestamp: 10}),
+        {
+          project_slug: '',
+          event_id: '',
+        }
+      );
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeSpan({start_timestamp: i, timestamp: i + 1}), {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      expect(root.children.length).toBe(1);
+      assertAutogroupedNode(root.children[0]);
+    });
+
+    it('multiple sibling autogrouping', () => {
+      // db          db
+      //  http        sibling autogrouped (5)
+      //  http        db
+      //  http  ->    sibling autogrouped (5)
+      //  http
+      //  http
+      //  db
+      //  http
+      //  http
+      //  http
+      //  http
+      //  http
+      const root = new TraceTreeNode(
+        null,
+        makeTransaction({start_timestamp: 0, timestamp: 10}),
+        {
+          project_slug: '',
+          event_id: '',
+        }
+      );
+
+      for (let i = 0; i < 10; i++) {
+        if (i === 5) {
+          root.children.push(
+            new TraceTreeNode(
+              root,
+              makeSpan({start_timestamp: i, timestamp: i + 1, op: 'db'}),
+              {
+                project_slug: '',
+                event_id: '',
+              }
+            )
+          );
+        }
+
+        root.children.push(
+          new TraceTreeNode(
+            root,
+            makeSpan({start_timestamp: i, timestamp: i + 1, op: 'http'}),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
+        );
+      }
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children).toHaveLength(3);
+      assertAutogroupedNode(root.children[2]);
     });
 
     it('renders children of autogrouped direct children nodes', async () => {
@@ -1038,18 +1204,18 @@ describe('TraceTree', () => {
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
         body: makeEvent({}, [
-          makeRawSpan({description: 'parent span', op: 'http', span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '2', parent_span_id: '1'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '3', parent_span_id: '2'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '4', parent_span_id: '3'}),
-          makeRawSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '4'}),
-          makeRawSpan({
+          makeSpan({description: 'parent span', op: 'http', span_id: '1'}),
+          makeSpan({description: 'span', op: 'db', span_id: '2', parent_span_id: '1'}),
+          makeSpan({description: 'span', op: 'db', span_id: '3', parent_span_id: '2'}),
+          makeSpan({description: 'span', op: 'db', span_id: '4', parent_span_id: '3'}),
+          makeSpan({description: 'span', op: 'db', span_id: '5', parent_span_id: '4'}),
+          makeSpan({
             description: 'span',
             op: 'redis',
             span_id: '6',
             parent_span_id: '5',
           }),
-          makeRawSpan({description: 'span', op: 'https', parent_span_id: '1'}),
+          makeSpan({description: 'span', op: 'https', parent_span_id: '1'}),
         ]),
       });
 

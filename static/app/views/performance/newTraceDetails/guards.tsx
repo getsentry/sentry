@@ -18,7 +18,10 @@ export function isMissingInstrumentationNode(
 export function isSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Span> {
-  return !!(node.value && !('transaction' in node.value) && 'span_id' in node.value);
+  return (
+    !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
+    !('autogrouped_by' in node.value)
+  );
 }
 
 export function isTransactionNode(
