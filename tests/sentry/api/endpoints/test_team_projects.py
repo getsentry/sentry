@@ -116,19 +116,6 @@ class TeamProjectsCreateTest(APITestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert Rule.objects.filter(project=project).exists()
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_default_rule_fallback_targeting(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **self.data,
-            default_rules=True,
-            status_code=201,
-        )
-
-        project = Project.objects.get(id=response.data["id"])
         rule = Rule.objects.filter(project=project).first()
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
