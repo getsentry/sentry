@@ -9,11 +9,13 @@ from rediscluster import RedisCluster
 
 @dataclass
 class ServiceMemory:
+    name: str
     used: int
     available: int
     percentage: float
 
-    def __init__(self, used: int, available: int):
+    def __init__(self, name: str, used: int, available: int):
+        self.name = name
         self.used = used
         self.available = available
         self.percentage = used / available
@@ -31,7 +33,7 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
     response = requests.get(url, timeout=3)
     response.raise_for_status()
     json = response.json()
-    return ServiceMemory(json[0]["mem_used"], json[0]["mem_limit"])
+    return ServiceMemory(host, json[0]["mem_used"], json[0]["mem_limit"])
 
 
 # Based on configuration, this could be:
@@ -41,13 +43,13 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
 Cluster = Union[RedisCluster, rb.Cluster]
 
 
-def get_memory_usage(info: Mapping[str, Any]) -> ServiceMemory:
+def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     # or alternatively: `used_memory_rss`?
     memory_used = info.get("used_memory", 0)
     # `maxmemory` might be 0 in development
     memory_available = info.get("maxmemory", 0) or info["total_system_memory"]
 
-    return ServiceMemory(memory_used, memory_available)
+    return ServiceMemory(node_id, memory_used, memory_available)
 
 
 def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
@@ -63,5 +65,5 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
             promise = client.info()
         cluster_info = promise.value
 
-    for info in cluster_info.values():
-        yield get_memory_usage(info)
+    for node_id, info in cluster_info.items():
+        yield get_memory_usage(node_id, info)
