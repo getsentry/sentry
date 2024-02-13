@@ -6,12 +6,15 @@ function getEventTimestamp(start: number, event: TimelineEvent) {
   return new Date(event.timestamp).getTime() - start;
 }
 
+/**
+ * Given a duration and a list of events, return a list of events grouped by column
+ */
 export function getEventsByColumn(
-  durationMs: number,
   events: TimelineEvent[],
+  durationMs: number,
   totalColumns: number,
   start: number
-) {
+): Array<[column: number, events: TimelineEvent[]]> {
   const eventsByColumn = events.reduce((map, event) => {
     const columnPositionCalc =
       Math.floor((getEventTimestamp(start, event) / durationMs) * (totalColumns - 1)) + 1;
@@ -27,7 +30,7 @@ export function getEventsByColumn(
     return map;
   }, new Map<number, TimelineEvent[]>());
 
-  return eventsByColumn;
+  return Array.from(eventsByColumn.entries());
 }
 
 export function getChunkTimeRange(
