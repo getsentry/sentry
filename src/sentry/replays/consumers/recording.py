@@ -12,6 +12,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk.tracing import Span
 
@@ -25,7 +26,7 @@ RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
 
 @dataclasses.dataclass
 class MessageContext:
-    message: ReplayRecording
+    message: bytes
     transaction: Span
     current_hub: sentry_sdk.Hub
 
@@ -110,14 +111,19 @@ def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContex
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
-    return MessageContext(message_dict, transaction, current_hub)
+    return MessageContext(message.payload.value, transaction, current_hub)
 
 
 def process_message_threaded(message: Message[MessageContext]) -> Any:
     """Move the replay payload to permanent storage."""
     context: MessageContext = message.payload
-    message_dict = context.message
+
+    try:
+        message_dict: ReplayRecording = RECORDINGS_CODEC.decode(context.message)
+    except ValidationError:
+        # TODO: DLQ
+        logger.exception("Could not decode recording message.")
+        return None
 
     ingest_recording(message_dict, context.transaction, context.current_hub)
 
@@ -131,5 +137,12 @@ def process_message(message: Message[KafkaPayload]) -> Any:
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
     current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
-    message_dict = RECORDINGS_CODEC.decode(message.payload.value)
+
+    try:
+        message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message.payload.value)
+    except ValidationError:
+        # TODO: DLQ
+        logger.exception("Could not decode recording message.")
+        return None
+
     ingest_recording(message_dict, transaction, current_hub)

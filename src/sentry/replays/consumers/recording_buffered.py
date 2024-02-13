@@ -52,15 +52,11 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
-from sentry.replays.usecases.ingest import (
-    MissingRecordingSegmentHeaders,
-    decompress,
-    process_headers,
-    track_initial_segment_event,
-)
+from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -195,12 +191,20 @@ class RecordingBuffer:
 
 def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.decode_kafka_message"):
-        decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        try:
+            decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        except ValidationError:
+            # TODO: DLQ
+            logger.exception("Could not decode recording message.")
+            return None
 
     try:
         headers, recording_data = process_headers(decoded_message["payload"])
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", decoded_message["replay_id"])
+    except Exception:
+        # TODO: DLQ
+        logger.exception(
+            "Recording headers could not be extracted %s", decoded_message["replay_id"]
+        )
         return None
 
     # Append an upload event to the state object for later processing.
