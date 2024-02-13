@@ -6,9 +6,6 @@ function getEventTimestamp(start: number, event: TimelineEvent) {
   return new Date(event.timestamp).getTime() - start;
 }
 
-/**
- * Given a duration and a list of events, return a list of events grouped by column
- */
 export function getEventsByColumn(
   events: TimelineEvent[],
   durationMs: number,
