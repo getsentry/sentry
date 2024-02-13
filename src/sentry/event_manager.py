@@ -47,9 +47,13 @@ from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
+    add_group_id_to_grouphashes,
+    check_for_category_mismatch,
+    check_for_group_creation_load_shed,
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    record_new_group_metrics,
     update_grouping_config_if_needed,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
@@ -907,8 +911,47 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
+# TODO: This is only called in `_save_aggregate`, so when that goes, so can this (it's been
+# supplanted by `_get_group_processing_kwargs` below)
 def _get_group_creation_kwargs(job: Job | PerformanceJob) -> dict[str, Any]:
     kwargs = {
+        "platform": job["platform"],
+        "message": job["event"].search_message,
+        "logger": job["logger_name"],
+        "level": LOG_LEVELS_MAP.get(job["level"]),
+        "last_seen": job["event"].datetime,
+        "first_seen": job["event"].datetime,
+        "active_at": job["event"].datetime,
+        "culprit": job["culprit"],
+    }
+
+    if job["release"]:
+        kwargs["first_release"] = job["release"]
+
+    return kwargs
+
+
+def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
+    """
+    Pull together all the metadata used when creating a group or updating a group's metadata based
+    on a new event.
+    """
+    _materialize_metadata_many([job])
+
+    event_data = job["event"].data
+    event_metadata = job["event_metadata"]
+
+    group_metadata = materialize_metadata(
+        event_data,
+        # In principle the group gets the same metadata as the event, so common
+        # attributes can be defined in eventtypes.
+        get_event_type(event_data),
+        event_metadata,
+    )
+    group_metadata["last_received"] = job["received_timestamp"]
+
+    kwargs = {
+        "data": group_metadata,
         "platform": job["platform"],
         "message": job["event"].search_message,
         "logger": job["logger_name"],
@@ -1336,7 +1379,6 @@ def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> G
             event=event,
             job=job,
             release=job["release"],
-            received_timestamp=job["received_timestamp"],
             metric_tags=metric_tags,
         )
     else:
@@ -1585,10 +1627,11 @@ def _save_aggregate_new(
     event: Event,
     job: Job,
     release: Release | None,
-    received_timestamp: int | float,
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
+
+    group_processing_kwargs = _get_group_processing_kwargs(job)
 
     _, _, hashes = get_hash_values(project, job, metric_tags)
 
@@ -1598,40 +1641,14 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project)
 
-    _materialize_metadata_many([job])
-    metadata = dict(job["event_metadata"])
-
-    group_creation_kwargs = _get_group_creation_kwargs(job)
-
     grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
 
-    existing_grouphash, _ = find_existing_grouphash_new(
-        project, grouphashes, hashes.hierarchical_hashes
-    )
-
-    # In principle the group gets the same metadata as the event, so common
-    # attributes can be defined in eventtypes.
-    #
-    # Additionally the `last_received` key is set for group metadata, later in
-    # _save_aggregate
-    group_creation_kwargs["data"] = materialize_metadata(
-        event.data,
-        get_event_type(event.data),
-        metadata,
-    )
-    group_creation_kwargs["data"]["last_received"] = received_timestamp
+    existing_grouphash = find_existing_grouphash_new(grouphashes)
 
     if existing_grouphash is None:
-        if killswitch_matches_context(
-            "store.load-shed-group-creation-projects",
-            {
-                "project_id": project.id,
-                "platform": event.platform,
-            },
-        ):
-            raise HashDiscarded("Load shedding group creation", reason="load_shed")
+        check_for_group_creation_load_shed(project, event)
 
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
@@ -1649,12 +1666,10 @@ def _save_aggregate_new(
                 ).select_for_update()
             )
 
-            existing_grouphash, _ = find_existing_grouphash_new(
-                project, grouphashes, hashes.hierarchical_hashes
-            )
+            existing_grouphash = find_existing_grouphash_new(grouphashes)
 
             if existing_grouphash is None:
-                group = _create_group(project, event, **group_creation_kwargs)
+                group = _create_group(project, event, **group_processing_kwargs)
 
                 if (
                     features.has("projects:first-event-severity-calculation", event.project)
@@ -1668,11 +1683,7 @@ def _save_aggregate_new(
                         },
                     )
 
-                new_hashes = list(grouphashes)
-
-                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-                    state=GroupHash.State.LOCKED_IN_MIGRATION
-                ).update(group=group)
+                add_group_id_to_grouphashes(group, grouphashes)
 
                 is_new = True
                 is_regression = False
@@ -1680,78 +1691,47 @@ def _save_aggregate_new(
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
 
-                metrics.incr(
-                    "group.created",
-                    skip_internal=True,
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "sdk": normalized_sdk_tag_from_event(event),
-                    },
-                )
-
-                # This only applies to events with stacktraces
-                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                if frame_mix:
-                    metrics.incr(
-                        "grouping.in_app_frame_mix",
-                        sample_rate=1.0,
-                        tags={
-                            "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
-                            "frame_mix": frame_mix,
-                        },
-                    )
+                record_new_group_metrics(event)
 
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
-    if group.issue_category != GroupCategory.ERROR:
-        logger.info(
-            "event_manager.category_mismatch",
-            extra={
-                "issue_category": group.issue_category,
-                "event_type": "error",
-            },
-        )
+
+    if check_for_category_mismatch(group):
         return None
 
     is_new = False
 
-    new_hashes = [h for h in grouphashes if h.group_id is None]
-
-    if new_hashes:
-        # There may still be secondary hashes that we did not use to find an
-        # existing group. A classic example is when grouping makes changes to
-        # the app-hash (changes to in_app logic), but the system hash stays
-        # stable and is used to find an existing group. Associate any new
-        # hashes with the group such that event saving continues to be
-        # resilient against grouping algorithm changes.
-        #
-        # There is a race condition here where two processes could "steal"
-        # hashes from each other. In practice this should not be user-visible
-        # as group creation is synchronized. Meaning the only way hashes could
-        # jump between groups is if there were two processes that:
-        #
-        # 1) have BOTH found an existing group
-        #    (otherwise at least one of them would be in the group creation
-        #    codepath which has transaction isolation/acquires row locks)
-        # 2) AND are looking at the same set, or an overlapping set of hashes
-        #    (otherwise they would not operate on the same rows)
-        # 3) yet somehow also sort their event into two different groups each
-        #    (otherwise the update would not change anything)
-        #
-        # We think this is a very unlikely situation. A previous version of
-        # _save_aggregate had races around group creation which made this race
-        # more user visible. For more context, see 84c6f75a and d0e22787, as
-        # well as GH-5085.
-        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION
-        ).update(group=group)
+    # There may still be secondary hashes that we did not use to find an
+    # existing group. A classic example is when grouping makes changes to
+    # the app-hash (changes to in_app logic), but the system hash stays
+    # stable and is used to find an existing group. Associate any new
+    # hashes with the group such that event saving continues to be
+    # resilient against grouping algorithm changes.
+    #
+    # There is a race condition here where two processes could "steal"
+    # hashes from each other. In practice this should not be user-visible
+    # as group creation is synchronized, meaning the only way hashes could
+    # jump between groups is if there were two processes that:
+    #
+    # 1) have BOTH found an existing group
+    #    (otherwise at least one of them would be in the group creation
+    #    codepath which has transaction isolation/acquires row locks)
+    # 2) AND are looking at the same set, or an overlapping set of hashes
+    #    (otherwise they would not operate on the same rows)
+    # 3) yet somehow also sort their respective events into two different groups
+    #    (otherwise the update would not change anything)
+    #
+    # We think this is a very unlikely situation. A previous version of
+    # _save_aggregate had races around group creation which made this race
+    # more user visible. For more context, see 84c6f75a and d0e22787, as
+    # well as GH-5085.
+    add_group_id_to_grouphashes(group, grouphashes)
 
     is_regression = _process_existing_aggregate(
         group=group,
         event=event,
-        incoming_group_values=group_creation_kwargs,
+        incoming_group_values=group_processing_kwargs,
         release=release,
     )
 

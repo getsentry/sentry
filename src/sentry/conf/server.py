@@ -722,6 +722,7 @@ CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
@@ -819,6 +820,7 @@ CELERY_QUEUES_CONTROL = [
     ),
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
+    Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -952,7 +954,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 10 seconds as integration webhooks are delivered by this task
+        # Run every 10 seconds to keep consistency times low
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "outbox.control"},
     },
@@ -977,6 +979,12 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "task": "sentry.tasks.integrations.kickoff_vsts_subscription_check",
         "schedule": crontab_with_minute_jitter(hour="*/6"),
         "options": {"expires": 60 * 25, "queue": "integrations.control"},
+    },
+    "deliver-webhooks-control": {
+        "task": "sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "webhook.control"},
     },
 }
 
@@ -1259,6 +1267,7 @@ PROCESSING_QUEUES = [
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
+    "deliver-webhooks-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",
@@ -1427,7 +1436,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
-    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1608,8 +1616,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable new issue alert "issue owners" fallback
-    "organizations:issue-alert-fallback-targeting": False,
     # Enables the inline replay viewer on the issue details page
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
@@ -1827,6 +1833,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-a11y-tab": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
+    # Enable combined envelope Kafka items in Relay
+    "organizations:session-replay-combined-envelope-items": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
@@ -1900,8 +1908,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Allow organizations to configure all symbol sources.

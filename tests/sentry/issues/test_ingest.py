@@ -95,7 +95,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         release_project_env.refresh_from_db()
         assert release_project_env.new_issues_count == 1
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
-        eventstream.insert.assert_called_once_with(
+        eventstream.backend.insert.assert_called_once_with(
             event=event.for_group(group_info.group),
             is_new=True,
             is_regression=False,
@@ -399,7 +399,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
             event, "for_group", return_value=group_event
         ):
             send_issue_occurrence_to_eventstream(event, occurrence, group_info)
-            eventstream.insert.assert_called_once_with(
+            eventstream.backend.insert.assert_called_once_with(
                 event=group_event,
                 is_new=group_info.is_new,
                 is_regression=group_info.is_regression,
