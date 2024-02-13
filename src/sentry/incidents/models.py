@@ -342,11 +342,6 @@ class AlertRuleStatus(Enum):
     DISABLED = 5
 
 
-class AlertRuleThresholdType(Enum):
-    ABOVE = 0
-    BELOW = 1
-
-
 class AlertRuleManager(BaseManager["AlertRule"]):
     """
     A manager that excludes all rows that are snapshots.
@@ -405,6 +400,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
 @region_silo_only_model
 class AlertRuleExcludedProjects(Model):
+    """
+    Excludes a specific project from an AlertRule
+
+    NOTE: This feature is not currently utilized.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
@@ -415,6 +416,11 @@ class AlertRuleExcludedProjects(Model):
         app_label = "sentry"
         db_table = "sentry_alertruleexcludedprojects"
         unique_together = (("alert_rule", "project"),)
+
+
+class MonitorType(Enum):
+    CONTINUOUS = 0
+    ACTIVATED = 1
 
 
 @region_silo_only_model
@@ -450,6 +456,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+    monitor_type = models.IntegerField(default=MonitorType.CONTINUOUS)
 
     class Meta:
         app_label = "sentry"
@@ -593,11 +600,23 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
         assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
+class AlertRuleThresholdType(Enum):
+    ABOVE = 0
+    BELOW = 1
+
+
 @region_silo_only_model
 class AlertRuleTrigger(Model):
+    """
+    This model represents the threshold trigger for an AlertRule
+
+    threshold_type is AlertRuleThresholdType (Above/Below)
+    alert_threshold is the trigger value
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.CASCADE)
     label = models.TextField()
     threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
@@ -617,6 +636,10 @@ class AlertRuleTrigger(Model):
 
 @region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
+    """
+    Allows us to define a specific trigger to be excluded from a query subscription
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
@@ -743,10 +766,15 @@ class AlertRuleActivityType(Enum):
     ENABLED = 4
     DISABLED = 5
     SNAPSHOT = 6
+    ACTIVATED = 7
 
 
 @region_silo_only_model
 class AlertRuleActivity(Model):
+    """
+    Provides an audit log of activity for the alert rule
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")

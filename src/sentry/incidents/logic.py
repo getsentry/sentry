@@ -525,14 +525,17 @@ def create_alert_rule(
         actor = owner
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
+        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
+        # TODO: ensure created SnubaQuery has all relevant fields for constructing query in snuba on the fly
+        # (constructed in `subscribe_projects_to_alert_rule`)
         snuba_query = create_snuba_query(
-            query_type,
-            dataset,
-            query,
-            aggregate,
-            timedelta(minutes=time_window),
-            timedelta(minutes=resolution),
-            environment,
+            query_type=query_type,
+            dataset=dataset,
+            query=query,
+            aggregate=aggregate,
+            time_window=timedelta(minutes=time_window),
+            resolution=timedelta(minutes=resolution),
+            environment=environment,
             event_types=event_types,
         )
 
@@ -561,6 +564,7 @@ def create_alert_rule(
             )
 
         if include_all_projects:
+            # NOTE: This feature is not currently utilized.
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
                 id__in=[p.id for p in excluded_projects]
@@ -571,8 +575,11 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
+        # NOTE: This constructs the query in snuba
+        # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
+        # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -830,9 +837,12 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     """
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
+
+    TODO: just use bulk_create rather than have this in between method?
+    *** THIS IS WHERE WE SHOULD PREVENT THE SNUBA QUERY FROM BEING CREATED ***
     """
     return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
+        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule
     )
 
 
@@ -1661,11 +1671,15 @@ def get_filtered_actions(
 
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
+    """
+    If `should_use_on_demand`, then invalidate the project configs
+    """
     enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    if not projects or not (
-        "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
+    if (
+        not projects
+        or not ("organizations:on-demand-metrics-extraction" in enabled_features)
+        or prefilling
     ):
         return
 
