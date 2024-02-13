@@ -45,7 +45,6 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
-  hasStacktraceLinkInFrameFeature,
   isExpandable,
 } from './utils';
 
@@ -343,15 +342,13 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const activeLineNumber = data.lineNo;
     const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
-    const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
     // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
     const hasStacktraceLink =
       (data.inApp || event.platform === 'csharp') &&
       !!data.filename &&
       (isHovering || isExpanded);
-    const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
     const showSentryAppStacktraceLinkInFrame =
-      showStacktraceLinkInFrame && this.props.components.length > 0;
+      hasStacktraceLink && this.props.components.length > 0;
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
@@ -383,7 +380,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
-            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
+            {hasStacktraceLink && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
