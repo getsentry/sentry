@@ -4,7 +4,9 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,22 +36,26 @@ interface TraceProps {
 }
 
 export function Trace(props: TraceProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const virtualizedListRef = useRef<List>(null);
   const theme = useTheme();
-  const viewManager = useRef<VirtualizedViewManager | null>(null);
+  const api = useApi();
+  const {projects} = useProjects();
+  const organization = useOrganization();
+
+  const virtualizedListRef = useRef<List>(null);
+  const [_rerender, setRender] = useState(0);
 
   const traceTree = useMemo(() => {
     if (!props.trace) {
-      return TraceTree.Empty();
+      return TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.trace_id,
+      });
     }
 
     return TraceTree.FromTrace(props.trace);
-  }, [props.trace]);
+  }, [props.trace, props.trace_id, projects]);
 
-  const [_rerender, setRender] = useState(0);
-
+  const viewManager = useRef<VirtualizedViewManager | null>(null);
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
@@ -90,8 +96,6 @@ export function Trace(props: TraceProps) {
     []
   );
 
-  const {projects} = useProjects();
-
   const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project>>((acc, project) => {
       acc[project.slug] = project;
@@ -100,48 +104,63 @@ export function Trace(props: TraceProps) {
   }, [projects]);
 
   return (
-    <TraceStylingWrapper
-      ref={r => viewManager.current?.onContainerRef(r)}
-      style={{
-        backgroundColor: '#FFF',
-        height: '100%',
-        width: '100%',
-        position: 'absolute',
-      }}
-    >
-      <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
-      <AutoSizer>
-        {({width, height}) => (
-          <List
-            ref={virtualizedListRef}
-            rowHeight={24}
-            height={height}
-            width={width}
-            overscanRowCount={10}
-            rowCount={treeRef.current.list.length ?? 0}
-            rowRenderer={p => {
-              return (
-                <RenderRow
-                  key={p.key}
-                  theme={theme}
-                  startIndex={
-                    (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
-                  }
-                  index={p.index}
-                  style={p.style}
-                  trace_id={props.trace_id}
-                  projects={projectLookup}
-                  node={treeRef.current.list?.[p.index]}
-                  viewManager={viewManager.current!}
-                  onFetchChildren={handleFetchChildren}
-                  onExpandNode={handleExpandNode}
-                />
-              );
-            }}
-          />
-        )}
-      </AutoSizer>
-    </TraceStylingWrapper>
+    <Fragment>
+      <TraceStylingWrapper
+        ref={r => viewManager.current?.onContainerRef(r)}
+        className={traceTree.type === 'loading' ? 'Loading' : ''}
+        style={{
+          backgroundColor: '#FFF',
+          height: '100%',
+          width: '100%',
+          position: 'absolute',
+        }}
+      >
+        <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
+        <AutoSizer>
+          {({width, height}) => (
+            <List
+              ref={virtualizedListRef}
+              rowHeight={24}
+              height={height}
+              width={width}
+              overscanRowCount={10}
+              rowCount={treeRef.current.list.length ?? 0}
+              rowRenderer={p => {
+                return traceTree.type === 'loading' ? (
+                  <RenderPlaceholderRow
+                    style={p.style}
+                    node={treeRef.current.list[p.index]}
+                    index={p.index}
+                    theme={theme}
+                    projects={projectLookup}
+                    viewManager={viewManager.current!}
+                    startIndex={
+                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
+                    }
+                  />
+                ) : (
+                  <RenderRow
+                    key={p.key}
+                    theme={theme}
+                    startIndex={
+                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
+                    }
+                    index={p.index}
+                    style={p.style}
+                    trace_id={props.trace_id}
+                    projects={projectLookup}
+                    node={treeRef.current.list[p.index]}
+                    viewManager={viewManager.current!}
+                    onFetchChildren={handleFetchChildren}
+                    onExpandNode={handleExpandNode}
+                  />
+                );
+              }}
+            />
+          )}
+        </AutoSizer>
+      </TraceStylingWrapper>
+    </Fragment>
   );
 }
 
@@ -485,7 +504,6 @@ function RenderRow(props: {
       style={{
         top: props.style.top,
         height: props.style.height,
-        paddingLeft: props.node.depth * 23,
       }}
     >
       <div
@@ -538,6 +556,75 @@ function RenderRow(props: {
   return null;
 }
 
+function RenderPlaceholderRow(props: {
+  index: number;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  projects: Record<Project['slug'], Project>;
+  startIndex: number;
+  style: React.CSSProperties;
+  theme: Theme;
+  viewManager: VirtualizedViewManager;
+}) {
+  const virtualizedIndex = props.index - props.startIndex;
+  return (
+    <div
+      className="TraceRow"
+      style={{
+        top: props.style.top,
+        height: props.style.height,
+        pointerEvents: 'none',
+        color: props.theme.subText,
+        animationDelay: `${virtualizedIndex * 0.05}s`,
+      }}
+    >
+      <div
+        className="TraceLeftColumn"
+        ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+        style={{width: props.viewManager.columns.list.width * 100 + '%'}}
+      >
+        <div
+          className="TraceLeftColumnInner"
+          style={{paddingLeft: props.node.depth * 23}}
+        >
+          <div className="TraceChildrenCountWrapper">
+            <Connectors node={props.node} />
+            {props.node.children.length > 0 ? (
+              <ChildrenCountButton
+                expanded={props.node.expanded || props.node.zoomedIn}
+                onClick={() => void 0}
+              >
+                {props.node.children.length}{' '}
+              </ChildrenCountButton>
+            ) : null}
+          </div>
+          {isTraceNode(props.node) ? <SmallLoadingIndicator /> : null}
+          {isTraceNode(props.node) ? (
+            'Loading trace...'
+          ) : (
+            <Placeholder className="Placeholder" height="10px" width="86%" />
+          )}
+        </div>
+      </div>
+      <div
+        className="TraceRightColumn"
+        ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+        style={{
+          width: props.viewManager.columns.span_list.width * 100 + '%',
+        }}
+      >
+        {isTraceNode(props.node) ? null : (
+          <Placeholder
+            className="Placeholder"
+            height="14px"
+            width="90%"
+            style={{margin: 'auto'}}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
@@ -579,6 +666,26 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   );
 }
 
+function SmallLoadingIndicator() {
+  return (
+    <StyledLoadingIndicator
+      style={{display: 'inline-block', margin: 0}}
+      size={8}
+      hideMessage
+      relative
+    />
+  );
+}
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  transform: translate(-5px, 0);
+
+  div:first-child {
+    border-left: 6px solid ${p => p.theme.gray300};
+    animation: loading 900ms infinite linear;
+  }
+`;
+
 function ProjectBadge(props: {project: Project}) {
   return <ProjectAvatar project={props.project} />;
 }
@@ -606,6 +713,7 @@ interface TraceBarProps {
   viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
 }
+
 function TraceBar(props: TraceBarProps) {
   if (!props.node_space) {
     return null;
@@ -634,6 +742,41 @@ function TraceBar(props: TraceBarProps) {
  */
 const TraceStylingWrapper = styled('div')`
   position: relative;
+
+  @keyframes show {
+    0% {
+      opacity: 0;
+      transform: translate(0, 2px);
+    }
+    100% {
+      opacity: .7;
+      transform: translate(0, 0px);
+    }
+  };
+
+  @keyframes showPlaceholder {
+    0% {
+      opacity: 0;
+      transform: translate(-8px, 0px);
+    }
+    100% {
+      opacity: .7;
+      transform: translate(0, 0px);
+    }
+  };
+
+  &.Loading {
+    .TraceRow {
+      opacity: 0;
+      animation: show 0.2s ease-in-out forwards;
+    }
+
+    .Placeholder {
+      opacity: 0;
+      transform: translate(-8px, 0px);
+      animation: showPlaceholder 0.2s ease-in-out forwards;
+    }
+  }
 
   .TraceRow {
     display: flex;

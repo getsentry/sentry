@@ -174,13 +174,23 @@ function maybeInsertMissingInstrumentationSpan(
 }
 
 export class TraceTree {
+  type: 'loading' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
+
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
     new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
-    return new TraceTree().build();
+    const tree = new TraceTree().build();
+    tree.type = 'trace';
+    return tree;
+  }
+
+  static Loading(metadata: TraceTree.Metadata): TraceTree {
+    const tree = makeExampleTrace(metadata);
+    tree.type = 'loading';
+    return tree;
   }
 
   static FromTrace(trace: TraceTree.Trace): TraceTree {
@@ -232,7 +242,6 @@ export class TraceTree {
     }
 
     for (const trace_error of trace.orphan_errors) {
-      // @TODO -> check if trace error has start_timestamp too and adjust it
       visit(traceNode, trace_error);
     }
 
@@ -362,8 +371,8 @@ export class TraceTree {
           event_id: undefined,
           project_slug: undefined,
         },
-        head as TraceTreeNode<TraceTree.Span>,
-        tail as TraceTreeNode<TraceTree.Span>
+        head,
+        tail
       );
 
       if (!node.parent) {
@@ -910,4 +919,77 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   ) {
     super(parent, node, metadata);
   }
+}
+
+function partialTransaction(
+  partial: Partial<TraceTree.Transaction>
+): TraceTree.Transaction {
+  return {
+    start_timestamp: 0,
+    timestamp: 0,
+    errors: [],
+    performance_issues: [],
+    parent_span_id: '',
+    span_id: '',
+    parent_event_id: '',
+    project_id: 0,
+    'transaction.duration': 0,
+    'transaction.op': 'db',
+    'transaction.status': 'ok',
+    generation: 0,
+    project_slug: '',
+    event_id: `event_id`,
+    transaction: `transaction`,
+    children: [],
+    ...partial,
+  };
+}
+
+export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
+  const trace: TraceTree.Trace = {
+    transactions: [],
+    orphan_errors: [],
+  };
+
+  function randomBetween(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
+
+  let start = new Date().getTime();
+
+  for (let i = 0; i < 25; i++) {
+    const end = start + randomBetween(100, 200);
+    const nest = i > 0 && Math.random() > 0.5;
+
+    if (nest) {
+      const parent = trace.transactions[trace.transactions.length - 1];
+      parent.children.push(
+        partialTransaction({
+          ...metadata,
+          generation: 0,
+          start_timestamp: start,
+          transaction: `parent transaction ${i}`,
+          timestamp: end,
+        })
+      );
+      parent.timestamp = end;
+    } else {
+      trace.transactions.push(
+        partialTransaction({
+          ...metadata,
+          generation: 0,
+          start_timestamp: start,
+          transaction: 'loading...',
+          ['transaction.op']: 'loading',
+          timestamp: end,
+        })
+      );
+    }
+
+    start = end;
+  }
+
+  const tree = TraceTree.FromTrace(trace);
+
+  return tree;
 }
