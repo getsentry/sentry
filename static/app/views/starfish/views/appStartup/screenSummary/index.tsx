@@ -31,7 +31,7 @@ import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenL
 import AppStartWidgets from './widgets';
 
 type Query = {
-  ['device.class']: string;
+  'device.class': string;
   primaryRelease: string;
   project: string;
   secondaryRelease: string;
@@ -55,7 +55,7 @@ function ScreenSummary() {
     spanDescription,
     spanOp,
     spanAppStartType,
-    ['device.class']: deviceClass,
+    'device.class': deviceClass,
   } = location.query;
 
   const startupModule: LocationDescriptor = {
