@@ -62,7 +62,7 @@ marked.setOptions({
     }
 
     loadPrismLanguage(lang, {
-      onLoad: () => callback?.(null, Prism.highlight(code, Prism.languages[lang], lang)),
+      onLoad: () => callback?.(null!, Prism.highlight(code, Prism.languages[lang], lang)),
       onError: error => callback?.(error, code),
       suppressExistenceWarning: true,
     });
