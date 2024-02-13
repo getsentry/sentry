@@ -20,8 +20,8 @@ from sentry.models.outbox import outbox_context
 from .utils import get_appropriate_user_id
 
 
-class ApiTokenUpdateSerializer(serializers.Serializer):
-    user_id = IntegerField(min_value=1, required=False)
+class ApiTokenPatchSerializer(serializers.Serializer):
+    userId = IntegerField(min_value=1, required=False)
     name = CharField(max_length=255, allow_blank=True, required=False)
 
     def to_internal_value(self, data):
@@ -63,7 +63,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def patch(self, request: Request, token_id: int) -> Response:
-        serializer = ApiTokenUpdateSerializer(data=request.data)
+        serializer = ApiTokenPatchSerializer(data=request.data)
 
         if serializer.is_valid():
             with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
