@@ -3218,8 +3218,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         for index, event in enumerate(events):
             email = f"{event[0]}@example.com"
             tags = {"user.email": email}
-            if event[1] > 300:
-                tags["satisfaction"] = "frustrated"
+            if event[1] > 300 * 4:
+                tags[constants.METRIC_SATISFACTION_TAG_KEY] = constants.METRIC_FRUSTRATED_TAG_VALUE
             self.store_on_demand_metric(
                 index,
                 spec=spec,
