@@ -2,7 +2,7 @@ from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, NotRequired, Optional, Union
+from typing import Any, NotRequired, Optional, TypedDict, Union
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -10,7 +10,6 @@ from snuba_sdk.conditions import BooleanCondition, Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
-from typing_extensions import TypedDict
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
