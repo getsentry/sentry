@@ -161,6 +161,8 @@ class ScheduledQuery:
         # We align the date range of the query, considering the supplied interval.
         updated_metrics_query = self._align_date_range(updated_metrics_query)
 
+        # We perform type-specific initializations, since based on the type we want to run
+        # a different query.
         if self.type == ScheduledQueryType.SERIES:
             updated_metrics_query = self._initialize_series(updated_metrics_query)
         elif self.type == ScheduledQueryType.TOTALS:
@@ -487,21 +489,25 @@ class QueryExecutor:
     def _build_request_for_partial(self, partial_query_result: PartialQueryResult) -> Request:
         if partial_query_result.scheduled_query.type != ScheduledQueryType.TOTALS:
             raise MetricsQueryExecutionError(
-                "A partial query must have an initial query of type totals"
+                "A partial query result must have an initial query of type totals"
             )
 
         next_scheduled_query = partial_query_result.scheduled_query.next
         if next_scheduled_query is None:
             raise MetricsQueryExecutionError(
-                "A partial query must have a next query to be executed"
+                "A partial query result must have a next query to be executed"
             )
 
         # We compute the groups that were returned by the query that was executed. We then inject those groups in each
         # `Timeseries` of the next query to execute. We do this in order to have at least the same groups returned by
         # the next query.
-        groups_collection = _extract_groups_from_seq(partial_query_result.executed_result["data"])
-        next_metrics_query = next_scheduled_query.metrics_query
-        next_metrics_query = _push_down_group_filters(next_metrics_query, groups_collection)
+        #
+        # Note that the mutation we do is not reflected in the queries that are returned as part of the
+        # `QueryResult`(s) but since we do not need this data we can leave it out.
+        next_metrics_query = _push_down_group_filters(
+            next_scheduled_query.metrics_query,
+            _extract_groups_from_seq(partial_query_result.executed_result["data"]),
+        )
 
         return self._build_request(next_metrics_query)
 
