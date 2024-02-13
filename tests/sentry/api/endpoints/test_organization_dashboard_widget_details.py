@@ -771,7 +771,21 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
 
         # We queried sometag already, we shouldn't call the cardinality query again
-        data["queries"][0]["fields"] = ["sometag"]
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
         with self.feature(ONDEMAND_FEATURES):
             self.client.post(f"{self.url()}?environment=mock_env", data)
         assert len(mock_query.mock_calls) == 1

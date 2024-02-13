@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import TypedDict
 
 from django.db.models import Max
 from rest_framework import serializers
@@ -34,6 +35,11 @@ AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
 
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
+
+
+class QueryWarning(TypedDict):
+    queries: list[str | None]
+    columns: dict[str, str]
 
 
 def is_equation(field: str) -> bool:
@@ -277,7 +283,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     )
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
-    query_warnings = {"queries": [], "columns": {}}
+    query_warnings: QueryWarning = {"queries": [], "columns": {}}
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -294,7 +300,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
     def validate(self, data):
         query_errors = []
-        all_columns = set()
+        all_columns: set[str] = set()
         has_query_error = False
         self.query_warnings = {"queries": [], "columns": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
@@ -409,7 +415,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                             )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
-                all_columns, self.context["organization"], max_cardinality_allowed, period="1h"
+                list(all_columns), self.context["organization"], max_cardinality_allowed
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
