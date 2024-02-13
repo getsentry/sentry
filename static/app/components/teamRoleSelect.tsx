@@ -4,7 +4,6 @@ import type {ControlProps} from 'sentry/components/forms/controls/selectControl'
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types';
-import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -30,30 +29,21 @@ function TeamRoleSelect({
   const {orgRoleList, teamRoleList, features} = organization;
   const hasTeamRoles = features.includes('team-roles');
 
-  // Determine the org-role, including if the current team has an org role
-  // and adding the user to the current team changes their minimum team-role
-  const possibleOrgRoles = [member.orgRole];
-  if (member.groupOrgRoles && member.groupOrgRoles.length > 0) {
-    possibleOrgRoles.push(member.groupOrgRoles[0].role.id);
-  }
-  if (team.orgRole) {
-    possibleOrgRoles.push(team.orgRole);
-  }
-  const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
+  const memberOrgRole = orgRoleList.find(r => r.id === member.orgRole);
 
   // If the member's org-role has elevated permission, their team-role will
   // inherit scopes from it
-  if (hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})) {
+  if (hasOrgRoleOverwrite({orgRole: memberOrgRole?.id, orgRoleList, teamRoleList})) {
     const effectiveTeamRole = teamRoleList.find(
-      r => r.id === effectiveOrgRole?.minimumTeamRole
+      r => r.id === memberOrgRole?.minimumTeamRole
     );
 
     return (
       <RoleName>
-        {effectiveTeamRole?.name || effectiveOrgRole?.minimumTeamRole}
+        {effectiveTeamRole?.name || memberOrgRole?.minimumTeamRole}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={effectiveOrgRole?.id}
+            orgRole={memberOrgRole?.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
