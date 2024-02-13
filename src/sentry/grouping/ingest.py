@@ -312,47 +312,6 @@ def find_existing_grouphash_new(
     root_hierarchical_hash = None
 
     found_split = False
-
-    if hierarchical_hashes:
-        hierarchical_grouphashes = {
-            h.hash: h
-            for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
-        }
-
-        # Look for splits:
-        # 1. If we find a hash with SPLIT state at `n`, we want to use
-        #    `n + 1` as the root hash.
-        # 2. If we find a hash associated to a group that is more specific
-        #    than the primary hash, we want to use that hash as root hash.
-        for hash in reversed(hierarchical_hashes):
-            group_hash = hierarchical_grouphashes.get(hash)
-
-            if group_hash is not None and group_hash.state == GroupHash.State.SPLIT:
-                found_split = True
-                break
-
-            root_hierarchical_hash = hash
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
-                if group_hash.group_id is not None:
-                    # Even if we did not find a hash with SPLIT state, we want to use
-                    # the most specific hierarchical hash as root hash if it was already
-                    # associated to a group.
-                    # See `move_all_events` test case
-                    break
-
-        if root_hierarchical_hash is None:
-            # All hashes were split, so we group by most specific hash. This is
-            # a legitimate usecase when there are events whose stacktraces are
-            # suffixes of other event's stacktraces.
-            root_hierarchical_hash = hierarchical_hashes[-1]
-            group_hash = hierarchical_grouphashes.get(root_hierarchical_hash)
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
     if not found_split:
         # In case of a split we want to avoid accidentally finding the split-up
         # group again via flat hashes, which are very likely associated with
