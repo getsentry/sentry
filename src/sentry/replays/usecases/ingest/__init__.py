@@ -87,7 +87,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         headers, recording_segment = process_headers(message.payload_with_headers)
     except Exception:
         # TODO: DLQ
-        logger.warning("Valid headers could not be found %s", message.replay_id, exc_info=True)
+        logger.exception("Recording headers could not be extracted %s", message.replay_id)
         return None
 
     # Normalize ingest data into a standardized ingest format.

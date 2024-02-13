@@ -195,14 +195,15 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
         except ValidationError:
             # TODO: DLQ
+            logger.exception("Could not decode recording message.")
             return None
 
     try:
         headers, recording_data = process_headers(decoded_message["payload"])
     except Exception:
         # TODO: DLQ
-        logger.warning(
-            "Valid headers could not be found %s", decoded_message["replay_id"], exc_info=True
+        logger.exception(
+            "Recording headers could not be extracted %s", decoded_message["replay_id"]
         )
         return None
 

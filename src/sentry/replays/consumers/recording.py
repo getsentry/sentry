@@ -122,6 +122,7 @@ def process_message_threaded(message: Message[MessageContext]) -> Any:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(context.message)
     except ValidationError:
         # TODO: DLQ
+        logger.exception("Could not decode recording message.")
         return None
 
     ingest_recording(message_dict, context.transaction, context.current_hub)
@@ -141,6 +142,7 @@ def process_message(message: Message[KafkaPayload]) -> Any:
         message_dict: ReplayRecording = RECORDINGS_CODEC.decode(message.payload.value)
     except ValidationError:
         # TODO: DLQ
+        logger.exception("Could not decode recording message.")
         return None
 
     ingest_recording(message_dict, transaction, current_hub)
