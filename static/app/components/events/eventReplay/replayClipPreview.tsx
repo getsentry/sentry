@@ -11,6 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -207,9 +208,10 @@ function ReplayClipPreview({
 
   return (
     <ReplayContextProvider
-      isFetching={fetching}
-      replay={replay}
       analyticsContext={analyticsContext}
+      isFetching={fetching}
+      prefsStrategy={StaticReplayPreferences()}
+      replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (

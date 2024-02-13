@@ -2,6 +2,7 @@ import {type ComponentProps, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
@@ -54,10 +55,11 @@ export function StaticReplayPreview({
 
   return (
     <ReplayContextProvider
-      isFetching={isFetching}
-      replay={replay}
-      initialTimeOffsetMs={offset}
       analyticsContext={analyticsContext}
+      initialTimeOffsetMs={offset}
+      isFetching={isFetching}
+      prefsStrategy={StaticReplayPreferences()}
+      replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
