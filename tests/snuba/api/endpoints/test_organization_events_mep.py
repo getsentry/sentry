@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -3207,13 +3208,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         }
 
     def _setup_user_misery(self, spec: OnDemandMetricSpec) -> None:
+        # If duration is > 300 * 4 then the user is fruistrated
+        # There's a total of 4 users and three of them reach the frustration threshold
         events = [
             ("one", 300),
             ("two", 300),
-            ("one", 3000),
-            ("two", 3000),
+            ("one", 3000),  # Frustrated
+            ("two", 3000),  # Frustrated
             ("three", 400),
-            ("four", 4000),
+            ("four", 4000),  # Frustrated
         ]
         for index, event in enumerate(events):
             email = f"{event[0]}@example.com"

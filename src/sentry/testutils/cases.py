@@ -1694,6 +1694,9 @@ class BaseMetricsTestCase(SnubaTestCase):
         else:
             entity = f"metrics_{type}s"
 
+        import pprint
+
+        pprint.pprint(msg)
         cls.__send_buckets([msg], entity)
 
     @classmethod
@@ -2085,7 +2088,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: int | float,
+        value: int | float | str,
         spec: OnDemandMetricSpec,
         additional_tags: dict[str, str] | None = None,
         timestamp: datetime | None = None,
