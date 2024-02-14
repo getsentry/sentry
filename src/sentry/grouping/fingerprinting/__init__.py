@@ -229,9 +229,6 @@ class FingerprintingRules:
 
     @staticmethod
     def from_config_string(s, bases=None):
-        if not s:
-            return FingerprintingRules(rules=[], changelog=None, bases=bases)
-
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
