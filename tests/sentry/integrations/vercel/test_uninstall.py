@@ -12,42 +12,42 @@ from sentry.testutils.silo import control_silo_test
 
 PRIMARY_UNINSTALL_RESPONSE = """{
     "payload": {
-    "configuration": {
+        "configuration": {
                 "id": "my_config_id"
             },
-            "team": {
+        "team": {
                 "id": "vercel_team_id"
             },
-            "user": {
+        "user": {
                 "id": "vercel_user_id"
             }
-            }
+    }
 }"""
 
 NONPRIMARY_UNINSTALL_RESPONSE = """{
-"payload": {
-   "configuration": {
-                "id": "my_config_id2"
-            },
-            "team": {
-                "id": "vercel_team_id"
-            },
-            "user": {
-                "id": "vercel_user_id"
-            }
-            }
+    "payload": {
+        "configuration": {
+            "id": "my_config_id2"
+        },
+        "team": {
+            "id": "vercel_team_id"
+        },
+        "user": {
+            "id": "vercel_user_id"
+        }
+    }
 }"""
 
 USERID_UNINSTALL_RESPONSE = """{
-"payload": {
-   "configuration": {
-                "id": "my_config_id"
-            },
-            "team" : null,
-            "user": {
-                "id": "vercel_user_id"
-            }
-            }
+    "payload": {
+        "configuration": {
+            "id": "my_config_id"
+        },
+        "team" : null,
+        "user": {
+            "id": "vercel_user_id"
+        }
+    }
 }"""
 
 POST_DELETE_RESPONSE = """{
