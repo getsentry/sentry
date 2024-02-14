@@ -13,6 +13,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
@@ -22,7 +23,10 @@ import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {getFormatter} from '../../components/charts/components/tooltip';
+import {
+  defaultFormatAxisLabel,
+  getFormatter,
+} from '../../components/charts/components/tooltip';
 import {isChartHovered} from '../../components/charts/utils';
 
 import {useChartSamples} from './useChartSamples';
@@ -50,7 +54,9 @@ function isNonZeroValue(value: number | null) {
 
 function addAreaChartSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
-    return isNonZeroValue(data[index - 1]?.value ?? data[index + 1]?.value);
+    return (
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
+    );
   };
   const paddingIndices = new Set<number>();
   return {
@@ -121,7 +127,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             ...(displayType === MetricDisplayType.AREA
               ? addAreaChartSeriesPadding(s.data)
               : {data: s.data}),
-            connectNulls: displayType !== MetricDisplayType.AREA,
+            connectNulls: displayType === MetricDisplayType.LINE,
           }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
@@ -208,6 +214,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                   return false;
                 }
 
+                // scatter series (samples) have their own tooltip
+                if (param.seriesType === 'scatter') {
+                  return false;
+                }
+
                 // Filter padding datapoints from tooltip
                 if (param.value[1] === 0) {
                   const currentSeries = seriesToShow[param.seriesIndex];
@@ -227,8 +238,22 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                 return true;
               });
 
+              const date = defaultFormatAxisLabel(
+                params[0].value[0] as number,
+                timeseriesFormatters.isGroupedByDate,
+                false,
+                timeseriesFormatters.showTimeInTooltip,
+                timeseriesFormatters.addSecondsToTimeFormat,
+                timeseriesFormatters.bucketSize
+              );
+
               if (deDupedParams.length === 0) {
-                return '';
+                return [
+                  '<div class="tooltip-series">',
+                  `<center>${t('No data available')}</center>`,
+                  '</div>',
+                  `<div class="tooltip-footer">${date}</div>`,
+                ].join('');
               }
               return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
             }
