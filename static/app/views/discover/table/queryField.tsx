@@ -387,7 +387,6 @@ class QueryField extends Component<Props> {
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
                     value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
-                    value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
@@ -595,10 +594,6 @@ class QueryField extends Component<Props> {
         break;
       case FieldValueKind.FIELD:
         text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-        tagType = 'highlight';
-        break;
-      case FieldValueKind.METRICS:
-        text = 'metric';
         tagType = 'highlight';
         break;
       default:
