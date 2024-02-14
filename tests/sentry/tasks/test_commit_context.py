@@ -13,7 +13,12 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestComment,
+    PullRequestCommit,
+)
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -1130,6 +1135,49 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         assert integration
 
         install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+
+        with self.tasks():
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            )
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            )
+            assert mock_comment_workflow.call_count == 1
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_multiple_comments(self, get_jwt, mock_comment_workflow):
+        self.add_responses()
+
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+
+        groupowner = GroupOwner.objects.create(
+            group_id=self.event.group_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id="1",
+            project_id=self.event.project_id,
+            organization_id=self.project.organization_id,
+            context={"commitId": self.commit.id},
+            date_added=timezone.now(),
+        )
+
+        integration = integration_service.get_integration(
+            organization_id=self.code_mapping.organization_id
+        )
+        assert integration
+
+        install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+
+        # open PR comment
+        PullRequestComment.objects.create(
+            external_id=1,
+            pull_request=self.pull_request,
+            created_at=iso_format(before_now(days=1)),
+            updated_at=iso_format(before_now(days=1)),
+            group_ids=[],
+            comment_type=CommentType.OPEN_PR,
+        )
 
         with self.tasks():
             queue_comment_task_if_needed(
