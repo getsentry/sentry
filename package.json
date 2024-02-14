@@ -202,7 +202,7 @@
     "postcss-styled-syntax": "0.4.0",
     "react-refresh": "0.14.0",
     "react-test-renderer": "17.0.2",
-    "stylelint": "15.10.2",
+    "stylelint": "15.11.0",
     "stylelint-config-recommended": "^13.0.0",
     "terser": "5.27.0",
     "tocbot": "^4.20.0",
