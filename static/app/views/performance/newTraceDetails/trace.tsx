@@ -59,7 +59,11 @@ function Trace({trace, trace_id, setTraceType}: TraceProps) {
     }
 
     const tree = TraceTree.FromTrace(trace);
-    setTraceType(TraceTree.GetTraceType(tree.root));
+
+    if (isTraceNode(tree.root.children[0])) {
+      setTraceType(TraceTree.GetTraceType(tree.root.children[0]));
+    }
+
     return tree;
   }, [trace, trace_id, setTraceType, projects]);
 

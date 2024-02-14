@@ -252,8 +252,8 @@ export class TraceTree {
     return tree.build();
   }
 
-  static GetTraceType(root: TraceTreeNode<null>): TraceType {
-    const {transactions, orphan_errors} = root.children[0].value as TraceTree.Trace;
+  static GetTraceType(node: TraceTreeNode<TraceTree.Trace>): TraceType {
+    const {transactions, orphan_errors} = node.value;
     const {roots, orphans} = (transactions ?? []).reduce(
       (counts, transaction) => {
         if (isRootTransaction(transaction)) {
@@ -266,28 +266,28 @@ export class TraceTree {
       {roots: 0, orphans: 0}
     );
 
-    if (roots === 0 && orphans > 0) {
-      return TraceType.NO_ROOT;
+    if (roots === 0) {
+      if (orphans > 0) {
+        return TraceType.NO_ROOT;
+      }
+
+      if (orphan_errors && orphan_errors.length > 0) {
+        return TraceType.ONLY_ERRORS;
+      }
+
+      return TraceType.EMPTY_TRACE;
     }
 
-    if (roots === 1 && orphans > 0) {
-      return TraceType.BROKEN_SUBTRACES;
+    if (roots === 1) {
+      if (orphans > 0) {
+        return TraceType.BROKEN_SUBTRACES;
+      }
+
+      return TraceType.ONE_ROOT;
     }
 
     if (roots > 1) {
       return TraceType.MULTIPLE_ROOTS;
-    }
-
-    if (orphan_errors && orphan_errors.length > 1) {
-      return TraceType.ONLY_ERRORS;
-    }
-
-    if (roots === 1) {
-      return TraceType.ONE_ROOT;
-    }
-
-    if (roots === 0 && orphans === 0) {
-      return TraceType.EMPTY_TRACE;
     }
 
     throw new Error('Unknown trace type');
