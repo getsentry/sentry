@@ -8,6 +8,9 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
+import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import {isRootTransaction} from '../traceDetails/utils';
+
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -247,6 +250,47 @@ export class TraceTree {
     traceNode.space = [traceStart, traceEnd - traceStart];
     tree.root.space = [traceStart, traceEnd - traceStart];
     return tree.build();
+  }
+
+  static GetTraceType(root: TraceTreeNode<null>): TraceType {
+    const {transactions, orphan_errors} = root.children[0].value as TraceTree.Trace;
+    const {roots, orphans} = (transactions ?? []).reduce(
+      (counts, transaction) => {
+        if (isRootTransaction(transaction)) {
+          counts.roots++;
+        } else {
+          counts.orphans++;
+        }
+        return counts;
+      },
+      {roots: 0, orphans: 0}
+    );
+
+    if (roots === 0 && orphans > 0) {
+      return TraceType.NO_ROOT;
+    }
+
+    if (roots === 1 && orphans > 0) {
+      return TraceType.BROKEN_SUBTRACES;
+    }
+
+    if (roots > 1) {
+      return TraceType.MULTIPLE_ROOTS;
+    }
+
+    if (orphan_errors && orphan_errors.length > 1) {
+      return TraceType.ONLY_ERRORS;
+    }
+
+    if (roots === 1) {
+      return TraceType.ONE_ROOT;
+    }
+
+    if (roots === 0 && orphans === 0) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    throw new Error('Unknown trace type');
   }
 
   static FromSpans(

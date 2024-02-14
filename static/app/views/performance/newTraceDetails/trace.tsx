@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import React, {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,6 +19,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+import type {TraceType} from '../traceDetails/newTraceDetailsContent';
+
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -32,11 +34,12 @@ import {ParentAutogroupNode, TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
 interface TraceProps {
+  setTraceType: (traceType: TraceType) => void;
   trace: TraceSplitResults<TraceFullDetailed> | null;
   trace_id: string;
 }
 
-export function Trace(props: TraceProps) {
+function Trace({trace, trace_id, setTraceType}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
@@ -48,15 +51,17 @@ export function Trace(props: TraceProps) {
   const [_rerender, setRender] = useState(0);
 
   const traceTree = useMemo(() => {
-    if (!props.trace) {
+    if (!trace) {
       return TraceTree.Loading({
         project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.trace_id,
+        event_id: trace_id,
       });
     }
 
-    return TraceTree.FromTrace(props.trace);
-  }, [props.trace, props.trace_id, projects]);
+    const tree = TraceTree.FromTrace(trace);
+    setTraceType(TraceTree.GetTraceType(tree.root));
+    return tree;
+  }, [trace, trace_id, setTraceType, projects]);
 
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
@@ -149,7 +154,7 @@ export function Trace(props: TraceProps) {
                     }
                     index={p.index}
                     style={p.style}
-                    trace_id={props.trace_id}
+                    trace_id={trace_id}
                     projects={projectLookup}
                     node={treeRef.current.list[p.index]}
                     viewManager={viewManager.current!}
@@ -165,6 +170,8 @@ export function Trace(props: TraceProps) {
     </Fragment>
   );
 }
+
+export default React.memo(Trace);
 
 const TraceDivider = styled('div')`
   position: absolute;

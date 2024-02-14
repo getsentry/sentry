@@ -45,8 +45,7 @@ import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
-import {Trace} from './trace';
-import {getTraceType} from './utils';
+import Trace from './trace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -131,15 +130,15 @@ export function TraceView() {
 }
 
 type TraceWarningsProps = {
-  traceSplitResults: TraceSplitResults<TraceFullDetailed> | null;
+  traceType: TraceType | null;
 };
 
-function TraceWarnings({traceSplitResults}: TraceWarningsProps) {
-  if (!traceSplitResults) {
+function TraceWarnings({traceType}: TraceWarningsProps) {
+  if (!traceType) {
     return null;
   }
 
-  switch (getTraceType(traceSplitResults)) {
+  switch (traceType) {
     case TraceType.NO_ROOT:
       return (
         <Alert type="info" showIcon>
@@ -327,6 +326,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     metaResults,
   } = props;
 
+  const [traceType, setTraceType] = useState<TraceType | null>(null);
   const root = traceSplitResult?.transactions?.[0];
   const rootEventResults = useApiQuery<EventTransaction>(
     [
@@ -380,14 +380,18 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <TraceWarnings traceSplitResults={traceSplitResult} />
+          <TraceWarnings traceType={traceType} />
           <TraceHeader
             rootEventResults={rootEventResults}
             metaResults={metaResults}
             organization={organization}
             traceSplitResult={traceSplitResult}
           />
-          <Trace trace={traceSplitResult} trace_id={traceSlug} />
+          <Trace
+            trace={traceSplitResult}
+            trace_id={traceSlug}
+            setTraceType={setTraceType}
+          />
         </Layout.Main>
       </Layout.Body>
     </Fragment>
