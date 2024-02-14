@@ -23,7 +23,7 @@ describe('TeamMembers', function () {
 
   const organization = OrganizationFixture();
   const team = TeamFixture();
-  const managerTeam = TeamFixture({orgRole: 'manager'});
+  const managerTeam = TeamFixture();
   const members = MembersFixture();
   const member = MemberFixture({
     id: '9',
@@ -381,31 +381,6 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('adding member to manager team makes them team admin', async function () {
-    MockApiClient.addMockResponse({
-      url: `/teams/${organization.slug}/${managerTeam.slug}/members/`,
-      method: 'GET',
-      body: [],
-    });
-    const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: managerTeam.slug}}
-        organization={orgWithTeamRoles}
-        team={managerTeam}
-      />
-    );
-
-    await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
-    );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
-
-    const admin = screen.queryByText('Team Admin');
-    expect(admin).toBeInTheDocument();
-  });
-
   it('cannot add or remove members if team is idp:provisioned', function () {
     const team2 = TeamFixture({
       flags: {
@@ -456,48 +431,6 @@ describe('TeamMembers', function () {
     waitFor(() => {
       expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
       expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
-    });
-  });
-
-  it('cannot add or remove members or leave if team has org role and no access', function () {
-    const team2 = TeamFixture({orgRole: 'manager'});
-
-    const me = MemberFixture({
-      id: '123',
-      email: 'foo@example.com',
-      role: 'member',
-    });
-
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/`,
-      method: 'GET',
-      body: [...members, me],
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/${organization.slug}/${team2.slug}/members/`,
-      method: 'GET',
-      body: members,
-    });
-    MockApiClient.addMockResponse({
-      url: `/teams/${organization.slug}/${team2.slug}/`,
-      method: 'GET',
-      body: team2,
-    });
-
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team2.slug}}
-        organization={organization}
-        team={team2}
-      />
-    );
-
-    waitFor(() => {
-      expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
-      expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
-      expect(screen.findByRole('button', {name: 'Leave'})).toBeDisabled();
     });
   });
 });

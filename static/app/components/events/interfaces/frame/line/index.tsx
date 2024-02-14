@@ -71,7 +71,7 @@ function Line({
   // Prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
   const platform = getPlatform(frame.platform, props.platform ?? 'other') as PlatformKey;
-  const leadsToApp = !frame.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
 
   const expandable =
     !leadsToApp || includeSystemFrames

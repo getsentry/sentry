@@ -60,19 +60,12 @@ export function EventSamples({
     'OR',
     'span.description:"Warm Start"',
     ')',
+    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
     // TODO: Add this back in once we have the ability to filter by start type
     // `${SpanMetricsField.APP_START_TYPE}:${
     //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     // }`,
   ]);
-
-  if (deviceClass) {
-    if (deviceClass === 'Unknown') {
-      searchQuery.addFilterValue('!has', 'device.class');
-    } else {
-      searchQuery.addFilterValue('device.class', deviceClass);
-    }
-  }
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 

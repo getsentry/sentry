@@ -1436,6 +1436,7 @@ SENTRY_EARLY_FEATURES = {
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1908,8 +1909,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable the new suspect commits calculation that uses all frames in the stack trace
-    "organizations:suspect-commits-all-frames": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page

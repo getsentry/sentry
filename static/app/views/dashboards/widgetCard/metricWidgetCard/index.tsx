@@ -18,7 +18,7 @@ import {
   MetricDisplayType,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
-import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -34,7 +34,7 @@ import {
   convertToDashboardWidget,
   toMetricDisplayType,
 } from '../../../../utils/metrics/dashboard';
-import {parseField} from '../../../../utils/metrics/mri';
+import {MRIToField, parseField} from '../../../../utils/metrics/mri';
 import {DASHBOARD_CHART_GROUP} from '../../dashboard';
 import type {DashboardFilters, Widget} from '../../types';
 import {useMetricsDashboardContext} from '../metricsContext';
@@ -222,12 +222,16 @@ export function MetricWidgetChartContainer({
     isLoading,
     isError,
     error,
-  } = useMetricsDataZoom(
+  } = useMetricsQuery(
+    [
+      {
+        mri,
+        op,
+        query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
+        groupBy,
+      },
+    ],
     {
-      mri,
-      op,
-      query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
-      groupBy,
       projects,
       environments,
       datetime,
@@ -242,9 +246,10 @@ export function MetricWidgetChartContainer({
       ? getChartTimeseries(timeseriesData, {
           getChartPalette: createChartPalette,
           mri,
+          field: MRIToField(mri, op || ''),
         })
       : [];
-  }, [timeseriesData, mri]);
+  }, [timeseriesData, mri, op]);
 
   if (isError) {
     const errorMessage =
@@ -259,7 +264,7 @@ export function MetricWidgetChartContainer({
     );
   }
 
-  if (timeseriesData?.groups.length === 0) {
+  if (timeseriesData?.data.length === 0) {
     return (
       <EmptyMessage
         icon={<IconSearch size="xxl" />}

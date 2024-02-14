@@ -605,7 +605,7 @@ class FormModel {
         // API can return a JSON object with either:
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
-        if (resp && resp.responseJSON) {
+        if (resp?.responseJSON) {
           // non-field errors can be camelcase or snake case
           const nonFieldErrors =
             resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
@@ -634,7 +634,7 @@ class FormModel {
         }
 
         // eslint-disable-next-line no-console
-        console.error('Error saving form field', resp && resp.responseJSON);
+        console.error('Error saving form field', resp?.responseJSON);
       });
 
     return request;

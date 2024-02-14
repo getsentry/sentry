@@ -191,7 +191,7 @@ export class VirtualizedViewManager {
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const list = this.columns.list.column_refs[i];
-      if (list && list.children[0]) {
+      if (list?.children?.[0]) {
         (list.children[0] as HTMLElement).style.transform =
           `translateX(${this.columns.list.translate[0]}px)`;
       }
