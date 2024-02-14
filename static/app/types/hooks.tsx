@@ -179,7 +179,6 @@ export type PartnershipAgreementProps = {
  */
 export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
-  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
