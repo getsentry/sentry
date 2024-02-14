@@ -1147,7 +1147,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
-    def test_gh_comment_multiple_comments(self, get_jwt, mock_comment_workflow):
+    def test_gh_comment_multiple_comments(
+        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+    ):
         self.add_responses()
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
