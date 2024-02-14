@@ -44,6 +44,30 @@ type ChartProps = {
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
 
+function isNonZeroValue(value: number | null) {
+  return value !== null && value !== 0;
+}
+
+function addAreaChartSeriesPadding(data: Series['data']) {
+  const hasNonZeroSibling = (index: number) => {
+    return isNonZeroValue(data[index - 1]?.value ?? data[index + 1]?.value);
+  };
+  const paddingIndices = new Set<number>();
+  return {
+    data: data.map(({name, value}, index) => {
+      const shouldAddPadding = value === null && hasNonZeroSibling(index);
+      if (shouldAddPadding) {
+        paddingIndices.add(index);
+      }
+      return {
+        name,
+        value: shouldAddPadding ? 0 : value,
+      };
+    }),
+    paddingIndices,
+  };
+}
+
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
     {series, displayType, operation, widgetIndex, focusArea, height, scatter, group},
@@ -92,6 +116,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       () =>
         series
           .filter(s => !s.hidden)
+          .map(s => ({
+            ...s,
+            ...(displayType === MetricDisplayType.AREA
+              ? addAreaChartSeriesPadding(s.data)
+              : {data: s.data}),
+            connectNulls: true,
+          }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => [
@@ -99,7 +130,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
               ...s,
               silent: true,
               data: s.data.slice(0, -fogOfWarBuckets),
-              connectNulls: true,
             },
             displayType === MetricDisplayType.BAR
               ? createFogOfWarBarSeries(s, fogOfWarBuckets)
@@ -173,6 +203,23 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (Array.isArray(params)) {
               const uniqueSeries = new Set<string>();
               const deDupedParams = params.filter(param => {
+                // Filter null values from tooltip
+                if (param.value[1] === null) {
+                  return false;
+                }
+
+                // Filter padding datapoints from tooltip
+                if (param.value[1] === 0) {
+                  const currentSeries = seriesToShow[param.seriesIndex];
+                  const paddingIndices =
+                    'paddingIndices' in currentSeries
+                      ? currentSeries.paddingIndices
+                      : undefined;
+                  if (paddingIndices?.has(param.dataIndex)) {
+                    return false;
+                  }
+                }
+
                 if (uniqueSeries.has(param.seriesName)) {
                   return false;
                 }
