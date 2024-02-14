@@ -5,15 +5,11 @@ import {t, tct} from 'sentry/locale';
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 
 type TraceWarningsProps = {
-  traceType: TraceType | null;
+  type: TraceType;
 };
 
-export default function TraceWarnings({traceType}: TraceWarningsProps) {
-  if (!traceType) {
-    return null;
-  }
-
-  switch (traceType) {
+export default function TraceWarnings({type}: TraceWarningsProps) {
+  switch (type) {
     case TraceType.NO_ROOT:
       return (
         <Alert type="info" showIcon>
@@ -55,7 +51,9 @@ export default function TraceWarnings({traceType}: TraceWarningsProps) {
           )}
         </Alert>
       );
-    default:
+    case TraceType.ONE_ROOT:
       return null;
+    default:
+      throw new TypeError('Invalid trace type');
   }
 }

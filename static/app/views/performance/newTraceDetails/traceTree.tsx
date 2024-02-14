@@ -252,8 +252,13 @@ export class TraceTree {
     return tree.build();
   }
 
-  static GetTraceType(node: TraceTreeNode<TraceTree.Trace>): TraceType {
-    const {transactions, orphan_errors} = node.value;
+  static GetTraceType(root: TraceTreeNode<null>): TraceType {
+    const trace = root.children[0];
+    if (!trace || !isTraceNode(trace)) {
+      throw new TypeError('Not trace node');
+    }
+
+    const {transactions, orphan_errors} = trace.value;
     const {roots, orphans} = (transactions ?? []).reduce(
       (counts, transaction) => {
         if (isRootTransaction(transaction)) {

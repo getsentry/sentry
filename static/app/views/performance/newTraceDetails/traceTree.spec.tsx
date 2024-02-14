@@ -15,7 +15,6 @@ import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
   isSpanNode,
-  isTraceNode,
   isTransactionNode,
 } from './guards';
 import {
@@ -84,13 +83,13 @@ function assertSpanNode(
   }
 }
 
-function assertTraceNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is TraceTreeNode<TraceTree.Trace> {
-  if (!isTraceNode(node)) {
-    throw new Error('node is not a trace');
-  }
-}
+// function assertTraceNode(
+//   node: TraceTreeNode<TraceTree.NodeValue>
+// ): asserts node is TraceTreeNode<TraceTree.Trace> {
+//   if (!isTraceNode(node)) {
+//     throw new Error('node is not a trace');
+//   }
+// }
 
 function assertTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue> | null
@@ -251,8 +250,7 @@ describe('TraceTree', () => {
       })
     );
 
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(TraceType.EMPTY_TRACE);
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.EMPTY_TRACE);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -268,23 +266,7 @@ describe('TraceTree', () => {
       })
     );
 
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(TraceType.NO_ROOT);
-
-    tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            parent_span_id: null,
-            children: [],
-          }),
-        ],
-        orphan_errors: [],
-      })
-    );
-
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(TraceType.ONE_ROOT);
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.NO_ROOT);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -293,6 +275,20 @@ describe('TraceTree', () => {
             parent_span_id: null,
             children: [],
           }),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONE_ROOT);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            parent_span_id: null,
+            children: [],
+          }),
           makeTransaction({
             children: [],
           }),
@@ -301,10 +297,7 @@ describe('TraceTree', () => {
       })
     );
 
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(
-      TraceType.BROKEN_SUBTRACES
-    );
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.BROKEN_SUBTRACES);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -322,8 +315,7 @@ describe('TraceTree', () => {
       })
     );
 
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(TraceType.MULTIPLE_ROOTS);
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.MULTIPLE_ROOTS);
 
     tree = TraceTree.FromTrace(
       makeTrace({
@@ -332,8 +324,7 @@ describe('TraceTree', () => {
       })
     );
 
-    assertTraceNode(tree.root.children[0]);
-    expect(TraceTree.GetTraceType(tree.root.children[0])).toBe(TraceType.ONLY_ERRORS);
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONLY_ERRORS);
   });
 
   it('builds from spans when root is a transaction node', () => {

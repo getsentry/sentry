@@ -35,15 +35,16 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Breadcrumb from '../breadcrumb';
-import type {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
 import Trace from './trace';
+import {TraceTree} from './traceTree';
 import TraceWarnings from './traceWarnings';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
@@ -260,11 +261,26 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const [traceType, setTraceType] = useState<TraceType | null>(null);
-  const root = props.traceSplitResult?.transactions?.[0];
+  const rootEvent = props.traceSplitResult?.transactions?.[0];
+  const {projects} = useProjects();
+  const tree = useMemo(() => {
+    if (!props.traceSplitResult) {
+      return TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
+    }
+
+    return TraceTree.FromTrace(props.traceSplitResult);
+  }, [props.traceSlug, props.traceSplitResult, projects]);
+
+  const traceType = useMemo(() => {
+    return TraceTree.GetTraceType(tree.root);
+  }, [tree]);
+
   const rootEventResults = useApiQuery<EventTransaction>(
     [
-      `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
+      `/organizations/${props.organization.slug}/events/${rootEvent?.project_slug}:${rootEvent?.event_id}/`,
       {
         query: {
           referrer: 'trace-details-summary',
@@ -315,18 +331,14 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <TraceWarnings traceType={traceType} />
+          {traceType ? <TraceWarnings type={traceType} /> : null}
           <TraceHeader
             rootEventResults={rootEventResults}
             metaResults={props.metaResults}
             organization={props.organization}
             traceSplitResult={props.traceSplitResult}
           />
-          <Trace
-            trace={props.traceSplitResult}
-            trace_id={props.traceSlug}
-            setTraceType={setTraceType}
-          />
+          <Trace trace={tree} trace_id={props.traceSlug} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

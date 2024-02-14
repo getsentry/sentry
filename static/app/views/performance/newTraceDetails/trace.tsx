@@ -11,15 +11,9 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-import type {TraceType} from '../traceDetails/newTraceDetailsContent';
 
 import {
   isAutogroupedNode,
@@ -30,16 +24,15 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {ParentAutogroupNode, TraceTree, type TraceTreeNode} from './traceTree';
+import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
 interface TraceProps {
-  setTraceType: (traceType: TraceType) => void;
-  trace: TraceSplitResults<TraceFullDetailed> | null;
+  trace: TraceTree;
   trace_id: string;
 }
 
-function Trace({trace, trace_id, setTraceType}: TraceProps) {
+function Trace({trace, trace_id}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
@@ -50,23 +43,6 @@ function Trace({trace, trace_id, setTraceType}: TraceProps) {
 
   const [_rerender, setRender] = useState(0);
 
-  const traceTree = useMemo(() => {
-    if (!trace) {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: trace_id,
-      });
-    }
-
-    const tree = TraceTree.FromTrace(trace);
-
-    if (isTraceNode(tree.root.children[0])) {
-      setTraceType(TraceTree.GetTraceType(tree.root.children[0]));
-    }
-
-    return tree;
-  }, [trace, trace_id, setTraceType, projects]);
-
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
@@ -75,15 +51,15 @@ function Trace({trace, trace_id, setTraceType}: TraceProps) {
   }
 
   if (
-    traceTree.root.space &&
-    (traceTree.root.space[0] !== viewManager.current.spanSpace[0] ||
-      traceTree.root.space[1] !== viewManager.current.spanSpace[1])
+    trace.root.space &&
+    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
+      trace.root.space[1] !== viewManager.current.spanSpace[1])
   ) {
-    viewManager.current.initializeSpanSpace(traceTree.root.space);
+    viewManager.current.initializeSpanSpace(trace.root.space);
   }
 
-  const treeRef = useRef<TraceTree>(traceTree);
-  treeRef.current = traceTree;
+  const treeRef = useRef<TraceTree>(trace);
+  treeRef.current = trace;
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -118,7 +94,7 @@ function Trace({trace, trace_id, setTraceType}: TraceProps) {
     <Fragment>
       <TraceStylingWrapper
         ref={r => viewManager.current?.onContainerRef(r)}
-        className={traceTree.type === 'loading' ? 'Loading' : ''}
+        className={trace.type === 'loading' ? 'Loading' : ''}
         style={{
           backgroundColor: '#FFF',
           height: '70vh',
@@ -137,7 +113,7 @@ function Trace({trace, trace_id, setTraceType}: TraceProps) {
               overscanRowCount={10}
               rowCount={treeRef.current.list.length ?? 0}
               rowRenderer={p => {
-                return traceTree.type === 'loading' ? (
+                return trace.type === 'loading' ? (
                   <RenderPlaceholderRow
                     style={p.style}
                     node={treeRef.current.list[p.index]}
