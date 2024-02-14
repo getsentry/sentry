@@ -27,7 +27,6 @@ import type {
   MetricsApiRequestQuery,
   MetricsApiRequestQueryOptions,
   MetricsDataIntervalLadder,
-  MetricsGroup,
   MetricsOperation,
   MRI,
   UseCase,
@@ -263,10 +262,9 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(group: MetricsGroup) {
-  const groupByEntries = Object.entries(group.by ?? {});
+export function getMetricsSeriesName(field: string, groupBy?: Record<string, string>) {
+  const groupByEntries = Object.entries(groupBy ?? {});
   if (!groupByEntries.length) {
-    const field = Object.keys(group.series)?.[0];
     const {mri} = parseField(field) ?? {mri: field};
     const name = formatMRI(mri as MRI);
 

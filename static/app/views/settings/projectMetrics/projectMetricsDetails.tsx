@@ -27,7 +27,7 @@ import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
-import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsData';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
@@ -75,7 +75,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
-  const {data: metricsData, isLoading} = useMetricsData(
+  const {data: metricsData, isLoading} = useMetricsQuery(
     {
       datetime: {
         period: '30d',
@@ -98,7 +98,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       data:
         metricsData?.intervals.map((interval, index) => ({
           name: interval,
-          value: metricsData.groups[0]?.series[field][index] ?? 0,
+          value: metricsData.data[0]?.[0]?.series[index] ?? 0,
         })) ?? [],
     },
   ];
@@ -228,8 +228,8 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
           const isBlockedTag = blockingStatus?.blockedTags?.includes(key) ?? false;
           return (
             <Fragment key={key}>
-              <div key={key}>{key}</div>
-              <TextAlignRight key={key}>
+              <div>{key}</div>
+              <TextAlignRight>
                 <BlockButton
                   size="xs"
                   hasAccess={hasAccess}
