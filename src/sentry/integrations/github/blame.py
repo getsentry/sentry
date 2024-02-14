@@ -95,7 +95,7 @@ def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, A
 
     query = f"""query {{{repo_queries}\n}}"""
 
-    logger.info("get_blame_for_files.create_blame_query.created_query", extra={**extra})
+    logger.info("get_blame_for_files.create_blame_query.created_query", extra=extra)
 
     return query
 
