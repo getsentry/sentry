@@ -19,7 +19,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,7 +41,6 @@ import {Tooltip} from '../tooltip';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;
-  selection: PageFilters;
 }
 
 function MetricWidgetViewerModal({

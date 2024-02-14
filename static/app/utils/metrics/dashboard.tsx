@@ -6,7 +6,7 @@ import {formatMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import type {
   MetricDisplayType,
   MetricsQuery,
-  type MetricWidgetQueryParams,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
