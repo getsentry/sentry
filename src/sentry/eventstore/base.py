@@ -267,6 +267,8 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
+        sentry_sdk.set_tag("eventstore.backend", "nodestore")
+
         with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
             object_node_list = [
                 (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
