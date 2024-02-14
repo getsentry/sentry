@@ -49,7 +49,7 @@ RUST_CACHE = RustCache(1_000)
 enhancements_grammar = Grammar(
     r"""
 
-enhancements = line+
+enhancements = line*
 
 line = _ (comment / rule / empty) newline?
 
@@ -479,14 +479,6 @@ class Enhancements:
     @sentry_sdk.tracing.trace
     def from_config_string(self, s, bases=None, id=None, force_rust_parsing=False) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s, force_rust_parsing)
-
-        if not s:
-            return Enhancements(
-                [],
-                bases=bases,
-                id=id,
-                rust_enhancements=rust_enhancements,
-            )
 
         try:
             tree = enhancements_grammar.parse(s)

@@ -29,7 +29,7 @@ CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 fingerprinting_grammar = Grammar(
     r"""
 
-fingerprinting_rules = line+
+fingerprinting_rules = line*
 
 line = _ (comment / rule / empty) newline?
 
@@ -229,9 +229,6 @@ class FingerprintingRules:
 
     @staticmethod
     def from_config_string(s, bases=None):
-        if not s:
-            return FingerprintingRules(rules=[], changelog=None, bases=bases)
-
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
