@@ -27,6 +27,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
+    CATEGORY_TO_EMOJI_V2,
     LEVEL_TO_EMOJI,
     LEVEL_TO_EMOJI_V2,
     SLACK_URL_FORMAT,
@@ -615,19 +616,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
+        has_improvements_feature_flag = features.has(
+            "organizations:slack-block-kit-improvements", self.group.project.organization
+        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
-            if features.has(
-                "organizations:slack-block-kit-improvements", self.group.project.organization
-            ):
+
+            if has_improvements_feature_flag:
                 title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
             else:
                 title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            if has_improvements_feature_flag:
+                title_emoji = CATEGORY_TO_EMOJI_V2.get(level_text)
+            else:
+                title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
