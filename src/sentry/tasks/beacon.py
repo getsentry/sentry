@@ -4,6 +4,7 @@ from datetime import timedelta
 from hashlib import sha1
 from uuid import uuid4
 
+import psutil
 from django.conf import settings
 from django.utils import timezone
 
@@ -121,6 +122,7 @@ def send_beacon():
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
     event_categories_count = get_category_event_count_24h()
+    byte_to_gigabyte = 1024**-3
 
     payload = {
         "install_id": install_id,
@@ -138,6 +140,10 @@ def send_beacon():
             "replays.24h": event_categories_count["replay"],
             "profiles.24h": event_categories_count["profile"],
             "monitors.24h": event_categories_count["monitor"],
+            "cpu_cores_available": psutil.cpu_count(),
+            "cpu_percentage_utilized": psutil.cpu_percent(),
+            "ram_available_gb": psutil.virtual_memory().total * byte_to_gigabyte,
+            "ram_percentage_utilized": psutil.virtual_memory().percent,
         },
         "packages": get_all_package_versions(),
         "anonymous": anonymous,

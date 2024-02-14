@@ -1,4 +1,5 @@
 import platform
+from collections import namedtuple
 from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
@@ -18,6 +19,15 @@ from sentry.utils.outcomes import Outcome
 
 
 @no_silo_test
+@patch("psutil.cpu_count", return_value=8)
+@patch("psutil.cpu_percent", return_value=50)
+@patch(
+    "psutil.virtual_memory",
+    return_value=namedtuple("svmem", "total, percent")(
+        total=34359738368,
+        percent=50,
+    ),
+)
 class SendBeaconTest(OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
@@ -87,7 +97,15 @@ class SendBeaconTest(OutcomesSnubaTest):
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
-    def test_simple(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+    def test_simple(
+        self,
+        safe_urlread,
+        safe_urlopen,
+        mock_get_all_package_versions,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         self.organization
         self.project
         self.team
@@ -119,6 +137,10 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "replays.24h": 1,
                     "profiles.24h": 3,
                     "monitors.24h": 0,
+                    "cpu_cores_available": 8,
+                    "cpu_percentage_utilized": 50,
+                    "ram_available_gb": 32,
+                    "ram_percentage_utilized": 50,
                 },
                 "anonymous": False,
                 "admin_email": "foo@example.com",
@@ -134,7 +156,15 @@ class SendBeaconTest(OutcomesSnubaTest):
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
-    def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+    def test_anonymous(
+        self,
+        safe_urlread,
+        safe_urlopen,
+        mock_get_all_package_versions,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         self.organization
         self.project
         self.team
@@ -166,6 +196,10 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "replays.24h": 1,
                     "profiles.24h": 3,
                     "monitors.24h": 0,
+                    "cpu_cores_available": 8,
+                    "cpu_percentage_utilized": 50,
+                    "ram_available_gb": 32,
+                    "ram_percentage_utilized": 50,
                 },
                 "anonymous": True,
                 "packages": mock_get_all_package_versions.return_value,
@@ -180,7 +214,15 @@ class SendBeaconTest(OutcomesSnubaTest):
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
-    def test_with_broadcasts(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+    def test_with_broadcasts(
+        self,
+        safe_urlread,
+        safe_urlopen,
+        mock_get_all_package_versions,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         broadcast_id = uuid4().hex
         mock_get_all_package_versions.return_value = {}
         safe_urlread.return_value = json.dumps(
@@ -236,7 +278,15 @@ class SendBeaconTest(OutcomesSnubaTest):
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
-    def test_disabled(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+    def test_disabled(
+        self,
+        safe_urlread,
+        safe_urlopen,
+        mock_get_all_package_versions,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
 
         with self.settings(SENTRY_BEACON=False):
@@ -258,7 +308,13 @@ class SendBeaconTest(OutcomesSnubaTest):
 
     @patch("sentry.tasks.beacon.safe_urlopen")
     @responses.activate
-    def test_metrics(self, safe_urlopen):
+    def test_metrics(
+        self,
+        safe_urlopen,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         metrics = [
             {
                 "description": "SentryApp",
