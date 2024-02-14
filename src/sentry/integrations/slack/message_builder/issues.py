@@ -631,7 +631,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
             if has_improvements_feature_flag:
-                title_emoji = CATEGORY_TO_EMOJI_V2.get(level_text)
+                title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
             else:
                 title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
