@@ -87,6 +87,7 @@ def update_snuba_query(
     :return: A list of QuerySubscriptions
 
     TODO: Ensure update handles activated alert rule updates
+    eg. insert start_time into query, insert release version into query, etc.
     """
     current_event_types = set(snuba_query.event_types)
     if not event_types:

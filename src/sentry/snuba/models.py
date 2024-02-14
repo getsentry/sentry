@@ -42,6 +42,7 @@ class SnubaQuery(Model):
     resolution = models.IntegerField()
     # TODO: Modify snuba query creation to make use of `start_time` if provided (eg. query all events _after_ provided start_date)
     start_time = models.DateTimeField(null=True, default=None)
+    release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
