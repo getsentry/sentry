@@ -121,7 +121,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             ...(displayType === MetricDisplayType.AREA
               ? addAreaChartSeriesPadding(s.data)
               : {data: s.data}),
-            connectNulls: true,
+            connectNulls: displayType !== MetricDisplayType.AREA,
           }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
@@ -226,6 +226,10 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                 uniqueSeries.add(param.seriesName);
                 return true;
               });
+
+              if (deDupedParams.length === 0) {
+                return '';
+              }
               return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
             }
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
