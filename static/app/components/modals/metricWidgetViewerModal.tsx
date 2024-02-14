@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -20,14 +19,13 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI, Organization, PageFilters} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Organization, PageFilters} from 'sentry/types';
 import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
 import {Query} from 'sentry/views/ddm/queries';
@@ -36,9 +34,9 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {
   convertToDashboardWidget,
+  convertToMetricWidget,
   toMetricDisplayType,
 } from '../../utils/metrics/dashboard';
-import {parseField} from '../../utils/metrics/mri';
 import {MetricWidget} from '../../views/ddm/widget';
 import {Tooltip} from '../tooltip';
 
@@ -47,35 +45,18 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   selection: PageFilters;
 }
 
-function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
-  return {
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
-}
-
-function MetricWidgetViewerModal(props: Props) {
-  const {
-    organization,
-    widget,
-    Footer,
-    Body,
-    Header,
-    closeModal,
-    selection,
-    onMetricWidgetEdit,
-  } = props;
-
-  const router = useRouter();
-
+function MetricWidgetViewerModal({
+  organization,
+  widget,
+  Footer,
+  Body,
+  Header,
+  closeModal,
+  onMetricWidgetEdit,
+}: Props) {
+  const {selection} = usePageFilters();
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>(convertFromWidget(widget));
+    useState<MetricWidgetQueryParams>(convertToMetricWidget(widget));
 
   const defaultTitle = useMemo(
     () => stringifyMetricWidget(metricWidgetQueryParams),
@@ -112,11 +93,14 @@ function MetricWidgetViewerModal(props: Props) {
     };
 
     onMetricWidgetEdit?.(updatedWidget);
+
+    closeModal();
   }, [
     title,
     defaultTitle,
     metricWidgetQueryParams,
     onMetricWidgetEdit,
+    closeModal,
     widget,
     selection,
   ]);
@@ -197,36 +181,18 @@ function MetricWidgetViewerModal(props: Props) {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
-            <Button
-              onClick={() => {
-                closeModal();
-                router.push(
-                  getDdmUrl(organization.slug, {
-                    widgets: [metricWidgetQueryParams],
-                    project: selection.projects,
-                    ...selection.datetime,
-                    environment: selection.environments,
-                  })
-                );
-              }}
+            <LinkButton
+              to={getDdmUrl(organization.slug, {
+                widgets: [metricWidgetQueryParams],
+                project: selection.projects,
+                ...selection.datetime,
+                environment: selection.environments,
+              })}
             >
               {t('Open in Metrics')}
-            </Button>
-            <Button
-              onClick={() => {
-                closeModal();
-              }}
-            >
-              {t('Close')}
-            </Button>
-            <Button
-              color="primary"
-              priority="primary"
-              onClick={() => {
-                handleSubmit();
-                closeModal();
-              }}
-            >
+            </LinkButton>
+            <Button onClick={closeModal}>{t('Close')}</Button>
+            <Button priority="primary" onClick={handleSubmit}>
               {t('Save changes')}
             </Button>
           </ButtonBar>
@@ -235,6 +201,7 @@ function MetricWidgetViewerModal(props: Props) {
     </Fragment>
   );
 }
+
 export function ContextMenu({
   metricsQuery,
 }: {
@@ -256,11 +223,6 @@ export function ContextMenu({
       label: t('Create Alert'),
       disabled: !createAlert,
       onAction: () => {
-        trackAnalytics('ddm.create-alert', {
-          organization,
-          source: 'widget',
-        });
-        Sentry.metrics.increment('ddm.dashboards.widget.alert');
         createAlert?.();
       },
     };
@@ -270,10 +232,6 @@ export function ContextMenu({
       label: t('Metric Settings'),
       disabled: !customMetric,
       onAction: () => {
-        trackAnalytics('ddm.widget.settings', {
-          organization,
-        });
-        Sentry.metrics.increment('ddm.dashboards.widget.settings');
         navigateTo(
           `/settings/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
           router
@@ -282,7 +240,7 @@ export function ContextMenu({
     };
 
     return customMetric ? [addAlertItem, settingsItem] : [addAlertItem];
-  }, [createAlert, metricsQuery.mri, organization, router]);
+  }, [createAlert, metricsQuery.mri, router]);
 
   return (
     <DropdownMenu

@@ -333,13 +333,13 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const getModal = () => {
-    if (options.widget.widgetType === WidgetType.METRICS) {
-      return import('sentry/components/modals/metricWidgetViewerModal');
-    }
-    return import('sentry/components/modals/widgetViewerModal');
-  };
-  const mod = await getModal();
+  const modalPromise =
+    options.widget.widgetType === WidgetType.METRICS
+      ? import('sentry/components/modals/metricWidgetViewerModal')
+      : import('sentry/components/modals/widgetViewerModal');
+
+  const mod = await modalPromise;
+
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
