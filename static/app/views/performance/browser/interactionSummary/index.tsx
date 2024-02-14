@@ -28,6 +28,7 @@ function InteractionSummary() {
     <ModulePageProviders
       title={[t('Performance'), t('Interactions')].join(' — ')}
       baseURL="/performance/browser/interactions"
+      features="starfish-view"
     >
       <Layout.Header>
         <Layout.HeaderContent>

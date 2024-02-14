@@ -77,6 +77,7 @@ function ResourceSummary() {
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
       baseURL="/performance/browser/resources"
+      features="starfish-browser-resource-module-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>

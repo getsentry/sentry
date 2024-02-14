@@ -37,6 +37,7 @@ function ResourcesLandingPage() {
     <ModulePageProviders
       title={[t('Performance'), t('Resources')].join(' — ')}
       baseURL="/performance/browser/resources"
+      features="starfish-browser-resource-module-ui"
     >
       <PageAlertProvider>
         <Layout.Header>

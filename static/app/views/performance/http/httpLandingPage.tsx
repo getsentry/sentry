@@ -166,6 +166,7 @@ function LandingPageWithProviders() {
     <ModulePageProviders
       title={[t('Performance'), t('HTTP')].join(' — ')}
       baseURL="/performance/http"
+      features="performance-http-view"
     >
       <HTTPLandingPage />
     </ModulePageProviders>

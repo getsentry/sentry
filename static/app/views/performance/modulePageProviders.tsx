@@ -9,10 +9,11 @@ import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext
 interface Props {
   baseURL: string;
   children: React.ReactNode;
+  features: string;
   title: string;
 }
 
-export function ModulePageProviders({title, children, baseURL}: Props) {
+export function ModulePageProviders({title, children, features, baseURL}: Props) {
   const organization = useOrganization();
 
   return (
@@ -21,7 +22,7 @@ export function ModulePageProviders({title, children, baseURL}: Props) {
         <SentryDocumentTitle title={title} orgSlug={organization.slug}>
           <Layout.Page>
             <Feature
-              features="performance-database-view"
+              features={features}
               organization={organization}
               renderDisabled={NoAccess}
             >
