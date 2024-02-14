@@ -35,6 +35,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Breadcrumb from '../breadcrumb';
@@ -42,7 +43,9 @@ import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
-import {Trace} from './trace';
+import Trace from './trace';
+import {TraceTree} from './traceTree';
+import TraceWarnings from './traceWarnings';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -109,7 +112,7 @@ export function TraceView() {
               >
                 {metaResults => (
                   <TraceViewContent
-                    traces={trace?.traces}
+                    traceSplitResult={trace?.traces}
                     traceSlug={traceSlug}
                     organization={organization}
                     location={location}
@@ -130,17 +133,20 @@ type TraceHeaderProps = {
   metaResults: TraceMetaQueryChildrenProps;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
+  traceSplitResult: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function TraceHeader(props: TraceHeaderProps) {
-  const {metaResults, rootEventResults, traces, organization} = props;
+  const {metaResults, rootEventResults, traceSplitResult, organization} = props;
   const {meta, isLoading: metaLoading} = metaResults;
   const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
   const errors = meta?.errors || 0;
   const performanceIssues = meta?.performance_issues || 0;
   const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
-  const traceInfo = getTraceInfo(traces?.transactions, traces?.orphan_errors);
+  const traceInfo = getTraceInfo(
+    traceSplitResult?.transactions,
+    traceSplitResult?.orphan_errors
+  );
   const loadingIndicator = <LoadingIndicator size={20} mini />;
 
   return (
@@ -251,16 +257,30 @@ type TraceViewContentProps = {
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
+  traceSplitResult: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const {organization, traces, traceSlug, location, traceEventView, metaResults} = props;
+  const rootEvent = props.traceSplitResult?.transactions?.[0];
+  const {projects} = useProjects();
+  const tree = useMemo(() => {
+    if (!props.traceSplitResult) {
+      return TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
+    }
 
-  const root = traces?.transactions?.[0];
+    return TraceTree.FromTrace(props.traceSplitResult);
+  }, [props.traceSlug, props.traceSplitResult, projects]);
+
+  const traceType = useMemo(() => {
+    return TraceTree.GetTraceType(tree.root);
+  }, [tree]);
+
   const rootEventResults = useApiQuery<EventTransaction>(
     [
-      `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
+      `/organizations/${props.organization.slug}/events/${rootEvent?.project_slug}:${rootEvent?.event_id}/`,
       {
         query: {
           referrer: 'trace-details-summary',
@@ -269,7 +289,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!(traces?.transactions && traces.transactions.length > 0),
+      enabled: !!(
+        props.traceSplitResult?.transactions &&
+        props.traceSplitResult.transactions.length > 0
+      ),
     }
   );
 
@@ -278,26 +301,26 @@ function TraceViewContent(props: TraceViewContentProps) {
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb
-            organization={organization}
-            location={location}
+            organization={props.organization}
+            location={props.location}
             transaction={{
               project: rootEventResults.data?.projectID ?? '',
               name: rootEventResults.data?.title ?? '',
             }}
-            traceSlug={traceSlug}
+            traceSlug={props.traceSlug}
           />
           <Layout.Title data-test-id="trace-header">
-            {t('Trace ID: %s', traceSlug)}
+            {t('Trace ID: %s', props.traceSlug)}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <DiscoverButton
               size="sm"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
               onClick={() => {
                 trackAnalytics('performance_views.trace_view.open_in_discover', {
-                  organization,
+                  organization: props.organization,
                 });
               }}
             >
@@ -308,13 +331,14 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
+          {traceType ? <TraceWarnings type={traceType} /> : null}
           <TraceHeader
             rootEventResults={rootEventResults}
-            metaResults={metaResults}
-            organization={organization}
-            traces={traces}
+            metaResults={props.metaResults}
+            organization={props.organization}
+            traceSplitResult={props.traceSplitResult}
           />
-          <Trace trace={traces} trace_id={traceSlug} />
+          <Trace trace={tree} trace_id={props.traceSlug} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>
