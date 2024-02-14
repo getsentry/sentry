@@ -1654,12 +1654,15 @@ def _save_aggregate_new(
         group_info = handle_existing_grouphash(
             job, primary.existing_grouphash, all_grouphashes, group_processing_kwargs
         )
-    elif secondary.existing_grouphash:
-        group_info = handle_existing_grouphash(
-            job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
-        )
     else:
-        group_info = create_group_with_grouphashes(job, all_grouphashes, group_processing_kwargs)
+        if secondary.existing_grouphash:
+            group_info = handle_existing_grouphash(
+                job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
+            )
+        else:
+            group_info = create_group_with_grouphashes(
+                job, all_grouphashes, group_processing_kwargs
+            )
 
     # From here on out, we're just doing housekeeping
 
