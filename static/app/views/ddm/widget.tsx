@@ -32,7 +32,7 @@ import type {
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
-import {useMetricsQueryZoom} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
@@ -245,12 +245,9 @@ const MetricWidgetBody = memo(
       isLoading,
       isError,
       error,
-    } = useMetricsQueryZoom(
+    } = useMetricsQuery(
+      [{mri, op, query, groupBy}],
       {
-        mri,
-        op,
-        query,
-        groupBy,
         projects,
         environments,
         datetime,

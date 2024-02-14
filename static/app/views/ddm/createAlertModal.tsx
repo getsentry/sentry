@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -31,7 +32,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -140,13 +141,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 
   const {data, isLoading, refetch, isError} = useMetricsQuery(
+    [pick(metricsQuery, 'op', 'mri', 'query')],
     {
-      mri: metricsQuery.mri,
-      op: metricsQuery.op,
       projects: formState.project ? [parseInt(formState.project, 10)] : [],
       environments: formState.environment ? [formState.environment] : [],
       datetime: {period: alertPeriod} as PageFilters['datetime'],
-      query: metricsQuery.query,
     },
     {
       interval: alertInterval,

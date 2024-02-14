@@ -23,7 +23,7 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {getMetricsQueryApiRequestPayload} from 'sentry/utils/metrics/useMetricsData';
+import {getMetricsQueryApiRequestPayload} from 'sentry/utils/metrics/useMetricsQuery';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -402,17 +402,19 @@ function getMetricRequest(
   }
 
   const payload = getMetricsQueryApiRequestPayload(
-    {
-      field: query.aggregates[0],
-      query: query.conditions || undefined,
-      groupBy: query.columns || undefined,
-      orderBy: query.orderby
-        ? query.orderby.indexOf('-') === 0
-          ? 'desc'
-          : 'asc'
-        : undefined,
-      limit: limit || undefined,
-    },
+    [
+      {
+        field: query.aggregates[0],
+        query: query.conditions || undefined,
+        groupBy: query.columns || undefined,
+        orderBy: query.orderby
+          ? query.orderby.indexOf('-') === 0
+            ? 'desc'
+            : 'asc'
+          : undefined,
+        limit: limit || undefined,
+      },
+    ],
     pageFilters,
     {
       intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
