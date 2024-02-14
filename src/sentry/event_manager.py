@@ -1636,11 +1636,10 @@ def _save_aggregate_new(
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
+    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
     secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
         project, job, metric_tags
     )
-
-    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     all_hashes = extract_hashes(primary_hashes) + extract_hashes(secondary_hashes)
 
