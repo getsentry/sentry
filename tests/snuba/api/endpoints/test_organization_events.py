@@ -144,6 +144,39 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
             span["tags"][tag] = str(value)
         return span
 
+    def _setup_user_misery(
+        self, per_transaction_threshold: bool = False, project: Project | None = None
+    ) -> None:
+        _project = project or self.project
+        # If duration is > 300 * 4 then the user is fruistrated
+        # There's a total of 4 users and three of them reach the frustration threshold
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),  # Frustrated
+            ("two", 3000),  # Frustrated
+            ("three", 400),
+            ("four", 4000),  # Frustrated
+        ]
+        for idx, event in enumerate(events):
+            data = self.load_data(
+                timestamp=before_now(minutes=(10 + idx)),
+                duration=timedelta(milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{idx}"
+            data["user"] = {"email": f"{event[0]}@example.com"}
+            self.store_event(data, project_id=_project.id)
+
+            if per_transaction_threshold and idx % 2:
+                ProjectTransactionThresholdOverride.objects.create(
+                    transaction=f"/count_miserable/horribilis/{idx}",
+                    project=_project,
+                    organization=_project.organization,
+                    threshold=100 * idx,
+                    metric=TransactionMetric.DURATION.value,
+                )
+
 
 @region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
@@ -1968,39 +2001,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         data = response.data["data"]
         assert data[0]["user_misery()"] == user_misery_formula(1, 2)
         assert data[1]["user_misery()"] == user_misery_formula(2, 2)
-
-    def _setup_user_misery(
-        self, per_transaction_threshold: bool = False, project: Project | None = None
-    ) -> None:
-        _project = project or self.project
-        # If duration is > 300 * 4 then the user is fruistrated
-        # There's a total of 4 users and three of them reach the frustration threshold
-        events = [
-            ("one", 300),
-            ("two", 300),
-            ("one", 3000),  # Frustrated
-            ("two", 3000),  # Frustrated
-            ("three", 400),
-            ("four", 4000),  # Frustrated
-        ]
-        for idx, event in enumerate(events):
-            data = self.load_data(
-                timestamp=before_now(minutes=(10 + idx)),
-                duration=timedelta(milliseconds=event[1]),
-            )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/horribilis/{idx}"
-            data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=_project.id)
-
-            if per_transaction_threshold and idx % 2:
-                ProjectTransactionThresholdOverride.objects.create(
-                    transaction=f"/count_miserable/horribilis/{idx}",
-                    project=_project,
-                    organization=_project.organization,
-                    threshold=100 * idx,
-                    metric=TransactionMetric.DURATION.value,
-                )
 
     def test_user_misery_alias_field_with_transaction_threshold(self):
         self._setup_user_misery(per_transaction_threshold=True)
