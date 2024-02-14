@@ -18,7 +18,7 @@ import {
   MetricDisplayType,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
-import {useMetricsQueryZoom} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -222,12 +222,16 @@ export function MetricWidgetChartContainer({
     isLoading,
     isError,
     error,
-  } = useMetricsQueryZoom(
+  } = useMetricsQuery(
+    [
+      {
+        mri,
+        op,
+        query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
+        groupBy,
+      },
+    ],
     {
-      mri,
-      op,
-      query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
-      groupBy,
       projects,
       environments,
       datetime,

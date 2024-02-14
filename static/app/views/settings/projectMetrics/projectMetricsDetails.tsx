@@ -27,7 +27,7 @@ import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsData';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
@@ -76,6 +76,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
   const {data: metricsData, isLoading} = useMetricsQuery(
+    [{mri, op: operation}],
     {
       datetime: {
         period: '30d',
@@ -84,9 +85,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         utc: false,
       },
       environments: [],
-      mri,
       projects: projectIds,
-      op: operation,
     },
     {interval: '1d'}
   );

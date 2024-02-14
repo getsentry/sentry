@@ -2,7 +2,7 @@ import type {PageFilters} from 'sentry/types';
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,
-} from 'sentry/utils/metrics/useMetricsData';
+} from 'sentry/utils/metrics/useMetricsQuery';
 
 describe('createMqlQuery', () => {
   it('should create a basic mql query', () => {
@@ -49,7 +49,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {start: '2023-01-01', end: '2023-01-31', period: null, utc: true},
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters);
+    const result = getMetricsQueryApiRequestPayload([metric], filters);
 
     expect(result.query).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -78,7 +78,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {period: '7d', utc: true} as PageFilters['datetime'],
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters);
+    const result = getMetricsQueryApiRequestPayload([metric], filters);
 
     expect(result.query).toEqual({
       statsPeriod: '7d',
@@ -106,7 +106,9 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters, {interval: '123m'});
+    const result = getMetricsQueryApiRequestPayload([metric], filters, {
+      interval: '123m',
+    });
 
     expect(result.query).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -140,7 +142,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters);
+    const result = getMetricsQueryApiRequestPayload([metric], filters);
 
     expect(result.query).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -173,7 +175,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters);
+    const result = getMetricsQueryApiRequestPayload([metric], filters);
 
     expect(result.query).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -206,7 +208,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
 
-    const result = getMetricsQueryApiRequestPayload(metric, filters, {
+    const result = getMetricsQueryApiRequestPayload([metric], filters, {
       intervalLadder: 'ddm',
     });
 
