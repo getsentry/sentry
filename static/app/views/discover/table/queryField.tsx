@@ -387,6 +387,7 @@ class QueryField extends Component<Props> {
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT ||
                     value.kind === FieldValueKind.CUSTOM_MEASUREMENT ||
+                    value.kind === FieldValueKind.METRICS ||
                     value.kind === FieldValueKind.BREAKDOWN) &&
                   validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
