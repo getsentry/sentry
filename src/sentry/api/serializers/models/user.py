@@ -15,7 +15,7 @@ from sentry import experiments
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.avatars.user_avatar import UserAvatar
@@ -122,7 +122,8 @@ class UserSerializer(Serializer):
     def _get_identities(
         self, item_list: Sequence[User], user: User
     ) -> dict[int, list[AuthIdentity]]:
-        if not (env.request and is_active_superuser(env.request)):
+
+        if not (env.request and has_elevated_mode(env.request)):
             item_list = [x for x in item_list if x.id == user.id]
 
         queryset = AuthIdentity.objects.filter(
@@ -290,8 +291,10 @@ class DetailedUserSerializer(UserSerializer):
     ) -> DetailedUserSerializerResponse:
         d = cast(DetailedUserSerializerResponse, super().serialize(obj, attrs, user))
 
-        # XXX(dcramer): we don't use is_active_superuser here as we simply
-        # want to tell the UI that we're an authenticated superuser, and
+        # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
+
+        # XXX(dcramer): we don't check for active superuser/staff here as we simply
+        # want to tell the UI that we're an authenticated superuser/staff, and
         # for requests that require an *active* session, they should prompt
         # on-demand. This ensures things like links to the Sentry admin can
         # still easily be rendered.
@@ -357,9 +360,10 @@ class DetailedSelfUserSerializer(UserSerializer):
         d = cast(DetailedSelfUserSerializerResponse, super().serialize(obj, attrs, user))
 
         # safety check to never return this information if the acting user is not 1) this user, 2) an admin
-        if user.id == obj.id or user.is_superuser:
-            # XXX(dcramer): we don't use is_active_superuser here as we simply
-            # want to tell the UI that we're an authenticated superuser, and
+        # TODO(schew2381): Remove user.is_superuser once the staff feature flag is removed
+        if user.id == obj.id or user.is_superuser or user.is_staff:
+            # XXX(dcramer): we don't check for active superuser/staff here as we simply
+            # want to tell the UI that we're an authenticated superuser/staff, and
             # for requests that require an *active* session, they should prompt
             # on-demand. This ensures things like links to the Sentry admin can
             # still easily be rendered.
