@@ -49,7 +49,7 @@ RUST_CACHE = RustCache(1_000)
 enhancements_grammar = Grammar(
     r"""
 
-enhancements = line+
+enhancements = line*
 
 line = _ (comment / rule / empty) newline?
 

@@ -111,7 +111,7 @@ openapi-spec-validator==0.7.1
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
-parsimonious==0.9.0
+parsimonious==0.10.0
 pathable==0.4.3
 pathspec==0.9.0
 pep517==0.12.0

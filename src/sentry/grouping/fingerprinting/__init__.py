@@ -29,7 +29,7 @@ CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 fingerprinting_grammar = Grammar(
     r"""
 
-fingerprinting_rules = line+
+fingerprinting_rules = line*
 
 line = _ (comment / rule / empty) newline?
 

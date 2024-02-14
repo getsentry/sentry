@@ -33,7 +33,7 @@ CODEOWNERS = "codeowners"
 ownership_grammar = Grammar(
     rf"""
 
-ownership = line+
+ownership = line*
 
 line = _ (comment / rule / empty) newline?
 
