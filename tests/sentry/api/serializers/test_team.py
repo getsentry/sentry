@@ -38,15 +38,6 @@ class TeamSerializerTest(TestCase):
             "memberCount": 0,
         }
 
-    def test_simple_with_group_org_role(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        team = self.create_team(organization=organization, org_role="manager")
-        self.create_member(user=user, organization=organization, role="owner")
-
-        result = serialize(team, user)
-        assert result["orgRole"] == "manager"
-
     def test_member_count(self):
         user = self.create_user(username="foo")
         other_user = self.create_user(username="bar")
@@ -253,39 +244,6 @@ class TeamSerializerTest(TestCase):
             assert result["hasAccess"] is True
             assert result["isMember"] is False
             assert result["teamRole"] is None
-
-    def test_member_on_owner_team(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        manager_team = self.create_team(organization=organization, org_role="manager")
-        owner_team = self.create_team(organization=organization, org_role="owner")
-        self.create_member(
-            user=user, organization=organization, role="member", teams=[manager_team, owner_team]
-        )
-        team = self.create_team(organization=organization)
-
-        result = serialize(team, user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(team, user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-        assert result["teamRole"] is None
-
-        self.create_team_membership(user=user, team=team, role=None)
-        result = serialize(team, user)
-        # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is True
-        assert result["teamRole"] == TEAM_ADMIN["id"]
 
     def test_member_with_team_role_on_owner_team(self):
         user = self.create_user(username="foo")

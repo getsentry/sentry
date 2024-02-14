@@ -88,7 +88,7 @@ def get_access_by_project(
     team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
 
     org_ids = {i.organization_id for i in projects}
-    all_org_roles = get_org_roles(org_ids, user)
+    org_roles = get_org_roles(org_ids, user)
     is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
@@ -98,13 +98,13 @@ def get_access_by_project(
         parent_teams = [t.id for t in project_team_map.get(project.id, [])]
         member_teams = [m for m in team_memberships if m.team_id in parent_teams]
         is_member = any(member_teams)
-        org_roles = all_org_roles.get(project.organization_id) or []
+        org_role = org_roles.get(project.organization_id)
 
         has_access = bool(
             is_member
             or is_superuser
             or project.organization.flags.allow_joinleave
-            or any(roles.get(org_role).is_global for org_role in org_roles)
+            or roles.get(org_role).is_global
         )
 
         team_scopes = set()
