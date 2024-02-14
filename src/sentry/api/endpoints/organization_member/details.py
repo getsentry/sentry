@@ -262,22 +262,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_org_role = result.get("orgRole") or result.get("role")
 
-        if (
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-            or member.get_teams()
-        ):
-            new_role = assigned_org_role if assigned_org_role else member.role
-            if not organization_roles.get(new_role).is_team_roles_allowed:
-                return Response(
-                    {
-                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
-                    },
-                    status=400,
-                )
-
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
+        team_roles = teams = None
         if "teamRoles" in result or "teams" in result:
             try:
                 if "teamRoles" in result:
@@ -287,11 +274,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                         if features.has("organizations:team-roles", organization)
                         else [(team, None) for team, _ in result.get("teamRoles", [])]
                     )
-                    save_team_assignments(member, None, team_roles)
                 elif "teams" in result:
-                    save_team_assignments(member, result.get("teams"))
+                    teams = result.get("teams")
             except InvalidTeam:
                 return Response({"teams": "Invalid team"}, status=400)
+
+        if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
+            new_role = assigned_org_role if assigned_org_role else member.role
+            if not organization_roles.get(new_role).is_team_roles_allowed:
+                return Response(
+                    {
+                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
+                    },
+                    status=400,
+                )
+
+        if team_roles:
+            save_team_assignments(member, None, team_roles)
+        else:
+            save_team_assignments(member, teams)
 
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 

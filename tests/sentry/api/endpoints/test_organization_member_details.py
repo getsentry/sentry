@@ -615,6 +615,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
+    def test_can_demote_team_member_to_role_where_team_roles_disabled_with_team_removed(
+        self, mock_get
+    ):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.manager = self.create_user()
+        self.manager_om = self.create_member(
+            organization=self.organization, user=self.manager, role="manager", teams=[team]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        self.get_success_response(
+            self.organization.slug, self.manager_om.id, orgRole="member", teamRoles=[]
+        )
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
     def test_can_promote_team_member_to_role_where_team_roles_enabled(self, mock_get):
         team = self.create_team(organization=self.organization, name="Team Foo")
 
