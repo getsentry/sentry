@@ -8,7 +8,6 @@ import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {mapToMRIFields} from 'sentry/utils/metrics';
 
 import {MetricsConfig} from '../datasetConfig/metrics';
 import type {DashboardFilters, Widget} from '../types';
@@ -113,11 +112,6 @@ class MetricWidgetQueries extends Component<Props, State> {
     );
   };
 
-  afterFetchData = (data: MetricsApiResponse) => {
-    const fields = this.props.widget.queries[0].aggregates;
-    mapToMRIFields(data, fields);
-  };
-
   render() {
     const {
       api,
@@ -144,8 +138,6 @@ class MetricWidgetQueries extends Component<Props, State> {
         onDataFetched={onDataFetched}
         loading={undefined}
         customDidUpdateComparator={this.customDidUpdateComparator}
-        afterFetchTableData={this.afterFetchData}
-        afterFetchSeriesData={this.afterFetchData}
       >
         {({errorMessage, ...rest}) =>
           children({

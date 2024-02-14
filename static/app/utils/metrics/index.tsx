@@ -20,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -325,32 +325,6 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   }
 
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
-}
-
-// TODO(ddm): remove this and all of its usages once backend sends mri fields
-export function mapToMRIFields(
-  data: MetricsApiResponse | undefined,
-  fields: string[]
-): void {
-  if (!data) {
-    return;
-  }
-
-  data.groups.forEach(group => {
-    group.series = swapObjectKeys(group.series, fields);
-    group.totals = swapObjectKeys(group.totals, fields);
-  });
-}
-
-function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
-  if (!obj) {
-    return {};
-  }
-
-  return Object.keys(obj).reduce((acc, key, index) => {
-    acc[newKeys[index]] = obj[key];
-    return acc;
-  }, {});
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
