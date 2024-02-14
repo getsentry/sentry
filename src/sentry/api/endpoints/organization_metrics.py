@@ -475,8 +475,8 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             serialized["mri"],
             params,
             snuba_params,
-            serialized.get("query", ""),
             serialized["field"],
+            serialized.get("query", ""),
             rollup,
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )

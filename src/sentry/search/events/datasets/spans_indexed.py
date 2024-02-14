@@ -194,6 +194,40 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                     redundant_grouping=True,
                 ),
+                SnQLFunction(
+                    "example",
+                    snql_aggregate=lambda args, alias: Function(
+                        "argMin",
+                        [
+                            Function("tuple", [Column("group"), Column("span_id")]),
+                            Function("cityHash64", [Column("span_id")]),
+                        ],
+                        alias,
+                    ),
+                ),
+                SnQLFunction(
+                    "rounded_timestamp",
+                    required_args=[IntervalDefault("interval", 1, None)],
+                    snql_column=lambda args, alias: Function(
+                        "toUInt32",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "intDiv",
+                                        [
+                                            Function("toUInt32", [Column("timestamp")]),
+                                            args["interval"],
+                                        ],
+                                    ),
+                                    args["interval"],
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                ),
             ]
         }
 

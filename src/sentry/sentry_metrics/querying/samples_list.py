@@ -1,16 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from snuba_sdk import And, Condition, Op, Or
+
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import (
-    SpanMRI,
-    TransactionMRI,
-    is_measurement,
-    is_mri,
-    parse_mri,
-)
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 
 
@@ -20,17 +16,16 @@ class SamplesListExecutor(ABC):
         mri: str,
         params: dict[str, Any],
         snuba_params: SnubaParams,
-        query: str | None,
         fields: list[str],
+        query: str | None,
         rollup: int,
         referrer: Referrer,
     ):
         self.mri = mri
         self.params = params
         self.snuba_params = snuba_params
-        self.query = query
         self.fields = fields
-        self.orderby = "-timestamp"
+        self.query = query
         self.rollup = rollup
         self.referrer = referrer
 
@@ -43,11 +38,45 @@ class SamplesListExecutor(ABC):
     def execute(self, offset, limit):
         raise NotImplementedError
 
+    def get_spans(self, span_ids: list[tuple[str, str]]):
+        if not span_ids:
+            return {"data": []}
 
-class TransactionsSamplesListExecutor(SamplesListExecutor):
-    @classmethod
-    def supports(cls, mri: str) -> bool:
-        return mri in {TransactionMRI.DURATION.value}
+        builder = SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            self.params,
+            snuba_params=self.snuba_params,
+            selected_columns=self.fields,
+            limit=len(span_ids),
+            offset=0,
+        )
+
+        # Using `IN` sometimes does not use the bloomfilter index
+        # on the table. So we're explicitly writing the condition
+        # using `OR`s.
+        #
+        # May not be necessary because it's also filtering on the
+        # `span.group` as well which allows Clickhouse to filter
+        # via the primary key but this is a precaution.
+        conditions = [
+            And(
+                [
+                    Condition(builder.column("span.group"), Op.EQ, group),
+                    Condition(builder.column("id"), Op.EQ, span_id),
+                ]
+            )
+            for (group, span_id) in span_ids
+        ]
+
+        if len(conditions) == 1:
+            span_condition = conditions[0]
+        else:
+            span_condition = Or(conditions)
+
+        builder.add_conditions([span_condition])
+
+        query_results = builder.run_query(self.referrer.value)
+        return builder.process_results(query_results)
 
 
 class SpansSamplesListExecutor(SamplesListExecutor):
@@ -58,48 +87,36 @@ class SpansSamplesListExecutor(SamplesListExecutor):
     def execute(self, offset, limit):
         builder = self.get_query_builder(offset, limit)
         query_results = builder.run_query(self.referrer.value)
-        return builder.process_results(query_results)
-
-    def get_mri_field(self):
-        if self.mri == SpanMRI.SELF_TIME.value:
-            return "span.self.time"
-
-        if self.mri == SpanMRI.DURATION.value:
-            return "span.duration"
-
-        raise ValueError(f"Unsupported MRI for SpansSamplesListExecutor: {self.mri}")
+        result = builder.process_results(query_results)
+        span_ids = [(row["example"][0], row["example"][1]) for row in result["data"]]
+        return self.get_spans(span_ids)
 
     def get_query_builder(self, offset: int, limit: int) -> SpansIndexedQueryBuilder:
-        fields = self.fields[:]
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
-        # These are fields we always want to return no matter what was selected.
-        for field in ["id", "project", "timestamp", self.get_mri_field()]:
-            if field not in self.fields:
-                fields.append(field)
-
-        return SpansIndexedQueryBuilder(
+        builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,
             snuba_params=self.snuba_params,
             query=self.query,
-            selected_columns=fields,
-            orderby=self.orderby,
+            selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
         )
 
+        builder.add_conditions(
+            [
+                # The `00` group is used for spans not used within the
+                # new starfish experience. It's effectively the group
+                # for other. It is a massive group, so we've chosen
+                # to exclude it here.
+                #
+                # In the future, we will want to look into exposing them
+                Condition(builder.column("span.group"), Op.NEQ, "00")
+            ]
+        )
 
-class MeasurementsSamplesListExecutor(SamplesListExecutor):
-    @classmethod
-    def supports(cls, mri: str) -> bool:
-        parsed_mri = parse_mri(mri)
-        return parsed_mri is not None and is_measurement(parsed_mri)
-
-
-class CustomMetricsSamplesListExecutor(SamplesListExecutor):
-    @classmethod
-    def supports(cls, mri: str) -> bool:
-        return is_mri(mri)
+        return builder
 
 
 def get_sample_list_executor_cls(mri) -> type[SamplesListExecutor] | None:

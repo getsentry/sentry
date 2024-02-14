@@ -1,6 +1,6 @@
 import copy
-import uuid
 from functools import partial
+from uuid import uuid4
 
 import pytest
 from django.urls import reverse
@@ -110,6 +110,38 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase, BaseSpansTestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
+    def create_span(self, **kwargs):
+        start_ts = kwargs.get("start_ts") or before_now(minutes=10)
+        duration = kwargs.get("duration") or 1000
+        self_time = kwargs.get("self_time") or duration
+
+        sentry_tags = kwargs.get("sentry_tags") or {}
+        if "group" not in sentry_tags:
+            sentry_tags["group"] = kwargs.get("group") or uuid4().hex[:16]
+
+        return {
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+            "event_id": kwargs.get("event_id") or uuid4().hex,
+            "trace_id": kwargs.get("trace_id") or uuid4().hex,
+            "span_id": kwargs.get("span_id") or uuid4().hex[:16],
+            "parent_span_id": kwargs.get("parent_span_id") or uuid4().hex[:16],
+            "segment_id": kwargs.get("segment_id") or uuid4().hex[:16],
+            "group_raw": kwargs.get("group_raw") or uuid4().hex[:16],
+            "profile_id": kwargs.get("profile_id") or uuid4().hex,
+            "is_segment": kwargs.get("is_segment", False),
+            # Multiply by 1000 cause it needs to be ms
+            "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+            "timestamp": int(start_ts.timestamp() * 1000),
+            "received": start_ts.timestamp(),
+            "duration_ms": duration,
+            "exclusive_time_ms": self_time,
+            "retention_days": 90,
+            "tags": kwargs.get("tags") or {},
+            "sentry_tags": sentry_tags,
+            "measurements": kwargs.get("measurements") or {},
+        }
+
     def do_request(self, query, features=None, **kwargs):
         if features is None:
             features = self.default_features
@@ -159,18 +191,17 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase, BaseSpansTestCase):
         }
 
     def test_span_duration_samples(self):
-        self.store_segment(
-            project_id=self.project.id,
-            timestamp=before_now(minutes=10),
-            trace_id=uuid.uuid4().hex,
-            transaction_id=uuid.uuid4().hex,
-        )
+        spans = [self.create_span(start_ts=before_now(days=i, minutes=10)) for i in range(10)]
+        self.store_spans(spans)
 
         query = {
             "mri": "d:spans/duration@millisecond",
-            "field": ["id", "span.self_time"],
+            "field": ["id"],
             "project": [self.project.id],
             "statsPeriod": "14d",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
+        expected = {span["span_id"] for span in spans}
+        actual = {row["id"] for row in response.data["data"]}
+        assert actual == expected
