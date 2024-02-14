@@ -144,7 +144,9 @@ export class VirtualizedViewManager {
       }
       const span_bar = this.span_bars[i];
       if (span_bar) {
-        span_bar.ref.style.transform = this.computeSpanMatrixTransform(span_bar.space);
+        span_bar.ref.style.transform = `matrix(${this.computeSpanMatrixTransform(
+          span_bar.space
+        ).join(',')}`;
       }
     }
   }
@@ -264,7 +266,34 @@ export class VirtualizedViewManager {
     return mat3;
   }
 
-  computeSpanMatrixTransform(span_space: [number, number]): string {
+  computeSpanTextPlacement(
+    translateX: number,
+    span_space: [number, number]
+  ): 'left' | 'right' | 'inside left' {
+    //  | <-->  |       |
+    //  |       | <-->  |
+    //  |  <-------->   |
+    //  |       |       |
+    //  |       |       |
+    const half = (this.columns.span_list.width * this.width) / 2;
+    const spanWidth = span_space[1] * this.spanDrawMatrix[0];
+
+    if (translateX > half) {
+      return 'left';
+    }
+
+    if (spanWidth > half) {
+      return 'inside left';
+    }
+
+    return 'right';
+  }
+
+  inverseSpanScaling(span_space: [number, number]): number {
+    return 1 / this.computeSpanMatrixTransform(span_space)[0];
+  }
+
+  computeSpanMatrixTransform(span_space: [number, number]): Matrix2D {
     const scale = Math.max(
       this.minSpanScalingFactor,
       (span_space[1] / this.spanView[1]) * this.spanScalingFactor
@@ -273,7 +302,7 @@ export class VirtualizedViewManager {
     const x = span_space[0] - this.spanView[0];
     const translateInPixels = x * this.spanDrawMatrix[0];
 
-    return `matrix(${scale},0,0,1,${translateInPixels},0)`;
+    return [scale, 0, 0, 1, translateInPixels, 0];
   }
 
   draw() {}

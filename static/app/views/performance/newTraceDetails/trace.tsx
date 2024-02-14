@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -797,6 +798,13 @@ function TraceBar(props: TraceBarProps) {
     return null;
   }
 
+  const spanTransform = props.viewManager.computeSpanMatrixTransform(props.node_space);
+  const inverseTransform = props.viewManager.inverseSpanScaling(props.node_space);
+  const textPosition = props.viewManager.computeSpanTextPlacement(
+    spanTransform[4],
+    props.node_space
+  );
+
   return (
     <div
       ref={r =>
@@ -804,11 +812,22 @@ function TraceBar(props: TraceBarProps) {
       }
       className="TraceBar"
       style={{
-        position: 'absolute',
-        transform: props.viewManager.computeSpanMatrixTransform(props.node_space),
+        transform: `matrix(${spanTransform.join(',')})`,
         backgroundColor: props.color,
       }}
-    />
+    >
+      <div
+        className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
+        style={{
+          left: textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
+          transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
+            textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
+          }, 0)`,
+        }}
+      >
+        <PerformanceDuration seconds={props.node_space[1]} abbreviation />
+      </div>
+    </div>
   );
 }
 
@@ -911,10 +930,25 @@ const TraceStylingWrapper = styled('div')`
   }
 
   .TraceBar {
+    position: absolute;
     height: 64%;
     width: 100%;
     background-color: black;
     transform-origin: left center;
+  }
+
+  .TraceBarDuration {
+    display: inline-block;
+    transform-origin: left center;
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    color: ${p => p.theme.gray300};
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    position: absolute;
+
+    &.Inside {
+      color: ${p => p.theme.gray100};
+    }
   }
 
   .TraceChildrenCount {
