@@ -85,7 +85,7 @@ describe('ApiNewToken', function () {
     render(<ApiNewToken />, {
       context: RouterContextFixture(),
     });
-    const createButton = await screen.getByRole('button', {name: 'Create Token'});
+    const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name, value) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
@@ -125,7 +125,7 @@ describe('ApiNewToken', function () {
     render(<ApiNewToken />, {
       context: RouterContextFixture(),
     });
-    const createButton = await screen.getByRole('button', {name: 'Create Token'});
+    const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name, value) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
