@@ -3,7 +3,7 @@ import omit from 'lodash/omit';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {
-  MetricsApiResponse,
+  MetricsQueryApiResponse,
   Organization,
   PageFilters,
   TagCollection,
@@ -13,11 +13,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  getMetricsApiRequestQuery,
-  getMetricsSeriesName,
-  groupByOp,
-} from 'sentry/utils/metrics';
+import {getMetricsSeriesName, groupByOp} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRIField,
@@ -27,6 +23,7 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
+import {getMetricsQueryApiRequestPayload} from 'sentry/utils/metrics/useMetricsData';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -48,7 +45,10 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '',
 };
 
-export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse> = {
+export const MetricsConfig: DatasetConfig<
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponse
+> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   getTableRequest: (
@@ -289,16 +289,24 @@ function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: stri
   return handleOrderByReset(widgetQuery, newFields);
 }
 
-export function transformMetricsResponseToTable(data: MetricsApiResponse): TableData {
-  const rows = data.groups.map((group, index) => {
-    const groupColumn = mapMetricGroupsToFields(group.by);
-    const value = mapMetricGroupsToFields(group.totals);
-    return {
-      id: String(index),
-      ...groupColumn,
-      ...value,
-    };
-  });
+export function transformMetricsResponseToTable(
+  data: MetricsQueryApiResponse,
+  widgetQuery: WidgetQuery
+): TableData {
+  const field = widgetQuery.aggregates[0];
+  const rows = data.data.flatMap((group, index) =>
+    group.map(entry => {
+      const groupColumn = mapMetricGroupsToFields(entry.by);
+      const value = {
+        [field]: entry.totals,
+      };
+      return {
+        id: String(index),
+        ...groupColumn,
+        ...value,
+      };
+    })
+  );
 
   const singleRow = rows[0];
   const meta = {
@@ -331,17 +339,19 @@ function changeObjectValuesToTypes(
 }
 
 export function transformMetricsResponseToSeries(
-  data: MetricsApiResponse,
+  data: MetricsQueryApiResponse,
   widgetQuery: WidgetQuery
 ) {
   if (data === null) {
     return [];
   }
 
+  const field = widgetQuery.aggregates[0];
+
   const results: Series[] = [];
   const queryAlias = widgetQuery.name;
 
-  if (!data.groups.length) {
+  if (!data.data.length) {
     return [
       {
         seriesName: `(${t('no results')})`,
@@ -353,17 +363,17 @@ export function transformMetricsResponseToSeries(
     ];
   }
 
-  data.groups.forEach(group => {
-    Object.keys(group.series).forEach(field => {
+  data.data.forEach(group =>
+    group.forEach(entry => {
       results.push({
-        seriesName: queryAlias || getMetricsSeriesName(group),
+        seriesName: getMetricsSeriesName(queryAlias || field, entry.by),
         data: data.intervals.map((interval, index) => ({
           name: interval,
-          value: group.series[field][index] ?? 0,
+          value: entry.series[field][index] ?? 0,
         })),
       });
-    });
-  });
+    })
+  );
 
   return results;
 }
@@ -375,7 +385,7 @@ function getMetricRequest(
   pageFilters: PageFilters,
   limit?: number,
   displayType?: DisplayType
-): Promise<[MetricsApiResponse, string | undefined, ResponseMeta | undefined]> {
+): Promise<[MetricsQueryApiResponse, string | undefined, ResponseMeta | undefined]> {
   if (!query.aggregates[0]) {
     // No aggregate selected, return empty response
     return Promise.resolve([
@@ -391,24 +401,30 @@ function getMetricRequest(
     ] as any);
   }
 
-  const requestData = getMetricsApiRequestQuery(
+  const payload = getMetricsQueryApiRequestPayload(
     {
       field: query.aggregates[0],
       query: query.conditions || undefined,
       groupBy: query.columns || undefined,
-      orderBy: query.orderby || undefined,
+      orderBy: query.orderby
+        ? query.orderby.indexOf('-') === 0
+          ? 'desc'
+          : 'asc'
+        : undefined,
+      limit: limit || undefined,
     },
     pageFilters,
     {
-      limit: limit || undefined,
       intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
     }
   );
 
-  const pathname = `/organizations/${organization.slug}/metrics/data/`;
+  const pathname = `/organizations/${organization.slug}/metrics/query/`;
 
   return api.requestPromise(pathname, {
+    method: 'POST',
+    query: payload.query,
+    data: payload.body,
     includeAllArgs: true,
-    query: requestData,
   });
 }

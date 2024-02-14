@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Self
+from typing import Any, Self
 
 from django.db import models
 from django.http import HttpRequest
@@ -59,6 +59,18 @@ class WebhookPayload(Model):
     )
 
     @classmethod
+    def get_attributes_from_request(
+        cls,
+        request: HttpRequest,
+    ) -> dict[str, Any]:
+        return dict(
+            request_method=request.method,
+            request_path=request.get_full_path(),
+            request_headers=json.dumps({k: v for k, v in request.headers.items()}),
+            request_body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
     def create_from_request(
         cls,
         *,
@@ -72,10 +84,7 @@ class WebhookPayload(Model):
             mailbox_name=f"{provider}:{identifier}",
             region_name=region,
             integration_id=integration_id,
-            request_method=request.method,
-            request_path=request.get_full_path(),
-            request_headers=json.dumps({k: v for k, v in request.headers.items()}),
-            request_body=request.body.decode(encoding="utf-8"),
+            **cls.get_attributes_from_request(request),
         )
 
     def schedule_next_attempt(self):

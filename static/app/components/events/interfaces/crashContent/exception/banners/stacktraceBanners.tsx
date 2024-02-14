@@ -63,8 +63,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const {projects} = useProjects();
   const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? [])
     .filter(
-      frame =>
-        frame && frame.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+      frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
     )
     .at(-1);
   const project = useMemo(
