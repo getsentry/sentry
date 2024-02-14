@@ -118,13 +118,10 @@ def get_access_by_project(
                 for member in member_teams:
                     team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
-                # User may have elevated team-roles from their org-role
-                top_org_role = org_roles[0] if org_roles else None
                 if is_superuser:
-                    top_org_role = organization_roles.get_top_dog().id
+                    org_role = organization_roles.get_top_dog().id
 
-                if top_org_role:
-                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
                     team_scopes = team_scopes.union(minimum_team_role.scopes)
 
         result[project] = {
