@@ -49,7 +49,7 @@ def add_uuid_to_all_rule_actions(apps, schema_editor) -> None:
             _ensure_action_uuid(action)
 
         rule.data["actions"] = actions
-        rule.save()
+        rule.save(update_fields=["data"])
 
 
 class Migration(CheckedMigration):
