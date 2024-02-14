@@ -197,10 +197,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             )
 
     def refresh_ownership_schema(self, ownership: ProjectOwnership, project: Project) -> None:
-        if (
-            not hasattr(ownership, "schema")
-            or ownership.schema is None
-            or ownership.schema.get("rules") is None
+        if hasattr(ownership, "schema") and (
+            ownership.schema is None or ownership.schema.get("rules") is None
         ):
             return
 

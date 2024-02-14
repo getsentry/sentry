@@ -27,10 +27,8 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     }
 
     def refresh_codeowners_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
-        if (
-            not hasattr(codeowner, "schema")
-            or codeowner.schema is None
-            or codeowner.schema.get("rules") is None
+        if hasattr(codeowner, "schema") and (
+            codeowner.schema is None or codeowner.schema.get("rules") is None
         ):
             return
 
