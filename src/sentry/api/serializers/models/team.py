@@ -80,7 +80,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
 
 def get_org_roles(
     org_ids: set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
-) -> Mapping[int, Sequence[str]]:
+) -> Mapping[int, str]:
     """
     Get the roles the user has in each org
     """
