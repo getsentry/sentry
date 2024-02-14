@@ -1,4 +1,5 @@
-import React, {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import type React from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -151,7 +152,7 @@ function Trace({trace, trace_id}: TraceProps) {
   );
 }
 
-export default React.memo(Trace);
+export default Trace;
 
 const TraceDivider = styled('div')`
   position: absolute;
