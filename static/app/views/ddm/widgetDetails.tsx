@@ -131,5 +131,5 @@ const TrayWrapper = styled('div')`
 
 const ContentWrapper = styled('div')`
   position: relative;
-  padding: ${space(2)} 0;
+  padding-top: ${space(2)};
 `;

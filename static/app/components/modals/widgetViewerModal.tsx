@@ -107,6 +107,7 @@ export interface WidgetViewerModalOptions {
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
+  onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;

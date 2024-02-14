@@ -184,11 +184,11 @@ class DashboardDetail extends Component<Props, State> {
           pageLinks,
           totalIssuesCount,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
-          onUpdateMetricWidget: updatedWidget => {
+          onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
 
-            const index = widgets.findIndex(({id}) => id === updatedWidget.id);
-            widgets[index] = {...widgets[index], ...updatedWidget};
+            const widgetIndex = dashboard.widgets.indexOf(widget);
+            widgets[widgetIndex] = {...widgets[widgetIndex], ...updatedWidget};
 
             this.handleUpdateWidgetList(widgets);
           },
@@ -542,7 +542,6 @@ class DashboardDetail extends Component<Props, State> {
     if (!this.isEditingDashboard) {
       this.handleUpdateWidgetList(nextList);
     }
-    this.handleStartEditMetricWidget(nextList.length - 1);
   };
 
   onAddWidget = (dataset: DataSet) => {

@@ -7,22 +7,27 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis, IconSettings, IconSiren} from 'sentry/icons';
+import {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import {
+  IconCheckmark,
+  IconEdit,
+  IconEllipsis,
+  IconSettings,
+  IconSiren,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI, Organization, PageFilters} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
-import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
+import type {MetricsQuery,MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
 import {Query} from 'sentry/views/ddm/queries';
@@ -36,18 +41,6 @@ import {
 import {parseField} from '../../utils/metrics/mri';
 import {MetricWidget} from '../../views/ddm/widget';
 import {Tooltip} from '../tooltip';
-
-export interface WidgetViewerModalOptions {
-  organization: Organization;
-  widget: Widget;
-  dashboardFilters?: DashboardFilters;
-  onEdit?: () => void;
-  pageLinks?: string;
-  seriesData?: Series[];
-  seriesResultsType?: Record<string, AggregationOutputType>;
-  tableData?: TableDataWithTitle[];
-  totalIssuesCount?: string;
-}
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;
@@ -67,9 +60,11 @@ function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
   };
 }
 
-function WidgetViewerModal(props: Props) {
-  const onUpdate = props.onUpdateMetricWidget;
-  const {organization, widget, Footer, Body, Header, closeModal, selection} = props;
+function MetricWidgetViewerModal(props: Props) {
+
+  const {organization, widget, Footer, Body, Header, closeModal, selection, onMetricWidgetEdit} = props;
+
+  const router = useRouter();
 
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
@@ -80,6 +75,7 @@ function WidgetViewerModal(props: Props) {
   );
 
   const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -107,20 +103,40 @@ function WidgetViewerModal(props: Props) {
       displayType: convertedWidget.displayType,
     };
 
-    onUpdate?.(updatedWidget);
-  }, [title, defaultTitle, metricWidgetQueryParams, onUpdate, widget, selection]);
+    onMetricWidgetEdit?.(updatedWidget);
+  }, [title, defaultTitle, metricWidgetQueryParams, onMetricWidgetEdit, widget, selection]);
 
-  const handleCancel = useCallback(() => {
-    onUpdate?.(null);
-  }, [onUpdate]);
 
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
           <WidgetHeader>
+            {/* { TODO: extract to a separate component in a followup } */}
             <WidgetTitleRow>
-              <h3>{title}</h3>
+              {isEditingTitle ? (
+                <Input
+                  value={title}
+                  placeholder={stringifyMetricWidget(metricWidgetQueryParams)}
+                  onChange={e => {
+                    setTitle?.(e.target.value ?? defaultTitle);
+                  }}
+                />
+              ) : (
+                <h3>{title}</h3>
+              )}
+              <Button
+                aria-label="Edit Title"
+                size="sm"
+                borderless
+                icon={
+                  isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />
+                }
+                priority={isEditingTitle ? 'primary' : 'default'}
+                onClick={() => {
+                  setIsEditingTitle(curr => !curr);
+                }}
+              />
             </WidgetTitleRow>
             {widget.description && (
               <Tooltip
@@ -170,6 +186,14 @@ function WidgetViewerModal(props: Props) {
             <Button
               onClick={() => {
                 closeModal();
+                router.push(
+                  getDdmUrl(organization.slug, {
+                    widgets: [metricWidgetQueryParams],
+                    project: selection.projects,
+                    ...selection.datetime,
+                    environment: selection.environments,
+                  })
+                );
               }}
             >
               {t('Open in Metrics')}
@@ -177,7 +201,6 @@ function WidgetViewerModal(props: Props) {
             <Button
               onClick={() => {
                 closeModal();
-                handleCancel();
               }}
             >
               {t('Close')}
@@ -192,14 +215,6 @@ function WidgetViewerModal(props: Props) {
             >
               {t('Save changes')}
             </Button>
-            {/* {widget.widgetType && (
-                <OpenButton
-                  widget={primaryWidget}
-                  organization={organization}
-                  selection={modalTableSelection}
-                  selectedQueryIndex={selectedQueryIndex}
-                />
-              )} */}
           </ButtonBar>
         </Footer>
       </OrganizationContext.Provider>
@@ -269,7 +284,7 @@ export function ContextMenu({
   );
 }
 
-export default withPageFilters(WidgetViewerModal);
+export default withPageFilters(MetricWidgetViewerModal);
 
 const WidgetHeader = styled('div')`
   display: flex;
@@ -279,8 +294,9 @@ const WidgetHeader = styled('div')`
 
 const WidgetTitleRow = styled('div')`
   display: flex;
+  justify-content: flex-start;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${space(1)};
 `;
 
 export const modalCss = css`
