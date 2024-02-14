@@ -310,22 +310,19 @@ describe('TraceTree', () => {
     const root = new TraceTreeNode(
       null,
       makeTransaction({
+        span_id: 'parent-transaction',
         children: [],
       }),
       {project_slug: '', event_id: ''}
     );
 
     let start: TraceTreeNode<TraceTree.NodeValue> = root;
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       const node = new TraceTreeNode(
-        root,
+        start,
         makeTransaction({
-          transaction: `${
-            i === 0 ? 'parent' : i === 1 ? 'child' : 'grandchild'
-          }-transaction`,
-          parent_span_id: `${
-            i === 0 ? 'parent' : i === 1 ? 'child' : 'grandchild'
-          }-transaction`,
+          transaction: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
+          parent_span_id: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
         }),
         {project_slug: '', event_id: ''}
       );

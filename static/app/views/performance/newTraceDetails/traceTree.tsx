@@ -271,11 +271,10 @@ export class TraceTree {
     }
 
     const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
-    const transactions = parent.transactions;
 
-    for (const child of transactions) {
+    for (const child of parent.children) {
       if (
-        child.value &&
+        isTransactionNode(child) &&
         'parent_span_id' in child.value &&
         typeof child.value.parent_span_id === 'string'
       ) {
@@ -789,34 +788,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   set children(children: TraceTreeNode<TraceTree.NodeValue>[]) {
     this._children = children;
-  }
-
-  get transactions(): TraceTreeNode<TraceTree.Transaction>[] {
-    const stack: TraceTreeNode<TraceTree.Transaction>[] = [];
-    const children: TraceTreeNode<TraceTree.Transaction>[] = [];
-
-    if (isTransactionNode(this)) {
-      for (let i = this.children.length - 1; i >= 0; i--) {
-        const child = this.children[i];
-        if (isTransactionNode(child)) {
-          stack.push(child);
-        }
-      }
-    }
-
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      children.push(node);
-
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        const child = node.children[i];
-        if (isTransactionNode(child)) {
-          stack.push(child);
-        }
-      }
-    }
-
-    return children;
   }
 
   get spanChildren(): TraceTreeNode<
