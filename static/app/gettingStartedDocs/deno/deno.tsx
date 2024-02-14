@@ -10,7 +10,8 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: Params) =>
+  `
 // Import from the Deno registry
 import * as Sentry from "https://deno.land/x/sentry/index.mjs";
 
@@ -26,23 +27,25 @@ Sentry.init({
 });
 `;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = () => `;
 setTimeout(() => {
   throw new Error();
 });
 `;
 
-const getMetricsConfigureSnippet = (params: DocsParams) => `
+const getMetricsConfigureSnippet = (params: DocsParams) => `;
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: '${params.dsn}',
   _experiments: {
     metricsAggregator: true,
   },
-});`;
+});
+`;
 
-const getMetricsVerifySnippet = () => `
+const getMetricsVerifySnippet = () => `;
 // Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
+Sentry.metrics.increment('hits', 4);
+`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
