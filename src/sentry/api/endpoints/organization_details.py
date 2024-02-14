@@ -532,6 +532,7 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+# NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
