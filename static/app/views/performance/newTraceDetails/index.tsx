@@ -2,12 +2,10 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -16,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconPlay} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -40,12 +38,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Breadcrumb from '../breadcrumb';
-import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import type {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {getTraceInfo} from '../traceDetails/utils';
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 import {MetaData} from '../transactionDetails/styles';
 
 import Trace from './trace';
+import TraceWarnings from './traceWarnings';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -127,62 +126,6 @@ export function TraceView() {
       </Layout.Page>
     </SentryDocumentTitle>
   );
-}
-
-type TraceWarningsProps = {
-  traceType: TraceType | null;
-};
-
-function TraceWarnings({traceType}: TraceWarningsProps) {
-  if (!traceType) {
-    return null;
-  }
-
-  switch (traceType) {
-    case TraceType.NO_ROOT:
-      return (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
-      );
-    case TraceType.BROKEN_SUBTRACES:
-      return (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
-      );
-    case TraceType.MULTIPLE_ROOTS:
-      return (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
-            {t('Multiple root transactions have been found with this trace ID.')}
-          </ExternalLink>
-        </Alert>
-      );
-    case TraceType.ONLY_ERRORS:
-      return (
-        <Alert type="info" showIcon>
-          {tct(
-            "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-            {
-              tracingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-              ),
-            }
-          )}
-        </Alert>
-      );
-    default:
-      return null;
-  }
 }
 
 type TraceHeaderProps = {
@@ -317,17 +260,8 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const {
-    organization,
-    traceSplitResult,
-    traceSlug,
-    location,
-    traceEventView,
-    metaResults,
-  } = props;
-
   const [traceType, setTraceType] = useState<TraceType | null>(null);
-  const root = traceSplitResult?.transactions?.[0];
+  const root = props.traceSplitResult?.transactions?.[0];
   const rootEventResults = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
@@ -340,7 +274,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     {
       staleTime: 0,
       enabled: !!(
-        traceSplitResult?.transactions && traceSplitResult.transactions.length > 0
+        props.traceSplitResult?.transactions &&
+        props.traceSplitResult.transactions.length > 0
       ),
     }
   );
@@ -350,26 +285,26 @@ function TraceViewContent(props: TraceViewContentProps) {
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumb
-            organization={organization}
-            location={location}
+            organization={props.organization}
+            location={props.location}
             transaction={{
               project: rootEventResults.data?.projectID ?? '',
               name: rootEventResults.data?.title ?? '',
             }}
-            traceSlug={traceSlug}
+            traceSlug={props.traceSlug}
           />
           <Layout.Title data-test-id="trace-header">
-            {t('Trace ID: %s', traceSlug)}
+            {t('Trace ID: %s', props.traceSlug)}
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             <DiscoverButton
               size="sm"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
               onClick={() => {
                 trackAnalytics('performance_views.trace_view.open_in_discover', {
-                  organization,
+                  organization: props.organization,
                 });
               }}
             >
@@ -383,13 +318,13 @@ function TraceViewContent(props: TraceViewContentProps) {
           <TraceWarnings traceType={traceType} />
           <TraceHeader
             rootEventResults={rootEventResults}
-            metaResults={metaResults}
-            organization={organization}
-            traceSplitResult={traceSplitResult}
+            metaResults={props.metaResults}
+            organization={props.organization}
+            traceSplitResult={props.traceSplitResult}
           />
           <Trace
-            trace={traceSplitResult}
-            trace_id={traceSlug}
+            trace={props.traceSplitResult}
+            trace_id={props.traceSlug}
             setTraceType={setTraceType}
           />
         </Layout.Main>
