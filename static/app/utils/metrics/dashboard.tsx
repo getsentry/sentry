@@ -1,17 +1,19 @@
 import {urlEncode} from '@sentry/utils';
 
-import {MRI,PageFilters} from 'sentry/types';
+import type {MRI, PageFilters} from 'sentry/types';
 import {emptyWidget} from 'sentry/utils/metrics/constants';
-import {formatMRI, MRIToField,parseField} from 'sentry/utils/metrics/mri';
+import {formatMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {MetricDisplayType, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricDisplayType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-
 
 const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
   return `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`;
@@ -43,7 +45,6 @@ export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams {
     displayType: toMetricDisplayType(widget.displayType),
   };
 }
-
 
 export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
   if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
