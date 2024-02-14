@@ -800,7 +800,6 @@ def operation_if_column_snql(
             Function(
                 "and",
                 [
-                    aggregate_filter,
                     Function(
                         "equals",
                         [
@@ -808,6 +807,7 @@ def operation_if_column_snql(
                             resolve_tag_value(use_case_id, org_id, if_value),
                         ],
                     ),
+                    aggregate_filter,
                 ],
             ),
         ],
@@ -1019,16 +1019,21 @@ def on_demand_eps_snql_factory(
 def on_demand_user_misery_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str | None = None
 ) -> Function:
-    miserable_users = uniq_if_column_snql(
-        aggregate_filter, org_id, use_case_id, "satisfaction", "frustrated"
+    _miserable_users = uniq_if_column_snql(
+        aggregate_filter,
+        org_id,
+        use_case_id,
+        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+        TransactionSatisfactionTagValue.FRUSTRATED.value,
     )
+
     unique_users = Function("uniqIf", [Column("value"), aggregate_filter])
     # (count_miserable(users, threshold) + 5.8875) / (count_unique(users) + 5.8875 + 111.8625)
     # https://github.com/getsentry/sentry/blob/b29efaef31605e2e2247128de0922e8dca576a22/src/sentry/search/events/datasets/discover.py#L206-L230
     return Function(
         "divide",
         [
-            Function("plus", [miserable_users, constants.MISERY_ALPHA]),
+            Function("plus", [_miserable_users, constants.MISERY_ALPHA]),
             Function("plus", [unique_users, (constants.MISERY_ALPHA + constants.MISERY_BETA)]),
         ],
         alias=alias,

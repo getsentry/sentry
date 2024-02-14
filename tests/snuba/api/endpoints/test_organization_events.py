@@ -2000,14 +2000,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["user_misery()"] == pytest.approx(0.05751, rel=1e-3)
         assert data[1]["user_misery()"] == pytest.approx(0.06586, rel=1e-3)
 
-    def test_user_misery_alias_field_with_transaction_threshold(self):
+    def _setup_user_misery(self, per_transaction_threshold: bool = False) -> None:
+        # If duration is > 300 * 4 then the user is fruistrated
+        # There's a total of 4 users and three of them reach the frustration threshold
         events = [
             ("one", 300),
             ("two", 300),
-            ("one", 3000),
-            ("two", 3000),
+            ("one", 3000),  # Frustrated
+            ("two", 3000),  # Frustrated
             ("three", 400),
-            ("four", 4000),
+            ("four", 4000),  # Frustrated
         ]
         for idx, event in enumerate(events):
             data = self.load_data(
@@ -2019,7 +2021,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["user"] = {"email": f"{event[0]}@example.com"}
             self.store_event(data, project_id=self.project.id)
 
-            if idx % 2:
+            if per_transaction_threshold and idx % 2:
                 ProjectTransactionThresholdOverride.objects.create(
                     transaction=f"/count_miserable/horribilis/{idx}",
                     project=self.project,
@@ -2027,6 +2029,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     threshold=100 * idx,
                     metric=TransactionMetric.DURATION.value,
                 )
+
+    def test_user_misery_alias_field_with_transaction_threshold(self):
+        self._setup_user_misery(per_transaction_threshold=True)
 
         query = {
             "field": [
