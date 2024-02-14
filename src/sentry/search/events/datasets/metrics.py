@@ -575,6 +575,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_total_starts",
+                    snql_distribution=self._resolve_count_total_starts_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
                         fields.MetricArg(
@@ -1288,6 +1293,38 @@ class MetricsDatasetConfig(DatasetConfig):
             [
                 Column("value"),
                 Function("equals", [Column("metric_id"), metric_id]),
+            ],
+            alias,
+        )
+
+    def _resolve_count_total_starts_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "or",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_cold"),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric("measurements.app_start_warm"),
+                            ],
+                        ),
+                    ],
+                ),
             ],
             alias,
         )
