@@ -3,9 +3,9 @@ import {urlEncode} from '@sentry/utils';
 import type {MRI, PageFilters} from 'sentry/types';
 import {emptyWidget} from 'sentry/utils/metrics/constants';
 import {formatMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery} from 'sentry/utils/metrics/types';
-import {
+import type {
   MetricDisplayType,
+  MetricsQuery,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
