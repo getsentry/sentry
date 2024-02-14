@@ -16,7 +16,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.replays.lib.storage import make_filename
 from sentry.replays.usecases.reader import (
     fetch_direct_storage_segments_meta,
     segment_row_to_storage_meta,
@@ -116,7 +115,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             # Make a POST request to the replay-analyzer service. The files will be downloaded
             # and evaluated on the remote system. The accessibility output is then redirected to
             # the client.
-            return request_accessibility_issues([make_filename(segment) for segment in segments])
+            return request_accessibility_issues([segment.filename for segment in segments])
 
         return self.paginate(
             request=request,
