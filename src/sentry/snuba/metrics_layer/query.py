@@ -83,6 +83,9 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
 
     This function is used to execute multiple metrics queries in a single request.
     """
+    if not requests:
+        return []
+
     queries = []
     for request in requests:
         request, start, end = _setup_metrics_query(request)

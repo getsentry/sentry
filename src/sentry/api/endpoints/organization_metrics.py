@@ -378,6 +378,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         """
         Extracts the metrics queries plan from the request payload.
         """
+        # TODO: maybe we could use a serializer to read the body of the request.
         metrics_queries_plan = MetricsQueriesPlan()
 
         queries = request.data.get("queries") or []
@@ -406,7 +407,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 end=end,
                 interval=interval,
                 organization=organization,
-                # TODO: figure out how to make these methods work with HTTP body.
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_DDM_METRICS_QUERY.value,

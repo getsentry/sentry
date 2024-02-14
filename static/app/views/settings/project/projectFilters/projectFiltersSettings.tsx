@@ -148,6 +148,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
     icon: iconOpera,
     title: 'Opera',
     helpText: 'Version 50 and lower',
+    legacy: false,
   },
   opera_mini: {
     icon: iconOpera,

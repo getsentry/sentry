@@ -1436,6 +1436,7 @@ SENTRY_EARLY_FEATURES = {
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1556,8 +1557,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:global-views": False,
     # Enable grouping of ChunkLoadErrors
     "organizations:group-chunk-load-errors": False,
-    # Enable built-in grouping fingerprint rules
-    "organizations:grouping-built-in-fingerprint-rules": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1620,8 +1619,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
-    # Enables the new Stacktrace Link UI in frame header
-    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
@@ -1753,6 +1750,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
+    # Enable API aka HTTP aka Network Performance module
+    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
@@ -1879,6 +1878,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
+    # Improvements to Slack messages using Block Kit
+    "organizations:slack-block-kit-improvements": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1908,6 +1909,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page

@@ -24,6 +24,7 @@ from sentry.integrations.slack.message_builder.issues import (
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
+    ErrorGroupType,
     FeedbackGroup,
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
@@ -605,7 +606,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
-            suggested_assignees=commit_author.email,
         )
 
     @patch(
@@ -677,10 +677,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
-            suggested_assignees=commit_author.email,
         )
 
     @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:streamline-targeting-context")
     def test_issue_alert_with_suggested_assignees(self):
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -903,6 +903,34 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_build_group_generic_issue_block_title_emojis(self):
+        """Test that a generic issue type's Slack alert contains the expected values"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+        occurrence = self.build_occurrence(level="info")
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        # uses CATEGORY_TO_EMOJI_V2
+        group_event.group.type = ProfileFileIOGroupType.type_id
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert ":large_blue_circle::chart_with_upwards_trend:" in section["text"]["text"]
+
+        # uses LEVEL_TO_EMOJI_V2
+        group_event.group.type = ErrorGroupType.type_id
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert ":red_circle:" in section["text"]["text"]
 
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)

@@ -27,7 +27,9 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
+    CATEGORY_TO_EMOJI_V2,
     LEVEL_TO_EMOJI,
+    LEVEL_TO_EMOJI_V2,
     SLACK_URL_FORMAT,
     SlackAttachment,
     SlackBlock,
@@ -306,13 +308,16 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    try:
-        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
-        suggested_assignees.extend(suspect_commit_users)
-    except (Release.DoesNotExist, Commit.DoesNotExist):
-        logger.info("Skipping suspect committers because release does not exist.")
-    except Exception:
-        logger.exception("Could not get suspect committers. Continuing execution.")
+    if features.has("organizations:streamline-targeting-context", project.organization):
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -611,15 +616,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
+        has_improvements_feature_flag = features.has(
+            "organizations:slack-block-kit-improvements", self.group.project.organization
+        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            if has_improvements_feature_flag:
+                title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
+            else:
+                title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            if has_improvements_feature_flag:
+                title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
+            else:
+                title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"

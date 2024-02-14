@@ -1,5 +1,6 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
@@ -22,7 +23,7 @@ def run_metrics_queries_plan(
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
-):
+) -> Mapping[str, Any]:
     # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
     # to a better data type.
     if metrics_queries_plan.is_empty():
