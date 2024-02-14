@@ -1,7 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
@@ -88,6 +88,12 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.REPLAY,
           ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
         ],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_PRIORITY]: {
+        key: FieldKey.ISSUE_PRIORITY,
+        name: 'Issue Priority',
+        values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
