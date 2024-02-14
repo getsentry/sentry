@@ -1652,5 +1652,5 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
         # crons don't have context
         assert get_context(self.cron_issue) == ""
 
-        # feedback has state and first seen
-        assert get_context(self.feedback_issue) == "State: *New*   First Seen: *Just now*"
+        # feedback doesn't have context
+        assert get_context(self.feedback_issue) == ""

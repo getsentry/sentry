@@ -560,7 +560,7 @@ class FeedbackGroup(GroupType):
     category = GroupCategory.FEEDBACK.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
-    notification_config = NotificationConfig(context=["State", "First Seen"])
+    notification_config = NotificationConfig(context=[])
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
