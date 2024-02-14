@@ -1717,7 +1717,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "sort": "count_miserable_user",
         }
 
-        def _expected(index: int, count: int) -> dict[str, str | int]:
+        def _expected(index: int, count: int) -> dict[str, Any]:
             return {
                 "transaction": f"/count_miserable/horribilis/{index}",
                 "project_threshold_config": ["duration", 400],
