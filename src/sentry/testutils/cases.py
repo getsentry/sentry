@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import hashlib
 import importlib.metadata
 import inspect
@@ -2091,7 +2089,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ) -> None:
         """Convert on-demand metric and store it"""
         relay_metric_spec = spec.to_metric_spec(self.project)
-        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
+        metric_spec_tags = []
+        if relay_metric_spec:
+            tags_keys = [condition["key"] for condition in spec.tags_conditions(self.project)]
+            # Functions in _DERIVED_METRICS include their tags in their conditions
+            metric_spec_tags = [
+                tag for tag in relay_metric_spec.get("tags") if tag["key"] not in tags_keys
+            ]
+
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
         metric_type = spec.metric_type
