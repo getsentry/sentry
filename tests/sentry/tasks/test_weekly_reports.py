@@ -24,6 +24,7 @@ from sentry.tasks.weekly_reports import (
     group_status_to_color,
     organization_project_issue_substatus_summaries,
     prepare_organization_report,
+    prepare_template_context,
     schedule_organizations,
 )
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
@@ -120,11 +121,16 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
+    @mock.patch("sentry.tasks.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.weekly_reports.send_email")
-    def test_deliver_reports_respects_settings(self, mock_send_email):
+    def test_deliver_reports_respects_settings(
+        self, mock_send_email, mock_prepare_template_context
+    ):
         user = self.user
         organization = self.organization
         ctx = OrganizationReportContext(0, 0, organization)
+        template_context = prepare_template_context(ctx, [user.id])
+        mock_prepare_template_context.return_value = template_context
 
         def set_option_value(value):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -144,7 +150,13 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         # enabled
         set_option_value("always")
         deliver_reports(ctx)
-        mock_send_email.assert_called_once_with(ctx, user.id, dry_run=False)
+        assert mock_send_email.call_count == 1
+        mock_send_email.assert_called_once_with(
+            ctx,
+            template_context[0].get("context"),
+            template_context[0].get("user_id"),
+            dry_run=False,
+        )
 
     @mock.patch("sentry.tasks.weekly_reports.send_email")
     def test_member_disabled(self, mock_send_email):

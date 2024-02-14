@@ -557,7 +557,14 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         target_user_id = (
             target_user.id if target_user else None
         )  # if None, generates report for a user with access to all projects
-        send_email(ctx, target_user_id, dry_run=dry_run, email_override=email_override)
+        template_by_user_id = prepare_template_context(ctx, [target_user_id])
+        send_email(
+            ctx,
+            template_by_user_id[0].get("context"),
+            template_by_user_id[0].get("user_id"),
+            dry_run=dry_run,
+            email_override=email_override,
+        )
     else:
         user_list = list(
             OrganizationMember.objects.filter(
@@ -571,8 +578,13 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         user_ids = notifications_service.get_users_for_weekly_reports(
             organization_id=ctx.organization.id, user_ids=user_list
         )
+        template_by_user_id = []
         for user_id in user_ids:
-            send_email(ctx, user_id, dry_run=dry_run)
+            template_by_user_id = prepare_template_context(ctx, user_ids)
+        for user_template in template_by_user_id:
+            send_email(
+                ctx, user_template.get("context"), user_template.get("user_id"), dry_run=dry_run
+            )
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -945,16 +957,21 @@ def render_template_context(ctx, user_id):
     }
 
 
-def send_email(ctx, user_id, dry_run=False, email_override=None):
-    template_ctx = render_template_context(ctx, user_id)
-    if not template_ctx:
-        logger.debug(
-            "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
-            ctx.organization.id,
-            user_id,
-        )
-        return
+def prepare_template_context(ctx, user_ids):
+    template_by_user_id = []
+    for user_id in user_ids:
+        template_ctx = render_template_context(ctx, user_id)
+        if not template_ctx:
+            logger.debug(
+                "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
+                ctx.organization.id,
+                user_id,
+            )
+        template_by_user_id.append({"context": template_ctx, "user_id": user_id})
+    return template_by_user_id
 
+
+def send_email(ctx, template_ctx, user_id, dry_run=False, email_override=None):
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
         template="sentry/emails/reports/body.txt",
@@ -965,6 +982,7 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+
     if email_override:
         message.send(to=(email_override,))
     else:
