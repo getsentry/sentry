@@ -78,6 +78,30 @@ class PerformanceEventTestMixin(
 
         assert mock_sdk_crash_reporter.report.call_count == 0
 
+    @patch("sentry.utils.metrics.incr")
+    def test_performance_event_increments_counter(self, incr, mock_sdk_crash_reporter):
+        fingerprint = "some_group"
+        fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
+        event = self.store_transaction(
+            project_id=self.project.id,
+            user_id="hi",
+            fingerprint=[fingerprint],
+        )
+        set_path(event.data, "sdk", "name", value="sentry.cocoa")
+        set_path(event.data, "sdk", "version", value="8.2.0")
+
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+        incr.assert_called_with(
+            "post_process.sdk_crash_monitoring.sdk_event",
+            tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+        )
+
+        # Ensure that no counter is incremented
+        for call_args in incr.call_args_list:
+            assert call_args[0][0] != "post_process.sdk_crash_monitoring.detecting_sdk_crash"
+            assert call_args[0][0] != "post_process.sdk_crash_monitoring.sdk_crash_detected"
+
 
 @django_db_all
 @pytest.mark.snuba
@@ -219,6 +243,10 @@ def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store
     incr.assert_has_calls(
         [
             call(
+                "post_process.sdk_crash_monitoring.sdk_event",
+                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+            ),
+            call(
                 "post_process.sdk_crash_monitoring.detecting_sdk_crash",
                 tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
             ),
@@ -245,9 +273,18 @@ def test_should_only_increment_detecting_counter_for_non_crash_event(
 
     sdk_crash_detection.detect_sdk_crash(event=non_crash_event, configs=configs)
 
-    incr.assert_called_with(
-        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
-        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+    incr.assert_has_calls(
+        [
+            call(
+                "post_process.sdk_crash_monitoring.sdk_event",
+                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+            ),
+            call(
+                "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+            ),
+        ],
+        any_order=True,
     )
 
     # Ensure that the counter sdk_crash_detected is not incremented
@@ -268,6 +305,31 @@ def test_should_not_increment_counters_for_not_supported_sdk(incr, sdk_crash_rep
     configs = [sdk_configs[0], sdk_configs[0]]
 
     sdk_crash_detection.detect_sdk_crash(event=crash_event, configs=configs)
+
+    # Ensure that no counter is incremented
+    for call_args in incr.call_args_list:
+        assert call_args[0][0] != "post_process.sdk_crash_monitoring.sdk_error_event"
+        assert call_args[0][0] != "post_process.sdk_crash_monitoring.detecting_sdk_crash"
+        assert call_args[0][0] != "post_process.sdk_crash_monitoring.sdk_crash_detected"
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+def test_should_increment_counter_for_non_crash_event(incr, sdk_crash_reporter, store_event):
+    event_data = get_crash_event(handled=True)
+    crash_event = store_event(data=event_data)
+
+    sdk_configs = build_sdk_configs()
+    configs = [sdk_configs[0], sdk_configs[0]]
+
+    sdk_crash_detection.detect_sdk_crash(event=crash_event, configs=configs)
+
+    incr.assert_called_with(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+    )
 
     # Ensure that no counter is incremented
     for call_args in incr.call_args_list:
@@ -298,5 +360,6 @@ def test_should_not_increment_counters_already_reported_sdk_crash(
 
     # Ensure that no counter is incremented
     for call_args in incr.call_args_list:
+        assert call_args[0][0] != "post_process.sdk_crash_monitoring.sdk_event"
         assert call_args[0][0] != "post_process.sdk_crash_monitoring.detecting_sdk_crash"
         assert call_args[0][0] != "post_process.sdk_crash_monitoring.sdk_crash_detected"

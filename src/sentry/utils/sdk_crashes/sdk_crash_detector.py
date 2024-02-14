@@ -23,13 +23,12 @@ class SDKCrashDetector:
     def replace_sdk_frame_path(self, path: str) -> str:
         return self.config.sdk_frame_config.path_replacer.replace_path(path)
 
-    def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
-        sdk_name = get_path(event_data, "sdk", "name")
-        if sdk_name is None or sdk_name not in self.config.sdk_names:
-            return False
-
-        sdk_version = get_path(event_data, "sdk", "version")
-        if not sdk_version:
+    def is_sdk_supported(
+        self,
+        sdk_name: str,
+        sdk_version: str,
+    ) -> bool:
+        if sdk_name not in self.config.sdk_names:
             return False
 
         try:
@@ -39,6 +38,14 @@ class SDKCrashDetector:
             if actual_sdk_version < minimum_sdk_version:
                 return False
         except InvalidVersion:
+            return False
+
+        return True
+
+    def should_detect_sdk_crash(
+        self, sdk_name: str, sdk_version: str, event_data: NodeData
+    ) -> bool:
+        if not self.is_sdk_supported(sdk_name, sdk_version):
             return False
 
         is_unhandled = (
