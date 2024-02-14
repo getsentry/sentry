@@ -47,7 +47,7 @@ import {
   DismissButton,
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 

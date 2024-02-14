@@ -22,7 +22,7 @@ import {
 import {useBrowserSort} from 'sentry/views/performance/browser/useBrowserSort';
 import {useInteractionElementQuery} from 'sentry/views/performance/browser/useInteractionElementQuery';
 import {usePagesQuery} from 'sentry/views/performance/browser/usePageQuery';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 const {COMPONENT, PAGE, TRANSACTION_OP} = BrowserStarfishFields;
 
