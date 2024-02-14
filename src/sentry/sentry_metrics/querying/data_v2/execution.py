@@ -142,9 +142,9 @@ class ScheduledQueryType(Enum):
 class ScheduledQuery:
     type: ScheduledQueryType
     metrics_query: MetricsQuery
-    next: Union["ScheduledQuery", None]
-    order: QueryOrder | None
-    limit: int | None
+    next: Union["ScheduledQuery", None] = None
+    order: QueryOrder | None = None
+    limit: int | None = None
 
     def initialize(
         self,
@@ -532,7 +532,8 @@ class QueryExecutor:
         # We run the requests in bulk and obtain a list of pending query results, which can include both
         # `QueryResult`(s) that are done and `PartialQueryResult`(s) which require a second pass.
         query_results = self._bulk_run_query(bulk_requests)
-        # We inject into the results all the empty values belonging to the empty queries.
+        # We inject into the results all the empty values belonging to the empty queries. This insertion assumes that
+        # we do the filling of `query_results` in order, otherwise it won't work.
         for empty_query_index in empty_queries_indexes:
             query_results.insert(empty_query_index, {})
 
@@ -621,14 +622,13 @@ class QueryExecutor:
         # supporting either a single totals or series query.
         executable_query = ScheduledQuery(
             type=ScheduledQueryType.TOTALS,
+            metrics_query=query,
             next=ScheduledQuery(
                 type=ScheduledQueryType.SERIES,
-                next=None,
                 metrics_query=query,
                 order=order,
                 limit=limit,
             ),
-            metrics_query=query,
             order=order,
             limit=limit,
         )
