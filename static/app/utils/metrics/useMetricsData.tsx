@@ -8,7 +8,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {
-  MetricsApiRequestQueryOptions,
+  MetricsDataIntervalLadder,
   MetricsQueryApiResponse,
 } from '../../types/metrics';
 
@@ -27,19 +27,30 @@ export function createMqlQuery({
   return mql;
 }
 
-function getMetricsQueryApiRequestPayload(
+export function getMetricsQueryApiRequestPayload(
   {
     field,
     query,
     groupBy,
     orderBy,
-  }: {field: string; query: string; groupBy?: string[]; orderBy?: 'asc' | 'desc'},
+    limit,
+  }: {
+    field: string;
+    groupBy?: string[];
+    limit?: number;
+    orderBy?: 'asc' | 'desc';
+    query?: string;
+  },
   {projects, environments, datetime}: PageFilters,
-  {intervalLadder, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
+  {
+    intervalLadder,
+    interval: intervalParam,
+  }: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
 ) {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, intervalLadder);
+  const interval = intervalParam ?? getDDMInterval(datetime, useCase, intervalLadder);
+  const hasGoupBy = groupBy && groupBy.length > 0;
 
   return {
     query: {
@@ -47,7 +58,6 @@ function getMetricsQueryApiRequestPayload(
       project: projects,
       environment: environments,
       interval,
-      ...overrides,
     },
     body: {
       queries: [
@@ -56,14 +66,16 @@ function getMetricsQueryApiRequestPayload(
           mql: createMqlQuery({field, query, groupBy}),
         },
       ],
-      formulas: [{mql: '$query_1', limit: overrides.limit, order: orderBy ?? 'desc'}],
+      formulas: [
+        {mql: '$query_1', limit: limit, order: hasGoupBy ? orderBy ?? 'desc' : undefined},
+      ],
     },
   };
 }
 
 export function useMetricsQuery(
   {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
-  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
 ) {
   const organization = useOrganization();
 
@@ -99,7 +111,7 @@ export function useMetricsQuery(
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
 export function useMetricsQueryZoom(
   metricsQuery: MetricsQuery,
-  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
 ) {
   const [metricsData, setMetricsData] = useState<MetricsQueryApiResponse | undefined>();
   const {

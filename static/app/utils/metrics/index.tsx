@@ -23,9 +23,6 @@ import {t} from 'sentry/locale';
 import type {Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
-  MetricsApiRequestMetric,
-  MetricsApiRequestQuery,
-  MetricsApiRequestQueryOptions,
   MetricsDataIntervalLadder,
   MetricsOperation,
   MRI,
@@ -38,7 +35,6 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
   formatMRIField,
-  getUseCaseFromMRI,
   MRIToField,
   parseField,
   parseMRI,
@@ -103,37 +99,6 @@ export function getDdmUrl(
   }
 
   return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
-}
-
-export function getMetricsApiRequestQuery(
-  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
-  {projects, environments, datetime}: PageFilters,
-  {intervalLadder, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
-): MetricsApiRequestQuery {
-  const {mri: mri} = parseField(field) ?? {};
-  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, intervalLadder);
-
-  const hasGroupBy = groupBy && groupBy.length > 0;
-
-  const queryToSend = {
-    ...getDateTimeParams(datetime),
-    query: sanitizeQuery(query),
-    project: projects,
-    environment: environments,
-    field,
-    useCase,
-    interval,
-    groupBy,
-    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
-    useNewMetricsLayer: true,
-  };
-
-  return {...queryToSend, ...overrides};
-}
-
-function sanitizeQuery(query?: string) {
-  return query?.trim();
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
