@@ -341,7 +341,7 @@ def _update_state_with_spec_limit(
             widget_queries.setdefault(spec_version.version, set())
             widget_queries[spec_version.version].add(widget_query)
 
-    for (version, widget_query_set) in widget_queries.items():
+    for version, widget_query_set in widget_queries.items():
         for widget_query in widget_query_set:
             widget_query.dashboardwidgetqueryondemand_set.filter(spec_version=version).update(
                 extraction_state=OnDemandExtractionState.DISABLED_SPEC_LIMIT
@@ -467,9 +467,11 @@ def _can_widget_query_use_stateful_extraction(
     default_version_specs = specs_per_version.get(stateful_extraction_version, [])
     spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
 
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
-        spec_version=stateful_extraction_version
-    )
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
@@ -535,9 +537,11 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     this assumes stateful extraction can be used, and returns the enabled state."""
 
     stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
-        spec_version=stateful_extraction_version
-    )
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) != 1:
         with sentry_sdk.push_scope() as scope:

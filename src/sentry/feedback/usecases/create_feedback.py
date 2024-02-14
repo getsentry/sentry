@@ -123,6 +123,10 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
         metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
         return True
 
+    if event["contexts"]["feedback"]["message"].strip() == "":
+        metrics.incr("feedback.filtered", tags={"reason": "empty"}, sample_rate=1.0)
+        return True
+
     return False
 
 

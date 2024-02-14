@@ -1497,6 +1497,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen1["children"]) == 0
 
 
+@region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
     def client_get(self, data, url=None):
         data["useSpans"] = 1

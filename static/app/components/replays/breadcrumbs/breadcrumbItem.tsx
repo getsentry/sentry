@@ -72,6 +72,7 @@ function BreadcrumbItem({
 
   return (
     <CrumbItem
+      isErrorFrame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
@@ -122,7 +123,7 @@ function BreadcrumbItem({
               replay={replay}
               leftTimestamp={frame.offsetMs}
               rightTimestamp={
-                (frame.data.mutations.next.timestamp as number) -
+                (frame.data.mutations.next?.timestamp ?? 0) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
             />
@@ -250,7 +251,7 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
-const CrumbItem = styled(PanelItem)`
+const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
@@ -258,7 +259,7 @@ const CrumbItem = styled(PanelItem)`
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
-  background: transparent;
+  background: ${p => (p.isErrorFrame ? `${p.theme.red100}` : `transparent`)};
   padding: ${space(1)};
   text-align: left;
   border: none;

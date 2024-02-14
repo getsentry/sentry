@@ -40,6 +40,7 @@ from django.utils.functional import cached_property
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
@@ -2012,7 +2013,15 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.login_as(user=self.user)
         self._index_metric_strings()
+
+    def do_request(self, data: dict[str, Any], features: dict[str, str] = None) -> Response:
+        """Set up self.features and self.url in the inheriting classes.
+        You can pass your own features if you do not want to use the default used by the subclass.
+        """
+        with self.feature(self.features if features is None else features):
+            return self.client.get(self.url, data=data, format="json")
 
     def _index_metric_strings(self):
         strings = [
@@ -2943,9 +2952,6 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 
 class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
-    def __indexer_record(self, org_id: int, value: str) -> int:
-        return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
-
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -3048,6 +3054,7 @@ class MonitorTestCase(APITestCase):
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.user.id,
                 "targetType": "Member",
+                "uuid": str(uuid4()),
             },
         ]
         rule = Creator(

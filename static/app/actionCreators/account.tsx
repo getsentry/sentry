@@ -6,7 +6,7 @@ import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetail
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,
-  onSuccess: {(): void}
+  onSuccess: () => void
 ) {
   const api = new Client();
 

@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -62,7 +64,6 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       setDefaultQuery(router.location.query);
     }
   }, [isDefaultQuery, organization, router.location.query, setDefaultQuery]);
-
   const items = useMemo(
     () => [
       {
@@ -81,8 +82,23 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
-        label: t('Add to Dashboard'),
+        label: (
+          <Feature
+            organization={organization}
+            hookName="feature-disabled:dashboards-edit"
+            features="dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <AddToDashboardItem disabled={!hasFeature}>
+                {t('Add to Dashboard')}
+              </AddToDashboardItem>
+            )}
+          </Feature>
+        ),
         onAction: () => {
+          if (!organization.features.includes('dashboards-edit')) {
+            return;
+          }
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
             source: 'global',
@@ -198,3 +214,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     </ButtonBar>
   );
 }
+
+const AddToDashboardItem = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;

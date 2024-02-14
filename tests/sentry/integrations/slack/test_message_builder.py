@@ -10,7 +10,9 @@ from django.urls import reverse
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
+from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -66,7 +68,8 @@ def build_test_message_blocks(
 ) -> dict[str, Any]:
     project = group.project
 
-    title = group.title
+    title = build_attachment_title(group)
+    text = build_attachment_text(group)
     title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
     formatted_title = title
     if event:
@@ -85,6 +88,20 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
+    if text:
+        new_text = text.lstrip(" ")
+        if new_text:
+            text_section = {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_preformatted",
+                        "elements": [{"type": "text", "text": new_text}],
+                        "border": 0,
+                    }
+                ],
+            }
+            blocks.append(text_section)
 
     tags_text = ""
     if not tags:
@@ -181,9 +198,12 @@ def build_test_message_blocks(
 
     blocks.append({"type": "divider"})
 
+    popup_text = (
+        f"[{project.slug}] {title}: {text}" if text is not None else f"[{project.slug}] {title}"
+    )
     return {
         "blocks": blocks,
-        "text": f"[{project.slug}] {title}",
+        "text": popup_text,
     }
 
 
@@ -294,21 +314,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
         test_message["actions"] = [
-            action
-            if action["text"] != "Ignore"
-            else {
-                "name": "status",
-                "text": "Archive",
-                "type": "button",
-                "value": "ignored:until_escalating",
-            }
+            (
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+            )
             for action in test_message["actions"]
         ]
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
-
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -399,6 +420,70 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block_with_message(self):
+        event_data = {
+            "event_id": "a" * 32,
+            "message": "IntegrationError",
+            "fingerprint": ["group-1"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        base_tags = {"level": "error"}
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block_with_empty_string_message(self):
+        event_data = {
+            "event_id": "a" * 32,
+            "message": "IntegrationError",
+            "fingerprint": ["group-1"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": " ",
+                    }
+                ]
+            },
+        }
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        base_tags = {"level": "error"}
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -858,6 +943,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
+
+    @with_feature("organizations:slack-block-kit")
+    def test_block_kit_truncates_long_query(self):
+        text = "a" * 5000
+        block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
+        assert block["elements"][0]["elements"][0]["text"] == "a" * 997 + "..."
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what

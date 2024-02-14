@@ -39,7 +39,7 @@ export default class InstalledIntegration extends Component<Props> {
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
-    if (aspects && aspects.removal_dialog) {
+    if (aspects?.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
         actionText: aspects.removal_dialog.actionText,
