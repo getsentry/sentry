@@ -61,7 +61,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
     app_start_breakdown: t('Type Breakdown'),
-    'count()': t('Total Count'),
+    'count_total_starts()': t('Total Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -180,7 +180,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
           `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
           `avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`,
           `app_start_breakdown`,
-          'count()',
+          'count_total_starts()',
         ].map(columnKey => {
           return {
             key: columnKey,
@@ -190,7 +190,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         })}
         columnSortBy={[
           {
-            key: 'count()',
+            key: 'count_total_starts',
             order: 'desc',
           },
         ]}
