@@ -9,9 +9,12 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import (
     assert_no_webhook_outboxes,
+    assert_no_webhook_payloads,
     assert_webhook_outboxes_with_shard_id,
+    assert_webhook_payloads_for_mailbox,
 )
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from tests.sentry.integrations.msteams.test_helpers import (
@@ -96,6 +99,43 @@ class MsTeamsRequestParserTest(TestCase):
         assert_webhook_outboxes_with_shard_id(
             factory_request=request,
             expected_shard_id=self.integration.id,
+            region_names=["us"],
+        )
+
+    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
+    @responses.activate
+    def test_routing_webhook_payloads(self):
+        # No regions identified
+        request = self.factory.post(
+            self.path,
+            data=GENERIC_EVENT,
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 200
+        assert response.content == b"passthrough"
+        assert len(responses.calls) == 0
+        assert_no_webhook_payloads()
+
+        # Regions found
+        request = self.factory.post(
+            self.path,
+            data=self.generate_card_response(self.integration.id),
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert len(responses.calls) == 0
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"msteams:{self.integration.id}",
             region_names=["us"],
         )
 

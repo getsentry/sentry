@@ -110,7 +110,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
     !missingDataKeys && Object.values(props.widgetData).every(d => !d || d.hasData);
   const isLoading = Object.values(props.widgetData).some(d => !d || d.isLoading);
   const isErrored =
-    !missingDataKeys && Object.values(props.widgetData).some(d => d && d.isErrored);
+    !missingDataKeys && Object.values(props.widgetData).some(d => d?.isErrored);
 
   return (
     <Container data-test-id="performance-widget-container">

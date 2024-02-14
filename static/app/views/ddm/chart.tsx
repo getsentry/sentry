@@ -13,6 +13,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
@@ -22,7 +23,10 @@ import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {getFormatter} from '../../components/charts/components/tooltip';
+import {
+  defaultFormatAxisLabel,
+  getFormatter,
+} from '../../components/charts/components/tooltip';
 import {isChartHovered} from '../../components/charts/utils';
 
 import {useChartSamples} from './useChartSamples';
@@ -43,6 +47,32 @@ type ChartProps = {
 // Once we use it in more places, this should probably move to a more global place
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
+
+function isNonZeroValue(value: number | null) {
+  return value !== null && value !== 0;
+}
+
+function addAreaChartSeriesPadding(data: Series['data']) {
+  const hasNonZeroSibling = (index: number) => {
+    return (
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
+    );
+  };
+  const paddingIndices = new Set<number>();
+  return {
+    data: data.map(({name, value}, index) => {
+      const shouldAddPadding = value === null && hasNonZeroSibling(index);
+      if (shouldAddPadding) {
+        paddingIndices.add(index);
+      }
+      return {
+        name,
+        value: shouldAddPadding ? 0 : value,
+      };
+    }),
+    paddingIndices,
+  };
+}
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
@@ -92,6 +122,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       () =>
         series
           .filter(s => !s.hidden)
+          .map(s => ({
+            ...s,
+            ...(displayType === MetricDisplayType.AREA
+              ? addAreaChartSeriesPadding(s.data)
+              : {data: s.data}),
+            connectNulls: displayType === MetricDisplayType.LINE,
+          }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => [
@@ -172,12 +209,52 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (Array.isArray(params)) {
               const uniqueSeries = new Set<string>();
               const deDupedParams = params.filter(param => {
+                // Filter null values from tooltip
+                if (param.value[1] === null) {
+                  return false;
+                }
+
+                // scatter series (samples) have their own tooltip
+                if (param.seriesType === 'scatter') {
+                  return false;
+                }
+
+                // Filter padding datapoints from tooltip
+                if (param.value[1] === 0) {
+                  const currentSeries = seriesToShow[param.seriesIndex];
+                  const paddingIndices =
+                    'paddingIndices' in currentSeries
+                      ? currentSeries.paddingIndices
+                      : undefined;
+                  if (paddingIndices?.has(param.dataIndex)) {
+                    return false;
+                  }
+                }
+
                 if (uniqueSeries.has(param.seriesName)) {
                   return false;
                 }
                 uniqueSeries.add(param.seriesName);
                 return true;
               });
+
+              const date = defaultFormatAxisLabel(
+                params[0].value[0] as number,
+                timeseriesFormatters.isGroupedByDate,
+                false,
+                timeseriesFormatters.showTimeInTooltip,
+                timeseriesFormatters.addSecondsToTimeFormat,
+                timeseriesFormatters.bucketSize
+              );
+
+              if (deDupedParams.length === 0) {
+                return [
+                  '<div class="tooltip-series">',
+                  `<center>${t('No data available')}</center>`,
+                  '</div>',
+                  `<div class="tooltip-footer">${date}</div>`,
+                ].join('');
+              }
               return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
             }
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
@@ -344,12 +421,12 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
 });
 
 function getWidthFactor(bucketSize: number) {
-  // In general, fog of war should cover the last bucket
-  if (bucketSize > 30 * 60_000) {
+  // If the bucket size is >= 5 minutes the fog of war should only cover the last bucket
+  if (bucketSize >= 5 * 60_000) {
     return 1;
   }
 
-  // for 10s timeframe we want to show a fog of war that spans last 10 buckets
+  // for buckets <= 10s we want to show a fog of war that spans last 10 buckets
   // because on average, we are missing last 90 seconds of data
   if (bucketSize <= 10_000) {
     return 10;

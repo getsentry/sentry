@@ -27,7 +27,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
-from sentry.hybridcloud.models import WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,

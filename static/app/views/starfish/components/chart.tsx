@@ -326,7 +326,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {

@@ -36,10 +36,12 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     timelineEvent => timelineEvent.id !== event.id
   );
   const displayYouAreHere = filteredTimelineEvents.length !== timelineEvents.length;
+  const hasTitle = filteredTimelineEvents.length > 1 || displayYouAreHere;
   return (
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
-      <EventItemsWrapper>
+      <EventItemsWrapper hasTitle={hasTitle}>
+        {hasTitle && <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
           const project = projects.find(p => p.slug === timelineEvent.project);
           return (
@@ -81,7 +83,18 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
-          <Link to={generateTraceTarget(event, organization)}>
+          <Link
+            to={generateTraceTarget(event, organization)}
+            onClick={() => {
+              trackAnalytics(
+                'issue_details.issue_tab.trace_timeline_more_events_clicked',
+                {
+                  organization,
+                  num_hidden: filteredTimelineEvents.length - 3,
+                }
+              );
+            }}
+          >
             {tn(
               'View %s more event',
               'View %s more events',
@@ -101,10 +114,18 @@ const UnstyledUnorderedList = styled('div')`
   width: 220px;
 `;
 
-const EventItemsWrapper = styled('div')`
+const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)};
+  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+`;
+
+const EventItemsTitle = styled('div')`
+  padding-left: ${space(1)};
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
+  color: ${p => p.theme.subText};
 `;
 
 const YouAreHere = styled('div')`

@@ -16,6 +16,17 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
+export const TTID_CONTRIBUTING_SPAN_OPS = [
+  'file.read',
+  'file.write',
+  'ui.load',
+  'http.client',
+  'db',
+  'db.sql.room',
+  'db.sql.query',
+  'db.sql.transaction',
+];
+
 type Props = {
   primaryRelease?: string;
   secondaryRelease?: string;
@@ -31,7 +42,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
     `transaction:${transaction}`,
-    'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+    `span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`,
     'has:span.description',
   ]);
   const queryStringPrimary = appendReleaseFilters(

@@ -5,9 +5,11 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import {
@@ -41,15 +43,16 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   analyticsContext: string;
+  clipOffsets: {
+    durationAfterMs: number;
+    durationBeforeMs: number;
+  };
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
-
-const CLIP_DURATION_BEFORE_EVENT = 5_000;
-const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -143,6 +146,7 @@ function ReplayPreviewPlayer({
 
 function ReplayClipPreview({
   analyticsContext,
+  clipOffsets,
   eventTimestampMs,
   orgSlug,
   replaySlug,
@@ -150,10 +154,10 @@ function ReplayClipPreview({
 }: Props) {
   const clipWindow = useMemo(
     () => ({
-      startTimestampMs: eventTimestampMs - CLIP_DURATION_BEFORE_EVENT,
-      endTimestampMs: eventTimestampMs + CLIP_DURATION_AFTER_EVENT,
+      startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
+      endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
     }),
-    [eventTimestampMs]
+    [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
@@ -183,10 +187,21 @@ function ReplayClipPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    );
+  }
+
+  if (replay.getDurationMs() <= 0) {
+    return (
+      <StaticReplayPreview
+        analyticsContext={analyticsContext}
+        isFetching={false}
+        replay={replay}
+        replayId={replayId}
+        fullReplayButtonProps={fullReplayButtonProps}
+        initialTimeOffsetMs={0}
       />
     );
   }
@@ -258,7 +273,8 @@ const StaticPanel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: 400px;
   margin-bottom: ${space(2)};
 `;
 

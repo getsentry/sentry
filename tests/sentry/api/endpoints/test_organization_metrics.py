@@ -3,6 +3,7 @@ from functools import partial
 
 import pytest
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
@@ -57,28 +58,99 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
-        ("sentry-api-0-organization-metrics-details",),
-        ("sentry-api-0-organization-metric-details", "foo"),
-        ("sentry-api-0-organization-metrics-tags",),
-        ("sentry-api-0-organization-metrics-tag-details", "foo"),
-        ("sentry-api-0-organization-metrics-data",),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-details",
+        ),
+        ("get", "sentry-api-0-organization-metric-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-tags",
+        ),
+        ("get", "sentry-api-0-organization-metrics-tag-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-data",
+        ),
+        (
+            "post",
+            "sentry-api-0-organization-metrics-query",
+        ),
     )
 
-    def send_get_request(self, token, endpoint, *args):
+    def send_request(self, token, method, endpoint, *args):
         url = reverse(endpoint, args=(self.project.organization.slug,) + args)
-        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
+        return getattr(self.client, method)(
+            url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+        )
 
     def test_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code == 403
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code in (200, 400, 404)
+
+
+@region_silo_test
+class OrganizationMetricsSamplesEndpointTest(APITestCase):
+    view = "sentry-api-0-organization-metrics-samples"
+
+    def setUp(self):
+        self.login_as(user=self.user)
+
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = []
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
+            )
+
+    def test_feature_flag(self):
+        query = {
+            "mri": "d:transactions/duration@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(query, features=["organizations:metrics-samples-list"])
+        assert response.status_code == 200
+
+    def test_no_project(self):
+        query = {
+            "mri": "d:transactions/duration@millisecond",
+            "field": ["id"],
+            "project": [],
+        }
+
+        response = self.do_request(query, features=["organizations:metrics-samples-list"])
+        assert response.status_code == 404
+
+    def test_bad_params(self):
+        query = {
+            "mri": "foo",
+            "field": [],
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(query, features=["organizations:metrics-samples-list"])
+        assert response.status_code == 400
+        assert response.data == {
+            "mri": [ErrorDetail(string="Invalid MRI: foo", code="invalid")],
+            "field": [ErrorDetail(string="This field is required.", code="required")],
+        }

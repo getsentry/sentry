@@ -3,7 +3,7 @@ import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import type {DateTimeObject, Fidelity} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
   getDiffInMinutes,
   GranularityLadder,
@@ -20,13 +20,10 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
-  MetricsApiRequestMetric,
-  MetricsApiRequestQuery,
-  MetricsApiRequestQueryOptions,
-  MetricsGroup,
+  MetricsDataIntervalLadder,
   MetricsOperation,
   MRI,
   UseCase,
@@ -38,7 +35,6 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
   formatMRIField,
-  getUseCaseFromMRI,
   MRIToField,
   parseField,
   parseMRI,
@@ -105,75 +101,49 @@ export function getDdmUrl(
   return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
 }
 
-export function getMetricsApiRequestQuery(
-  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
-  {projects, environments, datetime}: PageFilters,
-  {fidelity, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
-): MetricsApiRequestQuery {
-  const {mri: mri} = parseField(field) ?? {};
-  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, fidelity);
-
-  const hasGroupBy = groupBy && groupBy.length > 0;
-
-  const queryToSend = {
-    ...getDateTimeParams(datetime),
-    query: sanitizeQuery(query),
-    project: projects,
-    environment: environments,
-    field,
-    useCase,
-    interval,
-    groupBy,
-    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
-    useNewMetricsLayer: true,
-  };
-
-  return {...queryToSend, ...overrides};
-}
-
-function sanitizeQuery(query?: string) {
-  return query?.trim();
-}
-
-const ddmHighFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '2h'],
-  [TWO_WEEKS, '1h'],
-  [ONE_WEEK, '30m'],
-  [TWENTY_FOUR_HOURS, '5m'],
-  [ONE_HOUR, '1m'],
-  [0, '5m'],
-]);
-
-const ddmLowFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
-  [ONE_WEEK, '2h'],
-  [TWENTY_FOUR_HOURS, '1h'],
-  [SIX_HOURS, '30m'],
-  [ONE_HOUR, '5m'],
-  [0, '1m'],
-]);
+const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
+  ddm: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '2h'],
+    [TWO_WEEKS, '1h'],
+    [ONE_WEEK, '30m'],
+    [TWENTY_FOUR_HOURS, '5m'],
+    [ONE_HOUR, '1m'],
+    [0, '1m'],
+  ]),
+  bar: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '12h'],
+    [TWO_WEEKS, '4h'],
+    [ONE_WEEK, '2h'],
+    [TWENTY_FOUR_HOURS, '1h'],
+    [SIX_HOURS, '30m'],
+    [ONE_HOUR, '5m'],
+    [0, '1m'],
+  ]),
+  dashboard: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '1h'],
+    [TWO_WEEKS, '30m'],
+    [ONE_WEEK, '30m'],
+    [TWENTY_FOUR_HOURS, '5m'],
+    [0, '5m'],
+  ]),
+};
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
 export function getDDMInterval(
   datetimeObj: DateTimeObject,
   useCase: UseCase,
-  fidelity: Fidelity = 'high'
+  ladder: MetricsDataIntervalLadder = 'ddm'
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && fidelity === 'high') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'ddm') {
     return '10s';
   }
 
-  if (fidelity === 'low') {
-    return ddmLowFidelityLadder.getInterval(diffInMinutes);
-  }
-
-  return ddmHighFidelityLadder.getInterval(diffInMinutes);
+  return intervalLadders[ladder].getInterval(diffInMinutes);
 }
 
 export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
@@ -257,10 +227,9 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(group: MetricsGroup) {
-  const groupByEntries = Object.entries(group.by ?? {});
+export function getMetricsSeriesName(field: string, groupBy?: Record<string, string>) {
+  const groupByEntries = Object.entries(groupBy ?? {});
   if (!groupByEntries.length) {
-    const field = Object.keys(group.series)?.[0];
     const {mri} = parseField(field) ?? {mri: field};
     const name = formatMRI(mri as MRI);
 
@@ -321,32 +290,6 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
-// TODO(ddm): remove this and all of its usages once backend sends mri fields
-export function mapToMRIFields(
-  data: MetricsApiResponse | undefined,
-  fields: string[]
-): void {
-  if (!data) {
-    return;
-  }
-
-  data.groups.forEach(group => {
-    group.series = swapObjectKeys(group.series, fields);
-    group.totals = swapObjectKeys(group.totals, fields);
-  });
-}
-
-function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
-  if (!obj) {
-    return {};
-  }
-
-  return Object.keys(obj).reduce((acc, key, index) => {
-    acc[newKeys[index]] = obj[key];
-    return acc;
-  }, {});
-}
-
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
   const {mri, op, query, groupBy} = metricWidget;
 
@@ -360,7 +303,7 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
     result += `{${query.trim()}}`;
   }
 
-  if (groupBy && groupBy.length) {
+  if (groupBy?.length) {
     result += ` by ${groupBy.join(', ')}`;
   }
 

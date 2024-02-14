@@ -1,3 +1,35 @@
+24.1.2
+------
+
+### Various fixes & improvements
+
+- ref(api): Make processing team endpoints private (#63939) by @loewenheim
+- feat(issue-priority): Add priority column to issue stream (#64820) by @malwilley
+- Revert "ref: upgrade hiredis  (#64789)" (782b0f44) by @getsentry-bot
+- feat(issue-details): Show static replay when error is not within the replay (#64827) by @malwilley
+- ref(sdk): Remove excessive json.loads spans (#64883) by @k-fish
+- fix(integrations): phabricator host validation (#64882) by @oioki
+- feat(integrations): Autofill project in selector after project creation modal (#64791) by @roggenkemper
+- ref(replay): remove 'new' badge from selector widgets & tab (#64848) by @michellewzhang
+- fix(replays): check before attempting to load in onboarding doc (#64842) by @michellewzhang
+- fix(ddm): Handle all and my projects (#64877) by @ArthurKnaus
+- ref: upgrade hiredis  (#64789) by @asottile-sentry
+- fix(replays): Move code requiring exception-prone variables into try block (#64658) by @cmanallen
+- Sprinkle some tracing around more `save_event` functions (#64869) by @Swatinem
+- fix(ddm): Focused series backwards compatibility (#64868) by @ArthurKnaus
+- ref: Add option to throttle proguard processing (#64866) by @loewenheim
+- ref(similarity-embeddings): Remove unused organization level flag (#64815) by @jangjodi
+- ref: upgrade psycopg2-binary (#64809) by @asottile-sentry
+- fix(ddm): Global loading state on zoom (#64861) by @ArthurKnaus
+- fix(ddm): project param rename (#64860) by @obostjancic
+- fix(ddm): Clicking chart hides tooltip (#64859) by @ArthurKnaus
+- feat(ddm): Multiple focused series (#64855) by @ArthurKnaus
+- feat(ddm): Add new metrics/query endpoint base code (#64785) by @iambriccardo
+- feat(stats): metrics stats (#64790) by @obostjancic
+- ref(feedback): add analytics for mark as spam buttons (#64850) by @michellewzhang
+
+_Plus 606 more_
+
 24.1.1
 ------
 

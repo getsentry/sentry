@@ -111,7 +111,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     // For alert-rule-actions, the forms are entirely custom, extra fields are
     // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
     if (element === 'alert-rule-action') {
-      const defaultResetValues = (this.props.resetValues || {}).settings || [];
+      const defaultResetValues = this.props.resetValues?.settings || [];
       const initialData = defaultResetValues.reduce((acc, curr) => {
         acc[curr.name] = curr.value;
         return acc;
@@ -150,7 +150,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   getDefaultOptions = (field: FieldFromSchema) => {
-    const savedOption = ((this.props.resetValues || {}).settings || []).find(
+    const savedOption = (this.props.resetValues?.settings || []).find(
       value => value.name === field.name
     );
     const currentOptions = (field.choices || []).map(([value, label]) => ({
@@ -181,9 +181,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       defaultValue = getFieldDefault(field);
     }
 
-    const reset = ((resetValues || {}).settings || []).find(
-      value => value.name === field.name
-    );
+    const reset = resetValues?.settings?.find(value => value.name === field.name);
 
     if (reset) {
       defaultValue = reset.value;

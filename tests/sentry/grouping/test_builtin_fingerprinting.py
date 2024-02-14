@@ -24,7 +24,7 @@ GROUPING_CONFIG = get_default_grouping_config_dict()
 
 @pytest.fixture
 def default_bases():
-    return ["sentry.javascript@2024-02-02"]
+    return ["javascript@2024-02-02"]
 
 
 def test_default_bases(default_bases):
@@ -33,7 +33,7 @@ def test_default_bases(default_bases):
     assert {
         k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
     } == {
-        "sentry.javascript@2024-02-02": [
+        "javascript@2024-02-02": [
             {
                 "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],

@@ -1130,7 +1130,7 @@ def process_commits(job: PostProcessJob) -> None:
         return
 
     from sentry.models.commit import Commit
-    from sentry.tasks.commit_context import DEBOUNCE_CACHE_KEY, process_commit_context
+    from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
 
@@ -1176,18 +1176,9 @@ def process_commits(job: PostProcessJob) -> None:
                     features.has("organizations:commit-context", event.project.organization)
                     and has_integrations
                 ):
-                    if (
-                        features.has(
-                            "organizations:suspect-commits-all-frames", event.project.organization
-                        )
-                        and not job["group_state"]["is_new"]
-                    ):
+                    if not job["group_state"]["is_new"]:
                         return
 
-                    cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
-                    if cache.get(cache_key):
-                        metrics.incr("sentry.tasks.process_commit_context.debounce")
-                        return
                     process_commit_context.delay(
                         event_id=event.event_id,
                         event_platform=event.platform,

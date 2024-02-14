@@ -241,7 +241,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   get showAuthInfo() {
     const {app} = this.state;
-    return !(app && app.clientSecret && app.clientSecret[0] === '*');
+    return !(app?.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {

@@ -737,7 +737,7 @@ def massage_sessions_result_summary(
 
 
 def isoformat_z(date):
-    return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
+    return datetime.fromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
 def get_timestamps(query):
@@ -749,7 +749,7 @@ def get_timestamps(query):
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
 
-    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
+    return [datetime.fromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):
