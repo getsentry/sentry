@@ -1,3 +1,5 @@
+import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
+import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,8 +10,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment';
-import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
-import {components} from 'react-select';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
