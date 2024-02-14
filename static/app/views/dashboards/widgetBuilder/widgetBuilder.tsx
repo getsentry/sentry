@@ -58,6 +58,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
 import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
@@ -367,16 +368,30 @@ function WidgetBuilder({
 
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
-  const currentWidget = {
-    title: state.title,
-    description: state.description,
-    displayType: state.displayType,
-    thresholds: state.thresholds,
-    interval: state.interval,
-    queries: state.queries,
-    limit: state.limit,
-    widgetType,
-  };
+  const currentWidget = useMemo(
+    () => ({
+      title: state.title,
+      description: state.description,
+      displayType: state.displayType,
+      thresholds: state.thresholds,
+      interval: state.interval,
+      queries: state.queries,
+      limit: state.limit,
+      widgetType,
+    }),
+    [
+      widgetType,
+      state.title,
+      state.description,
+      state.displayType,
+      state.thresholds,
+      state.interval,
+      state.queries,
+      state.limit,
+    ]
+  );
+
+  const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
 
   const currentDashboardId = state.selectedDashboard ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
@@ -553,9 +568,12 @@ function WidgetBuilder({
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
+      const didDatasetChange =
+        widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet;
+
       newState.queries.push(
-        ...(widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
+        ...(didDatasetChange
           ? widgetToBeUpdated.queries
           : [{...config.defaultWidgetQuery}])
       );
@@ -1188,6 +1206,7 @@ function WidgetBuilder({
                                     dashboardFilters={dashboard.filters}
                                     location={location}
                                     onQueryConditionChange={setQueryConditionsValid}
+                                    validatedWidgetResponse={validatedWidgetResponse}
                                   />
                                   {isTimeseriesChart && (
                                     <GroupByStep
@@ -1201,6 +1220,7 @@ function WidgetBuilder({
                                         )}
                                       onGroupByChange={handleGroupByChange}
                                       organization={organization}
+                                      validatedWidgetResponse={validatedWidgetResponse}
                                       tags={tags}
                                       dataSet={state.dataSet}
                                       queries={state.queries}

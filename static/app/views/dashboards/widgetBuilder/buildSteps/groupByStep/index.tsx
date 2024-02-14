@@ -1,7 +1,9 @@
 import {t} from 'sentry/locale';
 import type {Organization, TagCollection} from 'sentry/types';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {ValidateWidgetResponse, WidgetQuery} from 'sentry/views/dashboards/types';
 
 import type {DataSet} from '../../utils';
 import {useGroupByOptions} from '../../utils';
@@ -17,6 +19,7 @@ interface Props {
   organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
 export function GroupByStep({
@@ -25,6 +28,7 @@ export function GroupByStep({
   onGroupByChange,
   organization,
   tags,
+  validatedWidgetResponse,
   queries,
 }: Props) {
   const widgetType = DATA_SET_TO_WIDGET_TYPE[dataSet];
@@ -39,6 +43,7 @@ export function GroupByStep({
         columns={columns}
         fieldOptions={groupByOptions}
         onChange={onGroupByChange}
+        validatedWidgetResponse={validatedWidgetResponse}
       />
     </BuildStep>
   );
