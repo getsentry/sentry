@@ -200,6 +200,7 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Functio
                 Function(
                     "and",
                     [
+                        Function("in", [Column("metric_id"), list(metric_ids)]),
                         Function(
                             "equals",
                             [
@@ -215,7 +216,6 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Functio
                                 ),
                             ],
                         ),
-                        Function("in", [Column("metric_id"), list(metric_ids)]),
                     ],
                 ),
             ],
@@ -800,6 +800,7 @@ def operation_if_column_snql(
             Function(
                 "and",
                 [
+                    aggregate_filter,
                     Function(
                         "equals",
                         [
@@ -807,7 +808,6 @@ def operation_if_column_snql(
                             resolve_tag_value(use_case_id, org_id, if_value),
                         ],
                     ),
-                    aggregate_filter,
                 ],
             ),
         ],
