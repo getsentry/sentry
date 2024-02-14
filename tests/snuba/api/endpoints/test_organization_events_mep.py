@@ -3206,6 +3206,27 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
+    def _setup_user_misery(self, spec: OnDemandMetricSpec) -> None:
+        events = [
+            ("one", 300),
+            ("two", 300),
+            ("one", 3000),
+            ("two", 3000),
+            ("three", 400),
+            ("four", 4000),
+        ]
+        for index, event in enumerate(events):
+            email = f"{event[0]}@example.com"
+            tags = {"user.email": email}
+            if event[1] > 300 * 4:
+                tags[constants.METRIC_SATISFACTION_TAG_KEY] = constants.METRIC_FRUSTRATED_TAG_VALUE
+            self.store_on_demand_metric(
+                email,
+                spec=spec,
+                additional_tags=tags,
+                timestamp=self.day_ago + timedelta(hours=index),
+            )
+
     def test_on_demand_user_misery_big_number(self):
         field = "user_misery(300)"
         query = ""
