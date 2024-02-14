@@ -283,7 +283,17 @@ def process_commit_context(
                         extra={"organization_id": project.organization_id},
                     )
 
-            ProjectOwnership.handle_auto_assignment(project_id=project.id, group=group_owner.group)
+            ProjectOwnership.handle_auto_assignment(
+                project_id=project.id,
+                group=group_owner.group,
+                logging_extra={
+                    "event_id": event_id,
+                    "group_id": group_id,
+                    "project_id": str(project.id),
+                    "organization_id": project.organization_id,
+                    "source": "process_commit_context",
+                },
+            )
             logger.info(
                 "process_commit_context.success",
                 extra={

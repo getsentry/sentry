@@ -12,8 +12,10 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.actor import ActorTuple
+from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
@@ -170,7 +172,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str,]]:
+    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the issue owners for a project if there are any.
 
@@ -230,12 +232,20 @@ class ProjectOwnership(Model):
         return autoassignment_types
 
     @classmethod
-    def handle_auto_assignment(cls, project_id, event=None, group=None):
+    def handle_auto_assignment(
+        cls,
+        project_id: int,
+        event: Event | GroupEvent | None = None,
+        group: Group | None = None,
+        force_autoassign: bool = False,
+        logging_extra: dict[str, str] | None = None,
+    ):
         """
         Get the auto-assign owner for a project if there are any.
-
         We combine the schemas from IssueOwners and CodeOwners.
 
+        If `force_autoassign` is set to True, auto-assignment will occur even if manual assignment
+        has already taken place, but only if auto-assignment is enabled for the project.
         """
         from sentry import analytics
         from sentry.models.activity import ActivityIntegration
@@ -245,11 +255,21 @@ class ProjectOwnership(Model):
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user import RpcUser
 
-        # If event is passed in, then this is not called from the force auto-assign API, else it is
-        force_autoassign = True
-        if event:
-            force_autoassign = False
+        enable_force_autoassign = False
+        # Force auto-assign will override an existing manual assignment.
+        if (event is None and logging_extra is None) or force_autoassign:
+            # TODO(Leander): Remove this event/logging_details check. This is currently only missing
+            # from getsentry's admin tools, so we can change that caller to set force_autoassign instead
+            enable_force_autoassign = True
+
+        if logging_extra is None:
+            logging_extra = {}
+
+        if group is None and event is not None:
             group = event.group
+
+        if group is None:
+            return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -276,37 +296,25 @@ class ProjectOwnership(Model):
             except (User.DoesNotExist, Team.DoesNotExist):
                 return
 
-            details = (
-                {"integration": ActivityIntegration.SUSPECT_COMMITTER.value}
-                if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value
-                else (
-                    {
-                        "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
-                        "rule": (issue_owner.context or {}).get("rule", ""),
-                    }
-                    if issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value
-                    else {
-                        "integration": ActivityIntegration.CODEOWNERS.value,
-                        "rule": (issue_owner.context or {}).get("rule", ""),
-                    }
-                )
-            )
+            rule_details = {}
+            if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
+                rule_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value
+            elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
+                rule_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
+                rule_details["rule"] = (issue_owner.context or {}).get("rule", "")
+            else:
+                rule_details["integration"] = ActivityIntegration.CODEOWNERS.value
+                rule_details["rule"] = (issue_owner.context or {}).get("rule", "")
+
+            logging_extra = {**logging_extra, **rule_details}
+
             activity = Activity.objects.filter(
                 group=group, type=ActivityType.ASSIGNED.value
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
-                if not auto_assigned and not force_autoassign:
-                    logger.info(
-                        "autoassignment.post_manual_assignment",
-                        extra={
-                            "event_id": event.event_id,
-                            "group_id": event.group_id,
-                            "project": event.project_id,
-                            "organization_id": event.project.organization_id,
-                            **details,
-                        },
-                    )
+                if not auto_assigned and not enable_force_autoassign:
+                    logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
             if (
                 isinstance(owner, Team)
@@ -318,33 +326,34 @@ class ProjectOwnership(Model):
                 assignment = GroupAssignee.objects.assign(
                     group,
                     owner,
-                    create_only=not force_autoassign,
-                    extra=details,
-                    force_autoassign=force_autoassign,
+                    create_only=not enable_force_autoassign,
+                    extra=rule_details,
+                    force_autoassign=enable_force_autoassign,
                 )
 
                 if assignment["new_assignment"] or assignment["updated_assignment"]:
+                    # Kinda odd to check logging_extra but it could save a DB query.
+                    organization_id = (
+                        logging_extra.get("organization_id") or ownership.project.organization_id
+                    )
                     analytics.record(
                         (
                             "codeowners.assignment"
-                            if details.get("integration") == ActivityIntegration.CODEOWNERS.value
+                            if rule_details.get("integration")
+                            == ActivityIntegration.CODEOWNERS.value
                             else "issueowners.assignment"
                         ),
-                        organization_id=ownership.project.organization_id,
+                        organization_id=organization_id,
                         project_id=project_id,
                         group_id=group.id,
                     )
                     logger.info(
                         "handle_auto_assignment.success",
                         extra={
-                            "event": event.event_id if event else None,
-                            "group": group.id,
-                            "project": group.project.id,
-                            "organization": group.project.organization_id,
+                            **logging_extra,
                             # owner_id returns a string including the owner type (user or team) and id
                             "assignee": issue_owner.owner_id(),
                             "reason": "created" if assignment["new_assignment"] else "updated",
-                            **details,
                         },
                     )
 
