@@ -505,12 +505,13 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
 
 def create_schema_from_issue_owners(
     project_id: int,
-    issue_owners: str | None = None,
+    issue_owners: str | None,
     add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
 ) -> Mapping[str, Any] | None:
-    if not issue_owners:
+    if issue_owners is None:
         return None
+
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:
