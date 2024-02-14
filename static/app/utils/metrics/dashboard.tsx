@@ -1,9 +1,9 @@
 import {urlEncode} from '@sentry/utils';
 
-import type {PageFilters} from 'sentry/types';
+import type {MRI, PageFilters} from 'sentry/types';
 import {emptyWidget} from 'sentry/utils/metrics/constants';
-import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {formatMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
+import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
@@ -27,6 +27,19 @@ export function convertToDashboardWidget(
     widgetType: WidgetType.METRICS,
     limit: !metricsQuery.groupBy?.length ? 1 : 10,
     queries: [getWidgetQuery(metricsQuery)],
+  };
+}
+
+export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams {
+  const query = widget.queries[0];
+  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+
+  return {
+    mri: parsed.mri,
+    op: parsed.op,
+    query: query.conditions,
+    groupBy: query.columns,
+    displayType: toMetricDisplayType(widget.displayType),
   };
 }
 

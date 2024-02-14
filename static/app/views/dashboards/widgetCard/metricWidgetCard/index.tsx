@@ -67,20 +67,17 @@ export function MetricWidgetCard({
   widget,
   isEditingWidget,
   isEditingDashboard,
-  onEdit,
   onUpdate,
   onDelete,
   onDuplicate,
   location,
   router,
-  index,
   dashboardFilters,
   renderErrorMessage,
 }: Props) {
   useMetricsDashboardContext();
 
-  const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>(convertFromWidget(widget));
+  const metricWidgetQueryParams = convertFromWidget(widget);
 
   const defaultTitle = useMemo(
     () => stringifyMetricWidget(metricWidgetQueryParams),
@@ -88,16 +85,6 @@ export function MetricWidgetCard({
   );
 
   const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
-
-  const handleChange = useCallback(
-    (data: Partial<MetricWidgetQueryParams>) => {
-      setMetricWidgetQueryParams(curr => ({
-        ...curr,
-        ...data,
-      }));
-    },
-    [setMetricWidgetQueryParams]
-  );
 
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
@@ -146,7 +133,8 @@ export function MetricWidgetCard({
               metricsQuery={metricWidgetQueryParams}
               projects={selection.projects}
               powerUserMode={false}
-              onChange={handleChange}
+              // TODO: remove in a followup
+              onChange={() => {}}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
               onTitleChange={setTitle}
@@ -171,7 +159,14 @@ export function MetricWidgetCard({
                 showContextMenu
                 isPreview={false}
                 widgetLimitReached={false}
-                onEdit={() => index && onEdit?.(index)}
+                onEdit={() => {
+                  router.push({
+                    pathname: `${location.pathname}${
+                      location.pathname.endsWith('/') ? '' : '/'
+                    }widget/${widget.id}/`,
+                    query: location.query,
+                  });
+                }}
                 router={router}
                 location={location}
                 onDelete={onDelete}
@@ -291,6 +286,19 @@ export function MetricWidgetChartContainer({
   );
 }
 
+function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
+  const query = widget.queries[0];
+  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+
+  return {
+    mri: parsed.mri,
+    op: parsed.op,
+    query: query.conditions,
+    groupBy: query.columns,
+    displayType: toMetricDisplayType(widget.displayType),
+  };
+}
+
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
     return query;
@@ -313,19 +321,6 @@ function convertToQuery(dashboardFilters: DashboardFilters) {
   }
 
   return `release:[${release.join(',')}]`;
-}
-
-function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
-  return {
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
 }
 
 const WidgetHeaderWrapper = styled('div')`
