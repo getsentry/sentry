@@ -112,9 +112,9 @@ export function Trace(props: TraceProps) {
         className={traceTree.type === 'loading' ? 'Loading' : ''}
         style={{
           backgroundColor: '#FFF',
-          height: '100%',
+          height: '70vh',
           width: '100%',
-          position: 'absolute',
+          margin: 'auto',
         }}
       >
         <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
@@ -577,6 +577,7 @@ function RenderPlaceholderRow(props: {
         pointerEvents: 'none',
         color: props.theme.subText,
         animationDelay: `${virtualizedIndex * 0.05}s`,
+        paddingLeft: space(1),
       }}
     >
       <div
@@ -743,6 +744,9 @@ function TraceBar(props: TraceBarProps) {
  */
 const TraceStylingWrapper = styled('div')`
   position: relative;
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(0.5)} 0;
+  border-radius: ${space(0.5)};
 
   @keyframes show {
     0% {
