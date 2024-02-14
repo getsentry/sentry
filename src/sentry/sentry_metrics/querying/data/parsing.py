@@ -3,8 +3,7 @@ from collections.abc import Generator, Sequence
 
 from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Timeseries
-from snuba_sdk.mql.mql import parse_mql
-from snuba_sdk.query_visitors import InvalidQueryError
+from snuba_sdk.mql.mql import InvalidMQLQueryError, parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
@@ -128,7 +127,7 @@ class QueryParser:
         """
         try:
             query = parse_mql(mql)
-        except InvalidQueryError as e:
+        except InvalidMQLQueryError as e:
             cause = e.__cause__
             if cause and isinstance(cause, IncompleteParseError):
                 error_context = cause.text[cause.pos : cause.pos + 20]
@@ -137,9 +136,9 @@ class QueryParser:
                 # fields.
                 raise InvalidMetricsQueryError(
                     f"The query '{mql}' could not be matched starting from '{error_context}...'"
-                )
+                ) from e
 
-            raise InvalidMetricsQueryError("The supplied query is not valid")
+            raise InvalidMetricsQueryError("The supplied query is not valid") from e
 
         return VisitableQueryExpression(query=query)
 
