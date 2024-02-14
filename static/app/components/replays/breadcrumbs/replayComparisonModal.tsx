@@ -123,7 +123,7 @@ export default function ReplayComparisonModal({
                 analyticsContext="replay_comparison_modal_left"
                 initialTimeOffsetMs={{offsetMs: startOffset}}
                 isFetching={fetching}
-                prefsStrategy={StaticReplayPreferences()}
+                prefsStrategy={StaticReplayPreferences}
                 replay={replay}
               >
                 <ComparisonSideWrapper id="leftSide">
@@ -138,7 +138,7 @@ export default function ReplayComparisonModal({
                 analyticsContext="replay_comparison_modal_right"
                 initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
                 isFetching={fetching}
-                prefsStrategy={StaticReplayPreferences()}
+                prefsStrategy={StaticReplayPreferences}
                 replay={replay}
               >
                 <ComparisonSideWrapper id="rightSide">

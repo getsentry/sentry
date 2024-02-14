@@ -27,7 +27,7 @@ const renderComponent = (replay: ReplayReader | null) => {
     <ReplayContextProvider
       analyticsContext=""
       isFetching={false}
-      prefsStrategy={StaticReplayPreferences()}
+      prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
       <TagPanel />

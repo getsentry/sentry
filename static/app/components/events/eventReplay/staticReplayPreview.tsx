@@ -58,7 +58,7 @@ export function StaticReplayPreview({
       analyticsContext={analyticsContext}
       initialTimeOffsetMs={offset}
       isFetching={isFetching}
-      prefsStrategy={StaticReplayPreferences()}
+      prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
       <PlayerContainer data-test-id="player-container">

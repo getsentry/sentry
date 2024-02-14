@@ -17,20 +17,16 @@ export interface PrefsStrategy {
   set: (prefs: ReplayPrefs) => void;
 }
 
-export function StaticReplayPreferences(): PrefsStrategy {
-  return {
-    get: (): ReplayPrefs => DEFAULT_PREFS,
-    set: () => {},
-  };
-}
+export const StaticReplayPreferences: PrefsStrategy = {
+  get: (): ReplayPrefs => DEFAULT_PREFS,
+  set: () => {},
+};
 
-export function LocalStorageReplayPreferences(): PrefsStrategy {
-  return {
-    get: (): ReplayPrefs => {
-      const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-      return {...DEFAULT_PREFS, ...parsed};
-    },
-    set: (prefs: ReplayPrefs) =>
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs)),
-  };
-}
+export const LocalStorageReplayPreferences: PrefsStrategy = {
+  get: (): ReplayPrefs => {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+    return {...DEFAULT_PREFS, ...parsed};
+  },
+  set: (prefs: ReplayPrefs) =>
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs)),
+};

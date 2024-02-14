@@ -149,7 +149,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       analyticsContext="replay_details"
       initialTimeOffsetMs={initialTimeOffsetMs}
       isFetching={fetching}
-      prefsStrategy={LocalStorageReplayPreferences()}
+      prefsStrategy={LocalStorageReplayPreferences}
       replay={replay}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>

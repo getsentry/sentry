@@ -210,7 +210,7 @@ function ReplayClipPreview({
     <ReplayContextProvider
       analyticsContext={analyticsContext}
       isFetching={fetching}
-      prefsStrategy={StaticReplayPreferences()}
+      prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
