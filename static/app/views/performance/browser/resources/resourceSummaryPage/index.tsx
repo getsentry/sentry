@@ -76,6 +76,7 @@ function ResourceSummary() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      baseURL="/performance/browser/resources"
     >
       <Layout.Header>
         <Layout.HeaderContent>

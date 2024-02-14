@@ -73,7 +73,10 @@ export default function WebVitalsLandingPage() {
   );
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

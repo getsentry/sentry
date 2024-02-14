@@ -112,6 +112,7 @@ function SpanSummaryPage({params}: Props) {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
     >
       <Layout.Header>
         <Layout.HeaderContent>

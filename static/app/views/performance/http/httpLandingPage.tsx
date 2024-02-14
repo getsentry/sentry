@@ -163,7 +163,10 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function LandingPageWithProviders() {
   return (
-    <ModulePageProviders title={[t('Performance'), t('HTTP')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('HTTP')].join(' — ')}
+      baseURL="/performance/http"
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );

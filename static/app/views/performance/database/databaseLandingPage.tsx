@@ -256,7 +256,10 @@ const LIMIT: number = 25;
 
 function LandingPageWithProviders() {
   return (
-    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Database')].join(' — ')}
+      baseURL="/performance/database"
+    >
       <DatabaseLandingPage />
     </ModulePageProviders>
   );

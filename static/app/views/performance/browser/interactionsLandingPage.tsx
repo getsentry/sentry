@@ -37,7 +37,10 @@ function InteractionsLandingPage() {
   const sort = useBrowserSort();
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Interactions')].join(' — ')}
+      baseURL="/performance/browser/interactions"
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

@@ -143,7 +143,10 @@ export default function PageOverview() {
   );
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+    >
       <Tabs
         value={tab}
         onChange={value => {
