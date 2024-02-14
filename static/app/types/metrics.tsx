@@ -45,10 +45,6 @@ export interface MetricsApiRequestQuery extends MetricsApiRequestMetric {
 
 export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
 
-export interface MetricsApiRequestQueryOptions extends Partial<MetricsApiRequestQuery> {
-  intervalLadder?: MetricsDataIntervalLadder;
-}
-
 export type MetricsApiResponse = {
   end: string;
   groups: MetricsGroup[];
@@ -57,6 +53,21 @@ export type MetricsApiResponse = {
   query: string;
   start: string;
 };
+
+export interface MetricsQueryApiResponse {
+  data: {
+    by: Record<string, string>;
+    series: Array<number | null>;
+    totals: number;
+  }[][];
+  end: string;
+  intervals: string[];
+  meta: [
+    {name: string; type: string},
+    {group_bys: string[]; limit: number | null; order: string | null},
+  ][];
+  start: string;
+}
 
 export type MetricsGroup = {
   by: Record<string, string>;

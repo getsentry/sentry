@@ -19,7 +19,7 @@ export const useProjectSpanMetricCounts = ({
     name: 'Has Any Span Metrics',
     query,
     fields: ['project.id', 'count()'],
-    projects: projectId && projectId.map(id => parseInt(id, 10)),
+    projects: projectId?.map(id => parseInt(id, 10)),
     dataset: DiscoverDatasets.SPANS_METRICS,
     version: 2,
   });

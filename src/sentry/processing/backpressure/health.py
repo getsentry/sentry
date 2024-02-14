@@ -1,18 +1,14 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
 
 import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.processing.backpressure.topology import CONSUMERS
 from sentry.utils import metrics, redis
 
 logger = logging.getLogger(__name__)
-
-UnhealthyReasons = Exception | list[ServiceMemory]
 
 
 def _prefix_key(key_name: str) -> str:
@@ -93,48 +89,30 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         return False
 
 
-def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -> None:
+def record_consumer_health(service_health: Mapping[str, bool]) -> None:
     with service_monitoring_cluster.pipeline() as pipeline:
         key_ttl = options.get("backpressure.status_ttl")
 
-        for name, unhealthy_reasons in unhealthy_services.items():
-            pipeline.set(_service_key(name), "false" if unhealthy_reasons else "true", ex=key_ttl)
+        for name, is_healthy in service_health.items():
+            pipeline.set(_service_key(name), "true" if is_healthy else "false", ex=key_ttl)
 
-            extra: dict[str, Any] = {}
-            if unhealthy_reasons:
-                if isinstance(unhealthy_reasons, Exception):
-                    extra = {"exception": unhealthy_reasons}
-                else:
-                    for memory in unhealthy_reasons:
-                        extra[memory.name] = {
-                            "used": memory.used,
-                            "available": memory.available,
-                            "percentage": memory.percentage,
-                        }
-
+            if not is_healthy:
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("service", name)
-                    logger.error("Service `%s` marked as unhealthy", name, extra=extra)
+                    logger.error("Service `%s` marked as unhealthy", name)
 
         for name, dependencies in CONSUMERS.items():
-            unhealthy_dependencies = []
+            is_healthy = True
             for dependency in dependencies:
-                if unhealthy_services[dependency]:
-                    unhealthy_dependencies.append(dependency)
+                is_healthy = is_healthy and service_health[dependency]
 
-            pipeline.set(
-                _consumer_key(name), "false" if unhealthy_dependencies else "true", ex=key_ttl
-            )
+            pipeline.set(_consumer_key(name), "true" if is_healthy else "false", ex=key_ttl)
 
-            if unhealthy_dependencies:
+            if not is_healthy:
                 metrics.incr("backpressure.monitor.consumer.unhealthy", tags={"consumer": name})
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("consumer", name)
-                    logger.error(
-                        "Consumer `%s` marked as unhealthy",
-                        name,
-                        extra={"unhealthy_dependencies": unhealthy_dependencies},
-                    )
+                    logger.error("Consumer `%s` marked as unhealthy", name)
 
         pipeline.execute()

@@ -54,7 +54,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
 }
 
 interface State extends AsyncViewState {
-  groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
@@ -74,7 +73,6 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      groupOrgRoles: [],
       member: null,
       orgRole: '',
       teamRoles: [],
@@ -90,11 +88,10 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles, groupOrgRoles} = data;
+      const {orgRole, teamRoles} = data;
       this.setState({
         orgRole,
         teamRoles,
-        groupOrgRoles,
       });
     }
   }
@@ -120,8 +117,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
-      const errorMessage =
-        (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
+      const errorMessage = resp?.responseJSON?.detail || t('Could not save...');
       this.setState({busy: false});
       addErrorMessage(errorMessage);
     }
