@@ -10,7 +10,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   IconCheckmark,
   IconEdit,
@@ -23,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
-import type {MetricsQuery,MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -61,8 +61,16 @@ function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
 }
 
 function MetricWidgetViewerModal(props: Props) {
-
-  const {organization, widget, Footer, Body, Header, closeModal, selection, onMetricWidgetEdit} = props;
+  const {
+    organization,
+    widget,
+    Footer,
+    Body,
+    Header,
+    closeModal,
+    selection,
+    onMetricWidgetEdit,
+  } = props;
 
   const router = useRouter();
 
@@ -104,8 +112,14 @@ function MetricWidgetViewerModal(props: Props) {
     };
 
     onMetricWidgetEdit?.(updatedWidget);
-  }, [title, defaultTitle, metricWidgetQueryParams, onMetricWidgetEdit, widget, selection]);
-
+  }, [
+    title,
+    defaultTitle,
+    metricWidgetQueryParams,
+    onMetricWidgetEdit,
+    widget,
+    selection,
+  ]);
 
   return (
     <Fragment>
