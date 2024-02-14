@@ -347,7 +347,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                         current_widget_specs = get_current_widget_specs(organization)
                     widget_specs = _get_widget_on_demand_specs(widget_query, organization)
                     if len(widget_specs) == 0:
-                        # In the case the query errors, we should still disbale
+                        # Disabled since there are no applicable widgets
                         self.query_warnings["queries"].append(
                             OnDemandExtractionState.DISABLED_NOT_APPLICABLE
                         )
