@@ -1754,6 +1754,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
+    # Enable API aka HTTP aka Network Performance module
+    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
