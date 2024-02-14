@@ -20,10 +20,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {getDynamicText({
-          value: token.name ? token.name : '<no name>',
-          fixed: 'TokenName_1234',
-        })}
+        {token.name ? token.name : ''}
         <ButtonWrapper>
           <Button
             data-test-id="token-delete"
