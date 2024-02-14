@@ -25,7 +25,6 @@ import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/t
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import withPageFilters from 'sentry/utils/withPageFilters';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
 import {Query} from 'sentry/views/ddm/queries';
@@ -256,7 +255,7 @@ export function ContextMenu({
   );
 }
 
-export default withPageFilters(MetricWidgetViewerModal);
+export default MetricWidgetViewerModal;
 
 const WidgetHeader = styled('div')`
   display: flex;
