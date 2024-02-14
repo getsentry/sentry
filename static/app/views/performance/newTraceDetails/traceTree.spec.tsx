@@ -264,6 +264,87 @@ describe('TraceTree', () => {
     expect(node.children[0].children[1].value.start_timestamp).toBe(3);
   });
 
+  it('builds from spans and copies txn nodes', () => {
+    // transaction                transaction
+    //  - child transaction  ->    - span
+    //                             - child-transaction
+    //                             - span
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    root.children.push(
+      new TraceTreeNode(
+        root,
+        makeTransaction({
+          parent_span_id: 'child-transaction',
+        }),
+        {project_slug: '', event_id: ''}
+      )
+    );
+
+    const node = TraceTree.FromSpans(root, [
+      makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
+      makeSpan({
+        start_timestamp: 0.1,
+        timestamp: 0.2,
+        op: 'child-transaction',
+        span_id: 'child-transaction',
+      }),
+      makeSpan({start_timestamp: 0.2, timestamp: 0.25, op: 'span', span_id: 'none'}),
+    ]);
+
+    assertTransactionNode(node.children[1]);
+  });
+
+  it('builds from spans and copies txn nodes to nested children', () => {
+    // parent transaction             parent transaction
+    //  - child transaction  ->        - span
+    //   - grandchild transaction  ->  - child-transaction
+    //                                  - grandchild-transaction
+    //
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        span_id: 'parent-transaction',
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    let start: TraceTreeNode<TraceTree.NodeValue> = root;
+    for (let i = 0; i < 2; i++) {
+      const node = new TraceTreeNode(
+        start,
+        makeTransaction({
+          transaction: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
+          parent_span_id: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
+        }),
+        {project_slug: '', event_id: ''}
+      );
+
+      start.children.push(node);
+      start = node;
+    }
+
+    const node = TraceTree.FromSpans(root, [
+      makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
+      makeSpan({
+        start_timestamp: 0.1,
+        timestamp: 0.2,
+        op: 'child-transaction',
+        span_id: 'child-transaction',
+      }),
+    ]);
+
+    assertTransactionNode(node.children[1]);
+    assertTransactionNode(node.children[1].children[0]);
+  });
+
   it('injects missing spans', () => {
     const root = new TraceTreeNode(
       null,
