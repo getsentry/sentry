@@ -108,6 +108,9 @@ describe('Discover > EventDetails', function () {
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1234/actionable-items/',
+      body: {
+        errors: [],
+      },
     });
   });
 
