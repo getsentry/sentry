@@ -89,9 +89,7 @@ describe('ProjectTeams', function () {
 
     render(<ProjectTeams organization={org} project={project} />);
 
-    await waitFor(() =>
-      expect(screen.getByText('Project Teams for project-slug')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -143,9 +141,7 @@ describe('ProjectTeams', function () {
 
     render(<ProjectTeams organization={org} project={project} />);
 
-    await waitFor(() =>
-      expect(screen.getByText('Project Teams for project-slug')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -191,9 +187,7 @@ describe('ProjectTeams', function () {
 
     render(<ProjectTeams organization={org} project={project} />);
 
-    await waitFor(() =>
-      expect(screen.getByText('Project Teams for project-slug')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock1).not.toHaveBeenCalled();
 
@@ -236,9 +230,7 @@ describe('ProjectTeams', function () {
 
     render(<ProjectTeams organization={org} project={project} />);
 
-    await waitFor(() =>
-      expect(screen.getByText('Project Teams for project-slug')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -275,9 +267,7 @@ describe('ProjectTeams', function () {
 
     render(<ProjectTeams project={project} organization={org} />);
 
-    await waitFor(() =>
-      expect(screen.getByText('Project Teams for project-slug')).toBeInTheDocument()
-    );
+    expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
