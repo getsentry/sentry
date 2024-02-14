@@ -1726,25 +1726,24 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        # Sorted by count_miserable_user
-        assert response.data["data"] == [
+        # Sorted by count_miserable_user, however, withing the same count_miserable_user,
+        # the order is not guaranteed
+        for expected in [
             _expected(0, 0),
-            _expected(4, 0),
             _expected(1, 0),
-            _expected(3, 1),
             _expected(2, 1),
+            _expected(3, 1),
+            _expected(4, 0),
             _expected(5, 1),
-        ]
+        ]:
+            assert expected in response.data["data"]
 
         # The condition will exclude transactions with count_miserable(user) == 0
         query["query"] = "event.type:transaction count_miserable(user):>0"
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            _expected(3, 1),
-            _expected(2, 1),
-            _expected(5, 1),
-        ]
+        for expected in [_expected(2, 1), _expected(3, 1), _expected(5, 1)]:
+            assert expected in response.data["data"]
 
     def test_user_misery_denominator(self):
         """This is to test against a bug where the denominator of misery(total unique users) was wrong
