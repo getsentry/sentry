@@ -1040,6 +1040,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 hour * 62 * 24,
                 spec=spec,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "foo",
                     "customtag2": "red",
                     "environment": "production",
@@ -1050,6 +1051,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 hour * 60 * 24,
                 spec=spec_two,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "bar",
                     "customtag2": "blue",
                     "environment": "production",
@@ -1116,6 +1118,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 hour * 62 * 24,
                 spec=spec,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "foo",
                     "customtag2": "red",
                     "environment": "production",
@@ -1126,6 +1129,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 hour * 60 * 24,
                 spec=spec_two,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "bar",
                     "customtag2": "blue",
                     "environment": "production",

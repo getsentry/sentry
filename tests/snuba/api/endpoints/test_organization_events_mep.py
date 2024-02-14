@@ -3251,7 +3251,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         )
         assert resp.data == {
-            "data": [{field: user_misery_formula(miserable_users=4, unique_users=4)}],
+            "data": [{field: user_misery_formula(miserable_users=3, unique_users=4)}],
             "meta": {
                 "fields": {field: "number"},
                 "units": {field: None},
