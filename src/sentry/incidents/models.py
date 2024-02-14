@@ -616,7 +616,7 @@ class AlertRuleTrigger(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.CASCADE)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
     threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
