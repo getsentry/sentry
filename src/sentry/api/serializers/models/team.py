@@ -207,7 +207,7 @@ class BaseTeamSerializer(Serializer):
                 is_member
                 or is_superuser
                 or organization.flags.allow_joinleave
-                or roles.get(org_role).is_global
+                or (org_role and roles.get(org_role).is_global)
             )
 
             if has_access:

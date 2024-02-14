@@ -104,7 +104,7 @@ def get_access_by_project(
             is_member
             or is_superuser
             or project.organization.flags.allow_joinleave
-            or roles.get(org_role).is_global
+            or (org_role and roles.get(org_role).is_global)
         )
 
         team_scopes = set()
