@@ -1702,7 +1702,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
-            threshold=400,
+            threshold=400,  # This is higher than the default threshold
             metric=TransactionMetric.DURATION.value,
         )
         self._setup_user_misery()
@@ -1717,28 +1717,34 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             "sort": "count_miserable_user",
         }
 
-        response = self.do_request(
-            query,
-        )
+        def _expected(index: int, count: int) -> dict[str, str | int]:
+            return {
+                "transaction": f"/count_miserable/horribilis/{index}",
+                "project_threshold_config": ["duration", 400],
+                "count_miserable(user)": count,
+            }
 
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
-        data = response.data["data"]
-        assert data[0]["count_miserable(user)"] == 0
-        assert data[1]["count_miserable(user)"] == 1
-        assert data[2]["count_miserable(user)"] == 2
+        # Sorted by count_miserable_user
+        assert response.data["data"] == [
+            _expected(0, 0),
+            _expected(4, 0),
+            _expected(1, 0),
+            _expected(3, 1),
+            _expected(2, 1),
+            _expected(5, 1),
+        ]
 
+        # The condition will exclude transactions with count_miserable(user) == 0
         query["query"] = "event.type:transaction count_miserable(user):>0"
-
-        response = self.do_request(
-            query,
-        )
-
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 2
-        data = response.data["data"]
-        assert abs(data[0]["count_miserable(user)"]) == 1
-        assert abs(data[1]["count_miserable(user)"]) == 2
+        assert response.data["data"] == [
+            _expected(3, 1),
+            _expected(2, 1),
+            _expected(5, 1),
+        ]
 
     def test_user_misery_denominator(self):
         """This is to test against a bug where the denominator of misery(total unique users) was wrong
