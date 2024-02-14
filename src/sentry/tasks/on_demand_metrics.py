@@ -21,6 +21,7 @@ from sentry.relay.config.metric_extraction import (
     HashedMetricSpec,
     convert_widget_query_to_metric,
     on_demand_metrics_feature_flags,
+    widget_exceeds_max_specs,
 )
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
@@ -308,6 +309,51 @@ def _set_widget_on_demand_state(
 
         on_demand.spec_hashes = spec_hashes
         on_demand.save()
+
+
+def set_or_create_on_demand_state(
+    widget_query: DashboardWidgetQuery,
+    organization: Organization,
+    is_low_cardinality: bool,
+    feature_enabled: bool,
+    current_widget_specs,
+):
+    specs = _get_widget_on_demand_specs(widget_query, organization)
+
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+
+    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+        version = spec_version.version
+        specs_for_version = specs_per_version.get(version, [])
+        if not specs:
+            extraction_state = OnDemandExtractionState.DISABLED_NOT_APPLICABLE
+        elif widget_exceeds_max_specs(specs, current_widget_specs, organization):
+            extraction_state = OnDemandExtractionState.DISABLED_SPEC_LIMIT
+        elif not feature_enabled:
+            extraction_state = OnDemandExtractionState.DISABLED_PREROLLOUT
+        elif not is_low_cardinality:
+            extraction_state = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+        else:
+            extraction_state = OnDemandExtractionState.ENABLED_CREATION
+
+        spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
+
+        on_demand, created = DashboardWidgetQueryOnDemand.objects.get_or_create(
+            dashboard_widget_query=widget_query,
+            spec_version=version,
+            defaults={
+                "spec_hashes": spec_hashes,
+                "extraction_state": extraction_state,
+            },
+        )
+
+        if not created:
+            on_demand.spec_hashes = spec_hashes
+            on_demand.extraction_state = extraction_state
+            on_demand.save()
 
 
 def _determine_extraction_state(
