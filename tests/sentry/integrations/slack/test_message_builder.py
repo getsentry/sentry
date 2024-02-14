@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -18,6 +19,7 @@ from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
     format_release_tag,
+    get_context,
     get_option_groups,
     get_option_groups_block_kit,
     time_since,
@@ -26,7 +28,9 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
+    MonitorCheckInFailure,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.models.group import Group, GroupStatus
@@ -48,6 +52,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -1623,3 +1628,29 @@ class ActionsTest(TestCase):
                 res[0],
                 {"label": "Select Assignee...", "name": "assign", "type": "select", "value": None},
             )
+
+
+@region_silo_test
+class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        self.one_hour_ago = timezone.now() - timedelta(hours=1)
+        self.endpoint_regression_issue = self.create_group(
+            type=PerformanceP95EndpointRegressionGroupType.type_id, active_at=self.one_hour_ago
+        )
+
+        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.feedback_issue = self.create_group(
+            type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
+        )
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_context(self):
+        # endpoint regression should use Regressed Date
+        context = get_context(self.endpoint_regression_issue)
+        assert "Regressed Date: *1\xa0hour ago*" in context
+
+        # crons don't have context
+        assert get_context(self.cron_issue) == ""
+
+        # feedback doesn't have context
+        assert get_context(self.feedback_issue) == ""
