@@ -296,17 +296,17 @@ class ProjectOwnership(Model):
             except (User.DoesNotExist, Team.DoesNotExist):
                 return
 
-            rule_details = {}
+            activity_details = {}
             if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
-                rule_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value
+                activity_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value
             elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
-                rule_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
-                rule_details["rule"] = (issue_owner.context or {}).get("rule", "")
+                activity_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
+                activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
             else:
-                rule_details["integration"] = ActivityIntegration.CODEOWNERS.value
-                rule_details["rule"] = (issue_owner.context or {}).get("rule", "")
+                activity_details["integration"] = ActivityIntegration.CODEOWNERS.value
+                activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
 
-            logging_extra = {**logging_extra, **rule_details}
+            logging_extra = {**logging_extra, **activity_details}
 
             activity = Activity.objects.filter(
                 group=group, type=ActivityType.ASSIGNED.value
@@ -327,7 +327,7 @@ class ProjectOwnership(Model):
                     group,
                     owner,
                     create_only=not enable_force_autoassign,
-                    extra=rule_details,
+                    extra=activity_details,
                     force_autoassign=enable_force_autoassign,
                 )
 
@@ -339,7 +339,7 @@ class ProjectOwnership(Model):
                     analytics.record(
                         (
                             "codeowners.assignment"
-                            if rule_details.get("integration")
+                            if activity_details.get("integration")
                             == ActivityIntegration.CODEOWNERS.value
                             else "issueowners.assignment"
                         ),
