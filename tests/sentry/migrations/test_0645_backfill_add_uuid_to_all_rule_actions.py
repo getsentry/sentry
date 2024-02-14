@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sentry.testutils.cases import TestMigrations
 
 
@@ -17,3 +19,4 @@ class BackfillAddUuidToAllRuleActions(TestMigrations):
         assert len(actions) == len(self.notify_event_action)
         action = actions[0]
         assert "uuid" in action
+        assert UUID(action["uuid"])
