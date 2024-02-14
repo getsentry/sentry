@@ -1692,18 +1692,21 @@ def _save_aggregate_new(
 
                 return GroupInfo(group=group, is_new=True, is_regression=False)
 
-    group = Group.objects.get(id=existing_grouphash.group_id)
+    return handle_existing_grouphash(job, existing_grouphash, grouphashes, group_processing_kwargs)
 
-    if check_for_category_mismatch(group):
-        return None
 
-    # There may still be secondary hashes that we did not use to find an
-    # existing group. A classic example is when grouping makes changes to
-    # the app-hash (changes to in_app logic), but the system hash stays
-    # stable and is used to find an existing group. Associate any new
-    # hashes with the group such that event saving continues to be
-    # resilient against grouping algorithm changes.
-    #
+def handle_existing_grouphash(
+    job: Job,
+    existing_grouphash: GroupHash,
+    all_grouphashes: list[GroupHash],
+    group_processing_kwargs: dict[str, Any],
+) -> GroupInfo | None:
+    """
+    Handle the case where an incoming event matches an existing group, by assigning the event to the
+    group, updating the group metadata with data from the event, and linking any newly-calculated
+    grouphashes to the group.
+    """
+
     # There is a race condition here where two processes could "steal"
     # hashes from each other. In practice this should not be user-visible
     # as group creation is synchronized, meaning the only way hashes could
@@ -1714,18 +1717,29 @@ def _save_aggregate_new(
     #    codepath which has transaction isolation/acquires row locks)
     # 2) AND are looking at the same set, or an overlapping set of hashes
     #    (otherwise they would not operate on the same rows)
-    # 3) yet somehow also sort their respective events into two different groups
+    # 3) yet somehow also retrieve different groups here
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
     # _save_aggregate had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    add_group_id_to_grouphashes(group, grouphashes)
+    group = Group.objects.get(id=existing_grouphash.group_id)
+
+    if check_for_category_mismatch(group):
+        return None
+
+    # There may still be hashes that we did not use to find an existing
+    # group. A classic example is when grouping makes changes to the
+    # app-hash (changes to in_app logic), but the system hash stays
+    # stable and is used to find an existing group. Associate any new
+    # hashes with the group such that event saving continues to be
+    # resilient against grouping algorithm changes.
+    add_group_id_to_grouphashes(group, all_grouphashes)
 
     is_regression = _process_existing_aggregate(
         group=group,
-        event=event,
+        event=job["event"],
         incoming_group_values=group_processing_kwargs,
         release=job["release"],
     )
