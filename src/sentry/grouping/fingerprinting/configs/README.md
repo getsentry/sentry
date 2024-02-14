@@ -44,11 +44,6 @@ Contents of the files should use syntax as described in https://docs.sentry.io/p
 
 ## Using Built-in Fingerprinting Rules
 
-> **Note**
->
-> This functionality is currently feature-flagged behind
-> `organizations:grouping-built-in-fingerprint-rules`
-
 To add one or more of these rule configs
 
 ```python
