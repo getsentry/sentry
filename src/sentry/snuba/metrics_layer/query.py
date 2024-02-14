@@ -346,10 +346,6 @@ def _resolve_timeseries_metadata(
     else:
         mappings[metric.mri] = metric.id
 
-    if not metric.entity:
-        entity = _resolve_metrics_entity(metric.mri)  # This should eventually be done in Snuba
-        metric = metric.set_entity(entity.value)
-
     series = series.set_metric(metric)
     return series, mappings
 
@@ -381,17 +377,6 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         raise InvalidParams("Formula parameters must all be from the same use case")
 
     return namespaces.pop()
-
-
-def _resolve_metrics_entity(mri: str) -> EntityKey:
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
-
-    if parsed_mri.namespace == "sessions":
-        return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
-
-    return GENERIC_ENTITIES[parsed_mri.entity]
 
 
 def _lookup_indexer_resolve(

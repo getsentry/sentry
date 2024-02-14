@@ -127,7 +127,7 @@ class QueryParser:
         Parses the field with the MQL grammar.
         """
         try:
-            query = parse_mql(mql).query
+            query = parse_mql(mql)
         except InvalidQueryError as e:
             cause = e.__cause__
             if cause and isinstance(cause, IncompleteParseError):
