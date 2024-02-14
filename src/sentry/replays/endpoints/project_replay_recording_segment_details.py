@@ -79,18 +79,12 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             )
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        span = sentry_sdk.get_current_span()
-        if span is None:
-            # For type safety only. `span` should never be None here because this method is only called
-            # from within the `get` method above, which is auto-instrumented by the Django integration.
-            span = sentry_sdk.tracing.NoOpSpan()
-
-        with span.start_child(
+        with sentry_sdk.start_span(
             op="download_segment",
             description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
             segment_bytes = download_segment(
-                segment, transaction=child_span, current_hub=sentry_sdk.Hub.current
+                segment, span=child_span, current_hub=sentry_sdk.Hub.current
             )
             if segment_bytes is None:
                 segment_bytes = b"[]"
