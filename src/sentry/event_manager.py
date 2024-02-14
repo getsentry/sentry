@@ -1650,12 +1650,12 @@ def _save_aggregate_new(
 
     existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    if existing_grouphash is None:
-        group_info = create_group_with_grouphashes(job, grouphashes, group_processing_kwargs)
-    else:
+    if existing_grouphash:
         group_info = handle_existing_grouphash(
             job, existing_grouphash, grouphashes, group_processing_kwargs
         )
+    else:
+        group_info = create_group_with_grouphashes(job, grouphashes, group_processing_kwargs)
 
     # From here on out, we're just doing housekeeping
 
