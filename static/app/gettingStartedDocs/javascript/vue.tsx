@@ -47,7 +47,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          Sentry.browserTracingIntergation(),`
+          Sentry.browserTracingIntegration(),`
         : ''
     }${
       params.isReplaySelected
