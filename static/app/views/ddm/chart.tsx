@@ -99,6 +99,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
               ...s,
               silent: true,
               data: s.data.slice(0, -fogOfWarBuckets),
+              connectNulls: true,
             },
             displayType === MetricDisplayType.BAR
               ? createFogOfWarBarSeries(s, fogOfWarBuckets)
