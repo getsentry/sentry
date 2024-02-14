@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import type {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
+import type {MetricsQueryApiResponse, Organization, PageFilters} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -63,8 +63,11 @@ class MetricWidgetQueries extends Component<Props, State> {
   }
 
   customDidUpdateComparator = (
-    prevProps: GenericWidgetQueriesProps<MetricsApiResponse, MetricsApiResponse>,
-    nextProps: GenericWidgetQueriesProps<MetricsApiResponse, MetricsApiResponse>
+    prevProps: GenericWidgetQueriesProps<
+      MetricsQueryApiResponse,
+      MetricsQueryApiResponse
+    >,
+    nextProps: GenericWidgetQueriesProps<MetricsQueryApiResponse, MetricsQueryApiResponse>
   ) => {
     const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
       nextProps;
@@ -126,7 +129,7 @@ class MetricWidgetQueries extends Component<Props, State> {
     const config = MetricsConfig;
 
     return (
-      <GenericWidgetQueries<MetricsApiResponse, MetricsApiResponse>
+      <GenericWidgetQueries<MetricsQueryApiResponse, MetricsQueryApiResponse>
         config={config}
         api={api}
         organization={organization}
