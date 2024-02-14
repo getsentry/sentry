@@ -254,7 +254,10 @@ export class TraceTree {
     spans: RawSpanType[]
   ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = isSpanNode(parent);
-    const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
+    const lookuptable: Record<
+      RawSpanType['span_id'],
+      TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
+    > = {};
 
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
@@ -267,40 +270,48 @@ export class TraceTree {
       }
     }
 
-    const childrenLinks = new Map<string, TraceTree.Metadata>();
-    for (const child of parent.children) {
+    const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
+    const transactions = parent.transactions;
+
+    for (const child of transactions) {
       if (
         child.value &&
         'parent_span_id' in child.value &&
         typeof child.value.parent_span_id === 'string'
       ) {
-        childrenLinks.set(child.value.parent_span_id, child.metadata);
+        transactionsToSpanMap.set(child.value.parent_span_id, child);
       }
       continue;
     }
 
     for (const span of spans) {
-      const node = new TraceTreeNode(null, span, {
-        event_id: undefined,
-        project_slug: undefined,
-      });
+      const parentNode = transactionsToSpanMap.get(span.span_id);
+      let node: TraceTreeNode<TraceTree.Span>;
 
-      const parentLinkMetadata = childrenLinks.get(span.span_id);
-      node.canFetchData = !!parentLinkMetadata;
+      if (parentNode) {
+        node = parentNode.clone() as unknown as TraceTreeNode<TraceTree.Span>;
+      } else {
+        node = new TraceTreeNode(null, span, {
+          event_id: undefined,
+          project_slug: undefined,
+        });
+      }
 
-      if (parentLinkMetadata) {
-        node.metadata = parentLinkMetadata;
+      node.canFetchData = !!parentNode;
+
+      if (parentNode) {
+        node.metadata = parentNode.metadata;
       }
 
       lookuptable[span.span_id] = node;
 
       if (span.parent_span_id) {
-        const parentNode = lookuptable[span.parent_span_id];
+        const spanParentNode = lookuptable[span.parent_span_id];
 
-        if (parentNode) {
-          node.parent = parentNode;
-          maybeInsertMissingInstrumentationSpan(parentNode, node);
-          parentNode.spanChildren.push(node);
+        if (spanParentNode) {
+          node.parent = spanParentNode;
+          maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          spanParentNode.spanChildren.push(node);
           continue;
         }
       }
@@ -672,6 +683,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
   }
 
+  clone(): TraceTreeNode<T> {
+    const node = new TraceTreeNode(this.parent, this.value, this.metadata);
+    node.expanded = this.expanded;
+    node.zoomedIn = this.zoomedIn;
+    node.canFetchData = this.canFetchData;
+    node.space = this.space;
+    node.children = this.children;
+    return node;
+  }
+
   get isOrphaned() {
     return this.parent?.value && 'orphan_errors' in this.parent.value;
   }
@@ -768,6 +789,34 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   set children(children: TraceTreeNode<TraceTree.NodeValue>[]) {
     this._children = children;
+  }
+
+  get transactions(): TraceTreeNode<TraceTree.Transaction>[] {
+    const stack: TraceTreeNode<TraceTree.Transaction>[] = [];
+    const children: TraceTreeNode<TraceTree.Transaction>[] = [];
+
+    if (isTransactionNode(this)) {
+      for (let i = this.children.length - 1; i >= 0; i--) {
+        const child = this.children[i];
+        if (isTransactionNode(child)) {
+          stack.push(child);
+        }
+      }
+    }
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      children.push(node);
+
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        const child = node.children[i];
+        if (isTransactionNode(child)) {
+          stack.push(child);
+        }
+      }
+    }
+
+    return children;
   }
 
   get spanChildren(): TraceTreeNode<
