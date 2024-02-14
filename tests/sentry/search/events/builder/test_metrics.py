@@ -2484,6 +2484,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 day * 62 * 24,
                 spec=spec,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
                     "customtag2": "red",
                 },
@@ -2493,6 +2494,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 day * 60 * 24,
                 spec=spec_two,
                 additional_tags={
+                    "measurement_rating": "matches_hash",
                     "customtag1": "div > text",  # Spec tags for fields need to be overriden since the stored value is dynamic
                     "customtag2": "red",
                 },

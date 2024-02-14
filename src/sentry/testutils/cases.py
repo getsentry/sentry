@@ -2093,11 +2093,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         metric_spec_tags = []
         if relay_metric_spec:
 
-            # tags_keys = [condition["key"] for condition in spec.tags_conditions(self.project)]
+            tags_keys = [condition["key"] for condition in spec.tags_conditions(self.project)]
             # Functions in _DERIVED_METRICS include their tags in their conditions
             # but we should not in here
-            # XXX: Hacking it for now
-            tags_keys = ["satisfaction"]
             metric_spec_tags = [
                 tag for tag in relay_metric_spec.get("tags") if tag["key"] not in tags_keys
             ]
