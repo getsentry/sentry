@@ -35,7 +35,7 @@ from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -266,18 +266,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # on the teams, the team-roles can be overwritten later
         team_roles = teams = None
         if "teamRoles" in result or "teams" in result:
-            try:
-                if "teamRoles" in result:
-                    # If orgs do not have the flag, we'll set their team-roles to None
-                    team_roles = (
-                        result.get("teamRoles")
-                        if features.has("organizations:team-roles", organization)
-                        else [(team, None) for team, _ in result.get("teamRoles", [])]
-                    )
-                elif "teams" in result:
-                    teams = result.get("teams")
-            except InvalidTeam:
-                return Response({"teams": "Invalid team"}, status=400)
+            if "teamRoles" in result:
+                # If orgs do not have the flag, we'll set their team-roles to None
+                team_roles = (
+                    result.get("teamRoles")
+                    if features.has("organizations:team-roles", organization)
+                    else [(team, None) for team, _ in result.get("teamRoles", [])]
+                )
+            elif "teams" in result:
+                teams = result.get("teams")
 
         if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
             new_role = assigned_org_role if assigned_org_role else member.role
