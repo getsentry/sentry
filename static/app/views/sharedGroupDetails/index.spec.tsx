@@ -38,6 +38,12 @@ describe('SharedGroupDetails', function () {
         project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/actionable-items/`,
+      body: {
+        errors: [],
+      },
+    });
   });
 
   afterEach(function () {
