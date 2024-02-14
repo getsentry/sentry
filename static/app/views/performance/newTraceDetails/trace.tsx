@@ -1,3 +1,4 @@
+import type React from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -12,10 +13,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,15 +26,15 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {ParentAutogroupNode, TraceTree, type TraceTreeNode} from './traceTree';
+import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
 interface TraceProps {
-  trace: TraceSplitResults<TraceFullDetailed> | null;
+  trace: TraceTree;
   trace_id: string;
 }
 
-export function Trace(props: TraceProps) {
+function Trace({trace, trace_id}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
@@ -48,17 +45,6 @@ export function Trace(props: TraceProps) {
 
   const [_rerender, setRender] = useState(0);
 
-  const traceTree = useMemo(() => {
-    if (!props.trace) {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.trace_id,
-      });
-    }
-
-    return TraceTree.FromTrace(props.trace);
-  }, [props.trace, props.trace_id, projects]);
-
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
       list: {width: 0.5, column_refs: []},
@@ -67,15 +53,15 @@ export function Trace(props: TraceProps) {
   }
 
   if (
-    traceTree.root.space &&
-    (traceTree.root.space[0] !== viewManager.current.spanSpace[0] ||
-      traceTree.root.space[1] !== viewManager.current.spanSpace[1])
+    trace.root.space &&
+    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
+      trace.root.space[1] !== viewManager.current.spanSpace[1])
   ) {
-    viewManager.current.initializeSpanSpace(traceTree.root.space);
+    viewManager.current.initializeSpanSpace(trace.root.space);
   }
 
-  const treeRef = useRef<TraceTree>(traceTree);
-  treeRef.current = traceTree;
+  const treeRef = useRef<TraceTree>(trace);
+  treeRef.current = trace;
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -110,12 +96,12 @@ export function Trace(props: TraceProps) {
     <Fragment>
       <TraceStylingWrapper
         ref={r => viewManager.current?.onContainerRef(r)}
-        className={traceTree.type === 'loading' ? 'Loading' : ''}
+        className={trace.type === 'loading' ? 'Loading' : ''}
         style={{
           backgroundColor: '#FFF',
-          height: '100%',
+          height: '70vh',
           width: '100%',
-          position: 'absolute',
+          margin: 'auto',
         }}
       >
         <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
@@ -129,7 +115,7 @@ export function Trace(props: TraceProps) {
               overscanRowCount={10}
               rowCount={treeRef.current.list.length ?? 0}
               rowRenderer={p => {
-                return traceTree.type === 'loading' ? (
+                return trace.type === 'loading' ? (
                   <RenderPlaceholderRow
                     style={p.style}
                     node={treeRef.current.list[p.index]}
@@ -150,7 +136,7 @@ export function Trace(props: TraceProps) {
                     }
                     index={p.index}
                     style={p.style}
-                    trace_id={props.trace_id}
+                    trace_id={trace_id}
                     projects={projectLookup}
                     node={treeRef.current.list[p.index]}
                     viewManager={viewManager.current!}
@@ -166,6 +152,8 @@ export function Trace(props: TraceProps) {
     </Fragment>
   );
 }
+
+export default Trace;
 
 const TraceDivider = styled('div')`
   position: absolute;
@@ -644,6 +632,7 @@ function RenderPlaceholderRow(props: {
         pointerEvents: 'none',
         color: props.theme.subText,
         animationDelay: `${virtualizedIndex * 0.05}s`,
+        paddingLeft: space(1),
       }}
     >
       <div
@@ -839,6 +828,9 @@ function TraceBar(props: TraceBarProps) {
  */
 const TraceStylingWrapper = styled('div')`
   position: relative;
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(0.5)} 0;
+  border-radius: ${space(0.5)};
 
   @keyframes show {
     0% {
