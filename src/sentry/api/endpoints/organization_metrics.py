@@ -423,7 +423,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
 class MetricsSamplesSerializer(serializers.Serializer):
     mri = serializers.CharField(required=True)
-    field = serializers.ListField(required=True, allow_empty=False, child=serializers.DictField())
+    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
 
     def validate_mri(self, mri: str):
         if not is_mri(mri):
