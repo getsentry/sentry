@@ -104,9 +104,8 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
-# See eventstore.processing.multiredis
+# See getsentry.processingstore
 register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("eventstore.processing.readold", type=Bool, default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Processing worker caches
 register(
