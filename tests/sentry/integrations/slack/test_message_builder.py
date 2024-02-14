@@ -1643,6 +1643,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )
 
+    @with_feature("organizations:slack-block-kit-improvements")
     def test_get_context(self):
         # endpoint regression should use Regressed Date
         context = get_context(self.endpoint_regression_issue)
@@ -1652,4 +1653,4 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
         assert get_context(self.cron_issue) == ""
 
         # feedback has state and first seen
-        assert get_context(self.feedback_issue) == "State: *New*   First Seen: *Just now*   "
+        assert get_context(self.feedback_issue) == "State: *New*   First Seen: *Just now*"

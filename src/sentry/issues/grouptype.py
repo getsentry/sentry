@@ -118,7 +118,7 @@ class NotificationConfig:
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
         default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
-    )  # see SUPPORTED_CONTEXT_DATA for all possible values
+    )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
     actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
     extra_action: dict[str, str] = field(
         default_factory=lambda: {}
@@ -398,9 +398,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(
-        context=["Events", "Users Affected", "State", "Regressed Date"]
-    )
+    notification_config = NotificationConfig(context=["Users Affected", "State", "Regressed Date"])
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
