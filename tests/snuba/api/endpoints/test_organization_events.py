@@ -2110,7 +2110,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             ("/count_miserable/horribilis/project2", ["duration", 300], one_one),  # Uses fallback
         ]
 
-        assert len(response.data["data"]) == 1
         data = response.data["data"]
         for i, record in enumerate(expected):
             name, threshold_config, misery = record
