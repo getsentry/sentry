@@ -181,6 +181,15 @@ SHARED_TAG_STRINGS = {
     # Resource span
     "file_extension": PREFIX + 264,
     "app_start_type": PREFIX + 265,  # Mobile app start type
+    # Profiles
+    "function": PREFIX + 266,  # Function name
+    "package": PREFIX
+    + 267,  # it could be either a package or a module, but in profiling we don't make a distinction
+    "fingerprint": PREFIX + 268,  # takes into account function name and package
+    "is_application": PREFIX + 269,
+    "platform": PREFIX + 270,
+    "os.version": PREFIX + 271,
+    # TODO
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -216,11 +225,17 @@ ESCALATING_ISSUES_METRIC_NAMES = {
     "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
+# 600-999
+PROFILING_METRIC_NAMES = {
+    "d:profiles/function.duration@millisecond": PREFIX + 600,
+}
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
     **ESCALATING_ISSUES_METRIC_NAMES,
+    **PROFILING_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
