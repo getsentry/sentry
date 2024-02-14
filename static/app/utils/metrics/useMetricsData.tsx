@@ -1,19 +1,22 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
-import type {DateString, MetricsApiResponse, PageFilters} from 'sentry/types';
+import type {DateString, PageFilters} from 'sentry/types';
 import {getDateTimeParams, getDDMInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import type {MetricsApiRequestQueryOptions} from '../../types/metrics';
+import type {
+  MetricsApiRequestQueryOptions,
+  MetricsQueryApiResponse,
+} from '../../types/metrics';
 
-function createMqlQuery({
+export function createMqlQuery({
   field,
   query,
   groupBy = [],
-}: {field: string; query: string; groupBy?: string[]}) {
+}: {field: string; groupBy?: string[]; query?: string}) {
   let mql = field;
   if (query) {
     mql = `${mql}{${query}}`;
@@ -24,7 +27,7 @@ function createMqlQuery({
   return mql;
 }
 
-export function getMetricsApiRequestQuery(
+function getMetricsQueryApiRequestPayload(
   {
     field,
     query,
@@ -58,22 +61,7 @@ export function getMetricsApiRequestQuery(
   };
 }
 
-interface NewMetricsApiResponse {
-  data: {
-    by: Record<string, string>;
-    series: Array<number | null>;
-    totals: Record<string, number | null>;
-  }[][];
-  end: string;
-  intervals: string[];
-  meta: [
-    {name: string; type: string},
-    {group_bys: string[]; limit: number | null; order: string | null},
-  ][];
-  start: string;
-}
-
-export function useMetricsData(
+export function useMetricsQuery(
   {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
   overrides: Partial<MetricsApiRequestQueryOptions> = {}
 ) {
@@ -81,7 +69,7 @@ export function useMetricsData(
 
   const field = op ? `${op}(${mri})` : mri;
 
-  const {query: queryToSend, body} = getMetricsApiRequestQuery(
+  const {query: queryToSend, body} = getMetricsQueryApiRequestPayload(
     {
       field,
       query: query ?? '',
@@ -91,7 +79,7 @@ export function useMetricsData(
     {...overrides}
   );
 
-  const metricsApiResponse = useApiQuery<NewMetricsApiResponse>(
+  return useApiQuery<MetricsQueryApiResponse>(
     [
       `/organizations/${organization.slug}/metrics/query/`,
       {query: queryToSend, data: body, method: 'POST'},
@@ -104,54 +92,22 @@ export function useMetricsData(
       refetchInterval: false,
     }
   );
-
-  const dataInOldShape = useMemo(
-    () => mapToOldResponseShape(metricsApiResponse.data, field),
-    [field, metricsApiResponse.data]
-  );
-
-  return {
-    ...metricsApiResponse,
-    data: dataInOldShape,
-  };
-}
-
-function mapToOldResponseShape(
-  responseData: NewMetricsApiResponse | undefined,
-  field: string
-): MetricsApiResponse | undefined {
-  return (
-    responseData &&
-    ({
-      groups: responseData.data[0].map(group => ({
-        ...group,
-        series: {
-          [field]: group.series,
-        },
-      })),
-      intervals: responseData.intervals,
-      meta: [],
-      query: '',
-      start: responseData.start,
-      end: responseData.end,
-    } satisfies MetricsApiResponse)
-  );
 }
 
 // Wraps useMetricsData and provides two additional features:
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
-export function useMetricsDataZoom(
+export function useMetricsQueryZoom(
   metricsQuery: MetricsQuery,
   overrides: Partial<MetricsApiRequestQueryOptions> = {}
 ) {
-  const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
+  const [metricsData, setMetricsData] = useState<MetricsQueryApiResponse | undefined>();
   const {
     data: rawData,
     isLoading,
     isError,
     error,
-  } = useMetricsData(metricsQuery, overrides);
+  } = useMetricsQuery(metricsQuery, overrides);
 
   useEffect(() => {
     if (rawData) {
@@ -161,10 +117,10 @@ export function useMetricsDataZoom(
 
   const trimData = useCallback(
     (
-      currentData: MetricsApiResponse | undefined,
+      currentData: MetricsQueryApiResponse | undefined,
       start,
       end
-    ): MetricsApiResponse | undefined => {
+    ): MetricsQueryApiResponse | undefined => {
       if (!currentData) {
         return currentData;
       }
@@ -180,15 +136,12 @@ export function useMetricsDataZoom(
       return {
         ...currentData,
         intervals: currentData.intervals.slice(startIndex, endIndex),
-        groups: currentData.groups.map(group => ({
-          ...group,
-          series: Object.fromEntries(
-            Object.entries(group.series).map(([seriesName, series]) => [
-              seriesName,
-              series.slice(startIndex, endIndex),
-            ])
-          ),
-        })),
+        data: currentData.data.map(group =>
+          group.map(entry => ({
+            ...entry,
+            series: entry.series.slice(startIndex, endIndex),
+          }))
+        ),
       };
     },
     []

@@ -58,6 +58,21 @@ export type MetricsApiResponse = {
   start: string;
 };
 
+export interface MetricsQueryApiResponse {
+  data: {
+    by: Record<string, string>;
+    series: Array<number | null>;
+    totals: number;
+  }[][];
+  end: string;
+  intervals: string[];
+  meta: [
+    {name: string; type: string},
+    {group_bys: string[]; limit: number | null; order: string | null},
+  ][];
+  start: string;
+}
+
 export type MetricsGroup = {
   by: Record<string, string>;
   series: Record<string, Array<number | null>>;

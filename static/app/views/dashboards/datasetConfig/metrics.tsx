@@ -4,6 +4,8 @@ import type {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {
   MetricsApiResponse,
+  MetricsGroup,
+  MRI,
   Organization,
   PageFilters,
   TagCollection,
@@ -13,13 +15,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  getMetricsApiRequestQuery,
-  getMetricsSeriesName,
-  groupByOp,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, groupByOp} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
+  formatMRI,
   formatMRIField,
   getMRI,
   getUseCaseFromMRI,
@@ -351,6 +350,21 @@ export function transformMetricsResponseToSeries(
         })),
       },
     ];
+  }
+
+  function getMetricsSeriesName(group: MetricsGroup) {
+    const groupByEntries = Object.entries(group.by ?? {});
+    if (!groupByEntries.length) {
+      const field = Object.keys(group.series)?.[0];
+      const {mri} = parseField(field) ?? {mri: field};
+      const name = formatMRI(mri as MRI);
+
+      return name ?? '(none)';
+    }
+
+    return groupByEntries
+      .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
+      .join(', ');
   }
 
   data.groups.forEach(group => {
