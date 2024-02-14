@@ -15,6 +15,7 @@ from snuba_sdk.function import Function
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -1968,7 +1969,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["user_misery()"] == user_misery_formula(1, 2)
         assert data[1]["user_misery()"] == user_misery_formula(2, 2)
 
-    def _setup_user_misery(self, per_transaction_threshold: bool = False) -> None:
+    def _setup_user_misery(
+        self, per_transaction_threshold: bool = False, project: Project | None = None
+    ) -> None:
+        _project = project or self.project
         # If duration is > 300 * 4 then the user is fruistrated
         # There's a total of 4 users and three of them reach the frustration threshold
         events = [
@@ -1987,13 +1991,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/count_miserable/horribilis/{idx}"
             data["user"] = {"email": f"{event[0]}@example.com"}
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(data, project_id=_project.id)
 
             if per_transaction_threshold and idx % 2:
                 ProjectTransactionThresholdOverride.objects.create(
                     transaction=f"/count_miserable/horribilis/{idx}",
-                    project=self.project,
-                    organization=self.project.organization,
+                    project=_project,
+                    organization=_project.organization,
                     threshold=100 * idx,
                     metric=TransactionMetric.DURATION.value,
                 )
@@ -2057,7 +2061,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             metric=TransactionMetric.DURATION.value,
         )
 
-        self._setup_user_misery(per_transaction_threshold=True)
+        self._setup_user_misery(per_transaction_threshold=True, project=project)
 
         project2 = self.create_project()
 
@@ -2100,14 +2104,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             ("/count_miserable/horribilis/project2", ["duration", 300], one_one),  # Uses fallback
         ]
 
-        # XXX: Work on this
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         for i, record in enumerate(expected):
             name, threshold_config, misery = record
             assert data[i]["transaction"] == name
             assert data[i]["project_threshold_config"] == threshold_config
-            assert data[i]["user_misery()"] == pytest.approx(misery, rel=1e-3)
+            assert data[i]["user_misery()"] == misery
 
         query["query"] = "event.type:transaction user_misery():>0.050"
 
