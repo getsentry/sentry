@@ -1,7 +1,11 @@
+import clamp from 'sentry/utils/number/clamp';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceTree';
+
 const DIVIDER_WIDTH = 6;
 
 type ViewColumn = {
   column_refs: (HTMLElement | undefined)[];
+  translate: [number, number];
   width: number;
 };
 
@@ -20,6 +24,7 @@ export class VirtualizedViewManager {
   resizeObserver: ResizeObserver | null = null;
 
   dividerStartVec: [number, number] | null = null;
+  measurer: RowMeasurer = new RowMeasurer();
 
   spanDrawMatrix: Matrix2D = [1, 0, 0, 1, 0, 0];
   spanScalingFactor: number = 1;
@@ -36,11 +41,15 @@ export class VirtualizedViewManager {
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
   constructor(columns: {
-    list: ViewColumn;
-    span_list: ViewColumn;
+    list: Omit<ViewColumn, 'translate'>;
+    span_list: Omit<ViewColumn, 'translate'>;
   }) {
-    this.columns = columns;
+    this.columns = {
+      list: {...columns.list, translate: [0, 0]},
+      span_list: {...columns.span_list, translate: [0, 0]},
+    };
 
+    this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
     this.onDividerMouseDown = this.onDividerMouseDown.bind(this);
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
@@ -144,12 +153,61 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
-  registerColumnRef(column: string, ref: HTMLElement | null, index: number) {
+  registerColumnRef(
+    column: string,
+    ref: HTMLElement | null,
+    index: number,
+    node: TraceTreeNode<any>
+  ) {
     if (!this.columns[column]) {
       throw new TypeError('Invalid column');
     }
 
+    if (column === 'list') {
+      const element = this.columns[column].column_refs[index];
+      if (ref === undefined && element) {
+        element.removeEventListener('wheel', this.onSyncedScrollbarScroll);
+      } else if (ref) {
+        const scrollableElement = ref.children[0];
+        if (scrollableElement) {
+          this.measurer.measure(node, scrollableElement as HTMLElement);
+          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
+        }
+      }
+    }
+
     this.columns[column].column_refs[index] = ref ?? undefined;
+  }
+
+  scrollSyncRaf: number | null = null;
+  onSyncedScrollbarScroll(event: WheelEvent) {
+    const columnWidth = this.columns.list.width * this.width;
+
+    this.columns.list.translate[0] = clamp(
+      this.columns.list.translate[0] - event.deltaX,
+      -(this.measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
+      0
+    );
+
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const list = this.columns.list.column_refs[i];
+      if (list && list.children[0]) {
+        (list.children[0] as HTMLElement).style.transform =
+          `translateX(${this.columns.list.translate[0]}px)`;
+      }
+    }
+
+    // Eventually sync the column translation to the container
+    if (this.scrollSyncRaf) {
+      window.cancelAnimationFrame(this.scrollSyncRaf);
+    }
+    this.scrollSyncRaf = window.requestAnimationFrame(() => {
+      // @TODO if user is outside of the container, scroll the container to the left
+      this.container?.style.setProperty(
+        '--column-translate-x',
+        this.columns.list.translate[0] + 'px'
+      );
+    });
   }
 
   initialize(container: HTMLElement) {
@@ -224,5 +282,49 @@ export class VirtualizedViewManager {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
+  }
+}
+
+class RowMeasurer {
+  cache: Map<TraceTreeNode<any>, number> = new Map();
+  elements: HTMLElement[] = [];
+
+  measureQueue: [TraceTreeNode<any>, HTMLElement][] = [];
+  drainRaf: number | null = null;
+  max: number = 0;
+
+  enqueueMeasure(node: TraceTreeNode<any>, element: HTMLElement) {
+    if (this.cache.has(node)) {
+      return;
+    }
+
+    this.measureQueue.push([node, element]);
+
+    if (this.drainRaf !== null) {
+      window.cancelAnimationFrame(this.drainRaf);
+    }
+    this.drainRaf = window.requestAnimationFrame(() => {
+      this.drain();
+    });
+  }
+
+  drain() {
+    for (const [node, element] of this.measureQueue) {
+      this.measure(node, element);
+    }
+  }
+
+  measure(node: TraceTreeNode<any>, element: HTMLElement): number {
+    const cache = this.cache.get(node);
+    if (cache !== undefined) {
+      return cache;
+    }
+
+    const width = element.getBoundingClientRect().width;
+    if (width > this.max) {
+      this.max = width;
+    }
+    this.cache.set(node, width);
+    return width;
   }
 }

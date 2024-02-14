@@ -216,14 +216,18 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+          }
           style={{
             width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
-            style={{paddingLeft: props.node.depth * 23}}
+            style={{
+              paddingLeft: props.node.depth * 23,
+            }}
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} />
@@ -242,7 +246,14 @@ function RenderRow(props: {
         </div>
         <div
           className="TraceRightColumn"
-          ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef(
+              'span_list',
+              r,
+              virtualizedIndex,
+              props.node
+            )
+          }
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
             backgroundColor:
@@ -271,14 +282,18 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+          }
           style={{
             width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
-            style={{paddingLeft: props.node.depth * 23}}
+            style={{
+              paddingLeft: props.node.depth * 23,
+            }}
           >
             <div
               className={`TraceChildrenCountWrapper ${
@@ -309,7 +324,14 @@ function RenderRow(props: {
           </div>
         </div>
         <div
-          ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef(
+              'span_list',
+              r,
+              virtualizedIndex,
+              props.node
+            )
+          }
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
@@ -339,14 +361,18 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+          }
           style={{
             width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
-            style={{paddingLeft: props.node.depth * 23}}
+            style={{
+              paddingLeft: props.node.depth * 23,
+            }}
           >
             <div
               className={`TraceChildrenCountWrapper ${
@@ -378,7 +404,14 @@ function RenderRow(props: {
           </div>
         </div>
         <div
-          ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef(
+              'span_list',
+              r,
+              virtualizedIndex,
+              props.node
+            )
+          }
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
@@ -408,14 +441,18 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+          }
           style={{
             width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
-            style={{paddingLeft: props.node.depth * 23}}
+            style={{
+              paddingLeft: props.node.depth * 23,
+            }}
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} />
@@ -424,7 +461,14 @@ function RenderRow(props: {
           </div>
         </div>
         <div
-          ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef(
+              'span_list',
+              r,
+              virtualizedIndex,
+              props.node
+            )
+          }
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
@@ -454,14 +498,18 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+          }
           style={{
             width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
-            style={{paddingLeft: props.node.depth * 23}}
+            style={{
+              paddingLeft: props.node.depth * 23,
+            }}
           >
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} />
@@ -481,7 +529,14 @@ function RenderRow(props: {
           </div>
         </div>
         <div
-          ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+          ref={r =>
+            props.viewManager.registerColumnRef(
+              'span_list',
+              r,
+              virtualizedIndex,
+              props.node
+            )
+          }
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
@@ -510,7 +565,9 @@ function RenderRow(props: {
     >
       <div
         className="TraceLeftColumn"
-        ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+        ref={r =>
+          props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+        }
         style={{
           width:
             (props.viewManager.columns.list.width / props.viewManager.width) * 100 + '%',
@@ -518,7 +575,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumnInner"
-          style={{paddingLeft: props.node.depth * 23}}
+          style={{
+            paddingLeft: props.node.depth * 23,
+          }}
         >
           <div className="TraceChildrenCountWrapper">
             <Connectors node={props.node} />
@@ -538,7 +597,14 @@ function RenderRow(props: {
         </div>
       </div>
       <div
-        ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+        ref={r =>
+          props.viewManager.registerColumnRef(
+            'span_list',
+            r,
+            virtualizedIndex,
+            props.node
+          )
+        }
         className="TraceRightColumn"
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
@@ -581,12 +647,16 @@ function RenderPlaceholderRow(props: {
     >
       <div
         className="TraceLeftColumn"
-        ref={r => props.viewManager.registerColumnRef('list', r, virtualizedIndex)}
+        ref={r =>
+          props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
+        }
         style={{width: props.viewManager.columns.list.width * 100 + '%'}}
       >
         <div
           className="TraceLeftColumnInner"
-          style={{paddingLeft: props.node.depth * 23}}
+          style={{
+            paddingLeft: props.node.depth * 23,
+          }}
         >
           <div className="TraceChildrenCountWrapper">
             <Connectors node={props.node} />
@@ -609,7 +679,14 @@ function RenderPlaceholderRow(props: {
       </div>
       <div
         className="TraceRightColumn"
-        ref={r => props.viewManager.registerColumnRef('span_list', r, virtualizedIndex)}
+        ref={r =>
+          props.viewManager.registerColumnRef(
+            'span_list',
+            r,
+            virtualizedIndex,
+            props.node
+          )
+        }
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
         }}
@@ -814,11 +891,13 @@ const TraceStylingWrapper = styled('div')`
     will-change: width;
 
     .TraceLeftColumnInner {
-      width: 100%;
       height: 100%;
       white-space: nowrap;
       display: flex;
       align-items: center;
+      will-change: transform;
+      transform-origin: left center;
+      transform: translateX(var(--column-translate-x));
     }
   }
 
@@ -828,6 +907,7 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
     will-change: width;
+    z-index: 1;
   }
 
   .TraceBar {
