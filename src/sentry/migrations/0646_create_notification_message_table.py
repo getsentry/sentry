@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
                 ("error_code", models.IntegerField(db_index=True, null=True)),
                 (
                     "message_identifier",
-                    sentry.db.models.fields.text.CharField(db_index=True, null=True),
+                    sentry.db.models.fields.text.CharField(null=True),
                 ),
                 (
                     "rule_action_uuid",
