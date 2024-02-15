@@ -6,14 +6,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.models import AlertRule
-from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-    DashboardWidgetQueryOnDemand,
-    DashboardWidgetTypes,
-)
+from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
@@ -2013,7 +2006,7 @@ def test_get_current_widget_specs(
             },
         ]
     ):
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={i}",
             default_project,
