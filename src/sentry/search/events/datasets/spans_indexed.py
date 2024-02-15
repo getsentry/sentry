@@ -102,7 +102,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
-                SnQLFunction(
+                SnQLFunction(  # deprecated in favour of `example()`
                     "bounded_sample",
                     required_args=[
                         NumericColumn("column", spans=True),
@@ -112,7 +112,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     snql_aggregate=self._resolve_bounded_sample,
                     default_result_type="string",
                 ),
-                SnQLFunction(
+                SnQLFunction(  # deprecated in favour of `rounded_timestamp(...)`
                     "rounded_time",
                     optional_args=[with_default(3, NumberRange("intervals", None, None))],
                     snql_column=self._resolve_rounded_time,
