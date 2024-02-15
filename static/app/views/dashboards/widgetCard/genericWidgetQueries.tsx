@@ -123,47 +123,33 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
-    const previousQueries = cloneDeep(prevProps.widget.queries);
-    const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(field => !!field);
-        query.columns = query.columns.filter(field => !!field);
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          rest.fields = rest.fields?.filter(field => !!field) ?? [];
+    const previousQueries = prevProps.widget.queries;
+    const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
-          // Ignore aliases because changing alias does not need a query
-          rest = omit(rest, 'fieldAliases');
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
+        // Ignore aliases because changing alias does not need a query
+        rest = omit(rest, 'fieldAliases');
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
-    const nextQueries = cloneDeep(widget.queries);
-    const [widgetQueryNames, widgetQueries] = nextQueries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(
-          field => !!field && field !== 'equation|'
-        );
-        query.columns = query.columns.filter(field => !!field && field !== 'equation|');
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          rest.fields = rest.fields?.filter(field => !!field) ?? [];
+    const nextQueries = widget.queries;
+    const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
-          // Ignore aliases because changing alias does not need a query
-          rest = omit(rest, 'fieldAliases');
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
+        // Ignore aliases because changing alias does not need a query
+        rest = omit(rest, 'fieldAliases');
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
     if (
       customDidUpdateComparator
