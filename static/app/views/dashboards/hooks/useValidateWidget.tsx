@@ -7,6 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {ValidateWidgetResponse, Widget} from '../types';
+import {cleanWidgetForRequest} from '../widgetCard/genericWidgetQueries';
 
 export function validateWidget(
   api: Client,
@@ -24,7 +25,7 @@ export function useValidateWidgetQuery(_widget: Widget) {
   const {selection} = usePageFilters();
 
   const data = useApiQuery<ValidateWidgetResponse>(
-    validateWidgetRequest(organization.slug, _widget, selection),
+    validateWidgetRequest(organization.slug, cleanWidgetForRequest(_widget), selection),
     {
       staleTime: 10000,
       enabled: hasOnDemandMetricWidgetFeature(organization),

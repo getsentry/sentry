@@ -202,8 +202,12 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         query.conditions +
         (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
     });
-
     return widget;
+  }
+
+  widgetForRequest(widget: Widget): Widget {
+    widget = this.applyDashboardFilters(widget);
+    return cleanWidgetForRequest(widget);
   }
 
   async fetchTableData(queryFetchID: symbol) {
@@ -220,7 +224,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDemandControlContext,
       mepSetting,
     } = this.props;
-    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+    const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
         const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
@@ -294,7 +298,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       mepSetting,
       onDemandControlContext,
     } = this.props;
-    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+    const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
@@ -404,6 +408,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       timeseriesResultsTypes,
     });
   }
+}
+
+export function cleanWidgetForRequest(widget: Widget): Widget {
+  const _widget = cloneDeep(widget);
+  _widget.queries.forEach(query => {
+    query.aggregates = query.aggregates.filter(field => !!field && field !== 'equation|');
+    query.columns = query.columns.filter(field => !!field && field !== 'equation|');
+  });
+
+  return _widget;
 }
 
 export default GenericWidgetQueries;
