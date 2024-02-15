@@ -26,7 +26,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.roles import organization_roles
+from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -214,10 +214,12 @@ class BaseTeamSerializer(Serializer):
                 if is_superuser:
                     org_role = organization_roles.get_top_dog().id
 
-                minimum_team_role = roles.get_minimum_team_role(org_role)
+                minimum_team_role = team_roles.get_default()
+                if org_role:
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
 
-                team_role_scopes = minimum_team_role.scopes
-                team_role_id = minimum_team_role.id
+                    team_role_scopes = minimum_team_role.scopes
+                    team_role_id = minimum_team_role.id
 
             result[team] = {
                 "pending_request": team.id in access_requests,

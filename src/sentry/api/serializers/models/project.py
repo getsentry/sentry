@@ -121,8 +121,9 @@ def get_access_by_project(
                 if is_superuser:
                     org_role = organization_roles.get_top_dog().id
 
-                minimum_team_role = roles.get_minimum_team_role(org_role)
-                team_scopes = team_scopes.union(minimum_team_role.scopes)
+                if org_role:
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
+                    team_scopes = team_scopes.union(minimum_team_role.scopes)
 
         result[project] = {
             "is_member": is_member,
