@@ -23,7 +23,11 @@ describe('PII Certification Check', () => {
         setAdditionalContext={() => {}}
       />
     );
-    expect(getByText('Certify No PII')).toBeInTheDocument();
+    expect(
+      getByText(
+        'By clicking the button above, you confirm that there is no PII in this event.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('does not show PII check for non sentry employee users', () => {
@@ -36,6 +40,10 @@ describe('PII Certification Check', () => {
         setAdditionalContext={() => {}}
       />
     );
-    expect(queryByText('Certify No PII')).not.toBeInTheDocument();
+    expect(
+      queryByText(
+        'By clicking the button above, you confirm that there is no PII in this event.'
+      )
+    ).not.toBeInTheDocument();
   });
 });
