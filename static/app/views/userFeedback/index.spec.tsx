@@ -44,7 +44,7 @@ describe('UserFeedback', function () {
     ProjectsStore.reset();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const params = {
       organization: OrganizationFixture(),
       params: {
@@ -61,7 +61,7 @@ describe('UserFeedback', function () {
 
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByText('Something bad happened')).toBeInTheDocument();
+    expect(await screen.findByText('Something bad happened')).toBeInTheDocument();
   });
 
   it('renders no project message', function () {
@@ -81,7 +81,7 @@ describe('UserFeedback', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders empty state', function () {
+  it('renders empty state', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -98,10 +98,10 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders empty state with project query', function () {
+  it('renders empty state with project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -124,7 +124,7 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
   it('renders issue status filter', async function () {
@@ -155,7 +155,7 @@ describe('UserFeedback', function () {
     );
   });
 
-  it('renders empty state with multi project query', function () {
+  it('renders empty state with multi project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -178,6 +178,6 @@ describe('UserFeedback', function () {
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+    expect(await screen.findByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 });
