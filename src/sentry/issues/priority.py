@@ -16,13 +16,13 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-PRIORITY_LEVEL_TO_STR: dict[int, str] = {
+PRIORITY_VALUE_TO_STR: dict[int, str] = {
     PriorityLevel.LOW: "low",
     PriorityLevel.MEDIUM: "medium",
     PriorityLevel.HIGH: "high",
 }
 
-PRIORITY_UPDATE_CHOICES: dict[str, int] = {
+PRIORITY_STR_TO_VALUE: dict[str, int] = {
     "low": PriorityLevel.LOW,
     "medium": PriorityLevel.MEDIUM,
     "high": PriorityLevel.HIGH,
@@ -58,7 +58,7 @@ def update_priority(
         type=ActivityType.SET_PRIORITY,
         user=actor,
         data={
-            "priority": PRIORITY_LEVEL_TO_STR[priority],
+            "priority": PRIORITY_VALUE_TO_STR[priority],
             "reason": reason,
         },
     )

@@ -4,7 +4,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
-from sentry.issues.priority import PRIORITY_UPDATE_CHOICES
+from sentry.issues.priority import PRIORITY_STR_TO_VALUE
 from sentry.models.actor import Actor
 from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.team import Team
@@ -40,7 +40,7 @@ class GroupValidator(serializers.Serializer):
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     assignedTo = ActorField()
     priority = serializers.ChoiceField(
-        choices=list(zip(PRIORITY_UPDATE_CHOICES.keys(), PRIORITY_UPDATE_CHOICES.keys()))
+        choices=list(zip(PRIORITY_STR_TO_VALUE.keys(), PRIORITY_STR_TO_VALUE.keys()))
     )
 
     # TODO(dcramer): remove in 9.0

@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.priority import PRIORITY_UPDATE_CHOICES, update_priority
+from sentry.issues.priority import PRIORITY_STR_TO_VALUE, update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -784,7 +784,7 @@ def handle_priority(priority: str, group_list: Sequence[Group], actor: User) -> 
     for group in group_list:
         update_priority(
             group=group,
-            priority=PRIORITY_UPDATE_CHOICES[priority] if priority else None,
+            priority=PRIORITY_STR_TO_VALUE[priority] if priority else None,
             actor=actor,
         )
         group.update(priority_locked_at=django_timezone.now())
