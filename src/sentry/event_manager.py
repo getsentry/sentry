@@ -1642,19 +1642,24 @@ def _save_aggregate_new(
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
+    secondary = GroupHashInfo(None, None, [], None)
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
+    # Try looking for an existing group using the current grouping config
     primary = create_and_seek_grouphashes(job, run_primary_grouping, metric_tags)
-    secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
 
-    all_grouphashes = primary.grouphashes + secondary.grouphashes
-
+    # If we've found one, great. No need to do any more calculations
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(
-            job, primary.existing_grouphash, all_grouphashes, group_processing_kwargs
+            job, primary.existing_grouphash, primary.grouphashes, group_processing_kwargs
         )
+    # If we haven't, try again using the secondary config
     else:
+        secondary = create_and_seek_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
+        all_grouphashes = primary.grouphashes + secondary.grouphashes
+
+        # Now we know for sure whether or not a group already exists, so handle both cases
         if secondary.existing_grouphash:
             group_info = handle_existing_grouphash(
                 job, secondary.existing_grouphash, all_grouphashes, group_processing_kwargs
