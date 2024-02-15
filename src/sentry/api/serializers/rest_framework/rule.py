@@ -198,19 +198,13 @@ def ensure_action_uuid(action: dict[Any, Any]) -> None:
 
     Does not add an uuid to the action if it is empty.
     """
-    if not action:
-        return
-
-    if ACTION_UUID_KEY in action:
-        existing_uuid = action[ACTION_UUID_KEY]
+    if action:
         try:
-            UUID(existing_uuid)
-        except (ValueError, TypeError):
-            pass
-        else:
+            UUID(action[ACTION_UUID_KEY])
             return
-
-    action[ACTION_UUID_KEY] = str(uuid4())
+        except Exception:
+            action[ACTION_UUID_KEY] = str(uuid4())
+        return
 
 
 def validate_actions(attrs):
