@@ -23,6 +23,7 @@ from sentry.incidents.models import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -476,6 +477,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
+    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     **kwargs,
 ):
     """
@@ -551,6 +553,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,
             team_id=actor.team_id if actor else None,
+            monitor_type=monitor_type,
         )
 
         if user:
@@ -652,6 +655,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
+    monitor_type: AlertRuleMonitorType = None,
     **kwargs,
 ):
     """
@@ -709,6 +713,9 @@ def update_alert_rule(
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
+    if monitor_type is not None:
+        # TODO: determine how to convert activated alert into continuous alert and vice versa
+        pass
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -775,6 +782,7 @@ def update_alert_rule(
             get_excluded_projects_for_alert_rule(alert_rule).delete()
 
         if alert_rule.include_all_projects:
+            # NOTE: This feature is not currently utilized.
             if include_all_projects or excluded_projects is not None:
                 # If we're in `include_all_projects` mode, we want to just fetch
                 # projects that aren't already subscribed, and haven't been excluded so

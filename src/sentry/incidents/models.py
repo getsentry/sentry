@@ -418,7 +418,7 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-class MonitorType(Enum):
+class AlertRuleMonitorType(Enum):
     CONTINUOUS = 0
     ACTIVATED = 1
 
@@ -456,7 +456,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=MonitorType.CONTINUOUS)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS)
 
     class Meta:
         app_label = "sentry"
