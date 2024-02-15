@@ -26,6 +26,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     AI_SUGGESTED_SOLUTION,
@@ -554,9 +555,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string detailed: Specify '0' to retrieve details without projects and teams.
         :auth: required
         """
-
         serializer = org_serializers.OrganizationSerializer
-        if request.access.has_scope("org:read"):
+
+        if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
             serializer = org_serializers.DetailedOrganizationSerializer
@@ -584,6 +585,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         from sentry import features
 
+        # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
