@@ -46,7 +46,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -107,7 +107,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -171,7 +171,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=last_checkin,
             next_checkin=next_checkin,
             next_checkin_latest=next_checkin + timedelta(minutes=1),
@@ -239,7 +239,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
 
@@ -356,7 +356,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         successful_check_in = MonitorCheckIn.objects.create(
@@ -469,7 +469,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=last_checkin,
             next_checkin=next_checkin,
             next_checkin_latest=next_checkin + timedelta(minutes=1),
@@ -577,7 +577,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -640,7 +640,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
             last_state_change=None,
         )
@@ -759,7 +759,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
             last_state_change=None,
         )
@@ -843,7 +843,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
         for _ in range(0, failure_issue_threshold):
