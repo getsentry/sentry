@@ -3421,7 +3421,16 @@
       "Region"
     ],
     "table_name": "sentry_notificationmessage",
-    "uniques": []
+    "uniques": [
+      [
+        "incident",
+        "trigger_action"
+      ],
+      [
+        "rule_action_uuid",
+        "rule_fire_history"
+      ]
+    ]
   },
   "sentry.notificationsettingoption": {
     "dangling": false,
