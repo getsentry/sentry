@@ -61,6 +61,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/dart/',
   },
   {
+    id: 'deno',
+    name: 'Deno',
+    type: 'language',
+    language: 'deno',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/deno/',
+  },
+  {
     id: 'dotnet',
     name: '.NET',
     type: 'language',
