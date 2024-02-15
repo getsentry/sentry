@@ -54,16 +54,49 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
 
     def test_filtering_monitor_environment(self):
         monitor = self._create_monitor()
-        self._create_monitor_environment(monitor, name="production")
-        self._create_monitor_environment(monitor, name="jungle")
+        prod_env = "production"
+        prod = self._create_monitor_environment(monitor, name=prod_env)
+        jungle_env = "jungle"
+        jungle = self._create_monitor_environment(monitor, name=jungle_env)
 
         response = self.get_success_response(self.organization.slug, monitor.slug)
-        assert len(response.data["environments"]) == 2
+        result_envs = response.data["environments"]
+        result_envs.sort(key=lambda env: env["name"])
+        assert result_envs == [
+            {
+                "name": jungle_env,
+                "status": jungle.get_status_display(),
+                "isMuted": jungle.is_muted,
+                "dateCreated": jungle.monitor.date_added,
+                "lastCheckIn": jungle.last_checkin,
+                "nextCheckIn": jungle.next_checkin,
+                "nextCheckInLatest": jungle.next_checkin_latest,
+            },
+            {
+                "name": prod_env,
+                "status": prod.get_status_display(),
+                "isMuted": prod.is_muted,
+                "dateCreated": prod.monitor.date_added,
+                "lastCheckIn": prod.last_checkin,
+                "nextCheckIn": prod.next_checkin,
+                "nextCheckInLatest": prod.next_checkin_latest,
+            },
+        ]
 
         response = self.get_success_response(
             self.organization.slug, monitor.slug, environment="production"
         )
-        assert len(response.data["environments"]) == 1
+        assert response.data["environments"] == [
+            {
+                "name": prod_env,
+                "status": prod.get_status_display(),
+                "isMuted": prod.is_muted,
+                "dateCreated": prod.monitor.date_added,
+                "lastCheckIn": prod.last_checkin,
+                "nextCheckIn": prod.next_checkin,
+                "nextCheckInLatest": prod.next_checkin_latest,
+            }
+        ]
 
     def test_expand_alert_rule(self):
         monitor = self._create_monitor()
