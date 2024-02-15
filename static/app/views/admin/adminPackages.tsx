@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -9,9 +11,17 @@ type Data = {
 };
 
 export default function AdminPackages() {
-  const {data} = useApiQuery<Data>(['/internal/packages/'], {
+  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/packages/'], {
     staleTime: 0,
   });
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <div>
