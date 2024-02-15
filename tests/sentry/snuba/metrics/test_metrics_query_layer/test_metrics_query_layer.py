@@ -3,6 +3,7 @@ Metrics Service Layer Tests for Performance
 """
 
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from snuba_sdk import (
@@ -15,16 +16,20 @@ from snuba_sdk import (
     MetricsScope,
     Op,
     Or,
+    Request,
+    Rollup,
     Timeseries,
 )
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics_layer.query import (
     _lookup_indexer_resolve,
     _resolve_granularity,
     _resolve_query_metadata,
+    bulk_run_query,
 )
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -409,6 +414,43 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             expected_blackberry,
         }
 
+    @patch("sentry.snuba.metrics_layer.query.bulk_snuba_queries")
+    def test_modified_interval_resolution(self, bulk_snuba_queries):
+        bulk_snuba_queries.return_value = [{}, {}]
+
+        request_1 = Request(
+            dataset=Dataset.Metrics.value,
+            query=MetricsQuery(
+                query=Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+                start=self.now - timedelta(days=1),
+                end=self.now,
+                rollup=Rollup(interval=30),
+                scope=MetricsScope(
+                    org_ids=[self.project.organization_id], project_ids=[self.project.id]
+                ),
+            ),
+            app_id="test",
+        )
+
+        request_2 = Request(
+            dataset=Dataset.Metrics.value,
+            query=MetricsQuery(
+                query=Timeseries(Metric(mri="c:custom/zone.domains@none"), aggregate="count"),
+                start=self.now - timedelta(days=1),
+                end=self.now,
+                rollup=Rollup(interval=30),
+                scope=MetricsScope(
+                    org_ids=[self.project.organization_id], project_ids=[self.project.id]
+                ),
+            ),
+            app_id="test",
+        )
+
+        results = bulk_run_query([request_1, request_2], True)
+        assert len(results) == 2
+        assert results[0]["modified_interval"] == 60
+        assert results[0]["modified_interval"] == 60
+
 
 @pytest.mark.parametrize(
     "day_range, sec_offset, interval, expected",
@@ -434,7 +476,7 @@ def test_resolve_granularity(day_range: int, sec_offset: int, interval: int, exp
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
     end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
+    assert _resolve_granularity(UseCaseID.CUSTOM, start, end, interval) == expected
     start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
     end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
+    assert _resolve_granularity(UseCaseID.CUSTOM, start, end, interval) == expected
