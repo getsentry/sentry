@@ -184,6 +184,11 @@ def _calculate_aligned_interval(requests: Iterable[Request]) -> int | None:
         metrics_query = request.query
         assert isinstance(metrics_query, MetricsQuery)
 
+        # If the query doesn't have an interval, we will exclude it from the aligned interval computation.
+        # This can happen if you have mixed totals and series queries in the same bulk of requests.
+        if metrics_query.rollup.interval is None:
+            continue
+
         start, end, _ = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
@@ -245,9 +250,10 @@ def _setup_metrics_query(
         metrics_query = metrics_query.set_rollup(
             replace(metrics_query.rollup, granularity=granularity)
         )
+
     request.query = metrics_query
 
-    return request, start, end, (aligned_interval or metrics_query.rollup.interval)
+    return request, start, end, metrics_query.rollup.interval
 
 
 def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:

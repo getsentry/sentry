@@ -276,9 +276,13 @@ class QueryResult:
             result={
                 "series": {"data": {}, "meta": {}},
                 "totals": {"data": {}, "meta": {}},
-                # We want to honor the date ranges of the supplied query.
                 "modified_start": scheduled_query.metrics_query.start,
                 "modified_end": scheduled_query.metrics_query.end,
+                # We try to get the interval from the next query (which we assume it's a series query) and only if not
+                # present, we fall back to the first query.
+                "modified_interval": (
+                    scheduled_query.next or scheduled_query
+                ).metrics_query.rollup.interval,
             },
         )
 
@@ -289,6 +293,7 @@ class QueryResult:
         extended_result = {
             "modified_start": query_result["modified_start"],
             "modified_end": query_result["modified_end"],
+            "modified_interval": query_result["modified_interval"],
         }
 
         if query_type == ScheduledQueryType.SERIES:
@@ -312,7 +317,14 @@ class QueryResult:
         return QueryResult(
             series_executable_query=self.series_executable_query or other.series_executable_query,
             totals_executable_query=self.totals_executable_query or other.totals_executable_query,
-            result={**self.result, **other.result},
+            result={
+                **self.result,
+                **other.result,
+                # We want to give a prioritization for the modified interval, since we want to take the one
+                # that is actually set.
+                "modified_interval": self.result["modified_interval"]
+                or other.result["modified_interval"],
+            },
         )
 
     @property
@@ -330,7 +342,13 @@ class QueryResult:
                 "You have to run a timeseries query in order to use the interval"
             )
 
-        return self.series_executable_query.rollup.interval
+        modified_interval = self.result.get("modified_interval")
+        if modified_interval is None:
+            raise MetricsQueryExecutionError(
+                "There was an issue when determining the `interval` used in the query"
+            )
+
+        return modified_interval
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
@@ -513,7 +531,7 @@ class QueryExecutor:
 
     def _bulk_run_query(self, requests: list[Request]) -> list[Mapping[str, Any]]:
         try:
-            return bulk_run_query(requests)
+            return bulk_run_query(requests=requests, align_intervals=True)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
             raise MetricsQueryExecutionError("An error occurred while executing the query")
