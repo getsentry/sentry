@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -19,9 +21,17 @@ type Data = {
 };
 
 export default function AdminEnvironment() {
-  const {data} = useApiQuery<Data>(['/internal/environment/'], {
+  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/environment/'], {
     staleTime: 0,
   });
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   const {version} = ConfigStore.getState();
 
