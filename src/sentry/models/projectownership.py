@@ -235,9 +235,9 @@ class ProjectOwnership(Model):
     def handle_auto_assignment(
         cls,
         project_id: int,
-        organization_id: int | None = None,
         event: Event | GroupEvent | None = None,
         group: Group | None = None,
+        organization_id: int | None = None,
         force_autoassign: bool = False,
         logging_extra: dict[str, str] | None = None,
     ):
