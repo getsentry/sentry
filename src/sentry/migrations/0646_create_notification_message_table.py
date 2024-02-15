@@ -105,4 +105,24 @@ class Migration(CheckedMigration):
                 name="notification_for_issue_xor_metric_alert",
             ),
         ),
+        migrations.AddConstraint(
+            model_name="notificationmessage",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(
+                    ("error_code__isnull", True), ("parent_notification__isnull", True)
+                ),
+                fields=("incident", "trigger_action"),
+                name="singular_parent_message_per_incident_and_trigger_action",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="notificationmessage",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(
+                    ("error_code__isnull", True), ("parent_notification__isnull", True)
+                ),
+                fields=("rule_fire_history", "rule_action_uuid"),
+                name="singular_parent_message_per_rule_fire_history_and_rule_action",
+            ),
+        ),
     ]
