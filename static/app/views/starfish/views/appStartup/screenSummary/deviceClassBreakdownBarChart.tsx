@@ -36,7 +36,6 @@ const XAXIS_CATEGORIES = ['high', 'medium', 'low', 'Unknown'];
 interface DeviceClassBreakdownBarChartProps {
   additionalFilters?: string[];
   chartHeight?: number;
-  // data?: Series[];
 }
 
 function DeviceClassBreakdownBarChart({
