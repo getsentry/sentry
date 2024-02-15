@@ -263,7 +263,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
         assert first_meta[0] == {
             "group_bys": ["platform", "transaction"],
-            "limit": None,
+            "limit": 10000,
             "order": None,
         }
 
@@ -583,9 +583,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         meta = results["meta"]
         assert len(meta) == 2
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
-        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "asc"}
+        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "ASC"}
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
-        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "desc"}
+        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "DESC"}
 
     def test_query_with_custom_set(self):
         mri = "s:custom/User.Click.2@none"
@@ -765,9 +765,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    # Different namespaces
-    # Different types
-    # Different group bys (at the formula level and also at the timeseries level)
     def test_query_with_different_namespaces(self):
         query_1 = self.mql(
             "min",

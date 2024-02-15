@@ -113,8 +113,7 @@ function ReleaseContext(props: BaseContextProps) {
   };
 
   const renderLastCommit = () =>
-    data &&
-    data.lastCommit && (
+    data?.lastCommit && (
       <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
         <ContextHeader>
           <ContextTitle>{t('Last Commit')}</ContextTitle>

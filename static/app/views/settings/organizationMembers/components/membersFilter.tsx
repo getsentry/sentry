@@ -23,7 +23,7 @@ const getBooleanValue = (list: string[]) => {
     return 'all';
   }
 
-  return list && list.map(v => v.toLowerCase()).includes('true') ? 'true' : 'false';
+  return list?.map(v => v.toLowerCase()).includes('true') ? 'true' : 'false';
 };
 
 const booleanOptions = [

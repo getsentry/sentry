@@ -775,7 +775,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule} = this.state;
     const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
+    return owner?.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value: string}) => {

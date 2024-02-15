@@ -237,7 +237,8 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    "user_misery": "on_demand_user_misery",
+    # XXX: Remove support until we can fix the count_unique(users)
+    # "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.

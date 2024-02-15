@@ -244,6 +244,26 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "schema": None,
         }
 
+    def test_get_schema_empty_raw(self):
+        # Create ProjectOwnership...
+        self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        # ...then remove its contents
+        self.client.put(self.path, {"raw": ""})
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        expected_data = {
+            "raw": None,
+            "fallthrough": True,
+            "autoAssignment": "Auto Assign to Issue Owner",
+            "isActive": True,
+            "codeownersAutoSync": True,
+            "schema": None,
+        }
+        for k in expected_data:
+            assert expected_data[k] == resp.data[k]
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+
     def test_get_rule_deleted_owner(self):
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(

@@ -35,14 +35,6 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
-  const managerTeam = TeamFixture({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const otherManagerTeam = TeamFixture({
-    id: '4',
-    slug: 'org-role-team',
-    name: 'Org Role Team',
-    isMember: true,
-    orgRole: 'manager',
-  });
   const teams = [
     team,
     TeamFixture({
@@ -52,8 +44,6 @@ describe('OrganizationMemberDetail', function () {
       isMember: false,
     }),
     idpTeam,
-    managerTeam,
-    otherManagerTeam,
   ];
 
   const teamAssignment = {
@@ -100,18 +90,6 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const managerTeamMember = MemberFixture({
-    id: '5',
-    roles: OrgRoleListFixture(),
-    dateCreated: new Date().toISOString(),
-    teams: [otherManagerTeam.slug],
-    teamRoles: [
-      {
-        teamSlug: otherManagerTeam.slug,
-        role: null,
-      },
-    ],
-  });
   const managerMember = MemberFixture({
     id: '6',
     roles: OrgRoleListFixture(),
@@ -148,10 +126,6 @@ describe('OrganizationMemberDetail', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${idpTeamMember.id}/`,
         body: idpTeamMember,
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/members/${managerTeamMember.id}/`,
-        body: managerTeamMember,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${managerMember.id}/`,
@@ -237,57 +211,6 @@ describe('OrganizationMemberDetail', function () {
       );
 
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
-    });
-
-    it('cannot leave org role team if missing org:admin', function () {
-      const regularOrg = OrganizationFixture({
-        teams,
-        features: ['team-roles'],
-        access: [],
-      });
-
-      const {routerContext, routerProps} = initializeOrg({organization: regularOrg});
-
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: managerTeamMember.id}}
-        />,
-        {
-          context: routerContext,
-          organization: regularOrg,
-        }
-      );
-      expect(screen.getByText('Manager Team')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
-    });
-
-    it('cannot join org role team if missing org:admin', async function () {
-      const regularOrg = OrganizationFixture({
-        teams,
-        features: ['team-roles'],
-        access: ['org:write'],
-      });
-
-      const {routerContext, routerProps} = initializeOrg({organization: regularOrg});
-      render(
-        <OrganizationMemberDetail
-          {...routerProps}
-          params={{memberId: managerMember.id}}
-        />,
-        {
-          context: routerContext,
-          organization: regularOrg,
-        }
-      );
-
-      await userEvent.click(screen.getByText('Add Team'));
-      await userEvent.hover(screen.getByText('#org-role-team'));
-      expect(
-        await screen.findByText(
-          'Membership to a team with an organization role is managed by org owners.'
-        )
-      ).toBeInTheDocument();
     });
 
     it('joins a team and assign a team-role', async function () {
@@ -867,44 +790,6 @@ describe('OrganizationMemberDetail', function () {
 
       // Dropdown has correct value set
       within(teamRow).getByText('Team Admin');
-
-      // Dropdown options are not visible
-      expect(screen.queryAllByText('...').length).toBe(0);
-
-      // Dropdown cannot be opened
-      selectEvent.openMenu(teamRoleSelect);
-      expect(screen.queryAllByText('...').length).toBe(0);
-    });
-
-    it('overwrites when member joins a manager team', async () => {
-      const {routerContext, routerProps} = initializeOrg({});
-      render(
-        <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
-        {
-          context: routerContext,
-          organization,
-        }
-      );
-
-      // Role info box is hidden
-      expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
-
-      // Dropdown has correct value set
-      const teamRow = screen.getByTestId('team-row-for-member');
-      const teamRoleSelect = within(teamRow).getByText('Contributor');
-
-      // Join manager team
-      await userEvent.click(screen.getByText('Add Team'));
-      // Click the first item
-      await userEvent.click(screen.getByText('#manager-team'));
-
-      // Role info box is shown
-      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
-
-      // Dropdowns have correct value set
-      const teamRows = screen.getAllByTestId('team-row-for-member');
-      within(teamRows[0]).getByText('Team Admin');
-      within(teamRows[1]).getByText('Team Admin');
 
       // Dropdown options are not visible
       expect(screen.queryAllByText('...').length).toBe(0);

@@ -1387,7 +1387,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   fetchReleases = async (releaseVersion: string): Promise<any[]> => {
     const {api, location, organization} = this.props;
 
-    const project = location && location.query ? location.query.projectId : undefined;
+    const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
     const fetchQuery: {[key: string]: string | number} = {
@@ -1442,9 +1442,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     // with actual tag value results
     const filteredSearchGroups = !preparedQuery
       ? this.state.searchGroups
-      : this.state.searchGroups.filter(
-          item => item.value && item.value.includes(preparedQuery)
-        );
+      : this.state.searchGroups.filter(item => item.value?.includes(preparedQuery));
 
     this.setState({
       searchTerm: query,
@@ -1478,7 +1476,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       };
     }
 
-    if (excludedTags && excludedTags.includes(tagName)) {
+    if (excludedTags?.includes(tagName)) {
       return null;
     }
 

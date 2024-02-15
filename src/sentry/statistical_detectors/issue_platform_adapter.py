@@ -18,7 +18,7 @@ def fingerprint_regression(transaction, full=False):
 
 
 def send_regression_to_platform(regression: BreakpointData):
-    current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+    current_timestamp = datetime.now(timezone.utc)
 
     displayed_old_baseline = round(float(regression["aggregate_range_1"]), 2)
     displayed_new_baseline = round(float(regression["aggregate_range_2"]), 2)

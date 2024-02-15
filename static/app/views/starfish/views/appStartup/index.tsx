@@ -62,6 +62,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
   const query = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
+    'count_total_starts():>0',
     ...(additionalFilters ?? []),
   ]);
 
@@ -70,13 +71,9 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
 
-  const queryString = `${appendReleaseFilters(
-    query,
-    primaryRelease,
-    secondaryRelease
-  )} (count_starts(measurements.app_start_cold):>0 OR count_starts(measurements.app_start_warm):>0)`;
+  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const orderby = decodeScalar(locationQuery.sort, `-count`);
+  const orderby = decodeScalar(locationQuery.sort, `-count_total_starts`);
   const newQuery: NewQuery = {
     name: '',
     fields: [
@@ -90,7 +87,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       `avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`,
       'count_starts(measurements.app_start_cold)',
       'count_starts(measurements.app_start_warm)',
-      'count()',
+      'count_total_starts()',
     ],
     query: queryString,
     dataset: DiscoverDatasets.METRICS,
