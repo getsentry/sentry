@@ -22,16 +22,8 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
-const COLD_START_CONDITIONS = [
-  'span.op:app.start.cold',
-  'span.description:"Cold Start"',
-  'app_start_type:cold',
-];
-const WARM_START_CONDITIONS = [
-  'span.op:app.start.warm',
-  'span.description:"Warm Start"',
-  'app_start_type:warm',
-];
+const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
+const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};

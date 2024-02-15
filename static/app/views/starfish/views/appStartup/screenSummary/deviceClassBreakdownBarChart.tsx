@@ -63,7 +63,6 @@ function DeviceClassBreakdownBarChart({
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  // Use single query for cold and warm starts by device classification and release
   const {
     data: startupDataByDeviceClass,
     isLoading,
@@ -73,8 +72,9 @@ function DeviceClassBreakdownBarChart({
       {
         name: '',
         fields: [
-          'avg(measurements.app_start_cold)',
-          'avg(measurements.app_start_warm)',
+          startType === 'cold'
+            ? 'avg(measurements.app_start_cold)'
+            : 'avg(measurements.app_start_warm)',
           'device.class',
           'release',
         ],
