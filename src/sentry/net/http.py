@@ -185,7 +185,7 @@ USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 class Session(_Session):
     def request(self, *args, **kwargs):
-        kwargs.setdefault("timeout", 30)
+        kwargs.setdefault("timeout", 60)
         response = _Session.request(self, *args, **kwargs)
         # requests' attempts to use chardet internally when no encoding is found
         # and we want to avoid that slow behavior
