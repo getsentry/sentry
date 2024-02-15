@@ -152,6 +152,7 @@ export type PlatformKey =
   | 'csharp-aspnetcore'
   | 'dart'
   | 'dart-flutter'
+  | 'deno'
   | 'django'
   | 'dotnet'
   | 'dotnet-aspnet'

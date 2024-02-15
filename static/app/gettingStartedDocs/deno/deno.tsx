@@ -10,20 +10,35 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getInstallConfig = () => [
+  {
+    code: [
+      {
+        label: 'Deno registry',
+        value: 'deno',
+        language: 'javascript',
+        code: `import * as Sentry from "https://deno.land/x/sentry/index.mjs";"`,
+      },
+      {
+        label: 'npm registry',
+        value: 'npm',
+        language: 'javascript',
+        code: `import * as Sentry from "npm:@sentry/deno";`,
+      },
+    ],
+  },
+];
+
 const getConfigureSnippet = (params: Params) =>
   `
-// Import from the Deno registry
-import * as Sentry from "https://deno.land/x/sentry/index.mjs";
-
-// or import from npm registry
-import * as Sentry from "npm:@sentry/deno";
-
 Sentry.init({
   dsn: "${params.dsn}",${
     params.isPerformanceSelected
-      ? `,
+      ? `
   // enable performance
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1.0,`
+      : ''
+  }
 });
 `;
 
@@ -105,7 +120,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/bun].',
+        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/deno].',
         {
           codeVersion: <code />,
           codePackage: <code />,
@@ -172,7 +187,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/bun/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/metrics/" />
               ),
             }
           ),
