@@ -44,7 +44,7 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_alert_rule, signal_monitor_created
+from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
@@ -288,13 +288,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         project = result["project"]
         signal_monitor_created(project, request.user, False)
 
-        validated_alert_rule = result.get("alert_rule")
-        if validated_alert_rule:
-            alert_rule_id = create_alert_rule(request, project, monitor, validated_alert_rule)
+        validated_issue_alert_rule = result.get("alert_rule")
+        if validated_issue_alert_rule:
+            issue_alert_rule_id = create_issue_alert_rule(
+                request, project, monitor, validated_issue_alert_rule
+            )
 
-            if alert_rule_id:
+            if issue_alert_rule_id:
                 config = monitor.config
-                config["alert_rule_id"] = alert_rule_id
+                config["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)

@@ -65,17 +65,17 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         )
         assert len(response.data["environments"]) == 1
 
-    def test_expand_alert_rule(self):
+    def test_expand_issue_alert_rule(self):
         monitor = self._create_monitor()
 
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
         assert resp.data["alertRule"] is None
 
-        self._create_alert_rule(monitor)
+        self._create_issue_alert_rule(monitor)
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
-        alert_rule = resp.data["alertRule"]
-        assert alert_rule is not None
-        assert alert_rule["environment"] is not None
+        issue_alert_rule = resp.data["alertRule"]
+        assert issue_alert_rule is not None
+        assert issue_alert_rule["environment"] is not None
 
 
 @region_silo_test
@@ -302,9 +302,9 @@ class UpdateMonitorTest(MonitorTestCase):
             second=0, microsecond=0
         ) + timedelta(minutes=TIMEOUT)
 
-    def test_existing_alert_rule(self):
+    def test_existing_issue_alert_rule(self):
         monitor = self._create_monitor()
-        rule = self._create_alert_rule(monitor)
+        rule = self._create_issue_alert_rule(monitor)
         new_environment = self.create_environment(name="jungle")
         new_user = self.create_user()
         self.create_team_membership(user=new_user, team=self.team)
@@ -325,7 +325,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == "new-slug"
 
         monitor = Monitor.objects.get(id=monitor.id)
-        monitor_rule = monitor.get_alert_rule()
+        monitor_rule = monitor.get_issue_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.label == "Monitor Alert: new-name"
 
@@ -354,7 +354,7 @@ class UpdateMonitorTest(MonitorTestCase):
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 
-    def test_without_existing_alert_rule(self):
+    def test_without_existing_issue_alert_rule(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
             self.organization.slug,
@@ -369,7 +369,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        rule = monitor.get_alert_rule()
+        rule = monitor.get_issue_alert_rule()
         assert rule is not None
 
     def test_invalid_config_param(self):
@@ -691,9 +691,9 @@ class DeleteMonitorTest(MonitorTestCase):
             qs_params={"environment": "jungle"},
         )
 
-    def test_simple_with_alert_rule(self):
+    def test_simple_with_issue_alert_rule(self):
         monitor = self._create_monitor()
-        self._create_alert_rule(monitor)
+        self._create_issue_alert_rule(monitor)
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="DELETE", status_code=202
@@ -703,9 +703,9 @@ class DeleteMonitorTest(MonitorTestCase):
         assert rule.status == ObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
-    def test_simple_with_alert_rule_deleted(self):
+    def test_simple_with_issue_alert_rule_deleted(self):
         monitor = self._create_monitor()
-        rule = self._create_alert_rule(monitor)
+        rule = self._create_issue_alert_rule(monitor)
         rule.delete()
 
         self.get_success_response(
