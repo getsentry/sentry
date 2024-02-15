@@ -21,7 +21,6 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -352,7 +351,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
         if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
+            priority_label = obj.priority.to_str() if obj.priority else None
             group_dict["priority"] = priority_label
             group_dict["priorityLockedAt"] = obj.priority_locked_at
 
