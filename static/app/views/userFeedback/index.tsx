@@ -18,50 +18,51 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, UserReport} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
-
-interface State extends AsyncViewState {
-  reportList: UserReport[];
-}
 
 interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
 }
 
-class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {
-      organization,
-      location: {search},
-    } = this.props;
+function OrganizationUserFeedback({
+  organization,
+  location: {search, pathname, query},
+  router,
+}: Props) {
+  const {status} = getQuery(search);
 
-    return [
-      [
-        'reportList',
-        `/organizations/${organization.slug}/user-feedback/`,
-        {
-          query: getQuery(search),
-        },
-      ],
-    ];
-  }
+  const unresolvedQuery = omit(query, 'status');
+  const allIssuesQuery = {...query, status: ''};
+  const hasNewFeedback = organization.features.includes('user-feedback-ui');
 
-  getTitle() {
-    return `${t('User Feedback')} - ${this.props.organization.slug}`;
-  }
+  const {
+    data: reportList,
+    isLoading,
+    getResponseHeader,
+  } = useApiQuery<UserReport[]>(
+    [
+      `/organizations/${organization.slug}/user-feedback/`,
+      {
+        query: getQuery(search),
+      },
+    ],
+    {staleTime: 0}
+  );
 
-  get projectIds() {
-    const {project} = this.props.location.query;
+  const reportListsPageLinks = getResponseHeader?.('Link');
+
+  function getProjectIds() {
+    const {project} = query;
 
     return Array.isArray(project)
       ? project
@@ -70,12 +71,20 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
         : [];
   }
 
-  renderResults() {
-    const {organization} = this.props;
-
+  function StreamBody() {
+    if (isLoading) {
+      return (
+        <Panel>
+          <LoadingIndicator />
+        </Panel>
+      );
+    }
+    if (!reportList?.length) {
+      return <UserFeedbackEmpty projectIds={getProjectIds()} />;
+    }
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
-        {this.state.reportList.map(item => {
+        {reportList.map(item => {
           const issue = item.issue;
           return (
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
@@ -91,44 +100,8 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderEmpty() {
-    return <UserFeedbackEmpty projectIds={this.projectIds} />;
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderStreamBody() {
-    const {loading, reportList} = this.state;
-
-    if (loading) {
-      return (
-        <Panel>
-          <LoadingIndicator />
-        </Panel>
-      );
-    }
-
-    if (!reportList.length) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
-  }
-
-  renderBody() {
-    const {organization, router} = this.props;
-    const {location} = this.props;
-    const {pathname, search, query} = location;
-    const {status} = getQuery(search);
-    const {reportListPageLinks} = this.state;
-
-    const unresolvedQuery = omit(query, 'status');
-    const allIssuesQuery = {...query, status: ''};
-    const hasNewFeedback = organization.features.includes('user-feedback-ui');
-
-    return (
+  return (
+    <SentryDocumentTitle title={`${t('User Feedback')} - ${organization.slug}`}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
           <Layout.Header>
@@ -158,7 +131,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                         `/organizations/${organization.slug}/feedback/`
                       ),
                       query: {
-                        ...location.query,
+                        ...query,
                         query: undefined,
                         cursor: undefined,
                       },
@@ -194,14 +167,14 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
                   <SegmentedControl.Item key="">{t('All Issues')}</SegmentedControl.Item>
                 </SegmentedControl>
               </Filters>
-              {this.renderStreamBody()}
-              <Pagination pageLinks={reportListPageLinks} />
+              <StreamBody />
+              <Pagination pageLinks={reportListsPageLinks} />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>
       </PageFiltersContainer>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 export default withOrganization(withProfiler(OrganizationUserFeedback));
