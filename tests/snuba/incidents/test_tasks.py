@@ -3,6 +3,7 @@ from functools import cached_property
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
@@ -28,11 +29,9 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
-from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka
@@ -44,12 +43,17 @@ pytestmark = [requires_kafka]
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def subscription_results_topic(self):
+        # make sure that `sentry.consumers` is not imported before this runs
+        with override_settings(
+            KAFKA_TOPICS={self.topic: {"cluster": "default"}},
+            KAFKA_METRICS_SUBSCRIPTIONS_RESULTS=self.topic,
+        ):
+            yield
+
     def setUp(self):
         super().setUp()
-        self.override_settings_cm = override_settings(
-            KAFKA_TOPICS={self.topic: {"cluster": "default"}}
-        )
-        self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
@@ -62,7 +66,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     def tearDown(self):
         super().tearDown()
-        self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
@@ -190,16 +193,15 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     def test_arroyo(self):
         with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
-            consumer = get_query_subscription_consumer(
-                self.topic,
-                "hi",
-                True,
-                "earliest",
-                1,
-                1,
-                1,
-                DEFAULT_BLOCK_SIZE,
-                DEFAULT_BLOCK_SIZE,
-                multi_proc=False,
+            from sentry.consumers import get_stream_processor
+
+            consumer = get_stream_processor(
+                "metrics-subscription-results",
+                consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
+                topic=self.topic,
+                cluster=None,
+                group_id="hi",
+                strict_offset_reset=True,
+                auto_offset_reset="earliest",
             )
             self.run_test(consumer)
