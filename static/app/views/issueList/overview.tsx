@@ -26,7 +26,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -328,7 +328,9 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return DEFAULT_QUERY;
+    return this.props.organization.features.includes('issue-priority-ui')
+      ? NEW_DEFAULT_QUERY
+      : DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({

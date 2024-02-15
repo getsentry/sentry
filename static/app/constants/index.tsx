@@ -218,6 +218,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
+export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
