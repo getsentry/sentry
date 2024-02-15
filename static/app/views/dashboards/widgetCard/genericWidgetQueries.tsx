@@ -123,7 +123,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
-    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
+    const previousQueries = cloneDeep(prevProps.widget.queries);
+    const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries
       .map((query: WidgetQuery) => {
         query.aggregates = query.aggregates.filter(field => !!field);
         query.columns = query.columns.filter(field => !!field);
@@ -142,7 +143,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         [[], []]
       );
 
-    const [widgetQueryNames, widgetQueries] = widget.queries
+    const nextQueries = cloneDeep(widget.queries);
+    const [widgetQueryNames, widgetQueries] = nextQueries
       .map((query: WidgetQuery) => {
         query.aggregates = query.aggregates.filter(
           field => !!field && field !== 'equation|'
