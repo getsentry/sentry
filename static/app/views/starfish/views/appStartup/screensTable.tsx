@@ -16,7 +16,6 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colours';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -24,7 +23,6 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
-import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
   data: TableData | undefined;
@@ -69,14 +67,11 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       return row[column.key];
     }
 
-    const index = data.data.indexOf(row);
-
     const field = String(column.key);
 
     if (field === 'transaction') {
       return (
         <Fragment>
-          <TopResultsIndicator count={TOP_SCREENS} index={index} />
           <Link
             to={normalizeUrl(
               `/organizations/${

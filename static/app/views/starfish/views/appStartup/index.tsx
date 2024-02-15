@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -11,8 +11,9 @@ import type {NewQuery} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,16 +27,13 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
 import {
   getFreeTextFromQuery,
-  TOP_SCREENS,
   YAxis,
   YAXIS_COLUMNS,
 } from 'sentry/views/starfish/views/screens';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {transformReleaseEvents} from 'sentry/views/starfish/views/screens/utils';
 
 const MAX_CHART_RELEASE_CHARS = 12;
-const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
 
 type Props = {
@@ -43,8 +41,25 @@ type Props = {
   chartHeight?: number;
 };
 
+function formatReleaseEvents({releaseComparisonData, primaryRelease, secondaryRelease}) {
+  const transformedReleaseEvents = Y_AXIS_COLS.reduce(
+    (acc, yAxis) => ({...acc, [yAxis]: [{seriesName: t('Average Duration'), data: []}]}),
+    {}
+  );
+
+  Y_AXIS_COLS.forEach(yAxis => {
+    [primaryRelease, secondaryRelease].filter(defined).forEach(release => {
+      transformedReleaseEvents[yAxis][0].data.push({
+        name: formatVersion(release),
+        value: releaseComparisonData?.data.find(({release: r}) => r === release)?.[yAxis],
+      });
+    });
+  });
+
+  return transformedReleaseEvents;
+}
+
 function AppStartup({additionalFilters, chartHeight}: Props) {
-  const theme = useTheme();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
@@ -110,44 +125,39 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     referrer: 'api.starfish.mobile-startup-screen-table',
   });
 
-  const topTransactions =
-    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
-    [];
-
   const topEventsQuery = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
     ...(additionalFilters ?? []),
   ]);
 
-  const topEventsQueryString = `${appendReleaseFilters(
-    topEventsQuery,
-    primaryRelease,
-    secondaryRelease
-  )} ${
-    topTransactions.length > 0
-      ? escapeFilterValue(
-          `transaction:[${topTransactions.map(name => `"${name}"`).join()}]`
-        )
-      : ''
-  }`.trim();
+  const {data: releaseComparisonData, isLoading: isReleaseComparisonDataLoading} =
+    useTableQuery({
+      eventView: EventView.fromNewQueryWithLocation(
+        {
+          name: '',
+          fields: ['release', ...Y_AXIS_COLS],
+          orderby: Y_AXIS_COLS[0],
+          yAxis: Y_AXIS_COLS,
+          query: appendReleaseFilters(topEventsQuery, primaryRelease, secondaryRelease),
+          dataset: DiscoverDatasets.METRICS,
+          version: 2,
+        },
+        location
+      ),
+      enabled: !topTransactionsLoading,
+      referrer: 'api.starfish.mobile-startup-bar-chart',
+    });
 
-  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
-      {
-        name: '',
-        fields: ['transaction', 'release', ...Y_AXIS_COLS],
-        orderby: Y_AXIS_COLS[0],
-        yAxis: Y_AXIS_COLS,
-        query: topEventsQueryString,
-        dataset: DiscoverDatasets.METRICS,
-        version: 2,
-      },
-      location
-    ),
-    enabled: !topTransactionsLoading,
-    referrer: 'api.starfish.mobile-startup-bar-chart',
-  });
+  const transformedReleaseEvents = useMemo(
+    () =>
+      formatReleaseEvents({
+        releaseComparisonData,
+        primaryRelease,
+        secondaryRelease,
+      }),
+    [releaseComparisonData, primaryRelease, secondaryRelease]
+  );
 
   if (isReleasesLoading) {
     return (
@@ -174,15 +184,6 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     'transaction.op:ui.load',
   ]);
 
-  const transformedReleaseEvents = transformReleaseEvents({
-    yAxes: Y_AXES,
-    primaryRelease,
-    secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
-    releaseEvents,
-    topTransactions,
-  });
-
   const truncatedPrimaryChart = formatVersionAndCenterTruncate(
     primaryRelease ?? '',
     MAX_CHART_RELEASE_CHARS
@@ -192,23 +193,19 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     MAX_CHART_RELEASE_CHARS
   );
 
-  const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
-
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
       <ChartContainer>
         <ScreensBarChart
           chartOptions={[
             {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Cold Starts', countTopScreens)
-                  : t('Top Screen Cold Start'),
+              title: t('Overall Cold Start Duration'),
               yAxis: YAXIS_COLUMNS[YAxis.COLD_START],
-              xAxisLabel: topTransactions,
-              series: Object.values(
-                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.COLD_START]]
-              ),
+              xAxisLabel: [
+                formatVersion(primaryRelease ?? ''),
+                formatVersion(secondaryRelease ?? ''),
+              ],
+              series: transformedReleaseEvents[YAXIS_COLUMNS[YAxis.COLD_START]],
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
@@ -219,21 +216,19 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
             },
           ]}
           chartHeight={chartHeight ?? 180}
-          isLoading={isReleaseEventsLoading}
+          isLoading={isReleaseComparisonDataLoading}
           chartKey="coldStart"
         />
         <ScreensBarChart
           chartOptions={[
             {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Warm Starts', countTopScreens)
-                  : t('Top Screen Warm Start'),
+              title: t('Overall Warm Start Duration'),
               yAxis: YAXIS_COLUMNS[YAxis.WARM_START],
-              xAxisLabel: topTransactions,
-              series: Object.values(
-                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.WARM_START]]
-              ),
+              xAxisLabel: [
+                formatVersion(primaryRelease ?? ''),
+                formatVersion(secondaryRelease ?? ''),
+              ],
+              series: transformedReleaseEvents[YAXIS_COLUMNS[YAxis.WARM_START]],
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
@@ -244,7 +239,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
             },
           ]}
           chartHeight={chartHeight ?? 180}
-          isLoading={isReleaseEventsLoading}
+          isLoading={isReleaseComparisonDataLoading}
           chartKey="warmStart"
         />
       </ChartContainer>
