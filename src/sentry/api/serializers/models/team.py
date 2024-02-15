@@ -211,15 +211,20 @@ class BaseTeamSerializer(Serializer):
             )
 
             if has_access:
+                effective_team_role = (
+                    team_roles.get(team_role_id) if team_role_id else team_roles.get_default()
+                )
+
                 if is_superuser:
                     org_role = organization_roles.get_top_dog().id
 
-                minimum_team_role = team_roles.get_default()
                 if org_role:
                     minimum_team_role = roles.get_minimum_team_role(org_role)
+                    if minimum_team_role.priority > effective_team_role.priority:
+                        effective_team_role = minimum_team_role
 
-                    team_role_scopes = minimum_team_role.scopes
-                    team_role_id = minimum_team_role.id
+                team_role_scopes = effective_team_role.scopes
+                team_role_id = effective_team_role.id
 
             result[team] = {
                 "pending_request": team.id in access_requests,
