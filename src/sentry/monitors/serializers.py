@@ -204,7 +204,7 @@ class MonitorCheckInSerializer(Serializer):
         # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment")
 
-        attrs = defaultdict(dict)
+        attrs: dict[MonitorCheckIn, dict[str, Any]] = defaultdict(dict)
 
         monitor_envs = [
             checkin.monitor_environment for checkin in item_list if checkin.monitor_environment_id
