@@ -1159,6 +1159,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
@@ -1209,6 +1210,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,

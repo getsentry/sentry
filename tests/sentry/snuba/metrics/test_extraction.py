@@ -166,6 +166,8 @@ class TestCreatesOndemandMetricSpec:
             ("failure_count()", ""),
             ("failure_rate()", "release:bar"),
             ("failure_rate()", ""),
+            ("user_misery(300)", ""),
+            ("user_misery(300)", "transaction.duration:>0"),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
