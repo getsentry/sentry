@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -258,12 +257,7 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
                 )
                 return True
 
-            if project.organization_id in options.get(
-                "profiling.android.deobfuscation_v2_org_ids"
-            ) or random.random() < options.get("profiling.android.deobfuscation_v2_sample_rate"):
-                _deobfuscate_v2(profile=profile, project=project)
-            else:
-                _deobfuscate(profile=profile, project=project)
+            _deobfuscate(profile=profile, project=project)
 
             profile["deobfuscated"] = True
             return True
@@ -713,87 +707,6 @@ def get_frame_index_map(frames: list[dict[str, Any]]) -> dict[int, list[int]]:
 
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
-    debug_file_id = profile.get("build_id")
-    if debug_file_id is None or debug_file_id == "":
-        # we still need to decode signatures
-        for m in profile["profile"]["methods"]:
-            if m.get("signature"):
-                types = deobfuscate_signature(m["signature"])
-                m["signature"] = format_signature(types)
-        return
-
-    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            project, [debug_file_id], features=["mapping"]
-        )
-        debug_file_path = dif_paths.get(debug_file_id)
-        if debug_file_path is None:
-            return
-
-    mapper = open_proguard_mapper(debug_file_path)
-    if not mapper.has_line_info:
-        return
-
-    with sentry_sdk.start_span(op="proguard.remap"):
-        for method in profile["profile"]["methods"]:
-            method.setdefault("data", {})
-
-            mapped = mapper.remap_frame(
-                method["class_name"], method["name"], method["source_line"] or 0
-            )
-
-            if method.get("signature"):
-                types = deobfuscate_signature(method["signature"], mapper)
-                method["signature"] = format_signature(types)
-
-            if len(mapped) >= 1:
-                new_frame = mapped[-1]
-                method["class_name"] = new_frame.class_name
-                method["name"] = new_frame.method
-                method["data"] = {
-                    "deobfuscation_status": "deobfuscated"
-                    if method.get("signature", None)
-                    else "partial"
-                }
-
-                if new_frame.file:
-                    method["source_file"] = new_frame.file
-
-                if new_frame.line:
-                    method["source_line"] = new_frame.line
-
-                bottom_class = mapped[-1].class_name
-                method["inline_frames"] = [
-                    {
-                        "class_name": new_frame.class_name,
-                        "data": {"deobfuscation_status": "deobfuscated"},
-                        "name": new_frame.method,
-                        "source_file": method["source_file"]
-                        if bottom_class == new_frame.class_name
-                        else "",
-                        "source_line": new_frame.line,
-                    }
-                    for new_frame in reversed(mapped)
-                ]
-
-                # vroom will only take into account frames in this list
-                # if it exists. since symbolic does not return a signature for
-                # the frame we deobfuscated, we update it to set
-                # the deobfuscated signature.
-                if len(method["inline_frames"]) > 0:
-                    method["inline_frames"][0]["data"] = method["data"]
-                    method["inline_frames"][0]["signature"] = method.get("signature", "")
-            else:
-                mapped_class = mapper.remap_class(method["class_name"])
-                if mapped_class:
-                    method["class_name"] = mapped_class
-                    method["data"]["deobfuscation_status"] = "partial"
-                else:
-                    method["data"]["deobfuscation_status"] = "missing"
-
-
-@metrics.wraps("process_profile.deobfuscate")
-def _deobfuscate_v2(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
         # we still need to decode signatures
