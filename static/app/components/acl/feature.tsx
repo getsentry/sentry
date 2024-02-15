@@ -116,8 +116,8 @@ class Feature extends Component<Props> {
 
     return {
       configFeatures: config.features ? Array.from(config.features) : [],
-      organization: (organization && organization.features) || [],
-      project: (project && project.features) || [],
+      organization: organization?.features ?? [],
+      project: project?.features ?? [],
     };
   }
 

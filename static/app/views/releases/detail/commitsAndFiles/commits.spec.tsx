@@ -123,4 +123,54 @@ describe('Commits', () => {
     selectEvent.openMenu(screen.getByRole('button'));
     expect(screen.getByText('getsentry/sentry-frontend')).toBeInTheDocument();
   });
+
+  it('should render the commits from the selected repo', async () => {
+    const otherRepo = RepositoryFixture({
+      id: '5',
+      name: 'getsentry/sentry-frontend',
+      integrationId: '1',
+    });
+    // Current repo is stored in query parameter activeRepo
+    const {routerContext: newRouterContext, routerProps: newRouterProps} = initializeOrg({
+      router: {
+        params: {release: release.version},
+        location: {query: {activeRepo: otherRepo.name}},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
+        release.version
+      )}/repositories/`,
+      body: [repos[0]!, otherRepo],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/${encodeURIComponent(
+        release.version
+      )}/commits/`,
+      body: [
+        CommitFixture(),
+        CommitFixture({
+          repository: otherRepo,
+        }),
+      ],
+    });
+    render(
+      <ReleaseContext.Provider
+        value={{
+          release,
+          project,
+          deploys: [],
+          refetchData: () => {},
+          hasHealthData: false,
+          releaseBounds: {} as any,
+          releaseMeta: {} as any,
+        }}
+      >
+        <Commits releaseRepos={[]} projectSlug={project.slug} {...newRouterProps} />
+      </ReleaseContext.Provider>,
+      {context: newRouterContext}
+    );
+    expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);
+    expect(screen.queryByText('example/repo-name')).not.toBeInTheDocument();
+  });
 });

@@ -104,6 +104,10 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
+# See eventstore.processing.multiredis
+register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("eventstore.processing.readold", type=Bool, default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -569,6 +573,14 @@ register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MO
 # (``False``) and spawning a save_event task (``True``).
 register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
+# The fraction of prooguard events that will be routed to the
+# separate `store.process_event_proguard` queue
+register(
+    "store.separate-proguard-queue-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register(
@@ -789,6 +801,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.similarity-embeddings.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # ## sentry.killswitches
 #
@@ -809,6 +827,14 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register(
+    "store.load-shed-process-event-projects-gradual",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Applies load shedding per project gradually. 1.0 means full load shedding
+# 0.0 or no config means no load shedding.
 register(
     "store.load-shed-symbolicate-event-projects",
     type=Any,
@@ -1578,9 +1604,15 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# === Hybrid cloud subsystem options ===
+# UI rollout
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Retry controls
+register("hybrid_cloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1720,6 +1752,11 @@ register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2058,6 +2095,12 @@ register(
 # Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
 register(
     "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate to move from outbox based webhook delivery to webhookpayload.
+register(
+    "hybridcloud.webhookpayload.rollout",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -43,12 +43,12 @@ export function QuerySymbol({
   isSelected,
   ...props
 }: React.ComponentProps<typeof Symbol> & {index: number; isSelected: boolean}) {
-  const {showQuerySymbols} = useDDMContext();
+  const {showQuerySymbols, isMultiChartMode} = useDDMContext();
   if (!showQuerySymbols) {
     return null;
   }
   return (
-    <Symbol isSelected={isSelected} {...props}>
+    <Symbol isSelected={isMultiChartMode && isSelected} {...props}>
       <span>{getQuerySymbol(index)}</span>
     </Symbol>
   );

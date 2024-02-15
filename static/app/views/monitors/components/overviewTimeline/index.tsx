@@ -18,6 +18,7 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {SortSelector} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
 import type {Monitor} from '../../types';
@@ -145,9 +146,10 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
-      <StickyResolutionSelector>
+      <HeaderControls>
         <ResolutionSelector />
-      </StickyResolutionSelector>
+        <SortSelector />
+      </HeaderControls>
       <StickyGridLineTimeLabels>
         <BorderlessGridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
@@ -190,7 +192,9 @@ const MonitorListPanel = styled(Panel)`
   grid-template-columns: 350px 135px 1fr;
 `;
 
-const StickyResolutionSelector = styled(Sticky)`
+const HeaderControls = styled(Sticky)`
+  display: flex;
+  gap: ${space(0.5)};
   z-index: 1;
   padding: ${space(1.5)} ${space(2)};
   grid-column: 1/3;

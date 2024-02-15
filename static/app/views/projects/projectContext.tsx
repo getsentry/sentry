@@ -161,7 +161,7 @@ class ProjectContext extends Component<Props, State> {
     const {organization, projectSlug, skipReload} = this.props;
     // we fetch core access/information from the global organization data
     const activeProject = this.identifyProject();
-    const hasAccess = activeProject && activeProject.hasAccess;
+    const hasAccess = activeProject?.hasAccess;
 
     this.setState((state: State) => ({
       // if `skipReload` is true, then don't change loading state

@@ -142,7 +142,12 @@ def resolve_type_hint(hint) -> Any:
     elif origin is Union or origin is UnionType:
         type_args = [arg for arg in args if arg is not type(None)]
         if len(type_args) > 1:
-            schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
+            # We use anyOf instead of oneOf (which DRF uses) b/c there's cases
+            # where you can have int | float | long, where a valid value can be
+            # multiple types but errors with oneOf.
+            # TODO(schew2381): Create issue in drf-spectacular to see if this
+            # fix makes sense
+            schema = {"anyOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
             schema = resolve_type_hint(type_args[0])
         if type(None) in args:
@@ -155,7 +160,7 @@ def resolve_type_hint(hint) -> Any:
             #   - https://github.com/tfranzel/drf-spectacular/issues/925
             #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
-                schema["oneOf"].append({"type": "object", "nullable": True})
+                schema["anyOf"].append({"type": "object", "nullable": True})
             else:
                 schema["nullable"] = True
         return schema

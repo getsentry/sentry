@@ -16,6 +16,7 @@ from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
+    ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -341,7 +342,7 @@ def _update_state_with_spec_limit(
             widget_queries.setdefault(spec_version.version, set())
             widget_queries[spec_version.version].add(widget_query)
 
-    for (version, widget_query_set) in widget_queries.items():
+    for version, widget_query_set in widget_queries.items():
         for widget_query in widget_query_set:
             widget_query.dashboardwidgetqueryondemand_set.filter(spec_version=version).update(
                 extraction_state=OnDemandExtractionState.DISABLED_SPEC_LIMIT
@@ -467,9 +468,11 @@ def _can_widget_query_use_stateful_extraction(
     default_version_specs = specs_per_version.get(stateful_extraction_version, [])
     spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
 
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
-        spec_version=stateful_extraction_version
-    )
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
@@ -535,9 +538,11 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     this assumes stateful extraction can be used, and returns the enabled state."""
 
     stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
-        spec_version=stateful_extraction_version
-    )
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) != 1:
         with sentry_sdk.push_scope() as scope:
@@ -1423,6 +1428,29 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     )
 
     return rules
+
+
+def get_current_widget_specs(organization):
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    widget_specs = DashboardWidgetQueryOnDemand.objects.filter(
+        spec_version=current_version.version,
+        dashboard_widget_query__widget__dashboard__organization=organization,
+        extraction_state__startswith=ON_DEMAND_ENABLED_KEY,
+    ).values_list("spec_hashes", flat=True)
+    current_widget_specs: set[str] = set()
+    for spec_list in widget_specs:
+        current_widget_specs = current_widget_specs.union(spec_list)
+    return current_widget_specs
+
+
+def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    new_widget_specs = {
+        widget_hash for widget_hash, _, spec_version in new_specs if spec_version == current_version
+    }
+
+    max_widget_specs = get_max_widget_specs(organization)
+    return len(current_widget_specs.union(new_widget_specs)) > max_widget_specs
 
 
 HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
