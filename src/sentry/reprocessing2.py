@@ -234,6 +234,8 @@ def reprocess_event(project_id, event_id, start_time):
         with sentry_sdk.start_span(op="reprocess_event.set_attachment_meta"):
             attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
+    # Ensure 'event_id' is always included in 'data' for consistent handling across the application
+    data['event_id'] = event_id
     preprocess_event_from_reprocessing(
         cache_key=cache_key,
         start_time=start_time,
