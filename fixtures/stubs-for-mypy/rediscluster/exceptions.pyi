@@ -1,3 +1,0 @@
-from redis.exceptions import RedisError
-
-class ClusterError(RedisError): ...

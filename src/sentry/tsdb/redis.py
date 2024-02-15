@@ -11,7 +11,7 @@ from typing import ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from redis.client import Script
+from redis.commands.core import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.compat import crc32

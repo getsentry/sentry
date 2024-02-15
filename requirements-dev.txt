@@ -53,7 +53,7 @@ types-python-dateutil
 types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
-types-redis<4
+types-redis>=4.1
 types-requests>=2.31.0.20231231
 types-setuptools
 types-simplejson>=3.17.7.2
