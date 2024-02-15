@@ -217,11 +217,12 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   };
 
-  const isInstalledOpsgeniePlugin = (plugin: PluginWithProjectList) => {
-    return (
-      plugin.id === 'opsgenie' &&
-      plugin.projectList.length >= 1 &&
-      plugin.projectList.find(({enabled}) => enabled === true)
+  const isOpsgeniePluginInstalled = () => {
+    return (plugins || []).some(
+      p =>
+        p.id === 'opsgenie' &&
+        p.projectList.length >= 1 &&
+        p.projectList.some(({enabled}) => enabled === true)
     );
   };
 
@@ -261,10 +262,10 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       );
     }
 
-    const shouldMigrateJiraPlugin =
+    const canMigrateJiraPlugin =
       ['jira', 'jira_server'].includes(provider.key) &&
       (plugins || []).find(({id}) => id === 'jira');
-    if (shouldMigrateJiraPlugin) {
+    if (canMigrateJiraPlugin) {
       return (
         <Access access={['org:integrations']}>
           {({hasAccess}) => (
@@ -303,11 +304,9 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
       );
     }
 
-    const shouldMigrateOpsgeniePlugin =
-      provider.key === 'opsgenie' &&
-      organization.features.includes('integrations-opsgenie-migration') &&
-      (plugins || []).find(isInstalledOpsgeniePlugin);
-    if (shouldMigrateOpsgeniePlugin) {
+    const canMigrateOpsgeniePlugin =
+      provider.key === 'opsgenie' && isOpsgeniePluginInstalled();
+    if (canMigrateOpsgeniePlugin) {
       return (
         <Access access={['org:integrations']}>
           {({hasAccess}) => (

@@ -18,7 +18,6 @@ describe('OpsgenieMigrationButton', function () {
   });
   const integrationId = '1';
   it('Migrate Plugin button hits migration endpoint', async function () {
-    org.features.push('integrations-opsgenie-migration');
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
