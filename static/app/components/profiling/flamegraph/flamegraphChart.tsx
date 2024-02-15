@@ -271,8 +271,9 @@ export function FlamegraphChart({
     const didNotCollectAnyMeasurements = chart.series.every(s => s.points.length === 0);
 
     if (profileIsTooShortToDisplayMeasurements) {
-      message =
-        t('Profile is too short to display measurements, minimum duration is at least 200ms');
+      message = t(
+        'Profile is too short to display measurements, minimum duration is at least 200ms'
+      );
     }
 
     if (didNotCollectAnyMeasurements) {
