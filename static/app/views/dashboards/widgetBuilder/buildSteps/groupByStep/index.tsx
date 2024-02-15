@@ -3,10 +3,10 @@ import type {Organization, TagCollection} from 'sentry/types';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ValidateWidgetResponse, WidgetQuery} from 'sentry/views/dashboards/types';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {ValidateWidgetResponse} from 'sentry/views/dashboards/types';
 
 import type {DataSet} from '../../utils';
-import {useGroupByOptions} from '../../utils';
 import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 
@@ -17,7 +17,6 @@ interface Props {
   dataSet: DataSet;
   onGroupByChange: (newFields: QueryFieldValue[]) => void;
   organization: Organization;
-  queries: WidgetQuery[];
   tags: TagCollection;
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
@@ -29,10 +28,12 @@ export function GroupByStep({
   organization,
   tags,
   validatedWidgetResponse,
-  queries,
 }: Props) {
-  const widgetType = DATA_SET_TO_WIDGET_TYPE[dataSet];
-  const groupByOptions = useGroupByOptions(organization, tags, widgetType, queries);
+  const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
+
+  const groupByOptions = datasetConfig.getGroupByFieldOptions
+    ? datasetConfig.getGroupByFieldOptions(organization, tags)
+    : {};
 
   return (
     <BuildStep

@@ -1347,11 +1347,39 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_metric_summary(self, metric_summary):
+    def store_metrics_summary(self, span):
+        common_fields = {
+            "duration_ms": span["duration_ms"],
+            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
+            "group": span["sentry_tags"].get("group", "0"),
+            "is_segment": span["is_segment"],
+            "project_id": span["project_id"],
+            "received": span["received"],
+            "retention_days": span["retention_days"],
+            "segment_id": span.get("segment_id", "0"),
+            "span_id": span["span_id"],
+            "trace_id": span["trace_id"],
+        }
+        rows = []
+        for mri, summaries in span.get("_metrics_summary", {}).items():
+            for summary in summaries:
+                rows.append(
+                    {
+                        **common_fields,
+                        **{
+                            "count": summary.get("count", 0),
+                            "max": summary.get("max", 0.0),
+                            "mri": mri,
+                            "min": summary.get("min", 0.0),
+                            "sum": summary.get("sum", 0.0),
+                            "tags": summary.get("tags", {}),
+                        },
+                    }
+                )
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps([metric_summary]),
+                data=json.dumps(rows),
             ).status_code
             == 200
         )
@@ -1523,7 +1551,7 @@ class BaseSpansTestCase(SnubaTestCase):
             self.store_span(payload)
 
         if "_metrics_summary" in payload:
-            self.store_metric_summary(payload)
+            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2341,7 +2369,7 @@ class ReplaysSnubaTestCase(TestCase):
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        self.now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self.now = datetime.now(timezone.utc)
         super().setUp()
         self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
@@ -3034,7 +3062,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
 
-    def _create_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
