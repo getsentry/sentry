@@ -425,7 +425,7 @@ def test_existing_group_new_hash_exists(
         new_logic_enabled=new_logic_enabled,
     )
 
-    if in_transition:
+    if in_transition and not new_logic_enabled:
         assert results == {
             "primary_hash_calculated": True,
             "secondary_hash_calculated": True,
@@ -439,6 +439,9 @@ def test_existing_group_new_hash_exists(
             "primary_grouphash_exists_now": True,
             "secondary_grouphash_exists_now": True,
         }
+    # Equivalent to `elif (in_transition and new_logic_enabled) or not in_transition`. In other
+    # words, with the new logic, if the new hash exists, it doesn't matter whether we're in
+    # transition or not - no extra calculations are performed.
     else:
         assert results == {
             "primary_hash_calculated": True,
