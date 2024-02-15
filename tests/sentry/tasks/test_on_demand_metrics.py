@@ -4,14 +4,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-    DashboardWidgetQueryOnDemand,
-    DashboardWidgetTypes,
-)
+from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
@@ -23,6 +16,7 @@ from sentry.tasks.on_demand_metrics import (
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature, override_options
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache
 
@@ -47,38 +41,6 @@ def organization(owner: User) -> None:
 @pytest.fixture
 def project(organization: Organization) -> None:
     return Factories.create_project(organization=organization)
-
-
-# TODO: Move this into a method to be shared with test_metric_extraction
-def create_widget(
-    aggregates: Sequence[str],
-    query: str,
-    project: Project,
-    title: str = "Dashboard",
-    id: int | None = None,
-    columns: Sequence[str] | None = None,
-    dashboard: Dashboard | None = None,
-    widget: DashboardWidget | None = None,
-) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
-    columns = columns or []
-    dashboard = dashboard or Dashboard.objects.create(
-        organization=project.organization,
-        created_by_id=1,
-        title=title,
-    )
-    id = id or 1
-    widget = widget or DashboardWidget.objects.create(
-        dashboard=dashboard,
-        order=id - 1,
-        widget_type=DashboardWidgetTypes.DISCOVER,
-        display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-    )
-
-    widget_query = DashboardWidgetQuery.objects.create(
-        id=id, aggregates=aggregates, conditions=query, columns=columns, order=id - 1, widget=widget
-    )
-
-    return widget_query, widget, dashboard
 
 
 @pytest.mark.parametrize(
