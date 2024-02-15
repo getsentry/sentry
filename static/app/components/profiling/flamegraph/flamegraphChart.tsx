@@ -272,7 +272,7 @@ export function FlamegraphChart({
 
     if (profileIsTooShortToDisplayMeasurements) {
       message =
-        'Profile is too short to display measurements, minimum duration is at least 200ms';
+        t('Profile is too short to display measurements, minimum duration is at least 200ms');
     }
 
     if (didNotCollectAnyMeasurements) {
