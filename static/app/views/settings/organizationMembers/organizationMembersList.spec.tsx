@@ -53,14 +53,14 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = MembersFixture();
 
-  const ownerTeam = TeamFixture({slug: 'owner-team'});
+  const team = TeamFixture({slug: 'team'});
   const member = MemberFixture({
     id: '5',
     email: 'member@sentry.io',
-    teams: [ownerTeam.slug],
+    teams: [team.slug],
     teamRoles: [
       {
-        teamSlug: ownerTeam.slug,
+        teamSlug: team.slug,
         role: null,
       },
     ],
@@ -151,7 +151,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [TeamFixture(), ownerTeam],
+      body: [TeamFixture(), team],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',

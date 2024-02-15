@@ -1557,8 +1557,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:global-views": False,
     # Enable grouping of ChunkLoadErrors
     "organizations:group-chunk-load-errors": False,
-    # Enable built-in grouping fingerprint rules
-    "organizations:grouping-built-in-fingerprint-rules": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1621,8 +1619,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
-    # Enables the new Stacktrace Link UI in frame header
-    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
@@ -1754,6 +1750,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-view": False,
     # Enable platform selector for screens flow
     "organizations:performance-screens-platform-selector": False,
+    # Enable API aka HTTP aka Network Performance module
+    "organizations:performance-http-view": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
