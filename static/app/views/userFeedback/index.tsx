@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -22,23 +23,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, UserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-interface Props extends RouteComponentProps<{}, {}> {
-  organization: Organization;
-}
+interface Props extends RouteComponentProps<{}, {}> {}
 
-function OrganizationUserFeedback({
-  organization,
-  location: {search, pathname, query},
-  router,
-}: Props) {
+function OrganizationUserFeedback({location: {search, pathname, query}, router}: Props) {
+  const organization = useOrganization();
   const {status} = getQuery(search);
 
   const unresolvedQuery = omit(query, 'status');
@@ -48,6 +44,7 @@ function OrganizationUserFeedback({
   const {
     data: reportList,
     isLoading,
+    isError,
     getResponseHeader,
   } = useApiQuery<UserReport[]>(
     [
@@ -72,6 +69,9 @@ function OrganizationUserFeedback({
   }
 
   function StreamBody() {
+    if (isError) {
+      return <LoadingError />;
+    }
     if (isLoading) {
       return (
         <Panel>
@@ -177,7 +177,7 @@ function OrganizationUserFeedback({
   );
 }
 
-export default withOrganization(withProfiler(OrganizationUserFeedback));
+export default withProfiler(OrganizationUserFeedback);
 
 const Filters = styled('div')`
   display: grid;
