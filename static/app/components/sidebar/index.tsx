@@ -116,8 +116,11 @@ function Sidebar() {
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
-  // Avoid showing superuser UI on self-hosted instances
-  const hasSuperuserSession = isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  // Avoid showing superuser UI on self-hosted instances or demo org
+  const hasSuperuserSession =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    organization?.slug !== 'demo';
 
   useOpenOnboardingSidebar();
 
@@ -495,7 +498,9 @@ function Sidebar() {
         <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
           <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
+          {hasSuperuserSession && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
         </DropdownSidebarSection>
 
         <PrimaryItems>
