@@ -216,12 +216,17 @@ ESCALATING_ISSUES_METRIC_NAMES = {
     "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
+BUNDLE_ANALYSIS_METRIC_NAMES = {
+    "d:bundle_analysis/bundle_size@byte": PREFIX + 600,
+}
+
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
     **TRANSACTION_METRICS_NAMES,
     **SPAN_METRICS_NAMES,
     **ESCALATING_ISSUES_METRIC_NAMES,
     **SHARED_TAG_STRINGS,
+    **BUNDLE_ANALYSIS_METRIC_NAMES,
 }
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}
 
