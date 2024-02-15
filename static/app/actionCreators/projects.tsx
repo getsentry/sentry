@@ -14,12 +14,8 @@ import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlatformKey, Project, Team} from 'sentry/types';
-import {
-  type ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type UpdateParams = {
