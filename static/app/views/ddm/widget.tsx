@@ -392,6 +392,8 @@ export function getChartTimeseries(
     focusedSeries?: Set<string>;
   }
 ) {
+  const isMultiQuery = queries.length > 1;
+
   const series = data.data.flatMap((group, index) => {
     const query = queries[index];
     const parsed = parseMRI(query.mri);
@@ -402,7 +404,7 @@ export function getChartTimeseries(
       unit,
       operation: query.op,
       values: entry.series,
-      name: getMetricsSeriesName(field, entry.by),
+      name: getMetricsSeriesName(field, entry.by, isMultiQuery),
       groupBy: entry.by,
       transaction: entry.by.transaction,
       release: entry.by.release,

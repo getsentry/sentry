@@ -227,18 +227,28 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(field: string, groupBy?: Record<string, string>) {
+export function getMetricsSeriesName(
+  field: string,
+  groupBy?: Record<string, string>,
+  isMultiQuery: boolean = true
+) {
   const groupByEntries = Object.entries(groupBy ?? {});
-  if (!groupByEntries.length) {
-    const {mri} = parseField(field) ?? {mri: field};
-    const name = formatMRI(mri as MRI);
 
-    return name ?? '(none)';
+  const {mri} = parseField(field) ?? {mri: field};
+  const mriName = formatMRI(mri as MRI) ?? '(none)';
+
+  if (!groupByEntries || !groupByEntries.length) {
+    return mriName;
   }
 
-  return groupByEntries
+  const formattedGrouping = groupByEntries
     .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
     .join(', ');
+
+  if (isMultiQuery) {
+    return `${mriName} - ${formattedGrouping}`;
+  }
+  return formattedGrouping;
 }
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
