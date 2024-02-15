@@ -1,4 +1,4 @@
-import {structuralSharing} from './useStructuralSharing';
+import {structuralSharing} from '../utils/useStructuralSharing';
 
 describe('structuralSharing', () => {
   it('should return the same object if nothing changed', () => {

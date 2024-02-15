@@ -26,6 +26,7 @@ export function getReadableMetricType(type?: string) {
 
 const MILLISECOND = 1;
 const MICROSECOND = MILLISECOND / 1000;
+const NANOSECOND = MICROSECOND / 1000;
 
 function formatDuration(seconds: number): string {
   if (!seconds) {
@@ -36,7 +37,7 @@ function formatDuration(seconds: number): string {
   const msValue = seconds * 1000;
 
   let unit: FormattingSupportedMetricUnit | 'month' = 'nanosecond';
-  let value = msValue * 1000000;
+  let value = msValue / NANOSECOND;
 
   if (absValue >= MONTH) {
     unit = 'month';
@@ -61,7 +62,7 @@ function formatDuration(seconds: number): string {
     value = msValue;
   } else if (absValue >= MICROSECOND) {
     unit = 'microsecond';
-    value = msValue * 1000;
+    value = msValue / MICROSECOND;
   }
 
   return `${formatNumberWithDynamicDecimalPoints(value)}${

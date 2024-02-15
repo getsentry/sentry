@@ -1,4 +1,4 @@
-import {getCachedChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {getCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
 describe('getQuerySymbol', () => {
   it('should cache palettes', () => {

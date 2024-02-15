@@ -167,13 +167,20 @@ function MetricWidgetViewerModal({
             }
           />
           <MetricWidget
-            widget={metricWidgetQueryParams}
+            queries={[
+              {
+                mri: metricWidgetQueryParams.mri,
+                query: metricWidgetQueryParams.query,
+                op: metricWidgetQueryParams.op,
+                groupBy: metricWidgetQueryParams.groupBy,
+              },
+            ]}
+            focusedSeries={metricWidgetQueryParams.focusedSeries}
+            displayType={metricWidgetQueryParams.displayType}
+            filters={selection}
             onChange={(_, data) => {
               handleChange(data);
             }}
-            datetime={selection.datetime}
-            projects={selection.projects}
-            environments={selection.environments}
           />
           <MetricDetails widget={metricWidgetQueryParams} />
         </Body>
