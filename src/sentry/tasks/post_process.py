@@ -1217,6 +1217,7 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
         with metrics.timer("post_process.handle_auto_assignment.duration"):
             ProjectOwnership.handle_auto_assignment(
                 project_id=event.project_id,
+                organization_id=event.project.organization_id,
                 event=event,
                 logging_extra={
                     "event_id": event.event_id,

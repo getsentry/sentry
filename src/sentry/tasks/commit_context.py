@@ -294,6 +294,7 @@ def process_commit_context(
 
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,
+                organization_id=project.organization_id,
                 group=group_owner.group,
                 logging_extra={
                     "event_id": event_id,

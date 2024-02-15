@@ -93,11 +93,7 @@ def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, A
 
         repo_queries += _make_repo_query(repo_name, repo_owner, ref_queries, repo_index)
 
-    query = f"""query {{{repo_queries}\n}}"""
-
-    logger.info("get_blame_for_files.create_blame_query.created_query", extra=extra)
-
-    return query
+    return f"""query {{{repo_queries}\n}}"""
 
 
 def extract_commits_from_blame_response(

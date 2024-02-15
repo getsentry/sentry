@@ -235,6 +235,7 @@ class ProjectOwnership(Model):
     def handle_auto_assignment(
         cls,
         project_id: int,
+        organization_id: int | None = None,
         event: Event | GroupEvent | None = None,
         group: Group | None = None,
         force_autoassign: bool = False,
@@ -332,10 +333,6 @@ class ProjectOwnership(Model):
                 )
 
                 if assignment["new_assignment"] or assignment["updated_assignment"]:
-                    # Kinda odd to check logging_extra but it could save a DB query.
-                    organization_id = (
-                        logging_extra.get("organization_id") or ownership.project.organization_id
-                    )
                     analytics.record(
                         (
                             "codeowners.assignment"
@@ -343,7 +340,7 @@ class ProjectOwnership(Model):
                             == ActivityIntegration.CODEOWNERS.value
                             else "issueowners.assignment"
                         ),
-                        organization_id=organization_id,
+                        organization_id=organization_id or ownership.project.organization_id,
                         project_id=project_id,
                         group_id=group.id,
                     )
