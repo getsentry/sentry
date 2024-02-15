@@ -1,6 +1,7 @@
 import {validateWidgetRequest} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -18,21 +19,17 @@ export function validateWidget(
   return promise;
 }
 
-export function useValidateWidgetQuery(widget: Widget) {
+export function useValidateWidgetQuery(_widget: Widget) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const widgetWithOnDemand: Widget = {
-    ...widget,
-    queries: widget.queries.map(q => ({
-      ...q,
-      onDemandExtractionDisabled: false,
-    })),
-  };
-
   const data = useApiQuery<ValidateWidgetResponse>(
-    validateWidgetRequest(organization.slug, widgetWithOnDemand, selection),
-    {staleTime: 10000}
+    validateWidgetRequest(organization.slug, _widget, selection),
+    {
+      staleTime: 10000,
+      enabled: hasOnDemandMetricWidgetFeature(organization),
+    }
   );
+
   return data;
 }

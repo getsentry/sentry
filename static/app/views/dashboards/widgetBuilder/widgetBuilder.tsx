@@ -368,28 +368,16 @@ function WidgetBuilder({
 
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
-  const currentWidget = useMemo(
-    () => ({
-      title: state.title,
-      description: state.description,
-      displayType: state.displayType,
-      thresholds: state.thresholds,
-      interval: state.interval,
-      queries: state.queries,
-      limit: state.limit,
-      widgetType,
-    }),
-    [
-      widgetType,
-      state.title,
-      state.description,
-      state.displayType,
-      state.thresholds,
-      state.interval,
-      state.queries,
-      state.limit,
-    ]
-  );
+  const currentWidget = {
+    title: state.title,
+    description: state.description,
+    displayType: state.displayType,
+    thresholds: state.thresholds,
+    interval: state.interval,
+    queries: state.queries,
+    limit: state.limit,
+    widgetType,
+  };
 
   const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
 
