@@ -71,7 +71,7 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
         assert resp.data["alertRule"] is None
 
-        self._create_alert_rule(monitor)
+        self._create_issue_alert_rule(monitor)
         resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
         alert_rule = resp.data["alertRule"]
         assert alert_rule is not None
@@ -304,7 +304,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
     def test_existing_alert_rule(self):
         monitor = self._create_monitor()
-        rule = self._create_alert_rule(monitor)
+        rule = self._create_issue_alert_rule(monitor)
         new_environment = self.create_environment(name="jungle")
         new_user = self.create_user()
         self.create_team_membership(user=new_user, team=self.team)
@@ -693,7 +693,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_simple_with_alert_rule(self):
         monitor = self._create_monitor()
-        self._create_alert_rule(monitor)
+        self._create_issue_alert_rule(monitor)
 
         self.get_success_response(
             self.organization.slug, monitor.slug, method="DELETE", status_code=202
@@ -705,7 +705,7 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_simple_with_alert_rule_deleted(self):
         monitor = self._create_monitor()
-        rule = self._create_alert_rule(monitor)
+        rule = self._create_issue_alert_rule(monitor)
         rule.delete()
 
         self.get_success_response(

@@ -3062,7 +3062,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
 
-    def _create_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",

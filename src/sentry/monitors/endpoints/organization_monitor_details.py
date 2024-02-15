@@ -36,7 +36,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import (
-    create_alert_rule,
+    create_issue_alert_rule,
     get_checkin_margin,
     get_max_runtime,
     update_alert_rule,
@@ -194,7 +194,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 )
             # If rule does not exist, create
             else:
-                alert_rule_id = create_alert_rule(request, project, monitor, result["alert_rule"])
+                alert_rule_id = create_issue_alert_rule(
+                    request, project, monitor, result["alert_rule"]
+                )
 
             if alert_rule_id:
                 # If config is not sent, use existing config to update alert_rule_id

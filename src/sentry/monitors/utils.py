@@ -199,11 +199,11 @@ def fetch_associated_groups(
     return trace_groups
 
 
-def create_alert_rule(
+def create_issue_alert_rule(
     request: Request, project: Project, monitor: Monitor, validated_alert_rule: dict
 ):
     """
-    Create an alert rule from a request with the given data
+    Creates an Issue Alert `Rule` instance from a request with the given data
     :param request: Request object
     :param project: Project object
     :param monitor: Monitor object being created
