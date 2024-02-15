@@ -377,6 +377,122 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             user_project_count=1,
         )
 
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_message_builder_multiple_users_prevent_resend(self, message_builder, record):
+        now = django_timezone.now()
+
+        two_days_ago = now - timedelta(days=2)
+        three_days_ago = now - timedelta(days=3)
+
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        user2 = self.create_user()
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.TRANSACTION,
+                "timestamp": three_days_ago,
+                "key_id": 1,
+            },
+            num_times=10,
+        )
+
+        group1 = event1.group
+        group2 = event2.group
+
+        group1.status = GroupStatus.RESOLVED
+        group1.substatus = None
+        group1.resolved_at = two_days_ago
+        group1.save()
+
+        group2.status = GroupStatus.RESOLVED
+        group2.substatus = None
+        group2.resolved_at = two_days_ago
+        group2.save()
+
+        with mock.patch(
+            "sentry.tasks.weekly_reports.prepare_template_context", side_effect=ValueError("oh no!")
+        ), mock.patch("sentry.tasks.weekly_reports.send_email") as mock_send_email:
+            with pytest.raises(Exception):
+                prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+                mock_send_email.assert_not_called()
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 0,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 0,
+            }
+            assert len(context["key_errors"]) == 2
+            assert context["trends"]["total_error_count"] == 2
+            assert context["trends"]["total_transaction_count"] == 10
+            assert "Weekly Report for" in message_params["subject"]
+
+            assert isinstance(context["notification_uuid"], str)
+
+        record.assert_any_call(
+            "weekly_report.sent",
+            user_id=user.id,
+            organization_id=self.organization.id,
+            notification_uuid=mock.ANY,
+            user_project_count=1,
+        )
+        record.assert_any_call(
+            "weekly_report.sent",
+            user_id=user2.id,
+            organization_id=self.organization.id,
+            notification_uuid=mock.ANY,
+            user_project_count=1,
+        )
+
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
