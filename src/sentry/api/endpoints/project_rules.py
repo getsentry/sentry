@@ -71,7 +71,7 @@ class DuplicateRuleEvaluator:
 
         self._keys_to_check: set[str] = self._get_keys_to_check()
 
-        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], bool | None]] = {
+        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], bool]] = {
             self.ENVIRONMENT_KEY: self._environment_matcher,
             self.ACTIONS_KEY: self._actions_matcher,
         }
@@ -92,31 +92,35 @@ class DuplicateRuleEvaluator:
     def _get_func_to_call(self, key_to_check: str) -> Callable:
         return self._matcher_funcs_by_key.get(key_to_check, self._default_matcher)
 
-    def _default_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
+    def _default_matcher(self, existing_rule: Rule, key_to_check: str) -> bool:
         """
         Default function that checks if the key exists in both rules for comparison, and compares the values.
         """
 
         existing_rule_key_data = existing_rule.data.get(key_to_check)
         current_rule_key_data = self._rule_data.get(key_to_check)
-        matches = None
-        if existing_rule_key_data and current_rule_key_data:
-            matches = existing_rule_key_data == current_rule_key_data
-        return matches
 
-    def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
+        # If both keys exist, check if the values are the same
+        if existing_rule_key_data and current_rule_key_data:
+            return existing_rule_key_data == current_rule_key_data
+        # If both keys don't exist, then they are both equal in that they are not different
+        elif not existing_rule_key_data and not current_rule_key_data:
+            return True
+
+        # If one of the keys is different, then they are obviously different
+        return False
+
+    def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> bool:
         """
         Special function that checks if the environments are the same.
         """
 
         # Do the default check to see if both rules have the same environment key, and if they do, use the result.
-        if (
-            base_result := self._default_matcher(existing_rule, key_to_check)
-        ) and base_result is not None:
+        if (base_result := self._default_matcher(existing_rule, key_to_check)) and base_result:
             return base_result
 
         # Otherwise, we need to do the special checking for keys
-        matches = None
+        matches = True
         if self._rule:
             if existing_rule.environment_id and self._rule.environment_id:
                 # If the existing rule and our rule both have environment ids, check if it's the same
@@ -144,16 +148,16 @@ class DuplicateRuleEvaluator:
 
         return matches
 
-    def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
+    def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> bool:
         """
         Special function that checks if the actions are the same against a rule.
         """
         existing_actions = existing_rule.data.get(key_to_check)
         current_actions = self._rule_data.get(key_to_check)
         if not existing_actions and not current_actions:
-            return None
+            return True
 
-        # At this point, either both have the key, or one of the rules has the key]
+        # At this point, either both have the key, or one of the rules has the key
         matches = False
         # Only compare if both have the key
         if existing_actions and current_actions:
@@ -214,10 +218,9 @@ class DuplicateRuleEvaluator:
         for key_to_check in self._keys_to_check:
             matcher = self._get_func_to_call(key_to_check=key_to_check)
             is_match = matcher(existing_rule=existing_rule, key_to_check=key_to_check)
-            if is_match is not None:
-                keys_checked += 1
-                if is_match:
-                    keys_matched += 1
+            keys_checked += 1
+            if is_match:
+                keys_matched += 1
 
             if keys_checked > 0 and (keys_matched != keys_checked):
                 return False
