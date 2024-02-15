@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from django.conf import settings
@@ -48,12 +47,6 @@ def pre_save_rule(instance, sender, *args, **kwargs):
     clean_rule_data(instance.data.get("actions", []))
 
 
-@dataclass
-class MatcherResult:
-    has_key: bool = False
-    key_matches: bool = False
-
-
 class DuplicateRuleEvaluator:
     ACTIONS_KEY = "actions"
     ENVIRONMENT_KEY = "environment"
@@ -78,7 +71,7 @@ class DuplicateRuleEvaluator:
 
         self._keys_to_check: set[str] = self._get_keys_to_check()
 
-        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], MatcherResult]] = {
+        self._matcher_funcs_by_key: dict[str, Callable[[Rule, str], bool | None]] = {
             self.ENVIRONMENT_KEY: self._environment_matcher,
             self.ACTIONS_KEY: self._actions_matcher,
         }
@@ -99,22 +92,19 @@ class DuplicateRuleEvaluator:
     def _get_func_to_call(self, key_to_check: str) -> Callable:
         return self._matcher_funcs_by_key.get(key_to_check, self._default_matcher)
 
-    def _default_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+    def _default_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
         """
         Default function that checks if the key exists in both rules for comparison, and compares the values.
         """
-        match_results = MatcherResult()
 
         existing_rule_key_data = existing_rule.data.get(key_to_check)
         current_rule_key_data = self._rule_data.get(key_to_check)
+        matches = None
         if existing_rule_key_data and current_rule_key_data:
-            match_results.has_key = True
+            matches = existing_rule_key_data == current_rule_key_data
+        return matches
 
-        if match_results.has_key:
-            match_results.key_matches = existing_rule_key_data == current_rule_key_data
-        return match_results
-
-    def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+    def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
         """
         Special function that checks if the environments are the same.
         """
@@ -122,18 +112,15 @@ class DuplicateRuleEvaluator:
         # Do the default check to see if both rules have the same environment key, and if they do, use the result.
         if (
             base_result := self._default_matcher(existing_rule, key_to_check)
-        ) and base_result.has_key:
+        ) and base_result is not None:
             return base_result
 
         # Otherwise, we need to do the special checking for keys
-        match_results = MatcherResult()
+        matches = None
         if self._rule:
             if existing_rule.environment_id and self._rule.environment_id:
                 # If the existing rule and our rule both have environment ids, check if it's the same
-                match_results.has_key = True
-                match_results.key_matches = (
-                    existing_rule.environment_id == self._rule.environment_id
-                )
+                matches = existing_rule.environment_id == self._rule.environment_id
             elif (
                 existing_rule.environment_id
                 and not self._rule.environment_id
@@ -142,42 +129,39 @@ class DuplicateRuleEvaluator:
             ):
                 # Otherwise, if one of the rules has an environment key, but the other does not, the key was checked,
                 # but it is obviously not the same anymore
-                match_results.has_key = True
+                matches = False
         else:
             current_rule_key_data = self._rule_data.get(key_to_check)
             if existing_rule.environment_id and current_rule_key_data:
-                match_results.has_key = True
-                match_results.key_matches = existing_rule.environment_id == current_rule_key_data
+                matches = existing_rule.environment_id == current_rule_key_data
             elif (
                 existing_rule.environment_id
                 and not current_rule_key_data
                 or not existing_rule.environment_id
                 and current_rule_key_data
             ):
-                match_results.has_key = True
+                matches = False
 
-        return match_results
+        return matches
 
-    def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
+    def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> bool | None:
         """
         Special function that checks if the actions are the same against a rule.
         """
-        match_results = MatcherResult()
-
         existing_actions = existing_rule.data.get(key_to_check)
         current_actions = self._rule_data.get(key_to_check)
         if not existing_actions and not current_actions:
-            return match_results
+            return None
 
-        # At this point, either both have the key, or one of the rules has the key, so this has to be true
-        match_results.has_key = True
+        # At this point, either both have the key, or one of the rules has the key]
+        matches = False
         # Only compare if both have the key
         if existing_actions and current_actions:
-            match_results.key_matches = self._compare_lists_of_dicts(
+            matches = self._compare_lists_of_dicts(
                 keys_to_ignore=["uuid"], list1=existing_actions, list2=current_actions
             )
 
-        return match_results
+        return matches
 
     @classmethod
     def _compare_lists_of_dicts(
@@ -224,6 +208,25 @@ class DuplicateRuleEvaluator:
 
         return cleaned_dict
 
+    def check_rule_is_match(self, existing_rule: Rule) -> bool:
+        keys_checked = 0
+        keys_matched = 0
+        for key_to_check in self._keys_to_check:
+            matcher = self._get_func_to_call(key_to_check=key_to_check)
+            is_match = matcher(existing_rule=existing_rule, key_to_check=key_to_check)
+            if is_match is not None:
+                keys_checked += 1
+                if is_match:
+                    keys_matched += 1
+
+            if keys_checked > 0 and (keys_matched != keys_checked):
+                return False
+
+        if keys_matched > 0:
+            return keys_checked == keys_matched
+
+        return False
+
     def find_duplicate(self) -> Rule | None:
         """
         Determines whether specified rule already exists, and if it does, returns it.
@@ -232,19 +235,8 @@ class DuplicateRuleEvaluator:
             project__id=self._project_id, status=ObjectStatus.ACTIVE
         )
         for existing_rule in existing_rules:
-            keys_checked = 0
-            keys_matched = 0
-            for key_to_check in self._keys_to_check:
-                func = self._get_func_to_call(key_to_check=key_to_check)
-                results: MatcherResult = func(
-                    existing_rule=existing_rule, key_to_check=key_to_check
-                )
-                if results.has_key:
-                    keys_checked += 1
-                    if results.key_matches:
-                        keys_matched += 1
-
-            if keys_checked > 0 and keys_checked == keys_matched:
+            is_match = self.check_rule_is_match(existing_rule=existing_rule)
+            if is_match:
                 return existing_rule
 
         return None
