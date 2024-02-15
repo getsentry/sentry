@@ -127,7 +127,7 @@ def bulk_run_query(
         raise
 
     for idx, snuba_result in enumerate(snuba_results):
-        request, start, reverse_mappings, mappings, end, interval = queries[idx]
+        request, reverse_mappings, mappings, start, end, interval = queries[idx]
         metrics_query = request.query
 
         snuba_result = convert_snuba_result(
@@ -230,7 +230,7 @@ def _setup_metrics_query(
         # Only if the aligned interval results to be bigger, we will switch it. Note that this function
         # assumes that all supplied metrics queries have the same initial interval, otherwise this condition
         # might not apply to all.
-        if aligned_interval > interval:
+        if aligned_interval and aligned_interval > interval:
             metrics_query = metrics_query.set_rollup(
                 replace(metrics_query.rollup, interval=aligned_interval)
             )
