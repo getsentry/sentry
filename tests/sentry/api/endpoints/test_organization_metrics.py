@@ -202,6 +202,6 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase, BaseSpansTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        expected = {span["span_id"] for span in spans}
-        actual = {row["id"] for row in response.data["data"]}
+        expected = {int(span["span_id"], 16) for span in spans}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
         assert actual == expected
