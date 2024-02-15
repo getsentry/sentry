@@ -68,4 +68,8 @@ def insert_data_to_database_legacy(
     if "event_id" not in data:
         logger.error("'event_id' missing in data, cannot proceed.")
         return
-    task.delay(cache_key=cache_key, start_time=start_time, event_id=data.get("event_id", "default_event_id"))
+    task.delay(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=data.get("event_id", "default_event_id"),
+    )
