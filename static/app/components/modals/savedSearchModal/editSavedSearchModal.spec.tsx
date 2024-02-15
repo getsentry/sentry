@@ -70,7 +70,7 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
     await userEvent.paste('test');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
 
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
 
@@ -118,7 +118,7 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByTestId('smart-search-input'));
     await userEvent.paste('test');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
 
     // Hovering over the visibility dropdown shows disabled reason
     await userEvent.hover(screen.getByText(/only me/i));
