@@ -115,7 +115,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
 
-    const unit = series[0]?.unit;
+    const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
     const fogOfWarBuckets = getWidthFactor(bucketSize);
 
     const seriesToShow = useMemo(
@@ -164,8 +164,23 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     });
 
     const chartProps = useMemo(() => {
+      const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
+      const seriesMeta = seriesToShow.reduce(
+        (acc, s) => {
+          acc[s.seriesName] = {
+            unit: s.unit,
+            operation: s.operation,
+          };
+          return acc;
+        },
+        {} as Record<string, {operation: string; unit: string}>
+      );
+
       const timeseriesFormatters = {
-        valueFormatter,
+        valueFormatter: (value: number, seriesName?: string) => {
+          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation};
+          return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
+        },
         isGroupedByDate: true,
         bucketSize,
         showTimeInTooltip: true,
@@ -266,7 +281,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             id: 'yAxis',
             axisLabel: {
               formatter: (value: number) => {
-                return valueFormatter(value);
+                return formatMetricsUsingUnitAndOp(
+                  value,
+                  hasMultipleUnits ? 'none' : unit,
+                  operation
+                );
               },
             },
           },
@@ -284,18 +303,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ],
       };
     }, [
+      seriesToShow,
       bucketSize,
+      isSubMinuteBucket,
+      height,
       focusAreaBrush.options,
       focusAreaBrush.isDrawingRef,
       forwardedRef,
-      isSubMinuteBucket,
-      seriesToShow,
-      height,
       samples.handleClick,
-      samples.xAxis,
       samples.yAxis,
+      samples.xAxis,
       samples.formatters,
-      valueFormatter,
+      unit,
+      operation,
     ]);
 
     return (

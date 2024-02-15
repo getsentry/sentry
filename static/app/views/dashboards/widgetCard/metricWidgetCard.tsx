@@ -20,12 +20,11 @@ import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboard
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 import {convertToMetricWidget} from '../../../utils/metrics/dashboard';
-import {MRIToField} from '../../../utils/metrics/mri';
 import {DASHBOARD_CHART_GROUP} from '../dashboard';
 import type {DashboardFilters, Widget} from '../types';
 import {openWidgetPreviewModal} from '../utils';
@@ -126,20 +125,22 @@ export function MetricWidgetChartContainer({
   const {projects, environments, datetime} = selection;
   const {mri, op, groupBy, displayType} = metricWidgetQueryParams;
 
+  const chartQuery = useMemo(() => {
+    return {
+      mri,
+      op,
+      query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
+      groupBy,
+    };
+  }, [mri, op, metricWidgetQueryParams.query, groupBy, dashboardFilters]);
+
   const {
     data: timeseriesData,
     isLoading,
     isError,
     error,
   } = useMetricsQuery(
-    [
-      {
-        mri,
-        op,
-        query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
-        groupBy,
-      },
-    ],
+    [chartQuery],
     {
       projects,
       environments,
@@ -152,13 +153,11 @@ export function MetricWidgetChartContainer({
 
   const chartSeries = useMemo(() => {
     return timeseriesData
-      ? getChartTimeseries(timeseriesData, {
+      ? getChartTimeseries(timeseriesData, [chartQuery], {
           getChartPalette: createChartPalette,
-          mri,
-          field: MRIToField(mri, op || ''),
         })
       : [];
-  }, [timeseriesData, mri, op]);
+  }, [timeseriesData, chartQuery]);
 
   if (isError) {
     const errorMessage =
