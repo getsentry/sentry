@@ -65,4 +65,7 @@ def insert_data_to_database_legacy(
         attachment_cache.set(cache_key, attachments, cache_timeout=CACHE_TIMEOUT)
 
     task = from_reprocessing and preprocess_event_from_reprocessing or preprocess_event
+    if "event_id" not in data:
+        logger.error("'event_id' missing in data, cannot proceed.")
+        return
     task.delay(cache_key=cache_key, start_time=start_time, event_id=data["event_id"])
