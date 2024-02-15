@@ -1469,8 +1469,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:auto-enable-codecov": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Removes extra fields from the project serializers
-    "organizations:cleanup-project-serializer": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # The overall flag for codecov integration, gated by plans.
