@@ -8,6 +8,9 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
+import {TraceType} from '../traceDetails/newTraceDetailsContent';
+import {isRootTransaction} from '../traceDetails/utils';
+
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -249,12 +252,61 @@ export class TraceTree {
     return tree.build();
   }
 
+  static GetTraceType(root: TraceTreeNode<null>): TraceType {
+    const trace = root.children[0];
+    if (!trace || !isTraceNode(trace)) {
+      throw new TypeError('Not trace node');
+    }
+
+    const {transactions, orphan_errors} = trace.value;
+    const {roots, orphans} = (transactions ?? []).reduce(
+      (counts, transaction) => {
+        if (isRootTransaction(transaction)) {
+          counts.roots++;
+        } else {
+          counts.orphans++;
+        }
+        return counts;
+      },
+      {roots: 0, orphans: 0}
+    );
+
+    if (roots === 0) {
+      if (orphans > 0) {
+        return TraceType.NO_ROOT;
+      }
+
+      if (orphan_errors && orphan_errors.length > 0) {
+        return TraceType.ONLY_ERRORS;
+      }
+
+      return TraceType.EMPTY_TRACE;
+    }
+
+    if (roots === 1) {
+      if (orphans > 0) {
+        return TraceType.BROKEN_SUBTRACES;
+      }
+
+      return TraceType.ONE_ROOT;
+    }
+
+    if (roots > 1) {
+      return TraceType.MULTIPLE_ROOTS;
+    }
+
+    throw new Error('Unknown trace type');
+  }
+
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     spans: RawSpanType[]
   ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = isSpanNode(parent);
-    const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
+    const lookuptable: Record<
+      RawSpanType['span_id'],
+      TraceTreeNode<TraceTree.Span | TraceTree.Transaction>
+    > = {};
 
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
@@ -267,40 +319,47 @@ export class TraceTree {
       }
     }
 
-    const childrenLinks = new Map<string, TraceTree.Metadata>();
+    const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
+
     for (const child of parent.children) {
       if (
-        child.value &&
+        isTransactionNode(child) &&
         'parent_span_id' in child.value &&
         typeof child.value.parent_span_id === 'string'
       ) {
-        childrenLinks.set(child.value.parent_span_id, child.metadata);
+        transactionsToSpanMap.set(child.value.parent_span_id, child);
       }
       continue;
     }
 
     for (const span of spans) {
-      const node = new TraceTreeNode(null, span, {
-        event_id: undefined,
-        project_slug: undefined,
-      });
+      const parentNode = transactionsToSpanMap.get(span.span_id);
+      let node: TraceTreeNode<TraceTree.Span>;
 
-      const parentLinkMetadata = childrenLinks.get(span.span_id);
-      node.canFetchData = !!parentLinkMetadata;
+      if (parentNode) {
+        node = parentNode.clone() as unknown as TraceTreeNode<TraceTree.Span>;
+      } else {
+        node = new TraceTreeNode(null, span, {
+          event_id: undefined,
+          project_slug: undefined,
+        });
+      }
 
-      if (parentLinkMetadata) {
-        node.metadata = parentLinkMetadata;
+      node.canFetchData = !!parentNode;
+
+      if (parentNode) {
+        node.metadata = parentNode.metadata;
       }
 
       lookuptable[span.span_id] = node;
 
       if (span.parent_span_id) {
-        const parentNode = lookuptable[span.parent_span_id];
+        const spanParentNode = lookuptable[span.parent_span_id];
 
-        if (parentNode) {
-          node.parent = parentNode;
-          maybeInsertMissingInstrumentationSpan(parentNode, node);
-          parentNode.spanChildren.push(node);
+        if (spanParentNode) {
+          node.parent = spanParentNode;
+          maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          spanParentNode.spanChildren.push(node);
           continue;
         }
       }
@@ -670,6 +729,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
     }
+  }
+
+  clone(): TraceTreeNode<T> {
+    const node = new TraceTreeNode(this.parent, this.value, this.metadata);
+    node.expanded = this.expanded;
+    node.zoomedIn = this.zoomedIn;
+    node.canFetchData = this.canFetchData;
+    node.space = this.space;
+    node.children = this.children;
+    return node;
   }
 
   get isOrphaned() {
