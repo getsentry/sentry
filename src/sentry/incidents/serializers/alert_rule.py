@@ -118,6 +118,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
 
+    def validate_projects(self, projects):
+        # It seems Alert Rules were designed to allow multiple projects for a single rule but logic
+        # all over the place (UI, other endpoints, etc.) expects only a single project, so limit it
+        # for now.
+        if len(projects) > 1:
+            raise serializers.ValidationError("Metric alerts can only apply to one project")
+
+        return projects
+
     def validate_owner(self, owner):
         # owner should be team:id or user:id
         if owner is None:
