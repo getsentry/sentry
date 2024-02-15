@@ -97,104 +97,104 @@ function ScreenSummary() {
           <Layout.Body>
             <Layout.Main fullWidth>
               <PageAlert />
-              <PageFiltersContainer>
-                <Container>
-                  <AppleSauce>
+              <HeaderContainer>
+                <ControlsContainer>
+                  <PageFiltersContainer>
                     <PageFilterBar condensed>
                       <DatePageFilter />
                     </PageFilterBar>
-                    <ReleaseComparisonSelector />
-                    <StartTypeSelector />
-                  </AppleSauce>
-                  <MetricsRibbon
-                    dataset={DiscoverDatasets.SPANS_METRICS}
-                    filters={[
-                      `transaction:${transactionName}`,
-                      `span.op:[app.start.cold,app.start.warm]`,
-                      '(',
-                      'span.description:"Cold Start"',
-                      'OR',
-                      'span.description:"Warm Start"',
-                      ')',
-                    ]}
-                    fields={[
-                      `avg_if(span.duration,release,${primaryRelease})`,
-                      `avg_if(span.duration,release,${secondaryRelease})`,
-                      'span.op',
-                      'count()',
-                    ]}
-                    blocks={[
-                      {
-                        type: 'duration',
-                        title: t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS),
-                        dataKey: data => {
-                          const matchingRow = data?.find(
-                            row => row['span.op'] === 'app.start.cold'
-                          );
-                          return (
-                            (matchingRow?.[
-                              `avg_if(span.duration,release,${primaryRelease})`
-                            ] as number) ?? 0
-                          );
-                        },
+                  </PageFiltersContainer>
+                  <ReleaseComparisonSelector />
+                  <StartTypeSelector />
+                </ControlsContainer>
+                <MetricsRibbon
+                  dataset={DiscoverDatasets.SPANS_METRICS}
+                  filters={[
+                    `transaction:${transactionName}`,
+                    `span.op:[app.start.cold,app.start.warm]`,
+                    '(',
+                    'span.description:"Cold Start"',
+                    'OR',
+                    'span.description:"Warm Start"',
+                    ')',
+                  ]}
+                  fields={[
+                    `avg_if(span.duration,release,${primaryRelease})`,
+                    `avg_if(span.duration,release,${secondaryRelease})`,
+                    'span.op',
+                    'count()',
+                  ]}
+                  blocks={[
+                    {
+                      type: 'duration',
+                      title: t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS),
+                      dataKey: data => {
+                        const matchingRow = data?.find(
+                          row => row['span.op'] === 'app.start.cold'
+                        );
+                        return (
+                          (matchingRow?.[
+                            `avg_if(span.duration,release,${primaryRelease})`
+                          ] as number) ?? 0
+                        );
                       },
-                      {
-                        type: 'duration',
-                        title: t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS),
-                        dataKey: data => {
-                          const matchingRow = data?.find(
-                            row => row['span.op'] === 'app.start.cold'
-                          );
-                          return (
-                            (matchingRow?.[
-                              `avg_if(span.duration,release,${secondaryRelease})`
-                            ] as number) ?? 0
-                          );
-                        },
+                    },
+                    {
+                      type: 'duration',
+                      title: t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS),
+                      dataKey: data => {
+                        const matchingRow = data?.find(
+                          row => row['span.op'] === 'app.start.cold'
+                        );
+                        return (
+                          (matchingRow?.[
+                            `avg_if(span.duration,release,${secondaryRelease})`
+                          ] as number) ?? 0
+                        );
                       },
-                      {
-                        type: 'duration',
-                        title: t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-                        dataKey: data => {
-                          const matchingRow = data?.find(
-                            row => row['span.op'] === 'app.start.warm'
-                          );
-                          return (
-                            (matchingRow?.[
-                              `avg_if(span.duration,release,${primaryRelease})`
-                            ] as number) ?? 0
-                          );
-                        },
+                    },
+                    {
+                      type: 'duration',
+                      title: t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                      dataKey: data => {
+                        const matchingRow = data?.find(
+                          row => row['span.op'] === 'app.start.warm'
+                        );
+                        return (
+                          (matchingRow?.[
+                            `avg_if(span.duration,release,${primaryRelease})`
+                          ] as number) ?? 0
+                        );
                       },
-                      {
-                        type: 'duration',
-                        title: t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-                        dataKey: data => {
-                          const matchingRow = data?.find(
-                            row => row['span.op'] === 'app.start.warm'
-                          );
-                          return (
-                            (matchingRow?.[
-                              `avg_if(span.duration,release,${secondaryRelease})`
-                            ] as number) ?? 0
-                          );
-                        },
+                    },
+                    {
+                      type: 'duration',
+                      title: t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                      dataKey: data => {
+                        const matchingRow = data?.find(
+                          row => row['span.op'] === 'app.start.warm'
+                        );
+                        return (
+                          (matchingRow?.[
+                            `avg_if(span.duration,release,${secondaryRelease})`
+                          ] as number) ?? 0
+                        );
                       },
-                      {
-                        type: 'count',
-                        title: t('Count'),
-                        dataKey: data => {
-                          return data?.reduce(
-                            (acc, row) => acc + (row['count()'] as number),
-                            0
-                          );
-                        },
+                    },
+                    {
+                      type: 'count',
+                      title: t('Count'),
+                      dataKey: data => {
+                        return data?.reduce(
+                          (acc, row) => acc + (row['count()'] as number),
+                          0
+                        );
                       },
-                    ]}
-                    referrer="api.starfish.mobile-startup-totals"
-                  />
-                </Container>
-              </PageFiltersContainer>
+                    },
+                  ]}
+                  referrer="api.starfish.mobile-startup-totals"
+                />
+              </HeaderContainer>
               <ErrorBoundary mini>
                 <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
               </ErrorBoundary>
@@ -237,14 +237,15 @@ function ScreenSummary() {
 
 export default ScreenSummary;
 
-const AppleSauce = styled('div')`
+const ControlsContainer = styled('div')`
   display:flex;
   gap: ${space(1.5)};
 `;
 
-// TODO(nar): revisit behaviour when screen is small
-const Container = styled('div')`
+const HeaderContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
+  gap: ${space(2)};
   justify-content: space-between;
 `;
 
