@@ -9,7 +9,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
-import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {
   MobileCursors,
   MobileSortKeys,
@@ -79,7 +78,6 @@ export function SamplesTables({transactionName}) {
               secondaryRelease={secondaryRelease}
             />
           )}
-          <StartTypeSelector />
           <DeviceClassSelector size="md" clearSpansTableCursor />
         </FiltersContainer>
         <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>

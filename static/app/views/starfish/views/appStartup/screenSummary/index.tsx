@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {SamplesTables} from 'sentry/views/starfish/views/appStartup/screenSummary/samples';
+import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
@@ -98,10 +99,13 @@ function ScreenSummary() {
               <PageAlert />
               <PageFiltersContainer>
                 <Container>
-                  <PageFilterBar condensed>
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <ReleaseComparisonSelector />
+                  <AppleSauce>
+                    <PageFilterBar condensed>
+                      <DatePageFilter />
+                    </PageFilterBar>
+                    <ReleaseComparisonSelector />
+                    <StartTypeSelector />
+                  </AppleSauce>
                   <MetricsRibbon
                     dataset={DiscoverDatasets.SPANS_METRICS}
                     filters={[
@@ -233,15 +237,15 @@ function ScreenSummary() {
 
 export default ScreenSummary;
 
-const Container = styled('div')`
-  display: grid;
-  grid-template-rows: auto auto auto;
-  gap: ${space(2)};
+const AppleSauce = styled('div')`
+  display:flex;
+  gap: ${space(1.5)};
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
-  }
+// TODO(nar): revisit behaviour when screen is small
+const Container = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const SamplesContainer = styled('div')`

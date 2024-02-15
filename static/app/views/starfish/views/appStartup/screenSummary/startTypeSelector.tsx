@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,15 +16,26 @@ export function StartTypeSelector() {
 
   const value = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
 
+  useEffect(() => {
+    if (!value) {
+      browserHistory.replace({
+        ...location,
+        query: {
+          ...location.query,
+          [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+        },
+      });
+    }
+  });
+
   const options = [
-    {value: '', label: t('All')},
-    {value: COLD_START_TYPE, label: t('Cold')},
-    {value: WARM_START_TYPE, label: t('Warm')},
+    {value: COLD_START_TYPE, label: t('Cold Start')},
+    {value: WARM_START_TYPE, label: t('Warm Start')},
   ];
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Start Type')}}
+      triggerProps={{prefix: t('App Start')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
