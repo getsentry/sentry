@@ -276,7 +276,7 @@ export function FlamegraphChart({
     }
 
     if (didNotCollectAnyMeasurements) {
-      message = noMeasurementMessage || 'Profile has no measurements';
+      message = noMeasurementMessage || t('Profile has no measurements');
     }
   }
 
