@@ -52,7 +52,7 @@ function isNonZeroValue(value: number | null) {
   return value !== null && value !== 0;
 }
 
-function addAreaChartSeriesPadding(data: Series['data']) {
+function addSeriesPadding(data: Series['data']) {
   const hasNonZeroSibling = (index: number) => {
     return (
       isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
@@ -124,10 +124,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           .filter(s => !s.hidden)
           .map(s => ({
             ...s,
-            ...(displayType === MetricDisplayType.AREA
-              ? addAreaChartSeriesPadding(s.data)
+            ...(displayType !== MetricDisplayType.BAR
+              ? addSeriesPadding(s.data)
               : {data: s.data}),
-            connectNulls: displayType === MetricDisplayType.LINE,
           }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
