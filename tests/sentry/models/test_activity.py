@@ -1,7 +1,7 @@
 import logging
 
 from sentry.event_manager import EventManager
-from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
+from sentry.issues.priority import PRIORITY_VALUE_TO_STR
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -43,7 +43,7 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PRIORITY_VALUE_TO_STR[PriorityLevel.LOW]},
                 send_notification=False,
             ),
         ]
@@ -53,7 +53,7 @@ class ActivityTest(TestCase):
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
-        assert act_for_group[-1].data["priority"] == PRIORITY_LEVEL_TO_STR[PriorityLevel.HIGH]
+        assert act_for_group[-1].data["priority"] == PRIORITY_VALUE_TO_STR[PriorityLevel.HIGH]
 
     @with_feature("projects:issue-priority")
     def test_get_activities_for_group_no_priority_ff_on(self):
@@ -92,21 +92,21 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PRIORITY_VALUE_TO_STR[PriorityLevel.LOW]},
                 send_notification=False,
             ),
             Activity.objects.create_group_activity(
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PRIORITY_VALUE_TO_STR[PriorityLevel.LOW]},
                 send_notification=False,
             ),
             Activity.objects.create_group_activity(
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.MEDIUM]},
+                data={"priority": PRIORITY_VALUE_TO_STR[PriorityLevel.MEDIUM]},
                 send_notification=False,
             ),
         ]
@@ -117,7 +117,7 @@ class ActivityTest(TestCase):
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
-        assert act_for_group[-1].data["priority"] == PRIORITY_LEVEL_TO_STR[PriorityLevel.HIGH]
+        assert act_for_group[-1].data["priority"] == PRIORITY_VALUE_TO_STR[PriorityLevel.HIGH]
 
     def test_get_activities_for_group_simple_priority_ff_off(self):
         manager = EventManager(make_event(level=logging.FATAL))
@@ -139,7 +139,7 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PRIORITY_VALUE_TO_STR[PriorityLevel.LOW]},
                 send_notification=False,
             ),
         ]
