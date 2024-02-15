@@ -55,8 +55,9 @@ export function Banner({onButtonClick, additionalContext, setAdditionalContext}:
           <Fragment>
             <Separator />
             <PiiMessage>
-              By clicking the buttons above, you confirm that there is no PII in this
-              event.
+              {t(
+                'By clicking the button above, you confirm that there is no PII in this event.'
+              )}
             </PiiMessage>
           </Fragment>
         )}
