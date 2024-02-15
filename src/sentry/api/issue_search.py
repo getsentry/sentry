@@ -20,7 +20,6 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
     get_group_types_by_category,
 )
-from sentry.issues.priority import PRIORITY_STR_TO_VALUE
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.organization import Organization
@@ -39,7 +38,7 @@ from sentry.search.utils import (
     parse_user_value,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -202,7 +201,7 @@ def convert_priority_value(
     """Convert a value like 'high' or 'medium' to the Priority value for issue lookup"""
     results: list[int] = []
     for priority in value:
-        priority_value = PRIORITY_STR_TO_VALUE.get(priority)
+        priority_value = PriorityLevel.from_str(priority)
         if not priority_value:
             raise InvalidSearchQuery(f"Invalid priority value of '{priority}'")
         results.append(priority_value.value)
