@@ -27,7 +27,6 @@ import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import {convertToMetricWidget} from '../../../utils/metrics/dashboard';
 import {DASHBOARD_CHART_GROUP} from '../dashboard';
 import type {DashboardFilters, Widget} from '../types';
-import {openWidgetPreviewModal} from '../utils';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -84,7 +83,12 @@ export function MetricWidgetCard({
                 isPreview={false}
                 widgetLimitReached={false}
                 onEdit={() => {
-                  openWidgetPreviewModal(router, location, widget);
+                  router.push({
+                    pathname: `${location.pathname}${
+                      location.pathname.endsWith('/') ? '' : '/'
+                    }widget/${widget.id}/`,
+                    query: location.query,
+                  });
                 }}
                 router={router}
                 location={location}
