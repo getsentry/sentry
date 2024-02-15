@@ -338,23 +338,25 @@ def determine_eligible_recipients(
             suggested_assignees.append(assignee_actor)
 
         suspect_commit_users = None
-        if features.has("organizations:streamline-targeting-context", project.organization):
-            try:
-                suspect_commit_users = RpcActor.many_from_object(
-                    get_suspect_commit_users(project, event)
-                )
-                suggested_assignees.extend(suspect_commit_users)
-            except (Release.DoesNotExist, Commit.DoesNotExist):
-                logger.info("Skipping suspect committers because release does not exist.")
-            except Exception:
-                logger.exception("Could not get suspect committers. Continuing execution.")
+
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
 
         metrics.incr(
             "features.owners.send_to",
             tags={
-                "outcome": outcome
-                if outcome == "match" or fallthrough_choice is None
-                else fallthrough_choice.value,
+                "outcome": (
+                    outcome
+                    if outcome == "match" or fallthrough_choice is None
+                    else fallthrough_choice.value
+                ),
                 "hasSuspectCommitters": str(bool(suspect_commit_users)),
             },
         )

@@ -97,6 +97,7 @@ export type IssueEventParameters = {
     parent_stacktrace?: string;
     parent_transaction?: string;
     project_id?: string;
+    shouldBeGrouped?: string;
     stacktrace?: string;
     transaction?: string;
   };

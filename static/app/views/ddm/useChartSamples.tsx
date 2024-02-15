@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
@@ -142,6 +143,8 @@ export function useChartSamples({
 
       return {
         seriesName: sample.transactionId,
+        // TODO: we should not use the same Series type for samples and metrics
+        operation: '',
         unit: '',
         symbolSize: isHighlighted ? 20 : 10,
         animation: false,
@@ -185,7 +188,7 @@ export function useChartSamples({
       showTimeInTooltip: true,
       addSecondsToTimeFormat: true,
       nameFormatter: (name: string) => {
-        return name.substring(0, 8);
+        return t('Event %s', name.substring(0, 8));
       },
       valueFormatter: (_, label?: string) => {
         const sample = samples[label ?? ''];
