@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {Organization, TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -1583,22 +1583,16 @@ export const getFieldDefinition = (
   }
 };
 
-export function makeTagCollection(
-  fieldKeys: FieldKey[],
-  org: Organization
-): TagCollection {
-  const include_priority = org.features.includes('issue-priority-ui');
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
-    fieldKeys
-      .map(fieldKey => [
-        fieldKey,
-        {
-          key: fieldKey,
-          name: fieldKey,
-          kind: getFieldDefinition(fieldKey)?.kind,
-        },
-      ])
-      .filter(([key, _]) => (key === FieldKey.ISSUE_PRIORITY ? include_priority : true))
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
   );
 }
 

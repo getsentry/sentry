@@ -267,7 +267,7 @@ export function datasetSupportedTags(
       [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
     },
     value => {
-      return value ? makeTagCollection(value, org) : undefined;
+      return value ? makeTagCollection(value) : undefined;
     }
   )[dataset];
 }
