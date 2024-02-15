@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -24,7 +24,7 @@ interface TraceTimelineEventsProps {
 }
 
 export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
-  const {startTimestamp, endTimestamp, data} = useTraceTimelineEvents({event});
+  const {startTimestamp, endTimestamp, traceEvents} = useTraceTimelineEvents({event});
   let paddedStartTime = startTimestamp;
   let paddedEndTime = endTimestamp;
   // Duration is 0, pad both sides, this is how we end up with 1 dot in the middle
@@ -36,31 +36,34 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   const durationMs = paddedEndTime - paddedStartTime;
 
   const totalColumns = Math.floor(width / PARENT_WIDTH);
-  const eventsByColumn = getEventsByColumn(
-    durationMs,
-    data,
-    totalColumns,
-    paddedStartTime
+  const eventsByColumn = useMemo(
+    () => getEventsByColumn(traceEvents, durationMs, totalColumns, paddedStartTime),
+    [durationMs, traceEvents, totalColumns, paddedStartTime]
   );
+
   const columnSize = width / totalColumns;
 
   // If the duration is less than 2 minutes, show seconds
   const showTimelineSeconds = durationMs < 120 * 1000;
+  const middleTimestamp = paddedStartTime + Math.floor(durationMs / 2);
+  const leftMiddleTimestamp = paddedStartTime + Math.floor(durationMs / 4);
+  const rightMiddleTimestamp = paddedStartTime + Math.floor((durationMs / 4) * 3);
 
   return (
     <Fragment>
       {/* Add padding to the total columns, 1 column of padding on each side */}
       <TimelineColumns style={{gridTemplateColumns: `repeat(${totalColumns + 2}, 1fr)`}}>
-        {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
+        {eventsByColumn.map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const timeRange = getChunkTimeRange(
             paddedStartTime,
             column - 1,
             durationMs / totalColumns
           );
+          const hasCurrentEvent = colEvents.some(e => e.id === event.id);
           return (
             <EventColumn
-              key={column}
+              key={`${column}-${hasCurrentEvent ? 'current-event' : 'regular'}`}
               // Add 1 to the column to account for the padding
               style={{gridColumn: Math.floor(column) + 1, width: columnSize}}
             >
@@ -77,19 +80,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
         })}
       </TimelineColumns>
       <TimestampColumns>
-        <TimestampItem style={{textAlign: 'left'}}>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'center'}}>
-          <DateTime
-            date={paddedStartTime + Math.floor(durationMs / 2)}
-            seconds={showTimelineSeconds}
-            timeOnly
-          />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'right'}}>
-          <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
+        <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
       </TimestampColumns>
     </Fragment>
   );
@@ -118,16 +113,11 @@ const TimelineColumns = styled('div')`
 `;
 
 const TimestampColumns = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: ${space(1)};
-`;
-
-const TimestampItem = styled('div')`
-  place-items: stretch;
-  display: grid;
+  display: flex;
   align-items: center;
-  position: relative;
+  justify-content: space-between;
+  margin-top: ${space(1)};
+  text-align: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -148,39 +138,43 @@ function NodeGroup({
   timeRange: [number, number];
 }) {
   const totalSubColumns = Math.floor(columnSize / CHILD_WIDTH);
-  const durationMs = timeRange[1] - timeRange[0];
-  const eventsByColumn = getEventsByColumn(
-    durationMs,
-    colEvents,
-    totalSubColumns,
-    timeRange[0]
-  );
-
-  const columns = Array.from(eventsByColumn.keys());
-  const minColumn = Math.min(...columns);
-  const maxColumn = Math.max(...columns);
+  const {eventsByColumn, columns} = useMemo(() => {
+    const durationMs = timeRange[1] - timeRange[0];
+    const eventColumns = getEventsByColumn(
+      colEvents,
+      durationMs,
+      totalSubColumns,
+      timeRange[0]
+    );
+    return {
+      eventsByColumn: eventColumns,
+      columns: eventColumns.map<number>(([column]) => column).sort(),
+    };
+  }, [colEvents, totalSubColumns, timeRange]);
 
   return (
     <Fragment>
       <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
-        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
+        {eventsByColumn.map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
-            <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-              {isCurrentNode && (
+            <EventColumn key={`${column}-currrent-event`} style={{gridColumn: column}}>
+              {isCurrentNode ? (
                 <CurrentNodeContainer aria-label={t('Current Event')}>
                   <CurrentNodeRing />
                   <CurrentIconNode />
                 </CurrentNodeContainer>
-              )}
-              {!isCurrentNode &&
-                groupEvents.map(groupEvent =>
-                  'event.type' in groupEvent ? (
-                    <IconNode key={groupEvent.id} />
-                  ) : (
-                    <PerformanceIconNode key={groupEvent.id} />
+              ) : (
+                groupEvents
+                  .slice(0, 5)
+                  .map(groupEvent =>
+                    'event.type' in groupEvent ? (
+                      <IconNode key={groupEvent.id} />
+                    ) : (
+                      <PerformanceIconNode key={groupEvent.id} />
+                    )
                   )
-                )}
+              )}
             </EventColumn>
           );
         })}
@@ -197,7 +191,10 @@ function NodeGroup({
         >
           <TooltipHelper
             style={{
-              gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
+              gridColumn:
+                columns.length > 1
+                  ? `${columns.at(0)} / ${columns.at(-1)}`
+                  : columns.at(0)!,
               width: 8 * columns.length,
             }}
             data-test-id={`trace-timeline-tooltip-${currentColumn}`}
@@ -235,26 +232,26 @@ const IconNode = styled('div')`
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
-  border: 1px solid ${p => color(p.theme.red300).alpha(0.3).string()};
+  border: 1px solid ${p => p.theme.red300};
 `;
 
 const CurrentNodeContainer = styled('div')`
   position: absolute;
   grid-column: 1;
   grid-row: 1;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 `;
 
 const CurrentNodeRing = styled('div')`
   border: 1px solid ${p => p.theme.red300};
-  height: 16px;
-  width: 16px;
+  height: 24px;
+  width: 24px;
   border-radius: 100%;
   position: absolute;
-  top: -4px;
-  left: -12px;
-  animation: pulse 1s ease-out infinite;
+  top: -6px;
+  left: -16px;
+  animation: pulse 2s ease-out infinite;
 
   @keyframes pulse {
     0% {
@@ -262,6 +259,10 @@ const CurrentNodeRing = styled('div')`
       opacity: 0.0;
     }
     50% {
+      transform: scale(0.1, 0.1);
+      opacity: 0.0;
+    }
+    70% {
       opacity: 1.0;
     }
     100% {
@@ -273,8 +274,9 @@ const CurrentNodeRing = styled('div')`
 
 const CurrentIconNode = styled(IconNode)`
   background-color: ${p => p.theme.red300};
-  border-radius: 50%;
-  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -10px;
 `;
 
 const TooltipHelper = styled('span')`

@@ -5,11 +5,14 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -41,15 +44,16 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   analyticsContext: string;
+  clipOffsets: {
+    durationAfterMs: number;
+    durationBeforeMs: number;
+  };
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
-
-const CLIP_DURATION_BEFORE_EVENT = 5_000;
-const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -83,7 +87,7 @@ function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {currentTime} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
 
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -91,12 +95,13 @@ function ReplayPreviewPlayer({
   });
   const isFullscreen = useIsFullscreen();
 
+  const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: TabKey.ERRORS,
-      t: currentTime / 1000,
+      t: (currentTime + startOffsetMs) / 1000,
     },
   };
 
@@ -142,44 +147,29 @@ function ReplayPreviewPlayer({
 
 function ReplayClipPreview({
   analyticsContext,
+  clipOffsets,
   eventTimestampMs,
   orgSlug,
   replaySlug,
   fullReplayButtonProps,
 }: Props) {
+  const clipWindow = useMemo(
+    () => ({
+      startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
+      endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
+    }),
+    [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
+  );
+
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
+    clipWindow,
   });
-
-  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
-  const endTimestampMs = replayRecord?.finished_at?.getTime() ?? 0;
-  const eventTimeOffsetMs = Math.abs(eventTimestampMs - startTimestampMs);
-  const endTimeOffsetMs = Math.abs(endTimestampMs - startTimestampMs);
 
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
-
-  const clipStartTimeOffsetMs = Math.max(
-    eventTimeOffsetMs - CLIP_DURATION_BEFORE_EVENT,
-    0
-  );
-  const clipDurationMs =
-    Math.min(eventTimeOffsetMs + CLIP_DURATION_AFTER_EVENT, endTimeOffsetMs) -
-    clipStartTimeOffsetMs;
-
-  const clipWindow = useMemo(
-    () => ({
-      startTimeOffsetMs: clipStartTimeOffsetMs,
-      durationMs: clipDurationMs,
-    }),
-    [clipDurationMs, clipStartTimeOffsetMs]
-  );
-  const offset = useMemo(
-    () => ({offsetMs: clipWindow.startTimeOffsetMs}),
-    [clipWindow.startTimeOffsetMs]
-  );
 
   if (replayRecord?.is_archived) {
     return (
@@ -198,21 +188,31 @@ function ReplayClipPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    );
+  }
+
+  if (replay.getDurationMs() <= 0) {
+    return (
+      <StaticReplayPreview
+        analyticsContext={analyticsContext}
+        isFetching={false}
+        replay={replay}
+        replayId={replayId}
+        fullReplayButtonProps={fullReplayButtonProps}
+        initialTimeOffsetMs={0}
       />
     );
   }
 
   return (
     <ReplayContextProvider
-      isFetching={fetching}
-      replay={replay}
-      initialTimeOffsetMs={offset}
-      clipWindow={clipWindow}
       analyticsContext={analyticsContext}
+      isFetching={fetching}
+      prefsStrategy={StaticReplayPreferences}
+      replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
@@ -275,7 +275,8 @@ const StaticPanel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: 400px;
   margin-bottom: ${space(2)};
 `;
 

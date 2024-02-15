@@ -77,18 +77,76 @@ class ReverseMappings:
         self.reverse_mappings: dict[int, str] = dict()
 
 
+def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
+    """
+    Entrypoint for executing a list of metrics queries in Snuba.
+
+    This function is used to execute multiple metrics queries in a single request.
+    """
+    if not requests:
+        return []
+
+    queries = []
+    for request in requests:
+        request, start, end = _setup_metrics_query(request)
+        queries.append([request, start, end])
+
+    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
+
+    for q in queries:
+        q[0], reverse_mappings, mappings = _resolve_metrics_query(q[0], logging_tags)
+        q.extend([reverse_mappings, mappings])
+
+    try:
+        snuba_results = bulk_snuba_queries(
+            [q[0] for q in queries],
+            queries[0][0].tenant_ids["referrer"],
+            use_cache=True,
+        )
+    except Exception:
+        metrics.incr(
+            "metrics_layer.query",
+            tags={**logging_tags, "status": "query_error"},
+        )
+        raise
+
+    for idx, snuba_result in enumerate(snuba_results):
+        request, start, end, reverse_mappings, mappings = queries[idx]
+        metrics_query = request.query
+
+        snuba_result = convert_snuba_result(
+            snuba_result,
+            reverse_mappings,
+            request.dataset,
+            metrics_query.scope.use_case_id,
+            metrics_query.scope.org_ids[0],
+        )
+
+        # If we normalized the start/end, return those values in the response so the caller is aware
+        results = {
+            **snuba_result,
+            "modified_start": start,
+            "modified_end": end,
+            "indexer_mappings": mappings,
+        }
+
+        snuba_results[idx] = results
+
+    metrics.incr(
+        "metrics_layer.query",
+        tags={**logging_tags, "status": "success"},
+    )
+    return snuba_results
+
+
 def run_query(request: Request) -> Mapping[str, Any]:
     """
     Entrypoint for executing a metrics query in Snuba.
-
-    First iteration:
-    The purpose of this function is to eventually replace datasource.py::get_series().
-    As a first iteration, this function will only support single timeseries metric queries.
-    This means that for now, other queries such as total, formula, or meta queries
-    will not be supported. Additionally, the first iteration will only support
-    querying raw metrics (no derived). This means that each call to this function will only
-    resolve into a single request (and single entity) to the Snuba API.
     """
+    return bulk_run_query([request])[0]
+
+
+def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]:
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
 
@@ -108,7 +166,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
     start = metrics_query.start
     end = metrics_query.end
     if metrics_query.rollup.interval:
-        start, end, _num_intervals = to_intervals(
+        start, end, _ = to_intervals(
             metrics_query.start, metrics_query.end, metrics_query.rollup.interval
         )
         metrics_query = metrics_query.set_start(start).set_end(end)
@@ -121,7 +179,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
         )
     request.query = metrics_query
 
-    return mql_query(request, start, end)
+    return request, start, end
 
 
 def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
@@ -182,9 +240,10 @@ def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -
     return min(found_granularities)
 
 
-def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, Any]:
+def _resolve_metrics_query(
+    request: Request, logging_tags: dict[str, str]
+) -> tuple[Request, ReverseMappings, dict[str, str | int]]:
     metrics_query = request.query
-    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
 
     try:
         # There are two kinds of resolving: lookup up in the indexer, and resolving things like
@@ -208,39 +267,7 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         )
         raise
 
-    try:
-        snuba_result = bulk_snuba_queries(
-            [request],
-            request.tenant_ids["referrer"],
-            use_cache=True,
-        )[0]
-    except Exception:
-        metrics.incr(
-            "metrics_layer.query",
-            tags={**logging_tags, "status": "query_error"},
-        )
-        raise
-
-    snuba_result = convert_snuba_result(
-        snuba_result,
-        reverse_mappings,
-        request.dataset,
-        metrics_query.scope.use_case_id,
-        metrics_query.scope.org_ids[0],
-    )
-
-    # If we normalized the start/end, return those values in the response so the caller is aware
-    results = {
-        **snuba_result,
-        "modified_start": start,
-        "modified_end": end,
-        "indexer_mappings": mappings,
-    }
-    metrics.incr(
-        "metrics_layer.query",
-        tags={**logging_tags, "status": "success"},
-    )
-    return results
+    return request, reverse_mappings, mappings
 
 
 def _resolve_query_metadata(

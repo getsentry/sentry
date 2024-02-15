@@ -154,8 +154,7 @@ function IssueContext(props: BaseContextProps) {
     );
 
   const renderSuspectCommits = () =>
-    event &&
-    event.eventID &&
+    event?.eventID &&
     issue && (
       <SuspectCommitsContainer data-test-id="quick-context-suspect-commits-container">
         <SuspectCommits

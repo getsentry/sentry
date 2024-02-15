@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import Feature from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -87,10 +89,25 @@ export function MetricQueryContextMenu({
       },
       {
         leadingItems: [<IconDashboard key="icon" />],
-        key: 'add-dashoard',
-        label: t('Add to Dashboard'),
+        key: 'add-dashboard',
+        label: (
+          <Feature
+            organization={organization}
+            hookName="feature-disabled:dashboards-edit"
+            features="dashboards-edit"
+          >
+            {({hasFeature}) => (
+              <AddToDashboardItem disabled={!hasFeature}>
+                {t('Add to Dashboard')}
+              </AddToDashboardItem>
+            )}
+          </Feature>
+        ),
         disabled: !createDashboardWidget,
         onAction: () => {
+          if (!organization.features.includes('dashboards-edit')) {
+            return;
+          }
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
             source: 'widget',
@@ -210,6 +227,11 @@ export function useCreateDashboardWidget(
         router,
         widgetAsQueryParams,
         location: router.location,
+        actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
       });
   }, [metricsQuery, datetime, displayType, environments, organization, projects, router]);
 }
+
+const AddToDashboardItem = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
+`;

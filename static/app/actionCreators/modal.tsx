@@ -20,6 +20,7 @@ import type {
   Team,
 } from 'sentry/types';
 import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -332,7 +333,13 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const mod = await import('sentry/components/modals/widgetViewerModal');
+  const modalPromise =
+    options.widget.widgetType === WidgetType.METRICS
+      ? import('sentry/components/modals/metricWidgetViewerModal')
+      : import('sentry/components/modals/widgetViewerModal');
+
+  const mod = await modalPromise;
+
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {

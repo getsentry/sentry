@@ -22,6 +22,7 @@ interface Props {
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
+  projectSlug: string | undefined;
   startTimestampMs: number;
   style: CSSProperties;
   traces: ReplayTraceRow | undefined;
@@ -29,14 +30,15 @@ interface Props {
   expandPaths?: string[];
 }
 
-function BreadcrumbRow({
+export default function BreadcrumbRow({
   expandPaths,
-  frame,
   extraction,
+  frame,
   index,
   onClick,
   onDimensionChange,
   onInspectorExpanded,
+  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -49,8 +51,7 @@ function BreadcrumbRow({
     [onDimensionChange, index]
   );
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState, e) =>
-      onInspectorExpanded && onInspectorExpanded(index, path, expandedState, e),
+    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
     [index, onInspectorExpanded]
   );
 
@@ -75,6 +76,7 @@ function BreadcrumbRow({
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        projectSlug={projectSlug}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
         onDimensionChange={handleDimensionChange}
@@ -89,5 +91,3 @@ const StyledTimeBorder = styled('div')`
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
 `;
-
-export default BreadcrumbRow;

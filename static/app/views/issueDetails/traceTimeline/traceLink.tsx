@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -17,11 +19,22 @@ interface TraceLinkProps {
 
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
-  const {data} = useTraceTimelineEvents({event});
+  const {traceEvents} = useTraceTimelineEvents({event});
   const traceTarget = generateTraceTarget(event, organization);
 
   if (!event.contexts?.trace?.trace_id) {
-    return null;
+    return (
+      <NoTraceAvailable>
+        {t('No Trace Available')}
+        <QuestionTooltip
+          position="bottom"
+          size="sm"
+          title={t(
+            'Traces help you understand if there are any issues with other services connected to this event'
+          )}
+        />
+      </NoTraceAvailable>
+    );
   }
 
   return (
@@ -36,7 +49,13 @@ export function TraceLink({event}: TraceLinkProps) {
     >
       <span>
         {t('View Full Trace')}
-        {data.length > 0 && tn(' (%s issue)', ' (%s issues)', data.length)}
+        {traceEvents.length > 0 && (
+          <Fragment>
+            {traceEvents.length >= 100
+              ? t(' (100+ issues)')
+              : tn(' (%s issue)', ' (%s issues)', traceEvents.length)}
+          </Fragment>
+        )}
       </span>
       <IconChevron direction="right" size="xs" />
     </StyledLink>
@@ -49,4 +68,21 @@ const StyledLink = styled(Link)`
   gap: ${space(0.25)};
   line-height: 1.2;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  svg {
+    margin-top: 1px;
+  }
+`;
+
+const NoTraceAvailable = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  line-height: 1.2;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  svg {
+    margin-top: 1px;
+  }
 `;

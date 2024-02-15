@@ -11,19 +11,20 @@ import isEqual from 'lodash/isEqual';
 
 import {
   getAbsoluteDateTimeRange,
-  getDefaultMetricDisplayType,
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
+import {emptyWidget} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
-import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
+import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
+import {useStructuralSharing} from 'sentry/views/ddm/utils/useStructuralSharing';
 
 export type FocusAreaProps = {
   onAdd?: (area: FocusAreaSelection) => void;
@@ -35,13 +36,14 @@ export type FocusAreaProps = {
 interface DDMContextValue {
   addWidget: () => void;
   duplicateWidget: (index: number) => void;
+  hasMetrics: boolean;
   isDefaultQuery: boolean;
-  isLoading: boolean;
-  metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
+  isMultiChartMode: boolean;
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setHighlightedSampleId: (sample?: string) => void;
+  setIsMultiChartMode: (value: boolean) => void;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -53,51 +55,37 @@ interface DDMContextValue {
 export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
+  focusArea: undefined,
+  hasMetrics: false,
+  highlightedSampleId: undefined,
   isDefaultQuery: false,
-  isLoading: false,
-  metricsMeta: [],
+  isMultiChartMode: false,
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
+  setHighlightedSampleId: () => {},
+  setIsMultiChartMode: () => {},
   setSelectedWidgetIndex: () => {},
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
-  highlightedSampleId: undefined,
-  setHighlightedSampleId: () => {},
-  focusArea: undefined,
 });
 
 export function useDDMContext() {
   return useContext(DDMContext);
 }
 
+const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyWidget];
+
 export function useMetricWidgets() {
-  const router = useRouter();
+  const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricWidgetQueryParams[]>(() => {
-      const currentWidgets = JSON.parse(
-        router.location.query.widgets ?? JSON.stringify([emptyWidget])
-      );
-
-      return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-        return {
-          mri: widget.mri,
-          op: widget.op,
-          query: widget.query,
-          groupBy: decodeList(widget.groupBy),
-          displayType:
-            widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
-          focusedSeries: widget.focusedSeries,
-          showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-          powerUserMode: widget.powerUserMode,
-          sort: widget.sort ?? DEFAULT_SORT_STATE,
-          title: widget.title,
-        };
-      });
-    }, [router.location.query.widgets])
+    useMemo<MetricWidgetQueryParams[]>(
+      () => parseMetricWidgetsQueryParam(urlWidgets) ?? DEFAULT_WIDGETS_STATE,
+      [urlWidgets]
+    )
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -198,19 +186,56 @@ const useDefaultQuery = () => {
   );
 };
 
+function useSelectedProjects() {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    if (selection.projects.length === 0) {
+      return projects.filter(project => project.isMember);
+    }
+    if (selection.projects.includes(-1)) {
+      return projects;
+    }
+    return projects.filter(project => selection.projects.includes(Number(project.id)));
+  }, [selection.projects, projects]);
+}
+
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
+  const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
+  const isMultiChartMode = multiChartMode === 1;
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
+
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
-  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
+
+  const selectedProjects = useSelectedProjects();
+  const hasMetrics = useMemo(
+    () =>
+      selectedProjects.some(
+        project =>
+          project.hasCustomMetrics || project.hasSessions || project.firstTransactionEvent
+      ),
+    [selectedProjects]
+  );
+
+  const handleSetSelectedWidgetIndex = useCallback(
+    (value: number) => {
+      if (!isMultiChartMode) {
+        return;
+      }
+      setSelectedWidgetIndex(value);
+    },
+    [isMultiChartMode]
+  );
 
   const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
     () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),
@@ -231,10 +256,10 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       }
 
       Sentry.metrics.increment('ddm.enhance.add');
-      setSelectedWidgetIndex(area.widgetIndex);
+      handleSetSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)}, {replace: true});
     },
-    [updateQuery, pageFilters.datetime]
+    [pageFilters.datetime, handleSetSelectedWidgetIndex, updateQuery]
   );
 
   const handleRemoveFocusArea = useCallback(() => {
@@ -252,26 +277,40 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddWidget = useCallback(() => {
     addWidget();
-    setSelectedWidgetIndex(widgets.length);
-  }, [addWidget, widgets.length]);
+    handleSetSelectedWidgetIndex(widgets.length);
+  }, [addWidget, handleSetSelectedWidgetIndex, widgets.length]);
 
   const handleUpdateWidget = useCallback(
     (index: number, data: Partial<MetricWidgetQueryParams>) => {
       updateWidget(index, data);
-      setSelectedWidgetIndex(index);
+      handleSetSelectedWidgetIndex(index);
       if (index === focusAreaSelection?.widgetIndex) {
         handleRemoveFocusArea();
       }
     },
-    [updateWidget, handleRemoveFocusArea, focusAreaSelection?.widgetIndex]
+    [
+      updateWidget,
+      handleSetSelectedWidgetIndex,
+      focusAreaSelection?.widgetIndex,
+      handleRemoveFocusArea,
+    ]
   );
 
   const handleDuplicate = useCallback(
     (index: number) => {
       duplicateWidget(index);
-      setSelectedWidgetIndex(index + 1);
+      handleSetSelectedWidgetIndex(index + 1);
     },
-    [duplicateWidget]
+    [duplicateWidget, handleSetSelectedWidgetIndex]
+  );
+
+  const handleSetIsMultiChartMode = useCallback(
+    (value: boolean) => {
+      updateQuery({multiChartMode: value ? 1 : 0}, {replace: true});
+      updateWidget(0, {focusedSeries: undefined});
+      setSelectedWidgetIndex(0);
+    },
+    [updateQuery, updateWidget]
   );
 
   const contextValue = useMemo<DDMContextValue>(
@@ -279,34 +318,36 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       addWidget: handleAddWidget,
       selectedWidgetIndex:
         selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
-      setSelectedWidgetIndex,
+      setSelectedWidgetIndex: handleSetSelectedWidgetIndex,
       updateWidget: handleUpdateWidget,
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
       showQuerySymbols: widgets.length > 1,
       highlightedSampleId,
       setHighlightedSampleId,
+      isMultiChartMode: isMultiChartMode,
+      setIsMultiChartMode: handleSetIsMultiChartMode,
     }),
     [
       handleAddWidget,
       selectedWidgetIndex,
       widgets,
+      handleSetSelectedWidgetIndex,
       handleUpdateWidget,
       removeWidget,
       handleDuplicate,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
       highlightedSampleId,
-      setHighlightedSampleId,
+      isMultiChartMode,
+      handleSetIsMultiChartMode,
     ]
   );
 

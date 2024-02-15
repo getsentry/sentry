@@ -7,7 +7,7 @@ from sentry.utils import json
 
 
 class TestSimilarIssuesEmbeddingsUtils(TestCase):
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_simple_similar_issues_embeddings(self, mock_seer_request):
         """Test that valid responses are decoded and returned."""
 
@@ -27,13 +27,14 @@ class TestSimilarIssuesEmbeddingsUtils(TestCase):
 
         params: SimilarIssuesEmbeddingsRequest = {
             "group_id": 1,
+            "project_id": 1,
             "stacktrace": "string",
             "message": "message",
         }
         response = get_similar_issues_embeddings(params)
         assert response == expected_return_value
 
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     def test_empty_similar_issues_embeddings(self, mock_seer_request):
         """Test that empty responses are returned."""
 
@@ -41,6 +42,7 @@ class TestSimilarIssuesEmbeddingsUtils(TestCase):
 
         params: SimilarIssuesEmbeddingsRequest = {
             "group_id": 1,
+            "project_id": 1,
             "stacktrace": "string",
             "message": "message",
         }

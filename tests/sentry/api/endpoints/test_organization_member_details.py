@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.core import mail
 from django.db.models import F
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -13,12 +14,16 @@ from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.roles import organization_roles
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from tests.sentry.api.endpoints.test_organization_member_index import (
+    mock_organization_roles_get_factory,
+)
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -551,6 +556,86 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.member = self.create_user()
+        self.member_om = self.create_member(
+            organization=self.organization, user=self.member, role="member", teams=[]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.member_om.id,
+            teamRoles=[{"teamSlug": team.slug, "role": None}],
+            status_code=400,
+        )
+        assert (
+            response.data["detail"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_demote_team_member_to_role_where_team_roles_disabled(self, mock_get):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.manager = self.create_user()
+        self.manager_om = self.create_member(
+            organization=self.organization, user=self.manager, role="manager", teams=[team]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        response = self.get_error_response(
+            self.organization.slug, self.manager_om.id, orgRole="member", status_code=400
+        )
+        assert (
+            response.data["detail"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_can_promote_team_member_to_role_where_team_roles_enabled(self, mock_get):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.member = self.create_user()
+        self.member_om = self.create_member(
+            organization=self.organization, user=self.member, role="member", teams=[]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        self.get_success_response(
+            self.organization.slug,
+            self.member_om.id,
+            teamRoles=[{"teamSlug": team.slug, "role": None}],
+            orgRole="manager",
+        )
+
 
 @region_silo_test
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
@@ -747,6 +832,37 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_cannot_delete_as_superuser_read(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, status_code=400)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_can_delete_as_superuser_write(self):
+        superuser = self.create_user(is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(superuser, superuser=True)
+
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id)
 
 
 @region_silo_test
