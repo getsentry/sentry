@@ -109,7 +109,7 @@ class Migration(CheckedMigration):
             model_name="notificationmessage",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("error_code__isnull", True), ("parent_notification__isnull", True)
+                    ("error_code__isnull", True), ("parent_notification_message__isnull", True)
                 ),
                 fields=("incident", "trigger_action"),
                 name="singular_parent_message_per_incident_and_trigger_action",
@@ -119,7 +119,7 @@ class Migration(CheckedMigration):
             model_name="notificationmessage",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("error_code__isnull", True), ("parent_notification__isnull", True)
+                    ("error_code__isnull", True), ("parent_notification_message__isnull", True)
                 ),
                 fields=("rule_fire_history", "rule_action_uuid"),
                 name="singular_parent_message_per_rule_fire_history_and_rule_action",
