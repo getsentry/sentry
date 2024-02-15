@@ -19,7 +19,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
@@ -649,11 +649,6 @@ def render_template_context(ctx, user_id):
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
-    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
-    has_replay_section = features.has(
-        "organizations:session-replay", ctx.organization
-    ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
-
     notification_uuid = str(uuid.uuid4())
 
     # Render the first section of the email where we had the table showing the
@@ -930,7 +925,6 @@ def render_template_context(ctx, user_id):
         }
 
     return {
-        "has_replay_graph": has_replay_graph,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -938,7 +932,6 @@ def render_template_context(ctx, user_id):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
-        "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,

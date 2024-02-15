@@ -249,7 +249,6 @@ default_manager.add("organizations:session-replay-sdk", OrganizationFeature, Fea
 default_manager.add("organizations:session-replay-slack-new-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-trace-table", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:session-replay-weekly-email", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
