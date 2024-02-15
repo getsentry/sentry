@@ -81,6 +81,9 @@ def build_query_params_from_request(
             raise ParseError(detail="Invalid cursor parameter.")
     has_query = request.GET.get("query")
     query = request.GET.get("query", "is:unresolved").strip()
+    if features.has("organizations:issue-priority-ui", organization):
+        query = f"{query} issue.priority:[high, medium]"
+
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
         saved_searches = (
             SavedSearch.objects
