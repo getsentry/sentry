@@ -199,7 +199,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     snql_aggregate=lambda args, alias: Function(
                         "argMin",
                         [
-                            Function("tuple", [Column("group"), Column("span_id")]),
+                            Function(
+                                "tuple", [Column("group"), Column("timestamp"), Column("span_id")]
+                            ),
                             Function("cityHash64", [Column("span_id")]),
                         ],
                         alias,

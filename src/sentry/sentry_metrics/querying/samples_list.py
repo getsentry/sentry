@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any
 
 from snuba_sdk import And, Condition, Op, Or
@@ -38,7 +39,7 @@ class SamplesListExecutor(ABC):
     def execute(self, offset, limit):
         raise NotImplementedError
 
-    def get_spans(self, span_ids: list[tuple[str, str]]):
+    def get_spans_by_key(self, span_ids: list[tuple[str, str, str]]):
         if not span_ids:
             return {"data": []}
 
@@ -62,10 +63,13 @@ class SamplesListExecutor(ABC):
             And(
                 [
                     Condition(builder.column("span.group"), Op.EQ, group),
+                    Condition(
+                        builder.column("timestamp"), Op.EQ, datetime.fromisoformat(timestamp)
+                    ),
                     Condition(builder.column("id"), Op.EQ, span_id),
                 ]
             )
-            for (group, span_id) in span_ids
+            for (group, timestamp, span_id) in span_ids
         ]
 
         if len(conditions) == 1:
@@ -88,8 +92,10 @@ class SpansSamplesListExecutor(SamplesListExecutor):
         builder = self.get_query_builder(offset, limit)
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
-        span_ids = [(row["example"][0], row["example"][1]) for row in result["data"]]
-        return self.get_spans(span_ids)
+        span_keys = [
+            (row["example"][0], row["example"][1], row["example"][2]) for row in result["data"]
+        ]
+        return self.get_spans_by_key(span_keys)
 
     def get_query_builder(self, offset: int, limit: int) -> SpansIndexedQueryBuilder:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
