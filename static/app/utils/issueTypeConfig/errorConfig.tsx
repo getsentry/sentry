@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -31,60 +31,85 @@ export const errorConfig: IssueCategoryConfigMapping = {
 type ErrorInfo = {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp;
-  projectCheck: boolean;
+  projectPlatform: PlatformKey;
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
   {
     errorTitle: 'ChunkLoadError',
-    projectCheck: false,
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR,
   },
   {
-    errorTitle: 'window is not defined',
-    projectCheck: false,
-    errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
-  },
-  {
-    errorTitle: 'document is not defined',
-    projectCheck: false,
+    errorTitle: /(window is not defined|document is not defined)/i,
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
   {
     errorTitle: 'Invariant: attempted to hard navigate to the same URL',
-    projectCheck: true,
+    projectPlatform: 'react',
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
     errorTitle: "Module not found: Can't resolve",
-    projectCheck: true,
+    projectPlatform: 'javascript-nextjs',
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
   {
     errorTitle: 'Dynamic server usage',
-    projectCheck: true,
+    projectPlatform: 'javascript-nextjs',
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
   {
     errorTitle:
       /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i,
-    projectCheck: true,
+    projectPlatform: 'javascript-nextjs',
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
     errorTitle: 'TypeError: Load failed',
-    projectCheck: false,
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
     errorTitle: 'Failed to fetch',
-    projectCheck: false,
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },
   {
     errorTitle: 'socket hang up',
-    projectCheck: false,
+    projectPlatform: 'node',
     errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
+  },
+  {
+    errorTitle: 'Error: NextRouter was not mounted',
+    projectPlatform: 'javascript-nextjs',
+    errorHelpType: ErrorHelpType.NEXTJS_ROUTER_NOT_MOUNTED,
+  },
+  {
+    errorTitle: 'UnboundLocalError',
+    projectPlatform: 'python',
+    errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
+  },
+  {
+    errorTitle: 'Error: Cannot find module',
+    projectPlatform: 'node',
+    errorHelpType: ErrorHelpType.NODEJS_CANNOT_FIND_MODULE,
+  },
+  {
+    errorTitle: 'ImportError: No module named requests',
+    projectPlatform: 'python',
+    errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
+  },
+  {
+    errorTitle: 'Strings are immutable',
+    projectPlatform: 'python',
+    errorHelpType: ErrorHelpType.STRINGS_ARE_IMMUTABLE,
+  },
+  {
+    errorTitle: 'Invariant Violation',
+    projectPlatform: 'react',
+    errorHelpType: ErrorHelpType.INVARIANT_VIOLATION_ERROR,
   },
 ];
 
@@ -232,6 +257,96 @@ const errorHelpTypeResourceMap: Record<
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.NEXTJS_ROUTER_NOT_MOUNTED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when the useRouter hook is used incorrectly. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>NextRouter was not mounted errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "NextRouter was not mounted" errors in Next.js'),
+          link: 'https://sentry.io/answers/error-nextrouter-was-not-mounted/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.UNBOUND_LOCAL_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when a local variable is used without being defined. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Unbound local errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "unbound local" errors in Next.js'),
+          link: 'https://sentry.io/answers/unbound-local-error/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.NODEJS_CANNOT_FIND_MODULE]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Node.js applications when an imported module cannot be found. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Cannot find module errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "cannot find module" errors in Node.js'),
+          link: 'http://sentry.io/answers/how-do-i-resolve-cannot-find-module-error-using-node-js/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.NO_MODULE_NAMED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Python applications when a module that does not exist is imported. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>No module named errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "no module named" errors in Python'),
+          link: 'https://sentry.io/answers/no-module-named-error/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.STRINGS_ARE_IMMUTABLE]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Python applications when a string is modified in place. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Strings are immutable errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "strings are immutable" errors in Python'),
+          link: 'https://sentry.io/answers/strings-are-immutable/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.INVARIANT_VIOLATION_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in React applications when modules are imported incorrectly. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Invariant violation errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "invariant violation" errors in React'),
+          link: 'https://sentry.io/answers/invariant-violation-error/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
 };
 
 export function getErrorHelpResource({
@@ -242,14 +357,14 @@ export function getErrorHelpResource({
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const errorInfo of ErrorInfoChecks) {
-    const {errorTitle, errorHelpType, projectCheck} = errorInfo;
+    const {errorTitle, errorHelpType, projectPlatform} = errorInfo;
     const shouldShowCustomResource =
       typeof errorTitle === 'string'
         ? title.includes(errorTitle)
         : title.match(errorTitle);
 
     if (shouldShowCustomResource) {
-      if (projectCheck && !(project.platform || '').includes('nextjs')) {
+      if (projectPlatform && !(project.platform || '').includes(projectPlatform)) {
         continue;
       }
       return errorHelpTypeResourceMap[errorHelpType];
