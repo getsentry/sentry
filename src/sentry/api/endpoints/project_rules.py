@@ -115,12 +115,7 @@ class DuplicateRuleEvaluator:
         Special function that checks if the environments are the same.
         """
 
-        # Do the default check to see if both rules have the same environment key, and if they do, use the result.
-        if (base_result := self._default_matcher(existing_rule, key_to_check)) and base_result:
-            return base_result
-
-        # Otherwise, we need to do the special checking for keys
-        matches = True
+        matches = self._default_matcher(existing_rule, key_to_check)
         if self._rule:
             if existing_rule.environment_id and self._rule.environment_id:
                 # If the existing rule and our rule both have environment ids, check if it's the same
