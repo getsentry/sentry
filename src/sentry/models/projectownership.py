@@ -170,7 +170,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str,]]:
+    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the issue owners for a project if there are any.
 
@@ -376,7 +376,7 @@ def process_resource_change(instance, change, **kwargs):
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
     if len(autoassignment_types) > 0:
         GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
-
+    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 

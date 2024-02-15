@@ -244,9 +244,11 @@ def handle_owner_assignment(job):
                         cache.set(
                             assignee_key,
                             assignees_exists,
-                            ASSIGNEE_EXISTS_DURATION
-                            if assignees_exists
-                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                            (
+                                ASSIGNEE_EXISTS_DURATION
+                                if assignees_exists
+                                else ASSIGNEE_DOES_NOT_EXIST_DURATION
+                            ),
                         )
 
                     if assignees_exists:
@@ -290,13 +292,7 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners: Sequence[
-                                tuple[
-                                    Rule,
-                                    Sequence[Team | RpcUser],
-                                    str,
-                                ]
-                            ] = []
+                            issue_owners: Sequence[tuple[Rule, Sequence[Team | RpcUser], str]] = []
                         else:
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
