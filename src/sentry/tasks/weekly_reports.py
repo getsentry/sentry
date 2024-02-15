@@ -225,17 +225,21 @@ def prepare_organization_report(
 # Organization Passes
 
 
-# Find the projects associated with an user.
-# Populates context.project_ownership which is { user_id: set<project_id> }
 def user_project_ownership(ctx):
+    """Find the projects associated with each user.
+    Populates context.project_ownership which is { user_id: set<project_id> }
+    """
     for project_id, user_id in OrganizationMember.objects.filter(
         organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
     ).values_list("teams__projectteam__project_id", "user_id"):
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-# Populates context.projects which is { project_id: ProjectContext }
 def project_event_counts_for_organization(ctx):
+    """
+    Populates context.projects which is { project_id: ProjectContext }
+    """
+
     def zerofill_data(data):
         return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
 
@@ -547,11 +551,10 @@ def fetch_key_performance_issue_groups(ctx):
         ]
 
 
-# Deliver reports
-# For all users in the organization, we generate the template context for the user, and send the email.
-
-
 def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
+    """
+    For all users in the organization, we generate the template context for the user, and send the email.
+    """
     # Specify a sentry user to send this email.
     if email_override:
         target_user_id = (
