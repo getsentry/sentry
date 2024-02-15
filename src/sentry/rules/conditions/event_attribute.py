@@ -164,7 +164,7 @@ class EventAttributeCondition(EventCondition):
                 stacks = [stacktrace]
             else:
                 stacks = [
-                    e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
+                    e.stacktrace for e in event.interfaces["exception"].values if e and e.stacktrace
                 ]
             result = []
             for st in stacks:
