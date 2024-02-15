@@ -1178,7 +1178,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.tags.user",
+                "field": "event.user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1194,7 +1194,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.tags.user",
+                "field": "event.user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1232,7 +1232,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.tags.user",
+                "field": "event.user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1250,7 +1250,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.tags.user",
+                "field": "event.user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {

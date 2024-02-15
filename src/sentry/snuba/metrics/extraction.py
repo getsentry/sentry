@@ -1161,7 +1161,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("tags[user]")
+            return _map_field_name("user")
 
         if not self._arguments:
             return None
