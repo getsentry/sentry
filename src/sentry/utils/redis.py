@@ -9,11 +9,11 @@ from typing import Any, Generic, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from redis.client import StrictRedis
-from redis.cluster import RedisCluster
-from redis.commands.core import Script
+from redis.client import Script
 from redis.connection import ConnectionPool
-from redis.exceptions import BusyLoadingError, ClusterError, ConnectionError
+from redis.exceptions import BusyLoadingError, ConnectionError
+from rediscluster import RedisCluster
+from rediscluster.exceptions import ClusterError
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
@@ -157,7 +157,7 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster | StrictRedis)
+TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster)
 
 
 class ClusterManager(Generic[TCluster]):
@@ -167,7 +167,7 @@ class ClusterManager(Generic[TCluster]):
 
     @overload
     def __init__(
-        self: ClusterManager[RedisCluster | StrictRedis], options_manager, cluster_type: type[Any]
+        self: ClusterManager[RedisCluster], options_manager, cluster_type: type[Any]
     ) -> None:
         ...
 
@@ -205,7 +205,7 @@ class ClusterManager(Generic[TCluster]):
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters: ClusterManager[rb.Cluster] = ClusterManager(options.default_manager)
-redis_clusters: ClusterManager[RedisCluster | StrictRedis] = ClusterManager(
+redis_clusters: ClusterManager[RedisCluster] = ClusterManager(
     options.default_manager, _RedisCluster
 )
 
@@ -320,13 +320,3 @@ def load_script(path):
         return script[0](keys, args, client)
 
     return call_script
-
-
-# Since the implementation to disconnect connection pools differ between
-# RedisCluster and StrictRedis after v4, we need this function.
-def disconnect_redis_connection_pools(client: StrictRedis | RedisCluster) -> None:
-    if isinstance(client, RedisCluster):
-        client.disconnect_connection_pools()
-    else:
-        assert isinstance(client, StrictRedis)
-        client.connection_pool.disconnect()
