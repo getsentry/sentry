@@ -29,6 +29,7 @@ type Props = {
   baseEventId?: string;
   className?: string;
   organization?: Organization;
+  shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
@@ -64,6 +65,7 @@ class IssueDiff extends Component<Props, State> {
       targetEventId,
       organization,
       project,
+      shouldBeGrouped,
     } = this.props;
     const hasSimilarityEmbeddingsFeature = project.features.includes(
       'similarity-embeddings'
@@ -111,6 +113,7 @@ class IssueDiff extends Component<Props, State> {
             parent_transaction: this.getTransaction(
               targetEventData?.tags ? targetEventData.tags : []
             ),
+            shouldBeGrouped: shouldBeGrouped,
           });
         }
       } catch {

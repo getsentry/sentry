@@ -70,6 +70,7 @@ type OpenDiffModalOptions = {
   project: Project;
   targetIssueId: string;
   baseEventId?: Event['id'];
+  shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
