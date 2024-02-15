@@ -22,10 +22,9 @@ export function UserFeedbackEmpty({projectIds}: Props) {
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
 
-  const selectedProjects =
-    projectIds && projectIds.length
-      ? projects.filter(({id}) => projectIds.includes(id))
-      : projects;
+  const selectedProjects = projectIds?.length
+    ? projects.filter(({id}) => projectIds.includes(id))
+    : projects;
 
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
 

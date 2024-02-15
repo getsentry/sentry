@@ -1,7 +1,6 @@
-import {css, keyframes} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -9,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -18,9 +16,6 @@ type Props = {
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
-  const organization = useOrganization({allowNull: true});
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
-
   const handleRecordInteraction =
     (slug: SentryAppComponent<SentryAppSchemaStacktraceLink>['sentryApp']['slug']) =>
     () => {
@@ -34,21 +29,13 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
   };
 
   return (
-    <OpenInContainer
-      columnQuantity={components.length + 1}
-      hasInFrameFeature={hasInFrameFeature}
-    >
+    <OpenInContainer>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
         const onClickRecordInteraction = handleRecordInteraction(slug);
         return (
-          <Tooltip
-            key={component.uuid}
-            title={component.sentryApp.name}
-            disabled={!hasInFrameFeature}
-            skipWrapper
-          >
+          <Tooltip key={component.uuid} title={component.sentryApp.name} skipWrapper>
             <OpenInLink
               aria-label={component.sentryApp.name}
               href={url}
@@ -56,11 +43,7 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
               onContextMenu={onClickRecordInteraction}
               openInNewTab
             >
-              <SentryAppComponentIcon
-                sentryAppComponent={component}
-                size={hasInFrameFeature ? 16 : 20}
-              />
-              {!hasInFrameFeature && <span>{component.sentryApp.name}</span>}
+              <SentryAppComponentIcon sentryAppComponent={component} size={16} />
             </OpenInLink>
           </Tooltip>
         );
@@ -76,10 +59,7 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-const OpenInContainer = styled('div')<{
-  columnQuantity: number;
-  hasInFrameFeature: boolean;
-}>`
+const OpenInContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
@@ -88,19 +68,7 @@ const OpenInContainer = styled('div')<{
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;
-  ${p =>
-    p.hasInFrameFeature
-      ? css`
-          animation: ${fadeIn} 0.2s ease-in-out forwards;
-          padding: 0;
-        `
-      : css`
-          color: ${p.theme.subText};
-          background-color: ${p.theme.background};
-          border-bottom: 1px solid ${p.theme.border};
-          padding: ${space(0.25)} ${space(3)};
-          box-shadow: ${p.theme.dropShadowLight};
-        `}
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
 `;
 
 const OpenInLink = styled(ExternalLink)`

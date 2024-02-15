@@ -316,30 +316,30 @@ class Monitor(Model):
         except jsonschema.ValidationError:
             logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
 
-    def get_alert_rule(self):
-        alert_rule_id = self.config.get("alert_rule_id")
-        if alert_rule_id:
-            alert_rule = Rule.objects.filter(
+    def get_issue_alert_rule(self):
+        issue_alert_rule_id = self.config.get("alert_rule_id")
+        if issue_alert_rule_id:
+            issue_alert_rule = Rule.objects.filter(
                 project_id=self.project_id,
-                id=alert_rule_id,
+                id=issue_alert_rule_id,
                 source=RuleSource.CRON_MONITOR,
                 status=ObjectStatus.ACTIVE,
             ).first()
-            if alert_rule:
-                return alert_rule
+            if issue_alert_rule:
+                return issue_alert_rule
 
-            # If alert_rule_id is stale, clear it from the config
+            # If issue_alert_rule_id is stale, clear it from the config
             clean_config = self.config.copy()
             clean_config.pop("alert_rule_id", None)
             self.update(config=clean_config)
 
         return None
 
-    def get_alert_rule_data(self):
-        alert_rule = self.get_alert_rule()
-        if alert_rule:
-            data = alert_rule.data
-            alert_rule_data: dict[str, Any | None] = dict()
+    def get_issue_alert_rule_data(self):
+        issue_alert_rule = self.get_issue_alert_rule()
+        if issue_alert_rule:
+            data = issue_alert_rule.data
+            issue_alert_rule_data: dict[str, Any | None] = dict()
 
             # Build up alert target data
             targets = []
@@ -352,18 +352,18 @@ class Monitor(Model):
                             "targetType": action.get("targetType"),
                         }
                     )
-            alert_rule_data["targets"] = targets
+            issue_alert_rule_data["targets"] = targets
 
-            environment, alert_rule_environment_id = None, alert_rule.environment_id
-            if alert_rule_environment_id:
+            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
+            if issue_alert_rule_environment_id:
                 try:
-                    environment = Environment.objects.get(id=alert_rule_environment_id).name
+                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
                 except Environment.DoesNotExist:
                     pass
 
-            alert_rule_data["environment"] = environment
+            issue_alert_rule_data["environment"] = environment
 
-            return alert_rule_data
+            return issue_alert_rule_data
 
         return None
 

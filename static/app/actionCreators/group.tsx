@@ -38,7 +38,7 @@ export function assignToUser(params: AssignToUserParams) {
   const id = uniqueId();
 
   GroupStore.onAssignTo(id, params.id, {
-    email: (params.member && params.member.email) || '',
+    email: params.member?.email ?? '',
   });
 
   const request = api.requestPromise(endpoint, {

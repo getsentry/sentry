@@ -111,7 +111,7 @@ openapi-spec-validator==0.7.1
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
-parsimonious==0.9.0
+parsimonious==0.10.0
 pathable==0.4.3
 pathspec==0.9.0
 pep517==0.12.0
@@ -177,7 +177,7 @@ sentry-cli==2.16.0
 sentry-devenv==1.2.2
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
-sentry-kafka-schemas==0.1.38
+sentry-kafka-schemas==0.1.50
 sentry-ophio==0.1.5
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.45
