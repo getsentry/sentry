@@ -24,10 +24,11 @@ import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
-import {convertToMetricWidget} from '../../../../utils/metrics/dashboard';
-import {MRIToField} from '../../../../utils/metrics/mri';
-import {DASHBOARD_CHART_GROUP} from '../../dashboard';
-import type {DashboardFilters, Widget} from '../../types';
+import {convertToMetricWidget} from '../../../utils/metrics/dashboard';
+import {MRIToField} from '../../../utils/metrics/mri';
+import {DASHBOARD_CHART_GROUP} from '../dashboard';
+import type {DashboardFilters, Widget} from '../types';
+import {openWidgetPreviewModal} from '../utils';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -84,12 +85,7 @@ export function MetricWidgetCard({
                 isPreview={false}
                 widgetLimitReached={false}
                 onEdit={() => {
-                  router.push({
-                    pathname: `${location.pathname}${
-                      location.pathname.endsWith('/') ? '' : '/'
-                    }widget/${widget.id}/`,
-                    query: location.query,
-                  });
+                  openWidgetPreviewModal(router, location, widget);
                 }}
                 router={router}
                 location={location}

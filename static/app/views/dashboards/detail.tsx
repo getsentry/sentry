@@ -513,7 +513,7 @@ class DashboardDetail extends Component<Props, State> {
       this.handleUpdateWidgetList(nextList);
     }
 
-    // TODO: open preview modal
+    // TODO: open widget details modal to allow users to edit the newly created widget
   };
 
   onAddWidget = (dataset: DataSet) => {
