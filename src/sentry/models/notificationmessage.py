@@ -1,4 +1,5 @@
-from django.db.models import CheckConstraint, DateTimeField, IntegerField, Q
+from django.db.models import DateTimeField, IntegerField, Q
+from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -70,7 +71,17 @@ class NotificationMessage(Model):
                     )
                 ),
                 name="notification_for_issue_xor_metric_alert",
-            )
+            ),
+            UniqueConstraint(
+                fields=("incident", "trigger_action"),
+                condition=Q(error_code__isnull=True, parent_notification__isnull=True),
+                name="singular_parent_message_per_incident_and_trigger_action",
+            ),
+            UniqueConstraint(
+                fields=("rule_fire_history", "rule_action_uuid"),
+                condition=Q(error_code__isnull=True, parent_notification__isnull=True),
+                name="singular_parent_message_per_rule_fire_history_and_rule_action",
+            ),
         ]
 
     __repr__ = sane_repr("release_id", "commit_id", "order")
