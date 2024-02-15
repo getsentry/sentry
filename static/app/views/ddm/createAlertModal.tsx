@@ -25,12 +25,7 @@ import {
   getFieldFromMetricsQuery as getAlertAggregate,
 } from 'sentry/utils/metrics';
 import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
-import {
-  formatMRIField,
-  getUseCaseFromMRI,
-  MRIToField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +39,7 @@ import {
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 
 interface FormState {
@@ -138,10 +133,12 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, alertPeriod]
   );
 
+  const alerChartQuery = pick(metricsQuery, 'mri', 'op', 'query');
+
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 
   const {data, isLoading, refetch, isError} = useMetricsQuery(
-    [pick(metricsQuery, 'op', 'mri', 'query')],
+    [alerChartQuery],
     {
       projects: formState.project ? [parseInt(formState.project, 10)] : [],
       environments: formState.environment ? [formState.environment] : [],
@@ -155,14 +152,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const chartSeries = useMemo(
     () =>
       data &&
-      getChartTimeseries(data, {
-        mri: metricsQuery.mri,
-        focusedSeries: undefined,
-        field: MRIToField(metricsQuery.mri, metricsQuery.op!),
+      getChartTimeseries(data, [alerChartQuery], {
         // We are limited to one series in this chart, so we can just use the first color
         getChartPalette: createChartPalette,
       }),
-    [data, metricsQuery.mri, metricsQuery.op]
+    [alerChartQuery, data]
   );
 
   const projectOptions = useMemo(() => {
