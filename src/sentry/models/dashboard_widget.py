@@ -18,7 +18,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields import JSONField
 
-_ON_DEMAND_ENABLED_KEY = "enabled"
+ON_DEMAND_ENABLED_KEY = "enabled"
 
 
 class TypesClass:
@@ -177,7 +177,7 @@ class DashboardWidgetQueryOnDemand(Model):
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """
-        return self.extraction_state.startswith(_ON_DEMAND_ENABLED_KEY)
+        return self.extraction_state.startswith(ON_DEMAND_ENABLED_KEY)
 
     class Meta:
         app_label = "sentry"
