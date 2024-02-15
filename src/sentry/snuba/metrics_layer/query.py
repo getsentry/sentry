@@ -164,15 +164,20 @@ def run_query(request: Request) -> Mapping[str, Any]:
 
 
 def _calculate_aligned_interval(requests: Iterable[Request]) -> int | None:
+    # High level description of the algorithm:
     # 1. We determine all granularities for each namespaces in the query and formulas
     # 2. We compute the best granularity by getting the max and we set the interval to that
-    # sessions supports 5 min
-    # transactions 1 min
-    # custom 10 seconds
-    # We request 30s interval
-    # max is 5 min, so we can use an interval of 5 min and then align the granularities of the others,
-    # since it might be that we now set 5 min of interval, but we can satisfy that with only 1 minute granularity
-    # for transactions.
+    #
+    # For example:
+    # min sessions granularity -> 5 min
+    # min transactions granularity -> 1 min
+    # min custom granularity -> 10 seconds
+    #
+    # We now request a 30s interval
+    #
+    # Given all the granularities, the smallest interval that would match all of them is the maximum
+    # of the granularities, thus 5 minutes. We then choose an interval of 5 minutes and compute all the
+    # granularities on that (this will be done as always in its own separate step).
     computed_granularities = set()
 
     for request in requests:
