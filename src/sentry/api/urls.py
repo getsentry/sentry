@@ -90,10 +90,7 @@ from sentry.incidents.endpoints.organization_incident_subscription_index import 
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
-from sentry.incidents.endpoints.project_alert_rule_index import (
-    ProjectAlertRuleIndexEndpoint,
-    ProjectCombinedRuleIndexEndpoint,
-)
+from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
@@ -386,6 +383,7 @@ from .endpoints.organization_metrics import (
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsQueryEndpoint,
+    OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
@@ -1987,6 +1985,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-query",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/samples/$",
+        OrganizationMetricsSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-samples",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
@@ -2090,11 +2093,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rule-task/(?P<task_uuid>[^\/]+)/$",
         ProjectAlertRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-alert-rule-task-details",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/combined-rules/$",
-        ProjectCombinedRuleIndexEndpoint.as_view(),
-        name="sentry-api-0-project-combined-rules",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$",

@@ -1,7 +1,8 @@
+from typing import TypedDict
+
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import eventstore
 from sentry.api.api_owners import ApiOwner

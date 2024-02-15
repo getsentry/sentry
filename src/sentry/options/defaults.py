@@ -573,6 +573,14 @@ register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MO
 # (``False``) and spawning a save_event task (``True``).
 register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
+# The fraction of prooguard events that will be routed to the
+# separate `store.process_event_proguard` queue
+register(
+    "store.separate-proguard-queue-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register(
@@ -1581,9 +1589,15 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# === Hybrid cloud subsystem options ===
+# UI rollout
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Retry controls
+register("hybrid_cloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1723,6 +1737,11 @@ register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2061,6 +2080,12 @@ register(
 # Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
 register(
     "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate to move from outbox based webhook delivery to webhookpayload.
+register(
+    "hybridcloud.webhookpayload.rollout",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

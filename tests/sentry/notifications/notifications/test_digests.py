@@ -84,7 +84,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     def setUp(self):
         super().setUp()
         self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
-        self.key = f"mail:p:{self.project.id}"
+        self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
             self.create_member(
@@ -171,7 +171,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = iso_format(timestamp_raw)
-        key = f"slack:p:{self.project.id}"
+        key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event = self.store_event(
             data={
@@ -236,7 +236,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = iso_format(timestamp_raw)
-        key = f"slack:p:{self.project.id}"
+        key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event1 = self.store_event(
             data={

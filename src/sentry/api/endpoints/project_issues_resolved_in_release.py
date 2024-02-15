@@ -15,7 +15,7 @@ from sentry.models.group import Group
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectPermission,)
 

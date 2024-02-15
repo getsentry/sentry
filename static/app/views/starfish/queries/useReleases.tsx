@@ -36,10 +36,7 @@ export function useReleases(searchTerm?: string) {
     {staleTime: Infinity, enabled: isReady}
   );
 
-  const chunks =
-    releaseResults.data && releaseResults.data.length
-      ? chunk(releaseResults.data, 10)
-      : [];
+  const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
 
   const releaseMetrics = useQueries({
     queries: chunks.map(releases => {
@@ -91,7 +88,7 @@ export function useReleases(searchTerm?: string) {
     version: string;
     count?: number;
   }[] =
-    releaseResults.data && releaseResults.data.length && metricsFetched
+    releaseResults.data?.length && metricsFetched
       ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;
           const dateCreated = release.dateCreated;

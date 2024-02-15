@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Self
+from typing import Any, Self
 
 from django.db import models
 from django.http import HttpRequest
@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_only_model, sane_repr
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 MAX_ATTEMPTS = 10
@@ -59,6 +59,18 @@ class WebhookPayload(Model):
     )
 
     @classmethod
+    def get_attributes_from_request(
+        cls,
+        request: HttpRequest,
+    ) -> dict[str, Any]:
+        return dict(
+            request_method=request.method,
+            request_path=request.get_full_path(),
+            request_headers=json.dumps({k: v for k, v in request.headers.items()}),
+            request_body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
     def create_from_request(
         cls,
         *,
@@ -68,14 +80,12 @@ class WebhookPayload(Model):
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
+        metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
             region_name=region,
             integration_id=integration_id,
-            request_method=request.method,
-            request_path=request.get_full_path(),
-            request_headers=json.dumps({k: v for k, v in request.headers.items()}),
-            request_body=request.body.decode(encoding="utf-8"),
+            **cls.get_attributes_from_request(request),
         )
 
     def schedule_next_attempt(self):

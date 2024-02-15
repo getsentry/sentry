@@ -28,13 +28,13 @@ MAX_FRAME_COUNT = 50
 
 def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> str:
     """Get the stacktrace string from an exception dictionary."""
-    if not exception["values"]:
+    if not exception.get("values"):
         return ""
 
     frame_count = 0
     output = []
     for exc in exception["values"]:
-        if not exc:
+        if not exc or not exc.get("stacktrace"):
             continue
 
         if exc["stacktrace"] and exc["stacktrace"].get("frames"):
@@ -120,7 +120,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         latest_event = group.get_latest_event()
-        stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
+        stacktrace_string = ""
+        if latest_event.data.get("exception"):
+            stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
+
+        if stacktrace_string == "":
+            return Response([])  # No stacktrace or in-app frames
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
@@ -133,6 +138,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params.update({"k": int(request.GET["k"])})
         if request.GET.get("threshold"):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
+
+        extra: dict[str, Any] = dict(similar_issues_params.copy())
+        extra["group_message"] = extra.pop("message")
+        logger.info("Similar issues embeddings parameters", extra=extra)
 
         results = get_similar_issues_embeddings(similar_issues_params)
 

@@ -21,7 +21,7 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
 )
-from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
+from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -29,7 +29,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.constants import VITAL_THRESHOLDS
+from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -224,11 +224,12 @@ _SEARCH_TO_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "p95": "p95",
     "p99": "p99",
     # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
-    "p100": "max"
+    "p100": "max",
     # generic percentile is not supported by metrics layer.
 }
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
+# XXX: We need to support count_miserable
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
@@ -236,7 +237,8 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    "user_misery": "on_demand_user_misery",
+    # XXX: Remove support until we can fix the count_unique(users)
+    # "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -1154,10 +1156,6 @@ class OnDemandMetricSpec:
         self._metric_type = metric_type
         self._arguments = arguments or []
 
-        sentry_sdk.start_span(
-            op="OnDemandMetricSpec.spec_type", description=self.spec_type
-        ).finish()
-
     @property
     def field_to_extract(self):
         if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
@@ -1513,7 +1511,7 @@ def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
 
     if len(result) == 0:
         # We use the default threshold shown in the UI.
-        threshold = APDEX_THRESHOLD_DEFAULT
+        threshold = DEFAULT_PROJECT_THRESHOLD
         metric = TransactionMetric.DURATION.value
     else:
         # We technically don't use this threshold since we extract it from the apdex(x) field

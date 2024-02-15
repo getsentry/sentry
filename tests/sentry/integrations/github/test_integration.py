@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from dataclasses import asdict
+from datetime import datetime, timezone
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -9,7 +10,6 @@ from urllib.parse import urlencode, urlparse
 import pytest
 import responses
 from django.urls import reverse
-from isodate import parse_datetime
 
 import sentry
 from sentry.api.utils import generate_organization_url
@@ -20,6 +20,7 @@ from sentry.integrations.github import (
     GitHubIntegrationProvider,
     client,
 )
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -672,7 +673,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             if status != 200
             else {
                 "resources": {
-                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123}
+                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123},
+                    "graphql": {
+                        "limit": limit,
+                        "remaining": remaining,
+                        "used": "foo",
+                        "reset": 123,
+                    },
                 }
             }
         )
@@ -887,7 +894,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_commit_context(self):
+    def test_get_commit_context_all_frames(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -901,93 +908,66 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 integration_id=integration.id,
             )
 
+        self.set_rate_limit()
         installation = integration.get_installation(self.organization.id)
 
-        filepath = "sentry/tasks.py"
-        event_frame = {
-            "function": "handle_set_commits",
-            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-            "module": "sentry.tasks",
-            "in_app": True,
-            "lineno": 30,
-            "filename": "sentry/tasks.py",
-        }
-        ref = "master"
-        query = f"""query {{
-            repository(name: "foo", owner: "Test-Organization") {{
-                ref(qualifiedName: "{ref}") {{
-                    target {{
-                        ... on Commit {{
-                            blame(path: "{filepath}") {{
-                                ranges {{
-                                        commit {{
-                                            oid
-                                            author {{
-                                                name
-                                                email
-                                            }}
-                                            message
-                                            committedDate
-                                        }}
-                                    startingLine
-                                    endingLine
-                                    age
-                                }}
-                            }}
-                        }}
-                    }}
-                }}
-            }}
-        }}"""
-        commit_date = (datetime.now(tz=timezone.utc) - timedelta(days=4)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
+        file = SourceLineInfo(
+            path="src/github.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore
         )
+
         responses.add(
-            method=responses.POST,
+            responses.POST,
             url="https://api.github.com/graphql",
             json={
-                "query": query,
                 "data": {
-                    "repository": {
-                        "ref": {
+                    "repository0": {
+                        "ref0": {
                             "target": {
-                                "blame": {
+                                "blame0": {
                                     "ranges": [
                                         {
                                             "commit": {
-                                                "oid": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                                                "oid": "123",
                                                 "author": {
-                                                    "date": commit_date,
-                                                    "email": "nisanthan.nanthakumar@sentry.io",
-                                                    "name": "Nisanthan Nanthakumar",
+                                                    "name": "Foo",
+                                                    "email": "foo@example.com",
                                                 },
-                                                "message": "Add installation instructions",
-                                                "committedDate": commit_date,
+                                                "message": "hello",
+                                                "committedDate": "2023-01-01T00:00:00Z",
                                             },
-                                            "startingLine": 30,
-                                            "endingLine": 30,
-                                            "age": 3,
-                                        }
+                                            "startingLine": 10,
+                                            "endingLine": 15,
+                                            "age": 0,
+                                        },
                                     ]
-                                }
+                                },
                             }
                         }
                     }
-                },
+                }
             },
             content_type="application/json",
+            status=200,
         )
-        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
 
-        commit_context_expected = {
-            "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
-            "committedDate": parse_datetime(commit_date),
-            "commitMessage": "Add installation instructions",
-            "commitAuthorName": "Nisanthan Nanthakumar",
-            "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
-        }
+        response = installation.get_commit_context_all_frames([file], extra={})
 
-        assert commit_context == commit_context_expected
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="123",
+                    commitMessage="hello",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="foo@example.com",
+                    commitAuthorName="Foo",
+                ),
+            )
+        ]
 
     @responses.activate
     def test_source_url_matches(self):
