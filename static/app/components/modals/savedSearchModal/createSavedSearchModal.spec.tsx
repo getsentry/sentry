@@ -83,7 +83,7 @@ describe('CreateSavedSearchModal', function () {
     await userEvent.click(screen.getByRole('textbox', {name: /filter issues/i}));
     await userEvent.paste('is:resolved');
 
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
