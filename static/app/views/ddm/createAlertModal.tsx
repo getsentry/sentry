@@ -133,12 +133,12 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, alertPeriod]
   );
 
-  const alerChartQuery = pick(metricsQuery, 'mri', 'op', 'query');
+  const alertChartQuery = pick(metricsQuery, 'mri', 'op', 'query');
 
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 
   const {data, isLoading, refetch, isError} = useMetricsQuery(
-    [alerChartQuery],
+    [alertChartQuery],
     {
       projects: formState.project ? [parseInt(formState.project, 10)] : [],
       environments: formState.environment ? [formState.environment] : [],
@@ -152,11 +152,11 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const chartSeries = useMemo(
     () =>
       data &&
-      getChartTimeseries(data, [alerChartQuery], {
+      getChartTimeseries(data, [alertChartQuery], {
         // We are limited to one series in this chart, so we can just use the first color
         getChartPalette: createChartPalette,
       }),
-    [alerChartQuery, data]
+    [alertChartQuery, data]
   );
 
   const projectOptions = useMemo(() => {
