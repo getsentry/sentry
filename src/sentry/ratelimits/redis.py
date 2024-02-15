@@ -11,7 +11,6 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
 from sentry.utils import redis
 from sentry.utils.hashlib import md5_text
-from sentry.utils.redis import disconnect_redis_connection_pools
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -66,7 +65,7 @@ class RedisRateLimiter(RateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            disconnect_redis_connection_pools(self.client)
+            self.client.connection_pool.disconnect()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
