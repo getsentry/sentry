@@ -264,20 +264,20 @@ export function FlamegraphChart({
   let message: string | undefined;
 
   if (chart) {
-    if (chart.configSpace.width < 200 * 1e6 && chart.status === 'insufficient data') {
-      message = t('Profile duration is too short to collect enough metrics');
-    }
-
-    if (chart.configSpace.width >= 200 && chart.status === 'insufficient data') {
+    if (
+      chart.configSpace.width < 200 * 1e6 &&
+      (chart.status === 'insufficient data' || chart.status === 'empty metrics')
+    ) {
+      message = t('Profile duration was too short to collect enough metrics');
+    } else if (chart.configSpace.width >= 200 && chart.status === 'insufficient data') {
       message =
         noMeasurementMessage ||
-        t('Profile failed to collect sufficient amount of measurements');
-    }
-
-    if (chart.status === 'no metrics') {
+        t(
+          'Profile failed to collect a sufficient amount of measurements to render a chart'
+        );
+    } else if (chart.status === 'no metrics') {
       message = noMeasurementMessage || t('Profile has no measurements');
-    }
-    if (chart.status === 'empty metrics') {
+    } else if (chart.status === 'empty metrics') {
       message = t('Profile has empty measurements');
     }
   }
