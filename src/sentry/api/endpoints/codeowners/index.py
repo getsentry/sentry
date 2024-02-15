@@ -3,7 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -26,28 +26,31 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def add_owner_id_to_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
-        if not hasattr(codeowner, "schema") or (
-            codeowner.schema
-            and codeowner.schema.get("rules")
-            and "id" not in codeowner.schema["rules"][0]["owners"][0].keys()
+    def refresh_codeowners_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
+        if hasattr(codeowner, "schema") and (
+            codeowner.schema is None or codeowner.schema.get("rules") is None
         ):
-            # Convert raw to issue owners syntax so that the schema can be created
-            raw = codeowner.raw
-            associations, _ = validate_codeowners_associations(codeowner.raw, project)
-            codeowner.raw = convert_codeowners_syntax(
-                codeowner.raw,
-                associations,
-                codeowner.repository_project_path_config,
-            )
-            codeowner.schema = create_schema_from_issue_owners(
-                codeowner.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
-            )
+            return
 
-            # Convert raw back to codeowner type to be saved
-            codeowner.raw = raw
+        # Convert raw to issue owners syntax so that the schema can be created
+        raw = codeowner.raw
+        associations, _ = validate_codeowners_associations(codeowner.raw, project)
+        codeowner.raw = convert_codeowners_syntax(
+            codeowner.raw,
+            associations,
+            codeowner.repository_project_path_config,
+        )
+        codeowner.schema = create_schema_from_issue_owners(
+            project_id=project.id,
+            issue_owners=codeowner.raw,
+            add_owner_ids=True,
+            remove_deleted_owners=True,
+        )
 
-            codeowner.save()
+        # Convert raw back to codeowner type to be saved
+        codeowner.raw = raw
+
+        codeowner.save()
 
     def get(self, request: Request, project: Project) -> Response:
         """
@@ -65,17 +68,11 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         expand = request.GET.getlist("expand", [])
         expand.append("errors")
 
-        has_targeting_context = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
-
         codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
-
-        if has_targeting_context and codeowners:
-            for codeowner in codeowners:
-                self.add_owner_id_to_schema(codeowner, project)
-            expand.append("renameIdentifier")
-            expand.append("hasTargetingContext")
+        for codeowner in codeowners:
+            self.refresh_codeowners_schema(codeowner, project)
+        expand.append("renameIdentifier")
+        expand.append("hasTargetingContext")
 
         return Response(
             serialize(
@@ -115,12 +112,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
                 codeowners_id=project_codeowners.id,
             )
 
-            expand = ["ownershipSyntax", "errors"]
-            has_targeting_context = features.has(
-                "organizations:streamline-targeting-context", project.organization
-            )
-            if has_targeting_context:
-                expand.append("hasTargetingContext")
+            expand = ["ownershipSyntax", "errors", "hasTargetingContext"]
 
             return Response(
                 serialize(
