@@ -74,12 +74,22 @@ class NotificationMessage(Model):
             ),
             UniqueConstraint(
                 fields=("incident", "trigger_action"),
-                condition=Q(error_code__isnull=True, parent_notification_message__isnull=True),
+                condition=Q(
+                    error_code__isnull=True,
+                    parent_notification_message__isnull=True,
+                    incident__isnull=False,
+                    trigger_action__isnull=False,
+                ),
                 name="singular_parent_message_per_incident_and_trigger_action",
             ),
             UniqueConstraint(
                 fields=("rule_fire_history", "rule_action_uuid"),
-                condition=Q(error_code__isnull=True, parent_notification_message__isnull=True),
+                condition=Q(
+                    error_code__isnull=True,
+                    parent_notification_message__isnull=True,
+                    rule_fire_history__isnull=False,
+                    rule_action_uuid__isnull=False,
+                ),
                 name="singular_parent_message_per_rule_fire_history_and_rule_action",
             ),
         ]
