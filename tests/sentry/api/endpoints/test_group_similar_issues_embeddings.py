@@ -376,20 +376,29 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_no_stacktrace(self, mock_seer_request):
-        seer_return_value: SimilarIssuesEmbeddingsResponse = {
-            "responses": [
-                {
-                    "message_similarity": 0.95,
-                    "parent_group_id": self.similar_group.id,
-                    "should_group": False,
-                    "stacktrace_similarity": 0.00,
-                }
-            ]
+    def test_no_in_app_frames(self):
+        error_trace_no_in_app_frames = {
+            "fingerprint": ["my-route", "{{ default }}"],
+            "exception": {
+                "values": self.create_exception_values(
+                    num_values=1, num_frames_per_value=10, in_app=False
+                )
+            },
         }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+        event_no_in_app_frames = self.store_event(
+            data=error_trace_no_in_app_frames, project_id=self.project
+        )
+        group_no_in_app_frames = event_no_in_app_frames.group
+        assert group_no_in_app_frames
+        response = self.client.get(
+            f"/api/0/issues/{group_no_in_app_frames.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
 
+        assert response.data == []
+
+    @with_feature("projects:similarity-embeddings")
+    def test_no_stacktrace(self):
         error_trace_no_stacktrace = {
             "fingerprint": ["my-route", "{{ default }}"],
             "exception": {"values": []},
@@ -404,41 +413,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": "1", "threshold": "0.98"},
         )
 
-        assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.00], ["No"]
-        )
-
-        mock_seer_request.assert_called_with(
-            "POST",
-            "/v0/issues/similar-issues",
-            body=json.dumps(
-                {
-                    "group_id": group_no_stacktrace.id,
-                    "project_id": self.project.id,
-                    "stacktrace": "",
-                    "message": group_no_stacktrace.message,
-                    "k": 1,
-                    "threshold": 0.98,
-                },
-            ),
-            headers={"Content-Type": "application/json;charset=utf-8"},
-        )
+        assert response.data == []
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_no_exception(self, mock_seer_request):
-        seer_return_value: SimilarIssuesEmbeddingsResponse = {
-            "responses": [
-                {
-                    "message_similarity": 0.95,
-                    "parent_group_id": self.similar_group.id,
-                    "should_group": False,
-                    "stacktrace_similarity": 0.00,
-                }
-            ]
-        }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
-
+    def test_no_exception(self):
         event_no_exception = self.store_event(data={}, project_id=self.project)
         group_no_exception = event_no_exception.group
         assert group_no_exception
@@ -447,25 +425,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": "1", "threshold": "0.98"},
         )
 
-        assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.00], ["No"]
-        )
-
-        mock_seer_request.assert_called_with(
-            "POST",
-            "/v0/issues/similar-issues",
-            body=json.dumps(
-                {
-                    "group_id": group_no_exception.id,
-                    "project_id": self.project.id,
-                    "stacktrace": "",
-                    "message": group_no_exception.message,
-                    "k": 1,
-                    "threshold": 0.98,
-                },
-            ),
-            headers={"Content-Type": "application/json;charset=utf-8"},
-        )
+        assert response.data == []
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
