@@ -6,13 +6,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.models import AlertRule
-from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-    DashboardWidgetTypes,
-)
+from sentry.models.dashboard_widget import DashboardWidgetQuery
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
@@ -31,6 +25,7 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.tasks.on_demand_metrics import process_widget_specs
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -66,34 +61,6 @@ def create_alert(
     )
 
     return alert_rule
-
-
-def create_widget(
-    aggregates: Sequence[str],
-    query: str,
-    project: Project,
-    title: str | None = "Dashboard",
-    columns: Sequence[str] | None = None,
-) -> DashboardWidgetQuery:
-    columns = columns or []
-    dashboard = Dashboard.objects.create(
-        organization=project.organization,
-        created_by_id=1,
-        title=title,
-    )
-
-    widget = DashboardWidget.objects.create(
-        dashboard=dashboard,
-        order=0,
-        widget_type=DashboardWidgetTypes.DISCOVER,
-        display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-    )
-
-    widget_query = DashboardWidgetQuery.objects.create(
-        aggregates=aggregates, conditions=query, columns=columns, order=0, widget=widget
-    )
-
-    return widget_query
 
 
 def create_project_threshold(
@@ -634,7 +601,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 1")
         create_widget(["count()"], "transaction.duration:>=1100", default_project, "Dashboard 2")
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["count()"], "transaction.duration:>=1200", default_project, "Dashboard 3"
         )
         create_widget(["count()"], "transaction.duration:>=1300", default_project, "Dashboard 4")
@@ -1480,7 +1447,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
             "organizations:on-demand-metrics-query-spec-version-two": True,
         }
     ):
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
@@ -1777,7 +1744,7 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
@@ -1833,7 +1800,7 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
     ]
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget_query = create_widget(aggrs, query, default_project, columns=columns)
+        widget_query, _, _ = create_widget(aggrs, query, default_project, columns=columns)
         config = get_metric_extraction_config(default_project)
         assert config
 
@@ -1882,7 +1849,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         assert config and config["metrics"] == [
@@ -1950,7 +1917,7 @@ def test_event_type(
     aggr = "count()"
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         if not config_assertion:
             assert config is None
@@ -1983,7 +1950,7 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
             "organizations:on-demand-metrics-query-spec-version-two": True,
         }
     ):
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
