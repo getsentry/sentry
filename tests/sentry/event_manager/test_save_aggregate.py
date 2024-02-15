@@ -85,7 +85,7 @@ def test_group_creation_race_new(
     group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
     save_aggregate_kwargs = {
         "event": event,
-        "job": {"event_metadata": {}, "release": "dogpark"},
+        "job": {"event_metadata": {}, "release": "dogpark", "event": event},
         "metric_tags": {},
     }
     if not use_save_aggregate_new:
