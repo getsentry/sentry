@@ -226,5 +226,6 @@
   "sentry.dashboardwidgetqueryondemand",
   "sentry.alertruletriggerexclusion",
   "sentry.alertruletriggeraction",
-  "sentry.servicehookproject"
+  "sentry.servicehookproject",
+  "sentry.notificationmessage"
 ]
