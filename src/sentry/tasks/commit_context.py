@@ -24,7 +24,12 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest, PullRequestCommit
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestComment,
+    PullRequestCommit,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
@@ -94,9 +99,13 @@ def queue_comment_task_if_needed(
         return
 
     pr = pr_query.first()
+    # need to query explicitly for merged PR comments since we can have multiple comments per PR
+    merged_pr_comment_query = PullRequestComment.objects.filter(
+        pull_request_id=pr.id, comment_type=CommentType.MERGED_PR
+    )
     if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
-        not pr.pullrequestcomment_set.exists()
-        or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
+        not merged_pr_comment_query.exists()
+        or group_owner.group_id not in merged_pr_comment_query[0].group_ids
     ):
         lock = locks.get(
             DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"

@@ -13,6 +13,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
@@ -22,7 +23,10 @@ import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {getFormatter} from '../../components/charts/components/tooltip';
+import {
+  defaultFormatAxisLabel,
+  getFormatter,
+} from '../../components/charts/components/tooltip';
 import {isChartHovered} from '../../components/charts/utils';
 
 import {useChartSamples} from './useChartSamples';
@@ -43,6 +47,32 @@ type ChartProps = {
 // Once we use it in more places, this should probably move to a more global place
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
+
+function isNonZeroValue(value: number | null) {
+  return value !== null && value !== 0;
+}
+
+function addAreaChartSeriesPadding(data: Series['data']) {
+  const hasNonZeroSibling = (index: number) => {
+    return (
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
+    );
+  };
+  const paddingIndices = new Set<number>();
+  return {
+    data: data.map(({name, value}, index) => {
+      const shouldAddPadding = value === null && hasNonZeroSibling(index);
+      if (shouldAddPadding) {
+        paddingIndices.add(index);
+      }
+      return {
+        name,
+        value: shouldAddPadding ? 0 : value,
+      };
+    }),
+    paddingIndices,
+  };
+}
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
@@ -85,13 +115,20 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
 
-    const unit = series[0]?.unit;
+    const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
     const fogOfWarBuckets = getWidthFactor(bucketSize);
 
     const seriesToShow = useMemo(
       () =>
         series
           .filter(s => !s.hidden)
+          .map(s => ({
+            ...s,
+            ...(displayType === MetricDisplayType.AREA
+              ? addAreaChartSeriesPadding(s.data)
+              : {data: s.data}),
+            connectNulls: displayType === MetricDisplayType.LINE,
+          }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => [
@@ -99,7 +136,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
               ...s,
               silent: true,
               data: s.data.slice(0, -fogOfWarBuckets),
-              connectNulls: true,
             },
             displayType === MetricDisplayType.BAR
               ? createFogOfWarBarSeries(s, fogOfWarBuckets)
@@ -128,8 +164,23 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     });
 
     const chartProps = useMemo(() => {
+      const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
+      const seriesMeta = seriesToShow.reduce(
+        (acc, s) => {
+          acc[s.seriesName] = {
+            unit: s.unit,
+            operation: s.operation,
+          };
+          return acc;
+        },
+        {} as Record<string, {operation: string; unit: string}>
+      );
+
       const timeseriesFormatters = {
-        valueFormatter,
+        valueFormatter: (value: number, seriesName?: string) => {
+          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation};
+          return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
+        },
         isGroupedByDate: true,
         bucketSize,
         showTimeInTooltip: true,
@@ -173,12 +224,52 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (Array.isArray(params)) {
               const uniqueSeries = new Set<string>();
               const deDupedParams = params.filter(param => {
+                // Filter null values from tooltip
+                if (param.value[1] === null) {
+                  return false;
+                }
+
+                // scatter series (samples) have their own tooltip
+                if (param.seriesType === 'scatter') {
+                  return false;
+                }
+
+                // Filter padding datapoints from tooltip
+                if (param.value[1] === 0) {
+                  const currentSeries = seriesToShow[param.seriesIndex];
+                  const paddingIndices =
+                    'paddingIndices' in currentSeries
+                      ? currentSeries.paddingIndices
+                      : undefined;
+                  if (paddingIndices?.has(param.dataIndex)) {
+                    return false;
+                  }
+                }
+
                 if (uniqueSeries.has(param.seriesName)) {
                   return false;
                 }
                 uniqueSeries.add(param.seriesName);
                 return true;
               });
+
+              const date = defaultFormatAxisLabel(
+                params[0].value[0] as number,
+                timeseriesFormatters.isGroupedByDate,
+                false,
+                timeseriesFormatters.showTimeInTooltip,
+                timeseriesFormatters.addSecondsToTimeFormat,
+                timeseriesFormatters.bucketSize
+              );
+
+              if (deDupedParams.length === 0) {
+                return [
+                  '<div class="tooltip-series">',
+                  `<center>${t('No data available')}</center>`,
+                  '</div>',
+                  `<div class="tooltip-footer">${date}</div>`,
+                ].join('');
+              }
               return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
             }
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
@@ -190,7 +281,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             id: 'yAxis',
             axisLabel: {
               formatter: (value: number) => {
-                return valueFormatter(value);
+                return formatMetricsUsingUnitAndOp(
+                  value,
+                  hasMultipleUnits ? 'none' : unit,
+                  operation
+                );
               },
             },
           },
@@ -208,18 +303,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ],
       };
     }, [
+      seriesToShow,
       bucketSize,
+      isSubMinuteBucket,
+      height,
       focusAreaBrush.options,
       focusAreaBrush.isDrawingRef,
       forwardedRef,
-      isSubMinuteBucket,
-      seriesToShow,
-      height,
       samples.handleClick,
-      samples.xAxis,
       samples.yAxis,
+      samples.xAxis,
       samples.formatters,
-      valueFormatter,
+      unit,
+      operation,
     ]);
 
     return (
