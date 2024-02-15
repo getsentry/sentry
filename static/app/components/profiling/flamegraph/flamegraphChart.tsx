@@ -261,6 +261,25 @@ export function FlamegraphChart({
     [configSpaceCursor, chartView]
   );
 
+  let message = t('Profile has no measurements');
+  const canRenderChart = chart?.series.every(
+    s => s.points.length >= FlamegraphChartModel.MIN_RENDERABLE_POINTS
+  );
+
+  if (chart && !canRenderChart) {
+    const profileIsTooShortToDisplayMeasurements = chart.configSpace.width < 200 * 1e6;
+    const didNotCollectAnyMeasurements = chart.series.every(s => s.points.length === 0);
+
+    if (profileIsTooShortToDisplayMeasurements) {
+      message =
+        'Profile is too short to display measurements, minimum duration is at least 200ms';
+    }
+
+    if (didNotCollectAnyMeasurements) {
+      message = noMeasurementMessage || 'Profile has no measurements';
+    }
+  }
+
   return (
     <Fragment>
       <Canvas
@@ -284,17 +303,8 @@ export function FlamegraphChart({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && !chart?.series.length ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
-      ) : (chart?.series?.length ?? 0) > 0 &&
-        chart?.series.every(
-          s => s.points.length < FlamegraphChartModel.MIN_RENDERABLE_POINTS
-        ) ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
+      ) : profiles.type === 'resolved' && !canRenderChart ? (
+        <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
   );
