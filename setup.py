@@ -2,18 +2,6 @@
 
 import os
 import sys
-
-python_version = sys.version_info[:2]
-
-if python_version < (3, 8):
-    sys.exit(f"Error: Sentry requires at least Python 3.8 ({python_version})")
-if python_version != (3, 8):
-    import logging
-
-    logger = logging.getLogger()
-    logger.warning("A Python version different than 3.8 is being used (%s)", python_version)
-
-
 from distutils.command.build import build as BuildCommand
 
 from setuptools import setup
