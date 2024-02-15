@@ -298,7 +298,15 @@ class SendBeaconTest(OutcomesSnubaTest):
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
-    def test_debug(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+    def test_debug(
+        self,
+        safe_urlread,
+        safe_urlopen,
+        mock_get_all_package_versions,
+        mock_cpu_count,
+        mock_cpu_percent,
+        mock_virtual_memory,
+    ):
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
 
         with self.settings(DEBUG=True):
