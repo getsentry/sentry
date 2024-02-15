@@ -678,9 +678,7 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(
-    ctx: OrganizationReportContext, user_id: int | None
-) -> Mapping[str, Any] | None:
+def render_template_context(ctx, user_id):
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.

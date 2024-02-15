@@ -152,9 +152,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         deliver_reports(ctx)
         assert mock_send_email.call_count == 1
         mock_send_email.assert_called_once_with(
-            ctx,
-            template_context[0].get("context"),
-            template_context[0].get("user_id"),
+            ctx=ctx,
+            template_ctx=template_context[0].get("context"),
+            user_id=template_context[0].get("user_id"),
             dry_run=False,
         )
 
@@ -805,7 +805,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 user_project_count=1,
             )
 
-        message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
+            message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
 
     @mock.patch("sentry.tasks.weekly_reports.logger")
     def test_email_override_invalid_target_user(self, logger):
