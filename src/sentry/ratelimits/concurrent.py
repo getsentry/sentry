@@ -8,6 +8,7 @@ from django.conf import settings
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
+from sentry.utils.redis import disconnect_redis_connection_pools
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class ConcurrentRateLimiter:
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()
+            disconnect_redis_connection_pools(self.client)
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
