@@ -577,3 +577,33 @@ def test_query_cardinality_called_with_projects(
     raw_snql_query.assert_called_once()
     mock_call = raw_snql_query.mock_calls[0]
     assert [proj.id for proj in mock_call.kwargs["params"]["projects"]] == [project.id]
+
+
+@django_db_all
+def test_support_columns_in_tables(project: Project) -> None:
+    # The tag requires on-demand metrics extraction
+    query = "app_recommended_owner:#onboarding-experience"
+    columns = ["apdex(300)", "transaction"]
+
+    widget_query, _, _ = create_widget([], query, project, columns=columns)
+    assert widget_query.aggregates == []
+    assert widget_query.conditions == query
+    assert widget_query.columns == columns
+    assert widget_query.fields == []
+
+    with override_options({"on_demand_metrics.check_widgets.enable": True}), Feature(
+        _WIDGET_EXTRACTION_FEATURES
+    ):
+        process_widget_specs([widget_query.id])
+
+    widget_models = DashboardWidgetQueryOnDemand.objects.filter(
+        dashboard_widget_query_id=widget_query.id
+    )
+    assert widget_models.exists()
+    for widget_model in widget_models:
+        assert_on_demand_model(
+            widget_model,
+            has_features=True,
+            expected_state=OnDemandExtractionState.ENABLED_ENROLLED,
+            expected_hashes={1: ["031ceadc"], 2: ["1705bb61"]},
+        )

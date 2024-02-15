@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -3178,6 +3179,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     ) -> list[OnDemandMetricSpec]:
         """Creates all specs based on the parameters that would be passed to the endpoint."""
         specs = []
+        _groupbys = groupbys or []
+        if "transaction" in params["field"]:
+            params["field"].remove("transaction")
+            _groupbys.append("transaction")
+
         for field in params["field"]:
             spec = OnDemandMetricSpec(
                 field=field,
@@ -3239,6 +3245,44 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "meta": {
                 "fields": {user_misery_field: "number", apdex_field: "number"},
                 "units": {user_misery_field: None, apdex_field: None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
+
+    def test_support_columns_in_tables(self) -> None:
+        field = "apdex(300)"
+        params = {
+            "field": [field, "transaction"],
+            "query": "transaction.duration:>100",
+            "yAxis": field,
+        }
+        specs = self._create_specs(params)
+        days_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        for spec in specs:
+            for hour in range(0, 5):
+                self.store_on_demand_metric(
+                    1,
+                    spec=spec,
+                    additional_tags={"satisfaction": "tolerable"},
+                    timestamp=days_ago + timedelta(hours=hour),
+                )
+                self.store_on_demand_metric(
+                    1,
+                    spec=spec,
+                    additional_tags={"satisfaction": "satisfactory"},
+                    timestamp=days_ago + timedelta(hours=hour),
+                )
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data == {
+            "data": [{field: 0.75}],
+            "meta": {
+                "fields": {field: "number"},
+                "units": {field: None},
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},

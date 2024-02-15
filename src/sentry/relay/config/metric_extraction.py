@@ -407,10 +407,15 @@ def convert_widget_query_to_metric(
     metrics_specs: list[HashedMetricSpec] = []
 
     if not widget_query.aggregates:
-        return metrics_specs
+        aggregates, groupbys = _separate_aggregates_and_groupbys_from_columns(widget_query.columns)
+    else:
+        aggregates = widget_query.aggregates or []
+        groupbys = widget_query.columns
 
-    aggregates = widget_query.aggregates
-    groupbys = widget_query.columns
+    for aggregate in aggregates:
+        metrics_specs += _generate_metric_specs(
+            aggregate, widget_query, project, prefilling, groupbys
+        )
 
     for aggregate in aggregates:
         metrics_specs += _generate_metric_specs(
@@ -457,6 +462,21 @@ def _generate_metric_specs(
             )
             metrics_specs.append(spec)
     return metrics_specs
+
+
+def _separate_aggregates_and_groupbys_from_columns(
+    columns: str | None,
+) -> tuple[list[str], list[str]]:
+    aggregates = []
+    groupbys = []
+
+    for column in columns or []:
+        if fields.is_function(column):
+            aggregates.append(column)
+        else:
+            groupbys.append(column)
+
+    return aggregates, groupbys
 
 
 def get_specs_per_version(specs: Sequence[HashedMetricSpec]) -> dict[int, list[HashedMetricSpec]]:
