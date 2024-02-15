@@ -25,7 +25,7 @@ def patch_rage_click_issue():
         yield m
 
 
-def test_get_user_actions():
+def test_get_user_actionsz():
     """Test "get_user_actions" function."""
     events = [
         {
