@@ -6,8 +6,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -813,6 +815,14 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             conditions=self.anon_users_query["conditions"],
             order=0,
         )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=self.widget_1_data_1,
+            spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
+                self.organization
+            ).version,
+            spec_hashes=["abcd"],
+            extraction_state="enabled:manual",
+        )
 
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
@@ -902,6 +912,14 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             field_aliases=self.anon_users_query["fieldAliases"],
             conditions=self.anon_users_query["conditions"],
             order=0,
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=self.widget_1_data_1,
+            spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
+                self.organization
+            ).version,
+            spec_hashes=["abcd"],
+            extraction_state="enabled:manual",
         )
 
         mock_project = self.create_project()

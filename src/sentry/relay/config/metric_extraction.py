@@ -16,6 +16,7 @@ from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
+    ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -1430,20 +1431,16 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
 
 
 def get_current_widget_specs(organization):
-    # This can just be the first project we find, since spec hashes should not be project
-    # dependent. If spec hashes become project dependent then this may need to change.
-    project_for_query = Project.objects.filter(organization=organization).first()
-
-    enabled_features = on_demand_metrics_feature_flags(organization)
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    widget_specs = _get_widget_metric_specs(project_for_query, enabled_features, prefilling)
     current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
-    return {
-        widget_hash
-        for widget_hash, _, spec_version in widget_specs
-        if spec_version == current_version
-    }
+    widget_specs = DashboardWidgetQueryOnDemand.objects.filter(
+        spec_version=current_version.version,
+        dashboard_widget_query__widget__dashboard__organization=organization,
+        extraction_state__startswith=ON_DEMAND_ENABLED_KEY,
+    ).values_list("spec_hashes", flat=True)
+    current_widget_specs: set[str] = set()
+    for spec_list in widget_specs:
+        current_widget_specs = current_widget_specs.union(spec_list)
+    return current_widget_specs
 
 
 def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
