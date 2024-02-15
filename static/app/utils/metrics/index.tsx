@@ -32,13 +32,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  formatMRI,
-  formatMRIField,
-  MRIToField,
-  parseField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   DdmQueryParams,
   MetricsQuery,
@@ -234,11 +228,8 @@ export function getMetricsSeriesName(
 ) {
   const groupByEntries = Object.entries(groupBy ?? {});
 
-  const {mri} = parseField(field) ?? {mri: field};
-  const mriName = formatMRI(mri as MRI) ?? '(none)';
-
   if (!groupByEntries || !groupByEntries.length) {
-    return mriName;
+    return formatMRIField(field);
   }
 
   const formattedGrouping = groupByEntries
@@ -246,7 +237,7 @@ export function getMetricsSeriesName(
     .join(', ');
 
   if (isMultiQuery) {
-    return `${mriName} - ${formattedGrouping}`;
+    return `${formatMRIField(field)} - ${formattedGrouping}`;
   }
   return formattedGrouping;
 }
