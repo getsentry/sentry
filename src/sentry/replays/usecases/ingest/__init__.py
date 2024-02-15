@@ -12,7 +12,7 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
+from sentry.replays.lib.storage import make_recording_filename, make_video_filename, storage
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -56,6 +56,7 @@ class RecordingIngestMessage:
     key_id: int | None
     received: int
     payload_with_headers: bytes
+    replay_video: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -74,6 +75,7 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
+                replay_video=cast(bytes | None, message_dict.get("replay_video")),
             )
             _ingest_recording(message, transaction)
 
@@ -90,17 +92,28 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         logger.exception("Recording headers could not be extracted %s", message.replay_id)
         return None
 
-    # Normalize ingest data into a standardized ingest format.
-    segment_data = RecordingSegmentStorageMeta(
-        project_id=message.project_id,
-        replay_id=message.replay_id,
-        segment_id=headers["segment_id"],
-        retention_days=message.retention_days,
-    )
-
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    storage.set(segment_data, recording_segment)
+    storage.set(
+        make_recording_filename(
+            project_id=message.project_id,
+            replay_id=message.replay_id,
+            segment_id=headers["segment_id"],
+            retention_days=message.retention_days,
+        ),
+        recording_segment,
+    )
+
+    if message.replay_video:
+        storage.set(
+            make_video_filename(
+                project_id=message.project_id,
+                replay_id=message.replay_id,
+                segment_id=headers["segment_id"],
+                retention_days=message.retention_days,
+            ),
+            message.replay_video,
+        )
 
     recording_post_processor(message, headers, recording_segment, transaction)
 

@@ -10,7 +10,6 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from io import BytesIO
-from typing import Protocol
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -25,13 +24,6 @@ from sentry.utils import metrics
 logger = logging.getLogger()
 
 
-class FileProtocol(Protocol):
-    @property
-    def filename(self) -> str:
-        """Return the filename of the object."""
-        ...
-
-
 @dataclasses.dataclass
 class RecordingSegmentStorageMeta:
     project_id: int
@@ -41,37 +33,6 @@ class RecordingSegmentStorageMeta:
     date_added: datetime | None = None
     file_id: int | None = None
     file: File | None = None
-
-    @property
-    def filename(self) -> str:
-        # Records retrieved from the File interface do not have a statically defined retention
-        # period.  Their retention is dynamic and deleted by an async process.  These filenames
-        # default to the 90 day (max) retention period prefix.
-        retention_days = self.retention_days or 90
-
-        return "{}/{}/{}/{}".format(
-            retention_days,
-            self.project_id,
-            self.replay_id,
-            self.segment_id,
-        )
-
-
-@dataclasses.dataclass
-class ReplayVideoSegment:
-    project_id: int
-    replay_id: str
-    segment_id: int
-    retention_days: int
-
-    @property
-    def filename(self) -> str:
-        return "{}/{}/{}/{}/video".format(
-            self.retention_days,
-            self.project_id,
-            self.replay_id,
-            self.segment_id,
-        )
 
 
 class Blob(ABC):
@@ -163,15 +124,15 @@ class StorageBlob(Blob):
         if hasattr(storage, "client"):
             storage.client
 
-    def delete(self, file: FileProtocol) -> None:
+    def delete(self, key: str) -> None:
         storage = get_storage(self._make_storage_options())
-        storage.delete(file.filename)
+        storage.delete(key)
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, file: FileProtocol) -> bytes | None:
+    def get(self, key: str) -> bytes | None:
         try:
             storage = get_storage(self._make_storage_options())
-            blob = storage.open(file.filename)
+            blob = storage.open(key)
             result = blob.read()
             blob.close()
         except Exception:
@@ -181,10 +142,10 @@ class StorageBlob(Blob):
             return result
 
     @metrics.wraps("replays.lib.storage.StorageBlob.set")
-    def set(self, file: FileProtocol, value: bytes) -> None:
+    def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
-            storage.save(file.filename, BytesIO(value))
+            storage.save(key, BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
@@ -195,6 +156,32 @@ class StorageBlob(Blob):
             return {"backend": backend, "options": options.get("replay.storage.options")}
         else:
             return None
+
+
+def make_recording_filename(
+    retention_days: int | None,
+    project_id: int,
+    replay_id: str,
+    segment_id: int,
+) -> str:
+    """Return a recording segment filename."""
+    return "{}/{}/{}/{}".format(
+        retention_days or 30,
+        project_id,
+        replay_id,
+        segment_id,
+    )
+
+
+def make_video_filename(
+    retention_days: int | None,
+    project_id: int,
+    replay_id: str,
+    segment_id: int,
+) -> str:
+    """Return a recording segment video filename."""
+    filename = make_recording_filename(retention_days, project_id, replay_id, segment_id)
+    return filename + ".video"
 
 
 storage = StorageBlob()
