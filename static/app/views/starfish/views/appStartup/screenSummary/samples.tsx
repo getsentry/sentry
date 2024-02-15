@@ -93,7 +93,7 @@ export function SamplesTables({transactionName}) {
 const EventSplitContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)}
+  gap: ${space(1.5)};
 `;
 
 const Controls = styled('div')`

@@ -238,7 +238,7 @@ function ScreenSummary() {
 export default ScreenSummary;
 
 const ControlsContainer = styled('div')`
-  display:flex;
+  display: flex;
   gap: ${space(1.5)};
 `;
 
