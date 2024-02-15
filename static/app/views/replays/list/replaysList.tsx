@@ -119,6 +119,7 @@ function ReplaysListTable({
           ) : undefined
         }
       />
+      <Test />
       <ReplayPagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, searchQuery) => {
@@ -144,5 +145,11 @@ const EmptyStateSubheading = styled('div')`
 const ReplayPagination = styled(Pagination)`
   margin-top: 0;
 `;
+
+const Test = styled('div')`
+  display: bunch;
+  border: big;
+  padding-top:    yes;
+  padding-top: no`;
 
 export default ReplaysList;
