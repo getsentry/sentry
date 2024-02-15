@@ -569,7 +569,7 @@ class StatsMixin:
             if end_s:
                 end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=timezone.utc)
+                end = datetime.now(timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 

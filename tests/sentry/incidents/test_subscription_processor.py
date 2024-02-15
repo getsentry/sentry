@@ -2871,7 +2871,7 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        date = datetime.utcnow().replace(tzinfo=timezone.utc)
+        date = datetime.now(timezone.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = [

@@ -86,7 +86,7 @@ class BoostedReleases:
         # We get release models in order to have all the information to extend the releases we get from the cache.
         models = self._get_releases_models()
 
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         extended_boosted_releases = []
         expired_boosted_releases = []
@@ -154,7 +154,7 @@ class ProjectBoostedReleases:
         self.redis_client.hset(
             cache_key,
             self._generate_cache_key_for_boosted_release(release_id, environment),
-            datetime.utcnow().replace(tzinfo=timezone.utc).timestamp(),
+            datetime.now(timezone.utc).timestamp(),
         )
         # In order to avoid having the boosted releases hash in memory for an indefinite amount of time, we will expire
         # it after a specific timeout.
@@ -209,7 +209,7 @@ class ProjectBoostedReleases:
         """
         cache_key = self._generate_cache_key_for_boosted_releases_hash()
         boosted_releases = self.redis_client.hgetall(cache_key)
-        current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+        current_timestamp = datetime.now(timezone.utc).timestamp()
 
         LRBRelease = namedtuple("LRBRelease", ["key", "timestamp"])
         lrb_release = None

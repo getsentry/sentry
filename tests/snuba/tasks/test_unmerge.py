@@ -61,7 +61,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_group_creation_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc).replace(microsecond=0)
         e1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -120,7 +120,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc).replace(microsecond=0)
 
         assert get_group_backfill_attributes(
             get_caches(),

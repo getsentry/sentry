@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
-current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+current_time = datetime.now(timezone.utc)
 
 
 @no_silo_test

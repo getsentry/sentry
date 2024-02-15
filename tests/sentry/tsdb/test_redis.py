@@ -78,7 +78,7 @@ class RedisTSDBTest(TestCase):
         assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
     def test_simple(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
+        now = datetime.now(timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
@@ -186,7 +186,7 @@ class RedisTSDBTest(TestCase):
         assert results == {1: 0, 2: 0}
 
     def test_count_distinct(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=4)
+        now = datetime.now(timezone.utc) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
@@ -324,7 +324,7 @@ class RedisTSDBTest(TestCase):
         assert results == {1: 0, 2: 0}
 
     def test_frequency_tables(self):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         model = TSDBModel.frequent_issues_by_project
 
         # None of the registered frequency tables actually support
