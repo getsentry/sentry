@@ -247,7 +247,8 @@
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
     "build-js-loader": "ts-node scripts/build-js-loader.ts",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
-    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install"
+    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
+    "extract-ios-device-names": "ts-node scripts/extract-ios-device-names.ts"
   },
   "browserslist": {
     "production": [
