@@ -23,6 +23,7 @@ from sentry.api.issue_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.priority import PRIORITY_VALUE_TO_STR
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.testutils.cases import TestCase
@@ -311,6 +312,19 @@ class ConvertSubStatusValueTest(TestCase):
             ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
             ("status", "NOT IN", [GroupStatus.UNRESOLVED]),
         ]
+
+
+class ConvertPriorityValueTest(TestCase):
+    def test_valid(self):
+        for priority, priority_str in PRIORITY_VALUE_TO_STR.items():
+            filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue([priority_str]))]
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value == [priority]
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("issue.priority"), "=", SearchValue("wrong"))]
+        with pytest.raises(InvalidSearchQuery, match="Invalid priority value of 'wrong'"):
+            convert_query_values(filters, [self.project], self.user, None)
 
 
 @region_silo_test
