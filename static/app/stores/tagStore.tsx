@@ -90,12 +90,6 @@ const storeConfig: TagStoreDefinition = {
         ],
         predefined: true,
       },
-      [FieldKey.ISSUE_PRIORITY]: {
-        key: FieldKey.ISSUE_PRIORITY,
-        name: 'Issue Priority',
-        values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
-        predefined: true,
-      },
       [FieldKey.ISSUE_TYPE]: {
         key: FieldKey.ISSUE_TYPE,
         name: 'Issue Type',
@@ -160,6 +154,15 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
     };
+
+    if (org.features.includes('issue-priority-ui')) {
+      tagCollection[FieldKey.ISSUE_PRIORITY] = {
+        key: FieldKey.ISSUE_PRIORITY,
+        name: 'Issue Priority',
+        values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
+        predefined: true,
+      };
+    }
 
     // Ony include fields that that are part of the ISSUE_FIELDS. This is
     // because we may sometimes have fields that are turned off by removing
