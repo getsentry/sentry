@@ -39,6 +39,7 @@ export class FlamegraphChart {
   tooltipFormatter: ReturnType<typeof makeFormatter>;
   timelineFormatter: (value: number) => string;
   series: Series[];
+  status: 'no metrics' | 'empty metrics' | 'insufficient data' | 'ok' = 'no metrics';
   domains: {
     x: [number, number];
     y: [number, number];
@@ -63,9 +64,11 @@ export class FlamegraphChart {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
       this.configSpace = configSpace.clone();
+      this.status = !measurements ? 'no metrics' : 'empty metrics';
       return;
     }
 
+    this.status = 'insufficient data';
     const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
@@ -85,6 +88,7 @@ export class FlamegraphChart {
         continue;
       }
 
+      this.status = 'ok';
       for (let i = 0; i < measurement.values.length; i++) {
         const m = measurement.values[i];
 

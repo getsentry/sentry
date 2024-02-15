@@ -9,7 +9,7 @@ import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -261,23 +261,24 @@ export function FlamegraphChart({
     [configSpaceCursor, chartView]
   );
 
-  let message = t('Profile has no measurements');
-  const canRenderChart = chart?.series.every(
-    s => s.points.length >= FlamegraphChartModel.MIN_RENDERABLE_POINTS
-  );
+  let message: string | undefined;
 
-  if (chart && !canRenderChart) {
-    const profileIsTooShortToDisplayMeasurements = chart.configSpace.width < 200 * 1e6;
-    const didNotCollectAnyMeasurements = chart.series.every(s => s.points.length === 0);
-
-    if (profileIsTooShortToDisplayMeasurements) {
-      message = t(
-        'Profile is too short to display measurements, minimum duration is at least 200ms'
-      );
+  if (chart) {
+    if (chart.configSpace.width < 200 * 1e6 && chart.status === 'insufficient data') {
+      message = t('Profile duration is too short to collect enough metrics');
     }
 
-    if (didNotCollectAnyMeasurements) {
+    if (chart.configSpace.width >= 200 && chart.status === 'insufficient data') {
+      message =
+        noMeasurementMessage ||
+        t('Profile failed to collect sufficient amount of measurements');
+    }
+
+    if (chart.status === 'no metrics') {
       message = noMeasurementMessage || t('Profile has no measurements');
+    }
+    if (chart.status === 'empty metrics') {
+      message = t('Profile has empty measurements');
     }
   }
 
@@ -304,7 +305,7 @@ export function FlamegraphChart({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && !canRenderChart ? (
+      ) : profiles.type === 'resolved' && chart?.status !== 'ok' ? (
         <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
