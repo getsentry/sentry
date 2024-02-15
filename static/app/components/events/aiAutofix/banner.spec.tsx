@@ -25,7 +25,7 @@ describe('PII Certification Check', () => {
     );
     expect(
       getByText(
-        'By clicking the buttons above, you confirm that there is no PII in this event.'
+        'By clicking the button above, you confirm that there is no PII in this event.'
       )
     ).toBeInTheDocument();
   });
@@ -42,7 +42,7 @@ describe('PII Certification Check', () => {
     );
     expect(
       queryByText(
-        'By clicking the buttons above, you confirm that there is no PII in this event.'
+        'By clicking the button above, you confirm that there is no PII in this event.'
       )
     ).not.toBeInTheDocument();
   });
