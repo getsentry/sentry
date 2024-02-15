@@ -910,7 +910,7 @@ def _track_outcome(
         key_id=None,
         outcome=outcome,
         reason=reason,
-        timestamp=datetime.utcnow().replace(tzinfo=timezone.utc),
+        timestamp=datetime.now(timezone.utc),
         event_id=event_id,
         category=DataCategory.PROFILE_INDEXED,
         quantity=1,

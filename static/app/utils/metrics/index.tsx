@@ -32,13 +32,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  formatMRI,
-  formatMRIField,
-  MRIToField,
-  parseField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   DdmQueryParams,
   MetricsQuery,
@@ -227,18 +221,25 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(field: string, groupBy?: Record<string, string>) {
+export function getMetricsSeriesName(
+  field: string,
+  groupBy?: Record<string, string>,
+  isMultiQuery: boolean = true
+) {
   const groupByEntries = Object.entries(groupBy ?? {});
-  if (!groupByEntries.length) {
-    const {mri} = parseField(field) ?? {mri: field};
-    const name = formatMRI(mri as MRI);
 
-    return name ?? '(none)';
+  if (!groupByEntries || !groupByEntries.length) {
+    return formatMRIField(field);
   }
 
-  return groupByEntries
+  const formattedGrouping = groupByEntries
     .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
     .join(', ');
+
+  if (isMultiQuery) {
+    return `${formatMRIField(field)} - ${formattedGrouping}`;
+  }
+  return formattedGrouping;
 }
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
@@ -335,10 +336,6 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
-}
-
-export function isSupportedDisplayType(displayType: unknown) {
-  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
 }
 
 export function getMetricsCorrelationSpanUrl(

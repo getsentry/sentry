@@ -5,6 +5,8 @@ import type {Location} from 'history';
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -25,7 +27,6 @@ import {EventDevice} from './device';
 import {EventAttachments} from './eventAttachments';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
-import {EventErrors} from './eventErrors';
 import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
@@ -74,10 +75,17 @@ function EventEntries({
   }
 
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasActionableItems = actionableItemsEnabled({
+    eventId: event.id,
+    organization,
+    projectSlug,
+  });
 
   return (
     <div className={className}>
-      <EventErrors event={event} project={project} isShare={isShare} />
+      {hasActionableItems && (
+        <ActionableItems event={event} project={project} isShare={isShare} />
+      )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
           project={project}
