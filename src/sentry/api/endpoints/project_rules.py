@@ -213,22 +213,16 @@ class DuplicateRuleEvaluator:
         return cleaned_dict
 
     def check_rule_is_match(self, existing_rule: Rule) -> bool:
-        keys_checked = 0
-        keys_matched = 0
+        if not self._keys_to_check:
+            return False
+
         for key_to_check in self._keys_to_check:
             matcher = self._get_func_to_call(key_to_check=key_to_check)
             is_match = matcher(existing_rule=existing_rule, key_to_check=key_to_check)
-            keys_checked += 1
-            if is_match:
-                keys_matched += 1
-
-            if keys_checked > 0 and (keys_matched != keys_checked):
+            if not is_match:
                 return False
 
-        if keys_matched > 0:
-            return keys_checked == keys_matched
-
-        return False
+        return True
 
     def find_duplicate(self) -> Rule | None:
         """
