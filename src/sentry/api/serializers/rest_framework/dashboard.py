@@ -574,7 +574,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidget.objects.filter(dashboard_id=dashboard_id).exclude(id__in=keep_ids).delete()
 
     def create_widget(self, dashboard, widget_data, order):
-        organization = self.context.get("organization")
+        organization = self.context["organization"]
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         # To match the format of the extraction state function in ondemand
         ondemand_feature = features.has(
@@ -638,7 +638,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widget_queries(widget, data["queries"])
 
     def update_widget_queries(self, widget, data):
-        organization = self.context.get("organization")
+        organization = self.context["organization"]
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         # To match the format of the extraction state function in ondemand
         ondemand_feature = features.has(

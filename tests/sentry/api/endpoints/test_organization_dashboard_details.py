@@ -1629,7 +1629,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "sometag",
             "someothertag",
         ]
-        data: dict[str, any] = {
+        data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
                 {
@@ -1670,7 +1670,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
-        data: dict[str, any] = {
+        data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
                 {
@@ -1705,7 +1705,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert current_version is not None
             assert current_version.extraction_state == "disabled:high-cardinality"
 
-        data: dict[str, any] = {
+        data = {
             "title": "first dashboard",
             "widgets": [
                 {
@@ -1752,7 +1752,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         mock_query.return_value = {"data": [{"count_unique(sometag)": 1_000_000}]}, [
             "sometag",
         ]
-        data: dict[str, any] = {
+        data: dict[str, Any] = {
             "title": "first dashboard",
             "widgets": [
                 {
@@ -1787,7 +1787,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             assert current_version is not None
             assert current_version.extraction_state == "disabled:high-cardinality"
 
-        data: dict[str, any] = {
+        data = {
             "title": "first dashboard",
             "widgets": [
                 {
