@@ -608,7 +608,9 @@ def assert_on_demand_model(
 
 @mock.patch("sentry.tasks.on_demand_metrics.QueryBuilder")
 @django_db_all
-def test_query_cardinality_called_with_projects(raw_snql_query, project, organization):
+def test_query_cardinality_called_with_projects(
+    raw_snql_query: Any, project: Project, organization: Organization
+) -> None:
     _query_cardinality(["sometag"], organization)
     raw_snql_query.assert_called_once()
     mock_call = raw_snql_query.mock_calls[0]
