@@ -227,6 +227,7 @@ export function useCreateDashboardWidget(
         router,
         widgetAsQueryParams,
         location: router.location,
+        actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
       });
   }, [metricsQuery, datetime, displayType, environments, organization, projects, router]);
 }
