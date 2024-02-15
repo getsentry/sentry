@@ -67,6 +67,7 @@ export enum FieldKey {
   IS = 'is',
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
+  ISSUE_PRIORITY = 'issue.priority',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -750,6 +751,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
   },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['high', 'medium', 'low'],
+  },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
@@ -1075,6 +1082,7 @@ export const ISSUE_FIELDS = [
   FieldKey.IS,
   FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_PRIORITY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
