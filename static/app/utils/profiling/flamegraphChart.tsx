@@ -73,6 +73,13 @@ export class FlamegraphChart {
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j];
+
+      if (!colors[j]) {
+        throw new Error(
+          `No color provided for measurement, got ${colors.length} colors for ${measurements.length} measurements.`
+        );
+      }
+
       this.series[j] = {
         type,
         name: measurement.name,
