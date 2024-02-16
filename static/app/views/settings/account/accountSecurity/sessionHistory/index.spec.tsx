@@ -40,7 +40,7 @@ describe('AccountSecuritySessionHistory', function () {
     render(<SessionHistory {...routerProps} />, {context: RouterContextFixture()});
 
     expect(await screen.findByText('127.0.0.1')).toBeInTheDocument();
-    expect(await screen.findByText('192.168.0.1')).toBeInTheDocument();
-    expect(await screen.findByText('US (CA)')).toBeInTheDocument();
+    expect(screen.getByText('192.168.0.1')).toBeInTheDocument();
+    expect(screen.getByText('US (CA)')).toBeInTheDocument();
   });
 });
