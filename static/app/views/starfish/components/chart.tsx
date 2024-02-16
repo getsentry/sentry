@@ -368,7 +368,7 @@ function Chart({
   function getChart() {
     if (errored) {
       return (
-        <ErrorPanel>
+        <ErrorPanel height={`${height}px`}>
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       );
