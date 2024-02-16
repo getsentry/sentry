@@ -55,9 +55,7 @@ const getCleanAction = (actionConfig, dateCreated?: string): Action => {
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
     type: actionConfig.type,
     targetType:
-      actionConfig &&
-      actionConfig.allowedTargetTypes &&
-      actionConfig.allowedTargetTypes.length > 0
+      actionConfig?.allowedTargetTypes && actionConfig.allowedTargetTypes.length > 0
         ? actionConfig.allowedTargetTypes[0]
         : null,
     targetIdentifier: actionConfig.sentryAppId || '',

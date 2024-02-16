@@ -19,7 +19,7 @@ interface TraceLinkProps {
 
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
-  const {data} = useTraceTimelineEvents({event});
+  const {traceEvents} = useTraceTimelineEvents({event});
   const traceTarget = generateTraceTarget(event, organization);
 
   if (!event.contexts?.trace?.trace_id) {
@@ -49,11 +49,11 @@ export function TraceLink({event}: TraceLinkProps) {
     >
       <span>
         {t('View Full Trace')}
-        {data.length > 0 && (
+        {traceEvents.length > 0 && (
           <Fragment>
-            {data.length >= 100
+            {traceEvents.length >= 100
               ? t(' (100+ issues)')
-              : tn(' (%s issue)', ' (%s issues)', data.length)}
+              : tn(' (%s issue)', ' (%s issues)', traceEvents.length)}
           </Fragment>
         )}
       </span>
