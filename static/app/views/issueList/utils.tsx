@@ -177,8 +177,7 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  // This was renamed to Trends in the UI to avoid confusion with issue priority
-  PRIORITY = 'priority',
+  TRENDS = 'trends',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -197,7 +196,7 @@ export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
+    case IssueSortOptions.TRENDS:
       return t('Trends');
     case IssueSortOptions.FREQ:
       return t('Events');
