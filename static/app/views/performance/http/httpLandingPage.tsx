@@ -88,12 +88,12 @@ export function HTTPLandingPage() {
           <Breadcrumbs
             crumbs={[
               {
-                label: 'Performance',
+                label: t('Performance'),
                 to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
                 preservePageFilters: true,
               },
               {
-                label: 'HTTP',
+                label: t('HTTP'),
               },
             ]}
           />
