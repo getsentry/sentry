@@ -188,10 +188,21 @@ function SimilarStackTrace({params, location, project}: Props) {
               onRetry={fetchData}
             />
           )}
-          {status === 'ready' && !hasSimilarItems && (
+          {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
             <Panel>
               <EmptyStateWarning>
                 <p>{t("There don't seem to be any similar issues.")}</p>
+              </EmptyStateWarning>
+            </Panel>
+          )}
+          {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+            <Panel>
+              <EmptyStateWarning>
+                <p>
+                  {t(
+                    "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+                  )}
+                </p>
               </EmptyStateWarning>
             </Panel>
           )}
