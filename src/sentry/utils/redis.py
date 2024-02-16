@@ -3,17 +3,18 @@ from __future__ import annotations
 import functools
 import importlib.resources
 import logging
+from copy import deepcopy
 from threading import Lock
 from typing import Any, Generic, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from redis.client import StrictRedis
-from redis.cluster import ClusterNode, RedisCluster
-from redis.commands.core import Script
+from redis.client import Script
 from redis.connection import ConnectionPool
+from redis.exceptions import BusyLoadingError, ConnectionError
+from rediscluster import RedisCluster
+from rediscluster.exceptions import ClusterError
 from sentry_redis_tools.failover_redis import FailoverRedis
-from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
@@ -78,6 +79,28 @@ class _RBCluster:
         return "Redis Blaster Cluster"
 
 
+class RetryingRedisCluster(RedisCluster):
+    """
+    Execute a command with cluster reinitialization retry logic.
+
+    Should a cluster respond with a ConnectionError or BusyLoadingError the
+    cluster nodes list will be reinitialized and the command will be executed
+    again with the most up to date view of the world.
+    """
+
+    def execute_command(self, *args, **kwargs):
+        try:
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+        except (
+            ConnectionError,
+            BusyLoadingError,
+            ClusterError,
+            KeyError,  # see: https://github.com/Grokzen/redis-py-cluster/issues/287
+        ):
+            self.connection_pool.nodes.reset()
+            return super(self.__class__, self).execute_command(*args, **kwargs)
+
+
 class _RedisCluster:
     def supports(self, config):
         # _RedisCluster supports two configurations:
@@ -89,7 +112,7 @@ class _RedisCluster:
     def factory(self, *, decode_responses: bool, **config):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
-        hosts = config.get("hosts") or []
+        hosts = config.get("hosts")
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # support for scaling reads using the readonly mode
@@ -103,11 +126,15 @@ class _RedisCluster:
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
             if config.get("is_redis_cluster", False):
-                startup_nodes = map(
-                    lambda entry: ClusterNode(host=entry["host"], port=entry["port"]), hosts
-                )
                 return RetryingRedisCluster(
-                    startup_nodes=list(startup_nodes),
+                    # Intentionally copy hosts here because redis-cluster-py
+                    # mutates the inner dicts and this closure can be run
+                    # concurrently, as SimpleLazyObject is not threadsafe. This
+                    # is likely triggered by RetryingRedisCluster running
+                    # reset() after startup
+                    #
+                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    startup_nodes=deepcopy(hosts),
                     decode_responses=decode_responses,
                     skip_full_coverage_check=True,
                     max_connections=16,
@@ -116,7 +143,6 @@ class _RedisCluster:
                     **client_args,
                 )
             else:
-                assert len(hosts) > 0, "Redis cluster should have at least 1 host"
                 host = hosts[0].copy()
                 host["decode_responses"] = decode_responses
                 return (
@@ -131,7 +157,7 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster | StrictRedis)
+TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster)
 
 
 class ClusterManager(Generic[TCluster]):
@@ -141,7 +167,7 @@ class ClusterManager(Generic[TCluster]):
 
     @overload
     def __init__(
-        self: ClusterManager[RedisCluster | StrictRedis], options_manager, cluster_type: type[Any]
+        self: ClusterManager[RedisCluster], options_manager, cluster_type: type[Any]
     ) -> None:
         ...
 
@@ -179,7 +205,7 @@ class ClusterManager(Generic[TCluster]):
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters: ClusterManager[rb.Cluster] = ClusterManager(options.default_manager)
-redis_clusters: ClusterManager[RedisCluster | StrictRedis] = ClusterManager(
+redis_clusters: ClusterManager[RedisCluster] = ClusterManager(
     options.default_manager, _RedisCluster
 )
 
@@ -294,13 +320,3 @@ def load_script(path):
         return script[0](keys, args, client)
 
     return call_script
-
-
-# Since the implementation to disconnect connection pools differ between
-# RedisCluster and StrictRedis after v4, we need this function.
-def disconnect_redis_connection_pools(client: StrictRedis | RedisCluster) -> None:
-    if isinstance(client, RedisCluster):
-        client.disconnect_connection_pools()
-    else:
-        assert isinstance(client, StrictRedis)
-        client.connection_pool.disconnect()
