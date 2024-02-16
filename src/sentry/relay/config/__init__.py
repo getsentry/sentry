@@ -669,7 +669,7 @@ def _get_project_config(
                     },
                 },
                 {
-                    "name": "INP",
+                    "name": "Chrome INP",
                     "scoreComponents": [
                         {
                             "measurement": "inp",
