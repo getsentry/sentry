@@ -27,12 +27,6 @@ from sentry.snuba.metrics import parse_mri
 TVisited = TypeVar("TVisited")
 
 
-
-
-
-
-
-
 class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
     """
     Visitor that recursively transforms all the conditions in the form `release:latest` by transforming them to

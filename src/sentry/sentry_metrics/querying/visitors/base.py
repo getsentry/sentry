@@ -13,9 +13,11 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.conditions import ConditionGroup
+
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 
 TVisited = TypeVar("TVisited")
+
 
 class QueryExpressionVisitor(ABC, Generic[TVisited]):
     """
@@ -85,6 +87,7 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
 
     def _visit_condition(self, condition: Condition) -> TVisited:
         raise condition
+
 
 class VisitableQueryExpression:
     def __init__(self, query: QueryExpression):

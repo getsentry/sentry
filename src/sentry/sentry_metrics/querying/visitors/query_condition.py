@@ -1,18 +1,10 @@
 from collections.abc import Mapping, Sequence
 
-from snuba_sdk import (
-    BooleanCondition,
-    BooleanOp,
-    Column,
-    Condition,
-    Op,
-)
+from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import (
-    LatestReleaseNotFoundError,
-)
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
 from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
 

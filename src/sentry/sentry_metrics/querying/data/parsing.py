@@ -13,11 +13,12 @@ from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
-    QueryConditionsCompositeVisitor,
     LatestReleaseTransformationVisitor,
-VisitableQueryExpression,
+    QueryConditionsCompositeVisitor,
     QueryValidationVisitor,
+    VisitableQueryExpression,
 )
+
 
 class QueryParser:
     # We avoid having the filters expression to be closed or opened.
@@ -135,6 +136,8 @@ class QueryParser:
                 .add_visitor(EnvironmentsInjectionVisitor(environments))
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
-                    QueryConditionsCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                    QueryConditionsCompositeVisitor(
+                        LatestReleaseTransformationVisitor(self._projects)
+                    )
                 ).get(),
             )

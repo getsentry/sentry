@@ -1,21 +1,15 @@
 from collections.abc import Sequence
 
-from snuba_sdk import (
-    AliasedExpression,
-    Column,
-    Condition,
-    Formula,
-    Op,
-    Timeseries,
-)
+from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
-)
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
-from sentry.sentry_metrics.querying.visitors.base import QueryExpressionVisitor, QueryConditionVisitor
+from sentry.sentry_metrics.querying.visitors.base import (
+    QueryConditionVisitor,
+    QueryExpressionVisitor,
+)
 from sentry.snuba.metrics import parse_mri
 
 
@@ -196,6 +190,7 @@ class QueryConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
             visited_condition_group = visitor.visit_group(visited_condition_group)
 
         return visited_condition_group
+
 
 class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
     """

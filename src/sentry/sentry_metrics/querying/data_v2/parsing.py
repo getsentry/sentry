@@ -11,10 +11,10 @@ from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
-    QueryConditionsCompositeVisitor,
     LatestReleaseTransformationVisitor,
+    QueryConditionsCompositeVisitor,
     QueryValidationV2Visitor,
-VisitableQueryExpression
+    VisitableQueryExpression,
 )
 
 
@@ -65,7 +65,9 @@ class QueryParser:
                 .add_visitor(EnvironmentsInjectionVisitor(self._environments))
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
-                    QueryConditionsCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                    QueryConditionsCompositeVisitor(
+                        LatestReleaseTransformationVisitor(self._projects)
+                    )
                 ).get()
             )
             # TODO: check if we want to use a better data structure for returning queries.
