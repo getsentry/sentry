@@ -807,7 +807,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
+                "organizations:custom-metrics",
                 "organizations:use-metrics-layer-in-alerts",
             ]
         ):
@@ -841,7 +841,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
+                "organizations:custom-metrics",
                 "organizations:use-metrics-layer-in-alerts",
             ]
         ):
