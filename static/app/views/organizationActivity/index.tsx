@@ -50,7 +50,7 @@ function OrganizationActivity() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Panel>
-              {!isLoading && activity?.length > 0 && (
+              {!isLoading && (
                 <div data-test-id="activity-feed-list">
                   {activity.map(item => (
                     <ErrorBoundary
