@@ -432,7 +432,7 @@ type OnlyOrphanErrorWarningsProps = {
 };
 function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   const {projects} = useProjects();
-  const projectSlug = orphanErrors[0].project_slug;
+  const projectSlug = orphanErrors[0] ? orphanErrors[0].project_slug : '';
   const project = projects.find(p => p.slug === projectSlug);
   const LOCAL_STORAGE_KEY = `${project?.id}:issue-details-replay-onboarding-hide`;
   const currentPlatform = project?.platform;
