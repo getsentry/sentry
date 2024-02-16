@@ -158,9 +158,9 @@ def first_release_all_environments_filter(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(
-            first_release_id__in=list(releases.values()),
-        ).values_list("group_id")
+        id__in=Group.objects.filter(
+            first_release__id__in=list(releases.values()),
+        ).values_list("id")
     )
 
 
