@@ -14,6 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {
@@ -26,6 +27,7 @@ import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 const UNDEFINED_TEXT = '--';
+type BlockType = 'duration' | 'count' | 'change';
 
 export function MetricsRibbon({
   filters,
@@ -38,7 +40,7 @@ export function MetricsRibbon({
   blocks: {
     dataKey: string | ((data?: TableDataRow[]) => number | undefined);
     title: string;
-    type: 'duration' | 'count';
+    type: BlockType;
   }[];
   dataset: DiscoverDatasets;
   fields: string[];
@@ -122,7 +124,7 @@ function MetricsBlock({
   dataKey: string | ((data?: TableDataRow[]) => number | undefined);
   isLoading: boolean;
   title: string;
-  type: 'duration' | 'count';
+  type: BlockType;
   data?: TableData;
   release?: string;
 }) {
@@ -136,6 +138,18 @@ function MetricsBlock({
       <Block title={title}>
         {!isLoading && data && defined(value) ? (
           <DurationCell milliseconds={value} />
+        ) : (
+          UNDEFINED_TEXT
+        )}
+      </Block>
+    );
+  }
+
+  if (type === 'change') {
+    return (
+      <Block title={title}>
+        {!isLoading && data && defined(value) ? (
+          <PercentChangeCell colorize deltaValue={value} />
         ) : (
           UNDEFINED_TEXT
         )}
