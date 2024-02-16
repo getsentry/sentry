@@ -135,7 +135,7 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  const rendered = renderer(row, {
+  return renderer(row, {
     location,
     organization,
     unit: meta.units?.[column.key],
