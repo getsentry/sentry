@@ -53,7 +53,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -351,7 +351,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
         if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = obj.priority.to_str() if obj.priority else None
+            priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
             group_dict["priority"] = priority_label
             group_dict["priorityLockedAt"] = obj.priority_locked_at
 

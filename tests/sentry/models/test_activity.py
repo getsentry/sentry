@@ -116,7 +116,7 @@ class ActivityTest(TestCase):
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
-        assert act_for_group[-1].data["priority"] == PriorityLevel(PriorityLevel.HIGH)
+        assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
     def test_get_activities_for_group_simple_priority_ff_off(self):
         manager = EventManager(make_event(level=logging.FATAL))
@@ -138,7 +138,7 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PriorityLevel(PriorityLevel.LOW)},
+                data={"priority": PriorityLevel.LOW.to_str()},
                 send_notification=False,
             ),
         ]
