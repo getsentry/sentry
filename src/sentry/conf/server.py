@@ -1478,7 +1478,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enable the Commit Context feature
-    "organizations:commit-context": False,
+    "organizations:commit-context": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry
