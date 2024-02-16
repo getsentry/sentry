@@ -121,6 +121,7 @@ def send_beacon():
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
+    send_cpu_ram_usage = options.get("beacon.record_cpu_ram_usage")
     event_categories_count = get_category_event_count_24h()
     byte_to_gigabyte = 1024**-3
 
@@ -140,10 +141,14 @@ def send_beacon():
             "replays.24h": event_categories_count["replay"],
             "profiles.24h": event_categories_count["profile"],
             "monitors.24h": event_categories_count["monitor"],
-            "cpu_cores_available": psutil.cpu_count(),
-            "cpu_percentage_utilized": psutil.cpu_percent(),
-            "ram_available_gb": psutil.virtual_memory().total * byte_to_gigabyte,
-            "ram_percentage_utilized": psutil.virtual_memory().percent,
+            "cpu_cores_available": psutil.cpu_count() if send_cpu_ram_usage else None,
+            "cpu_percentage_utilized": psutil.cpu_percent() if send_cpu_ram_usage else None,
+            "ram_available_gb": (
+                psutil.virtual_memory().total * byte_to_gigabyte if send_cpu_ram_usage else None
+            ),
+            "ram_percentage_utilized": (
+                psutil.virtual_memory().percent if send_cpu_ram_usage else None
+            ),
         },
         "packages": get_all_package_versions(),
         "anonymous": anonymous,

@@ -36,7 +36,7 @@ from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.settings import is_self_hosted
+from sentry.utils.settings import is_self_hosted, should_show_beacon_consent_prompt
 from sentry.utils.support import get_support_mail
 
 
@@ -358,6 +358,7 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "shouldShowBeaconConsentPrompt": should_show_beacon_consent_prompt(),
             "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
             "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
             "termsUrl": settings.TERMS_URL,
