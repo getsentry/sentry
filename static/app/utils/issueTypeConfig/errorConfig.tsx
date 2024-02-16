@@ -47,7 +47,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'Invariant: attempted to hard navigate to the same URL',
-    projectPlatform: 'react',
+    projectPlatform: 'javascript-nextjs',
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
@@ -78,7 +78,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'socket hang up',
-    projectPlatform: 'node',
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
   },
   {
@@ -326,7 +326,7 @@ const errorHelpTypeResourceMap: Record<
       links: [
         {
           text: t(
-            'Fixing "str object does not support item assignment" errors in Python'
+            'Fixing "\'str\' object does not support item assignment" errors in Python'
           ),
           link: 'https://sentry.io/answers/strings-are-immutable/',
         },
