@@ -7,7 +7,6 @@ from snuba_sdk import Direction
 
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
-
 # TODO: move these types in the right folder.
 
 

@@ -1,12 +1,7 @@
 from abc import ABC
 from typing import Generic, TypeVar
 
-from snuba_sdk import (
-    BooleanCondition,
-    Condition,
-    Formula,
-    Timeseries,
-)
+from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
