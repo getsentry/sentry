@@ -9,7 +9,6 @@ from snuba_sdk.query_visitors import InvalidQueryError
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,

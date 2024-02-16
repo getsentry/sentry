@@ -1,15 +1,10 @@
 from abc import ABC
-from collections.abc import Mapping, Sequence
 from typing import Generic, TypeVar
 
 from snuba_sdk import (
-    AliasedExpression,
     BooleanCondition,
-    BooleanOp,
-    Column,
     Condition,
     Formula,
-    Op,
     Timeseries,
 )
 from snuba_sdk.conditions import ConditionGroup
