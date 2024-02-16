@@ -57,9 +57,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
-    # TODO: These might be slow for many projects, since it will query for each
-    # individually. If we find this to be a problem then we can look into batching.
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        max_length=1,
+    )
     excluded_projects = serializers.ListField(
         child=ProjectField(scope="project:read"), required=False
     )
@@ -117,15 +119,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
-
-    def validate_projects(self, projects):
-        # It seems Alert Rules were designed to allow multiple projects for a single rule but logic
-        # all over the place (UI, other endpoints, etc.) expects only a single project, so limit it
-        # for now.
-        if len(projects) > 1:
-            raise serializers.ValidationError("Metric alerts can only apply to one project")
-
-        return projects
 
     def validate_owner(self, owner):
         # owner should be team:id or user:id

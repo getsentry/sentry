@@ -155,7 +155,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 **data,
             ).json()
             assert "projects" in response_data
-            assert "one project" in response_data["projects"][0]
 
     def test_status_filter(self):
         with outbox_runner(), self.feature(
