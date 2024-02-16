@@ -6,6 +6,7 @@ from unittest import TestCase, mock
 
 import pytest
 from django.utils.functional import SimpleLazyObject
+from redis.exceptions import RedisClusterException
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry.exceptions import InvalidConfiguration
@@ -26,9 +27,9 @@ logger.setLevel(logging.ERROR)
 def _options_manager() -> dict[str, Any]:
     return {
         "redis.clusters": {
-            "foo": {"hosts": {0: {"db": 0}}},
-            "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
-            "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
+            "foo": {"hosts": {0: {"db": 0, "host": "127.0.0.1", "port": 6379}}},
+            "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1, "host": "127.0.0.1", "port": 6379}}},
+            "baz": {"is_redis_cluster": True, "hosts": {0: {"host": "127.0.0.1", "port": 6379}}},
         }
     }
 
@@ -53,9 +54,9 @@ class ClusterManagerTestCase(TestCase):
         # object to verify it's correct.
 
         # cluster foo is fine since it's a single node, without specific client_class
-        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[attr-defined]
-        # baz works becasue it's explicitly is_redis_cluster
-        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[attr-defined]
+        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[union-attr]
+        # baz works because it's explicitly is_redis_cluster
+        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[union-attr]
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster
@@ -122,3 +123,19 @@ def test_get_cluster_from_options_both_options_invalid():
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
+
+
+def test_construct_redis_cluster_with_is_redis_cluster_flag():
+    cluster = _RedisCluster()
+    lazy_object = cluster.factory(
+        decode_responses=True,
+        is_redis_cluster=True,
+        hosts=[{"host": "127.0.0.1", "port": 6379}],
+    )
+    with pytest.raises(RedisClusterException) as exception_info:
+        assert lazy_object
+    (msg,) = exception_info.value.args
+    assert (
+        msg
+        == "Redis Cluster cannot be connected. Please provide at least one reachable node: Cluster mode is not enabled on this node"
+    )
