@@ -140,6 +140,4 @@ function renderBodyCell(
     organization,
     unit: meta.units?.[column.key],
   });
-
-  return rendered;
 }
