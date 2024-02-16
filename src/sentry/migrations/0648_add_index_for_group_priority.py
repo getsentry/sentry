@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0644_backfill_priority_for_groups"),
+        ("sentry", "0647_apitoken_add_hashed_columns"),
     ]
 
     operations = [
