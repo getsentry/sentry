@@ -20,6 +20,7 @@ from sentry.signals import (
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -61,7 +62,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: datetime | None
 ) -> datetime | None:
-    if status == CheckInStatus.IN_PROGRESS:
+    if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
             (monitor_config or {}).get("max_runtime")
         )
@@ -98,7 +99,7 @@ def get_checkin_margin(checkin_margin: int | None) -> timedelta:
 
 def fetch_associated_groups(
     trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end
-) -> dict[str, list[dict[str, int]]]:
+) -> dict[str, list[dict[str, int | str]]]:
     """
     Returns serializer appropriate group_ids corresponding with check-in trace ids
     :param trace_ids: list of trace_ids from the given check-ins
@@ -200,8 +201,11 @@ def fetch_associated_groups(
 
 
 def create_issue_alert_rule(
-    request: Request, project: Project, monitor: Monitor, validated_issue_alert_rule: dict
-):
+    request: AuthenticatedHttpRequest,
+    project: Project,
+    monitor: Monitor,
+    validated_issue_alert_rule: dict,
+) -> int | None:
     """
     Creates an Issue Alert `Rule` instance from a request with the given data
     :param request: Request object
