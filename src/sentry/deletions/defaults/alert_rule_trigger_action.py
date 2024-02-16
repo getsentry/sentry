@@ -1,12 +1,12 @@
 from ..base import ModelDeletionTask, ModelRelation
 
 
-class NotificationMessageDeletionTask(ModelDeletionTask):
+class AlertRuleTriggerActionDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.incidents.models import AlertRuleTriggerAction
+        from sentry.models.notificationmessage import NotificationMessage
 
         return [
-            ModelRelation(AlertRuleTriggerAction, {"notificationmessage_id": instance.id}),
+            ModelRelation(NotificationMessage, {"trigger_action": instance.id}),
         ]
 
     def mark_deletion_in_progress(self, instance_list):
