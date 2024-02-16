@@ -13,44 +13,11 @@ from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
-    FiltersCompositeVisitor,
+    QueryConditionsCompositeVisitor,
     LatestReleaseTransformationVisitor,
-    QueryExpressionVisitor,
-    ValidationVisitor,
+VisitableQueryExpression,
+    QueryValidationVisitor,
 )
-
-
-class VisitableQueryExpression:
-    def __init__(self, query: QueryExpression):
-        self._query = query
-        self._visitors: list[QueryExpressionVisitor[QueryExpression]] = []
-
-    def add_visitor(
-        self, visitor: QueryExpressionVisitor[QueryExpression]
-    ) -> "VisitableQueryExpression":
-        """
-        Adds a visitor to the query expression.
-
-        The visitor can both perform mutations or not on the expression tree.
-        """
-        self._visitors.append(visitor)
-
-        return self
-
-    def get(self) -> QueryExpression:
-        """
-        Returns the mutated query expression after running all the visitors
-        in the order of definition.
-
-        Order preservation does matter, since downstream visitors might work under the
-        assumption that upstream visitors have already been run.
-        """
-        query = self._query
-        for visitor in self._visitors:
-            query = visitor.visit(query)
-
-        return query
-
 
 class QueryParser:
     # We avoid having the filters expression to be closed or opened.
@@ -163,11 +130,11 @@ class QueryParser:
                 field,
                 self._parse_mql(mql_query)
                 # We validate the query.
-                .add_visitor(ValidationVisitor())
+                .add_visitor(QueryValidationVisitor())
                 # We inject the environment filter in each timeseries.
                 .add_visitor(EnvironmentsInjectionVisitor(environments))
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
-                    FiltersCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                    QueryConditionsCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
                 ).get(),
             )
