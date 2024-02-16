@@ -108,7 +108,9 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
 
   return (
     <MiniChartPanel
-      title={startType === 'cold' ? t('Average Cold Start') : t('Average Warm Start')}
+      title={
+        startType === COLD_START_TYPE ? t('Average Cold Start') : t('Average Warm Start')
+      }
       subtitle={
         primaryRelease
           ? t(

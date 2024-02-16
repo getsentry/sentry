@@ -4,7 +4,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -26,6 +25,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
@@ -52,7 +52,8 @@ function DeviceClassBreakdownBarChart({
   } = useReleaseSelection();
 
   const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
-  const yAxis = YAXIS_COLUMNS[startType === 'cold' ? YAxis.COLD_START : YAxis.WARM_START];
+  const yAxis =
+    YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);
 
   const searchQuery = decodeScalar(locationQuery.query, '');
@@ -71,7 +72,7 @@ function DeviceClassBreakdownBarChart({
       {
         name: '',
         fields: [
-          startType === 'cold'
+          startType === COLD_START_TYPE
             ? 'avg(measurements.app_start_cold)'
             : 'avg(measurements.app_start_warm)',
           'device.class',
@@ -93,7 +94,7 @@ function DeviceClassBreakdownBarChart({
     initialData: {data: []},
   });
 
-  const transformedData: {} = transformDeviceClassEvents({
+  const transformedData = transformDeviceClassEvents({
     data: startupDataByDeviceClass,
     yAxes: YAXES,
     primaryRelease,
@@ -102,14 +103,14 @@ function DeviceClassBreakdownBarChart({
 
   const data = Object.values(
     transformedData[
-      YAXIS_COLUMNS[startType === 'cold' ? YAxis.COLD_START : YAxis.WARM_START]
+      YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START]
     ]
-  ) as Series[];
+  );
 
   return (
     <MiniChartPanel
       title={
-        startType === 'cold'
+        startType === COLD_START_TYPE
           ? t('Cold Start Device Distribution')
           : t('Warm Start Device Distribution')
       }
