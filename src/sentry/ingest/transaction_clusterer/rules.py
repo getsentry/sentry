@@ -60,11 +60,10 @@ class RedisRuleStore:
         key = self._get_rules_key(project)
 
         with client.pipeline() as p:
+            # to be consistent with other stores, clear previous hash entries:
+            p.delete(key)
             if len(rules) > 0:
-                p.hset(key, mapping=rules)
-            else:
-                # to be consistent with other stores, clear previous hash entries:
-                p.delete(key)
+                p.hmset(key, rules)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
