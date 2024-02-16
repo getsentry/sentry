@@ -2,7 +2,7 @@ import hashlib
 from datetime import timedelta
 from typing import TypeVar
 
-from redis.cluster import RedisCluster
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.utils.codecs import JSONCodec
@@ -20,10 +20,10 @@ class MultiRedisProcessingStore(EventProcessingStore):
     Adapter to shift traffic from one redis cluster to another
     """
 
-    def __init__(self, old_cluster: str, new_cluster: str):
+    def __init__(self, **options):
         inner = MultiRedisKVStorage(
-            old_cluster=redis_clusters.get(old_cluster),  # type: ignore[arg-type]
-            new_cluster=redis_clusters.get(new_cluster),  # type: ignore[arg-type]
+            old_cluster=redis_clusters.get(options["old_cluster"]),
+            new_cluster=redis_clusters.get(options["new_cluster"]),
         )
         super().__init__(KVStorageCodecWrapper(inner, JSONCodec()))
 
