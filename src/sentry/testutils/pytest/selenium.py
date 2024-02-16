@@ -348,6 +348,7 @@ def pytest_addoption(parser):
     group._addoption(
         "--selenium-driver",
         dest="selenium_driver",
+        default="chrome",
         help="selenium driver (chrome, or firefox)",
     )
     group._addoption(
