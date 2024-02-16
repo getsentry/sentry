@@ -2,16 +2,24 @@ import {Component, createRef, Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
+
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TimeSince from 'sentry/components/timeSince';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
+import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -22,7 +30,6 @@ import {getDuration} from 'sentry/utils/formatters';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import type {
   TraceError,
   TraceFullDetailed,
@@ -30,6 +37,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
@@ -38,14 +47,6 @@ import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import type {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
-import useProjects from 'sentry/utils/useProjects';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Button} from 'sentry/components/button';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {IconClose} from 'sentry/icons';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
@@ -426,8 +427,8 @@ class TraceDetailsContent extends Component<Props, State> {
 }
 
 type OnlyOrphanErrorWarningsProps = {
-  orphanErrors: TraceError[];
   organization: Organization;
+  orphanErrors: TraceError[];
 };
 function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   const {projects} = useProjects();
