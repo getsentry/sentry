@@ -108,7 +108,7 @@ describe('DomainSelector', function () {
 
     await tick();
 
-    expect(screen.getByText('pg_data')).toBeInTheDocument();
+    expect(await screen.findByText('pg_data')).toBeInTheDocument();
     expect(screen.queryByText('sentry_user')).not.toBeInTheDocument();
     expect(screen.queryByText('sentry_organization')).not.toBeInTheDocument();
 
