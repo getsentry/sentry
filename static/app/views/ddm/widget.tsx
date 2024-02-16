@@ -131,9 +131,10 @@ export const MetricWidget = memo(
       return {
         data: samplesQuery.data,
         onClick: onSampleClick,
+        unit: parseMRI(firstQuery.mri)?.unit ?? '',
         higlightedId: highlightedSampleId,
       };
-    }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
+    }, [samplesQuery.data, onSampleClick, firstQuery.mri, highlightedSampleId]);
 
     const widgetTitle =
       queries.length === 1
@@ -221,6 +222,7 @@ interface MetricWidgetBodyProps {
 }
 
 export interface SamplesProps {
+  unit: string;
   data?: MetricCorrelation[];
   higlightedId?: string;
   onClick?: (sample: Sample) => void;
