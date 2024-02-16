@@ -6,11 +6,14 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.models import AlertRule
-from sentry.models.dashboard_widget import DashboardWidgetQuery
+from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.relay.config.metric_extraction import get_metric_extraction_config
+from sentry.relay.config.metric_extraction import (
+    get_current_widget_specs,
+    get_metric_extraction_config,
+)
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
@@ -18,6 +21,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
+    SpecVersion,
     TagSpec,
     _deep_sorted,
     fetch_on_demand_metric_spec,
@@ -1965,3 +1969,59 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
             assert config and config["metrics"]
 
             assert capture_exception.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["current_version", "expected"],
+    [
+        pytest.param(SpecVersion(2), {"1234", "5678"}, id="test_returns_current_version"),
+        pytest.param(SpecVersion(1), {"abcd", "defg"}, id="test_returns_specified_version"),
+    ],
+)
+@django_db_all
+def test_get_current_widget_specs(
+    default_project: Project, current_version: SpecVersion, expected: set[str]
+) -> None:
+    for i, spec in enumerate(
+        [
+            {
+                "version": 1,
+                "hashes": ["abcd", "defg"],
+                "state": "enabled:manual",
+            },
+            {
+                "version": 2,
+                "hashes": ["1234", "5678"],
+                "state": "enabled:manual",
+            },
+            {
+                "version": 2,
+                "hashes": ["ab12", "cd78"],
+                "state": "disabled:high-cardinality",
+            },
+            {
+                "version": 2,
+                "hashes": ["1234"],
+                "state": "enabled:manual",
+            },
+        ]
+    ):
+        widget_query, _, _ = create_widget(
+            ["epm()"],
+            f"transaction.duration:>={i}",
+            default_project,
+            title=f"Dashboard {i}",
+            columns=["user.id", "release", "count()"],
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=widget_query,
+            spec_version=spec["version"],
+            spec_hashes=spec["hashes"],
+            extraction_state=spec["state"],
+        )
+    with mock.patch(
+        "sentry.snuba.metrics.extraction.OnDemandMetricSpecVersioning.get_query_spec_version",
+        return_value=current_version,
+    ):
+        specs = get_current_widget_specs(default_project.organization)
+    assert specs == expected

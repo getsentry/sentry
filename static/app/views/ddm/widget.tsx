@@ -24,6 +24,10 @@ import {
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  getMetricValueNormalizer,
+  getNormalizedMetricUnit,
+} from 'sentry/utils/metrics/normalizeMetricValue';
 import type {
   FocusedMetricsSeries,
   MetricCorrelation,
@@ -127,9 +131,10 @@ export const MetricWidget = memo(
       return {
         data: samplesQuery.data,
         onClick: onSampleClick,
+        unit: parseMRI(firstQuery.mri)?.unit ?? '',
         higlightedId: highlightedSampleId,
       };
-    }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
+    }, [samplesQuery.data, onSampleClick, firstQuery.mri, highlightedSampleId]);
 
     const widgetTitle =
       queries.length === 1
@@ -217,6 +222,7 @@ interface MetricWidgetBodyProps {
 }
 
 export interface SamplesProps {
+  unit: string;
   data?: MetricCorrelation[];
   higlightedId?: string;
   onClick?: (sample: Sample) => void;
@@ -400,10 +406,15 @@ export function getChartTimeseries(
     const unit = parsed?.unit ?? '';
     const field = MRIToField(query.mri, query.op ?? '');
 
+    // We normalize metric units to make related units
+    // (e.g. seconds & milliseconds) render in the correct ratio
+    const normalizedUnit = getNormalizedMetricUnit(unit);
+    const normalizeValue = getMetricValueNormalizer(unit);
+
     return group.map(entry => ({
-      unit,
+      unit: normalizedUnit,
       operation: query.op,
-      values: entry.series,
+      values: entry.series.map(normalizeValue),
       name: getMetricsSeriesName(field, entry.by, isMultiQuery),
       groupBy: entry.by,
       transaction: entry.by.transaction,
@@ -440,6 +451,7 @@ export type Series = {
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;
+  paddingIndices?: Set<number>;
   release?: string;
   transaction?: string;
 };

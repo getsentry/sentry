@@ -202,13 +202,28 @@ class MonitorCheckInSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         # prefetch monitor environment data
-        prefetch_related_objects(item_list, "monitor_environment__environment")
+        prefetch_related_objects(item_list, "monitor_environment")
 
-        attrs = {}
+        attrs: dict[MonitorCheckIn, dict[str, Any]] = defaultdict(dict)
+
+        monitor_envs = [
+            checkin.monitor_environment for checkin in item_list if checkin.monitor_environment_id
+        ]
+        envs = {
+            env.id: env
+            for env in Environment.objects.filter(id__in=[me.environment_id for me in monitor_envs])
+        }
+        for checkin in item_list:
+            env_name = None
+            if checkin.monitor_environment:
+                env_name = envs[checkin.monitor_environment.environment_id].name
+
+            attrs[checkin]["environment_name"] = env_name
+
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
-            trace_groups: dict[str, list[dict[str, int]]] = defaultdict(list)
+            trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
 
             for item in item_list:
                 if item.trace_id:
@@ -219,21 +234,17 @@ class MonitorCheckInSerializer(Serializer):
                     trace_ids, self.organization_id, self.project_id, self.start, self.end
                 )
 
-            attrs = {
-                item: {
-                    "groups": trace_groups.get(item.trace_id.hex, []) if item.trace_id else [],
-                }
-                for item in item_list
-            }
+            for checkin in item_list:
+                attrs[item]["groups"] = (
+                    trace_groups.get(checkin.trace_id.hex, []) if checkin.trace_id else []
+                )
 
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
-            "environment": obj.monitor_environment.environment.name
-            if obj.monitor_environment
-            else None,
+            "environment": attrs["environment_name"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
