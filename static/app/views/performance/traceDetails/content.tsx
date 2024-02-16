@@ -22,6 +22,7 @@ import {getDuration} from 'sentry/utils/formatters';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import type {
   TraceError,
   TraceFullDetailed,
@@ -37,6 +38,14 @@ import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import type {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import useProjects from 'sentry/utils/useProjects';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Button} from 'sentry/components/button';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import {IconClose} from 'sentry/icons';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
@@ -303,18 +312,12 @@ class TraceDetailsContent extends Component<Props, State> {
           </ExternalLink>
         </Alert>
       );
-    } else if (orphanErrors && orphanErrors.length > 1) {
+    } else if (orphanErrors && orphanErrors.length > 0) {
       warning = (
-        <Alert type="info" showIcon>
-          {tct(
-            "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-            {
-              tracingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-              ),
-            }
-          )}
-        </Alert>
+        <OnlyOrphanErrorWarnings
+          orphanErrors={orphanErrors}
+          organization={this.props.organization}
+        />
       );
     }
 
@@ -421,6 +424,175 @@ class TraceDetailsContent extends Component<Props, State> {
     );
   }
 }
+
+type OnlyOrphanErrorWarningsProps = {
+  orphanErrors: TraceError[];
+  organization: Organization;
+};
+function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
+  const {projects} = useProjects();
+  const projectSlug = orphanErrors[0].project_slug;
+  const project = projects.find(p => p.slug === projectSlug);
+  const LOCAL_STORAGE_KEY = `${project?.id}:issue-details-replay-onboarding-hide`;
+  const currentPlatform = project?.platform;
+  const hasPerformanceOnboarding = currentPlatform
+    ? withPerformanceOnboarding.has(currentPlatform)
+    : false;
+
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 7,
+  });
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 365,
+  });
+
+  if (!orphanErrors.length) {
+    return null;
+  }
+
+  if (!hasPerformanceOnboarding) {
+    return (
+      <Alert type="info" showIcon>
+        {tct(
+          "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
+          {
+            tracingLink: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+            ),
+          }
+        )}
+      </Alert>
+    );
+  }
+
+  if (isDismissed || isSnoozed) {
+    return null;
+  }
+
+  return (
+    <BannerWrapper>
+      <div>
+        <BannerTitle>{t('Connect with Dots')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            "Want to know why this string of errors happend? If you haven't already, update your SDK with this snippet to figure out what operations are running between your errors."
+          )}
+        </BannerDescription>
+        <ButtonsWrapper>
+          <ActionButton>
+            <Button
+              priority="primary"
+              onClick={event => {
+                event.preventDefault();
+                SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+              }}
+            >
+              {t('Update SDKs')}
+            </Button>
+          </ActionButton>
+          <ActionButton>
+            <Button
+              onClick={event => {
+                event.preventDefault();
+                SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+              }}
+            >
+              {t('Learn More')}
+            </Button>
+          </ActionButton>
+        </ButtonsWrapper>
+      </div>
+      {<Background image={emptyStateImg} />}
+      <CloseDropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          showChevron: false,
+          borderless: true,
+          icon: <IconClose color="subText" />,
+        }}
+        size="xs"
+        items={[
+          {
+            key: 'dismiss',
+            label: t('Dismiss'),
+            onAction: () => {
+              dismiss();
+            },
+          },
+          {
+            key: 'snooze',
+            label: t('Snooze'),
+            onAction: () => {
+              snooze();
+            },
+          },
+        ]}
+      />
+    </BannerWrapper>
+  );
+}
+
+const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: 26px;
+  margin: ${space(1)} 0;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+`;
+
+const ButtonsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const BannerTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+  font-weight: 600;
+`;
+
+const BannerDescription = styled('div')`
+  margin-bottom: ${space(1.5)};
+`;
+
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
+`;
+
+const Background = styled('div')<{image: any}>`
+  display: flex;
+  justify-self: flex-end;
+  position: absolute;
+  top: 6px;
+  right: 49px;
+  height: 100%;
+  width: 100%;
+  max-width: 413px;
+  background-image: url(${p => p.image});
+  background-repeat: no-repeat;
+  background-size: contain;
+`;
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin-bottom: 0;
