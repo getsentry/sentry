@@ -12,7 +12,6 @@ from sentry_redis_tools.sliding_windows_rate_limiter import RequestedQuota, Time
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
-from sentry.utils.redis import disconnect_redis_connection_pools
 from sentry.utils.services import Service
 
 __all__ = ["Quota", "GrantedQuota", "RequestedQuota", "Timestamp"]
@@ -143,7 +142,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            disconnect_redis_connection_pools(self.client)
+            self.client.connection_pool.disconnect()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 

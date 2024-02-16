@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[chalice]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[chalice]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
