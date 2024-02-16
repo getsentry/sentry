@@ -130,6 +130,7 @@ function ScreenSummary() {
                   blocks={[
                     {
                       type: 'duration',
+                      allowZero: false,
                       title:
                         appStartType === COLD_START_TYPE
                           ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
@@ -138,6 +139,7 @@ function ScreenSummary() {
                     },
                     {
                       type: 'duration',
+                      allowZero: false,
                       title:
                         appStartType === COLD_START_TYPE
                           ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
