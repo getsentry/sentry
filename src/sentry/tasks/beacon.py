@@ -121,7 +121,12 @@ def send_beacon():
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
-    send_cpu_ram_usage = options.get("beacon.record_cpu_ram_usage")
+    # getting an option sets it to the default value, so let's avoid doing that if for some reason consent prompt is somehow skipped because of this
+    send_cpu_ram_usage = (
+        options.get("beacon.record_cpu_ram_usage")
+        if options.isset("beacon.record_cpu_ram_usage")
+        else False
+    )
     event_categories_count = get_category_event_count_24h()
     byte_to_gigabyte = 1024**-3
 
