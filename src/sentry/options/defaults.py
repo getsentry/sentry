@@ -1887,24 +1887,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# sample rate for using v2 of deobfuscation that
-# uses function params when line info is missing
-register(
-    "profiling.android.deobfuscation_v2_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# org IDs that will be using v2 of deobfuscation
-# regardless of the sample rate defined by:
-# "profiling.android.deobfuscation_v2_sample_rate"
-register(
-    "profiling.android.deobfuscation_v2_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # The flag disables the file io on main thread detector
 register(
     "performance_issues.file_io_main_thread.disabled",
