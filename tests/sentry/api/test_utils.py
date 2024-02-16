@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 from sentry_sdk import Scope
-from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
@@ -112,12 +111,13 @@ class PrintAndCaptureHandlerExceptionTest(APITestCase):
 
     @patch("sys.stderr.write")
     def test_logs_error_locally(self, mock_stderr_write: MagicMock):
-        exc_info = exc_info_from_error(self.handler_error)
+        try:
+            raise self.handler_error
+        except Exception as e:
+            print_and_capture_handler_exception(e)
 
-        with patch("sys.exc_info", return_value=exc_info):
-            print_and_capture_handler_exception(self.handler_error)
-
-            mock_stderr_write.assert_called_with("Exception: nope\n")
+        (((s,), _),) = mock_stderr_write.call_args_list
+        assert s.splitlines()[-1] == "Exception: nope"
 
     @patch("sentry.api.utils.capture_exception")
     def test_passes_along_exception(
