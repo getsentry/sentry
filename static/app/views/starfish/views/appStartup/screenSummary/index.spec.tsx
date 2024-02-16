@@ -6,6 +6,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import ScreenSummary from 'sentry/views/starfish/views/appStartup/screenSummary';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -80,6 +81,21 @@ describe('Screen Summary', function () {
     });
 
     it('renders the top level metrics data correctly', async function () {
+      jest.mocked(useLocation).mockReturnValue({
+        action: 'PUSH',
+        hash: '',
+        key: '',
+        pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
+        query: {
+          project: project.id,
+          transaction: 'MainActivity',
+          primaryRelease: 'com.example.vu.android@2.10.5',
+          secondaryRelease: 'com.example.vu.android@2.10.3+42',
+          [SpanMetricsField.APP_START_TYPE]: 'cold',
+        },
+        search: '',
+        state: undefined,
+      } as Location);
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
@@ -88,13 +104,9 @@ describe('Screen Summary', function () {
               'span.op': 'app.start.cold',
               'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 1000,
               'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 2000,
+              'avg_compare(span.duration,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
+                -0.5,
               'count()': 20,
-            },
-            {
-              'span.op': 'app.start.warm',
-              'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 5000,
-              'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 6000,
-              'count()': 30,
             },
           ],
         },
@@ -112,9 +124,8 @@ describe('Screen Summary', function () {
       const blocks = [
         {header: 'Cold Start (R1)', value: '1.00s'},
         {header: 'Cold Start (R2)', value: '2.00s'},
-        {header: 'Warm Start (R1)', value: '5.00s'},
-        {header: 'Warm Start (R2)', value: '6.00s'},
-        {header: 'Count', value: '50'},
+        {header: 'Change', value: '-50%'},
+        {header: 'Count', value: '20'},
       ];
 
       for (const block of blocks) {
