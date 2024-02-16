@@ -31,7 +31,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
 type ErrorInfo = {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp;
-  projectPlatform: PlatformKey | RegExp;
+  projectPlatform: PlatformKey;
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
@@ -88,7 +88,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'UnboundLocalError',
-    projectPlatform: /^python(-.*)?$/, // matches 'python' and 'python-*' so all python platforms are captured
+    projectPlatform: 'python', // matches 'python' and 'python-*' so all python platforms are captured
     errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
   },
   {
@@ -98,17 +98,17 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'ModuleNotFoundError: No module named',
-    projectPlatform: /^python(-.*)?$/,
+    projectPlatform: 'python',
     errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
   },
   {
     errorTitle: "TypeError: 'str' object does not support item assignment",
-    projectPlatform: /^python(-.*)?$/,
+    projectPlatform: 'python',
     errorHelpType: ErrorHelpType.STRINGS_ARE_IMMUTABLE,
   },
   {
     errorTitle: 'Invariant Violation',
-    projectPlatform: 'react',
+    projectPlatform: 'javascript',
     errorHelpType: ErrorHelpType.INVARIANT_VIOLATION_ERROR,
   },
 ];
@@ -275,12 +275,12 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.UNBOUND_LOCAL_ERROR]: {
     resources: {
       description: tct(
-        '[errorTypes] occur in python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
+        '[errorTypes] occur in Python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
         {errorTypes: <b>Unbound local errors</b>}
       ),
       links: [
         {
-          text: t('Fixing "unbound local" errors in Next.js'),
+          text: t('Fixing "unbound local" errors in Python'),
           link: 'https://sentry.io/answers/unbound-local-error/',
         },
       ],
@@ -337,7 +337,7 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.INVARIANT_VIOLATION_ERROR]: {
     resources: {
       description: tct(
-        '[errorTypes] occur in React applications when modules are imported incorrectly. To learn more about how to fix these errors, check out these resources:',
+        '[errorTypes] occur in React when modules are imported incorrectly. To learn more about how to fix these errors, check out these resources:',
         {errorTypes: <b>Invariant violation errors</b>}
       ),
       links: [
@@ -367,10 +367,7 @@ export function getErrorHelpResource({
 
     if (shouldShowCustomResource) {
       // Issues without a platform will never have a custom "Sentry Answers" resource
-      const isCorrectPlatform =
-        typeof projectPlatform === 'string'
-          ? (project.platform || '').includes(projectPlatform)
-          : (project.platform || '').match(projectPlatform);
+      const isCorrectPlatform = (project.platform || '').includes(projectPlatform);
       if (!isCorrectPlatform) {
         continue;
       }
