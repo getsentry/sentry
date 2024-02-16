@@ -58,7 +58,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
 
-class PrioritySortWeights(TypedDict):
+class TrendsSortWeights(TypedDict):
     log_level: int
     has_stacktrace: int
     relative_volume: int
@@ -68,7 +68,7 @@ class PrioritySortWeights(TypedDict):
     norm: bool
 
 
-DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
+DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
     "relative_volume": 1,
@@ -80,7 +80,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
 
 
 @dataclass
-class PriorityParams:
+class TrendsParams:
     # (event or issue age_hours) / (event or issue halflife hours)
     # any event or issue age that is greater than max_pow times the half-life hours will get clipped
     max_pow: int
@@ -191,7 +191,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -241,7 +241,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
         replace_priority_aggregation: bool | None = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
@@ -259,7 +259,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
                 else:
-                    aggregation = aggregation(start, end, DEFAULT_PRIORITY_WEIGHTS)
+                    aggregation = aggregation(start, end, DEFAULT_TRENDS_WEIGHTS)
             aggregations.append(aggregation + [alias])
 
         return aggregations
@@ -280,7 +280,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         cursor: Cursor | None,
         get_sample: bool,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -371,7 +371,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         search_filters: Sequence[SearchFilter] | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> tuple[list[tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
@@ -509,10 +509,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 def priority_aggregation(
     start: datetime,
     end: datetime,
-    aggregate_kwargs: PrioritySortWeights,
+    aggregate_kwargs: TrendsSortWeights,
 ) -> Sequence[str]:
     return priority_aggregation_impl(
-        PriorityParams(
+        TrendsParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -535,10 +535,10 @@ def priority_aggregation(
 def priority_issue_platform_aggregation(
     start: datetime,
     end: datetime,
-    aggregate_kwargs: PrioritySortWeights,
+    aggregate_kwargs: TrendsSortWeights,
 ) -> Sequence[str]:
     return priority_aggregation_impl(
-        PriorityParams(
+        TrendsParams(
             max_pow=16,
             min_score=0.01,
             event_age_weight=1,
@@ -559,7 +559,7 @@ def priority_issue_platform_aggregation(
 
 
 def priority_aggregation_impl(
-    params: PriorityParams,
+    params: TrendsParams,
     timestamp_column: str,
     use_stacktrace: bool,
     start: datetime,
@@ -737,7 +737,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -1229,7 +1229,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
@@ -1423,7 +1423,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         if not self.validate_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")

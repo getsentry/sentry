@@ -34,7 +34,7 @@ from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     SnubaSearchBackendBase,
 )
-from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
+from sentry.search.snuba.executors import InvalidQueryForExecutor, TrendsSortWeights
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
@@ -376,7 +376,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert list(results) == [self.group1, self.group2]
 
     def test_priority_sort(self):
-        weights: PrioritySortWeights = {
+        weights: TrendsSortWeights = {
             "log_level": 5,
             "has_stacktrace": 5,
             "relative_volume": 1,
@@ -2684,7 +2684,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        weights: PrioritySortWeights = {
+        weights: TrendsSortWeights = {
             "log_level": 0,
             "has_stacktrace": 0,
             "relative_volume": 1,
@@ -2734,7 +2734,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        weights: PrioritySortWeights = {
+        weights: TrendsSortWeights = {
             "log_level": 0,
             "has_stacktrace": 0,
             "relative_volume": 1,
