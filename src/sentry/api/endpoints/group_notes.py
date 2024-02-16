@@ -2,11 +2,10 @@ from datetime import timedelta
 
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import AuthenticatedRequest, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
@@ -25,7 +24,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: AuthenticatedRequest, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
@@ -36,7 +35,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: Request, group) -> Response:
+    def post(self, request: AuthenticatedRequest, group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={
