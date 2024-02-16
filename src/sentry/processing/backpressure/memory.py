@@ -4,7 +4,7 @@ from typing import Any, Union
 
 import rb
 import requests
-from redis.cluster import RedisCluster
+from rediscluster import RedisCluster
 
 
 @dataclass
