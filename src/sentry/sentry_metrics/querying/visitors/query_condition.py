@@ -1,36 +1,20 @@
-from abc import ABC
 from collections.abc import Mapping, Sequence
-from typing import Generic, TypeVar
 
 from snuba_sdk import (
-    AliasedExpression,
     BooleanCondition,
     BooleanOp,
     Column,
     Condition,
-    Formula,
     Op,
-    Timeseries,
 )
-from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
-from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
 )
-from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
-from sentry.snuba.metrics import parse_mri
-
-TVisited = TypeVar("TVisited")
-
-
-
-
-
-
+from sentry.sentry_metrics.querying.types import QueryCondition
+from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
 
 
 class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):

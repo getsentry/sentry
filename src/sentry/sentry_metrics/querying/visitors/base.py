@@ -1,0 +1,87 @@
+from abc import ABC
+from collections.abc import Mapping, Sequence
+from typing import Generic, TypeVar
+
+from snuba_sdk import (
+    AliasedExpression,
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Formula,
+    Op,
+    Timeseries,
+)
+from snuba_sdk.conditions import ConditionGroup
+from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
+
+TVisited = TypeVar("TVisited")
+
+class QueryExpressionVisitor(ABC, Generic[TVisited]):
+    """
+    Abstract visitor that defines a visiting behavior of a `QueryExpression`.
+    """
+
+    def visit(self, query_expression: QueryExpression) -> TVisited:
+        if isinstance(query_expression, Formula):
+            return self._visit_formula(query_expression)
+        elif isinstance(query_expression, Timeseries):
+            return self._visit_timeseries(query_expression)
+        elif isinstance(query_expression, float):
+            return self._visit_number(query_expression)
+        elif isinstance(query_expression, str):
+            return self._visit_string(query_expression)
+
+        raise AssertionError(f"Unhandled query expression {query_expression}")
+
+    def _visit_formula(self, formula: Formula) -> TVisited:
+        # The default implementation just mutates the parameters of the `Formula`.
+        parameters = []
+        for parameter in formula.parameters:
+            parameters.append(self.visit(parameter))
+
+        return formula.set_parameters(parameters)
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
+        raise timeseries
+
+    def _visit_number(self, number: float):
+        return number
+
+    def _visit_string(self, string: str):
+        return string
+
+
+class QueryConditionVisitor(ABC, Generic[TVisited]):
+    """
+    Abstract visitor that defines a visiting behavior of a `QueryCondition`.
+    """
+
+    def visit_group(self, condition_group: ConditionGroup) -> ConditionGroup:
+        if not condition_group:
+            return condition_group
+
+        visited_conditions = []
+        for condition in condition_group:
+            visited_conditions.append(self.visit(condition))
+
+        return visited_conditions
+
+    def visit(self, query_condition: QueryCondition) -> TVisited:
+        if isinstance(query_condition, BooleanCondition):
+            return self._visit_boolean_condition(query_condition)
+        elif isinstance(query_condition, Condition):
+            return self._visit_condition(query_condition)
+
+        raise AssertionError(f"Unhandled query condition {query_condition}")
+
+    def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
+        conditions = []
+
+        for condition in boolean_condition.conditions:
+            conditions.append(self.visit(condition))
+
+        return BooleanCondition(op=boolean_condition.op, conditions=conditions)
+
+    def _visit_condition(self, condition: Condition) -> TVisited:
+        raise condition
