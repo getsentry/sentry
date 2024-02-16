@@ -55,7 +55,7 @@ python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
-exclude = ["^.venv/", "^self-hosted/"]
+exclude = ["^.venv/", "^venv/", "^self-hosted/"]
 
 # minimal strictness settings
 check_untyped_defs = true
@@ -388,7 +388,6 @@ module = [
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
     "sentry.monitors.endpoints.monitor_ingest_checkin_details",
     "sentry.monitors.endpoints.organization_monitor_index",
-    "sentry.monitors.utils",
     "sentry.monkey.pickle",
     "sentry.net.http",
     "sentry.net.socket",
