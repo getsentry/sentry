@@ -5,7 +5,7 @@ from sentry.models.notificationmessage import NotificationMessage
 
 class NotificationMessageRepository:
     """
-    A repository class is responsible for the interactions with the data store for the NotificationMessage data model.
+    The repository class is responsible for the interactions with the data store for the NotificationMessage data model.
     The class helps separate the query interface with the actual data store for the NotificationMessage data model.
 
     If we scale quickly, the current NotificationMessage data model will have to shift from django postgres to
