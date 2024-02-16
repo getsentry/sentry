@@ -145,21 +145,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [series, fogOfWarBuckets, displayType]
     );
 
-    const valueFormatter = useCallback(
-      (value: number) => {
-        return formatMetricsUsingUnitAndOp(value, unit, operation);
-      },
-      [unit, operation]
-    );
-
     const samples = useChartSamples({
       chartRef,
       correlations: scatter?.data,
+      unit: scatter?.unit,
       onClick: scatter?.onClick,
       highlightedSampleId: scatter?.higlightedId,
       operation,
       timeseries: series,
-      valueFormatter,
     });
 
     const chartProps = useMemo(() => {

@@ -7,6 +7,8 @@ import moment from 'moment';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {isCumulativeOp} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {getMetricValueNormalizer} from 'sentry/utils/metrics/normalizeMetricValue';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
 import type {Sample} from 'sentry/views/ddm/widget';
@@ -20,7 +22,7 @@ type UseChartSamplesProps = {
   onMouseOut?: (sample: Sample) => void;
   onMouseOver?: (sample: Sample) => void;
   operation?: string;
-  valueFormatter?: (value: number) => string;
+  unit?: string;
 };
 
 // TODO: remove this once we have a stabilized type for this
@@ -40,10 +42,10 @@ export function useChartSamples({
   correlations,
   onClick,
   highlightedSampleId,
+  unit = '',
   chartRef,
   operation,
   timeseries,
-  valueFormatter,
 }: UseChartSamplesProps) {
   const theme = useTheme();
 
@@ -130,11 +132,13 @@ export function useChartSamples({
       return [];
     }
 
+    const normalizeMetric = getMetricValueNormalizer(unit ?? '');
+
     return Object.values(samples).map(sample => {
       const isHighlighted = highlightedSampleId === sample.transactionId;
 
       const xValue = moment(sample.timestamp).valueOf();
-      const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
+      const yValue = normalizeMetric(((sample.min ?? 0) + (sample.max ?? 0)) / 2) ?? 0;
 
       const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
 
@@ -179,7 +183,7 @@ export function useChartSamples({
         z: 10,
       };
     });
-  }, [samples, highlightedSampleId, theme.purple400, valueRect, operation]);
+  }, [operation, unit, samples, highlightedSampleId, valueRect, theme.purple400]);
 
   const formatters = useMemo(() => {
     return {
@@ -191,15 +195,13 @@ export function useChartSamples({
         return t('Event %s', name.substring(0, 8));
       },
       valueFormatter: (_, label?: string) => {
+        // We need to access the sample as the charts datapoints are fit to the charts viewport
         const sample = samples[label ?? ''];
         const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
-        if (!valueFormatter) {
-          return yValue.toPrecision(5);
-        }
-        return valueFormatter(yValue);
+        return formatMetricsUsingUnitAndOp(yValue, unit, operation);
       },
     };
-  }, [samples, valueFormatter]);
+  }, [operation, samples, unit]);
 
   return {
     handleClick,
