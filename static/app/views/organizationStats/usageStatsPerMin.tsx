@@ -14,8 +14,6 @@ type Props = {
   projectIds: number[];
 };
 
-type UsageStatsType = UsageSeries | undefined;
-
 /**
  * Making 1 extra API call to display this number isn't very efficient.
  * The other approach would be to fetch the data in UsageStatsOrg with 1min
@@ -31,7 +29,7 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     data: orgStats,
     isLoading,
     isError,
-  } = useApiQuery<UsageStatsType>(
+  } = useApiQuery<UsageSeries>(
     [
       `/organizations/${organization.slug}/stats_v2/`,
       {
@@ -49,11 +47,11 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     }
   );
 
-  const minuteData = (): string | undefined => {
-    if (isLoading || isError || !orgStats || orgStats.intervals.length === 0) {
-      return undefined;
-    }
+  if (isLoading || isError || !orgStats || orgStats.intervals.length === 0) {
+    return null;
+  }
 
+  const minuteData = (): string | undefined => {
     // The last minute in the series is still "in progress"
     // Read data from 2nd last element for the latest complete minute
     const {intervals, groups} = orgStats;
@@ -77,10 +75,6 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
       getFormatUsageOptions(dataCategory)
     );
   };
-
-  if (!minuteData()) {
-    return null;
-  }
 
   return (
     <Wrapper>
