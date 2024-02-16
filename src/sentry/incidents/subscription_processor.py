@@ -10,6 +10,7 @@ from typing import TypeVar, cast
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -47,7 +48,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import RetryingRedisCluster
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
