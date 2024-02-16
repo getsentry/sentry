@@ -42,6 +42,7 @@ from sentry.monitors.utils import (
     update_issue_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
 
@@ -98,7 +99,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization, project, monitor) -> Response:
+    def put(self, request: AuthenticatedHttpRequest, organization, project, monitor) -> Response:
         """
         Update a monitor.
         """
