@@ -263,7 +263,7 @@ def create_issue_platform_occurrence(
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
     monitor_env = failed_checkin.monitor_environment
-    current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+    current_timestamp = datetime.now(timezone.utc)
 
     occurrence_data = get_occurrence_data(failed_checkin)
 

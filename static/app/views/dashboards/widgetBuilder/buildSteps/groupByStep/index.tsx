@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import type {Organization, TagCollection} from 'sentry/types';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import type {DataSet} from '../../utils';
-import {useGroupByOptions} from '../../utils';
 import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 
@@ -25,10 +25,12 @@ export function GroupByStep({
   onGroupByChange,
   organization,
   tags,
-  queries,
 }: Props) {
-  const widgetType = DATA_SET_TO_WIDGET_TYPE[dataSet];
-  const groupByOptions = useGroupByOptions(organization, tags, widgetType, queries);
+  const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
+
+  const groupByOptions = datasetConfig.getGroupByFieldOptions
+    ? datasetConfig.getGroupByFieldOptions(organization, tags)
+    : {};
 
   return (
     <BuildStep

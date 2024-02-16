@@ -2369,7 +2369,7 @@ class ReplaysSnubaTestCase(TestCase):
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        self.now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self.now = datetime.now(timezone.utc)
         super().setUp()
         self.drop_replays()
         patcher = mock.patch("django.utils.timezone.now", return_value=self.now)
@@ -3062,7 +3062,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment=environment, **monitorenvironment_defaults
         )
 
-    def _create_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
