@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -61,6 +63,19 @@ function ScreenSummary() {
     [SpanMetricsField.APP_START_TYPE]: appStartType,
     'device.class': deviceClass,
   } = location.query;
+
+  useEffect(() => {
+    // Default the start type to cold start if not present
+    if (!appStartType) {
+      browserHistory.replace({
+        ...location,
+        query: {
+          ...location.query,
+          [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+        },
+      });
+    }
+  }, [location, appStartType]);
 
   const startupModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
