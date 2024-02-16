@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import http
 import os
-import platform
 import signal
 import subprocess
 import sys
@@ -22,24 +21,20 @@ if TYPE_CHECKING:
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
-
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
-
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
 # TODO: USE_ORBSTACK
 USE_DOCKER_DESKTOP = not USE_COLIMA
 
-if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
-elif USE_DOCKER_DESKTOP:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
+if DARWIN:
+    if USE_COLIMA:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    elif USE_DOCKER_DESKTOP:
+        # /var/run/docker.sock is now gated behind a docker desktop advanced setting
+        RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
+    # TODO: USE_ORBSTACK
 else:
-    # this is now gated behind a docker desktop advanced setting
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
