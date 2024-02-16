@@ -463,6 +463,9 @@ CSP_FRAME_ANCESTORS = [
 CSP_OBJECT_SRC = [
     "'none'",
 ]
+CSP_WORKER_SRC = [
+    "'none'",
+]
 CSP_BASE_URI = [
     "'none'",
 ]
@@ -486,6 +489,7 @@ if ENVIRONMENT == "development":
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
         "http://localhost:8969/stream",
+        "webpack-internal:",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
