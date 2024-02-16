@@ -503,9 +503,9 @@ class OrganizationMember(ReplicatedRegionModel):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": invite_status_names[self.invite_status]
-            if self.invite_status is not None
-            else None,
+            "invite_status": (
+                invite_status_names[self.invite_status] if self.invite_status is not None else None
+            ),
         }
 
     def get_teams(self):
@@ -521,12 +521,9 @@ class OrganizationMember(ReplicatedRegionModel):
 
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership
-        all_org_roles = self.get_all_org_roles()
-        scopes = set()
+        role = organization_roles.get(self.role)
+        scopes = self.organization.get_scopes(role)
 
-        for role in all_org_roles:
-            role_obj = organization_roles.get(role)
-            scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
     def get_org_roles_from_teams(self) -> set[str]:
@@ -542,11 +539,6 @@ class OrganizationMember(ReplicatedRegionModel):
             self.__org_roles_from_teams = team_roles
         return self.__org_roles_from_teams
 
-    def get_all_org_roles(self) -> list[str]:
-        all_org_roles = self.get_org_roles_from_teams()
-        all_org_roles.add(self.role)
-        return list(all_org_roles)
-
     def get_org_roles_from_teams_by_source(self) -> list[tuple[str, OrganizationRole]]:
         org_roles = [
             (slug, organization_roles.get(role))
@@ -557,9 +549,6 @@ class OrganizationMember(ReplicatedRegionModel):
         ]
 
         return sorted(org_roles, key=lambda r: r[1].priority, reverse=True)
-
-    def get_all_org_roles_sorted(self) -> list[OrganizationRole]:
-        return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -577,11 +566,9 @@ class OrganizationMember(ReplicatedRegionModel):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        all_org_roles = self.get_all_org_roles()
-        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
-            highest_role = organization_roles.get_sorted_roles(all_org_roles)[0].id
+        if not set(self.role) & {r.id for r in allowed_roles}:
             raise UnableToAcceptMemberInvitationException(
-                f"You do not have permission to approve a member invitation with the role {highest_role}."
+                f"You do not have permission to approve a member invitation with the role {self.role}."
             )
         return True
 
@@ -614,9 +601,11 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
     def reject_member_invitation(
@@ -655,7 +644,7 @@ class OrganizationMember(ReplicatedRegionModel):
         return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
     def is_only_owner(self) -> bool:
-        if organization_roles.get_top_dog().id not in self.get_all_org_roles():
+        if organization_roles.get_top_dog().id != self.role:
             return False
 
         # check if any other member has the owner role, including through a team
