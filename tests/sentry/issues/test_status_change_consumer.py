@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from sentry.issues.ingest import process_occurrence_data
 from sentry.issues.occurrence_consumer import _process_message
+from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
@@ -258,3 +263,26 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         group2 = groups_by_fingerprint[(project2.id, self.occurrence.fingerprint[0])]
         assert group2.id == group2.id
         assert group1.id != group2.id
+
+    def test_invalid_hashes(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(datetime.datetime.now()),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group
+        wrong_fingerprint = {"fingerprint": ["wronghash"]}
+        process_occurrence_data(wrong_fingerprint)
+
+        bad_status_change_resolve = StatusChangeMessage(
+            fingerprint=["wronghash"],
+            project_id=group.project_id,
+            new_status=GroupStatus.RESOLVED,
+            new_substatus=GroupSubStatus.FOREVER,
+        )
+        assert _process_message(_prepare_status_change_message(bad_status_change_resolve)) is None
