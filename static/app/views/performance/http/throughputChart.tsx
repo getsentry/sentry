@@ -7,12 +7,17 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 
+interface ErrorLike {
+  message?: string;
+}
+
 interface Props {
   isLoading: boolean;
   series: Series;
+  error?: ErrorLike | null;
 }
 
-export function ThroughputChart({series, isLoading}: Props) {
+export function ThroughputChart({series, isLoading, error}: Props) {
   return (
     <ChartPanel title={getThroughputChartTitle('http')}>
       <Chart
@@ -25,6 +30,7 @@ export function ThroughputChart({series, isLoading}: Props) {
         }}
         data={[series]}
         loading={isLoading}
+        error={error}
         chartColors={[THROUGHPUT_COLOR]}
         isLineChart
         aggregateOutputFormat="rate"

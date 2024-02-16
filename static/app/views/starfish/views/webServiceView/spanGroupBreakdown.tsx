@@ -14,6 +14,7 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
+import type {ErrorLike} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import type {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -32,7 +33,7 @@ type Props = {
   tableData: DataRow[];
   topSeriesData: LineChartSeries[];
   totalCumulativeTime: number;
-  errored?: boolean;
+  error?: ErrorLike | null;
   transaction?: string;
 };
 
@@ -40,7 +41,7 @@ export function SpanGroupBreakdown({
   topSeriesData: data,
   transaction,
   isTimeseriesLoading,
-  errored,
+  error,
   options,
   dataDisplayType,
   onDisplayTypeChange,
@@ -138,7 +139,7 @@ export function SpanGroupBreakdown({
             durationUnit={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
             }
-            errored={errored}
+            error={error}
             loading={isTimeseriesLoading}
             onClick={handleModuleAreaClick}
             grid={{

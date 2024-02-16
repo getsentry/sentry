@@ -5,11 +5,13 @@ import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import type {ErrorLike} from 'sentry/views/starfish/types';
 import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 
 interface Props {
   isLoading: boolean;
   series: Series;
+  error?: ErrorLike | null;
 }
 
 export function ThroughputChart({series, isLoading}: Props) {

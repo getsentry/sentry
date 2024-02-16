@@ -49,6 +49,7 @@ import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import type {ErrorLike} from 'sentry/views/starfish/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
@@ -81,7 +82,7 @@ type Props = {
   definedAxisTicks?: number;
   disableXAxis?: boolean;
   durationUnit?: number;
-  errored?: boolean;
+  error?: ErrorLike | null;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
@@ -180,7 +181,7 @@ function Chart({
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
-  errored,
+  error,
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
@@ -366,7 +367,7 @@ function Chart({
       };
 
   function getChart() {
-    if (errored) {
+    if (error) {
       return (
         <ErrorPanel height={`${height}px`}>
           <IconWarning color="gray300" size="lg" />
