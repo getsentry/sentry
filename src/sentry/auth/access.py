@@ -99,11 +99,6 @@ class Access(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def roles(self) -> Iterable[str] | None:
-        pass
-
-    @property
-    @abc.abstractmethod
     def team_ids_with_membership(self) -> frozenset[int]:
         pass
 
@@ -236,10 +231,6 @@ class DbAccess(Access):
     @property
     def role(self) -> str | None:
         return self._member.role if self._member else None
-
-    @property
-    def roles(self) -> Iterable[str] | None:
-        return self._member.get_all_org_roles() if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
@@ -471,15 +462,6 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member is None:
             return None
         return self.rpc_user_organization_context.member.role
-
-    @property
-    def roles(self) -> Iterable[str] | None:
-        if self.rpc_user_organization_context.member is None:
-            return None
-        return access_service.get_all_org_roles(
-            member_id=self.rpc_user_organization_context.member.id,
-            organization_id=self.rpc_user_organization_context.organization.id,
-        )
 
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
@@ -840,10 +822,6 @@ class OrganizationlessAccess(Access):
     # TODO(cathy): remove this
     @property
     def role(self) -> str | None:
-        return None
-
-    @property
-    def roles(self) -> Iterable[str] | None:
         return None
 
     def has_role_in_organization(
