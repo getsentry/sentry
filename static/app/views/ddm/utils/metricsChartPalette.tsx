@@ -6,13 +6,14 @@ import theme from 'sentry/utils/theme';
 const CACHE_SIZE = 20; // number of palettes to cache
 
 export function createChartPalette(seriesNames: string[]): Record<string, string> {
+  const uniqueSeriesNames = Array.from(new Set(seriesNames));
   // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
   // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access and casting)
   const chartColors =
-    theme.charts.getColorPalette(Math.max(seriesNames.length - 2, -1)) ??
+    theme.charts.getColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
     CHART_PALETTE[CHART_PALETTE.length - 1];
 
-  return seriesNames.reduce(
+  return uniqueSeriesNames.reduce(
     (palette, seriesName, i) => {
       palette[seriesName] = chartColors[i % chartColors.length];
       return palette;

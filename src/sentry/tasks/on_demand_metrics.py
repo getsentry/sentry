@@ -39,14 +39,23 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24 * 7  # Cardinality outcome is valid for 7 days.
+_COLUMN_CARDINALITY_TTL = 3600  # Cardinality outcome is valid for 1 hour to match the widget check.
+TASK_CACHE_KEY = "task-cache"
+DASHBOARD_CACHE_KEY = "dashboard-cache"
+TASK_QUERY_PERIOD = "30m"
+DASHBOARD_QUERY_PERIOD = "1h"
 
 
 def _get_widget_processing_batch_key() -> str:
     return "on-demand-metrics:widgets:currently-processing-batch"
 
 
-def _get_widget_query_cardinality_cache_key(widget_query: DashboardWidgetQuery) -> str:
-    return f"check-widget-query-cardinality:{widget_query.id}"
+def get_field_cardinality_cache_key(
+    query_column: str, organization: Organization, widget_cache_key: str
+) -> str:
+    """widget_cache_key is to differentiate the cache keys between the frontend validating widgets and the task which
+    checks if widgets are still valid"""
+    return f"check-fields-cardinality:{widget_cache_key}:{organization.id}:{query_column}"
 
 
 def _set_currently_processing_batch(current_batch: int) -> None:
@@ -203,10 +212,6 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
         if "organizations:on-demand-metrics-extraction-widgets" in enabled_features:
             if widget_specs:
                 is_low_cardinality = _get_widget_query_low_cardinality(query, organization)
-                if is_low_cardinality is not None:
-                    # Still setting to cache for now until switching cardinality out of build_project_config
-                    cache_key = _get_widget_query_cardinality_cache_key(query)
-                    _set_cardinality_cache(cache_key, is_low_cardinality)
                 if is_low_cardinality is False:
                     widget_query_high_cardinality_count += 1
         else:
@@ -330,52 +335,95 @@ def _get_widget_query_low_cardinality(
     New queries will be checked upon creation and not allowed at that time.
     """
 
-    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
-    cache_key = _get_widget_query_cardinality_cache_key(widget_query)
-
-    # We default low cardinality to true since if it's false we'll remove user data.
-    is_low_cardinality = cache.get(cache_key, default=True)
     query_columns = widget_query.columns
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
 
+    field_cardinality = check_field_cardinality(
+        query_columns,
+        organization,
+        max_cardinality_allowed,
+        is_task=True,
+        widget_query=widget_query,
+    )
+    return all(field_cardinality.values())
+
+
+def check_field_cardinality(
+    query_columns: list[str] | None,
+    organization: Organization,
+    max_cardinality: int,
+    is_task: bool = False,
+    widget_query: DashboardWidgetQuery | None = None,
+) -> dict[str, str]:
     if not query_columns:
-        return None
+        return {}
+    if is_task:
+        cache_identifier = TASK_CACHE_KEY
+        cache_ttl = _WIDGET_QUERY_CARDINALITY_TTL
+        period = TASK_QUERY_PERIOD
+        assert widget_query is not None, "widget_query is a required param"
+    else:
+        cache_identifier = DASHBOARD_CACHE_KEY
+        cache_ttl = _COLUMN_CARDINALITY_TTL
+        period = DASHBOARD_QUERY_PERIOD
+
+    # We cache each key individually to query less
+    cache_keys: dict[str, str] = {}
+    for column in query_columns:
+        column_cache_key = get_field_cardinality_cache_key(column, organization, cache_identifier)
+        cache_keys[column] = column_cache_key
+    cardinality_map = cache.get_many(cache_keys.values())
+    if len(cardinality_map) == len(query_columns):
+        return cardinality_map
+
+    query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
     with sentry_sdk.push_scope() as scope:
-        scope.set_tag("widget_query.widget_id", widget_query.id)
-        scope.set_tag("widget_query.org_slug", organization.slug)
-        scope.set_tag("widget_query.conditions", widget_query.conditions)
+        if widget_query:
+            scope.set_tag("widget_query.widget_id", widget_query.id)
+            scope.set_tag("widget_query.org_slug", organization.slug)
+            scope.set_tag("widget_query.conditions", widget_query.conditions)
+        else:
+            scope.set_tag("cardinality_check.org_slug", organization.slug)
 
         try:
-            processed_results, columns_to_check = _query_cardinality(query_columns, organization)
-            for column in columns_to_check:
+            processed_results, columns_to_check = _query_cardinality(
+                query_columns, organization, period
+            )
+            for column in query_columns:
                 count = processed_results["data"][0][f"count_unique({column})"]
-                if count > max_cardinality_allowed:
-                    cache.set(cache_key, False, timeout=_WIDGET_QUERY_CARDINALITY_TTL)
-                    scope.set_tag("widget_query.column_name", column)
-                    raise HighCardinalityWidgetException(
-                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                    )
-            # If it's made it here then cardinality is low.
-            is_low_cardinality = True
+                column_low_cardinality = count <= max_cardinality
+                cardinality_map[cache_keys[column]] = column_low_cardinality
 
-        except HighCardinalityWidgetException as error:
-            sentry_sdk.capture_exception(error)
-            is_low_cardinality = False
+                if not column_low_cardinality:
+                    scope.set_tag("widget_query.column_name", column)
+                    if widget_query:
+                        sentry_sdk.capture_exception(
+                            HighCardinalityWidgetException(
+                                f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                            )
+                        )
         except SoftTimeLimitExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
         except Exception as error:
             sentry_sdk.capture_exception(error)
 
-    return is_low_cardinality
+    cache.set_many(cardinality_map, timeout=cache_ttl)
+    # assume that columns are low cardinality if we fail to retrieve it for some reason
+    return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
 def _query_cardinality(
-    query_columns: list[str], organization: Organization
+    query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:
+    # Restrict period down to an allowlist so we're not slamming snuba with giant queries
+    if period not in [TASK_QUERY_PERIOD, DASHBOARD_QUERY_PERIOD]:
+        raise Exception("Cardinality can only be queried with 1h or 30m")
     params: dict[str, Any] = {
-        "statsPeriod": "30m",
+        "statsPeriod": period,
         "organization_id": organization.id,
+        "projects": Project.objects.filter(organization=organization),
     }
     start, end = get_date_range_from_params(params)
     params["start"] = start

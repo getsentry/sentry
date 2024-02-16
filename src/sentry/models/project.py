@@ -65,6 +65,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "capacitor",
     "cordova",
     "dart",
+    "deno",
     "dotnet",
     "dotnet-aspnet",
     "dotnet-aspnetcore",

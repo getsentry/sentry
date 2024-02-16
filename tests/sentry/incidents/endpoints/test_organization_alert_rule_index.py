@@ -6,6 +6,7 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
+from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -142,6 +143,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_multiple_projects(self):
+        new_project = self.create_project()
+        data = {**self.alert_rule_dict, "projects": [self.project.slug, new_project.slug]}
+        with outbox_runner(), self.feature(["organizations:incidents"]):
+            response_data = self.get_error_response(
+                self.organization.slug,
+                method=responses.POST,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                **data,
+            ).json()
+            assert "projects" in response_data
 
     def test_status_filter(self):
         with outbox_runner(), self.feature(
@@ -807,7 +820,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
+                "organizations:custom-metrics",
                 "organizations:use-metrics-layer-in-alerts",
             ]
         ):
@@ -841,7 +854,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
+                "organizations:custom-metrics",
                 "organizations:use-metrics-layer-in-alerts",
             ]
         ):
@@ -890,7 +903,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
 
 
-# TODO(Gabe): Rewrite this test to properly annotate the silo mode
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"

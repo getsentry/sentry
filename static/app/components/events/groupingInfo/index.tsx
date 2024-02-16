@@ -76,8 +76,6 @@ function GroupConfigSelect({
   event: Event;
   setConfigOverride: (value: string) => void;
 }) {
-  const organization = useOrganization();
-
   if (!event.groupingConfig) {
     return null;
   }
@@ -86,7 +84,6 @@ function GroupConfigSelect({
 
   return (
     <GroupingConfigSelect
-      organizationSlug={organization.slug}
       eventConfigId={event.groupingConfig.id}
       configId={configId}
       onSelect={selection => setConfigOverride(selection.value)}

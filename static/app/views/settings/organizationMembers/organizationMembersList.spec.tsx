@@ -21,7 +21,6 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrgRoleFixture} from 'sentry/types/role';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
@@ -54,14 +53,14 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = MembersFixture();
 
-  const ownerTeam = TeamFixture({slug: 'owner-team', orgRole: 'owner'});
+  const team = TeamFixture({slug: 'team'});
   const member = MemberFixture({
     id: '5',
     email: 'member@sentry.io',
-    teams: [ownerTeam.slug],
+    teams: [team.slug],
     teamRoles: [
       {
-        teamSlug: ownerTeam.slug,
+        teamSlug: team.slug,
         role: null,
       },
     ],
@@ -73,12 +72,6 @@ describe('OrganizationMembersList', function () {
       'partnership:restricted': false,
       'sso:invalid': false,
     },
-    groupOrgRoles: [
-      {
-        teamSlug: ownerTeam.slug,
-        role: OrgRoleFixture({id: 'owner'}),
-      },
-    ],
   });
 
   const currentUser = members[1];
@@ -158,7 +151,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [TeamFixture(), ownerTeam],
+      body: [TeamFixture(), team],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
