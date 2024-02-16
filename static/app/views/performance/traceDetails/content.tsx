@@ -314,12 +314,7 @@ class TraceDetailsContent extends Component<Props, State> {
         </Alert>
       );
     } else if (orphanErrors && orphanErrors.length > 0) {
-      warning = (
-        <OnlyOrphanErrorWarnings
-          orphanErrors={orphanErrors}
-          organization={this.props.organization}
-        />
-      );
+      warning = <OnlyOrphanErrorWarnings orphanErrors={orphanErrors} />;
     }
 
     return warning;
@@ -427,14 +422,13 @@ class TraceDetailsContent extends Component<Props, State> {
 }
 
 type OnlyOrphanErrorWarningsProps = {
-  organization: Organization;
   orphanErrors: TraceError[];
 };
 function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   const {projects} = useProjects();
   const projectSlug = orphanErrors[0] ? orphanErrors[0].project_slug : '';
   const project = projects.find(p => p.slug === projectSlug);
-  const LOCAL_STORAGE_KEY = `${project?.id}:issue-details-replay-onboarding-hide`;
+  const LOCAL_STORAGE_KEY = `${project?.id}:performance-orphan-error-onboarding-banner-hide`;
   const currentPlatform = project?.platform;
   const hasPerformanceOnboarding = currentPlatform
     ? withPerformanceOnboarding.has(currentPlatform)
@@ -479,7 +473,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
         <BannerTitle>{t('Connect with Dots')}</BannerTitle>
         <BannerDescription>
           {t(
-            "Want to know why this string of errors happend? If you haven't already, update your SDK with this snippet to figure out what operations are running between your errors."
+            "Want to know why this string of errors happened? If you haven't already, update your SDK with this snippet to figure out what operations are running between your errors."
           )}
         </BannerDescription>
         <ButtonsWrapper>
