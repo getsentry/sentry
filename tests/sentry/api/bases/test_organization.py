@@ -228,16 +228,27 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         assert not self.has_object_perm("GET", self.org, user=user)
 
     def test_superuser(self):
-        user = self.create_user(is_superuser=True)
-        assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
+        superuser = self.create_user(is_superuser=True)
+        assert self.has_object_perm("GET", self.org, user=superuser, is_superuser=True)
 
     @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
     def test_staff(self, mock_is_active_staff):
-        user = self.create_user(is_staff=True)
+        staff_user = self.create_user(is_staff=True)
 
-        assert self.has_object_perm("GET", self.org, user=user, is_staff=True)
+        assert self.has_object_perm("GET", self.org, user=staff_user, is_staff=True)
         # ensure we fail the scope check and call is_active_staff
         assert mock_is_active_staff.call_count == 3
+
+    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
+    def test_staff_passes_2FA(self, mock_is_active_staff):
+        staff_user = self.create_user(is_staff=True)
+        request = self.make_request(user=staff_user, is_staff=True)
+        permission = self.permission_cls()
+        self.org.flags.require_2fa = True
+        self.org.save()
+
+        assert not permission.is_not_2fa_compliant(request=request, organization=self.org)
+        assert mock_is_active_staff.call_count == 1
 
 
 class BaseOrganizationEndpointTest(TestCase):
