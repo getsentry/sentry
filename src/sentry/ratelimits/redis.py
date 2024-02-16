@@ -5,6 +5,7 @@ from time import time
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from redis import RedisCluster
 from redis.exceptions import RedisError
 
 from sentry.exceptions import InvalidConfiguration
@@ -64,8 +65,8 @@ class RedisRateLimiter(RateLimiter):
 
     def validate(self) -> None:
         try:
-            self.client.ping()
-            self.client.connection_pool.disconnect()
+            self.client.ping(target_nodes=RedisCluster.ALL_NODES)
+            self.client.disconnect_connection_pools()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 

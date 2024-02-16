@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from time import time
 
 from django.conf import settings
+from redis import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -33,8 +34,8 @@ class ConcurrentRateLimiter:
 
     def validate(self) -> None:
         try:
-            self.client.ping()
-            self.client.connection_pool.disconnect()
+            self.client.ping(target_nodes=RedisCluster.ALL_NODES)
+            self.client.disconnect_connection_pools()
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
