@@ -4,6 +4,7 @@ from typing import Any
 
 from snuba_sdk import And, Condition, Op, Or
 
+from sentry import options
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
@@ -89,15 +90,10 @@ class SpansSamplesListExecutor(SamplesListExecutor):
         return mri in {SpanMRI.SELF_TIME.value, SpanMRI.DURATION.value}
 
     def execute(self, offset, limit):
-        builder = self.get_query_builder(offset, limit)
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-        span_keys = [
-            (row["example"][0], row["example"][1], row["example"][2]) for row in result["data"]
-        ]
+        span_keys = self.get_span_keys(offset, limit)
         return self.get_spans_by_key(span_keys)
 
-    def get_query_builder(self, offset: int, limit: int) -> SpansIndexedQueryBuilder:
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
         builder = SpansIndexedQueryBuilder(
@@ -108,6 +104,7 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
+            sample_rate=options.get("metrics.sample-list.sample-rate"),
         )
 
         builder.add_conditions(
@@ -122,7 +119,10 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             ]
         )
 
-        return builder
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [(row["example"][0], row["example"][1], row["example"][2]) for row in result["data"]]
 
 
 def get_sample_list_executor_cls(mri) -> type[SamplesListExecutor] | None:
