@@ -25,7 +25,7 @@ def patch_rage_click_issue():
         yield m
 
 
-def test_get_user_actionsz():
+def test_get_user_actions():
     """Test "get_user_actions" function."""
     events = [
         {
@@ -61,7 +61,7 @@ def test_get_user_actionsz():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -98,7 +98,7 @@ def test_get_user_actions_missing_node():
         }
     ]
 
-    user_actions = get_user_actions(1, uuid.uuid4().hex, events)
+    user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0
 
 
@@ -137,7 +137,7 @@ def test_parse_replay_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, events)
+    replay_actions = parse_replay_actions(1, "1", 30, events, None)
 
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -286,7 +286,7 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project
         }
     ):
         default_project.update_option("sentry:replay_rage_click_issues", True)
-        replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
+        replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
     assert patch_rage_click_issue.delay.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -368,7 +368,7 @@ def test_parse_replay_rage_click_actions(default_project):
             },
         }
     ]
-    replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
+    replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
 
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
@@ -447,7 +447,7 @@ def test_parse_request_response_latest():
         }
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 2949, unit="byte"),
             mock.call("replays.usecases.ingest.response_body_size", 94, unit="byte"),
@@ -475,7 +475,7 @@ def test_parse_request_response_no_info():
             },
         },
     ]
-    parse_replay_actions(1, "1", 30, events)
+    parse_replay_actions(1, "1", 30, events, None)
     # just make sure we don't raise
 
 
@@ -502,7 +502,7 @@ def test_parse_request_response_old_format_request_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
         ]
@@ -530,7 +530,7 @@ def test_parse_request_response_old_format_response_only():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.response_body_size", 1002, unit="byte"),
         ]
@@ -559,7 +559,7 @@ def test_parse_request_response_old_format_request_and_response():
         },
     ]
     with mock.patch("sentry.utils.metrics.distribution") as timing:
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert timing.call_args_list == [
             mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
             mock.call("replays.usecases.ingest.response_body_size", 8001, unit="byte"),
@@ -597,7 +597,7 @@ def test_log_sdk_options():
         "random.randint"
     ) as randint:
         randint.return_value = 0
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert logger.info.call_args_list == [mock.call("SDK Options:", extra=log)]
 
 
@@ -626,7 +626,7 @@ def test_log_large_dom_mutations():
         "random.randint"
     ) as randint:
         randint.return_value = 0
-        parse_replay_actions(1, "1", 30, events)
+        parse_replay_actions(1, "1", 30, events, None)
         assert logger.info.call_args_list == [mock.call("Large DOM Mutations List:", extra=log)]
 
 

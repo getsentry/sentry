@@ -74,6 +74,7 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
+                replay_event=cast(bytes, message_dict["replay_event"]),
             )
             _ingest_recording(message, transaction)
 
@@ -190,12 +191,14 @@ def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
+    replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
             parsed_segment_data = json.loads(decompressed_segment)
+            parsed_replay_event = json.loads(replay_event_bytes) if replay_event_bytes else None
             _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
@@ -208,6 +211,7 @@ def recording_post_processor(
                 project_id=message.project_id,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
+                replay_event=parsed_replay_event,
             )
 
         # Log canvas mutations to bigquery.

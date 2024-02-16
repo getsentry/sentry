@@ -65,9 +65,12 @@ def parse_and_emit_replay_actions(
     replay_id: str,
     retention_days: int,
     segment_data: list[dict[str, Any]],
+    replay_event: dict[str, Any] | None,
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
-        message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
+        message = parse_replay_actions(
+            project_id, replay_id, retention_days, segment_data, replay_event
+        )
         if message is not None:
             emit_replay_actions(message)
 
@@ -82,9 +85,10 @@ def parse_replay_actions(
     replay_id: str,
     retention_days: int,
     segment_data: list[dict[str, Any]],
+    replay_event: dict[str, Any] | None,
 ) -> ReplayActionsEvent | None:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(project_id, replay_id, segment_data)
+    actions = get_user_actions(project_id, replay_id, segment_data, replay_event)
     if len(actions) == 0:
         return None
 
@@ -147,6 +151,7 @@ def get_user_actions(
     project_id: int,
     replay_id: str,
     events: list[dict[str, Any]],
+    replay_event: dict[str, Any] | None,
 ) -> list[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types.
 
@@ -175,7 +180,7 @@ def get_user_actions(
         tag = event.get("data", {}).get("tag")
 
         if tag == "breadcrumb":
-            click = _handle_breadcrumb(event, project_id, replay_id)
+            click = _handle_breadcrumb(event, project_id, replay_id, replay_event)
             if click is not None:
                 result.append(click)
         # look for request / response breadcrumbs and report metrics on them
@@ -351,7 +356,7 @@ def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, An
 
 
 def _handle_breadcrumb(
-    event: dict[str, Any], project_id: int, replay_id: str
+    event: dict[str, Any], project_id: int, replay_id: str, replay_event: dict[str, Any] | None
 ) -> ReplayActionsEventPayloadClick | None:
     payload = event["data"].get("payload", {})
     category = payload.get("category")
