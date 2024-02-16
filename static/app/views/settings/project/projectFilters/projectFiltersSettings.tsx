@@ -102,28 +102,16 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 66 and lower',
     legacy: false,
   },
-  opera: {
-    icon: iconOpera,
-    title: 'Opera',
-    helpText: 'Version 50 and lower',
+  android: {
+    icon: iconAndroid,
+    title: 'Android',
+    helpText: 'Version 3 and lower',
     legacy: false,
   },
-  opera_pre_15: {
-    icon: iconOpera,
-    helpText: '(Deprecated) Version 14 and lower',
-    title: 'Opera',
-    legacy: true,
-  },
-  opera_mini: {
-    icon: iconOpera,
-    title: 'Opera Mini',
-    helpText: 'Version 34 and lower',
-    legacy: false,
-  },
-  opera_mini_pre_8: {
-    icon: iconOpera,
-    helpText: '(Deprecated) Version 8 and lower',
-    title: 'Opera Mini',
+  android_pre_4: {
+    icon: iconAndroid,
+    helpText: '(Deprecated) Version 3 and lower',
+    title: 'Android',
     legacy: true,
   },
   edge: {
@@ -168,16 +156,28 @@ const LEGACY_BROWSER_SUBFILTERS = {
     title: 'Internet Explorer',
     legacy: true,
   },
-  android: {
-    icon: iconAndroid,
-    title: 'Android',
-    helpText: 'Version 3 and lower',
+  opera: {
+    icon: iconOpera,
+    title: 'Opera',
+    helpText: 'Version 50 and lower',
     legacy: false,
   },
-  android_pre_4: {
-    icon: iconAndroid,
-    helpText: '(Deprecated) Version 3 and lower',
-    title: 'Android',
+  opera_pre_15: {
+    icon: iconOpera,
+    helpText: '(Deprecated) Version 14 and lower',
+    title: 'Opera',
+    legacy: true,
+  },
+  opera_mini: {
+    icon: iconOpera,
+    title: 'Opera Mini',
+    helpText: 'Version 34 and lower',
+    legacy: false,
+  },
+  opera_mini_pre_8: {
+    icon: iconOpera,
+    helpText: '(Deprecated) Version 8 and lower',
+    title: 'Opera Mini',
     legacy: true,
   },
 };
