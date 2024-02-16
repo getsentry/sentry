@@ -243,9 +243,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = datetime.now(timezone.utc)
             self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            end_time = datetime.now(timezone.utc)
             response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
@@ -578,9 +578,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = datetime.now(timezone.utc)
             response = self.get_success_response(self.organization.slug, **data)
-            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            end_time = datetime.now(timezone.utc)
             response_data = response.data.get("trustedRelays")
 
         actual = get_trusted_relay_value(self.organization)
@@ -662,11 +662,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = datetime.now(timezone.utc)
             self.get_success_response(self.organization.slug, **initial_settings)
-            after_initial = datetime.utcnow().replace(tzinfo=timezone.utc)
+            after_initial = datetime.now(timezone.utc)
             self.get_success_response(self.organization.slug, **changed_settings)
-            after_final = datetime.utcnow().replace(tzinfo=timezone.utc)
+            after_final = datetime.now(timezone.utc)
 
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == len(modified_trusted_relays)

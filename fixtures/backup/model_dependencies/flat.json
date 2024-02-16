@@ -472,6 +472,11 @@
     "sentry.notificationaction",
     "sentry.project"
   ],
+  "sentry.notificationmessage": [
+    "sentry.alertruletriggeraction",
+    "sentry.incident",
+    "sentry.rulefirehistory"
+  ],
   "sentry.notificationsettingoption": [
     "sentry.team",
     "sentry.user"
