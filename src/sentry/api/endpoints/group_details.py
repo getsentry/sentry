@@ -104,17 +104,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
         get_range = functools.partial(
-            tsdb.get_range,
+            tsdb.backend.get_range,
             environment_ids=environment_ids,
             tenant_ids={"organization_id": group.project.organization_id},
         )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
-        hourly_stats = tsdb.rollup(
+        hourly_stats = tsdb.backend.rollup(
             get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
             3600,
         )[group.id]
-        daily_stats = tsdb.rollup(
+        daily_stats = tsdb.backend.rollup(
             get_range(
                 model=model,
                 keys=[group.id],
@@ -205,12 +205,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             if "forecast" in expand:
                 fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
                 if fetched_forecast:
-                    fetched_forecast = fetched_forecast.to_dict()
+                    fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
                         {
                             "forecast": {
-                                "data": fetched_forecast.get("forecast"),
-                                "date_added": fetched_forecast.get("date_added"),
+                                "data": fetched_forecast_dict.get("forecast"),
+                                "date_added": fetched_forecast_dict.get("date_added"),
                             }
                         }
                     )

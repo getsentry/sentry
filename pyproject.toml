@@ -142,7 +142,6 @@ module = [
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
     "sentry.api.endpoints.event_attachments",
-    "sentry.api.endpoints.group_details",
     "sentry.api.endpoints.group_event_details",
     "sentry.api.endpoints.group_events",
     "sentry.api.endpoints.group_external_issues",
