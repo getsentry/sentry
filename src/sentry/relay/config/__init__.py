@@ -669,7 +669,7 @@ def _get_project_config(
                     },
                 },
                 {
-                    "name": "Chrome INP",
+                    "name": "INP",
                     "scoreComponents": [
                         {
                             "measurement": "inp",
@@ -680,9 +680,19 @@ def _get_project_config(
                         },
                     ],
                     "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
+                        "op": "or",
+                        "inner": [
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Chrome",
+                            },
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Google Chrome",
+                            },
+                        ],
                     },
                 },
                 {
