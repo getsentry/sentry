@@ -242,7 +242,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         end: datetime,
         having: Sequence[Sequence[Any]],
         aggregate_kwargs: TrendsSortWeights | None = None,
-        replace_priority_aggregation: bool | None = False,
+        replace_trends_aggregation: bool | None = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -253,8 +253,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_priority_aggregation and alias == "priority":
-                aggregation = self.aggregation_defs["priority_issue_platform"]
+            if replace_trends_aggregation and alias == "trends":
+                aggregation = self.aggregation_defs["trends_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -306,7 +306,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        if sort_field == "priority" and group_category is not GroupCategory.ERROR.value:
+        if sort_field == "trends" and group_category is not GroupCategory.ERROR.value:
             aggregations = self._prepare_aggregations(
                 sort_field, start, end, having, aggregate_kwargs, True
             )
@@ -506,12 +506,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         return sort_by in self.sort_strategies.keys()
 
 
-def priority_aggregation(
+def trends_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: TrendsSortWeights,
 ) -> Sequence[str]:
-    return priority_aggregation_impl(
+    return trends_aggregation_impl(
         TrendsParams(
             max_pow=16,
             min_score=0.01,
@@ -532,12 +532,12 @@ def priority_aggregation(
     )
 
 
-def priority_issue_platform_aggregation(
+def trends_issue_platform_aggregation(
     start: datetime,
     end: datetime,
     aggregate_kwargs: TrendsSortWeights,
 ) -> Sequence[str]:
-    return priority_aggregation_impl(
+    return trends_aggregation_impl(
         TrendsParams(
             max_pow=16,
             min_score=0.01,
@@ -558,7 +558,7 @@ def priority_issue_platform_aggregation(
     )
 
 
-def priority_aggregation_impl(
+def trends_aggregation_impl(
     params: TrendsParams,
     timestamp_column: str,
     use_stacktrace: bool,
@@ -691,14 +691,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
-    dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
+    dependency_aggregations = {"trends": ["last_seen", "times_seen"]}
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
-        "priority": "priority",
+        "trends": "trends",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -709,11 +709,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "times_seen": ["count()", ""],
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-        "priority": priority_aggregation,
+        "trends": trends_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
-        "priority_issue_platform": priority_issue_platform_aggregation,
+        "trends_issue_platform": trends_issue_platform_aggregation,
     }
 
     @property
@@ -1117,7 +1117,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
-        "priority": "priority",
+        "trends": "trends",
         "user": "user_count",
     }
 
@@ -1164,7 +1164,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "first_seen": first_seen_aggregation,
         "last_seen": last_seen_aggregation,
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": Function(
+        "trends": Function(
             "toUInt64",
             [
                 Function(
