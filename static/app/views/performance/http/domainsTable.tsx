@@ -56,10 +56,14 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = [
+  'avg(span.self_time)',
+  'spm()',
+  'time_spent_percentage()',
+] as const;
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: (typeof SORTABLE_FIELDS)[number];
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
