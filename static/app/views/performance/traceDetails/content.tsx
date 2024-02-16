@@ -494,12 +494,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button
-              onClick={event => {
-                event.preventDefault();
-                SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
-              }}
-            >
+            <Button href="https://docs.sentry.io/product/performance/" external>
               {t('Learn More')}
             </Button>
           </ActionButton>
