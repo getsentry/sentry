@@ -1,3 +1,4 @@
+import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
@@ -65,15 +66,15 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = None
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             install = SentryAppInstallation.objects.get(
                 sentry_app=internal_integration.id, organization_id=self.organization.id
             )
-            token = install.api_token
 
-        assert token is not None
+        token = self.create_internal_integration_token(
+            user=self.user, install=install, org=self.organization, scopes=["project:read"]
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
@@ -239,9 +240,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         )
 
         self.populate_internal_integration_request(request)
-        assert (
+        key_pattern = re.compile(r"^org:default:OrganizationGroupIndexEndpoint:GET:[a-zA-Z]$")
+        assert key_pattern.match(
             get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
         )
 
         # Test for

@@ -1054,7 +1054,9 @@ class Factories:
         args = Factories._sentry_app_kwargs(**kwargs)
         args["verify_install"] = False
         user = args.pop("user", None)
-        app = SentryAppCreator(is_internal=True, **args).run(user=user, request=None)
+        app = SentryAppCreator(is_internal=True, **args).run(
+            user=user, request=None, skip_default_auth_token=True
+        )
         return app
 
     @staticmethod
@@ -1064,13 +1066,13 @@ class Factories:
             scopes = []
         if install is None:
             assert org
-            sentry_app = Factories.create_sentry_app(
-                name="Integration Token",
-                organization=org,
-                scopes=scopes,
+            sentry_app = Factories.create_internal_integration(
+                "integration token",
             )
             install = Factories.create_sentry_app_installation(
-                organization=org, slug=sentry_app.slug, user=user
+                organization=org,
+                slug=sentry_app.slug,
+                user=user,
             )
         return SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             user=user, request=request
@@ -1098,7 +1100,11 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_sentry_app_installation(
-        organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
+        organization=None,
+        slug=None,
+        user=None,
+        status=None,
+        prevent_token_exchange=False,
     ):
         if not organization:
             organization = Factories.create_organization()
