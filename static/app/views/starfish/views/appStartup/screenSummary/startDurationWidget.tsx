@@ -20,10 +20,7 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
-import {
-  COLD_START_TYPE,
-  type WARM_START_TYPE,
-} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
@@ -53,7 +50,6 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
 
 interface Props {
   chartHeight: number;
-  type: typeof COLD_START_TYPE | typeof WARM_START_TYPE;
   additionalFilters?: string[];
 }
 
