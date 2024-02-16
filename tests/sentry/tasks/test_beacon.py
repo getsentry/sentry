@@ -26,7 +26,7 @@ from sentry.utils.outcomes import Outcome
     return_value=namedtuple("svmem", "total, percent")(
         total=34359738368,
         percent=50,
-    ),
+    ),  # type: ignore
 )
 class SendBeaconTest(OutcomesSnubaTest):
     def setUp(self):
