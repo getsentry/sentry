@@ -1424,7 +1424,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
     "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
     "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
-    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1436,7 +1435,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
     "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
-    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
@@ -1471,8 +1469,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:auto-enable-codecov": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Removes extra fields from the project serializers
-    "organizations:cleanup-project-serializer": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1602,8 +1598,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
-    # Enable one-click migration from Opsgenie plugin
-    "organizations:integrations-opsgenie-migration": False,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
@@ -1909,8 +1903,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enable starfish dropdown on the webservice view for switching chart visualization
     "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page
@@ -3056,7 +3048,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.1.2"
+SELF_HOSTED_STABLE_VERSION = "24.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

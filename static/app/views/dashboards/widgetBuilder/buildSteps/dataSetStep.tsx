@@ -19,7 +19,6 @@ import {BuildStep} from './buildStep';
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  hasCustomMetricsFeature: boolean;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
 }
@@ -28,7 +27,6 @@ export function DataSetStep({
   dataSet,
   onChange,
   hasReleaseHealthFeature,
-  hasCustomMetricsFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -46,10 +44,6 @@ export function DataSetStep({
 
   if (hasReleaseHealthFeature) {
     datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasCustomMetricsFeature) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
   }
 
   return (
