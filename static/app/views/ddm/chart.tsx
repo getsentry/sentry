@@ -116,7 +116,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const isSubMinuteBucket = bucketSize < 60_000;
 
     const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
-    const fogOfWarBuckets = getWidthFactor(bucketSize);
+    const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
+    const ingestionBuckets = useMemo(
+      () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
+      [bucketSize, lastBucketTimestamp]
+    );
 
     const seriesToShow = useMemo(
       () =>
@@ -124,25 +128,15 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           .filter(s => !s.hidden)
           .map(s => ({
             ...s,
+            silent: true,
             ...(displayType !== MetricDisplayType.BAR
               ? addSeriesPadding(s.data)
               : {data: s.data}),
           }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
-          .flatMap(s => [
-            {
-              ...s,
-              silent: true,
-              data: s.data.slice(0, -fogOfWarBuckets),
-            },
-            displayType === MetricDisplayType.BAR
-              ? createFogOfWarBarSeries(s, fogOfWarBuckets)
-              : displayType === MetricDisplayType.LINE
-                ? createFogOfWarLineSeries(s, fogOfWarBuckets)
-                : createFogOfWarAreaSeries(s, fogOfWarBuckets),
-          ]),
-      [series, fogOfWarBuckets, displayType]
+          .flatMap(s => createIngestionSeries(s, ingestionBuckets, displayType)),
+      [series, ingestionBuckets, displayType]
     );
 
     const samples = useChartSamples({
@@ -388,64 +382,98 @@ function transformToScatterSeries({
   });
 }
 
+function createIngestionSeries(
+  orignalSeries: Series,
+  ingestionBuckets: number,
+  displayType: MetricDisplayType
+) {
+  if (ingestionBuckets < 1) {
+    return [orignalSeries];
+  }
+
+  const series = [
+    {
+      ...orignalSeries,
+      data: orignalSeries.data.slice(0, -ingestionBuckets),
+    },
+  ];
+
+  if (displayType === MetricDisplayType.BAR) {
+    series.push(createIngestionBarSeries(orignalSeries, ingestionBuckets));
+  } else if (displayType === MetricDisplayType.AREA) {
+    series.push(createIngestionAreaSeries(orignalSeries, ingestionBuckets));
+  } else {
+    series.push(createIngestionLineSeries(orignalSeries, ingestionBuckets));
+  }
+
+  return series;
+}
+
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
 
-const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  data: series.data.map((data, index) => ({
-    ...data,
-    // W need to set a value for the non-fog of war buckets so that the stacking still works in echarts
-    value: index < series.data.length - fogBucketCnt ? 0 : data.value,
-  })),
-  itemStyle: {
-    opacity: 1,
-    decal: {
-      symbol: EXTRAPOLATED_AREA_STRIPE_IMG,
-      dashArrayX: [6, 0],
-      dashArrayY: [6, 0],
-      rotation: Math.PI / 4,
+function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    silent: true,
+    data: series.data.map((data, index) => ({
+      ...data,
+      // W need to set a value for the non-fog of war buckets so that the stacking still works in echarts
+      value: index < series.data.length - fogBucketCnt ? 0 : data.value,
+    })),
+    itemStyle: {
+      opacity: 1,
+      decal: {
+        symbol: EXTRAPOLATED_AREA_STRIPE_IMG,
+        dashArrayX: [6, 0],
+        dashArrayY: [6, 0],
+        rotation: Math.PI / 4,
+      },
     },
-  },
-});
+  };
+}
 
-const createFogOfWarLineSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  // We include the last non-fog of war bucket so that the line is connected
-  data: series.data.slice(-fogBucketCnt - 1),
-  lineStyle: {
-    type: 'dotted',
-  },
-});
+function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    silent: true,
+    // We include the last non-fog of war bucket so that the line is connected
+    data: series.data.slice(-fogBucketCnt - 1),
+    lineStyle: {
+      type: 'dotted',
+    },
+  };
+}
 
-const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  stack: 'fogOfWar',
-  // We include the last non-fog of war bucket so that the line is connected
-  data: series.data.slice(-fogBucketCnt - 1),
-  lineStyle: {
-    type: 'dotted',
-    color: Color(series.color).lighten(0.3).string(),
-  },
-});
+function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    silent: true,
+    stack: 'fogOfWar',
+    // We include the last non-fog of war bucket so that the line is connected
+    data: series.data.slice(-fogBucketCnt - 1),
+    lineStyle: {
+      type: 'dotted',
+      color: Color(series.color).lighten(0.3).string(),
+    },
+  };
+}
 
-function getWidthFactor(bucketSize: number) {
-  // If the bucket size is >= 5 minutes the fog of war should only cover the last bucket
-  if (bucketSize >= 5 * 60_000) {
-    return 1;
-  }
+const AVERAGE_INGESTION_DELAY_MS = 90_000;
+/**
+ * Calculates the number of buckets, affected by ingestion delay.
+ * Based on the AVERAGE_INGESTION_DELAY_MS
+ * @param bucketSize in ms
+ * @param lastBucketTimestamp starting time of the last bucket in ms
+ */
+function getIngestionDelayBucketCount(bucketSize: number, lastBucketTimestamp: number) {
+  const timeSinceLastBucket = Date.now() - (lastBucketTimestamp + bucketSize);
+  const ingestionAffectedTime = Math.max(
+    0,
+    AVERAGE_INGESTION_DELAY_MS - timeSinceLastBucket
+  );
 
-  // for buckets <= 10s we want to show a fog of war that spans last 10 buckets
-  // because on average, we are missing last 90 seconds of data
-  if (bucketSize <= 10_000) {
-    return 10;
-  }
-
-  // For smaller time frames we want to show a wider fog of war
-  return 2;
+  return Math.ceil(ingestionAffectedTime / bucketSize);
 }
 
 const ChartWrapper = styled('div')`

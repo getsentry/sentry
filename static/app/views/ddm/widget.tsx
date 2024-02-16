@@ -451,6 +451,7 @@ export type Series = {
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;
+  paddingIndices?: Set<number>;
   release?: string;
   transaction?: string;
 };
