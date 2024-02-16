@@ -31,7 +31,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
 type ErrorInfo = {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp;
-  projectPlatform: PlatformKey;
+  projectPlatform: PlatformKey | RegExp;
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
@@ -88,7 +88,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'UnboundLocalError',
-    projectPlatform: 'python',
+    projectPlatform: /^python(-.*)?$/, // matches 'python' and 'python-*' so all python platforms are captured
     errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
   },
   {
@@ -97,13 +97,13 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorHelpType: ErrorHelpType.NODEJS_CANNOT_FIND_MODULE,
   },
   {
-    errorTitle: 'ImportError: No module named requests',
-    projectPlatform: 'python',
+    errorTitle: 'ModuleNotFoundError: No module named',
+    projectPlatform: /^python(-.*)?$/,
     errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
   },
   {
-    errorTitle: 'Strings are immutable',
-    projectPlatform: 'python',
+    errorTitle: "TypeError: 'str' object does not support item assignment",
+    projectPlatform: /^python(-.*)?$/,
     errorHelpType: ErrorHelpType.STRINGS_ARE_IMMUTABLE,
   },
   {
@@ -261,7 +261,7 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Next.js applications when the useRouter hook is used incorrectly. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>NextRouter was not mounted errors</b>}
+        {errorTypes: <b>NextRouter not mounted errors</b>}
       ),
       links: [
         {
@@ -275,7 +275,7 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.UNBOUND_LOCAL_ERROR]: {
     resources: {
       description: tct(
-        '[errorTypes] occur in Next.js applications when a local variable is used without being defined. To learn more about how to fix these errors, check out these resources:',
+        '[errorTypes] occur in python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
         {errorTypes: <b>Unbound local errors</b>}
       ),
       links: [
@@ -306,12 +306,12 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Python applications when a module that does not exist is imported. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>No module named errors</b>}
+        {errorTypes: <b>Module not found errors</b>}
       ),
       links: [
         {
-          text: t('Fixing "no module named" errors in Python'),
-          link: 'https://sentry.io/answers/no-module-named-error/',
+          text: t('Fixing "ModuleNotFoundError" errors in Python'),
+          link: 'https://sentry.io/answers/resolve-python-importerror-no-module-named/',
         },
       ],
       linksByPlatform: {},
@@ -321,11 +321,13 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Python applications when a string is modified in place. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>Strings are immutable errors</b>}
+        {errorTypes: <b>Strings do not support item assignment errors</b>}
       ),
       links: [
         {
-          text: t('Fixing "strings are immutable" errors in Python'),
+          text: t(
+            'Fixing "str object does not support item assignment" errors in Python'
+          ),
           link: 'https://sentry.io/answers/strings-are-immutable/',
         },
       ],
@@ -364,7 +366,12 @@ export function getErrorHelpResource({
         : title.match(errorTitle);
 
     if (shouldShowCustomResource) {
-      if (projectPlatform && !(project.platform || '').includes(projectPlatform)) {
+      // Issues without a platform will never have a custom "Sentry Answers" resource
+      const isCorrectPlatform =
+        typeof projectPlatform === 'string'
+          ? !(project.platform || '').includes(projectPlatform)
+          : !(project.platform || '').match(projectPlatform);
+      if (isCorrectPlatform) {
         continue;
       }
       return errorHelpTypeResourceMap[errorHelpType];
