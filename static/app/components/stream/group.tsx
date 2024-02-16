@@ -592,7 +592,9 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
 
-  @media (max-width: ${p => (p.narrowGroups ? '1600px' : p.theme.breakpoints.xlarge)}) {
+  /* prettier-ignore */
+  @media (max-width: ${p =>
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -616,6 +618,7 @@ const PriorityWrapper = styled('div')<{narrowGroups: boolean}>`
   display: flex;
   justify-content: flex-end;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
@@ -627,6 +630,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   margin: 0 ${space(2)};
   align-self: center;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;

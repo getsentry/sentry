@@ -77,8 +77,9 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   margin-right: ${space(2)};
   animation: 0.25s FadeIn linear forwards;
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
-    p.isSavedSearchesOpen ? '1600px' : p.theme.breakpoints.xlarge}) {
+    p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 
@@ -131,6 +132,7 @@ const PriorityLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   width: 85px;
   margin: 0 ${space(2)};
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
@@ -144,6 +146,7 @@ const AssigneeLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 
+  /* prettier-ignore */
   @media (max-width: ${p =>
     p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
