@@ -513,9 +513,9 @@ def augment_transactions_with_spans(
     projects = {e["project.id"] for e in errors if e["trace.span"]}
     ts_params = find_timestamp_params(transactions)
     if ts_params["min"]:
-        params["start"] = ts_params["min"] - timedelta(hours=6)
+        params["start"] = ts_params["min"] - timedelta(hours=1)
     if ts_params["max"]:
-        params["end"] = ts_params["max"] + timedelta(hours=6)
+        params["end"] = ts_params["max"] + timedelta(hours=1)
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
