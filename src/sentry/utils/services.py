@@ -470,7 +470,7 @@ class ServiceDelegator(Delegator, Service):
             backend.setup()
 
 
-KeyFetch = Callable[[Context, str, Mapping[str, Any]], str]
+KeyFetch = Callable[[Context, str, Mapping[str, Any]], str | int]
 
 
 def make_writebehind_selector(
