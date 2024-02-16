@@ -332,10 +332,10 @@ def set_or_create_on_demand_state(
             extraction_state = OnDemandExtractionState.DISABLED_NOT_APPLICABLE
         elif widget_exceeds_max_specs(specs, current_widget_specs, organization):
             extraction_state = OnDemandExtractionState.DISABLED_SPEC_LIMIT
-        elif not feature_enabled:
-            extraction_state = OnDemandExtractionState.DISABLED_PREROLLOUT
         elif not is_low_cardinality:
             extraction_state = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+        elif not feature_enabled:
+            extraction_state = OnDemandExtractionState.DISABLED_PREROLLOUT
         else:
             extraction_state = OnDemandExtractionState.ENABLED_CREATION
 
