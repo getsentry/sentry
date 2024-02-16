@@ -26,7 +26,10 @@ export function StartTypeSelector() {
         },
       });
     }
-  });
+
+    // This hook should only run once to set the default type
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const options = [
     {value: COLD_START_TYPE, label: t('Cold Start')},

@@ -463,6 +463,9 @@ CSP_FRAME_ANCESTORS = [
 CSP_OBJECT_SRC = [
     "'none'",
 ]
+CSP_WORKER_SRC = [
+    "'none'",
+]
 CSP_BASE_URI = [
     "'none'",
 ]
@@ -486,6 +489,7 @@ if ENVIRONMENT == "development":
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
         "http://localhost:8969/stream",
+        "webpack-internal:",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
@@ -1424,7 +1428,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
     "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
     "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
-    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1470,8 +1473,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:auto-enable-codecov": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Removes extra fields from the project serializers
-    "organizations:cleanup-project-serializer": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1601,8 +1602,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
-    # Enable one-click migration from Opsgenie plugin
-    "organizations:integrations-opsgenie-migration": False,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
@@ -3053,7 +3052,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.1.2"
+SELF_HOSTED_STABLE_VERSION = "24.2.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

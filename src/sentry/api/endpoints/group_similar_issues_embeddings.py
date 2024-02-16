@@ -124,6 +124,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if latest_event.data.get("exception"):
             stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
 
+        if stacktrace_string == "":
+            return Response([])  # No stacktrace or in-app frames
+
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
             "project_id": group.project.id,
