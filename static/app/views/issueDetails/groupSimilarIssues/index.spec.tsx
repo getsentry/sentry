@@ -321,6 +321,7 @@ describe('Issues Similar Embeddings View', function () {
         projectId: project.id,
         groupId: 'group-id',
         value: 'Yes',
+        wouldGroup: similarEmbeddingsScores[0].shouldBeGrouped,
       })
     );
   });

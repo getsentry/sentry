@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 type Props = {
   onMerge: () => void;
   groupId?: string;
+  itemsWouldGroup?: Array<Record<string, string | undefined>> | null;
   organization?: Organization;
   project?: Project;
 };
@@ -55,6 +56,9 @@ class SimilarToolbar extends Component<Props, State> {
       return;
     }
     for (const parentGroupId of this.state.mergeList) {
+      const itemWouldGroup = this.props.itemsWouldGroup
+        ? this.props.itemsWouldGroup.filter(item => item.id === parentGroupId)
+        : undefined;
       trackAnalytics(
         'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
         {
@@ -63,6 +67,9 @@ class SimilarToolbar extends Component<Props, State> {
           parentGroupId,
           groupId: this.props.groupId,
           value,
+          wouldGroup: itemWouldGroup?.length
+            ? itemWouldGroup[0].shouldBeGrouped
+            : undefined,
         }
       );
     }
