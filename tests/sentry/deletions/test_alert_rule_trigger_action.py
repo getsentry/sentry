@@ -1,4 +1,4 @@
-from sentry.constants import ObjectStatus
+from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models.notificationmessage import NotificationMessage
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
@@ -23,6 +23,5 @@ class DeleteAlertRuleTriggerActionTest(TestCase, HybridCloudTestMixin):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not NotificationMessage.objects.filter(
-            id=notification_message.id, status=ObjectStatus.PENDING_DELETION
-        ).exists()
+        assert not AlertRuleTriggerAction.objects.filter(id=action.id).exists()
+        assert not NotificationMessage.objects.filter(id=notification_message.id).exists()
