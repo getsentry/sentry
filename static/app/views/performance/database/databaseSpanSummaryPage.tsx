@@ -93,15 +93,21 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {
-      filters,
-      yAxis: ['spm()'],
-      referrer: 'api.starfish.span-summary-page-metrics-chart',
-    }
-  );
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    filters,
+    yAxis: ['spm()'],
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     referrer: 'api.starfish.span-summary-page-metrics-chart',
@@ -166,6 +172,7 @@ function SpanSummaryPage({params}: Props) {
             <ThroughputChart
               series={throughputData['spm()']}
               isLoading={isThroughputDataLoading}
+              error={throughputError}
             />
 
             <DurationChart
@@ -173,6 +180,7 @@ function SpanSummaryPage({params}: Props) {
                 durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
               }
               isLoading={isDurationDataLoading}
+              error={durationError}
             />
           </ChartContainer>
 
