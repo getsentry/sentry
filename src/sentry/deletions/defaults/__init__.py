@@ -1,3 +1,4 @@
+from .alert_rule_trigger_action import *  # noqa: F401,F403
 from .alertrule import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403

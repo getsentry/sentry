@@ -89,7 +89,7 @@ default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 def load_defaults():
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
-    from sentry.incidents.models import AlertRule
+    from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.monitors import models as monitor_models
 
@@ -165,6 +165,7 @@ def load_defaults():
     default_manager.register(models.UserReport, BulkModelDeletionTask)
     default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
     default_manager.register(models.Rule, defaults.RuleDeletionTask)
+    default_manager.register(AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
 
 
 load_defaults()
