@@ -37,6 +37,7 @@ import type {
   Group,
   Organization,
   PageFilters,
+  PriorityLevel,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
@@ -63,6 +64,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -1091,6 +1093,18 @@ class IssueListOverview extends Component<Props, State> {
       });
       return;
     }
+
+    if ('priority' in data && typeof data.priority === 'string') {
+      const priorityValues = parseIssuePrioritySearch(query);
+      const priority = data.priority.toLowerCase() as PriorityLevel;
+
+      this.onIssueAction({
+        itemIds,
+        actionType: 'Reprioritized',
+        shouldRemove: !priorityValues.has(priority),
+      });
+      return;
+    }
   };
 
   onIssueAction = ({
@@ -1099,7 +1113,7 @@ class IssueListOverview extends Component<Props, State> {
     shouldRemove,
     undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived';
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
     undo?: () => void;

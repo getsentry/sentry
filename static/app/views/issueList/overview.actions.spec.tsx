@@ -21,6 +21,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import TagStore from 'sentry/stores/tagStore';
+import {PriorityLevel} from 'sentry/types';
 import IssueListOverview from 'sentry/views/issueList/overview';
 
 const DEFAULT_LINKS_HEADER =
@@ -318,6 +319,117 @@ describe('IssueListOverview (actions)', function () {
       await waitFor(() => {
         expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
         expect(screen.getByText('Group 2')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('priority', function () {
+    const medPriorityGroup = GroupFixture({
+      id: '1',
+      priority: PriorityLevel.MEDIUM,
+      culprit: 'Medium priority issue',
+    });
+    const highPriorityGroup = GroupFixture({
+      id: '2',
+      priority: PriorityLevel.HIGH,
+      culprit: 'High priority issue',
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [medPriorityGroup, highPriorityGroup],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+    });
+
+    it('removes issues after reprioritizing (when excluding priorities)', async function () {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<IssueListOverview {...defaultProps} />, {organization});
+
+      const groups = await screen.findAllByTestId('group');
+
+      await userEvent.click(
+        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+      );
+
+      expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
+
+      // After action, will refetch so need to mock that response
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [highPriorityGroup],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
+
+      await waitFor(() => {
+        expect(updateIssueMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            query: expect.objectContaining({id: ['1']}),
+            data: {priority: PriorityLevel.LOW},
+          })
+        );
+
+        expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not remove issues after reprioritizing (when query includes all priorities)', async function () {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(
+        <IssueListOverview
+          {...defaultProps}
+          {...{
+            ...RouteComponentPropsFixture({
+              location: LocationFixture({
+                query: {query: 'is:unresolved'},
+              }),
+              params: {
+                orgId: organization.slug,
+                projectId: project.slug,
+                searchId: undefined,
+              },
+            }),
+          }}
+        />,
+        {organization}
+      );
+
+      const groups = await screen.findAllByTestId('group');
+
+      await userEvent.click(
+        within(groups[0]).getByRole('checkbox', {name: /select issue/i})
+      );
+
+      expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /more issue actions/i}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
+
+      await waitFor(() => {
+        expect(updateIssueMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            query: expect.objectContaining({id: ['1']}),
+            data: {priority: PriorityLevel.LOW},
+          })
+        );
+
+        expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
       });
     });
   });
