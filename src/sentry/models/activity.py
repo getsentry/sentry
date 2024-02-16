@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
+        from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
+
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
         initial_priority = None
@@ -43,7 +45,9 @@ class ActivityManager(BaseManager["Activity"]):
             event_metadata = group.get_event_metadata()
             # Check if 'initial_priority' is available and the feature flag is on
             initial_priority_key = event_metadata.get("initial_priority")
-            initial_priority = initial_priority_key.to_str() if initial_priority_key else None
+            initial_priority = (
+                PRIORITY_LEVEL_TO_STR[initial_priority_key] if initial_priority_key else None
+            )
 
         prev_sig = None
         sig = None
