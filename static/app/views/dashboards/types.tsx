@@ -28,6 +28,34 @@ export enum WidgetType {
   METRICS = 'custom-metrics',
 }
 
+// These only pertain to on-demand warnings at this point in time
+// Since they are the only soft-validation we do.
+export type WidgetWarning = Record<string, OnDemandExtractionState>;
+export type WidgetQueryWarning = null | OnDemandExtractionState;
+
+export interface ValidateWidgetResponse {
+  warnings: {
+    columns: WidgetWarning;
+    queries: WidgetQueryWarning[]; // Ordered, matching queries passed via the widget.
+  };
+}
+
+export enum OnDemandExtractionState {
+  DISABLED_NOT_APPLICABLE = 'disabled:not-applicable',
+  DISABLED_PREROLLOUT = 'disabled:pre-rollout',
+  DISABLED_MANUAL = 'disabled:manual',
+  DISABLED_SPEC_LIMIT = 'disabled:spec-limit',
+  DISABLED_HIGH_CARDINALITY = 'disabled:high-cardinality',
+  ENABLED_ENROLLED = 'enabled:enrolled',
+  ENABLED_MANUAL = 'enabled:manual',
+  ENABLED_CREATION = 'enabled:creation',
+}
+
+interface WidgetQueryOnDemand {
+  enabled: boolean;
+  extractionState: OnDemandExtractionState;
+}
+
 export type WidgetQuery = {
   aggregates: string[];
   columns: string[];
@@ -41,6 +69,8 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  // Contains the on-demand entries for the widget query.
+  onDemand?: WidgetQueryOnDemand[];
 };
 
 export type Widget = {

@@ -26,12 +26,14 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -42,7 +44,7 @@ import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetC
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
+import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -322,6 +324,7 @@ class WidgetCard extends Component<Props, State> {
                           this.state.tableData
                         )}
                       <ExtractedMetricsTag queryKey={widget} />
+                      <DisplayOnDemandWarnings widget={widget} />
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip
@@ -424,6 +427,50 @@ class WidgetCard extends Component<Props, State> {
 }
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+
+function DisplayOnDemandWarnings(props: {widget: Widget}) {
+  const organization = useOrganization();
+  if (!hasOnDemandMetricWidgetFeature(organization)) {
+    return null;
+  }
+  const widgetContainsHighCardinality = props.widget.queries.some(wq =>
+    wq.onDemand?.some(
+      d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+    )
+  );
+  const widgetReachedSpecLimit = props.widget.queries.some(wq =>
+    wq.onDemand?.some(
+      d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
+    )
+  );
+
+  if (widgetContainsHighCardinality) {
+    return (
+      <Tooltip
+        containerDisplayMode="inline-flex"
+        title={t(
+          'This widget is using indexed data because it has a column with too many unique values.'
+        )}
+      >
+        <IconWarning color="warningText" />
+      </Tooltip>
+    );
+  }
+  if (widgetReachedSpecLimit) {
+    return (
+      <Tooltip
+        containerDisplayMode="inline-flex"
+        title={t(
+          "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+        )}
+      >
+        <IconWarning color="warningText" />
+      </Tooltip>
+    );
+  }
+
+  return null;
+}
 
 const ErrorCard = styled(Placeholder)`
   display: flex;
