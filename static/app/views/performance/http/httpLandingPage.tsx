@@ -74,7 +74,7 @@ export function HTTPLandingPage() {
       'time_spent_percentage()',
     ],
     sorts: [sort],
-    limit: LIMIT,
+    limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
     referrer: 'api.starfish.http-module-domains-list',
   });
@@ -159,7 +159,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const LIMIT = 10;
+const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function LandingPageWithProviders() {
   return (
