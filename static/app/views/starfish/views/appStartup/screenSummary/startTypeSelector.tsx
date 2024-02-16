@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -15,21 +14,6 @@ export function StartTypeSelector() {
   const location = useLocation();
 
   const value = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
-
-  useEffect(() => {
-    if (!value) {
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
-        },
-      });
-    }
-
-    // This hook should only run once to set the default type
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const options = [
     {value: COLD_START_TYPE, label: t('Cold Start')},
