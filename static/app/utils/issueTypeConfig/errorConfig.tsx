@@ -369,9 +369,9 @@ export function getErrorHelpResource({
       // Issues without a platform will never have a custom "Sentry Answers" resource
       const isCorrectPlatform =
         typeof projectPlatform === 'string'
-          ? !(project.platform || '').includes(projectPlatform)
-          : !(project.platform || '').match(projectPlatform);
-      if (isCorrectPlatform) {
+          ? (project.platform || '').includes(projectPlatform)
+          : (project.platform || '').match(projectPlatform);
+      if (!isCorrectPlatform) {
         continue;
       }
       return errorHelpTypeResourceMap[errorHelpType];
