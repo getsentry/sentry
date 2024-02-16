@@ -113,7 +113,6 @@ class OrganizationMemberSerializer(Serializer):
             attrs[item] = {
                 "user": user,
                 "externalUsers": external_users,
-                "groupOrgRoles": self.__sorted_org_roles_for_user(item),
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),
             }
@@ -151,10 +150,6 @@ class OrganizationMemberSerializer(Serializer):
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
         }
-
-        groupOrgRoles = attrs.get("groupOrgRoles")
-        if groupOrgRoles:
-            data["groupOrgRoles"] = groupOrgRoles
 
         if "externalUsers" in self.expand:
             data["externalUsers"] = attrs.get("externalUsers", [])
