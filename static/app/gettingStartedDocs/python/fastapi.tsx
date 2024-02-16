@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[fastapi]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[fastapi]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from fastapi import FastAPI

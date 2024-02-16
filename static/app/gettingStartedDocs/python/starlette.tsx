@@ -11,9 +11,10 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[starlette]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[starlette]'`;
 
-const getSdkSetupSnippet = (params: Params) => `from starlette.applications import Starlette
+const getSdkSetupSnippet = (params: Params) => `
+from starlette.applications import Starlette
 import sentry_sdk
 
 sentry_sdk.init(

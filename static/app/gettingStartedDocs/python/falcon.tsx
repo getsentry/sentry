@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[falcon]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[falcon]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import falcon

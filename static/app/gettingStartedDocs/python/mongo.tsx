@@ -27,7 +27,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )`;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[pymongo]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[pymongo]'`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>

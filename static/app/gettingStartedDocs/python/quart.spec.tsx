@@ -15,7 +15,9 @@ describe('quart onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[quart\]/))
+      screen.getByText(
+        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[quart\]'/)
+      )
     ).toBeInTheDocument();
   });
 

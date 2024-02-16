@@ -15,7 +15,9 @@ describe('flask onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[flask\]/))
+      screen.getByText(
+        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[flask\]'/)
+      )
     ).toBeInTheDocument();
   });
 

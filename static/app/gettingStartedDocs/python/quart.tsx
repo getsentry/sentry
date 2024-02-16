@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[quart]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[quart]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
