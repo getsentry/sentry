@@ -4,7 +4,7 @@ import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
 
-from sentry import features, options
+from sentry import options
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
@@ -216,10 +216,7 @@ def get_fingerprinting_config_for_project(
 
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-    if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
-        bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
-    else:
-        bases = []
+    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
         return FingerprintingRules([], bases=bases)
@@ -279,9 +276,11 @@ def _get_calculated_grouping_variants_for_event(event, context):
                     winning_strategy = strategy.name
                     variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
                     precedence_hint = "{} take{} precedence".format(
-                        f"{strategy.name} of {variants_hint}"
-                        if variant != "default"
-                        else strategy.name,
+                        (
+                            f"{strategy.name} of {variants_hint}"
+                            if variant != "default"
+                            else strategy.name
+                        ),
                         "" if strategy.name.endswith("s") else "s",
                     )
             elif component.contributes and winning_strategy != strategy.name:

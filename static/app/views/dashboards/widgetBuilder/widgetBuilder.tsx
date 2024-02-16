@@ -33,7 +33,6 @@ import {
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
 } from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -209,11 +208,7 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataSet = dataset
-    ? dataset
-    : source === DashboardWidgetSource.DDM
-      ? DataSet.METRICS
-      : DataSet.EVENTS;
+  const dataSet = dataset ? dataset : DataSet.EVENTS;
 
   const api = useApi();
 
@@ -1138,14 +1133,12 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
-                                    hasCustomMetricsFeature={hasDDMFeature(organization)}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>
                                       {({isMetricsData}) => (
                                         <ColumnsStep
                                           dataSet={state.dataSet}
-                                          queries={state.queries}
                                           displayType={state.displayType}
                                           widgetType={widgetType}
                                           queryErrors={state.errors?.queries}

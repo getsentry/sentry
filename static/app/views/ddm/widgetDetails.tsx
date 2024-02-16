@@ -64,7 +64,7 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
   }
 
   const queryWithFocusedSeries = useMemo(
-    () => widget && getQueryWithFocusedSeries(widget),
+    () => widget && getQueryWithFocusedSeries(widget.query || '', widget.focusedSeries),
     [widget]
   );
 
