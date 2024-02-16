@@ -1,8 +1,10 @@
 from collections.abc import Sequence
 from datetime import datetime
 
+from sentry import features
 from sentry.event_manager import HIGH_SEVERITY_THRESHOLD
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.receivers.rules import has_high_priority_issue_alerts
@@ -30,6 +32,9 @@ class HighPriorityIssueCondition(EventCondition):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         if not has_high_priority_issue_alerts(self.project):
             return False
+
+        if features.has("projects:issue-priority", self.project):
+            return event.group.priority == PriorityLevel.HIGH
 
         is_new_high_severity = self.is_new_high_severity(state, event.group)
         is_escalating = state.has_reappeared or state.has_escalated

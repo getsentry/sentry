@@ -27,7 +27,6 @@ markers = [
     "sentry_metrics: test requires access to sentry metrics",
     "symbolicator: test requires access to symbolicator",
 ]
-selenium_driver = "chrome"
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
@@ -35,6 +34,9 @@ filterwarnings = [
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
+
+    # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
+    "ignore:Type google\\._upb.*",
 
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
@@ -146,7 +148,6 @@ module = [
     "sentry.api.endpoints.group_external_issues",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
-    "sentry.api.endpoints.group_notes",
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.integrations.install_request",
     "sentry.api.endpoints.integrations.sentry_apps.details",
