@@ -16,6 +16,10 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
+import {
+  COLD_START_TYPE,
+  type WARM_START_TYPE,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
@@ -45,7 +49,7 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
 
 interface Props {
   chartHeight: number;
-  type: 'cold' | 'warm';
+  type: typeof COLD_START_TYPE | typeof WARM_START_TYPE;
   additionalFilters?: string[];
 }
 
@@ -58,7 +62,7 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
   } = useReleaseSelection();
 
   const query = new MutableSearch([
-    ...(type === 'cold' ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
+    ...(type === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
     ...(additionalFilters ?? []),
   ]);
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
@@ -102,7 +106,9 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
   return (
     <MiniChartPanel
       title={
-        type === 'cold' ? t('Avg. Cold Start Duration') : t('Avg. Warm Start Duration')
+        type === COLD_START_TYPE
+          ? t('Avg. Cold Start Duration')
+          : t('Avg. Warm Start Duration')
       }
     >
       <Chart

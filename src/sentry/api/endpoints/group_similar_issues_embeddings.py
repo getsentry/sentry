@@ -124,6 +124,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if latest_event.data.get("exception"):
             stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
 
+        if stacktrace_string == "":
+            return Response([])  # No stacktrace or in-app frames
+
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
             "project_id": group.project.id,
@@ -136,7 +139,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("threshold"):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
-        logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
+        extra: dict[str, Any] = dict(similar_issues_params.copy())
+        extra["group_message"] = extra.pop("message")
+        logger.info("Similar issues embeddings parameters", extra=extra)
 
         results = get_similar_issues_embeddings(similar_issues_params)
 
