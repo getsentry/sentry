@@ -75,19 +75,12 @@ export function EventSamples({
       release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
     ),
     profile_id: t('Profile'),
-    'span.description': t('Start Type'),
     'span.duration': t('Duration'),
   };
 
   const newQuery: NewQuery = {
     name: '',
-    fields: [
-      'transaction.id',
-      'project.name',
-      'profile_id',
-      'span.description',
-      'span.duration',
-    ],
+    fields: ['transaction.id', 'project.name', 'profile_id', 'span.duration'],
     query: searchQuery.formatString(),
     dataset: DiscoverDatasets.SPANS_INDEXED,
     version: 2,
