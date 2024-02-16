@@ -59,6 +59,7 @@ class GroupEndpoint(Endpoint):
             bind_organization_context(organization)
 
             request._request.organization = organization  # type: ignore[attr-defined]
+
         else:
             organization = None
 

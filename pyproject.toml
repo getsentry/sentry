@@ -148,7 +148,6 @@ module = [
     "sentry.api.endpoints.group_external_issues",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
-    "sentry.api.endpoints.group_notes",
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.integrations.install_request",
     "sentry.api.endpoints.integrations.sentry_apps.details",
