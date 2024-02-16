@@ -4,6 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition, Or
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
 
 
 def issue_search_query_to_conditions(
-    query: str, group: Group, user: User, environments: Sequence[Environment]
+    query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
 ) -> Sequence[Condition]:
     from sentry.utils.snuba import resolve_column, resolve_conditions
 
@@ -161,7 +162,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     group.project.id, event_id, group_id=group.id
                 )
             # TODO: Remove `for_group` check once performance issues are moved to the issue platform
-            if hasattr(event, "for_group") and event.group:
+
+            if event is not None and hasattr(event, "for_group") and event.group:
                 event = event.for_group(event.group)
 
         if event is None:

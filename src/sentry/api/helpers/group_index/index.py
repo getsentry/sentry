@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -45,7 +46,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
-    user: User,
+    user: User | AnonymousUser,
 ) -> Sequence[SearchFilter]:
     try:
         search_filters = convert_query_values(
