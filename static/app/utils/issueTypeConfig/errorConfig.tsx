@@ -374,6 +374,5 @@ export function getErrorHelpResource({
       return errorHelpTypeResourceMap[errorHelpType];
     }
   }
-
   return null;
 }
