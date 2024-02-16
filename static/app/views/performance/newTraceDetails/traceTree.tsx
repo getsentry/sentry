@@ -1,5 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types';
 import type {EntrySpans, Event, EventTransaction} from 'sentry/types/event';
 import type {
@@ -21,7 +22,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 
 /**
  *
