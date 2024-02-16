@@ -1,7 +1,7 @@
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Organization} from 'sentry/types';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {EntrySpans, Event, EventTransaction} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -21,6 +21,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
+import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 
 /**
  *
@@ -148,8 +149,13 @@ function fetchTransactionSpans(
 
 function maybeInsertMissingInstrumentationSpan(
   parent: TraceTreeNode<TraceTree.NodeValue>,
-  node: TraceTreeNode<TraceTree.Span>
+  node: TraceTreeNode<TraceTree.Span>,
+  event: EventTransaction
 ) {
+  if (isEventFromBrowserJavaScriptSDK(event)) {
+    return;
+  }
+
   const lastInsertedSpan = parent.spanChildren[parent.spanChildren.length - 1];
   if (!lastInsertedSpan) {
     return;
@@ -180,8 +186,10 @@ export class TraceTree {
   type: 'loading' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
 
-  private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
-    new Map();
+  private _spanPromises: Map<
+    TraceTreeNode<TraceTree.NodeValue>,
+    Promise<EventTransaction>
+  > = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
@@ -300,7 +308,8 @@ export class TraceTree {
 
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    spans: RawSpanType[]
+    spans: RawSpanType[],
+    event: EventTransaction
   ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
@@ -358,14 +367,14 @@ export class TraceTree {
 
         if (spanParentNode) {
           node.parent = spanParentNode;
-          maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          maybeInsertMissingInstrumentationSpan(spanParentNode, node, event);
           spanParentNode.spanChildren.push(node);
           continue;
         }
       }
 
       // Orphaned span
-      maybeInsertMissingInstrumentationSpan(parent, node);
+      maybeInsertMissingInstrumentationSpan(parent, node, event);
       parent.spanChildren.push(node);
       node.parent = parent as TraceTreeNode<TraceTree.Span>;
     }
@@ -623,7 +632,7 @@ export class TraceTree {
       );
 
     promise.then(data => {
-      const spans = data.entries.find(s => s.type === 'spans');
+      const spans = data.entries.find((c): c is EntrySpans => c.type === 'spans');
       if (!spans) {
         return data;
       }
@@ -640,7 +649,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data);
+      TraceTree.FromSpans(node, spans.data, data);
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);

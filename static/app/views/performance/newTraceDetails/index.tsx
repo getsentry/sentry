@@ -196,7 +196,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {traceType ? <TraceWarnings type={traceType} /> : null}
+          {traceType && props.traceSplitResult ? (
+            <TraceWarnings type={traceType} />
+          ) : null}
           <TraceHeader
             rootEventResults={rootEventResults}
             metaResults={props.metaResults}
