@@ -21,7 +21,6 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -54,7 +53,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -352,7 +351,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
         if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
+            priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
             group_dict["priority"] = priority_label
             group_dict["priorityLockedAt"] = obj.priority_locked_at
 
@@ -519,9 +518,9 @@ class GroupSerializerBase(Serializer, ABC):
                 start=start,
                 orderby="group_id",
                 referrer="group.unhandled-flag",
-                tenant_ids={"organization_id": item_list[0].project.organization_id}
-                if item_list
-                else None,
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             )
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
@@ -896,6 +895,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "first_release",
         "first_seen",
         "issue.category",
+        "issue.priority",
         "issue.type",
     )
 )
@@ -1048,9 +1048,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids={"organization_id": item_list[0].project.organization_id}
-            if item_list
-            else None,
+            tenant_ids=(
+                {"organization_id": item_list[0].project.organization_id} if item_list else None
+            ),
         )
 
     @staticmethod
@@ -1081,9 +1081,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
-            tenant_ids={"organization_id": item_list[0].project.organization_id}
-            if item_list
-            else None,
+            tenant_ids=(
+                {"organization_id": item_list[0].project.organization_id} if item_list else None
+            ),
         )
 
     @staticmethod
@@ -1110,9 +1110,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
-            tenant_ids={"organization_id": item_list[0].project.organization_id}
-            if item_list
-            else None,
+            tenant_ids=(
+                {"organization_id": item_list[0].project.organization_id} if item_list else None
+            ),
         )
 
     @staticmethod
