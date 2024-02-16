@@ -66,7 +66,7 @@ def get_time_params(start: datetime, end: datetime) -> MappedParams:
         granularity = 600
 
     additional_time_needed = snuba_range - anomaly_detection_range
-    now = datetime.utcnow().astimezone(timezone.utc)
+    now = datetime.now(timezone.utc)
     start_limit = now - timedelta(days=90)
     end_limit = now
     start = max(start, start_limit)

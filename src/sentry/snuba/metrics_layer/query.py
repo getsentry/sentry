@@ -22,7 +22,7 @@ from snuba_sdk.formula import FormulaParameterGroup
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -48,19 +48,6 @@ AGGREGATE_ALIASES = {
     "count_unique": ("uniq", None),
 }
 
-RELEASE_HEALTH_ENTITIES = {
-    "c": EntityKey.MetricsCounters,
-    "d": EntityKey.MetricsDistributions,
-    "s": EntityKey.MetricsSets,
-}
-
-GENERIC_ENTITIES = {
-    "c": EntityKey.GenericMetricsCounters,
-    "d": EntityKey.GenericMetricsDistributions,
-    "s": EntityKey.GenericMetricsSets,
-    "g": EntityKey.GenericMetricsGauges,
-}
-
 
 class ReverseMappings:
     """
@@ -83,6 +70,9 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
 
     This function is used to execute multiple metrics queries in a single request.
     """
+    if not requests:
+        return []
+
     queries = []
     for request in requests:
         request, start, end = _setup_metrics_query(request)
@@ -343,10 +333,6 @@ def _resolve_timeseries_metadata(
     else:
         mappings[metric.mri] = metric.id
 
-    if not metric.entity:
-        entity = _resolve_metrics_entity(metric.mri)  # This should eventually be done in Snuba
-        metric = metric.set_entity(entity.value)
-
     series = series.set_metric(metric)
     return series, mappings
 
@@ -378,17 +364,6 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         raise InvalidParams("Formula parameters must all be from the same use case")
 
     return namespaces.pop()
-
-
-def _resolve_metrics_entity(mri: str) -> EntityKey:
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
-
-    if parsed_mri.namespace == "sessions":
-        return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
-
-    return GENERIC_ENTITIES[parsed_mri.entity]
 
 
 def _lookup_indexer_resolve(

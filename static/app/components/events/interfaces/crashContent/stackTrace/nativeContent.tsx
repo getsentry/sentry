@@ -63,7 +63,7 @@ export function NativeContent({
     return (
       includeSystemFrames ||
       frame.inApp ||
-      (nextFrame && nextFrame.inApp) ||
+      nextFrame?.inApp ||
       // the last non-app frame
       (!frame.inApp && !nextFrame) ||
       isFrameUsedForGrouping(frame)

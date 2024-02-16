@@ -29,6 +29,7 @@ from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models.environment import Environment
+from sentry.models.user import User
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -569,7 +570,7 @@ class StatsMixin:
             if end_s:
                 end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=timezone.utc)
+                end = datetime.now(timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
@@ -688,3 +689,7 @@ Apply to endpoints that are available in all silo modes.
 
 This should be rarely used, but is relevant for resources like ROBOTS.txt.
 """
+
+
+class AuthenticatedRequest(Request):
+    user: User

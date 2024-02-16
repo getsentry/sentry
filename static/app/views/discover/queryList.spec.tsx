@@ -83,7 +83,7 @@ describe('Discover > QueryList', function () {
 
   afterEach(() => {
     jest.clearAllMocks();
-    wrapper && wrapper.unmount();
+    wrapper?.unmount();
     wrapper = null;
   });
 
