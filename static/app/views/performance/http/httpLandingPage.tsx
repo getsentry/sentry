@@ -35,7 +35,7 @@ export function HTTPLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
-  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  let sort = fromSorts(sortField).filter(isAValidSort).at(0) ?? default_val
   if (!sort) {
     sort = DEFAULT_SORT;
   }
