@@ -17,6 +17,7 @@ type Props = {
 };
 
 type State = {
+  access: boolean;
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
   eventType: string | undefined;
@@ -32,6 +33,7 @@ function OrganizationAuditLog({location}: Props) {
     eventType: decodeScalar(location.query.event),
     eventTypes: [],
     isLoading: true,
+    access: true,
   });
   const organization = useOrganization();
   const api = useApi();
@@ -83,6 +85,7 @@ function OrganizationAuditLog({location}: Props) {
       setState(prevState => ({
         ...prevState,
         isLoading: false,
+        access: false,
       }));
       addErrorMessage('Unable to load audit logs.');
     }
@@ -106,6 +109,7 @@ function OrganizationAuditLog({location}: Props) {
   return (
     <Fragment>
       <AuditLogList
+        access={state.access}
         entries={state.entryList}
         pageLinks={state.entryListPageLinks}
         eventType={state.eventType}
