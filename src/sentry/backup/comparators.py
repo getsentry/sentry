@@ -760,7 +760,9 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token"),
+                HashObfuscatingComparator(
+                    "refresh_token", "token", "hashed_token", "hashed_refresh_token"
+                ),
                 IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
