@@ -3987,7 +3987,7 @@ class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
             "is:unresolved",
             [self.group1, self.group2],
             None,
-            sort_by="priority",
+            sort_by="trends",
             date_from=self.base_datetime - timedelta(days=30),
         )
 
