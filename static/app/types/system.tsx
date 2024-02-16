@@ -174,6 +174,7 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
+  shouldShowBeaconConsentPrompt: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
