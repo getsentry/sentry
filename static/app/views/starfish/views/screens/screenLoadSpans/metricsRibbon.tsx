@@ -155,7 +155,6 @@ function MetricsBlock({
 }
 
 const BlockContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, minmax(40px, max-content));
+  display: flex;
   gap: ${space(2)};
 `;
