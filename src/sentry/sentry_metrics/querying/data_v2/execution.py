@@ -516,7 +516,7 @@ class QueryExecutor:
             return bulk_run_query(requests)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
-            raise MetricsQueryExecutionError("An error occurred while executing the query")
+            raise MetricsQueryExecutionError("An error occurred while executing the query") from e
 
     def _bulk_execute(self) -> Sequence[QueryResult]:
         # We build all the requests that can be scheduled together in the first step.
