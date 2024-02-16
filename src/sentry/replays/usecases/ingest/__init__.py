@@ -56,7 +56,7 @@ class RecordingIngestMessage:
     key_id: int | None
     received: int
     payload_with_headers: bytes
-    replay_event: bytes
+    replay_event: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -75,7 +75,11 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
-                replay_event=cast(bytes, message_dict["replay_event"]),
+                replay_event=(
+                    cast(bytes, message_dict["replay_event"])
+                    if "replay_event" in message_dict
+                    else None
+                ),
             )
             _ingest_recording(message, transaction)
 
