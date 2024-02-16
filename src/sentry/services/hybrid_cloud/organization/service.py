@@ -391,6 +391,13 @@ class OrganizationService(RpcService):
     ) -> list[RpcOrganizationMember]:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_organization_members_summaries(
+        self, *, organization_id: int
+    ) -> list[RpcOrganizationMemberSummary]:
+        pass
+
 
 class OrganizationCheckService(abc.ABC):
     @abstractmethod

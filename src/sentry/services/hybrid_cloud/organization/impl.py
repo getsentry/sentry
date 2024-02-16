@@ -638,6 +638,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return list(map(serialize_member, owner_members))
 
+    def get_organization_members_summaries(
+        self, *, organization_id: int
+    ) -> list[RpcOrganizationMemberSummary]:
+        org_members = OrganizationMember.objects.filter(organization_id=organization_id)
+
+        return [summarize_member(member) for member in org_members]
+
 
 class ControlOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
