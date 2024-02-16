@@ -213,7 +213,7 @@ sentry_sdk.init(
 
 const getPythonVerifySnippet = () => `
 # Increment a metric to see how it works
-metrics.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
+sentry_sdk.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
 
 export const getPythonMetricsOnboarding = ({
   installSnippet,
