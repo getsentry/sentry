@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 import string
 from collections.abc import Callable, Mapping
@@ -18,6 +19,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, 
 from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
+
+logger = logging.getLogger("sentry.api.rate-limit")
 
 if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
@@ -70,7 +73,7 @@ def get_rate_limit_key(
         return None
 
     ip_address = request.META.get("REMOTE_ADDR")
-    request_auth: (AuthenticatedToken | ApiToken | None) = getattr(request, "auth", None)
+    request_auth: AuthenticatedToken | ApiToken | None = getattr(request, "auth", None)
     request_user = getattr(request, "user", None)
 
     from django.contrib.auth.models import AnonymousUser
@@ -136,6 +139,7 @@ def get_organization_id_from_token(token_id: int) -> Any:
     # Return a random uppercase/lowercase letter to avoid collisions caused by tokens not being
     # associated with a SentryAppInstallation. This is a temporary fix while we solve the root cause
     if not installation:
+        logger.info("installation.not_found", extra={"token_id": token_id})
         return random.choice(string.ascii_letters)
 
     return installation.organization_id
@@ -230,14 +234,18 @@ def for_organization_member_invite(
 
     return any(
         (
-            ratelimiter.is_limited(
-                "members:invite-by-user:{}".format(
-                    md5_text(user.id if user and user.is_authenticated else str(auth)).hexdigest()
-                ),
-                **config["members:invite-by-user"],
-            )
-            if (user or auth)
-            else None,
+            (
+                ratelimiter.is_limited(
+                    "members:invite-by-user:{}".format(
+                        md5_text(
+                            user.id if user and user.is_authenticated else str(auth)
+                        ).hexdigest()
+                    ),
+                    **config["members:invite-by-user"],
+                )
+                if (user or auth)
+                else None
+            ),
             ratelimiter.is_limited(
                 f"members:invite-by-org:{md5_text(organization.id).hexdigest()}",
                 **config["members:invite-by-org"],
