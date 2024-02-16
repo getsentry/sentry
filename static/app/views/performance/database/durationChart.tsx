@@ -12,7 +12,7 @@ interface Props {
   error?: ErrorLike | null;
 }
 
-export function DurationChart({series, isLoading}: Props) {
+export function DurationChart({series, isLoading, error}: Props) {
   return (
     <ChartPanel title={<DurationAggregateSelector />}>
       <Chart
@@ -25,6 +25,7 @@ export function DurationChart({series, isLoading}: Props) {
         }}
         data={[series]}
         loading={isLoading}
+        error={error}
         chartColors={[AVG_COLOR]}
         isLineChart
       />
