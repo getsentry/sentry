@@ -24,7 +24,10 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {SamplesTables} from 'sentry/views/starfish/views/appStartup/screenSummary/samples';
-import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
+import {
+  COLD_START_TYPE,
+  StartTypeSelector,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
@@ -32,11 +35,11 @@ import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenL
 import AppStartWidgets from './widgets';
 
 type Query = {
+  [SpanMetricsField.APP_START_TYPE]: string;
   'device.class': string;
   primaryRelease: string;
   project: string;
   secondaryRelease: string;
-  spanAppStartType: string;
   spanDescription: string;
   spanGroup: string;
   spanOp: string;
@@ -55,7 +58,7 @@ function ScreenSummary() {
     spanGroup,
     spanDescription,
     spanOp,
-    spanAppStartType,
+    [SpanMetricsField.APP_START_TYPE]: appStartType,
     'device.class': deviceClass,
   } = location.query;
 
@@ -111,7 +114,7 @@ function ScreenSummary() {
                   dataset={DiscoverDatasets.SPANS_METRICS}
                   filters={[
                     `transaction:${transactionName}`,
-                    `span.op:[app.start.cold,app.start.warm]`,
+                    `span.op:app.start.${appStartType}`,
                     '(',
                     'span.description:"Cold Start"',
                     'OR',
@@ -121,75 +124,37 @@ function ScreenSummary() {
                   fields={[
                     `avg_if(span.duration,release,${primaryRelease})`,
                     `avg_if(span.duration,release,${secondaryRelease})`,
-                    'span.op',
+                    `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
                     'count()',
                   ]}
                   blocks={[
                     {
                       type: 'duration',
-                      title: t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS),
-                      dataKey: data => {
-                        const matchingRow = data?.find(
-                          row => row['span.op'] === 'app.start.cold'
-                        );
-                        return (
-                          (matchingRow?.[
-                            `avg_if(span.duration,release,${primaryRelease})`
-                          ] as number) ?? 0
-                        );
-                      },
+                      allowZero: false,
+                      title:
+                        appStartType === COLD_START_TYPE
+                          ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
+                          : t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                      dataKey: `avg_if(span.duration,release,${primaryRelease})`,
                     },
                     {
                       type: 'duration',
-                      title: t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS),
-                      dataKey: data => {
-                        const matchingRow = data?.find(
-                          row => row['span.op'] === 'app.start.cold'
-                        );
-                        return (
-                          (matchingRow?.[
-                            `avg_if(span.duration,release,${secondaryRelease})`
-                          ] as number) ?? 0
-                        );
-                      },
+                      allowZero: false,
+                      title:
+                        appStartType === COLD_START_TYPE
+                          ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
+                          : t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                      dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
                     },
                     {
-                      type: 'duration',
-                      title: t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
-                      dataKey: data => {
-                        const matchingRow = data?.find(
-                          row => row['span.op'] === 'app.start.warm'
-                        );
-                        return (
-                          (matchingRow?.[
-                            `avg_if(span.duration,release,${primaryRelease})`
-                          ] as number) ?? 0
-                        );
-                      },
-                    },
-                    {
-                      type: 'duration',
-                      title: t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
-                      dataKey: data => {
-                        const matchingRow = data?.find(
-                          row => row['span.op'] === 'app.start.warm'
-                        );
-                        return (
-                          (matchingRow?.[
-                            `avg_if(span.duration,release,${secondaryRelease})`
-                          ] as number) ?? 0
-                        );
-                      },
+                      type: 'change',
+                      title: t('Change'),
+                      dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
                     },
                     {
                       type: 'count',
                       title: t('Count'),
-                      dataKey: data => {
-                        return data?.reduce(
-                          (acc, row) => acc + (row['count()'] as number),
-                          0
-                        );
-                      },
+                      dataKey: 'count()',
                     },
                   ]}
                   referrer="api.starfish.mobile-startup-totals"
@@ -201,10 +166,10 @@ function ScreenSummary() {
               <SamplesContainer>
                 <SamplesTables transactionName={transactionName} />
               </SamplesContainer>
-              {spanGroup && spanOp && spanAppStartType && (
+              {spanGroup && spanOp && appStartType && (
                 <ScreenLoadSpanSamples
                   additionalFilters={{
-                    [SpanMetricsField.APP_START_TYPE]: spanAppStartType,
+                    [SpanMetricsField.APP_START_TYPE]: appStartType,
                     ...(deviceClass
                       ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass}
                       : {}),
