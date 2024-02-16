@@ -157,15 +157,15 @@ yarn.lock                                                @getsentry/owners-js-de
 ## End of Hybrid Cloud
 
 ## Workflow
-/static/app/views/settings/projectAlerts/                 @getsentry/issues
-/static/app/views/alerts/                                 @getsentry/issues
+/static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
+/static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/issueDetails/                           @getsentry/issues
 /static/app/views/issueDetails/groupEventDetails/*        @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
-/static/app/views/releases/                               @getsentry/issues
+/static/app/views/releases/                               @getsentry/alerts-notifications
 /static/app/views/organizationStats/teamInsights/         @getsentry/issues
-/static/app/views/settings/account/notifications/         @getsentry/issues
+/static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
 /src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
 /src/sentry/incidents/                                    @getsentry/issues
@@ -328,12 +328,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## Integrations
 /src/sentry/api/endpoints/integrations/                              @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
-/src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/issues
+/src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
-/src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
-/src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
-/src/sentry/api/serializers/models/alert_rule.py 				     @getsentry/issues
+/src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
+/src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
+/src/sentry/api/serializers/models/alert_rule.py                     @getsentry/alerts-notifications
 
 /static/app/views/organizationIntegrations                           @getsentry/product-owners-settings-integrations
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
@@ -343,16 +343,15 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
 /src/sentry/mail/                                                    @getsentry/issues
 /src/sentry/mediators/                                               @getsentry/issues
-/src/sentry/notifications/                                           @getsentry/issues
+/src/sentry/notifications/                                           @getsentry/alerts-notifications
 /src/sentry/pipeline/                                                @getsentry/issues
 /src/sentry/plugins/                                                 @getsentry/issues
 /src/sentry/ratelimits/                                              @getsentry/issues
 /src/sentry/shared_integrations/                                     @getsentry/issues
 
-/src/sentry/models/externalactor.py                                  @getsentry/issues
-/src/sentry/models/externalissue.py                                  @getsentry/issues
-/src/sentry/models/identity.py                                       @getsentry/issues
-/src/sentry/models/integrationfeature.py                             @getsentry/issues
+/src/sentry/models/externalactor.py                                  @getsentry/ecosystem
+/src/sentry/models/externalissue.py                                  @getsentry/ecosystem
+/src/sentry/models/identity.py                                       @getsentry/enterprise
 /src/sentry/models/integrations/                                     @getsentry/product-owners-settings-integrations
 
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
@@ -360,10 +359,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/commit_context.py                                  @getsentry/issues
 /src/sentry/tasks/digests.py                                         @getsentry/issues
 /src/sentry/tasks/email.py                                           @getsentry/issues
-/src/sentry/tasks/integrations/                                      @getsentry/issues
+/src/sentry/tasks/integrations/                                      @getsentry/ecosystem
 /src/sentry/tasks/reports.py                                         @getsentry/issues
 /src/sentry/tasks/user_report.py                                     @getsentry/issues
-/src/sentry/tasks/weekly_reports.py                                  @getsentry/issues
+/src/sentry/tasks/weekly_reports.py                                  @getsentry/alerts-notifications
 
 /src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
 *code_mappings*.py                                                   @getsentry/issues
@@ -371,8 +370,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                                                      @getsentry/product-owners-settings-integrations
 *sentryapp*.py                                                       @getsentry/product-owners-settings-integrations
-*doc_integration*.py                                                 @getsentry/issues
-*docintegration*.py                                                  @getsentry/issues
+*doc_integration*.py                                                 @getsentry/ecosystem
+*docintegration*.py                                                  @getsentry/ecosystem
 
 /src/sentry/middleware/ratelimit.py                                  @getsentry/issues
 /src/sentry/middleware/access_log.py                                 @getsentry/issues
@@ -385,7 +384,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/grouphash.py               @getsentry/data
 /src/sentry/models/grouprelease.py            @getsentry/data
 /src/sentry/models/groupresolution.py         @getsentry/data
-/src/sentry/models/integration.py             @getsentry/data @getsentry/issues
 /src/sentry/models/organization.py            @getsentry/data
 /src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
