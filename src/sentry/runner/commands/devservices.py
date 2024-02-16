@@ -4,7 +4,6 @@ import contextlib
 import http
 import os
 import platform
-import shutil
 import signal
 import subprocess
 import sys
@@ -29,11 +28,18 @@ DARWIN = sys.platform == "darwin"
 # 12.3.1: arm64
 APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
-USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
+USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+
+# TODO: USE_ORBSTACK
+USE_DOCKER_DESKTOP = not USE_COLIMA
 
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+elif USE_DOCKER_DESKTOP:
+    RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
+    # this is now gated behind a docker desktop advanced setting
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
@@ -58,11 +64,12 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
-                else:
+                elif USE_DOCKER_DESKTOP:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
                     )
+                # TODO: USE_ORBSTACK
             else:
                 raise click.ClickException("Make sure docker is running.")
 
