@@ -55,7 +55,7 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
                     frame.get("filename", ""),
                     frame.get("lineno", ""),
                     frame.get("function", ""),
-                    frame.get("context_line", ""),
+                    frame.get("context_line", "").strip(),
                 )
 
     return output.strip()
