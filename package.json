@@ -55,7 +55,7 @@
     "@sentry-internal/rrweb-player": "2.9.0",
     "@sentry-internal/rrweb-snapshot": "2.9.0",
     "@sentry/babel-plugin-component-annotate": "^2.14.0",
-    "@sentry/core": "^7.99.0",
+    "@sentry/core": "^7.101.1",
     "@sentry/integrations": "^7.99.0",
     "@sentry/node": "^7.99.0",
     "@sentry/react": "^7.99.0",
