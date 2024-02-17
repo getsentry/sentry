@@ -83,7 +83,7 @@ describe('OrganizationStats', function () {
   /**
    * Base + Error Handling
    */
-  it('renders the base view', () => {
+  it('renders the base view', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     // Default to Errors category
@@ -99,7 +99,7 @@ describe('OrganizationStats', function () {
 
     expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
     expect(screen.getByText('28')).toBeInTheDocument();
-    expect(screen.getByText('6 in last min')).toBeInTheDocument();
+    expect(await screen.findByText('6 in last min')).toBeInTheDocument();
 
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
     expect(screen.getAllByText('7')[0]).toBeInTheDocument();
