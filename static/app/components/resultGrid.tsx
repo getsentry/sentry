@@ -223,7 +223,7 @@ class ResultGrid extends Component<Props, State> {
   }
 
   get query() {
-    return ((this.props.location ?? {}).query ?? {}) as {[k: string]: string};
+    return (this.props.location?.query ?? {}) as {[k: string]: string};
   }
 
   remountComponent() {

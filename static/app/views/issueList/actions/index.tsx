@@ -75,7 +75,7 @@ function IssueListActions({
 
   const disableActions = useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 
@@ -285,7 +285,7 @@ function useSelectedGroupsState() {
   const selected = SelectedGroupStore.getSelectedIds();
   const projects = [...selected]
     .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);
@@ -322,6 +322,7 @@ function shouldConfirm(
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
     case ConfirmAction.ARCHIVE:
+    case ConfirmAction.SET_PRIORITY:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }

@@ -60,19 +60,12 @@ export function EventSamples({
     'OR',
     'span.description:"Warm Start"',
     ')',
+    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
     // TODO: Add this back in once we have the ability to filter by start type
     // `${SpanMetricsField.APP_START_TYPE}:${
     //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     // }`,
   ]);
-
-  if (deviceClass) {
-    if (deviceClass === 'Unknown') {
-      searchQuery.addFilterValue('!has', 'device.class');
-    } else {
-      searchQuery.addFilterValue('device.class', deviceClass);
-    }
-  }
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
@@ -82,19 +75,12 @@ export function EventSamples({
       release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
     ),
     profile_id: t('Profile'),
-    'span.description': t('Start Type'),
     'span.duration': t('Duration'),
   };
 
   const newQuery: NewQuery = {
     name: '',
-    fields: [
-      'transaction.id',
-      'project.name',
-      'profile_id',
-      'span.description',
-      'span.duration',
-    ],
+    fields: ['transaction.id', 'project.name', 'profile_id', 'span.duration'],
     query: searchQuery.formatString(),
     dataset: DiscoverDatasets.SPANS_INDEXED,
     version: 2,

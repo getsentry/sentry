@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.net.socket import is_valid_url
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -31,6 +32,12 @@ def query_to_result(field, result):
         return "{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
 
     return result["fields"]["name"]
+
+
+def validate_host(value: str, **kwargs: object) -> str:
+    if not value.startswith(("http://", "https://")) or not is_valid_url(value):
+        raise PluginError("Not a valid URL.")
+    return value
 
 
 class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
@@ -78,6 +85,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 "type": "text",
                 "placeholder": "e.g. http://secure.phabricator.org",
                 "required": True,
+                "validators": [validate_host],
             },
             secret_field,
             {
@@ -131,7 +139,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "phabricator_plugin"})
                     ),

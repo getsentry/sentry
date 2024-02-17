@@ -23,4 +23,4 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
 
 @receiver(pre_save, sender=IncidentTrigger)
 def pre_save_incident_trigger(instance, sender, *args, **kwargs):
-    instance.date_modified = datetime.utcnow().replace(tzinfo=timezone.utc)
+    instance.date_modified = datetime.now(timezone.utc)

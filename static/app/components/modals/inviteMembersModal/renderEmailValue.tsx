@@ -14,7 +14,7 @@ function renderEmailValue<Option extends OptionTypeBase>(
   valueProps: MultiValueProps<Option>
 ) {
   const {children, ...props} = valueProps;
-  const error = status && status.error;
+  const error = status?.error;
 
   const emailLabel =
     status === undefined ? (

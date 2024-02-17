@@ -1,29 +1,36 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
+from sentry.integrations.message_builder import build_attachment_text, build_attachment_title
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
     format_release_tag,
+    get_context,
     get_option_groups,
     get_option_groups_block_kit,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
+    ErrorGroupType,
     FeedbackGroup,
+    MonitorCheckInFailure,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.models.group import Group, GroupStatus
@@ -45,6 +52,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -66,7 +74,8 @@ def build_test_message_blocks(
 ) -> dict[str, Any]:
     project = group.project
 
-    title = group.title
+    title = build_attachment_title(group)
+    text = build_attachment_text(group)
     title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
     formatted_title = title
     if event:
@@ -85,6 +94,20 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
+    if text:
+        new_text = text.lstrip(" ")
+        if new_text:
+            text_section = {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_preformatted",
+                        "elements": [{"type": "text", "text": new_text}],
+                        "border": 0,
+                    }
+                ],
+            }
+            blocks.append(text_section)
 
     tags_text = ""
     if not tags:
@@ -181,9 +204,12 @@ def build_test_message_blocks(
 
     blocks.append({"type": "divider"})
 
+    popup_text = (
+        f"[{project.slug}] {title}: {text}" if text is not None else f"[{project.slug}] {title}"
+    )
     return {
         "blocks": blocks,
-        "text": f"[{project.slug}] {title}",
+        "text": popup_text,
     }
 
 
@@ -294,21 +320,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
         test_message["actions"] = [
-            action
-            if action["text"] != "Ignore"
-            else {
-                "name": "status",
-                "text": "Archive",
-                "type": "button",
-                "value": "ignored:until_escalating",
-            }
+            (
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+            )
             for action in test_message["actions"]
         ]
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
-
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -399,6 +426,70 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block_with_message(self):
+        event_data = {
+            "event_id": "a" * 32,
+            "message": "IntegrationError",
+            "fingerprint": ["group-1"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        base_tags = {"level": "error"}
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block_with_empty_string_message(self):
+        event_data = {
+            "event_id": "a" * 32,
+            "message": "IntegrationError",
+            "fingerprint": ["group-1"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": " ",
+                    }
+                ]
+            },
+        }
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        base_tags = {"level": "error"}
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -520,6 +611,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @patch(
@@ -591,10 +683,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:streamline-targeting-context")
     def test_issue_alert_with_suggested_assignees(self):
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -818,6 +910,34 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_build_group_generic_issue_block_title_emojis(self):
+        """Test that a generic issue type's Slack alert contains the expected values"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+        occurrence = self.build_occurrence(level="info")
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        # uses CATEGORY_TO_EMOJI_V2
+        group_event.group.type = ProfileFileIOGroupType.type_id
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert ":large_blue_circle::chart_with_upwards_trend:" in section["text"]["text"]
+
+        # uses LEVEL_TO_EMOJI_V2
+        group_event.group.type = ErrorGroupType.type_id
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert ":red_circle:" in section["text"]["text"]
+
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
@@ -858,6 +978,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
+
+    @with_feature("organizations:slack-block-kit")
+    def test_block_kit_truncates_long_query(self):
+        text = "a" * 5000
+        block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
+        assert block["elements"][0]["elements"][0]["text"] == "a" * 997 + "..."
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
@@ -1503,3 +1629,29 @@ class ActionsTest(TestCase):
                 res[0],
                 {"label": "Select Assignee...", "name": "assign", "type": "select", "value": None},
             )
+
+
+@region_silo_test
+class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        self.one_hour_ago = timezone.now() - timedelta(hours=1)
+        self.endpoint_regression_issue = self.create_group(
+            type=PerformanceP95EndpointRegressionGroupType.type_id, active_at=self.one_hour_ago
+        )
+
+        self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
+        self.feedback_issue = self.create_group(
+            type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
+        )
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_context(self):
+        # endpoint regression should use Regressed Date
+        context = get_context(self.endpoint_regression_issue)
+        assert "Regressed Date: *1\xa0hour ago*" in context
+
+        # crons don't have context
+        assert get_context(self.cron_issue) == ""
+
+        # feedback doesn't have context
+        assert get_context(self.feedback_issue) == ""

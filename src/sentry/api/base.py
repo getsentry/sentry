@@ -44,6 +44,13 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
+from ..services.hybrid_cloud import rpcmetrics
+from ..utils.pagination_factory import (
+    annotate_span_with_pagination_args,
+    clamp_pagination_per_page,
+    get_cursor,
+    get_paginator,
+)
 from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
@@ -56,6 +63,7 @@ from .permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
+from .utils import generate_organization_url
 
 __all__ = [
     "Endpoint",
@@ -65,14 +73,7 @@ __all__ = [
     "region_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud import rpcmetrics
-from ..utils.pagination_factory import (
-    annotate_span_with_pagination_args,
-    clamp_pagination_per_page,
-    get_cursor,
-    get_paginator,
-)
-from .utils import generate_organization_url
+PAGINATION_DEFAULT_PER_PAGE = 100
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -438,7 +439,12 @@ class Endpoint(APIView):
     def respond_with_text(self, text):
         return self.respond({"text": text})
 
-    def get_per_page(self, request: Request, default_per_page=100, max_per_page=100):
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ):
+        default_per_page = default_per_page or PAGINATION_DEFAULT_PER_PAGE
+        max_per_page = max_per_page or 100
+
         try:
             return clamp_pagination_per_page(
                 request.GET.get("per_page", default_per_page),
@@ -460,8 +466,8 @@ class Endpoint(APIView):
         on_results=None,
         paginator=None,
         paginator_cls=Paginator,
-        default_per_page=100,
-        max_per_page=100,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
         cursor_cls=Cursor,
         response_cls=Response,
         response_kwargs=None,
@@ -563,7 +569,7 @@ class StatsMixin:
             if end_s:
                 end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=timezone.utc)
+                end = datetime.now(timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 

@@ -69,24 +69,24 @@ export default abstract class FormField<
   static contextType = FormContext;
 
   getValue(props: Props, context: FormContextData) {
-    const form = (context || this.context || {}).form;
+    const form = (context || this.context)?.form;
     props = props || this.props;
     if (defined(props.value)) {
       return props.value;
     }
-    if (form && form.data.hasOwnProperty(props.name)) {
+    if (form?.data.hasOwnProperty(props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : '';
     }
     return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
   getError(props: Props, context: FormContextData) {
-    const form = (context || this.context || {}).form;
+    const form = (context || this.context)?.form;
     props = props || this.props;
     if (defined(props.error)) {
       return props.error;
     }
-    return (form && form.errors[props.name]) || null;
+    return form?.errors[props.name] || null;
   }
 
   getId() {

@@ -151,12 +151,12 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // eslint-disable-next-line no-var
+  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // eslint-disable-next-line no-var
+  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 

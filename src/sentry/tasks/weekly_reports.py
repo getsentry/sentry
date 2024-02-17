@@ -3,8 +3,10 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
+from collections.abc import Mapping
 from datetime import timedelta
 from functools import partial, reduce
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Count, F
@@ -19,13 +21,14 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -107,7 +110,7 @@ class ProjectContext:
         )
 
 
-def check_if_project_is_empty(project_ctx):
+def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
     """
     Check if this project has any content we could show in an email.
     """
@@ -124,7 +127,7 @@ def check_if_project_is_empty(project_ctx):
     )
 
 
-def check_if_ctx_is_empty(ctx):
+def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send an email.
     """
@@ -140,7 +143,9 @@ def check_if_ctx_is_empty(ctx):
     silo_mode=SiloMode.REGION,
 )
 @retry
-def schedule_organizations(dry_run=False, timestamp=None, duration=None):
+def schedule_organizations(
+    dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
+) -> None:
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
@@ -167,7 +172,12 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
 )
 @retry
 def prepare_organization_report(
-    timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
+    timestamp: float,
+    duration: int,
+    organization_id: int,
+    dry_run: bool = False,
+    target_user: User | None = None,
+    email_override: str | None = None,
 ):
     if target_user and not hasattr(target_user, "id"):
         logger.error(
@@ -190,7 +200,8 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
 
-    organization_project_issue_substatus_summaries(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_substatus_summaries"):
+        organization_project_issue_substatus_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -204,7 +215,8 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
-    report_is_available = not check_if_ctx_is_empty(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.check_if_ctx_is_empty"):
+        report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
 
     if not report_is_available:
@@ -223,17 +235,21 @@ def prepare_organization_report(
 # Organization Passes
 
 
-# Find the projects associated with an user.
-# Populates context.project_ownership which is { user_id: set<project_id> }
-def user_project_ownership(ctx):
+def user_project_ownership(ctx: OrganizationReportContext) -> None:
+    """Find the projects associated with each user.
+    Populates context.project_ownership which is { user_id: set<project_id> }
+    """
     for project_id, user_id in OrganizationMember.objects.filter(
         organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
     ).values_list("teams__projectteam__project_id", "user_id"):
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-# Populates context.projects which is { project_id: ProjectContext }
-def project_event_counts_for_organization(ctx):
+def project_event_counts_for_organization(ctx: OrganizationReportContext) -> None:
+    """
+    Populates context.projects which is { project_id: ProjectContext }
+    """
+
     def zerofill_data(data):
         return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
 
@@ -298,7 +314,7 @@ def project_event_counts_for_organization(ctx):
                 )
 
 
-def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext):
+def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext) -> None:
     substatus_counts = (
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
@@ -322,7 +338,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
 
 
 # Project passes
-def project_key_errors(ctx, project):
+def project_key_errors(ctx: OrganizationReportContext, project) -> None:
     if not project.first_event:
         return
     # Take the 3 most frequently occuring events
@@ -353,7 +369,7 @@ def project_key_errors(ctx, project):
 
 
 # Organization pass. Depends on project_key_errors.
-def fetch_key_error_groups(ctx):
+def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     all_key_error_group_ids = []
     for project_ctx in ctx.projects.values():
         all_key_error_group_ids.extend([group_id for group_id, count in project_ctx.key_errors])
@@ -518,7 +534,7 @@ def project_key_performance_issues(ctx, project):
 
 
 # Organization pass. Depends on project_key_performance_issue.
-def fetch_key_performance_issue_groups(ctx):
+def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
     all_groups = []
     for project_ctx in ctx.projects.values():
         all_groups.extend([group for group, count in project_ctx.key_performance_issues])
@@ -545,17 +561,38 @@ def fetch_key_performance_issue_groups(ctx):
         ]
 
 
-# Deliver reports
-# For all users in the organization, we generate the template context for the user, and send the email.
-
-
-def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
+def deliver_reports(
+    ctx: OrganizationReportContext,
+    dry_run: bool = False,
+    target_user: User | None = None,
+    email_override: str | None = None,
+) -> None:
+    """
+    For all users in the organization, we generate the template context for the user, and send the email.
+    """
     # Specify a sentry user to send this email.
+    template_context: Mapping[str, Any] | None = None
+    user_id: int | None = None
+
     if email_override:
         target_user_id = (
             target_user.id if target_user else None
         )  # if None, generates report for a user with access to all projects
-        send_email(ctx, target_user_id, dry_run=dry_run, email_override=email_override)
+        user_template_context_by_user_id_list = prepare_template_context(
+            ctx=ctx, user_ids=[target_user_id]
+        )
+        if user_template_context_by_user_id_list:
+            user_template_context_by_user_id = user_template_context_by_user_id_list[0]
+            template_context = user_template_context_by_user_id.get("context")
+            user_id = user_template_context_by_user_id.get("user_id")
+            if template_context and user_id:
+                send_email(
+                    ctx=ctx,
+                    template_ctx=template_context,
+                    user_id=user_id,
+                    dry_run=dry_run,
+                    email_override=email_override,
+                )
     else:
         user_list = list(
             OrganizationMember.objects.filter(
@@ -569,8 +606,19 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
         user_ids = notifications_service.get_users_for_weekly_reports(
             organization_id=ctx.organization.id, user_ids=user_list
         )
+        user_template_context_by_user_id_list = []
         for user_id in user_ids:
-            send_email(ctx, user_id, dry_run=dry_run)
+            user_template_context_by_user_id_list = prepare_template_context(
+                ctx=ctx, user_ids=user_ids
+            )
+        if user_template_context_by_user_id_list:
+            for user_template in user_template_context_by_user_id_list:
+                template_context = user_template.get("context")
+                user_id = user_template.get("user_id")
+                if template_context and user_id:
+                    send_email(
+                        ctx=ctx, template_ctx=template_context, user_id=user_id, dry_run=dry_run
+                    )
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -646,11 +694,6 @@ def render_template_context(ctx, user_id):
     else:
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
-
-    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
-    has_replay_section = features.has(
-        "organizations:session-replay", ctx.organization
-    ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
     notification_uuid = str(uuid.uuid4())
 
@@ -928,7 +971,6 @@ def render_template_context(ctx, user_id):
         }
 
     return {
-        "has_replay_graph": has_replay_graph,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -936,23 +978,36 @@ def render_template_context(ctx, user_id):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
-        "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
     }
 
 
-def send_email(ctx, user_id, dry_run=False, email_override=None):
-    template_ctx = render_template_context(ctx, user_id)
-    if not template_ctx:
-        logger.debug(
-            "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
-            ctx.organization.id,
-            user_id,
-        )
-        return
+def prepare_template_context(
+    ctx: OrganizationReportContext, user_ids: list[int]
+) -> list[Mapping[str, Any]] | list:
+    user_template_context_by_user_id_list = []
+    for user_id in user_ids:
+        template_ctx = render_template_context(ctx, user_id)
+        if not template_ctx:
+            logger.debug(
+                "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
+                ctx.organization.id,
+                user_id,
+            )
+            continue
+        user_template_context_by_user_id_list.append({"context": template_ctx, "user_id": user_id})
+    return user_template_context_by_user_id_list
 
+
+def send_email(
+    ctx: OrganizationReportContext,
+    template_ctx: Mapping[str, Any],
+    user_id: int,
+    dry_run: bool = False,
+    email_override: str | None = None,
+) -> None:
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
         template="sentry/emails/reports/body.txt",
@@ -963,6 +1018,7 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+
     if email_override:
         message.send(to=(email_override,))
     else:

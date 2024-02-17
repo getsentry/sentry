@@ -43,7 +43,7 @@ class EscalatingGroupForecast:
     date_added: datetime
 
     def save(self) -> None:
-        nodestore.set(
+        nodestore.backend.set(
             self.build_storage_identifier(self.project_id, self.group_id),
             self.to_dict(),
             ttl=timedelta(GROUP_FORECAST_TTL),
@@ -69,9 +69,9 @@ class EscalatingGroupForecast:
         from sentry.issues.forecasts import generate_and_save_missing_forecasts
 
         if not cls._should_fetch_escalating(group_id=group_id):
-            return
+            return None
 
-        results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
         generate_and_save_missing_forecasts.delay(group_id=group_id)
