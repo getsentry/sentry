@@ -18,6 +18,6 @@ class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert Organization.objects.filter(id=organization.id).exist()
+        assert Organization.objects.filter(id=organization.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
