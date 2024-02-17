@@ -88,7 +88,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'UnboundLocalError',
-    projectPlatform: 'python', // matches 'python' and 'python-*' so all python platforms are captured
+    projectPlatform: 'python',
     errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
   },
   {
