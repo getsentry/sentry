@@ -1088,6 +1088,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.daily_summary.schedule_reports",
+        "schedule": crontab(
+            minute=0,
+            hour=12,  # 16:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
     # "schedule-monthly-invite-missing-org-members": {
     #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
     #     "schedule": crontab(

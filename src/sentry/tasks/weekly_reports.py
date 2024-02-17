@@ -28,6 +28,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
@@ -48,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationReportContext:
-    def __init__(self, timestamp, duration, organization):
+    def __init__(self, timestamp: float, duration: int, organization: Organization):
         self.timestamp = timestamp
         self.duration = duration
 
@@ -66,6 +67,7 @@ class OrganizationReportContext:
         return self.projects.__repr__()
 
 
+# TODO: create a new DailyProjectContext?
 class ProjectContext:
     accepted_error_count = 0
     dropped_error_count = 0
@@ -80,7 +82,7 @@ class ProjectContext:
     regression_substatus_count = 0
     total_substatus_count = 0
 
-    def __init__(self, project):
+    def __init__(self, project: Project):
         self.project = project
 
         # Array of (group_id, group_history, count)
@@ -198,17 +200,76 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
-        project_event_counts_for_organization(ctx)
+        event_counts = project_event_counts_for_organization(
+            start=ctx.start,
+            end=ctx.end,
+            org_id=ctx.organization.id,
+            referrer="weekly_reports.outcomes",
+        )
+    for data in event_counts:
+        project_id = data["project_id"]
+        # Project no longer in organization, but events still exist
+        if project_id not in ctx.projects:
+            continue
+        project_ctx = ctx.projects[project_id]
+        total = data["total"]
+        timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
+        if data["category"] == DataCategory.TRANSACTION:
+            # Transaction outcome
+            if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_transaction_count += total
+            else:
+                project_ctx.accepted_transaction_count += total
+                project_ctx.transaction_count_by_day[timestamp] = total
+        elif data["category"] == DataCategory.REPLAY:
+            # Replay outcome
+            if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_replay_count += total
+            else:
+                project_ctx.accepted_replay_count += total
+                project_ctx.replay_count_by_day[timestamp] = total
+        else:
+            # Error outcome
+            if data["outcome"] == Outcome.RATE_LIMITED or data["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_error_count += total
+            else:
+                project_ctx.accepted_error_count += total
+                project_ctx.error_count_by_day[timestamp] = (
+                    project_ctx.error_count_by_day.get(timestamp, 0) + total
+                )
 
     with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_substatus_summaries"):
-        organization_project_issue_substatus_summaries(ctx)
+        substatus_counts = organization_project_issue_substatus_summaries(
+            start=ctx.start, end=ctx.end, org_id=ctx.organization.id
+        )
+        add_substatus_counts_to_context(substatus_counts, ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
         for project in organization.project_set.all():
-            project_key_errors(ctx, project)
+            key_errors = project_key_errors(
+                start=ctx.start, end=ctx.end, project=project, referrer="reports.key_errors"
+            )
+            if key_errors:
+                # Set project_ctx.key_errors to be an array of (group_id, count) for now.
+                # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
+                ctx.projects[project.id].key_errors = [
+                    (e["group_id"], e["count()"]) for e in key_errors
+                ]
+                if ctx.organization.slug == "sentry":
+                    logger.info(
+                        "project_key_errors.results",
+                        extra={"project_id": project.id, "num_key_errors": len(key_errors)},
+                    )
             project_key_transactions(ctx, project)
-            project_key_performance_issues(ctx, project)
+            key_performance_issues = project_key_performance_issues(
+                start=ctx.start,
+                end=ctx.end,
+                project=project,
+                referrer="reports.key_performance_issues",
+            )
+            if key_performance_issues:
+                ctx.projects[project.id].key_performance_issues = key_performance_issues
 
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
@@ -245,13 +306,13 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-def project_event_counts_for_organization(ctx: OrganizationReportContext) -> None:
+def project_event_counts_for_organization(start, end, org_id, referrer) -> None:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
 
     def zerofill_data(data):
-        return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
+        return zerofill(data, start, end, ONE_DAY, fill_default=0)
 
     query = Query(
         match=Entity("outcomes"),
@@ -261,9 +322,9 @@ def project_event_counts_for_organization(ctx: OrganizationReportContext) -> Non
             Function("sum", [Column("quantity")], "total"),
         ],
         where=[
-            Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
-            Condition(Column("org_id"), Op.EQ, ctx.organization.id),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end + timedelta(days=1)),
+            Condition(Column("org_id"), Op.EQ, org_id),
             Condition(
                 Column("outcome"), Op.IN, [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
             ),
@@ -279,52 +340,25 @@ def project_event_counts_for_organization(ctx: OrganizationReportContext) -> Non
         limit=Limit(10000),
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
-    data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
-
-    for dat in data:
-        project_id = dat["project_id"]
-        # Project no longer in organization, but events still exist
-        if project_id not in ctx.projects:
-            continue
-        project_ctx = ctx.projects[project_id]
-        total = dat["total"]
-        timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
-        if dat["category"] == DataCategory.TRANSACTION:
-            # Transaction outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
-                project_ctx.dropped_transaction_count += total
-            else:
-                project_ctx.accepted_transaction_count += total
-                project_ctx.transaction_count_by_day[timestamp] = total
-        elif dat["category"] == DataCategory.REPLAY:
-            # Replay outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
-                project_ctx.dropped_replay_count += total
-            else:
-                project_ctx.accepted_replay_count += total
-                project_ctx.replay_count_by_day[timestamp] = total
-        else:
-            # Error outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
-                project_ctx.dropped_error_count += total
-            else:
-                project_ctx.accepted_error_count += total
-                project_ctx.error_count_by_day[timestamp] = (
-                    project_ctx.error_count_by_day.get(timestamp, 0) + total
-                )
+    data = raw_snql_query(request, referrer=referrer)["data"]
+    return data
 
 
-def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext) -> None:
+def organization_project_issue_substatus_summaries(start, end, org_id) -> None:
     substatus_counts = (
         Group.objects.filter(
-            project__organization_id=ctx.organization.id,
-            last_seen__gte=ctx.start,
-            last_seen__lt=ctx.end,
+            project__organization_id=org_id,
+            last_seen__gte=start,
+            last_seen__lt=end,
             status=GroupStatus.UNRESOLVED,
         )
         .values("project_id", "substatus")
         .annotate(total=Count("substatus"))
     )
+    return substatus_counts
+
+
+def add_substatus_counts_to_context(substatus_counts, ctx: OrganizationReportContext) -> None:
     for item in substatus_counts:
         if item["substatus"] == GroupSubStatus.NEW:
             ctx.projects[item["project_id"]].new_substatus_count = item["total"]
@@ -338,17 +372,17 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
 
 
 # Project passes
-def project_key_errors(ctx: OrganizationReportContext, project) -> None:
+def project_key_errors(start, end, project, referrer):
     if not project.first_event:
         return
     # Take the 3 most frequently occuring events
-    with sentry_sdk.start_span(op="weekly_reports.project_key_errors"):
+    with sentry_sdk.start_span(op="weekly_reports.key_errors = project_key_errors"):
         query = Query(
             match=Entity("events"),
             select=[Column("group_id"), Function("count", [])],
             where=[
-                Condition(Column("timestamp"), Op.GTE, ctx.start),
-                Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end + timedelta(days=1)),
                 Condition(Column("project_id"), Op.EQ, project.id),
             ],
             groupby=[Column("group_id")],
@@ -356,19 +390,13 @@ def project_key_errors(ctx: OrganizationReportContext, project) -> None:
             limit=Limit(3),
         )
         request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="reports.key_errors")
+        query_result = raw_snql_query(request, referrer=referrer)
         key_errors = query_result["data"]
-        # Set project_ctx.key_errors to be an array of (group_id, count) for now.
-        # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
-        ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
-        if ctx.organization.slug == "sentry":
-            logger.info(
-                "project_key_errors.results",
-                extra={"project_id": project.id, "num_key_errors": len(key_errors)},
-            )
+
+    return key_errors
 
 
-# Organization pass. Depends on project_key_errors.
+# Organization pass. Depends on key_errors = project_key_errors.
 def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     all_key_error_group_ids = []
     for project_ctx in ctx.projects.values():
@@ -399,7 +427,7 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
         )
 
 
-def project_key_transactions(ctx, project):
+def project_key_transactions(ctx: OrganizationReportContext, project: Project) -> None:
     if not project.flags.has_transactions:
         return
     with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
@@ -462,7 +490,7 @@ def project_key_transactions(ctx, project):
         ]
 
 
-def project_key_performance_issues(ctx, project):
+def project_key_performance_issues(start, end, project: Project, referrer) -> None:
     if not project.first_event:
         return
 
@@ -473,7 +501,7 @@ def project_key_performance_issues(ctx, project):
         groups = Group.objects.filter(
             project_id=project.id,
             status=GroupStatus.UNRESOLVED,
-            last_seen__gte=ctx.end - timedelta(days=30),
+            last_seen__gte=end - timedelta(days=30),
             # performance issue range
             type__gte=1000,
             type__lt=2000,
@@ -493,8 +521,8 @@ def project_key_performance_issues(ctx, project):
                 Function("count", []),
             ],
             where=[
-                Condition(Column("finish_ts"), Op.GTE, ctx.start),
-                Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(Column("finish_ts"), Op.GTE, start),
+                Condition(Column("finish_ts"), Op.LT, end + timedelta(days=1)),
                 # transactions.group_ids is a list of group_ids that the transaction was associated with.
                 # We want to find the transactions associated with group_id_to_group.keys()
                 # That means group_ids must intersect with group_id_to_group.keys() in order for the transaction to be counted.
@@ -518,7 +546,7 @@ def project_key_performance_issues(ctx, project):
             limit=Limit(3),
         )
         request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
+        query_result = raw_snql_query(request, referrer=referrer)["data"]
 
         key_performance_issues = []
         for d in query_result:
@@ -530,11 +558,11 @@ def project_key_performance_issues(ctx, project):
                     key_performance_issues.append((group, count))
                     break
 
-        ctx.projects[project.id].key_performance_issues = key_performance_issues
+        return key_performance_issues
 
 
 # Organization pass. Depends on project_key_performance_issue.
-def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
+def fetch_key_performance_issue_groups(ctx: OrganizationReportContext) -> None:
     all_groups = []
     for project_ctx in ctx.projects.values():
         all_groups.extend([group for group, count in project_ctx.key_performance_issues])
@@ -678,7 +706,7 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(ctx, user_id):
+def render_template_context(ctx: OrganizationReportContext, user_id: int):
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
@@ -704,9 +732,9 @@ def render_template_context(ctx, user_id):
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
-    def trends():
+    def trends() -> Mapping[str, Any]:
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
-        def sum_event_counts(project_ctxs):
+        def sum_event_counts(project_ctxs: ProjectContext) -> int:
             return reduce(
                 lambda a, b: (
                     a[0] + b[0],
@@ -952,10 +980,10 @@ def render_template_context(ctx, user_id):
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
-    def key_replays():
+    def key_replays() -> list[Any]:
         return []
 
-    def issue_summary():
+    def issue_summary() -> Mapping[str, int]:
         new_substatus_count = 0
         escalating_substatus_count = 0
         ongoing_substatus_count = 0
