@@ -285,7 +285,7 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
-        assert monitor_environment.environment.name == "jungle"
+        assert monitor_environment.get_environment().name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
             checkin.date_added
@@ -306,7 +306,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.monitor.name == "my-new-monitor"
-        assert monitor_environment.environment.name == "production"
+        assert monitor_environment.get_environment().name == "production"
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
@@ -411,13 +411,13 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug, status="in_progress")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_environment.environment.name == "production"
+        assert checkin.monitor_environment.get_environment().name == "production"
 
         self.send_checkin(monitor.slug, guid=self.guid, status="ok", environment="test")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert checkin.monitor_environment.environment.name != "test"
+        assert checkin.monitor_environment.get_environment().name != "test"
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
