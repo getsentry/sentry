@@ -341,7 +341,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/digests/                                                 @getsentry/issues
 /src/sentry/identity/                                                @getsentry/issues
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
-/src/sentry/mail/                                                    @getsentry/issues
+/src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/mediators/                                               @getsentry/issues
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
 /src/sentry/pipeline/                                                @getsentry/issues
@@ -357,11 +357,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
 /src/sentry/tasks/commit_context.py                                  @getsentry/issues
-/src/sentry/tasks/digests.py                                         @getsentry/issues
-/src/sentry/tasks/email.py                                           @getsentry/issues
+/src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
+/src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
 /src/sentry/tasks/integrations/                                      @getsentry/ecosystem
-/src/sentry/tasks/reports.py                                         @getsentry/issues
-/src/sentry/tasks/user_report.py                                     @getsentry/issues
+/src/sentry/tasks/user_report.py                                     @getsentry/alerts-notifications
 /src/sentry/tasks/weekly_reports.py                                  @getsentry/alerts-notifications
 
 /src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
