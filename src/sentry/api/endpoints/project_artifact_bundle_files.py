@@ -55,7 +55,7 @@ class ArtifactBundleSource:
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
