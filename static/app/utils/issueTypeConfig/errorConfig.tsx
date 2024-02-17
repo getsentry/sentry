@@ -280,7 +280,7 @@ const errorHelpTypeResourceMap: Record<
       ),
       links: [
         {
-          text: t('Fixing "unbound local" errors in Python'),
+          text: t('Fixing "UnboundLocalError" errors in Python'),
           link: 'https://sentry.io/answers/unbound-local-error/',
         },
       ],
@@ -295,7 +295,7 @@ const errorHelpTypeResourceMap: Record<
       ),
       links: [
         {
-          text: t('Fixing "cannot find module" errors in Node.js'),
+          text: t('Fixing "Cannot find module" errors in Node.js'),
           link: 'http://sentry.io/answers/how-do-i-resolve-cannot-find-module-error-using-node-js/',
         },
       ],
@@ -306,11 +306,11 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Python applications when a module that does not exist is imported. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>Module not found errors</b>}
+        {errorTypes: <b>No module named errors</b>}
       ),
       links: [
         {
-          text: t('Fixing "ModuleNotFoundError" errors in Python'),
+          text: t('Fixing "ImportError: No module named" errors in Python'),
           link: 'https://sentry.io/answers/resolve-python-importerror-no-module-named/',
         },
       ],
@@ -342,8 +342,10 @@ const errorHelpTypeResourceMap: Record<
       ),
       links: [
         {
-          text: t('Fixing "invariant violation" errors in React'),
-          link: 'https://sentry.io/answers/invariant-violation-error/',
+          text: t(
+            'Fixing "Invariant Violation: Element type is invalid" errors in React'
+          ),
+          link: 'https://sentry.io/answers/uncaught-error-invariant-violation-element-type-is-invalid/',
         },
       ],
       linksByPlatform: {},
