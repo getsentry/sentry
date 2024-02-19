@@ -20,12 +20,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {
-  getDdmUrl,
-  getFormattedMQL,
-  isCustomMetric,
-  isFormattedMQL,
-} from 'sentry/utils/metrics';
+import {getDdmUrl, getFormattedMQL, isCustomMetric} from 'sentry/utils/metrics';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -67,7 +62,6 @@ function MetricWidgetViewerModal({
   );
 
   const [editedTitle, setEditedTitle] = useState<string>(widget.title || widgetMQL);
-  const isMQLTitle = useMemo(() => isFormattedMQL(editedTitle), [editedTitle]);
   // If user renamed the widget, dislay that title, otherwise display the MQL
   const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
 
