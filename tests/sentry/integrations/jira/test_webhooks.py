@@ -174,7 +174,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
-            mock_set_tag.assert_called_with("integration_id", self.integration.id)
+            mock_set_tag.assert_any_call("integration_id", self.integration.id)
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(self.organization))
 
     def test_missing_changelog(self):

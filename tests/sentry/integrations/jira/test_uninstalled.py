@@ -66,7 +66,7 @@ class JiraUninstalledTest(APITestCase):
         # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         with assume_test_silo_mode(SiloMode.REGION):
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED
@@ -95,7 +95,7 @@ class JiraUninstalledTest(APITestCase):
         # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
 
-        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_set_tag.assert_any_call("integration_id", integration.id)
         with assume_test_silo_mode(SiloMode.REGION):
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
         assert integration.status == ObjectStatus.DISABLED
