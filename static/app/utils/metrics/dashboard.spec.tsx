@@ -29,7 +29,7 @@ describe('convertToDashboardWidget', () => {
         MetricDisplayType.AREA
       )
     ).toEqual({
-      title: 'p95(login)',
+      title: '',
       displayType: DisplayType.AREA,
       widgetType: 'custom-metrics',
       limit: 10,
@@ -66,7 +66,7 @@ describe('convertToDashboardWidget', () => {
         MetricDisplayType.BAR
       )
     ).toEqual({
-      title: 'p95(measurements.duration)',
+      title: '',
       displayType: DisplayType.BAR,
       widgetType: 'custom-metrics',
       limit: 1,

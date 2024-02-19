@@ -51,8 +51,8 @@ class PreSaveIncidentTriggerTest(TestCase):
             status=IncidentStatus.WARNING.value,
             type=2,
             title="a custom incident title",
-            date_started=datetime.utcnow().replace(tzinfo=timezone.utc),
-            date_detected=datetime.utcnow().replace(tzinfo=timezone.utc),
+            date_started=datetime.now(timezone.utc),
+            date_detected=datetime.now(timezone.utc),
             alert_rule=alert_rule,
         )
         incident_trigger = IncidentTrigger.objects.create(

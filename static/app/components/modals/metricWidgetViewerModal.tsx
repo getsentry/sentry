@@ -6,9 +6,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Input from 'sentry/components/input';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   IconCheckmark,
@@ -20,7 +20,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
+import {getDdmUrl, getFormattedMQL, isCustomMetric} from 'sentry/utils/metrics';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -56,13 +56,14 @@ function MetricWidgetViewerModal({
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertToMetricWidget(widget));
 
-  const defaultTitle = useMemo(
-    () => stringifyMetricWidget(metricWidgetQueryParams),
+  const widgetMQL = useMemo(
+    () => getFormattedMQL(metricWidgetQueryParams),
     [metricWidgetQueryParams]
   );
 
-  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState<string>(widget.title || widgetMQL);
+  // If user renamed the widget, dislay that title, otherwise display the MQL
+  const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -74,18 +75,22 @@ function MetricWidgetViewerModal({
     [setMetricWidgetQueryParams]
   );
 
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      setEditedTitle(value || widgetMQL);
+    },
+    [setEditedTitle, widgetMQL]
+  );
+
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
       {...selection, ...metricWidgetQueryParams},
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
-    const isCustomTitle = title !== '' && title !== defaultTitle;
-
     const updatedWidget = {
       ...widget,
-      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
-      title: isCustomTitle ? title : defaultTitle,
+      title: titleToDisplay,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
@@ -94,8 +99,7 @@ function MetricWidgetViewerModal({
 
     closeModal();
   }, [
-    title,
-    defaultTitle,
+    titleToDisplay,
     metricWidgetQueryParams,
     onMetricWidgetEdit,
     closeModal,
@@ -108,32 +112,12 @@ function MetricWidgetViewerModal({
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
           <WidgetHeader>
-            {/* { TODO: extract to a separate component in a followup } */}
-            <WidgetTitleRow>
-              {isEditingTitle ? (
-                <Input
-                  value={title}
-                  placeholder={stringifyMetricWidget(metricWidgetQueryParams)}
-                  onChange={e => {
-                    setTitle?.(e.target.value ?? defaultTitle);
-                  }}
-                />
-              ) : (
-                <h3>{title}</h3>
-              )}
-              <Button
-                aria-label="Edit Title"
-                size="sm"
-                borderless
-                icon={
-                  isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />
-                }
-                priority={isEditingTitle ? 'primary' : 'default'}
-                onClick={() => {
-                  setIsEditingTitle(curr => !curr);
-                }}
-              />
-            </WidgetTitleRow>
+            <WidgetTitle
+              value={editedTitle}
+              displayValue={titleToDisplay}
+              placeholder={widgetMQL}
+              onSubmit={handleTitleChange}
+            />
             {widget.description && (
               <Tooltip
                 title={widget.description}
@@ -167,13 +151,21 @@ function MetricWidgetViewerModal({
             }
           />
           <MetricWidget
-            widget={metricWidgetQueryParams}
+            queries={[
+              {
+                mri: metricWidgetQueryParams.mri,
+                query: metricWidgetQueryParams.query,
+                op: metricWidgetQueryParams.op,
+                groupBy: metricWidgetQueryParams.groupBy,
+              },
+            ]}
+            focusedSeries={metricWidgetQueryParams.focusedSeries}
+            displayType={metricWidgetQueryParams.displayType}
+            filters={selection}
             onChange={(_, data) => {
               handleChange(data);
             }}
-            datetime={selection.datetime}
-            projects={selection.projects}
-            environments={selection.environments}
+            context="dashboard"
           />
           <MetricDetails widget={metricWidgetQueryParams} />
         </Body>
@@ -200,11 +192,41 @@ function MetricWidgetViewerModal({
   );
 }
 
-export function ContextMenu({
-  metricsQuery,
-}: {
-  metricsQuery: MetricsQuery;
-}) {
+function WidgetTitle({value, displayValue, placeholder, onSubmit}) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [title, setTitle] = useState<string>(value);
+
+  return (
+    <WidgetTitleRow>
+      {isEditingTitle ? (
+        <Input
+          value={title}
+          placeholder={placeholder}
+          onChange={e => {
+            setTitle?.(e.target.value);
+          }}
+        />
+      ) : (
+        <h3>{displayValue}</h3>
+      )}
+      <Button
+        aria-label="Edit Title"
+        size="sm"
+        borderless
+        icon={isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
+        priority={isEditingTitle ? 'primary' : 'default'}
+        onClick={() => {
+          if (isEditingTitle) {
+            onSubmit?.(title);
+          }
+          setIsEditingTitle(curr => !curr);
+        }}
+      />
+    </WidgetTitleRow>
+  );
+}
+
+export function ContextMenu({metricsQuery}: {metricsQuery: MetricsQuery}) {
   const organization = useOrganization();
   const router = useRouter();
 

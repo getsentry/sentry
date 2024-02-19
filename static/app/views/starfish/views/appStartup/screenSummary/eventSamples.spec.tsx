@@ -61,7 +61,6 @@ describe('ScreenLoadEventSamples', function () {
       body: {
         meta: {
           fields: {
-            'span.description': 'string',
             profile_id: 'string',
             'transaction.id': 'string',
             'span.duration': 'duration',
@@ -71,7 +70,6 @@ describe('ScreenLoadEventSamples', function () {
         },
         data: [
           {
-            'span.description': 'Warm Start',
             profile_id: 'profile-id',
             'transaction.id': '76af98a3ac9d4448b894e44b1819970e',
             'span.duration': 131,
@@ -97,7 +95,6 @@ describe('ScreenLoadEventSamples', function () {
     // Check that headers are set properly
     expect(screen.getByRole('columnheader', {name: 'Event ID (R1)'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Profile'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Start Type'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Duration'})).toBeInTheDocument();
 
     expect(mockEventsRequest).toHaveBeenCalledTimes(1);
@@ -114,9 +111,6 @@ describe('ScreenLoadEventSamples', function () {
       'href',
       '/organizations/org-slug/profiling/profile/sentry-cocoa/profile-id/flamegraph/'
     );
-
-    // Start Type is the span description, "Warm Start"
-    expect(screen.getByText('Warm Start')).toBeInTheDocument();
 
     expect(screen.getByText('131.00ms')).toBeInTheDocument();
   });
