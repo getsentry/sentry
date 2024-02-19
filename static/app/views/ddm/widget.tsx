@@ -19,8 +19,8 @@ import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
+  getFormattedMQL,
   getMetricsSeriesName,
-  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -51,6 +51,7 @@ import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
+  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -94,6 +95,7 @@ export const MetricWidget = memo(
     highlightedSampleId,
     chartHeight = 300,
     focusedSeries,
+    context = 'ddm',
   }: MetricWidgetProps) => {
     const firstQuery = queries[0];
 
@@ -138,7 +140,7 @@ export const MetricWidget = memo(
 
     const widgetTitle =
       queries.length === 1
-        ? stringifyMetricWidget(firstQuery)
+        ? getFormattedMQL(firstQuery)
         : queries
             .map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? '')))
             .join(', ');
@@ -189,6 +191,7 @@ export const MetricWidget = memo(
                 displayType={displayType}
                 tableSort={tableSort}
                 focusedSeries={focusedSeries}
+                context={context}
               />
             ) : (
               <StyledMetricWidgetBody>
@@ -207,6 +210,7 @@ export const MetricWidget = memo(
 );
 
 interface MetricWidgetBodyProps {
+  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   queries: MetricsQueryApiQueryParams[];
@@ -242,6 +246,7 @@ const MetricWidgetBody = memo(
     samples,
     filters,
     queries,
+    context,
   }: MetricWidgetBodyProps) => {
     const {
       data: timeseriesData,
@@ -249,7 +254,7 @@ const MetricWidgetBody = memo(
       isError,
       error,
     } = useMetricsQuery(queries, filters, {
-      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'ddm',
+      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 
     const chartRef = useRef<ReactEchartsRef>(null);

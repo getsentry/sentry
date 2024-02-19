@@ -47,6 +47,7 @@ import {
   getDashboardFiltersFromURL,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
+  openWidgetPreviewModal,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -460,9 +461,9 @@ class DashboardDetail extends Component<Props, State> {
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
     if (this.isEditingDashboard || this.isPreview) {
-      return;
+      return null;
     }
-    updateDashboard(api, organization.slug, newModifiedDashboard).then(
+    return updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -480,8 +481,8 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-          return;
         }
+        return newDashboard;
       },
       // `updateDashboard` does its own error handling
       () => undefined
@@ -496,7 +497,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const {dashboard, selection} = this.props;
+    const {dashboard, selection, router, location} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({
@@ -510,10 +511,15 @@ class DashboardDetail extends Component<Props, State> {
 
     this.onUpdateWidget(nextList);
     if (!this.isEditingDashboard) {
-      this.handleUpdateWidgetList(nextList);
-    }
+      this.handleUpdateWidgetList(nextList)?.then((newDashboard?: DashboardDetails) => {
+        if (!newDashboard) {
+          return;
+        }
 
-    // TODO: open widget details modal to allow users to edit the newly created widget
+        const lastWidget = newDashboard?.widgets[newDashboard.widgets.length - 1];
+        openWidgetPreviewModal(router, location, lastWidget);
+      });
+    }
   };
 
   onAddWidget = (dataset: DataSet) => {

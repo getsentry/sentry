@@ -291,7 +291,7 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
-export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
+export function getFormattedMQL(metricWidget: MetricsQuerySubject): string {
   const {mri, op, query, groupBy} = metricWidget;
 
   if (!op) {
@@ -309,6 +309,28 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+export function isFormattedMQL(mql: string) {
+  const regex = /^(\w+\([\w\.]+\))(?:\{\w+\:\w+\})*(?:\sby\s\w+)*/;
+
+  const matches = mql.match(regex);
+
+  const [, field, query, groupBy] = matches ?? [];
+
+  if (!field) {
+    return false;
+  }
+
+  if (query) {
+    return query.includes(':');
+  }
+
+  if (groupBy) {
+    // TODO check groupbys
+  }
+
+  return true;
 }
 
 // TODO: consider moving this to utils/dates.tsx
