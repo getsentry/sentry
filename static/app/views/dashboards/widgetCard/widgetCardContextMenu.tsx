@@ -17,6 +17,7 @@ import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
