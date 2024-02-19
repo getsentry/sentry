@@ -32,7 +32,13 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  formatMRIField,
+  isMRI,
+  MRIToField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
 import type {
   DdmQueryParams,
   MetricsQuery,
@@ -291,7 +297,7 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
-export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
+export function getFormattedMQL(metricWidget: MetricsQuerySubject): string {
   const {mri, op, query, groupBy} = metricWidget;
 
   if (!op) {
@@ -309,6 +315,33 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+export function isFormattedMQL(mql: string) {
+  mql.split(new RegExp(/[(){}]/));
+
+  // Regex pattern to match MQL string structure
+  const regex =
+    /^([a-zA-Z]+)\(([^)]+)\)(?:{([^}]+)})?(?:\s+by\s+([^,]+(?:,\s*[^,]+)*))?$/;
+
+  // Executing regex match on the input string
+  const matches = mql.match(regex);
+
+  const [, op, mri, query, groupBy] = matches ?? [];
+
+  if (!op || isMRI(mri)) {
+    return false;
+  }
+
+  if (query) {
+    return query.includes(':');
+  }
+
+  if (groupBy) {
+    // TODO check groupbys
+  }
+
+  return true;
 }
 
 // TODO: consider moving this to utils/dates.tsx
