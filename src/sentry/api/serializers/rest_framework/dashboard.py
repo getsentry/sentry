@@ -268,7 +268,7 @@ class ThresholdMaxKeys(Enum):
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, max_length=255)
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )

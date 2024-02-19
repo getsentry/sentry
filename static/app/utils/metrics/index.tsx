@@ -316,9 +316,9 @@ export function isFormattedMQL(mql: string) {
 
   const matches = mql.match(regex);
 
-  const [, op, mri, query, groupBy] = matches ?? [];
+  const [, field, query, groupBy] = matches ?? [];
 
-  if (!op || !mri) {
+  if (!field) {
     return false;
   }
 
