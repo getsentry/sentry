@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, Union, cast
@@ -33,10 +33,6 @@ logger = logging.getLogger(__name__)
 
 FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition, str, list]
 
-
-ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]
-ALLOWED_GRANULARITIES = sorted(ALLOWED_GRANULARITIES)  # Ensure it's ordered
-
 # These aliases are sent in from the product, and need to be mapped to the actual snuba function
 # Provide a mapping from alias to aggregate/aggregate parameters.
 AGGREGATE_ALIASES = {
@@ -47,6 +43,21 @@ AGGREGATE_ALIASES = {
     "p99": ("quantiles", [0.99]),
     "count_unique": ("uniq", None),
 }
+
+GRANULARITIES_PER_USE_CASE_ID = {
+    UseCaseID.SESSIONS: [60, 3600, 86400],
+    UseCaseID.TRANSACTIONS: [60, 3600, 86400],
+    UseCaseID.SPANS: [60, 3600, 86400],
+    UseCaseID.CUSTOM: [10, 60, 3600, 86400],
+}
+
+
+class GranularityNotFoundError(Exception):
+    pass
+
+
+def get_granularities_for_use_case_id(use_case_id: UseCaseID) -> Sequence[int]:
+    return sorted(GRANULARITIES_PER_USE_CASE_ID.get(use_case_id, []))
 
 
 class ReverseMappings:
@@ -73,21 +84,23 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
     if not requests:
         return []
 
-    queries = []
+    referrer = requests[0].tenant_ids.get("referrer") or "unknown"
+    logging_tags = {"referrer": referrer, "lang": "mql"}
+
+    queries: list[list[Any]] = []
     for request in requests:
-        request, start, end = _setup_metrics_query(request)
-        queries.append([request, start, end])
+        updated_request, reverse_mappings, mappings = _resolve_metrics_query(request, logging_tags)
+        queries.append([updated_request, reverse_mappings, mappings])
 
-    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
-
-    for q in queries:
-        q[0], reverse_mappings, mappings = _resolve_metrics_query(q[0], logging_tags)
-        q.extend([reverse_mappings, mappings])
+    for query in queries:
+        updated_request, start, end, interval = _setup_metrics_query(query[0])
+        query[0] = updated_request
+        query.extend([start, end, interval])
 
     try:
         snuba_results = bulk_snuba_queries(
             [q[0] for q in queries],
-            queries[0][0].tenant_ids["referrer"],
+            referrer=referrer,
             use_cache=True,
         )
     except Exception:
@@ -98,7 +111,7 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
         raise
 
     for idx, snuba_result in enumerate(snuba_results):
-        request, start, end, reverse_mappings, mappings = queries[idx]
+        request, reverse_mappings, mappings, start, end, interval = queries[idx]
         metrics_query = request.query
 
         snuba_result = convert_snuba_result(
@@ -114,6 +127,7 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
             **snuba_result,
             "modified_start": start,
             "modified_end": end,
+            "modified_interval": interval,
             "indexer_mappings": mappings,
         }
 
@@ -148,7 +162,6 @@ def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]
     tenant_ids = request.tenant_ids or {"organization_id": organization_id}
     request.tenant_ids = tenant_ids
 
-    # Process intervals
     assert metrics_query.rollup is not None
     start = metrics_query.start
     end = metrics_query.end
@@ -159,11 +172,15 @@ def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]
         metrics_query = metrics_query.set_start(start).set_end(end)
     if metrics_query.rollup.granularity is None:
         granularity = _resolve_granularity(
-            metrics_query.start, metrics_query.end, metrics_query.rollup.interval
+            UseCaseID(metrics_query.scope.use_case_id),
+            metrics_query.start,
+            metrics_query.end,
+            metrics_query.rollup.interval,
         )
         metrics_query = metrics_query.set_rollup(
             replace(metrics_query.rollup, granularity=granularity)
         )
+
     request.query = metrics_query
 
     return request, start, end
@@ -192,7 +209,9 @@ def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
         raise InvalidParams("Invalid query")
 
 
-def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -> int:
+def _resolve_granularity(
+    use_case_id: UseCaseID, start: datetime, end: datetime, interval: int | None
+) -> int:
     """
     Returns the granularity in seconds based on the start, end, and interval.
     If the interval is set, then find the largest granularity that is smaller or equal to the interval.
@@ -204,12 +223,19 @@ def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -
     E.g. if the time range is 7 days, but going from 3:01:53pm to 3:01:53pm, then it has to use the 10s
     granularity, and the performance will suffer.
     """
+    granularities = get_granularities_for_use_case_id(use_case_id)
+
     if interval is not None:
-        for granularity in ALLOWED_GRANULARITIES[::-1]:
+        for granularity in granularities[::-1]:
             if granularity <= interval:
                 return granularity
 
-        return ALLOWED_GRANULARITIES[0]  # Default to smallest granularity
+        # If we didn't find a suitable granularity which can satisfy the exact interval, we want to throw an error
+        # instead of resorting to the smallest granularity which we can offer. In this way, we let the user explicitly
+        # decide to increase the interval of the query.
+        raise GranularityNotFoundError(
+            f"No granularity found for use case {use_case_id.value} for interval {interval}"
+        )
 
     found_granularities = []
     for t in [start, end]:
@@ -217,12 +243,12 @@ def _resolve_granularity(start: datetime, end: datetime, interval: int | None) -
         second_diff = int((t - rounded_to_day).total_seconds())
 
         found = None
-        for granularity in ALLOWED_GRANULARITIES[::-1]:
+        for granularity in granularities[::-1]:
             if second_diff % granularity == 0:
                 found = granularity
                 break
 
-        found_granularities.append(found if found is not None else ALLOWED_GRANULARITIES[0])
+        found_granularities.append(found if found is not None else granularities[0])
 
     return min(found_granularities)
 

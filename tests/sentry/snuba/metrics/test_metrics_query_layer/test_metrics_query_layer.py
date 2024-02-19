@@ -22,6 +22,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics_layer.query import (
+    GranularityNotFoundError,
     _lookup_indexer_resolve,
     _resolve_granularity,
     _resolve_query_metadata,
@@ -416,7 +417,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         # Interval tests
         (7, 0, timedelta(hours=1).total_seconds(), 3600),
         (7, 0, timedelta(seconds=10).total_seconds(), 10),
-        (7, 0, timedelta(seconds=5).total_seconds(), 10),
+        (7, 0, timedelta(seconds=5).total_seconds(), -1),
         (7, 0, timedelta(hours=2).total_seconds(), 3600),
         (7, 0, timedelta(days=2).total_seconds(), 86400),
         # Totals tests
@@ -430,11 +431,15 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         (7, timedelta(hours=2, minutes=2, seconds=5).total_seconds(), None, 10),
     ],
 )
-def test_resolve_granularity(day_range: int, sec_offset: int, interval: int, expected: int) -> None:
+def test_resolve_granularity_with_custom_use_case_id(
+    day_range: int, sec_offset: int, interval: int, expected: int
+) -> None:
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
     start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
     end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
-    start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
-    end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
+    if expected == -1:
+        with pytest.raises(GranularityNotFoundError):
+            _resolve_granularity(UseCaseID.CUSTOM, start, end, interval)
+    else:
+        assert _resolve_granularity(UseCaseID.CUSTOM, start, end, interval) == expected
