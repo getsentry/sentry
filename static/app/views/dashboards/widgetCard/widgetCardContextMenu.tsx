@@ -9,7 +9,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
-import {IconEllipsis, IconExpand} from 'sentry/icons';
+import {IconEdit, IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
@@ -91,6 +91,14 @@ function WidgetCardContextMenu({
     }
   };
 
+  const openWidgetViewerIcon =
+    hasDDMExperimentalFeature(organization) &&
+    widget.widgetType === WidgetType.METRICS ? (
+      <IconEdit />
+    ) : (
+      <IconExpand />
+    );
+
   if (isPreview) {
     return (
       <WidgetViewerContext.Consumer>
@@ -132,7 +140,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={<IconExpand />}
+                  icon={openWidgetViewerIcon}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -274,7 +282,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={<IconExpand />}
+                icon={openWidgetViewerIcon}
                 onClick={() => {
                   setData({
                     seriesData,
