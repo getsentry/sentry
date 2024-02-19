@@ -69,7 +69,7 @@ function MetricWidgetViewerModal({
   const [editedTitle, setEditedTitle] = useState<string>(widget.title || widgetMQL);
   const isMQLTitle = useMemo(() => isFormattedMQL(editedTitle), [editedTitle]);
   // If user renamed the widget, dislay that title, otherwise display the MQL
-  const titleToDisplay = isMQLTitle ? widgetMQL : editedTitle;
+  const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
