@@ -856,10 +856,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    # Testing with formulas
-    # 1. a * b
-    # 2. a + b * 2
-    # 3. a / b by something
     def test_query_with_basic_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
@@ -920,9 +916,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula(
-                "($query_2 * $query_1) by (platform, transaction)", order=QueryOrder.DESC
-            )
+            .apply_formula("($query_2 * $query_1) by (platform, transaction)")
         )
 
         results = run_metrics_queries_plan(
