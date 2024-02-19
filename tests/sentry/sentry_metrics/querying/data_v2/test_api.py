@@ -855,3 +855,130 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 environments=[],
                 referrer="metrics.data.api",
             )
+
+    # Testing with formulas
+    # 1. a * b
+    # 2. a + b * 2
+    # 3. a / b by something
+    def test_query_with_basic_formula(self):
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_2 / $query_1")
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 4.0, 3.0]
+        assert data[0][0]["totals"] == 3.5
+
+    @pytest.mark.skip(reason="Nested formulas are not supported")
+    def test_query_with_complex_formula(self):
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_2 * $query_1 + 100")
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 4.0, 3.0]
+        assert data[0][0]["totals"] == 3.5
+
+    def test_query_with_formula_and_group_by(self):
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula(
+                "($query_2 * $query_1) by (platform, transaction)", order=QueryOrder.DESC
+            )
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
+        assert len(first_query) == 3
+        assert first_query[0]["by"] == {"platform": "android", "transaction": "/hello"}
+        assert first_query[0]["series"] == [None, 1.0, 2.0]
+        assert first_query[0]["totals"] == 6.0
+        assert first_query[1]["by"] == {"platform": "ios", "transaction": "/hello"}
+        assert first_query[1]["series"] == [None, 6.0, 3.0]
+        assert first_query[1]["totals"] == 18.0
+        assert first_query[2]["by"] == {"platform": "windows", "transaction": "/world"}
+        assert first_query[2]["series"] == [None, 5.0, 4.0]
+        assert first_query[2]["totals"] == 18.0
+
+    def test_query_with_formula_and_filter(self):
+        query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
+        query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula(
+                "($query_2 + $query_1) by (platform, transaction)", order=QueryOrder.DESC
+            )
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {"platform": "ios", "transaction": "/hello"}
+        assert data[0][0]["series"] == [None, 6.0, 3.0]
+        assert data[0][0]["totals"] == 9.0
+        assert data[0][1]["by"] == {"platform": "android", "transaction": "/hello"}
+        assert data[0][1]["series"] == [None, 1.0, 1.0]
+        assert data[0][1]["totals"] == 2.0
+        assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
+        assert data[0][2]["series"] == [None, 0.0, 0.0]
+        assert data[0][2]["totals"] == 0.0
