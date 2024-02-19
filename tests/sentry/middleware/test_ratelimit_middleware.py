@@ -69,7 +69,6 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         token = self.create_internal_integration_token(
             user=self.user,
             internal_integration=internal_integration,
-            scopes=["project:read"],
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -237,9 +236,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
         self.populate_internal_integration_request(request)
         key_pattern = re.compile(r"^org:default:OrganizationGroupIndexEndpoint:GET:[a-zA-Z]$")
-        assert key_pattern.match(
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-        )
+        key = get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
+        assert key
+        assert key_pattern.match(key)
 
         # Test for
         request.user = AnonymousUser()
