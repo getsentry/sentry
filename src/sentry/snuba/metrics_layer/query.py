@@ -99,8 +99,11 @@ def compute_smallest_valid_interval(queries: Iterable[MetricsQuery]) -> int | No
         if query.rollup.interval is None:
             continue
 
+        # We are opting to compute the max interval of the queries, but if we want to be even more optimal we could
+        # store a set of all the intervals we saw, and take the smallest one that is >= max_granularity, however, for
+        # now we are assuming that all the intervals of the supplied queries are the same, so it won't make any
+        # difference.
         max_interval = max(max_interval, query.rollup.interval)
-
         start, end, _ = to_intervals(query.start, query.end, query.rollup.interval)
         computed_granularity = _resolve_granularity(
             UseCaseID(_resolve_use_case_id_str(query.query)), start, end, query.rollup.interval
