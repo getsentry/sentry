@@ -318,13 +318,8 @@ export function getFormattedMQL(metricWidget: MetricsQuerySubject): string {
 }
 
 export function isFormattedMQL(mql: string) {
-  mql.split(new RegExp(/[(){}]/));
+  const regex = /^(\w+\([\w\.]+\))(?:\{\w+\:\w+\})*(?:\sby\s\w+)*/;
 
-  // Regex pattern to match MQL string structure
-  const regex =
-    /^([a-zA-Z]+)\(([^)]+)\)(?:{([^}]+)})?(?:\s+by\s+([^,]+(?:,\s*[^,]+)*))?$/;
-
-  // Executing regex match on the input string
   const matches = mql.match(regex);
 
   const [, op, mri, query, groupBy] = matches ?? [];
