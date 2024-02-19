@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, Union, cast
@@ -52,14 +52,6 @@ GRANULARITIES_PER_USE_CASE_ID = {
 }
 
 
-class GranularityNotFoundError(Exception):
-    pass
-
-
-def get_granularities_for_use_case_id(use_case_id: UseCaseID) -> Sequence[int]:
-    return sorted(GRANULARITIES_PER_USE_CASE_ID.get(use_case_id, []))
-
-
 class ReverseMappings:
     """
     Used to keep track of which tag values need to be reverse resolved in the result for
@@ -73,6 +65,56 @@ class ReverseMappings:
     def __init__(self) -> None:
         self.tag_keys: set[str] = set()
         self.reverse_mappings: dict[int, str] = dict()
+
+
+def compute_smallest_valid_interval(queries: Iterable[MetricsQuery]) -> int | None:
+    """
+    Computes the smallest valid interval that can be used to satisfy all the supplied `queries`.
+
+    High level description of the algorithm:
+    1. We determine all granularities for each namespace in the query and formulas
+    2. We compute the maximum granularity which we encountered in the queries
+    3. If the supplied maximum interval is >= than the maximum granularity, it means that if we were to use that
+    interval, we would be able to query all the data since transitively the interval will be bigger than the biggest
+    granularity storage supports.
+    4. If the supplied maximum interval is < than the maximum granularity, it means that if we were to use that interval,
+    we would not be able to query the data since there is at least one query which has a higher granularity and which
+    can't be satisfied since we can't query data with an interval < granularity, for that case we return the maximum
+    granularity as the optimal interval size.
+
+    For example:
+    min sessions granularity -> 5 min
+    min transactions granularity -> 1 min
+    min custom granularity -> 10 seconds
+
+    We now make 3 queries with an interval of 30 seconds. For each query, we compute the granularity which will be used
+    if we were to pass an interval of 30 seconds. For sessions it will be 5 minutes, for transactions 1 minute, and for
+    custom it will be 10 seconds. We take the maximum period of 5 minutes, and that will be the best interval which
+    will satisfy all the 3 queries.
+    """
+    computed_granularities = set()
+    max_interval = 0
+
+    for query in queries:
+        if query.rollup.interval is None:
+            continue
+
+        max_interval = max(max_interval, query.rollup.interval)
+
+        start, end, _ = to_intervals(query.start, query.end, query.rollup.interval)
+        computed_granularity = _resolve_granularity(
+            UseCaseID(_resolve_use_case_id_str(query.query)), start, end, query.rollup.interval
+        )
+        computed_granularities.add(computed_granularity)
+
+    if not computed_granularities:
+        return None
+
+    max_granularity = max(computed_granularities)
+    if max_interval >= max_granularity:
+        return max_interval
+    else:
+        return max_granularity
 
 
 def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
@@ -208,6 +250,13 @@ def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
         raise InvalidParams("Invalid query")
 
 
+def _get_granularities_for_use_case_id(use_case_id: UseCaseID) -> Sequence[int]:
+    """
+    Returns a sorted list in ascending order of the granularities supported by a given `UseCaseID`.
+    """
+    return sorted(GRANULARITIES_PER_USE_CASE_ID.get(use_case_id, []))
+
+
 def _resolve_granularity(
     use_case_id: UseCaseID, start: datetime, end: datetime, interval: int | None
 ) -> int:
@@ -222,19 +271,14 @@ def _resolve_granularity(
     E.g. if the time range is 7 days, but going from 3:01:53pm to 3:01:53pm, then it has to use the 10s
     granularity, and the performance will suffer.
     """
-    granularities = get_granularities_for_use_case_id(use_case_id)
+    granularities = _get_granularities_for_use_case_id(use_case_id)
 
     if interval is not None:
         for granularity in granularities[::-1]:
             if granularity <= interval:
                 return granularity
 
-        # If we didn't find a suitable granularity which can satisfy the exact interval, we want to throw an error
-        # instead of resorting to the smallest granularity which we can offer. In this way, we let the user explicitly
-        # decide to increase the interval of the query.
-        raise GranularityNotFoundError(
-            f"No granularity found for use case {use_case_id.value} for interval {interval}"
-        )
+        return granularities[0]
 
     found_granularities = []
     for t in [start, end]:

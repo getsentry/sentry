@@ -976,3 +976,47 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
         assert data[0][2]["series"] == [None, 0.0, 0.0]
         assert data[0][2]["totals"] == 0.0
+
+    def test_query_with_queries_that_have_different_minimum_supported_intervals(self):
+        mri = "d:custom/page_load@millisecond"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "distribution",
+            mri,
+            {},
+            self.ts(self.now()),
+            15,
+            UseCaseID.CUSTOM,
+        )
+
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_2 = self.mql("sum", mri)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1")
+            .apply_formula("$query_2")
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(seconds=20),
+            end=self.now() + timedelta(seconds=20),
+            interval=10,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        # We are expecting two intervals of 1 minute, since we can't query with an interval of 10 seconds if namespaces
+        # have different minimum granularities.
+        assert len(data) == 2
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 7.0]
+        assert data[0][0]["totals"] == 7.0
+        assert data[1][0]["by"] == {}
+        assert data[1][0]["series"] == [None, 15.0]
+        assert data[1][0]["totals"] == 15.0
