@@ -32,13 +32,7 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  formatMRI,
-  formatMRIField,
-  isMRI,
-  MRIToField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   DdmQueryParams,
   MetricsQuery,
@@ -324,7 +318,7 @@ export function isFormattedMQL(mql: string) {
 
   const [, op, mri, query, groupBy] = matches ?? [];
 
-  if (!op || isMRI(mri)) {
+  if (!op || !mri) {
     return false;
   }
 
