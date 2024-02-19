@@ -15,7 +15,6 @@ from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models.apikey import ApiKey
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
@@ -67,13 +66,10 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             webhook_url="http://example.com",
         )
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            install = SentryAppInstallation.objects.get(
-                sentry_app=internal_integration.id, organization_id=self.organization.id
-            )
-
         token = self.create_internal_integration_token(
-            user=self.user, install=install, org=self.organization, scopes=["project:read"]
+            user=self.user,
+            internal_integration=internal_integration,
+            scopes=["project:read"],
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
