@@ -6,9 +6,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Input from 'sentry/components/input';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
   IconCheckmark,
