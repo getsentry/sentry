@@ -81,6 +81,11 @@ class StaffPermissionMixin:
     def has_object_permission(self, request, *args, **kwargs):
         return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
 
+    def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
+        return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
+            request
+        )
+
 
 # NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
