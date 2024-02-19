@@ -93,9 +93,9 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
         queries.append([updated_request, reverse_mappings, mappings])
 
     for query in queries:
-        updated_request, start, end, interval = _setup_metrics_query(query[0])
+        updated_request, start, end = _setup_metrics_query(query[0])
         query[0] = updated_request
-        query.extend([start, end, interval])
+        query.extend([start, end])
 
     try:
         snuba_results = bulk_snuba_queries(
@@ -111,7 +111,7 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
         raise
 
     for idx, snuba_result in enumerate(snuba_results):
-        request, reverse_mappings, mappings, start, end, interval = queries[idx]
+        request, reverse_mappings, mappings, start, end = queries[idx]
         metrics_query = request.query
 
         snuba_result = convert_snuba_result(
@@ -127,7 +127,6 @@ def bulk_run_query(requests: list[Request]) -> list[Mapping[str, Any]]:
             **snuba_result,
             "modified_start": start,
             "modified_end": end,
-            "modified_interval": interval,
             "indexer_mappings": mappings,
         }
 
