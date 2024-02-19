@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import nullcontext
-from random import random
 from typing import Any, Literal, Self, Union, overload
 
 import sentry_sdk
@@ -210,26 +208,9 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        parent_span_id = None
-        trace_id = None
-        currently_in_server_transaction = False
-        existing_transaction = None
-
         with sentry_sdk.configure_scope() as scope:
             if self.integration_type:
                 scope.set_tag(self.integration_type, self.name)
-
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-                currently_in_server_transaction = (
-                    scope.transaction and scope.transaction.op == sentry_sdk.consts.OP.HTTP_SERVER
-                )
-                if not currently_in_server_transaction and scope.transaction:
-                    existing_transaction = {
-                        "name": scope.transaction.name,
-                        "op": scope.transaction.op,
-                    }
 
         request = Request(
             method=method.upper(),
@@ -242,111 +223,92 @@ class BaseApiClient(TrackResponseMixin):
         )
         _prepared_request = prepared_request if prepared_request is not None else request.prepare()
 
-        with (
-            sentry_sdk.start_transaction(
-                op=f"{self.integration_type}.http",
-                name=f"{self.integration_type}.http_response.{self.name}",
-                parent_span_id=parent_span_id,
-                trace_id=trace_id,
-                sampled=random() < 0.05,
-            )
-            if not currently_in_server_transaction
-            # `nullcontext()` results in `span` being None. (We do this so that any spans or errors
-            # created attach themselves to the `http.server` transaction already in progress.)
-            else nullcontext()
-        ) as span:
-            # TODO: Examine the values we get back here to decide if there are any other
-            # existing transactions we should just let keep going rather than creating a new
-            # transaction here
-            if span and existing_transaction:
-                span.set_data("existing_transaction", existing_transaction)
+        extra = {"url": full_url}
+        # It shouldn't be possible for integration_type to be null.
+        if self.integration_type:
+            extra[self.integration_type] = self.name
 
-            extra = {"url": full_url}
-            # It shouldn't be possible for integration_type to be null.
-            if self.integration_type:
-                extra[self.integration_type] = self.name
+        try:
+            with self.build_session() as session:
+                finalized_request = self.finalize_request(_prepared_request)
+                environment_settings = session.merge_environment_settings(
+                    url=finalized_request.url,
+                    proxies={},
+                    stream=None,
+                    verify=self.verify_ssl,
+                    cert=None,
+                )
+                send_kwargs = {
+                    "timeout": timeout,
+                    "allow_redirects": allow_redirects,
+                    **environment_settings,
+                }
+                resp: Response = session.send(
+                    finalized_request,
+                    **send_kwargs,
+                )
+                if raw_response:
+                    return resp
+                resp.raise_for_status()
+        except RestrictedIPAddress as e:
+            self.track_response_data("restricted_ip_address", e, extra=extra)
+            self.record_error(e)
+            raise ApiHostError.from_exception(e) from e
+        except ConnectionError as e:
+            self.track_response_data("connection_error", e, extra=extra)
+            self.record_error(e)
+            raise ApiHostError.from_exception(e) from e
+        except Timeout as e:
+            self.track_response_data("timeout", e, extra=extra)
+            self.record_error(e)
+            raise ApiTimeoutError.from_exception(e) from e
+        except RetryError as e:
+            self.track_response_data("max_retries", e, extra=extra)
+            self.record_error(e)
+            raise ApiRetryError.from_exception(e) from e
+        except HTTPError as e:
+            error_resp = e.response
+            if error_resp is None:
+                self.track_response_data("unknown", e, extra=extra)
 
-            try:
-                with self.build_session() as session:
-                    finalized_request = self.finalize_request(_prepared_request)
-                    environment_settings = session.merge_environment_settings(
-                        url=finalized_request.url,
-                        proxies={},
-                        stream=None,
-                        verify=self.verify_ssl,
-                        cert=None,
-                    )
-                    send_kwargs = {
-                        "timeout": timeout,
-                        "allow_redirects": allow_redirects,
-                        **environment_settings,
-                    }
-                    resp: Response = session.send(
-                        finalized_request,
-                        **send_kwargs,
-                    )
-                    if raw_response:
-                        return resp
-                    resp.raise_for_status()
-            except RestrictedIPAddress as e:
-                self.track_response_data("restricted_ip_address", span, e, extra=extra)
+                self.logger.exception("request.error", extra=extra)
                 self.record_error(e)
-                raise ApiHostError.from_exception(e) from e
-            except ConnectionError as e:
-                self.track_response_data("connection_error", span, e, extra=extra)
+                raise ApiError("Internal Error", url=full_url) from e
+
+            self.track_response_data(error_resp.status_code, e, extra=extra)
+            self.record_error(e)
+            raise ApiError.from_response(error_resp, url=full_url) from e
+
+        except Exception as e:
+            # Sometimes a ConnectionResetError shows up two or three deep in an exception
+            # chain, and you end up with an exception like
+            #     `ChunkedEncodingError("Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
+            #          ConnectionResetError(104, 'Connection reset by peer'))`,
+            # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
+            # Rather than worrying about what the other layers might be, we just stringify to detect this.
+            if "ConnectionResetError" in str(e):
+                self.track_response_data("connection_reset_error", e, extra=extra)
                 self.record_error(e)
-                raise ApiHostError.from_exception(e) from e
-            except Timeout as e:
-                self.track_response_data("timeout", span, e, extra=extra)
+                raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
+            # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
+            if "InvalidChunkLength" in str(e):
+                self.track_response_data("invalid_chunk_length", e, extra=extra)
                 self.record_error(e)
-                raise ApiTimeoutError.from_exception(e) from e
-            except RetryError as e:
-                self.track_response_data("max_retries", span, e, extra=extra)
-                self.record_error(e)
-                raise ApiRetryError.from_exception(e) from e
-            except HTTPError as e:
-                error_resp = e.response
-                if error_resp is None:
-                    self.track_response_data("unknown", span, e, extra=extra)
+                raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
-                    self.logger.exception("request.error", extra=extra)
-                    self.record_error(e)
-                    raise ApiError("Internal Error", url=full_url) from e
+            # If it's not something we recognize, let the caller deal with it
+            raise
 
-                self.track_response_data(error_resp.status_code, span, e, extra=extra)
-                self.record_error(e)
-                raise ApiError.from_response(error_resp, url=full_url) from e
+        self.track_response_data(resp.status_code, None, resp, extra=extra)
 
-            except Exception as e:
-                # Sometimes a ConnectionResetError shows up two or three deep in an exception
-                # chain, and you end up with an exception like
-                #     `ChunkedEncodingError("Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
-                #          ConnectionResetError(104, 'Connection reset by peer'))`,
-                # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
-                # Rather than worrying about what the other layers might be, we just stringify to detect this.
-                if "ConnectionResetError" in str(e):
-                    self.track_response_data("connection_reset_error", span, e, extra=extra)
-                    self.record_error(e)
-                    raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
-                # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
-                if "InvalidChunkLength" in str(e):
-                    self.track_response_data("invalid_chunk_length", span, e, extra=extra)
-                    self.record_error(e)
-                    raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
+        self.record_response_for_disabling_integration(resp)
 
-                # If it's not something we recognize, let the caller deal with it
-                raise
+        if resp.status_code == 204:
+            return {}
 
-            self.track_response_data(resp.status_code, span, None, resp, extra=extra)
-
-            self.record_response_for_disabling_integration(resp)
-
-            if resp.status_code == 204:
-                return {}
-
-            return BaseApiResponse.from_response(
-                resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
-            )
+        return BaseApiResponse.from_response(
+            resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
+        )
 
     # subclasses should override ``request``
     def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
