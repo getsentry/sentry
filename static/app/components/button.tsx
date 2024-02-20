@@ -432,9 +432,8 @@ const getColors = ({
       color: ${color};
     }
 
-    ${
-      size !== 'zero' &&
-      `
+    ${size !== 'zero' &&
+    `
       &:hover,
       &:active,
       &[aria-expanded="true"] {
@@ -446,8 +445,7 @@ const getColors = ({
         color: ${colorActive || color};
         border-color: ${borderActive};
       }
-    `
-    }
+    `}
 
     &:focus-visible {
       ${getFocusState()}

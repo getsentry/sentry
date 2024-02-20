@@ -79,7 +79,7 @@
   },
   "javascript": {
     "formatter": {
-      "enabled": true,
+      "enabled": false,
       "lineWidth": 90,
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",

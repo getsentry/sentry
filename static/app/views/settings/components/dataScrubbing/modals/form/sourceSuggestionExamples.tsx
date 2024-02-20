@@ -16,7 +16,9 @@ function SourceSuggestionExamples({examples, sourceName}: Props) {
       <ExampleCard
         position="right"
         header={t('Examples for %s in current event', <code>{sourceName}</code>)}
-        body={examples.map(example => <pre key={example}>{example}</pre>)}
+        body={examples.map(example => (
+          <pre key={example}>{example}</pre>
+        ))}
       >
         <Content>
           {t('See Example')} <IconQuestion size="xs" />

@@ -63,30 +63,31 @@ function OrganizationGeneralSettings({projects}: Props) {
     </Fragment>
   );
 
-  const handleSaveForm: React.ComponentProps<typeof OrganizationSettingsForm>['onSave'] =
-    (prevData: Organization, updated: Organization) => {
-      if (updated.slug && updated.slug !== prevData.slug) {
-        changeOrganizationSlug(prevData, updated);
+  const handleSaveForm: React.ComponentProps<
+    typeof OrganizationSettingsForm
+  >['onSave'] = (prevData: Organization, updated: Organization) => {
+    if (updated.slug && updated.slug !== prevData.slug) {
+      changeOrganizationSlug(prevData, updated);
 
-        if (updated.features.includes('customer-domains')) {
-          const {organizationUrl} = updated.links;
-          window.location.replace(`${organizationUrl}/settings/organization/`);
-        } else {
-          browserHistory.replace(`/settings/${updated.slug}/`);
-        }
+      if (updated.features.includes('customer-domains')) {
+        const {organizationUrl} = updated.links;
+        window.location.replace(`${organizationUrl}/settings/organization/`);
       } else {
-        if (prevData.codecovAccess !== updated.codecovAccess) {
-          trackAnalytics('organization_settings.codecov_access_updated', {
-            organization: updated,
-            has_access: updated.codecovAccess,
-          });
-        }
-
-        // This will update OrganizationStore (as well as OrganizationsStore
-        // which is slightly incorrect because it has summaries vs a detailed org)
-        updateOrganization(updated);
+        browserHistory.replace(`/settings/${updated.slug}/`);
       }
-    };
+    } else {
+      if (prevData.codecovAccess !== updated.codecovAccess) {
+        trackAnalytics('organization_settings.codecov_access_updated', {
+          organization: updated,
+          has_access: updated.codecovAccess,
+        });
+      }
+
+      // This will update OrganizationStore (as well as OrganizationsStore
+      // which is slightly incorrect because it has summaries vs a detailed org)
+      updateOrganization(updated);
+    }
+  };
 
   const handleConfirmRemoveOrg = () => {
     if (!organization) {

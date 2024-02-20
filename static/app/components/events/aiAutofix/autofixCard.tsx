@@ -25,9 +25,7 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
       {hasSteps && (
         <Body>
           <StepsArea>
-            {data.steps?.map(step => (
-              <Step step={step} key={step.id} />
-            ))}
+            {data.steps?.map(step => <Step step={step} key={step.id} />)}
           </StepsArea>
         </Body>
       )}

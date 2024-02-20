@@ -236,7 +236,6 @@ const SearchWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
-
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

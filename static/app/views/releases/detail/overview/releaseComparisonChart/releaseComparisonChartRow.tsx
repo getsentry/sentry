@@ -211,8 +211,8 @@ const ChartTableRow = styled('label')<{
     `}
 
     ${p =>
-      p.role === 'children' &&
-      css`
+    p.role === 'children' &&
+    css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
         padding-bottom: ${space(0.75)};
         padding-top: ${space(0.75)};

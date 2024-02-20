@@ -68,7 +68,11 @@ export function Banner({onButtonClick, additionalContext, setAdditionalContext}:
 
 const Wrapper = styled(Panel)`
   margin-bottom: 0;
-  background: linear-gradient(269.35deg, ${p => p.theme.backgroundTertiary} 0.32%, rgba(245, 243, 247, 0) 99.69%);
+  background: linear-gradient(
+    269.35deg,
+    ${p => p.theme.backgroundTertiary} 0.32%,
+    rgba(245, 243, 247, 0) 99.69%
+  );
 `;
 
 const Body = styled(PanelBody)`

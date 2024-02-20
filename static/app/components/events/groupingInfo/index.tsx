@@ -37,7 +37,10 @@ type EventGroupingInfoResponse = {
 function generatePerformanceGroupInfo({
   event,
   group,
-}: {event: Event; group: Group}): EventGroupingInfoResponse | null {
+}: {
+  event: Event;
+  group: Group;
+}): EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
   }

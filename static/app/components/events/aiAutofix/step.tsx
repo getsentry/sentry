@@ -108,9 +108,8 @@ const StepDescription = styled('p')`
 const StepHeader = styled('div')<{isChild?: boolean}>`
   display: flex;
   flex-direction: row;
-  padding: ${space(0.25)} ${p => (p.isChild ? '0px' : space(2))} ${space(0.25)} ${space(
-    2
-  )};
+  padding: ${space(0.25)} ${p => (p.isChild ? '0px' : space(2))} ${space(0.25)}
+    ${space(2)};
   align-items: center;
 `;
 
