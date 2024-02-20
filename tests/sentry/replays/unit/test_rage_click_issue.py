@@ -92,6 +92,6 @@ def test_report_rage_click_issue_a_tag(mock_new_issue_occurrence, default_projec
             "id": "123",
             "username": "username",
             "email": "username@example.com",
-            "ip": "127.0.0.1",
+            "ip_address": "127.0.0.1",
         },
     }

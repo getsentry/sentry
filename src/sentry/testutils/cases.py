@@ -1517,6 +1517,7 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        group: str = "00",
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1532,7 +1533,11 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "sentry_tags": {
+                "transaction": transaction or "/hello",
+                "op": op or "http",
+                "group": group,
+            },
             "retention_days": 90,
         }
 
@@ -3054,7 +3059,7 @@ class MonitorTestCase(APITestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment, **monitorenvironment_defaults
+            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
     def _create_issue_alert_rule(self, monitor):
