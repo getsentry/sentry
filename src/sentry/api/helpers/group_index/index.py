@@ -83,7 +83,7 @@ def build_query_params_from_request(
 
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
-    if query in (None, ""):
+    if query is None:
         if features.has("organizations:issue-priority-ui", organization):
             query = "is:unresolved issue.priority:[high, medium]"
         else:

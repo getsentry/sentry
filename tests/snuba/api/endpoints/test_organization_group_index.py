@@ -1930,9 +1930,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query="", expand="inbox", collapse="stats"
-        )
+        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
@@ -1950,9 +1948,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         event2.group.update(priority=PriorityLevel.LOW)
 
         self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query="", expand="inbox", collapse="stats"
-        )
+        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
