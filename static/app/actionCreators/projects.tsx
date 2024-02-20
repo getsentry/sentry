@@ -415,14 +415,20 @@ export async function fetchAnyReleaseExistence(
 function makeProjectTeamsQueryKey({
   orgSlug,
   projectSlug,
-}: {orgSlug: string; projectSlug: string}): ApiQueryKey {
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}): ApiQueryKey {
   return [`/projects/${orgSlug}/${projectSlug}/teams/`];
 }
 
 export function useFetchProjectTeams({
   orgSlug,
   projectSlug,
-}: {orgSlug: string; projectSlug: string}) {
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
   return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug}), {
     staleTime: 0,
     retry: false,
@@ -433,7 +439,10 @@ export function useFetchProjectTeams({
 export function useAddTeamToProject({
   orgSlug,
   projectSlug,
-}: {orgSlug: string; projectSlug: string}) {
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -454,7 +463,10 @@ export function useAddTeamToProject({
 export function useRemoveTeamFromProject({
   orgSlug,
   projectSlug,
-}: {orgSlug: string; projectSlug: string}) {
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
