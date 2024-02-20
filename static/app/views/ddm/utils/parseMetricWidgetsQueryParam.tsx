@@ -34,7 +34,7 @@ function parseNumberParam(
   key: string
 ): number | undefined {
   const value = widget[key];
-  return typeof value === 'number' ? value : undefined;
+  return typeof value === 'number' && !Number.isNaN(value) ? value : undefined;
 }
 
 function parseBooleanParam(
@@ -105,6 +105,10 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
   return {name: undefined, order};
 }
 
+function isValidId(n: number | undefined): n is number {
+  return n !== undefined && Number.isInteger(n) && n >= 0;
+}
+
 export function parseMetricWidgetsQueryParam(
   queryParam?: string
 ): MetricWidgetQueryParams[] | undefined {
@@ -137,9 +141,10 @@ export function parseMetricWidgetsQueryParam(
       }
 
       const id = parseNumberParam(widget, 'id');
-      if (id === undefined || id < 0) {
+      if (!isValidId(id)) {
         indezesWithoutId.add(index);
       } else if (usedIds.has(id)) {
+        // We drop qidgets with duplicate ids
         return null;
       } else {
         usedIds.add(id);
@@ -149,7 +154,7 @@ export function parseMetricWidgetsQueryParam(
       const displayType = parseStringParam(widget, 'displayType');
 
       return {
-        id: id === undefined || id < 0 ? NO_QUERY_ID : id,
+        id: !isValidId(id) ? NO_QUERY_ID : id,
         mri,
         op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
         query: parseStringParam(widget, 'query') ?? '',
