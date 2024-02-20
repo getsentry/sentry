@@ -85,7 +85,7 @@ pillow==10.2.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.23.0
-protobuf==4.21.6
+protobuf==4.25.2
 psutil==5.9.7
 psycopg2-binary==2.9.9
 pyasn1==0.4.5
@@ -128,7 +128,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.3.0
-snuba-sdk==2.0.25
+snuba-sdk==2.0.28
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
 statsd==3.3.0

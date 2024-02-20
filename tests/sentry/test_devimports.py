@@ -103,7 +103,7 @@ for xfail in {xfail!r}:
         raise SystemExit(f'unexpected success importing {{xfail}}')
 """
 
-    env = {"SENTRY_ENVIRONMENT": "production"}
+    env = {"SENTRY_ENVIRONMENT": "production", "SETUPTOOLS_USE_DISTUTILS": "stdlib"}
     ret = subprocess.run(
         (sys.executable, "-c", script),
         env=env,
