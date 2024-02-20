@@ -110,33 +110,43 @@ def first_symbol_source_id(sources_json):
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def test_simple(self):
-        project = self.project  # force creation
+    def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
 
-        response = self.get_success_response(project.organization.slug, project.slug)
-        assert response.data["id"] == str(project.id)
+    def test_simple(self):
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
+
+    def test_superuser_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
+
+    def test_staff_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert response.data["id"] == str(self.project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
-        self.login_as(user=self.user)
-        org = self.create_organization(name="baz", slug="1", owner=self.user)
-        team = self.create_team(organization=org, name="foo", slug="foo")
-        project = self.create_project(name="Bar", slug="bar", teams=[team])
+        project = self.create_project(name="Bar", slug="bar", teams=[self.team])
 
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = f"/api/0/projects/{org.slug}/{project.slug}/"
+        url = f"/api/0/projects/{self.organization.slug}/{project.slug}/"
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data["id"] == str(project.id)
 
     def test_with_stats(self):
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"include": "stats"}
+            self.project.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
 
@@ -145,13 +155,11 @@ class ProjectDetailsTest(APITestCase):
             integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(self.organization)
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
             qs_params={"expand": "hasAlertIntegration"},
         )
         assert response.data["hasAlertIntegrationInstalled"]
@@ -161,62 +169,57 @@ class ProjectDetailsTest(APITestCase):
             integration = self.create_provider_integration(provider="jira")
             integration.add_organization(self.organization)
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_filters_disabled_plugins(self):
         from sentry.plugins.base import plugins
 
-        project = self.create_project()
-        self.create_group(project=project)
-        self.login_as(user=self.user)
+        self.create_group(project=self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
         )
         assert response.data["plugins"] == []
 
         asana_plugin = plugins.get("asana")
-        asana_plugin.enable(project)
+        asana_plugin.enable(self.project)
 
         response = self.get_success_response(
-            project.organization.slug,
-            project.slug,
+            self.project.organization.slug,
+            self.project.slug,
         )
         assert len(response.data["plugins"]) == 1
         assert response.data["plugins"][0]["slug"] == asana_plugin.slug
 
     def test_project_renamed_302(self):
-        project = self.create_project()
-        self.login_as(user=self.user)
-
         # Rename the project
         self.get_success_response(
-            project.organization.slug, project.slug, method="put", slug="foobar"
+            self.project.organization.slug, self.project.slug, method="put", slug="foobar"
         )
 
         with outbox_runner():
             response = self.get_success_response(
-                project.organization.slug, project.slug, status_code=302
+                self.project.organization.slug, self.project.slug, status_code=302
             )
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert (
                 AuditLogEntry.objects.get(
-                    organization_id=project.organization_id,
+                    organization_id=self.project.organization_id,
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 ).data.get("old_slug")
-                == project.slug
+                == self.project.slug
             )
             assert (
                 AuditLogEntry.objects.get(
-                    organization_id=project.organization_id,
+                    organization_id=self.project.organization_id,
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 ).data.get("new_slug")
                 == "foobar"
@@ -224,9 +227,9 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["slug"] == "foobar"
         assert (
             response.data["detail"]["extra"]["url"]
-            == f"/api/0/projects/{project.organization.slug}/foobar/"
+            == f"/api/0/projects/{self.project.organization.slug}/foobar/"
         )
-        redirect_path = f"/api/0/projects/{project.organization.slug}/foobar/"
+        redirect_path = f"/api/0/projects/{self.project.organization.slug}/foobar/"
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
@@ -1535,9 +1538,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Tests that when sending a request to enable a dynamic sampling bias,
         the bias will be successfully enabled and the audit log 'SAMPLING_BIAS_ENABLED' will be triggered
         """
-
-        project = self.project  # force creation
-        project.update_option(
+        self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": False},
@@ -1581,9 +1582,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         Tests that when sending a request to disable a dynamic sampling bias,
         the bias will be successfully disabled and the audit log 'SAMPLING_BIAS_DISABLED' will be triggered
         """
-
-        project = self.project  # force creation
-        project.update_option(
+        self.project.update_option(
             "sentry:dynamic_sampling_biases",
             [
                 {"id": "boostEnvironments", "active": True},
