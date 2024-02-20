@@ -73,7 +73,7 @@ describe('convertToDashboardWidget', () => {
       title: '',
       displayType: DisplayType.BAR,
       widgetType: 'custom-metrics',
-      limit: 1,
+      limit: 10,
       queries: [
         {
           name: '',
