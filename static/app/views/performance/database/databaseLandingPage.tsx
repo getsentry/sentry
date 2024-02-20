@@ -97,15 +97,21 @@ export function DatabaseLandingPage() {
     referrer: 'api.starfish.use-span-list',
   });
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {
-      filters: chartFilters,
-      yAxis: ['spm()'],
-      referrer: 'api.starfish.span-landing-page-metrics-chart',
-    }
-  );
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: ['spm()'],
+    referrer: 'api.starfish.span-landing-page-metrics-chart',
+  });
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     referrer: 'api.starfish.span-landing-page-metrics-chart',
@@ -173,6 +179,7 @@ export function DatabaseLandingPage() {
                   <ThroughputChart
                     series={throughputData['spm()']}
                     isLoading={isThroughputDataLoading}
+                    error={throughputError}
                   />
                 </ModuleLayout.Half>
 
@@ -180,6 +187,7 @@ export function DatabaseLandingPage() {
                   <DurationChart
                     series={durationData[`${selectedAggregate}(span.self_time)`]}
                     isLoading={isDurationDataLoading}
+                    error={durationError}
                   />
                 </ModuleLayout.Half>
 

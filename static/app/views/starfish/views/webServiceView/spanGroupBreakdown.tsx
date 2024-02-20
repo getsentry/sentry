@@ -32,7 +32,7 @@ type Props = {
   tableData: DataRow[];
   topSeriesData: LineChartSeries[];
   totalCumulativeTime: number;
-  errored?: boolean;
+  error?: Error | null;
   transaction?: string;
 };
 
@@ -40,7 +40,7 @@ export function SpanGroupBreakdown({
   topSeriesData: data,
   transaction,
   isTimeseriesLoading,
-  errored,
+  error,
   options,
   dataDisplayType,
   onDisplayTypeChange,
@@ -138,7 +138,7 @@ export function SpanGroupBreakdown({
             durationUnit={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
             }
-            errored={errored}
+            error={error}
             loading={isTimeseriesLoading}
             onClick={handleModuleAreaClick}
             grid={{
