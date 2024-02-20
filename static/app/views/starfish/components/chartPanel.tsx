@@ -13,11 +13,19 @@ type Props = {
 
 export default function ChartPanel({title, children, button, subtitle}: Props) {
   return (
-    <Panel>
+    <PanelWithNoPadding>
       <PanelBody>
         {title && (
           <Header>
-            {title && <ChartLabel>{title}</ChartLabel>}
+            {title && (
+              <ChartLabel>
+                {typeof title === 'string' ? (
+                  <TextTitleContainer>{title}</TextTitleContainer>
+                ) : (
+                  title
+                )}
+              </ChartLabel>
+            )}
             {button}
           </Header>
         )}
@@ -28,9 +36,17 @@ export default function ChartPanel({title, children, button, subtitle}: Props) {
         )}
         {children}
       </PanelBody>
-    </Panel>
+    </PanelWithNoPadding>
   );
 }
+
+const PanelWithNoPadding = styled(Panel)`
+  margin-bottom: 0;
+`;
+
+const TextTitleContainer = styled('div')`
+  padding: 1px 0;
+`;
 
 const SubtitleContainer = styled('div')`
   padding-top: ${space(0.5)};
