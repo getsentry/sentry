@@ -43,7 +43,7 @@ class SnubaQuery(Model):
     # TODO: Modify snuba query creation to make use of `start_time` if provided (eg. query all events _after_ provided start_date)
     start_time = models.DateTimeField(null=True, default=None)
     release = FlexibleForeignKey(
-        "sentry.Release", null=True, db_constraint=False, on_delete="SET_NULL"
+        "sentry.Release", null=True, db_constraint=False, on_delete=models.SET_NULL
     )
     date_added = models.DateTimeField(default=timezone.now)
 
