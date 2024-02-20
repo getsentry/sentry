@@ -240,7 +240,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
             "logentry": {"message": f"Monitor failure: {monitor_env.monitor.name} ({reason})"},
             "contexts": {"monitor": context},
             "fingerprint": ["monitor", str(monitor_env.monitor.guid), reason],
-            "environment": monitor_env.environment.name,
+            "environment": monitor_env.get_environment().name,
             # TODO: Both of these values should be get transformed from context to tags
             # We should understand why that is not happening and remove these when it correctly is
             "tags": {
@@ -290,7 +290,9 @@ def create_issue_platform_occurrence(
         subtitle=occurrence_data["subtitle"],
         evidence_display=[
             IssueEvidence(name="Failure reason", value=occurrence_data["reason"], important=True),
-            IssueEvidence(name="Environment", value=monitor_env.environment.name, important=False),
+            IssueEvidence(
+                name="Environment", value=monitor_env.get_environment().name, important=False
+            ),
             IssueEvidence(
                 name="Last successful check-in",
                 value=last_successful_checkin_timestamp,
@@ -310,7 +312,7 @@ def create_issue_platform_occurrence(
 
     event_data = {
         "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
-        "environment": monitor_env.environment.name,
+        "environment": monitor_env.get_environment().name,
         "event_id": occurrence.event_id,
         "fingerprint": [fingerprint]
         if fingerprint

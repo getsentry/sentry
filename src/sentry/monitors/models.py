@@ -623,8 +623,15 @@ class MonitorEnvironment(Model):
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_environment(self) -> Environment:
+        return Environment.objects.get(id=self.environment_id)
+
     def get_audit_log_data(self):
-        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+        return {
+            "name": self.get_environment().name,
+            "status": self.status,
+            "monitor": self.monitor.name,
+        }
 
     def get_last_successful_checkin(self):
         return (
@@ -655,7 +662,7 @@ class MonitorEnvironment(Model):
             [
                 "monitor",
                 str(self.monitor.guid),
-                self.environment.name,
+                self.get_environment().name,
                 str(self.last_state_change),
             ]
         )

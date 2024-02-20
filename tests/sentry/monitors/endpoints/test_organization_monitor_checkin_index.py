@@ -156,7 +156,9 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         )
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(checkin1.guid)
-        assert resp.data[0]["environment"] == str(checkin1.monitor_environment.environment.name)
+        assert resp.data[0]["environment"] == str(
+            checkin1.monitor_environment.get_environment().name
+        )
 
     def test_bad_monitorenvironment(self):
         self.login_as(self.user)

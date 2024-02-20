@@ -66,7 +66,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -127,7 +127,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -198,7 +198,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -289,7 +289,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "error", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -326,7 +326,7 @@ class MarkFailedTestCase(TestCase):
                         "span_id": None,
                     },
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",
@@ -403,7 +403,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "duration", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -436,7 +436,7 @@ class MarkFailedTestCase(TestCase):
                         "slug": str(monitor.slug),
                     }
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",
@@ -513,7 +513,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "missed_checkin", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -546,7 +546,7 @@ class MarkFailedTestCase(TestCase):
                         "slug": str(monitor.slug),
                     }
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",

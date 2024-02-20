@@ -32,7 +32,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
     def check_valid_environments_response(self, response, monitor, expected_environments):
         assert {
-            monitor_environment.environment.name for monitor_environment in expected_environments
+            monitor_environment.get_environment().name
+            for monitor_environment in expected_environments
         } == {
             monitor_environment_resp["name"]
             for monitor_environment_resp in monitor.get("environments", [])

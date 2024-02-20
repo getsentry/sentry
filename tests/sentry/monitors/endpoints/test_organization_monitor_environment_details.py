@@ -22,7 +22,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
-            monitor_environment.environment.name,
+            monitor_environment.get_environment().name,
             method="PUT",
             **{"isMuted": True},
         )
@@ -38,7 +38,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
-            monitor_environment.environment.name,
+            monitor_environment.get_environment().name,
             method="PUT",
             **{"isMuted": False},
         )
@@ -54,7 +54,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
-            monitor_environment.environment.name,
+            monitor_environment.get_environment().name,
             method="PUT",
             **{"status": "error"},
         )
@@ -83,7 +83,7 @@ class DeleteMonitorTest(MonitorTestCase):
         self.get_success_response(
             self.organization.slug,
             monitor.slug,
-            monitor_environment.environment.name,
+            monitor_environment.get_environment().name,
             method="DELETE",
             status_code=202,
         )
