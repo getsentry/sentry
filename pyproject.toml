@@ -520,7 +520,6 @@ module = [
     "sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector",
     "sentry.utils.performance_issues.detectors.slow_db_query_detector",
     "sentry.utils.performance_issues.performance_detection",
-    "sentry.utils.redis",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
     "sentry.utils.snowflake",
