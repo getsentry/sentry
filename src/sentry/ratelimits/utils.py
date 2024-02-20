@@ -86,16 +86,14 @@ def get_rate_limit_key(
         return None
 
     if is_api_token_auth(request_auth) and request_user:
-        if isinstance(request_auth, ApiToken):
-            token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
-            token_id = request_auth.entity_id
-        else:
-            assert False  # Can't happen as asserted by is_api_token_auth check
+        # XXX(schew2381): It's expected that request_auth is an instance of AuthenticatedToken because this
+        # middleware runs after we convert all apitokens into the generic AuthenticatedToken interface.
 
         if request_user.is_sentry_app:
             category = "org"
-            id = get_organization_id_from_token(token_id)
+            # When the ApiToken is associated with a SentryApp (internal or public), it's guaranteed that
+            # the organization_id field must be set on AuthenticatedToken.
+            id = request_auth.organization_id
         else:
             category = "user"
             id = request_auth.user_id
