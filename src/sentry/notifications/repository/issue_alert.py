@@ -13,7 +13,7 @@ class IssueAlertNotificationMessageRepository:
     alerts.
     """
 
-    _model: NotificationMessage = NotificationMessage
+    _model = NotificationMessage
 
     def __init__(self, logger: Logger) -> None:
         self._logger: Logger = logger
@@ -52,3 +52,4 @@ class IssueAlertNotificationMessageRepository:
                     "rule_action_uuid": rule_action_uuid,
                 },
             )
+            raise
