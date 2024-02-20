@@ -18,6 +18,7 @@ import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -31,7 +32,7 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onUpdate: (data?: any) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
   selectedProjectSlug?: string;
@@ -165,7 +166,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -225,7 +226,8 @@ function ActionSet({
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-              onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+              onConfirm: () =>
+                onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });

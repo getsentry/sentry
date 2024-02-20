@@ -300,7 +300,7 @@ describe('IssueListActions', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({id: ['1'], project: [1]}),
-        data: {status: 'unresolved'},
+        data: {status: 'unresolved', statusDetails: {}},
       })
     );
   });
@@ -327,7 +327,7 @@ describe('IssueListActions', function () {
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnMarkReviewed = jest.fn();
+      const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -347,13 +347,13 @@ describe('IssueListActions', function () {
           },
         });
       });
-      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
       await userEvent.click(reviewButton);
 
-      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
     it('mark reviewed disabled for group that is already reviewed', function () {
