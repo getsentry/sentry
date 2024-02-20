@@ -1986,31 +1986,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to sentry org.
-# Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # org IDs for which we want to avoid using the unsampled profiles for function metrics.
 # This will let us selectively disable the behaviour for entire orgs that may have an
 # extremely high volume increase
 register(
     "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to specific projects of
-# the sentry org. Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_project_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2085,4 +2065,10 @@ register(
     "hybridcloud.webhookpayload.rollout",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metrics.sample-list.sample-rate",
+    type=Float,
+    default=100_000.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

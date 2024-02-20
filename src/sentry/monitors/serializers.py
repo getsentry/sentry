@@ -223,7 +223,7 @@ class MonitorCheckInSerializer(Serializer):
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
-            trace_groups: dict[str, list[dict[str, int]]] = defaultdict(list)
+            trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
 
             for item in item_list:
                 if item.trace_id:

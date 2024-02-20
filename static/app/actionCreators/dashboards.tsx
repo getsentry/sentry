@@ -5,6 +5,7 @@ import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {PageFilters} from 'sentry/types';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -195,13 +196,12 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidget(
-  api: Client,
+export function validateWidgetRequest(
   orgId: string,
-  widget: Widget
-): Promise<undefined> {
-  const {selection} = PageFiltersStore.getState();
-  const promise: Promise<undefined> = api.requestPromise(
+  widget: Widget,
+  selection: PageFilters
+) {
+  return [
     `/organizations/${orgId}/dashboards/widgets/`,
     {
       method: 'POST',
@@ -213,7 +213,17 @@ export function validateWidget(
         project: [ALL_ACCESS_PROJECTS],
         environment: selection.environments,
       },
-    }
-  );
+    },
+  ] as const;
+}
+
+export function validateWidget(
+  api: Client,
+  orgId: string,
+  widget: Widget
+): Promise<undefined> {
+  const {selection} = PageFiltersStore.getState();
+  const widgetQuery = validateWidgetRequest(orgId, widget, selection);
+  const promise: Promise<undefined> = api.requestPromise(widgetQuery[0], widgetQuery[1]);
   return promise;
 }
