@@ -35,6 +35,10 @@ export default function TraceHeader(props: TraceHeaderProps) {
   const {metaResults, rootEventResults, traces, organization} = props;
   const {meta, isLoading: metaLoading} = metaResults;
   const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
+  const emptyTrace =
+    (traces?.transactions && traces?.transactions.length === 0) ||
+    (traces?.orphan_errors && traces.orphan_errors.length === 0);
+  const showLoadingIndicator = rootEventLoading && !emptyTrace;
   const errors = meta?.errors || 0;
   const performanceIssues = meta?.performance_issues || 0;
   const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
@@ -48,7 +52,7 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('User')}
           tooltipText=""
           bodyText={
-            rootEventLoading
+            showLoadingIndicator
               ? loadingIndicator
               : rootEvent?.user?.email ?? rootEvent?.user?.name ?? '\u2014'
           }
@@ -58,7 +62,7 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('Browser')}
           tooltipText=""
           bodyText={
-            rootEventLoading ? (
+            showLoadingIndicator ? (
               loadingIndicator
             ) : rootEvent ? (
               <BrowserDisplay event={rootEvent} showVersion />
@@ -134,7 +138,9 @@ export default function TraceHeader(props: TraceHeaderProps) {
           bodyText={
             traceInfo.startTimestamp && traceInfo.endTimestamp
               ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
-              : loadingIndicator
+              : emptyTrace
+                ? getDuration(0, 2, true)
+                : loadingIndicator
           }
           subtext={null}
         />
