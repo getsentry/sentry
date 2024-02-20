@@ -1012,3 +1012,24 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [None, 12.0, 9.0]
         assert data[1][0]["totals"] == 21.0
+
+    def test_query_with_custom_function_and_missing_param(self):
+        query = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", f"rate({query}{{}})")
+            .apply_formula("$query_1")
+        )
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+                expression_registry=self.registry,
+            )

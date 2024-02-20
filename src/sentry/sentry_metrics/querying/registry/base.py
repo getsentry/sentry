@@ -50,6 +50,19 @@ class Argument(Generic[T], Placeholder):
         return self.type.validate(value)
 
 
+class Filters:
+    pass
+
+
+class GroupBys:
+    pass
+
+
+@dataclass(frozen=True)
+class Inherit(Generic[T], Placeholder):
+    type: Filters | GroupBys
+
+
 class RegistryEntry(ABC):
     """
     Entry of the registry which maps an operation to an expression.

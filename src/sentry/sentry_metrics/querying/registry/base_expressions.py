@@ -11,7 +11,7 @@ from sentry.sentry_metrics.querying.types import QueryExpression
 
 
 class Rate(RegistryEntry):
-    # rate(interval)(aggregate(mri))
+    # rate(interval)(aggregate(mri) / aggregate(mri))
 
     def op(self) -> str:
         return "rate"
@@ -19,6 +19,7 @@ class Rate(RegistryEntry):
     def expression(self) -> QueryExpression:
         return Formula(
             function_name=ArithmeticOperator.DIVIDE.value,
+            # TODO: add formula support.
             parameters=[
                 Argument(1, TimeseriesArg()),
                 Argument(0, NumberArg()),

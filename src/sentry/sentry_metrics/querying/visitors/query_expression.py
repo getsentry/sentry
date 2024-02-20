@@ -11,7 +11,6 @@ from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
-    TVisited,
 )
 from sentry.snuba.metrics import parse_mri
 
@@ -257,10 +256,6 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         return string_group_bys
 
 
-# rate(count("x"), 10, 20)
-# Formula(function_name="", params=[Timeseries, 10, 20])
-
-
 class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
     """
     Visitor that recursively expands expressions that are defined in the `ExpressionRegistry`.
@@ -268,9 +263,6 @@ class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
 
     def __init__(self, registry: ExpressionRegistry):
         self._registry = registry
-
-    # We want to support failure_rate(param_1, param_2)(mri) or rate(param_1, param_2)(aggregate(mri))
-    # or rate(param_1, param_2)(aggregate(mri) / aggregate(mri))
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
         registry_entry = self._registry.try_resolve(formula.function_name)
@@ -322,13 +314,22 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
         self._filters = filters
         self._group_bys = group_bys
 
-    def _visit_formula(self, formula: Formula) -> TVisited:
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
         replaced_parameters = []
         for parameter in formula.parameters:
             if isinstance(parameter, Argument):
                 replaced_parameters.append(self._visit_argument(parameter))
             else:
                 replaced_parameters.append(self.visit(parameter))
+
+        # TODO: implement merging also for timeseries.
+        merged_filters = self._merge_filters(formula.filters)
+        if merged_filters:
+            formula = formula.set_filters(self._merge_filters(formula.filters))
+
+        merged_group_bys = self._merge_group_bys(formula.groupby)
+        if merged_group_bys:
+            formula = formula.set_groupby(self._merge_group_bys(formula.groupby))
 
         return formula.set_parameters(replaced_parameters)
 
@@ -350,8 +351,19 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
         return timeseries
 
     def _visit_argument(self, argument: Argument) -> Any:
+        if argument.position >= len(self._arguments):
+            raise InvalidMetricsQueryError(f"Argument at position {argument.position} not found")
+
         arg_value = self._arguments[argument.position]
         if not argument.validate(arg_value):
             raise InvalidMetricsQueryError(f"Argument at position {argument.position} not valid")
 
         return arg_value
+
+    def _merge_filters(self, filters: ConditionGroup | None) -> ConditionGroup | None:
+        return []
+
+    def _merge_group_bys(
+        self, group_bys: Sequence[Column | AliasedExpression] | None
+    ) -> Sequence[Column | AliasedExpression] | None:
+        return []
