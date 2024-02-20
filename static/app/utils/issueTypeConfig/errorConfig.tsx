@@ -97,7 +97,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorHelpType: ErrorHelpType.NODEJS_CANNOT_FIND_MODULE,
   },
   {
-    errorTitle: 'ModuleNotFoundError: No module named',
+    errorTitle: 'ImportError: No module named',
     projectPlatform: 'python',
     errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
   },
@@ -276,7 +276,7 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>Unbound local errors</b>}
+        {errorTypes: <b>UnboundLocalError errors</b>}
       ),
       links: [
         {
