@@ -65,3 +65,11 @@ export function isTraceNode(
 ): node is TraceTreeNode<TraceTree.Trace> {
   return !!(node.value && 'orphan_errors' in node.value);
 }
+
+export function shouldAddMissingInstrumentationSpan(
+  platform: string | undefined
+): boolean {
+  if (!platform) return true;
+  if (platform === 'javascript') return false;
+  return true;
+}
