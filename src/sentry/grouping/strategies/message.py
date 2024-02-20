@@ -64,6 +64,31 @@ _parameterization_regex = re.compile(
         \b[0-9a-fA-F]{32}\b
     ) |
     (?P<date>
+         # RFC822, RFC1123, RFC1123Z
+        (\b(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))\b)
+        |
+        # # RFC850
+        (\b(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])\b)
+        |
+        # RFC3339, RFC3339Nano
+        (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[Z\s]([+-]?\d{2}:\d{2})?)
+        |
+        # LongDate
+        ((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+[0-3]\d,\s+\d{4})
+        |
+        # Datetime
+        (\d{4}-[01]\d-[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)
+        |
+        # Kitchen
+        (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+        |
+        # Date
+        (\d{4}-[01]\d-[0-3]\d)
+        |
+        # Time
+        ([0-2]\d:[0-5]\d:[0-5]\d)
+        |
+        # Old Formats, TODO: possibly safe to remove?
         (
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
