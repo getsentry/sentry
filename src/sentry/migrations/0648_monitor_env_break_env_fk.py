@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0646_create_notification_message_table"),
+        ("sentry", "0647_apitoken_add_hashed_columns"),
     ]
 
     operations = [
