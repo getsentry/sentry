@@ -9,6 +9,8 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
+import {TraceType} from '../traceDetails/newTraceDetailsContent';
+
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -80,6 +82,14 @@ function assertSpanNode(
     throw new Error('node is not a span');
   }
 }
+
+// function assertTraceNode(
+//   node: TraceTreeNode<TraceTree.NodeValue>
+// ): asserts node is TraceTreeNode<TraceTree.Trace> {
+//   if (!isTraceNode(node)) {
+//     throw new Error('node is not a trace');
+//   }
+// }
 
 function assertTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue> | null
@@ -232,6 +242,91 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(4);
   });
 
+  it('calculates correct trace type', () => {
+    let tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.EMPTY_TRACE);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.NO_ROOT);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            parent_span_id: null,
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONE_ROOT);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            parent_span_id: null,
+            children: [],
+          }),
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.BROKEN_SUBTRACES);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            parent_span_id: null,
+            children: [],
+          }),
+          makeTransaction({
+            parent_span_id: null,
+            children: [],
+          }),
+        ],
+        orphan_errors: [],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.MULTIPLE_ROOTS);
+
+    tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [],
+        orphan_errors: [makeTraceError()],
+      })
+    );
+
+    expect(TraceTree.GetTraceType(tree.root)).toBe(TraceType.ONLY_ERRORS);
+  });
+
   it('builds from spans when root is a transaction node', () => {
     const root = new TraceTreeNode(
       null,
@@ -241,12 +336,16 @@ describe('TraceTree', () => {
       {project_slug: '', event_id: ''}
     );
 
-    const node = TraceTree.FromSpans(root, [
-      makeSpan({start_timestamp: 0, op: '1', span_id: '1'}),
-      makeSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
-      makeSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
-      makeSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
-    ]);
+    const node = TraceTree.FromSpans(
+      root,
+      [
+        makeSpan({start_timestamp: 0, op: '1', span_id: '1'}),
+        makeSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
+        makeSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
+        makeSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
+      ],
+      {sdk: undefined}
+    );
 
     if (!isSpanNode(node.children[0])) {
       throw new Error('Child needs to be a span');
@@ -264,6 +363,95 @@ describe('TraceTree', () => {
     expect(node.children[0].children[1].value.start_timestamp).toBe(3);
   });
 
+  it('builds from spans and copies txn nodes', () => {
+    // transaction                transaction
+    //  - child transaction  ->    - span
+    //                             - child-transaction
+    //                             - span
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    root.children.push(
+      new TraceTreeNode(
+        root,
+        makeTransaction({
+          parent_span_id: 'child-transaction',
+        }),
+        {project_slug: '', event_id: ''}
+      )
+    );
+
+    const node = TraceTree.FromSpans(
+      root,
+      [
+        makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
+        makeSpan({
+          start_timestamp: 0.1,
+          timestamp: 0.2,
+          op: 'child-transaction',
+          span_id: 'child-transaction',
+        }),
+        makeSpan({start_timestamp: 0.2, timestamp: 0.25, op: 'span', span_id: 'none'}),
+      ],
+      {sdk: undefined}
+    );
+
+    assertTransactionNode(node.children[1]);
+  });
+
+  it('builds from spans and copies txn nodes to nested children', () => {
+    // parent transaction             parent transaction
+    //  - child transaction  ->        - span
+    //   - grandchild transaction  ->  - child-transaction
+    //                                  - grandchild-transaction
+    //
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        span_id: 'parent-transaction',
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    let start: TraceTreeNode<TraceTree.NodeValue> = root;
+    for (let i = 0; i < 2; i++) {
+      const node = new TraceTreeNode(
+        start,
+        makeTransaction({
+          transaction: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
+          parent_span_id: `${i === 0 ? 'child' : 'grandchild'}-transaction`,
+        }),
+        {project_slug: '', event_id: ''}
+      );
+
+      start.children.push(node);
+      start = node;
+    }
+
+    const node = TraceTree.FromSpans(
+      root,
+      [
+        makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
+        makeSpan({
+          start_timestamp: 0.1,
+          timestamp: 0.2,
+          op: 'child-transaction',
+          span_id: 'child-transaction',
+        }),
+      ],
+      {sdk: undefined}
+    );
+
+    assertTransactionNode(node.children[1]);
+    assertTransactionNode(node.children[1].children[0]);
+  });
+
   it('injects missing spans', () => {
     const root = new TraceTreeNode(
       null,
@@ -275,20 +463,24 @@ describe('TraceTree', () => {
 
     const date = new Date().getTime();
 
-    const node = TraceTree.FromSpans(root, [
-      makeSpan({
-        start_timestamp: date,
-        timestamp: date + 1,
-        span_id: '1',
-        op: 'span 1',
-      }),
-      makeSpan({
-        start_timestamp: date + 2,
-        timestamp: date + 4,
-        op: 'span 2',
-        span_id: '2',
-      }),
-    ]);
+    const node = TraceTree.FromSpans(
+      root,
+      [
+        makeSpan({
+          start_timestamp: date,
+          timestamp: date + 1,
+          span_id: '1',
+          op: 'span 1',
+        }),
+        makeSpan({
+          start_timestamp: date + 2,
+          timestamp: date + 4,
+          op: 'span 2',
+          span_id: '2',
+        }),
+      ],
+      {sdk: undefined}
+    );
 
     assertSpanNode(node.children[0]);
     assertMissingInstrumentationNode(node.children[1]);
@@ -298,6 +490,44 @@ describe('TraceTree', () => {
     expect(node.children[0].value.op).toBe('span 1');
     expect(node.children[1].value.type).toBe('missing_instrumentation');
     expect(node.children[2].value.op).toBe('span 2');
+  });
+
+  it('does not inject missing spans for javascript platform', () => {
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    const date = new Date().getTime();
+
+    const node = TraceTree.FromSpans(
+      root,
+      [
+        makeSpan({
+          start_timestamp: date,
+          timestamp: date + 1,
+          span_id: '1',
+          op: 'span 1',
+        }),
+        makeSpan({
+          start_timestamp: date + 2,
+          timestamp: date + 4,
+          op: 'span 2',
+          span_id: '2',
+        }),
+      ],
+      {sdk: 'sentry.javascript.browser'}
+    );
+
+    assertSpanNode(node.children[0]);
+    assertSpanNode(node.children[1]);
+
+    expect(node.children.length).toBe(2);
+    expect(node.children[0].value.op).toBe('span 1');
+    expect(node.children[1].value.op).toBe('span 2');
   });
 
   it('builds and preserves list order', async () => {
@@ -918,6 +1148,34 @@ describe('TraceTree', () => {
       TraceTree.AutogroupSiblingSpanNodes(root);
 
       expect(root.children.length).toBe(1);
+    });
+
+    it('correctly adds autogrouped siblings as children under autogrouped node', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      const autoGroupedNode = root.children[0];
+      assertAutogroupedNode(autoGroupedNode);
+
+      expect(autoGroupedNode.groupCount).toBe(5);
+      expect(autoGroupedNode.children.length).toBe(5);
     });
 
     it('autogroups when number of children is > 5', () => {

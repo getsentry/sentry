@@ -2928,12 +2928,14 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("sad user", True)],
             _user_misery_formula(1, 2),
         )
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("ok user", False)],

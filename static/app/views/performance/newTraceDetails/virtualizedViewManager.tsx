@@ -216,6 +216,10 @@ export class VirtualizedViewManager {
     this.teardown();
 
     this.container = container;
+    this.container.addEventListener('wheel', this.onPreventBackForwardNavigation, {
+      passive: false,
+    });
+
     this.resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry) {
@@ -233,6 +237,12 @@ export class VirtualizedViewManager {
     });
 
     this.resizeObserver.observe(container);
+  }
+
+  onPreventBackForwardNavigation(event: WheelEvent) {
+    if (event.deltaX !== 0) {
+      event.preventDefault();
+    }
   }
 
   initializeSpanSpace(spanSpace: [number, number], spanView?: [number, number]) {
@@ -308,6 +318,9 @@ export class VirtualizedViewManager {
   draw() {}
 
   teardown() {
+    if (this.container) {
+      this.container.removeEventListener('wheel', this.onPreventBackForwardNavigation);
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }

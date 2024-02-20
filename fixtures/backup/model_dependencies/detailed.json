@@ -3395,6 +3395,43 @@
     "table_name": "sentry_notificationactionproject",
     "uniques": []
   },
+  "sentry.notificationmessage": {
+    "dangling": false,
+    "foreign_keys": {
+      "incident": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.incident",
+        "nullable": true
+      },
+      "rule_fire_history": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.rulefirehistory",
+        "nullable": true
+      },
+      "trigger_action": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruletriggeraction",
+        "nullable": true
+      }
+    },
+    "model": "sentry.notificationmessage",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_notificationmessage",
+    "uniques": [
+      [
+        "incident",
+        "trigger_action"
+      ],
+      [
+        "rule_action_uuid",
+        "rule_fire_history"
+      ]
+    ]
+  },
   "sentry.notificationsettingoption": {
     "dangling": false,
     "foreign_keys": {

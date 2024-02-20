@@ -4,25 +4,20 @@ from unittest import mock
 
 import pytest
 
-from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-    DashboardWidgetQueryOnDemand,
-    DashboardWidgetTypes,
-)
+from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import (
+    _query_cardinality,
     get_field_cardinality_cache_key,
     process_widget_specs,
     schedule_on_demand_check,
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature, override_options
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache
 
@@ -47,38 +42,6 @@ def organization(owner: User) -> None:
 @pytest.fixture
 def project(organization: Organization) -> None:
     return Factories.create_project(organization=organization)
-
-
-# TODO: Move this into a method to be shared with test_metric_extraction
-def create_widget(
-    aggregates: Sequence[str],
-    query: str,
-    project: Project,
-    title: str = "Dashboard",
-    id: int | None = None,
-    columns: Sequence[str] | None = None,
-    dashboard: Dashboard | None = None,
-    widget: DashboardWidget | None = None,
-) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
-    columns = columns or []
-    dashboard = dashboard or Dashboard.objects.create(
-        organization=project.organization,
-        created_by_id=1,
-        title=title,
-    )
-    id = id or 1
-    widget = widget or DashboardWidget.objects.create(
-        dashboard=dashboard,
-        order=id - 1,
-        widget_type=DashboardWidgetTypes.DISCOVER,
-        display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-    )
-
-    widget_query = DashboardWidgetQuery.objects.create(
-        id=id, aggregates=aggregates, conditions=query, columns=columns, order=id - 1, widget=widget
-    )
-
-    return widget_query, widget, dashboard
 
 
 @pytest.mark.parametrize(
@@ -603,3 +566,14 @@ def assert_on_demand_model(
         return
 
     assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
+
+
+@mock.patch("sentry.tasks.on_demand_metrics.QueryBuilder")
+@django_db_all
+def test_query_cardinality_called_with_projects(
+    raw_snql_query: Any, project: Project, organization: Organization
+) -> None:
+    _query_cardinality(["sometag"], organization)
+    raw_snql_query.assert_called_once()
+    mock_call = raw_snql_query.mock_calls[0]
+    assert [proj.id for proj in mock_call.kwargs["params"]["projects"]] == [project.id]

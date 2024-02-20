@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -11,33 +11,24 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconSearch, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI, Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {stringifyMetricWidget} from 'sentry/utils/metrics';
-import {
-  MetricDisplayType,
-  type MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import {getWidgetTitle} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
-import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {InlineEditor} from 'sentry/views/dashboards/widgetCard/metricWidgetCard/inlineEditor';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
-import {
-  convertToDashboardWidget,
-  toMetricDisplayType,
-} from '../../../../utils/metrics/dashboard';
-import {MRIToField, parseField} from '../../../../utils/metrics/mri';
-import {DASHBOARD_CHART_GROUP} from '../../dashboard';
-import type {DashboardFilters, Widget} from '../../types';
-import {useMetricsDashboardContext} from '../metricsContext';
+import {convertToMetricWidget} from '../../../utils/metrics/dashboard';
+import {DASHBOARD_CHART_GROUP} from '../dashboard';
+import type {DashboardFilters, Widget} from '../types';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -48,26 +39,18 @@ type Props = {
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   index?: string;
-  isEditingWidget?: boolean;
   isMobile?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: (index: string) => void;
-  onUpdate?: (widget: Widget | null) => void;
-  onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  showSlider?: boolean;
-  tableItemLimit?: number;
-  windowWidth?: number;
 };
 
 export function MetricWidgetCard({
   organization,
   selection,
   widget,
-  isEditingWidget,
   isEditingDashboard,
-  onUpdate,
   onDelete,
   onDuplicate,
   location,
@@ -75,47 +58,12 @@ export function MetricWidgetCard({
   dashboardFilters,
   renderErrorMessage,
 }: Props) {
-  useMetricsDashboardContext();
+  const metricWidgetQueries = useMemo(() => convertToMetricWidget(widget), [widget]);
 
-  const metricWidgetQueryParams = convertFromWidget(widget);
-
-  const defaultTitle = useMemo(
-    () => stringifyMetricWidget(metricWidgetQueryParams),
-    [metricWidgetQueryParams]
+  const widgetMQL = useMemo(
+    () => getWidgetTitle(metricWidgetQueries),
+    [metricWidgetQueries]
   );
-
-  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
-
-  const handleSubmit = useCallback(() => {
-    const convertedWidget = convertToDashboardWidget(
-      {...selection, ...metricWidgetQueryParams},
-      toMetricDisplayType(metricWidgetQueryParams.displayType)
-    );
-
-    const isCustomTitle = title !== '' && title !== defaultTitle;
-
-    const updatedWidget = {
-      ...widget,
-      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
-      title: isCustomTitle ? title : defaultTitle,
-      queries: convertedWidget.queries,
-      displayType: convertedWidget.displayType,
-    };
-
-    onUpdate?.(updatedWidget);
-  }, [title, defaultTitle, metricWidgetQueryParams, onUpdate, widget, selection]);
-
-  const handleCancel = useCallback(() => {
-    onUpdate?.(null);
-  }, [onUpdate]);
-
-  if (!metricWidgetQueryParams.mri) {
-    return (
-      <ErrorPanel height="200px">
-        <IconWarning color="gray300" size="lg" />
-      </ErrorPanel>
-    );
-  }
 
   return (
     <DashboardsMEPContext.Provider
@@ -126,29 +74,13 @@ export function MetricWidgetCard({
     >
       <WidgetCardPanel isDragging={false}>
         <WidgetHeaderWrapper>
-          {isEditingWidget ? (
-            <InlineEditor
-              isEdit={!!isEditingWidget}
-              displayType={metricWidgetQueryParams.displayType}
-              metricsQuery={metricWidgetQueryParams}
-              projects={selection.projects}
-              powerUserMode={false}
-              // TODO: remove in a followup
-              onChange={() => {}}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              onTitleChange={setTitle}
-              title={title}
-            />
-          ) : (
-            <WidgetHeaderDescription>
-              <WidgetTitleRow>
-                <WidgetTitle>
-                  <TextOverflow>{title}</TextOverflow>
-                </WidgetTitle>
-              </WidgetTitleRow>
-            </WidgetHeaderDescription>
-          )}
+          <WidgetHeaderDescription>
+            <WidgetTitleRow>
+              <WidgetTitle>
+                <TextOverflow>{widget.title || widgetMQL}</TextOverflow>
+              </WidgetTitle>
+            </WidgetTitleRow>
+          </WidgetHeaderDescription>
 
           <ContextMenuWrapper>
             {!isEditingDashboard && (
@@ -177,9 +109,9 @@ export function MetricWidgetCard({
         </WidgetHeaderWrapper>
 
         <MetricWidgetChartContainer
+          metricWidgetQueries={metricWidgetQueries}
           selection={selection}
           widget={widget}
-          editorParams={metricWidgetQueryParams}
           dashboardFilters={dashboardFilters}
           renderErrorMessage={renderErrorMessage}
         />
@@ -193,58 +125,51 @@ type MetricWidgetChartContainerProps = {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
-  editorParams?: Partial<MetricWidgetQueryParams>;
+  metricWidgetQueries?: MetricWidgetQueryParams[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
 
 export function MetricWidgetChartContainer({
   selection,
-  widget,
-  editorParams = {},
   dashboardFilters,
   renderErrorMessage,
+  metricWidgetQueries,
+  widget,
 }: MetricWidgetChartContainerProps) {
-  const metricWidgetQueryParams = {
-    ...convertFromWidget(widget),
-    ...editorParams,
-  };
+  // TODO: Remove this and the widget prop once this component is no longer used in widgetViewerModal
+  const metricQueries = metricWidgetQueries || convertToMetricWidget(widget);
 
-  const {projects, environments, datetime} = selection;
-  const {mri, op, groupBy, displayType} = metricWidgetQueryParams;
+  const chartQueries = useMemo(() => {
+    return metricQueries.map(({mri, op, groupBy, query}) => {
+      return {
+        mri,
+        op,
+        query: extendQuery(query, dashboardFilters),
+        groupBy,
+      };
+    });
+  }, [metricQueries, dashboardFilters]);
+
+  const displayType = metricQueries[0].displayType;
 
   const {
     data: timeseriesData,
     isLoading,
     isError,
     error,
-  } = useMetricsQuery(
-    [
-      {
-        mri,
-        op,
-        query: extendQuery(metricWidgetQueryParams.query, dashboardFilters),
-        groupBy,
-      },
-    ],
-    {
-      projects,
-      environments,
-      datetime,
-    },
-    {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard'}
-  );
+  } = useMetricsQuery(chartQueries, selection, {
+    intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard',
+  });
 
   const chartRef = useRef<ReactEchartsRef>(null);
 
   const chartSeries = useMemo(() => {
     return timeseriesData
-      ? getChartTimeseries(timeseriesData, {
+      ? getChartTimeseries(timeseriesData, chartQueries, {
           getChartPalette: createChartPalette,
-          mri,
-          field: MRIToField(mri, op || ''),
         })
       : [];
-  }, [timeseriesData, mri, op]);
+  }, [timeseriesData, chartQueries]);
 
   if (isError) {
     const errorMessage =
@@ -277,26 +202,13 @@ export function MetricWidgetChartContainer({
           ref={chartRef}
           series={chartSeries}
           displayType={displayType}
-          operation={op}
+          operation={metricQueries[0].op}
           widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
         />
       </TransitionChart>
     </MetricWidgetChartWrapper>
   );
-}
-
-function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
-  return {
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
 }
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
@@ -353,4 +265,4 @@ const MetricWidgetChartWrapper = styled('div')`
   width: 100%;
   padding: ${space(3)};
   padding-top: ${space(2)};
-  `;
+`;
