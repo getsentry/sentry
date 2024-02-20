@@ -249,6 +249,9 @@ export class TraceTree {
           if (!value.measurements?.[measurement]) {
             continue;
           }
+          if (value.measurements[measurement].value === 0) {
+            continue;
+          }
 
           const timestamp = measurementToTimestamp(
             value.start_timestamp,
@@ -262,7 +265,7 @@ export class TraceTree {
           }
 
           tree.indicators.push({
-            start: timestamp,
+            start: value.start_timestamp + value.measurements[measurement].value / 1000,
             duration: 0,
             node,
             type: measurement as Indicator['type'],
