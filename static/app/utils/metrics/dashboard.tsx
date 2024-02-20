@@ -21,7 +21,7 @@ export function convertToDashboardWidget(
     title: '',
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
-    limit: 10, // !metricsQuery.groupBy?.length ? 1 : 10,
+    limit: 10,
     queries: metricQueries.map(getWidgetQuery),
   };
 }
