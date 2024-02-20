@@ -20,10 +20,10 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
   getMetricsSeriesName,
-  stringifyMetricWidget,
+  getWidgetTitle,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
-import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   getMetricValueNormalizer,
   getNormalizedMetricUnit,
@@ -51,6 +51,7 @@ import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
+  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -65,6 +66,7 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
+  queryId?: number;
   showQuerySymbols?: boolean;
   tableSort?: SortState;
 };
@@ -78,6 +80,7 @@ export type Sample = {
 
 export const MetricWidget = memo(
   ({
+    queryId,
     queries,
     filters,
     displayType,
@@ -94,6 +97,7 @@ export const MetricWidget = memo(
     highlightedSampleId,
     chartHeight = 300,
     focusedSeries,
+    context = 'ddm',
   }: MetricWidgetProps) => {
     const firstQuery = queries[0];
 
@@ -136,12 +140,7 @@ export const MetricWidget = memo(
       };
     }, [samplesQuery.data, onSampleClick, firstQuery.mri, highlightedSampleId]);
 
-    const widgetTitle =
-      queries.length === 1
-        ? stringifyMetricWidget(firstQuery)
-        : queries
-            .map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? '')))
-            .join(', ');
+    const widgetTitle = getWidgetTitle(queries);
 
     return (
       <MetricWidgetPanel
@@ -152,7 +151,9 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols && <QuerySymbol index={index} isSelected={isSelected} />}
+            {showQuerySymbols && queryId !== undefined && (
+              <QuerySymbol queryId={queryId} isSelected={isSelected} />
+            )}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
@@ -189,6 +190,7 @@ export const MetricWidget = memo(
                 displayType={displayType}
                 tableSort={tableSort}
                 focusedSeries={focusedSeries}
+                context={context}
               />
             ) : (
               <StyledMetricWidgetBody>
@@ -207,6 +209,7 @@ export const MetricWidget = memo(
 );
 
 interface MetricWidgetBodyProps {
+  context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
   queries: MetricsQueryApiQueryParams[];
@@ -242,6 +245,7 @@ const MetricWidgetBody = memo(
     samples,
     filters,
     queries,
+    context,
   }: MetricWidgetBodyProps) => {
     const {
       data: timeseriesData,
@@ -249,7 +253,7 @@ const MetricWidgetBody = memo(
       isError,
       error,
     } = useMetricsQuery(queries, filters, {
-      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'ddm',
+      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 
     const chartRef = useRef<ReactEchartsRef>(null);
