@@ -40,7 +40,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import xfail_if_not_postgres
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -158,6 +158,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
         self.group1.times_seen = 5
         self.group1.status = GroupStatus.UNRESOLVED
         self.group1.substatus = GroupSubStatus.ONGOING
+        self.group1.priority = PriorityLevel.HIGH
         self.group1.update(type=ErrorGroupType.type_id)
         self.group1.save()
         self.store_group(self.group1)
@@ -188,6 +189,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
         self.group2.substatus = None
         self.group2.times_seen = 10
         self.group2.update(type=ErrorGroupType.type_id)
+        self.group2.priority = PriorityLevel.HIGH
         self.group2.save()
         self.store_group(self.group2)
 
@@ -2620,6 +2622,29 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
             if "snuba.search.group_attributes_joined.duration" in set(args):
                 metrics_timer_called = True
         assert metrics_timer_called
+
+    def test_issue_priority(self):
+        results = self.make_query(search_filter_query="issue.priority:high")
+        assert set(results) == {self.group1, self.group2}
+
+        event_3 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "c" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            },
+            project_id=self.project.id,
+        )
+        group_3 = event_3.group
+        group_3.update(priority=PriorityLevel.LOW)
+        results = self.make_query(search_filter_query="issue.priority:low")
+        assert set(results) == {group_3}
+
+        results = self.make_query(search_filter_query="issue.priority:[high, low]")
+        assert set(results) == {self.group1, self.group2, group_3}
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(search_filter_query="issue.category:wrong")
 
 
 class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
