@@ -5,6 +5,8 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry.constants import DataCategory
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -20,6 +22,8 @@ from sentry.tasks.summaries.weekly_reports import (
     project_key_performance_issues,
     user_project_ownership,
 )
+from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
@@ -112,6 +116,7 @@ def prepare_summary_data(
         )
         if key_errors:
             project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+
         # Today's Top 3 Performance Issues
         key_performance_issues = project_key_performance_issues(
             start=ctx.start,
@@ -121,6 +126,19 @@ def prepare_summary_data(
         )
         if key_performance_issues:
             project_ctx.key_performance_issues = key_performance_issues
+
+        # Issues that escalated or regressed today
+        regressed_or_escalated_groups = Group.objects.filter(
+            project=project, substatus__in=(GroupSubStatus.ESCALATING, GroupSubStatus.REGRESSED)
+        ).using_replica()
+        regressed_or_escalated_groups_today = Activity.objects.filter(
+            group__in=(regressed_or_escalated_groups),
+            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+        )
+        if regressed_or_escalated_groups_today:
+            project_ctx.escalated_or_regressed_today = [
+                group for group in regressed_or_escalated_groups_today.group
+            ]
 
     fetch_key_error_groups(ctx)
     fetch_key_performance_issue_groups(ctx)

@@ -113,3 +113,4 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         assert summary.projects[project_id].key_errors == [(group1, None, 3), (group2, None, 1)]
         # TODO: test performance issues later
         assert summary.projects[project_id].key_performance_issues == []
+        # TODO: add test for escalated or regressed today
