@@ -174,7 +174,6 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
-  shouldShowBeaconConsentPrompt: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
@@ -208,6 +207,7 @@ export interface Config {
   relocationConfig?: {
     selectableRegions: string[];
   };
+  shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
     id: string;
