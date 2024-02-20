@@ -20,6 +20,7 @@ import {
   isSpanNode,
   isTraceNode,
   isTransactionNode,
+  shouldAddMissingInstrumentationSpan,
 } from './guards';
 
 /**
@@ -304,8 +305,11 @@ export class TraceTree {
 
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    spans: RawSpanType[]
+    spans: RawSpanType[],
+    options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
+    const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
+
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
       RawSpanType['span_id'],
@@ -362,16 +366,19 @@ export class TraceTree {
 
         if (spanParentNode) {
           node.parent = spanParentNode;
-          maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          if (platformHasMissingSpans) {
+            maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          }
           spanParentNode.spanChildren.push(node);
           continue;
         }
       }
 
-      // Orphaned span
-      maybeInsertMissingInstrumentationSpan(parent, node);
+      if (platformHasMissingSpans) {
+        maybeInsertMissingInstrumentationSpan(parent, node);
+      }
       parent.spanChildren.push(node);
-      node.parent = parent as TraceTreeNode<TraceTree.Span>;
+      node.parent = parent;
     }
 
     parent.zoomedIn = true;
@@ -644,7 +651,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data);
+      TraceTree.FromSpans(node, spans.data, {sdk: data.sdk?.name});
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);
