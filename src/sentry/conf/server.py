@@ -1870,8 +1870,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
-    # Updated spike protection heuristic
-    "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
