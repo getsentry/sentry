@@ -48,15 +48,21 @@ export function HTTPLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {
-      filters: chartFilters,
-      yAxis: ['spm()'],
-      referrer: 'api.starfish.http-module-landing-throughput-chart',
-    }
-  );
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: ['spm()'],
+    referrer: 'api.starfish.http-module-landing-throughput-chart',
+  });
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`avg(span.self_time)`],
     referrer: 'api.starfish.http-module-landing-duration-chart',
@@ -124,6 +130,7 @@ export function HTTPLandingPage() {
                   <ThroughputChart
                     series={throughputData['spm()']}
                     isLoading={isThroughputDataLoading}
+                    error={throughputError}
                   />
                 </ModuleLayout.Half>
 
@@ -131,6 +138,7 @@ export function HTTPLandingPage() {
                   <DurationChart
                     series={durationData[`avg(span.self_time)`]}
                     isLoading={isDurationDataLoading}
+                    error={durationError}
                   />
                 </ModuleLayout.Half>
 

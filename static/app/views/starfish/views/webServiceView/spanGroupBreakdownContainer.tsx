@@ -94,7 +94,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const {
     isLoading: isTopDataLoading,
     data: topData,
-    isError,
+    error: topDataError,
   } = useEventsStatsQuery({
     eventView: getEventView(
       selection,
@@ -168,7 +168,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
-        errored={isError}
+        error={topDataError}
         options={options}
         dataDisplayType={dataDisplayType}
         onDisplayTypeChange={setDataDisplayType}

@@ -10,6 +10,7 @@ import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 interface Props {
   isLoading: boolean;
   series: Series;
+  error?: Error | null;
 }
 
 export function ThroughputChart({series, isLoading}: Props) {
