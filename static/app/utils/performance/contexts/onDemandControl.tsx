@@ -81,11 +81,12 @@ export function _isOnDemandMetricWidget(widget: Widget): boolean {
 
   const conditions = widget.queries.flatMap(query => query.conditions);
 
+  const hasConditions = conditions.length > 0; // In cases with custom column like user_misery, on-demand can still apply.
   const hasOnDemandConditions = conditions.some(condition =>
     isOnDemandQueryString(condition)
   );
 
-  if (!hasOnDemandConditions) {
+  if (!hasOnDemandConditions && hasConditions) {
     return false;
   }
 
