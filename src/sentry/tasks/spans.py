@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Mapping
-from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
@@ -23,57 +22,6 @@ logger = logging.getLogger(__name__)
 
 def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
-
-
-def build_tree(spans):
-    span_tree = {}
-    root_span_id = None
-
-    for span in spans:
-        span_id = span["span_id"]
-        is_root = span["is_segment"]
-        if is_root:
-            root_span_id = span_id
-        if span_id not in span_tree:
-            span_tree[span_id] = span
-            span_tree[span_id]["children"] = []
-
-    for span in span_tree.values():
-        parent_id = span.get("parent_span_id")
-        if parent_id is not None and parent_id in span_tree:
-            parent_span = span_tree[parent_id]
-            children = parent_span["children"]
-            children.append(span)
-
-    return span_tree, root_span_id
-
-
-def dfs(visited, flattened_spans, tree, span_id):
-    if span_id not in visited:
-        span = deepcopy(tree[span_id])
-        children = span.pop("children")
-
-        visited.add(span_id)
-        flattened_spans.append(span)
-
-        for child in sorted(children, key=lambda span: span["start_timestamp"]):
-            dfs(visited, flattened_spans, tree, child["span_id"])
-
-        tree.pop(span_id)
-
-
-def flatten_tree(tree, root_span_id):
-    visited = set()
-    flattened_spans = []
-    if root_span_id:
-        dfs(visited, flattened_spans, tree, root_span_id)
-
-    # Catch all for orphan spans
-    remaining = sorted(tree.items(), key=lambda span: span[1]["start_timestamp"])
-    for span_id, _ in remaining:
-        dfs(visited, flattened_spans, tree, span_id)
-
-    return flattened_spans
 
 
 def transform_spans_to_event_dict(spans):
@@ -115,13 +63,8 @@ def transform_spans_to_event_dict(spans):
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
-    # So we build a tree and flatten it depth first.
-    # TODO: See if we can update the detectors to work without this assumption so we can
-    # just pass it a list of spans.
-    tree, root_span_id = build_tree(deserialized_spans)
-    flattened_spans = flatten_tree(tree, root_span_id)
-
-    event["spans"] = flattened_spans
+    # Orderby timestamp should work for synchronously executed code.
+    event["spans"] = sorted(deserialized_spans, key=lambda span: span["start_timestamp"])
 
     return event
 
