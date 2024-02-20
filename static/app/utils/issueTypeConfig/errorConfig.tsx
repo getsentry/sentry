@@ -42,7 +42,6 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: /(window is not defined|document is not defined)/i,
-    projectPlatform: 'javascript',
     projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
@@ -54,7 +53,6 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   {
     errorTitle: "Module not found: Can't resolve",
     projectPlatforms: ['javascript-nextjs'],
-
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
   {
