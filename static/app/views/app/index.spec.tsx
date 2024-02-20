@@ -101,6 +101,7 @@ describe('App', function () {
 
   it('renders BeaconConsent', async function () {
     ConfigStore.set('shouldShowBeaconConsentPrompt', true);
+    ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('isSelfHosted', true);
 
     MockApiClient.addMockResponse({

@@ -33,14 +33,20 @@ function BeaconConsent({onSubmitSuccess}: Props) {
         </FieldWrapper>
         <RadioField
           name="beacon.record_cpu_ram_usage"
+          defaultValue={() => 'true'}
           choices={[
-            ['true', t('Yes, I would like to send cpu/ram usage to sentry.io')],
-            ['false', t("No, I'd prefer not to send cpu/ram usage to sentry.io")],
+            [
+              'true',
+              t(
+                'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
+              ),
+            ],
+            ['false', t("No, I'd prefer to keep CPU/RAM usage private")],
           ]}
           label={t('CPU/RAM Usage')}
           required
           help={tct(
-            `We'd love to record your CPU/RAM usage as it would greatly help our development team understand how self-hosted sentry
+            `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
             is being typically used, and to keep track of improvements that we hope to bring you in the future.`,
             {link: <ExternalLink href="https://sentry.io/privacy/" />}
           )}

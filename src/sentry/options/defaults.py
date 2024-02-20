@@ -288,7 +288,7 @@ register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
     "beacon.record_cpu_ram_usage",
     type=Bool,
-    flags=FLAG_ALLOW_EMPTY,
+    flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
 )
 
 # Filestore (default)

@@ -558,6 +558,24 @@ const definitions: Field[] = [
     ),
   },
   {
+    key: 'beacon.record_cpu_ram_usage',
+    label: 'RAM/CPU usage',
+    component: RadioField,
+    defaultValue: () => 'true',
+    choices: [
+      [
+        'true',
+        'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage',
+      ],
+      ['false', 'No, I would prefer to keep CPU/RAM usage private'],
+    ],
+    help: tct(
+      `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
+      is being typically used, and to keep track of improvements that we hope to bring you in the future.`,
+      {link: <ExternalLink href="https://sentry.io/privacy/" />}
+    ),
+  },
+  {
     key: 'mail.from',
     label: t('Email From'),
     component: EmailField,

@@ -175,7 +175,8 @@ function App({children, params}: Props) {
     user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
-  const beaconConsentPrompt = config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
+  const beaconConsentPrompt =
+    user?.isSuperuser && config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
 
   function renderBody() {
     if (displayInstallWizard) {
