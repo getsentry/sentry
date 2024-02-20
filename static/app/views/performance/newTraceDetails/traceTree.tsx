@@ -264,6 +264,17 @@ export class TraceTree {
             traceEnd = timestamp;
           }
 
+          const timestamp = measurementToTimestamp(
+            value.start_timestamp,
+            value.measurements[measurement].value,
+            value.measurements[measurement].unit ?? 'milliseconds'
+          );
+
+          // If a rendered measurement extends the trace bounds, we update the trace bounds
+          if (timestamp > traceEnd) {
+            traceEnd = timestamp;
+          }
+
           tree.indicators.push({
             start: timestamp,
             duration: 0,
