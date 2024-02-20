@@ -424,7 +424,7 @@ def create_monitor(project: Project, environment: Environment) -> None:
 
     monitor_env, _ = MonitorEnvironment.objects.get_or_create(
         monitor=monitor,
-        environment=environment,
+        environment_id=environment.id,
         defaults={
             "status": MonitorStatus.DISABLED,
             "next_checkin": django_timezone.now() + timedelta(minutes=60),

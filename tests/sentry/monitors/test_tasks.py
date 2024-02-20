@@ -84,7 +84,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # Expected check-in was a full minute ago.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
@@ -151,7 +151,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # Last check-in was yesterday
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(days=1),
             next_checkin=ts,
             next_checkin_latest=ts + timedelta(minutes=1),
@@ -211,7 +211,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # still have 3 minutes to check in.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=12),
             next_checkin=ts - timedelta(minutes=2),
             next_checkin_latest=ts + timedelta(minutes=3),
@@ -313,7 +313,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # minutes from now. There will be 5 minutes of overlap.
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=5),
             next_checkin=ts,
             next_checkin_latest=ts + timedelta(minutes=10),
@@ -389,7 +389,7 @@ class MonitorTaskCheckMissingTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=1),
             next_checkin=ts,
             next_checkin_latest=ts + timedelta(minutes=1),
@@ -470,7 +470,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # `state` the monitor would usually end up marked as timed out
         MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.ACTIVE,
@@ -527,7 +527,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         # Expected checkin is this minute
         MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=last_checkin_ts,
             next_checkin=ts,
             next_checkin_latest=ts + timedelta(minutes=1),
@@ -571,7 +571,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
         failing_monitor_environment = MonitorEnvironment.objects.create(
             monitor=exception_monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
@@ -591,7 +591,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         )
         successful_monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(minutes=2),
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
@@ -641,7 +641,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
             next_checkin_latest=ts + timedelta(hours=24, minutes=1),
@@ -716,7 +716,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=1),
             next_checkin_latest=ts + timedelta(hours=1, minutes=1),
@@ -814,7 +814,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts - timedelta(hours=1),
             next_checkin=ts,
             next_checkin_latest=ts + timedelta(minutes=1),
@@ -876,7 +876,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=ts,
             next_checkin=ts + timedelta(minutes=10),
             next_checkin_latest=ts + timedelta(minutes=11),
@@ -942,7 +942,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             # Next checkin is in the future, we just completed our last checkin
             last_checkin=ts,
             next_checkin=ts + timedelta(hours=24),
