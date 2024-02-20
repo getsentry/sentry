@@ -268,7 +268,7 @@ class ThresholdMaxKeys(Enum):
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, max_length=255)
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
     description = serializers.CharField(
         required=False, max_length=255, allow_null=True, allow_blank=True
     )
@@ -367,7 +367,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     {"queries": "One or more queries are required to create a widget"}
                 )
             if not data.get("title"):
-                raise serializers.ValidationError({"title": "Title is required during creation."})
+                if not data.get("widget_type") == DashboardWidgetTypes.METRICS:
+                    raise serializers.ValidationError(
+                        {"title": "Title is required during creation."}
+                    )
             if data.get("display_type") is None:
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}

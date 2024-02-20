@@ -104,6 +104,7 @@ export function MetricScratchpad() {
             highlightedSampleId={
               selectedWidgetIndex === index ? highlightedSampleId : undefined
             }
+            context="ddm"
           />
         ))
       ) : (
@@ -124,6 +125,7 @@ export function MetricScratchpad() {
           onSampleClick={handleSampleClick}
           chartHeight={hasDDMExperimentalFeature(organization) ? 200 : 300}
           highlightedSampleId={highlightedSampleId}
+          context="ddm"
         />
       )}
     </Wrapper>
