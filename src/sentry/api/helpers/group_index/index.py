@@ -80,11 +80,12 @@ def build_query_params_from_request(
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
+
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
-    if query is None:
+    if query in (None, ""):
         if features.has("organizations:issue-priority-ui", organization):
-            query = f"{query} issue.priority:[high, medium]"
+            query = "is:unresolved issue.priority:[high, medium]"
         else:
             query = "is:unresolved"
 
