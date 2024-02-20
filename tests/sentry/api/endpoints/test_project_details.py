@@ -126,8 +126,8 @@ class ProjectDetailsTest(APITestCase):
         assert response.data["id"] == str(self.project.id)
 
     def test_staff_simple(self):
-        superuser = self.create_user(is_superuser=True)
-        self.login_as(user=superuser, superuser=True)
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
 
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
@@ -437,6 +437,22 @@ class ProjectUpdateTest(APITestCase):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
+
+    def test_superuser_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_success_response(self.org_slug, self.proj_slug, platform="native")
+        project = Project.objects.get(id=self.project.id)
+        assert project.platform == "native"
+
+    def test_staff_simple(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_success_response(self.org_slug, self.proj_slug, platform="native")
+        project = Project.objects.get(id=self.project.id)
+        assert project.platform == "native"
 
     def test_blank_subject_prefix(self):
         project = Project.objects.get(id=self.project.id)
@@ -1384,40 +1400,56 @@ class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
 
-    @mock.patch("sentry.db.mixin.uuid4")
-    def test_simple(self, mock_uuid4_mixin):
-        mock_uuid4_mixin.return_value = self.get_mock_uuid()
-        project = self.create_project()
-
+    def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
 
+    @mock.patch("sentry.db.mixin.uuid4")
+    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
+        mock_uuid4_mixin.return_value = self.get_mock_uuid()
+
         with self.settings(SENTRY_PROJECT=0):
-            self.get_success_response(project.organization.slug, project.slug, status_code=204)
+            self.get_success_response(
+                self.project.organization.slug, self.project.slug, status_code=204
+            )
 
         assert RegionScheduledDeletion.objects.filter(
-            model_name="Project", object_id=project.id
+            model_name="Project", object_id=self.project.id
         ).exists()
 
-        deleted_project = Project.objects.get(id=project.id)
+        deleted_project = Project.objects.get(id=self.project.id)
         assert deleted_project.status == ObjectStatus.PENDING_DELETION
         assert deleted_project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=deleted_project.organization_id,
             key=deleted_project.build_pending_deletion_key(),
         ).exists()
-        deleted_project = DeletedProject.objects.get(slug=project.slug)
-        self.assert_valid_deleted_log(deleted_project, project)
+        deleted_project = DeletedProject.objects.get(slug=self.project.slug)
+        self.assert_valid_deleted_log(deleted_project, self.project)
+
+    def test_simple(self):
+        self._delete_project_and_assert_deleted()
+
+    def test_superuser(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self._delete_project_and_assert_deleted()
+
+    def test_staff(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        self._delete_project_and_assert_deleted()
 
     def test_internal_project(self):
-        project = self.create_project()
-
-        self.login_as(user=self.user)
-
-        with self.settings(SENTRY_PROJECT=project.id):
-            self.get_error_response(project.organization.slug, project.slug, status_code=403)
+        with self.settings(SENTRY_PROJECT=self.project.id):
+            self.get_error_response(
+                self.project.organization.slug, self.project.slug, status_code=403
+            )
 
         assert not RegionScheduledDeletion.objects.filter(
-            model_name="Project", object_id=project.id
+            model_name="Project", object_id=self.project.id
         ).exists()
 
 
