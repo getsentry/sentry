@@ -358,7 +358,8 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
-            "shouldShowBeaconConsentPrompt": should_show_beacon_consent_prompt(),
+            "shouldShowBeaconConsentPrompt": not self.needs_upgrade
+            and should_show_beacon_consent_prompt(),
             "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
             "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
             "termsUrl": settings.TERMS_URL,
