@@ -701,7 +701,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
-            "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)

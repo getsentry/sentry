@@ -73,7 +73,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
   const {
     data: series,
     isLoading: isSeriesLoading,
-    isError,
+    error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
@@ -141,7 +141,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
           nameFormatter: value => formatVersion(value),
         }}
         legendFormatter={value => formatVersion(value)}
-        errored={isError}
+        error={seriesError}
       />
     </MiniChartPanel>
   );

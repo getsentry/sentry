@@ -36,7 +36,6 @@ import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metr
 import type {
   DdmQueryParams,
   MetricsQuery,
-  MetricsQuerySubject,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -75,7 +74,7 @@ export function getDdmUrl(
     project,
     ...otherParams
   }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
-    widgets: MetricWidgetQueryParams[];
+    widgets: Partial<MetricWidgetQueryParams>[];
     project?: (string | number)[];
   }
 ) {
@@ -291,9 +290,7 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
-export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
-
+export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
   if (!op) {
     return '';
   }
@@ -309,6 +306,36 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+export function isFormattedMQL(mql: string) {
+  const regex = /^(\w+\([\w\.]+\))(?:\{\w+\:\w+\})*(?:\sby\s\w+)*/;
+
+  const matches = mql.match(regex);
+
+  const [, field, query, groupBy] = matches ?? [];
+
+  if (!field) {
+    return false;
+  }
+
+  if (query) {
+    return query.includes(':');
+  }
+
+  if (groupBy) {
+    // TODO check groupbys
+  }
+
+  return true;
+}
+
+export function getWidgetTitle(queries: MetricsQuery[]) {
+  if (queries.length === 1) {
+    return getFormattedMQL(queries[0]);
+  }
+
+  return queries.map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? ''))).join(', ');
 }
 
 // TODO: consider moving this to utils/dates.tsx
