@@ -34,6 +34,7 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.summaries.utils import OrganizationReportContext, ProjectContext
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -46,70 +47,6 @@ ONE_DAY = int(timedelta(days=1).total_seconds())
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
-
-
-class OrganizationReportContext:
-    def __init__(self, timestamp: float, duration: int, organization: Organization):
-        self.timestamp = timestamp
-        self.duration = duration
-
-        self.start = to_datetime(timestamp - duration)
-        self.end = to_datetime(timestamp)
-
-        self.organization: Organization = organization
-        self.projects: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
-
-        self.project_ownership = {}  # { user_id: set<project_id> }
-        for project in organization.project_set.all():
-            self.projects[project.id] = ProjectContext(project)
-
-    def __repr__(self):
-        return self.projects.__repr__()
-
-
-# TODO: create a new DailyProjectContext?
-class ProjectContext:
-    accepted_error_count = 0
-    dropped_error_count = 0
-    accepted_transaction_count = 0
-    dropped_transaction_count = 0
-    accepted_replay_count = 0
-    dropped_replay_count = 0
-
-    new_substatus_count = 0
-    ongoing_substatus_count = 0
-    escalating_substatus_count = 0
-    regression_substatus_count = 0
-    total_substatus_count = 0
-
-    def __init__(self, project: Project):
-        self.project = project
-
-        # Array of (group_id, group_history, count)
-        self.key_errors = []
-        # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-        self.key_transactions = []
-        # Array of (Group, count)
-        self.key_performance_issues = []
-
-        self.key_replay_events = []
-
-        # Dictionary of { timestamp: count }
-        self.error_count_by_day = {}
-        # Dictionary of { timestamp: count }
-        self.transaction_count_by_day = {}
-        # Dictionary of { timestamp: count }
-        self.replay_count_by_day = {}
-
-    def __repr__(self):
-        return "\n".join(
-            [
-                f"{self.key_errors}, ",
-                f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
-                f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
-                f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
-            ]
-        )
 
 
 def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:

@@ -17,7 +17,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
-from sentry.tasks.weekly_reports import (
+from sentry.tasks.summaries.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
