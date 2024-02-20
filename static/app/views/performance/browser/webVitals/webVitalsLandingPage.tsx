@@ -34,7 +34,7 @@ import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/t
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 export default function WebVitalsLandingPage() {
@@ -73,7 +73,11 @@ export default function WebVitalsLandingPage() {
   );
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="starfish-browser-webvitals"
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

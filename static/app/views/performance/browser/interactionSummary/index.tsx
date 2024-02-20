@@ -14,7 +14,7 @@ import {
   BrowserStarfishFields,
   useBrowserModuleFilters,
 } from 'sentry/views/performance/browser/useBrowserFilters';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 function InteractionSummary() {
   const organization = useOrganization();
@@ -25,7 +25,11 @@ function InteractionSummary() {
   const element = browserFilters?.[BrowserStarfishFields.COMPONENT] ?? '';
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Interactions')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Interactions')].join(' — ')}
+      baseURL="/performance/browser/interactions"
+      features="starfish-view"
+    >
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs

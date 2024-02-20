@@ -47,7 +47,7 @@ import {
   DismissButton,
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -143,7 +143,11 @@ export default function PageOverview() {
   );
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="starfish-browser-webvitals"
+    >
       <Tabs
         value={tab}
         onChange={value => {
