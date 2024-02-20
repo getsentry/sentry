@@ -136,10 +136,10 @@ export default function TraceHeader(props: TraceHeaderProps) {
           headingText={t('Total Duration')}
           tooltipText=""
           bodyText={
-            traceInfo.startTimestamp && traceInfo.endTimestamp
-              ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
-              : emptyTrace
-                ? getDuration(0, 2, true)
+            emptyTrace
+              ? getDuration(0, 2, true)
+              : traceInfo.startTimestamp && traceInfo.endTimestamp
+                ? getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)
                 : loadingIndicator
           }
           subtext={null}
