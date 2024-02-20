@@ -47,17 +47,17 @@ function Trace({trace, trace_id}: TraceProps) {
 
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
-      list: {width: 0.5, column_refs: []},
-      span_list: {width: 0.5, column_refs: []},
+      list: {width: 0.5},
+      span_list: {width: 0.5},
     });
   }
 
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
-      trace.root.space[1] !== viewManager.current.spanSpace[1])
+    (trace.root.space[0] !== viewManager.current.space[0] ||
+      trace.root.space[1] !== viewManager.current.space[1])
   ) {
-    viewManager.current.initializeSpanSpace(trace.root.space);
+    viewManager.current.initializeSpace(trace.root.space);
   }
 
   const treeRef = useRef<TraceTree>(trace);
@@ -124,7 +124,8 @@ function Trace({trace, trace_id}: TraceProps) {
                     projects={projectLookup}
                     viewManager={viewManager.current!}
                     startIndex={
-                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
+                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ??
+                      0
                     }
                   />
                 ) : (
@@ -132,7 +133,8 @@ function Trace({trace, trace_id}: TraceProps) {
                     key={p.key}
                     theme={theme}
                     startIndex={
-                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
+                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ??
+                      0
                     }
                     index={p.index}
                     style={p.style}
@@ -190,6 +192,7 @@ function RenderRow(props: {
   viewManager: VirtualizedViewManager;
 }) {
   const virtualizedIndex = props.index - props.startIndex;
+
   if (!props.node.value) {
     return null;
   }
@@ -838,10 +841,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(0, 2px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   @keyframes showPlaceholder {
     0% {
@@ -849,10 +852,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(-8px, 0px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   &.Loading {
     .TraceRow {
@@ -1011,7 +1014,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &::after {
-      content: "";
+      content: '';
       background-color: rgb(224, 220, 229);
       border-radius: 50%;
       height: 6px;

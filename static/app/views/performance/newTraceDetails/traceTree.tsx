@@ -199,9 +199,12 @@ export class TraceTree {
   static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
 
+    let traceStart = Number.POSITIVE_INFINITY;
+    let traceEnd = Number.NEGATIVE_INFINITY;
+
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.NodeValue
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -211,6 +214,19 @@ export class TraceTree {
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
+      }
+
+      if ('start_timestamp' in value && 'timestamp' in value) {
+        if (value.start_timestamp < traceStart) {
+          traceStart = value.start_timestamp;
+        }
+        if (value.timestamp > traceEnd) {
+          traceEnd = value.timestamp;
+        }
+      } else if ('timestamp' in value && typeof value.timestamp === 'number') {
+        if (value.timestamp > traceEnd) {
+          traceEnd = value.timestamp;
+        }
       }
 
       if (value && 'children' in value) {
@@ -230,16 +246,7 @@ export class TraceTree {
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
 
-    let traceStart = Number.POSITIVE_INFINITY;
-    let traceEnd = Number.NEGATIVE_INFINITY;
-
     for (const transaction of trace.transactions) {
-      if (transaction.start_timestamp < traceStart) {
-        traceStart = transaction.start_timestamp;
-      }
-      if (transaction.timestamp > traceEnd) {
-        traceEnd = transaction.timestamp;
-      }
       visit(traceNode, transaction);
     }
 
