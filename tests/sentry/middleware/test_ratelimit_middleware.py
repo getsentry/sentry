@@ -9,6 +9,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
