@@ -12,20 +12,22 @@ describe('convertToDashboardWidget', () => {
   it('should convert a metrics query to a dashboard widget (metrics mri, with grouping)', () => {
     expect(
       convertToDashboardWidget(
-        {
-          datetime: {
-            start: '2021-06-01T00:00:00',
-            end: '2021-06-02T00:00:00',
-            period: '1d',
-            utc: false,
+        [
+          {
+            datetime: {
+              start: '2021-06-01T00:00:00',
+              end: '2021-06-02T00:00:00',
+              period: '1d',
+              utc: false,
+            },
+            groupBy: ['project'],
+            query: 'event.type:transaction',
+            projects: [1],
+            environments: ['prod'],
+            mri: 'c:custom/login@second',
+            op: 'p95',
           },
-          groupBy: ['project'],
-          query: 'event.type:transaction',
-          projects: [1],
-          environments: ['prod'],
-          mri: 'c:custom/login@second',
-          op: 'p95',
-        },
+        ],
         MetricDisplayType.AREA
       )
     ).toEqual({
@@ -49,27 +51,29 @@ describe('convertToDashboardWidget', () => {
   it('should convert a metrics query to a dashboard widget (transaction mri, with grouping)', () => {
     expect(
       convertToDashboardWidget(
-        {
-          datetime: {
-            start: '2021-06-01T00:00:00',
-            end: '2021-06-02T00:00:00',
-            period: '1d',
-            utc: false,
+        [
+          {
+            datetime: {
+              start: '2021-06-01T00:00:00',
+              end: '2021-06-02T00:00:00',
+              period: '1d',
+              utc: false,
+            },
+            groupBy: [],
+            query: '',
+            projects: [1],
+            environments: ['prod'],
+            mri: 'd:transactions/measurements.duration@second',
+            op: 'p95',
           },
-          groupBy: [],
-          query: '',
-          projects: [1],
-          environments: ['prod'],
-          mri: 'd:transactions/measurements.duration@second',
-          op: 'p95',
-        },
+        ],
         MetricDisplayType.BAR
       )
     ).toEqual({
       title: '',
       displayType: DisplayType.BAR,
       widgetType: 'custom-metrics',
-      limit: 1,
+      limit: 10,
       queries: [
         {
           name: '',
