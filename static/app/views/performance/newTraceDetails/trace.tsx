@@ -39,16 +39,14 @@ function Trace({trace, trace_id}: TraceProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
-
-  const virtualizedListRef = useRef<List>(null);
   const viewManager = useRef<VirtualizedViewManager | null>(null);
 
   const [_rerender, setRender] = useState(0);
 
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
-      list: {width: 0.5, column_refs: []},
-      span_list: {width: 0.5, column_refs: []},
+      list: {width: 0.5},
+      span_list: {width: 0.5},
     });
   }
 
@@ -112,11 +110,11 @@ function Trace({trace, trace_id}: TraceProps) {
         <AutoSizer>
           {({width, height}) => (
             <List
-              ref={virtualizedListRef}
+              ref={r => viewManager.current?.registerVirtualizedList(r)}
               rowHeight={24}
               height={height}
               width={width}
-              overscanRowCount={10}
+              overscanRowCount={5}
               rowCount={treeRef.current.list.length ?? 0}
               rowRenderer={p => {
                 return trace.type === 'loading' ? (
@@ -221,7 +219,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div className="TraceChildrenCountWrapper">
@@ -287,7 +285,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div
@@ -366,7 +364,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div
@@ -450,7 +448,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div className="TraceChildrenCountWrapper">
@@ -507,7 +505,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div className="TraceChildrenCountWrapper Root">
@@ -569,15 +567,13 @@ function RenderRow(props: {
             props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
           }
           style={{
-            width:
-              (props.viewManager.columns.list.width / props.viewManager.width) * 100 +
-              '%',
+            width: props.viewManager.columns.list.width * 100 + '%',
           }}
         >
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 23,
+              paddingLeft: props.node.depth * 24,
             }}
           >
             <div className="TraceChildrenCountWrapper">
@@ -651,15 +647,12 @@ function RenderPlaceholderRow(props: {
     >
       <div
         className="TraceLeftColumn"
-        ref={r =>
-          props.viewManager.registerColumnRef('list', r, virtualizedIndex, props.node)
-        }
         style={{width: props.viewManager.columns.list.width * 100 + '%'}}
       >
         <div
           className="TraceLeftColumnInner"
           style={{
-            paddingLeft: props.node.depth * 23,
+            paddingLeft: props.node.depth * 24,
           }}
         >
           <div className="TraceChildrenCountWrapper">
@@ -683,14 +676,6 @@ function RenderPlaceholderRow(props: {
       </div>
       <div
         className="TraceRightColumn"
-        ref={r =>
-          props.viewManager.registerColumnRef(
-            'span_list',
-            r,
-            virtualizedIndex,
-            props.node
-          )
-        }
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
         }}
@@ -732,7 +717,7 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
         return (
           <div
             key={i}
-            style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 23)}}
+            style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 24)}}
             className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
           />
         );
@@ -985,7 +970,7 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    min-width: 46px;
+    min-width: 48px;
     height: 100%;
     position: relative;
 
