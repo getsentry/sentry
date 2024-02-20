@@ -1005,7 +1005,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             expression_registry=self.registry,
         )
         data = results["data"]
-        assert len(data) == 1
+        assert len(data) == 2
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 6.0, 3.0]
-        assert data[0][0]["totals"] == 9.0
+        assert data[0][0]["series"] == [None, 12.0 / 3600, 9.0 / 3600]
+        assert data[0][0]["totals"] == 21.0 / 3600
+        assert data[1][0]["by"] == {}
+        assert data[1][0]["series"] == [None, 12.0, 9.0]
+        assert data[1][0]["totals"] == 21.0
