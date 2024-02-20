@@ -63,6 +63,10 @@ function Trace({trace, trace_id}: TraceProps) {
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
+      if (!isTransactionNode(node) && !isSpanNode(node)) {
+        throw new TypeError('Node must be a transaction or span');
+      }
+
       treeRef.current
         .zoomIn(node, value, {
           api,
@@ -131,7 +135,8 @@ function Trace({trace, trace_id}: TraceProps) {
                     key={p.key}
                     theme={theme}
                     startIndex={
-                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex
+                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ??
+                      0
                     }
                     index={p.index}
                     style={p.style}
@@ -379,8 +384,12 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">
-              {props.node.value.description ?? '<unknown>'}
+            <span className="TraceDescription" title={props.node.value.description}>
+              {!props.node.value.description
+                ? 'unknown'
+                : props.node.value.description.length > 100
+                  ? props.node.value.description.slice(0, 100).trim() + '\u2026'
+                  : props.node.value.description}
             </span>
             {props.node.canFetchData ? (
               <button

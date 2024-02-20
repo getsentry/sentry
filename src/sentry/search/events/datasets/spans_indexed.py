@@ -196,15 +196,22 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "example",
                     snql_aggregate=lambda args, alias: Function(
-                        "argMin",
+                        "arrayElement",
                         [
                             Function(
-                                "tuple", [Column("group"), Column("timestamp"), Column("span_id")]
+                                "groupArraySample(1, 1)",  # TODO: paginate via the seed
+                                [
+                                    Function(
+                                        "tuple",
+                                        [Column("group"), Column("timestamp"), Column("span_id")],
+                                    ),
+                                ],
                             ),
-                            Function("cityHash64", [Column("span_id")]),
+                            1,
                         ],
                         alias,
                     ),
+                    private=True,
                 ),
                 SnQLFunction(
                     "rounded_timestamp",
@@ -228,6 +235,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    private=True,
                 ),
             ]
         }

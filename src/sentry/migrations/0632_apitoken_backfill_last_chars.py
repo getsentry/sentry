@@ -7,7 +7,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def backfill_last_token_characters(apps, _):
-    from sentry.models.apitoken import ApiToken
+    ApiToken = apps.get_model("sentry", "ApiToken")
 
     for api_token in RangeQuerySetWrapperWithProgressBar(ApiToken.objects.all()):
         if api_token.token_last_characters is None:
