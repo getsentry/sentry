@@ -19,11 +19,11 @@ import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
-  getFormattedMQL,
   getMetricsSeriesName,
+  getWidgetTitle,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
-import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   getMetricValueNormalizer,
   getNormalizedMetricUnit,
@@ -138,12 +138,7 @@ export const MetricWidget = memo(
       };
     }, [samplesQuery.data, onSampleClick, firstQuery.mri, highlightedSampleId]);
 
-    const widgetTitle =
-      queries.length === 1
-        ? getFormattedMQL(firstQuery)
-        : queries
-            .map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? '')))
-            .join(', ');
+    const widgetTitle = getWidgetTitle(queries);
 
     return (
       <MetricWidgetPanel
