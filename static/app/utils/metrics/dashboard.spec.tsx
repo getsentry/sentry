@@ -14,16 +14,8 @@ describe('convertToDashboardWidget', () => {
       convertToDashboardWidget(
         [
           {
-            datetime: {
-              start: '2021-06-01T00:00:00',
-              end: '2021-06-02T00:00:00',
-              period: '1d',
-              utc: false,
-            },
             groupBy: ['project'],
             query: 'event.type:transaction',
-            projects: [1],
-            environments: ['prod'],
             mri: 'c:custom/login@second',
             op: 'p95',
           },
@@ -53,16 +45,8 @@ describe('convertToDashboardWidget', () => {
       convertToDashboardWidget(
         [
           {
-            datetime: {
-              start: '2021-06-01T00:00:00',
-              end: '2021-06-02T00:00:00',
-              period: '1d',
-              utc: false,
-            },
             groupBy: [],
             query: '',
-            projects: [1],
-            environments: ['prod'],
             mri: 'd:transactions/measurements.duration@second',
             op: 'p95',
           },
