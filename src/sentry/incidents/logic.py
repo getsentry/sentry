@@ -45,7 +45,7 @@ from sentry.incidents.models import (
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
-from sentry.models.scheduledeletion import ScheduledDeletion
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
@@ -910,7 +910,7 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            ScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
@@ -1499,7 +1499,7 @@ def delete_alert_rule_trigger_action(trigger_action):
     """
     Deletes a AlertRuleTriggerAction
     """
-    ScheduledDeletion.schedule(instance=trigger_action, days=0)
+    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
 
 
 def get_actions_for_trigger(trigger):
