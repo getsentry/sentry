@@ -18,7 +18,6 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 import {
   projectDetectorSettingsId,
   retentionPrioritiesLabels,
@@ -271,59 +270,53 @@ function AuditLogList({
 
   return (
     <div>
-      {!organization.access.includes('org:write') ? (
-        <PermissionAlert />
-      ) : (
-        <div>
-          <SettingsPageHeader title={t('Audit Log')} action={action} />
-          <PanelTable
-            headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
-            isEmpty={!hasEntries && entries?.length === 0}
-            emptyMessage={t('No audit entries available')}
-            isLoading={isLoading}
-          >
-            {(entries ?? []).map(entry => {
-              if (!entry) {
-                return null;
-              }
-              return (
-                <Fragment key={entry.id}>
-                  <UserInfo>
-                    <div>{getAvatarDisplay(entry.actor)}</div>
-                    <NameContainer>
-                      {addUsernameDisplay(entry.actor)}
-                      <AuditNote entry={entry} orgSlug={organization.slug} />
-                    </NameContainer>
-                  </UserInfo>
-                  <FlexCenter>
-                    <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
-                  </FlexCenter>
-                  <FlexCenter>
-                    {entry.ipAddress && (
-                      <IpAddressOverflow>
-                        <Tooltip
-                          title={entry.ipAddress}
-                          disabled={entry.ipAddress.length <= ipv4Length}
-                        >
-                          <MonoDetail>{entry.ipAddress}</MonoDetail>
-                        </Tooltip>
-                      </IpAddressOverflow>
-                    )}
-                  </FlexCenter>
-                  <TimestampInfo>
-                    <DateTime dateOnly date={entry.dateCreated} />
-                    <DateTime
-                      timeOnly
-                      format={is24Hours ? 'HH:mm zz' : 'LT zz'}
-                      date={entry.dateCreated}
-                    />
-                  </TimestampInfo>
-                </Fragment>
-              );
-            })}
-          </PanelTable>
-        </div>
-      )}
+      <SettingsPageHeader title={t('Audit Log')} action={action} />
+      <PanelTable
+        headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
+        isEmpty={!hasEntries && entries?.length === 0}
+        emptyMessage={t('No audit entries available')}
+        isLoading={isLoading}
+      >
+        {(entries ?? []).map(entry => {
+          if (!entry) {
+            return null;
+          }
+          return (
+            <Fragment key={entry.id}>
+              <UserInfo>
+                <div>{getAvatarDisplay(entry.actor)}</div>
+                <NameContainer>
+                  {addUsernameDisplay(entry.actor)}
+                  <AuditNote entry={entry} orgSlug={organization.slug} />
+                </NameContainer>
+              </UserInfo>
+              <FlexCenter>
+                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
+              </FlexCenter>
+              <FlexCenter>
+                {entry.ipAddress && (
+                  <IpAddressOverflow>
+                    <Tooltip
+                      title={entry.ipAddress}
+                      disabled={entry.ipAddress.length <= ipv4Length}
+                    >
+                      <MonoDetail>{entry.ipAddress}</MonoDetail>
+                    </Tooltip>
+                  </IpAddressOverflow>
+                )}
+              </FlexCenter>
+              <TimestampInfo>
+                <DateTime dateOnly date={entry.dateCreated} />
+                <DateTime
+                  timeOnly
+                  format={is24Hours ? 'HH:mm zz' : 'LT zz'}
+                  date={entry.dateCreated}
+                />
+              </TimestampInfo>
+            </Fragment>
+          );
+        })}
+      </PanelTable>
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
     </div>
   );
