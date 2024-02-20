@@ -144,6 +144,34 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         resp = self.make_post(source_url, stack_path, user=member)
         assert resp.status_code == 200, resp.content
 
+    def test_backslash_short_path(self):
+        source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
+        stack_path = "C:\\sentry\\project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "C:\\sentry\\",
+            "sourceRoot": "",
+            "defaultBranch": "main",
+        }
+
+    def test_bachslash_long_path(self):
+        source_url = "https://github.com/getsentry/sentry/blob/main/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "C:\\potatos\\and\\prs\\sentry\\api\\endpoints\\project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "C:\\potatos\\and\\prs",
+            "sourceRoot": "src",
+            "defaultBranch": "main",
+        }
+
 
 @region_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):

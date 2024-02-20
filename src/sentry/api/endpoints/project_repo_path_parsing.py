@@ -56,7 +56,11 @@ class PathMappingSerializer(CamelSnakeSerializer):
     def validate_source_url(self, source_url: str):
         # first check to see if we are even looking at the same file
         stack_path = self.initial_data["stack_path"]
-        stack_file = stack_path.split("/")[-1]
+
+        if "\\" in stack_path:
+            stack_file = stack_path.split("\\")[-1]
+        else:
+            stack_file = stack_path.split("/")[-1]
         source_file = source_url.split("/")[-1]
 
         if stack_file != source_file:
@@ -130,6 +134,12 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         source_url = data["source_url"]
         stack_path = data["stack_path"]
 
+        # If stack_path uses backslashes, convert them to forward slashes for find_root function
+        is_backslash_stack_path = False
+        if "\\" in stack_path:
+            is_backslash_stack_path = True
+            stack_path = stack_path.replace("\\", "/")
+
         repo = serializer.repo
         integration = serializer.integration
         installation = integration.get_installation(project.organization_id)
@@ -137,6 +147,10 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
         stack_root, source_root = find_roots(stack_path, source_path)
+
+        # If stack_path used backslashes, convert forward slashes back to backslashes
+        if is_backslash_stack_path:
+            stack_root = stack_root.replace("/", "\\")
 
         return self.respond(
             {
