@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils import json
 
 MINUTE = 60  # 60 seconds
 
@@ -20,7 +21,33 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
-        total_size = request.GET.get("total_size")
+        data = json.loads(request.body)
+        total_size = data.get("total_size")
+        js_size = data.get("javascript_size")
+        css_size = data.get("css_size")
+        img_size = data.get("image_size")
+        font_size = data.get("font_size")
+        bundle_name = data.get("bundle_name")
+
+        if (
+            not total_size
+            or not js_size
+            or not css_size
+            or not img_size
+            or not font_size
+            or not bundle_name
+        ):
+            return Response({"error": "Please provide all the required parameters"}, status=400)
+
+        self._add_bundle_size_metric(project, "total", total_size, bundle_name)
+        self._add_bundle_size_metric(project, "javascript", js_size, bundle_name)
+        self._add_bundle_size_metric(project, "css", css_size, bundle_name)
+        self._add_bundle_size_metric(project, "image", img_size, bundle_name)
+        self._add_bundle_size_metric(project, "font", font_size, bundle_name)
+
+        return Response({"data": "Bundle size metric added"}, status=200)
+
+    def _add_bundle_size_metric(self, project, type, size, bundle_name):
         org_id = project.organization_id
         project_id = project.id
         generic_metrics_backend.distribution(
@@ -28,9 +55,7 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
             org_id=org_id,
             project_id=project_id,
             metric_name="bundle_size",
-            value=[int(total_size)],
-            tags={"type": "total"},
+            value=[size],
+            tags={"type": type, "bundle_name": bundle_name},
             unit="byte",
         )
-
-        return Response({"data": "Bundle size metric added"}, status=200)
