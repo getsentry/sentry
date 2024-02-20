@@ -18,9 +18,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -163,7 +163,11 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function LandingPageWithProviders() {
   return (
-    <ModulePageProviders title={[t('Performance'), t('HTTP')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('HTTP')].join(' — ')}
+      baseURL="/performance/http"
+      features="performance-http-view"
+    >
       <HTTPLandingPage />
     </ModulePageProviders>
   );
