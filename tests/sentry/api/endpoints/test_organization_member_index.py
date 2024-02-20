@@ -691,9 +691,12 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["member:write"]
+        )
         token = self.create_internal_integration_token(
-            user=self.user, org=self.organization, scopes=["member:write"]
+            user=self.user, internal_integration=internal_integration
         )
         err_message = (
             "Integration tokens are restricted to inviting new members with the member role only."

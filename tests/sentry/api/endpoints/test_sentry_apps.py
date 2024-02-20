@@ -67,6 +67,9 @@ class SentryAppsTest(APITestCase):
         self.internal_app = self.create_internal_integration(
             name="Internal", organization=self.internal_organization
         )
+        self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_app
+        )
 
     def assert_response_has_serialized_sentry_app(
         self,

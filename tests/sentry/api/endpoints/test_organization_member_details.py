@@ -9,7 +9,6 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -523,20 +522,20 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
     def test_with_internal_integration(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("member:admin",),
             webhook_url="http://example.com",
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # there should only be one record created so just grab the first one
-            token = SentryAppInstallationToken.objects.first()
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
             {"role": "manager"},
-            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
 
         # The app token has no associated OrganizationMember and therefore no role.

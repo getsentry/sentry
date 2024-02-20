@@ -19,6 +19,9 @@ class SentryInternalAppTokenTest(APITestCase):
         self.internal_sentry_app = self.create_internal_integration(
             name="My Internal App", organization=self.org
         )
+        self.token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_sentry_app
+        )
         self.superuser = self.create_user(is_superuser=True)
 
 
@@ -96,15 +99,18 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
     def test_get_tokens(self):
         self.login_as(self.user)
 
-        self.create_internal_integration(name="OtherInternal", organization=self.org)
-
-        token = ApiToken.objects.get(application_id=self.internal_sentry_app.application_id)
+        other_internal_app = self.create_internal_integration(
+            name="OtherInternal", organization=self.org
+        )
+        self.create_internal_integration_token(
+            user=self.user, internal_integration=other_internal_app
+        )
 
         response = self.get_success_response(self.internal_sentry_app.slug)
 
         # should not include tokens from other internal app
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(token.id)
+        assert response.data[0]["id"] == str(self.token.id)
 
     def no_access_for_members(self):
         user = self.create_user(email="meep@example.com")
@@ -122,6 +128,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         sentry_app = self.create_internal_integration(
             name="AnothaOne", organization=self.org, scopes=("org:admin",)
         )
+        self.create_internal_integration_token(user=self.user, internal_integration=sentry_app)
 
         self.login_as(user)
 
@@ -135,6 +142,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         token = ApiToken.objects.create(user=self.user, scope_list=["org:write"])
 
         sentry_app = self.create_internal_integration(name="OtherInternal", organization=self.org)
+        self.create_internal_integration_token(user=self.user, internal_integration=sentry_app)
 
         self.get_error_response(
             sentry_app.slug,

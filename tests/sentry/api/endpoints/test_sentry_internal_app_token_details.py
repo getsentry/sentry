@@ -20,8 +20,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         self.internal_sentry_app = self.create_internal_integration(
             name="My Internal App", organization=self.org
         )
-
-        self.api_token = ApiToken.objects.get(application=self.internal_sentry_app.application)
+        self.api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_sentry_app
+        )
 
         self.superuser = self.create_user(is_superuser=True)
 
@@ -45,7 +46,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
     def test_delete_token_another_app(self):
         another_app = self.create_internal_integration(name="Another app", organization=self.org)
-        api_token = ApiToken.objects.get(application=another_app.application)
+        api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=another_app
+        )
 
         self.login_as(user=self.user)
         self.get_error_response(

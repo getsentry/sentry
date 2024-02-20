@@ -82,6 +82,7 @@ from sentry.models.integrations.integration_feature import (
 )
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -1050,28 +1051,36 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_internal_integration(**kwargs):
+    def create_internal_integration(**kwargs) -> SentryApp:
         args = Factories._sentry_app_kwargs(**kwargs)
         args["verify_install"] = False
         user = args.pop("user", None)
-        app = SentryAppCreator(is_internal=True, **args).run(user=user, request=None)
+        app = SentryAppCreator(is_internal=True, **args).run(
+            user=user, request=None, skip_default_auth_token=True
+        )
         return app
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_internal_integration_token(user, install=None, request=None, org=None, scopes=None):
-        if scopes is None:
-            scopes = []
+    def create_internal_integration_token(
+        user,
+        internal_integration: SentryApp | None = None,
+        install: SentryAppInstallation | None = None,
+        request=None,
+    ) -> ApiToken:
+        if internal_integration and install:
+            raise ValueError("Only one of internal_integration or install arg can be provided")
+        if internal_integration is None and install is None:
+            raise ValueError("Must pass in either internal_integration or install arg")
+
         if install is None:
-            assert org
-            sentry_app = Factories.create_sentry_app(
-                name="Integration Token",
-                organization=org,
-                scopes=scopes,
-            )
-            install = Factories.create_sentry_app_installation(
-                organization=org, slug=sentry_app.slug, user=user
-            )
+            # Fetch install from provided or created internal integration
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                install = SentryAppInstallation.objects.get(
+                    sentry_app=internal_integration.id,
+                    organization_id=internal_integration.owner_id,
+                )
+
         return SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             user=user, request=request
         )
@@ -1098,7 +1107,11 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_sentry_app_installation(
-        organization=None, slug=None, user=None, status=None, prevent_token_exchange=False
+        organization=None,
+        slug=None,
+        user=None,
+        status=None,
+        prevent_token_exchange=False,
     ):
         if not organization:
             organization = Factories.create_organization()

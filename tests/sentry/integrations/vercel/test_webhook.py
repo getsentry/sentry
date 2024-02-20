@@ -89,6 +89,7 @@ class VercelReleasesTest(APITestCase):
             name="Vercel Internal Integration",
             organization=self.organization,
         )
+        self.create_internal_integration_token(user=self.user, internal_integration=self.sentry_app)
         self.installation_for_provider = self.create_sentry_app_installation_for_provider(
             sentry_app_id=self.sentry_app.id,
             organization_id=self.organization.id,
