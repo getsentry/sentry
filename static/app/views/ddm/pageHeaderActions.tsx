@@ -21,7 +21,6 @@ import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
@@ -36,7 +35,6 @@ interface Props {
 export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const createDashboard = useCreateDashboard();
   const {
     addWidget,
@@ -120,9 +118,6 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     () =>
       widgets.map((widget, index) => {
         const createAlert = getCreateAlert(organization, {
-          datetime: selection.datetime,
-          projects: selection.projects,
-          environments: selection.environments,
           query: widget.query,
           mri: widget.mri,
           groupBy: widget.groupBy,
@@ -155,15 +150,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
           },
         };
       }),
-    [
-      organization,
-      selectedWidgetIndex,
-      selection.datetime,
-      selection.environments,
-      selection.projects,
-      showQuerySymbols,
-      widgets,
-    ]
+    [organization, selectedWidgetIndex, showQuerySymbols, widgets]
   );
 
   return (

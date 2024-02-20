@@ -1,4 +1,4 @@
-import type {DateString, MRI, PageFilters} from 'sentry/types';
+import type {DateString, MRI} from 'sentry/types';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -20,7 +20,14 @@ export interface FocusedMetricsSeries {
   groupBy?: Record<string, string>;
 }
 
-export interface MetricWidgetQueryParams extends MetricsQuerySubject {
+export interface MetricsQuery {
+  mri: MRI;
+  groupBy?: string[];
+  op?: string;
+  query?: string;
+}
+
+export interface MetricWidgetQueryParams extends MetricsQuery {
   displayType: MetricDisplayType;
   id: number;
   focusedSeries?: FocusedMetricsSeries[];
@@ -38,18 +45,6 @@ export interface DdmQueryParams {
   statsPeriod?: string | null;
   utc?: boolean | null;
 }
-
-export type MetricsQuery = {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  mri: MRI;
-  projects: PageFilters['projects'];
-  groupBy?: string[];
-  op?: string;
-  query?: string;
-};
-
-export type MetricsQuerySubject = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;

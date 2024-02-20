@@ -21,7 +21,7 @@ import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricDisplayType,
-  MetricsQuerySubject,
+  MetricsQuery,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
@@ -37,7 +37,7 @@ import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 type QueryBuilderProps = {
   displayType: MetricDisplayType;
   isEdit: boolean;
-  metricsQuery: MetricsQuerySubject;
+  metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   fixedWidth?: boolean;
@@ -95,11 +95,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   }, [meta, metricsQuery.mri]);
 
   const incrementQueryMetric = useIncrementQueryMetric({
+    ...metricsQuery,
     displayType,
-    op: metricsQuery.op,
-    groupBy: metricsQuery.groupBy,
-    query: metricsQuery.query,
-    mri: metricsQuery.mri,
   });
 
   const handleMRIChange = useCallback(

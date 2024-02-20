@@ -85,12 +85,12 @@ export function encodeWidgetQuery(query) {
 }
 
 export function getWidgetAsQueryParams(
-  metricsQuery: MetricsQuery,
+  selection: PageFilters,
   urlWidgetQuery: string,
   displayType?: MetricDisplayType
 ) {
-  const {start, end, period} = metricsQuery.datetime;
-  const {projects} = metricsQuery;
+  const {start, end, period} = selection.datetime;
+  const {projects} = selection;
 
   return {
     source: DashboardWidgetSource.DDM,
@@ -100,7 +100,7 @@ export function getWidgetAsQueryParams(
     defaultWidgetQuery: urlWidgetQuery,
     defaultTableColumns: [],
     defaultTitle: '',
-    environment: metricsQuery.environments,
+    environment: selection.environments,
     displayType,
     project: projects,
   };

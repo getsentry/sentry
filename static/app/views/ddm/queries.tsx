@@ -71,9 +71,6 @@ export function Queries() {
                     query: widget.query,
                     op: widget.op,
                     groupBy: widget.groupBy,
-                    projects: selection.projects,
-                    datetime: selection.datetime,
-                    environments: selection.environments,
                   }}
                 />
               }
