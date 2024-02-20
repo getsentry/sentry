@@ -24,6 +24,7 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.project import Project
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -234,9 +235,9 @@ class VercelWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        orgs = integration.organizationintegration_set.values_list("organization_id", flat=True)
+        org_ids = integration.organizationintegration_set.values_list("organization_id", flat=True)
 
-        if len(orgs) == 0:
+        if len(org_ids) == 0:
             # we already deleted the organization integration and
             # there was only one to begin with
 
@@ -250,15 +251,17 @@ class VercelWebhookEndpoint(Endpoint):
             return self.respond(status=204)
 
         configuration = integration.metadata["configurations"].pop(configuration_id)
+
+        first_org = organization_service.get_organization_by_id(
+            id=org_ids[0], include_projects=False, include_teams=False
+        )
+        has_webhooks = features.has("organizations:vercel-integration-webhooks", first_org)
         # one of two cases:
         #  1.) someone is deleting from vercel's end and we still need to delete the
         #      organization integration AND the integration (since there is only one)
         #  2.) we already deleted the organization integration tied to this configuration
         #      and the remaining one is for a different org (and configuration)
-        if (
-            len(orgs) == 1
-            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
-        ):
+        if len(org_ids) == 1 and has_webhooks == new_webhook:
             try:
                 # Case no. 1: do the deleting and return
                 OrganizationIntegration.objects.get(
@@ -266,7 +269,7 @@ class VercelWebhookEndpoint(Endpoint):
                 )
                 create_audit_entry(
                     request=request,
-                    organization_id=orgs[0],
+                    organization_id=org_ids[0],
                     target_object=integration.id,
                     event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                     actor_label="Vercel User",
@@ -288,7 +291,7 @@ class VercelWebhookEndpoint(Endpoint):
 
         if (
             configuration_id == integration.metadata["installation_id"]
-            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
+            and has_webhooks == new_webhook
         ):
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
