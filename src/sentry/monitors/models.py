@@ -624,7 +624,7 @@ class MonitorEnvironment(Model):
     __repr__ = sane_repr("monitor_id", "environment_id")
 
     def get_environment(self) -> Environment:
-        return Environment.objects.get(id=self.environment_id)
+        return Environment.objects.get_from_cache(id=self.environment_id)
 
     def get_audit_log_data(self):
         return {
