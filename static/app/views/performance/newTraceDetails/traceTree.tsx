@@ -248,12 +248,19 @@ export class TraceTree {
             continue;
           }
 
+          const timestamp = measurementToTimestamp(
+            value.start_timestamp,
+            value.measurements[measurement].value,
+            value.measurements[measurement].unit ?? 'milliseconds'
+          );
+
+          // If a rendered measurement extends the trace bounds, we update the trace bounds
+          if (timestamp > traceEnd) {
+            traceEnd = timestamp;
+          }
+
           tree.indicators.push({
-            start: measurementToTimestamp(
-              value.start_timestamp,
-              value.measurements[measurement].value,
-              value.measurements[measurement].unit ?? 'milliseconds'
-            ),
+            start: timestamp,
             duration: 0,
             node,
             type: measurement as Indicator['type'],
