@@ -20,6 +20,7 @@ import {
   isSpanNode,
   isTraceNode,
   isTransactionNode,
+  shouldAddMissingInstrumentationSpan,
 } from './guards';
 
 /**
@@ -198,10 +199,12 @@ export class TraceTree {
 
   static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
+    let traceStart = Number.POSITIVE_INFINITY;
+    let traceEnd = Number.NEGATIVE_INFINITY;
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.NodeValue
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -211,6 +214,17 @@ export class TraceTree {
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
+      }
+
+      if ('start_timestamp' in value && value.start_timestamp < traceStart) {
+        traceStart = value.start_timestamp;
+      }
+      if (
+        'timestamp' in value &&
+        typeof value.timestamp === 'number' &&
+        value.timestamp > traceEnd
+      ) {
+        traceEnd = value.timestamp;
       }
 
       if (value && 'children' in value) {
@@ -230,16 +244,7 @@ export class TraceTree {
     // Trace is always expanded by default
     tree.root.children.push(traceNode);
 
-    let traceStart = Number.POSITIVE_INFINITY;
-    let traceEnd = Number.NEGATIVE_INFINITY;
-
     for (const transaction of trace.transactions) {
-      if (transaction.start_timestamp < traceStart) {
-        traceStart = transaction.start_timestamp;
-      }
-      if (transaction.timestamp > traceEnd) {
-        traceEnd = transaction.timestamp;
-      }
       visit(traceNode, transaction);
     }
 
@@ -300,8 +305,11 @@ export class TraceTree {
 
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    spans: RawSpanType[]
+    spans: RawSpanType[],
+    options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
+    const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
+
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
       RawSpanType['span_id'],
@@ -358,16 +366,19 @@ export class TraceTree {
 
         if (spanParentNode) {
           node.parent = spanParentNode;
-          maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          if (platformHasMissingSpans) {
+            maybeInsertMissingInstrumentationSpan(spanParentNode, node);
+          }
           spanParentNode.spanChildren.push(node);
           continue;
         }
       }
 
-      // Orphaned span
-      maybeInsertMissingInstrumentationSpan(parent, node);
+      if (platformHasMissingSpans) {
+        maybeInsertMissingInstrumentationSpan(parent, node);
+      }
       parent.spanChildren.push(node);
-      node.parent = parent as TraceTreeNode<TraceTree.Span>;
+      node.parent = parent;
     }
 
     parent.zoomedIn = true;
@@ -504,7 +515,7 @@ export class TraceTree {
 
           autoGroupedNode.groupCount = matchCount + 1;
           const start = index - matchCount;
-          for (let j = start; j < index - 1; j++) {
+          for (let j = start; j < start + matchCount + 1; j++) {
             autoGroupedNode.children.push(node.children[j]);
             autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
               autoGroupedNode;
@@ -640,7 +651,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data);
+      TraceTree.FromSpans(node, spans.data, {sdk: data.sdk?.name});
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);
@@ -738,6 +749,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     node.canFetchData = this.canFetchData;
     node.space = this.space;
     node.children = this.children;
+    node.invalidate(node);
     return node;
   }
 
@@ -746,7 +758,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get isLastChild() {
-    return this.parent?.children[this.parent.children.length - 1] === this;
+    if (!this.parent || this.parent.children.length === 0) {
+      return true;
+    }
+    return this.parent.children[this.parent.children.length - 1] === this;
   }
 
   /**
@@ -784,6 +799,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     this._connectors = [];
+
+    if (!this.parent) {
+      return this._connectors;
+    }
 
     if (this.parent?.connectors !== undefined) {
       this._connectors = [...this.parent.connectors];

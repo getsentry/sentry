@@ -15,9 +15,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -93,15 +93,21 @@ function SpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    {
-      filters,
-      yAxis: ['spm()'],
-      referrer: 'api.starfish.span-summary-page-metrics-chart',
-    }
-  );
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries({
+    filters,
+    yAxis: ['spm()'],
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     referrer: 'api.starfish.span-summary-page-metrics-chart',
@@ -112,6 +118,8 @@ function SpanSummaryPage({params}: Props) {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Database'), t('Query Summary')].join(' — ')}
+      baseURL="/performance/database"
+      features="performance-database-view"
     >
       <Layout.Header>
         <Layout.HeaderContent>
@@ -166,6 +174,7 @@ function SpanSummaryPage({params}: Props) {
             <ThroughputChart
               series={throughputData['spm()']}
               isLoading={isThroughputDataLoading}
+              error={throughputError}
             />
 
             <DurationChart
@@ -173,6 +182,7 @@ function SpanSummaryPage({params}: Props) {
                 durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
               }
               isLoading={isDurationDataLoading}
+              error={durationError}
             />
           </ChartContainer>
 

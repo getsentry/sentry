@@ -42,7 +42,7 @@ class MarkOkTestCase(TestCase):
         # Start with monitor in an ERROR state
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
             last_checkin=now - timedelta(minutes=1),
             next_checkin=now,
@@ -87,7 +87,7 @@ class MarkOkTestCase(TestCase):
         # Start with monitor in an ERROR state with an active incident
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
             last_state_change=None,
         )
