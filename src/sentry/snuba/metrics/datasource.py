@@ -90,18 +90,6 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-def _build_use_case_id_filter(use_case_id: UseCaseID):
-    use_case_values = [use_case_id.value]
-
-    if use_case_id == UseCaseID.SESSIONS:
-        # For sessions, the `use_case_id` field in Clickhouse is stored as "" but this has been fixed and a back-fill
-        # should happen which will make this condition superfluous.
-        # TODO(iambriccardo): Remove this condition once the backfill is done.
-        use_case_values.append("")
-
-    return Condition(Column("use_case_id"), Op.IN, use_case_values)
-
-
 def _get_metrics_for_entity(
     entity_key: EntityKey,
     project_ids: Sequence[int],
@@ -114,7 +102,7 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
-        where=[_build_use_case_id_filter(use_case_id)],
+        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
@@ -136,7 +124,7 @@ def _get_metrics_by_project_for_entity(
         entity_key=entity_key,
         select=[Column("project_id"), Column("metric_id")],
         groupby=[Column("project_id"), Column("metric_id")],
-        where=[_build_use_case_id_filter(use_case_id)],
+        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
         org_id=org_id,
