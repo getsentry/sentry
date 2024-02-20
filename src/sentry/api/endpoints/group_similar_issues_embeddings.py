@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,8 +12,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.api.serializers import serialize
-from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.seer.utils import (
@@ -20,45 +21,73 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
 
 
-def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> str:
-    """Get the stacktrace string from an exception dictionary."""
-    if not exception.get("values"):
+def get_value_if_exists(exception_value):
+    return exception_value["values"][0] if exception_value.get("values") else ""
+
+
+def get_stacktrace_string(data):
+    # Get the in-app data
+    if (
+        not data.get("app")
+        or not data["app"].get("component")
+        or not data["app"]["component"].get("values")
+    ):
         return ""
 
+    # Handle chained exceptions
+    exceptions = data["app"]["component"]["values"]
+    if exceptions and exceptions[0].get("id") == "chained-exception":
+        exceptions = exceptions[0].get("values")
+
     frame_count = 0
-    output = ""
-    for exc in exception["values"]:
-        if not exc or not exc.get("stacktrace"):
+    stacktrace_str = ""
+    for exception in exceptions:
+        if exception.get("id") != "exception":
             continue
 
-        if exc["stacktrace"] and exc["stacktrace"].get("frames"):
-            # If the total number of frames exceeds 50, keep only the last in-app 50 frames
-            in_app_frames = [frame for frame in exc["stacktrace"]["frames"] if frame["in_app"]]
-            num_frames = len(in_app_frames)
-            if frame_count + num_frames > MAX_FRAME_COUNT:
-                remaining_frame_count = MAX_FRAME_COUNT - frame_count
-                in_app_frames = in_app_frames[-remaining_frame_count:]
-                frame_count += remaining_frame_count
-                num_frames = remaining_frame_count
-            frame_count += num_frames
+        exc_type, exc_value, frame_str = "", "", ""
+        for exception_value in exception.get("values", []):
+            contributing_frames = []
+            if exception_value.get("id") == "type":
+                exc_type = get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "value":
+                exc_value = get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "stacktrace":
+                # Take the last 50 in-app and contributing frames
+                contributing_frames = [
+                    frame
+                    for frame in exception_value["values"]
+                    if frame.get("id") == "frame" and frame.get("contributes")
+                ]
+                num_frames = len(contributing_frames)
+                if frame_count + num_frames > MAX_FRAME_COUNT:
+                    remaining_frame_count = MAX_FRAME_COUNT - frame_count
+                    contributing_frames = contributing_frames[-remaining_frame_count:]
+                    frame_count += remaining_frame_count
+                    num_frames = remaining_frame_count
+                frame_count += num_frames
 
-            if in_app_frames:
-                output += exc.get("type") + ": " + exc.get("value") + "\n"
+                for frame in contributing_frames:
+                    frame_dict = {"filename": "", "function": "", "context-line": ""}
+                    for frame_values in frame.get("values", []):
+                        if frame_values.get("id") in frame_dict:
+                            frame_dict[frame_values["id"]] = get_value_if_exists(frame_values)
 
-            for frame in in_app_frames:
-                output += '  File "{}", line {}, in {}\n    {}\n'.format(
-                    frame.get("filename", ""),
-                    frame.get("lineno", ""),
-                    frame.get("function", ""),
-                    frame.get("context_line", "").strip(),
-                )
+                    frame_str += '  File "{}", line {}\n    {}\n'.format(
+                        frame_dict["filename"], frame_dict["function"], frame_dict["context-line"]
+                    )
 
-    return output.strip()
+        if frame_str:
+            stacktrace_str += exc_type + ": " + exc_value + "\n"
+            stacktrace_str += frame_str
+
+    return stacktrace_str.strip()
 
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
@@ -111,10 +140,13 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
+            grouping_info_response = EventGroupingInfoEndpoint().get(
+                request=HttpRequest(), project=group.project, event_id=latest_event.event_id
+            )
+            stacktrace_string = get_stacktrace_string(json.loads(grouping_info_response.content))
 
         if stacktrace_string == "":
-            return Response([])  # No stacktrace or in-app frames
+            return Response([])  # No exception, stacktrace or in-app frames
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
