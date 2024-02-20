@@ -508,7 +508,7 @@ export class TraceTree {
 
           autoGroupedNode.groupCount = matchCount + 1;
           const start = index - matchCount;
-          for (let j = start; j < index - 1; j++) {
+          for (let j = start; j < start + matchCount + 1; j++) {
             autoGroupedNode.children.push(node.children[j]);
             autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
               autoGroupedNode;
