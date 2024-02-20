@@ -1067,7 +1067,6 @@ class Factories:
         internal_integration: SentryApp | None = None,
         install: SentryAppInstallation | None = None,
         request=None,
-        org: Organization | None = None,
     ) -> ApiToken:
         if internal_integration and install:
             raise ValueError("Only one of internal_integration or install arg can be provided")
