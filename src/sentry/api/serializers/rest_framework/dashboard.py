@@ -367,7 +367,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     {"queries": "One or more queries are required to create a widget"}
                 )
             if not data.get("title"):
-                raise serializers.ValidationError({"title": "Title is required during creation."})
+                if not data.get("widget_type") == DashboardWidgetTypes.METRICS:
+                    raise serializers.ValidationError(
+                        {"title": "Title is required during creation."}
+                    )
             if data.get("display_type") is None:
                 raise serializers.ValidationError(
                     {"displayType": "displayType is required during creation."}

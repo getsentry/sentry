@@ -75,7 +75,7 @@ export function getDdmUrl(
     project,
     ...otherParams
   }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
-    widgets: MetricWidgetQueryParams[];
+    widgets: Partial<MetricWidgetQueryParams>[];
     project?: (string | number)[];
   }
 ) {
