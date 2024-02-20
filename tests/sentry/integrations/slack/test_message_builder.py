@@ -22,6 +22,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_context,
     get_option_groups,
     get_option_groups_block_kit,
+    get_tags,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -1655,3 +1656,11 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
 
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_tags(self):
+        # don't use default tags. if we don't pass in tags to get_tags, we don't return any
+        tags = get_tags(
+            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
+        )
+        assert not tags
