@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.constants import ObjectStatus
+from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
@@ -231,9 +232,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         environment_names = request.query_params.getlist("environment")
         with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             if environment_names:
+                env_ids = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name__in=environment_names
+                    ).values_list("id", flat=True)
+                )
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
-                        environment__name__in=environment_names, monitor__id=monitor.id
+                        environment_id__in=env_ids, monitor_id=monitor.id
                     )
                     .exclude(
                         monitor__status__in=[
