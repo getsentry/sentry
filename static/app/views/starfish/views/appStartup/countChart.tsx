@@ -68,11 +68,7 @@ export function CountChart({chartHeight}: Props) {
     secondaryRelease
   )} span.description:["Cold Start","Warm Start"]`;
 
-  const {
-    data: series,
-    isLoading: isSeriesLoading,
-    isError,
-  } = useEventsStatsQuery({
+  const {data: series, isLoading: isSeriesLoading} = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
@@ -141,7 +137,6 @@ export function CountChart({chartHeight}: Props) {
           nameFormatter: value => formatVersion(value),
         }}
         legendFormatter={value => formatVersion(value)}
-        errored={isError}
       />
     </MiniChartPanel>
   );
