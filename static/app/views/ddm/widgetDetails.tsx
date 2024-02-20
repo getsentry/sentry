@@ -108,6 +108,7 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
               ) : (
                 <SampleTable
                   mri={widget?.mri}
+                  {...focusArea?.selection?.range}
                   query={queryWithFocusedSeries}
                   onRowHover={onRowHover}
                 />
