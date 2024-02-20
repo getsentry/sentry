@@ -246,15 +246,7 @@ function Queries({metricWidgetQueries, handleChange, addQuery, removeQuery}) {
               removeQuery={removeQuery}
               queryIndex={index}
               canRemoveQuery={metricWidgetQueries.length > 1}
-              metricsQuery={{
-                mri: query.mri,
-                query: query.query,
-                op: query.op,
-                groupBy: query.groupBy,
-                projects: selection.projects,
-                datetime: selection.datetime,
-                environments: selection.environments,
-              }}
+              metricsQuery={query}
             />
           }
         />
