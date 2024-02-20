@@ -127,8 +127,6 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.url": "request.url",
     "http.referer": "request.headers.Referer",
     "transaction.source": "transaction.source",
-    # Computed fields
-    "sentry_user": "sentry_user",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -239,7 +237,8 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "count_web_vitals": "on_demand_count_web_vitals",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    "user_misery": "on_demand_user_misery",
+    # XXX: Remove support until we can fix the count_unique(users)
+    # "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -1163,7 +1162,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("sentry_user")
+            return _map_field_name("user.id")
 
         if not self._arguments:
             return None
