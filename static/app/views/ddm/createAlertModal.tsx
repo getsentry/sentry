@@ -29,6 +29,7 @@ import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {AVAILABLE_TIME_PERIODS} from 'sentry/views/alerts/rules/metric/triggers/chart';
@@ -47,13 +48,11 @@ interface FormState {
   project: string | null;
 }
 
-function getInitialFormState(metricsQuery: MetricsQuery): FormState {
+function getInitialFormState(selection: PageFilters): FormState {
   const project =
-    metricsQuery.projects.length === 1 ? metricsQuery.projects[0].toString() : null;
+    selection.projects.length === 1 ? selection.projects[0].toString() : null;
   const environment =
-    metricsQuery.environments.length === 1 && project
-      ? metricsQuery.environments[0]
-      : null;
+    selection.environments.length === 1 && project ? selection.environments[0] : null;
 
   return {
     project,
@@ -61,8 +60,8 @@ function getInitialFormState(metricsQuery: MetricsQuery): FormState {
   };
 }
 
-function getAlertPeriod(metricsQuery: MetricsQuery) {
-  const {period, start, end} = metricsQuery.datetime;
+function getAlertPeriod(selection: PageFilters) {
+  const {period, start, end} = selection.datetime;
   const inHours = statsPeriodToDays(period, start, end) * 24;
 
   switch (true) {
@@ -120,14 +119,15 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
   const [formState, setFormState] = useState<FormState>(() =>
-    getInitialFormState(metricsQuery)
+    getInitialFormState(selection)
   );
 
   const selectedProject = projects.find(p => p.id === formState.project);
   const isFormValid = formState.project !== null;
 
-  const alertPeriod = useMemo(() => getAlertPeriod(metricsQuery), [metricsQuery]);
+  const alertPeriod = useMemo(() => getAlertPeriod(selection), [selection]);
   const alertInterval = useMemo(
     () => getAlertInterval(metricsQuery, alertPeriod),
     [metricsQuery, alertPeriod]
@@ -165,8 +165,8 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     projects
       .filter(
         project =>
-          metricsQuery.projects.length === 0 ||
-          metricsQuery.projects.includes(parseInt(project.id, 10))
+          selection.projects.length === 0 ||
+          selection.projects.includes(parseInt(project.id, 10))
       )
       .forEach(project =>
         project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
@@ -190,7 +190,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         })),
       },
     ];
-  }, [metricsQuery.projects, projects]);
+  }, [selection.projects, projects]);
 
   const environmentOptions = useMemo(
     () => [
