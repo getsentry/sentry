@@ -7,6 +7,7 @@ from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.registry.base import ExpressionRegistry
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
@@ -15,6 +16,7 @@ from sentry.sentry_metrics.querying.visitors import (
     QueryValidationV2Visitor,
     VisitableQueryExpression,
 )
+from sentry.sentry_metrics.querying.visitors.query_expression import ExpansionVisitor
 
 
 class QueryParser:
@@ -23,10 +25,12 @@ class QueryParser:
         projects: Sequence[Project],
         environments: Sequence[Environment],
         metrics_queries_plan: MetricsQueriesPlan,
+        expression_registry: ExpressionRegistry,
     ):
         self._projects = projects
         self._environments = environments
         self._metrics_queries_plan = metrics_queries_plan
+        self._expression_registry = expression_registry
 
     def _parse_mql(self, mql: str) -> VisitableQueryExpression:
         """
@@ -60,6 +64,8 @@ class QueryParser:
                 self._parse_mql(formula_definition.mql)
                 # We validate the query.
                 .add_visitor(QueryValidationV2Visitor())
+                # We expand the components of the query given an expression registry.
+                .add_visitor(ExpansionVisitor(self._expression_registry))
                 # We inject the environment filter in each timeseries.
                 .add_visitor(EnvironmentsInjectionVisitor(self._environments))
                 # We transform all `release:latest` filters into the actual latest releases.

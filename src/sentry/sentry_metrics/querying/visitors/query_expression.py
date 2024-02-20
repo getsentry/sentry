@@ -1,14 +1,17 @@
 from collections.abc import Sequence
+from typing import Any
 
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.registry.base import Argument, ExpressionRegistry
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
+    TVisited,
 )
 from sentry.snuba.metrics import parse_mri
 
@@ -252,3 +255,103 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
                 string_group_bys.add(group_by.name)
 
         return string_group_bys
+
+
+# rate(count("x"), 10, 20)
+# Formula(function_name="", params=[Timeseries, 10, 20])
+
+
+class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively expands expressions that are defined in the `ExpressionRegistry`.
+    """
+
+    def __init__(self, registry: ExpressionRegistry):
+        self._registry = registry
+
+    # We want to support failure_rate(param_1, param_2)(mri) or rate(param_1, param_2)(aggregate(mri))
+    # or rate(param_1, param_2)(aggregate(mri) / aggregate(mri))
+
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        registry_entry = self._registry.try_resolve(formula.function_name)
+        if registry_entry is None:
+            return super()._visit_formula(formula)
+
+        # We concatenate arguments following the syntactical order function(param_1, param_2)(param_3) which would
+        # result in a list of arguments [param_1, param_2, param_3].
+        arguments = (formula.aggregate_params or []) + (formula.parameters or [])
+        expression = registry_entry.expression()
+        # For now, we assume that formula-level filters and group bys are not used, and instead they are directly
+        # specified in the supplied expressions in the parameters.
+        expression = ReplacementVisitor(arguments=arguments).visit(expression)
+
+        # We recursively run substitutions in the newly created tree. We need to be careful about possible infinite
+        # recursion.
+        return self.visit(expression)
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        registry_entry = self._registry.try_resolve(timeseries.aggregate)
+        if registry_entry is None:
+            return timeseries
+
+        # We concatenate arguments following the syntactical order function(param_1, param_2)(mri_1) which would result
+        # in a list of arguments [param_1, param_2, mri_1].
+        arguments = (timeseries.aggregate_params or []) + [timeseries.metric]
+        expression = registry_entry.expression()
+        expression = ReplacementVisitor(
+            arguments=arguments, filters=timeseries.filters, group_bys=timeseries.groupby
+        ).visit(expression)
+
+        # We recursively run substitutions in the newly created tree. We need to be careful about possible infinite
+        # recursion.
+        return self.visit(expression)
+
+
+class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively replaces `Placeholder` elements with the correct values.
+    """
+
+    def __init__(
+        self,
+        arguments: Sequence[Any],
+        filters: ConditionGroup | None = None,
+        group_bys: Sequence[Column | AliasedExpression] | None = None,
+    ):
+        self._arguments = arguments
+        self._filters = filters
+        self._group_bys = group_bys
+
+    def _visit_formula(self, formula: Formula) -> TVisited:
+        replaced_parameters = []
+        for parameter in formula.parameters:
+            if isinstance(parameter, Argument):
+                replaced_parameters.append(self._visit_argument(parameter))
+            else:
+                replaced_parameters.append(self.visit(parameter))
+
+        return formula.set_parameters(replaced_parameters)
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        if isinstance(timeseries.metric, Argument):
+            timeseries = timeseries.set_metric(self._visit_argument(timeseries.metric))
+
+        replaced_aggregate_params = []
+        for aggregate_param in timeseries.aggregate_params or ():
+            if isinstance(aggregate_param, Argument):
+                replaced_aggregate_params.append(self._visit_argument(aggregate_param))
+            else:
+                replaced_aggregate_params.append(aggregate_param)
+
+        timeseries = timeseries.set_aggregate(
+            timeseries.aggregate, replaced_aggregate_params or None
+        )
+
+        return timeseries
+
+    def _visit_argument(self, argument: Argument) -> Any:
+        arg_value = self._arguments[argument.position]
+        if not argument.validate(arg_value):
+            raise InvalidMetricsQueryError(f"Argument at position {argument.position} not valid")
+
+        return arg_value

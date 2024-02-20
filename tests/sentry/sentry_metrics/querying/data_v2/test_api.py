@@ -9,6 +9,8 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
+from sentry.sentry_metrics.querying.registry.base import ExpressionRegistry
+from sentry.sentry_metrics.querying.registry.base_expressions import FailureRate, Rate
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
@@ -67,6 +69,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)
+
+        self.registry = ExpressionRegistry()
+        self.registry.register(Rate())
+        self.registry.register(FailureRate())
 
     def now(self):
         return MOCK_DATETIME
@@ -976,3 +982,30 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
         assert data[0][2]["series"] == [None, 0.0, 0.0]
         assert data[0][2]["totals"] == 0.0
+
+    def test_query_with_custom_function(self):
+        query = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", f"rate(3600)({query}{{}})")
+            .declare_query("query_2", query)
+            .apply_formula("$query_1")
+            .apply_formula("$query_2")
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+            expression_registry=self.registry,
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 6.0, 3.0]
+        assert data[0][0]["totals"] == 9.0

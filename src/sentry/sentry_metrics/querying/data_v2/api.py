@@ -11,6 +11,10 @@ from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
+from sentry.sentry_metrics.querying.registry.base import (
+    ExpressionRegistry,
+    default_expression_registry,
+)
 from sentry.utils import metrics
 
 
@@ -23,6 +27,7 @@ def run_metrics_queries_plan(
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
+    expression_registry: ExpressionRegistry | None = None,
 ) -> Mapping[str, Any]:
     # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
     # to a better data type.
@@ -44,7 +49,10 @@ def run_metrics_queries_plan(
 
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(
-        projects=projects, environments=environments, metrics_queries_plan=metrics_queries_plan
+        projects=projects,
+        environments=environments,
+        metrics_queries_plan=metrics_queries_plan,
+        expression_registry=expression_registry or default_expression_registry(),
     )
 
     for query_expression, query_order, query_limit in parser.generate_queries():
