@@ -109,7 +109,7 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 },
                 "version": {
                     "type": "string",
-                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$"
+                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$",
                     # MAJOR.MINOR.PATCH
                 },
             },
@@ -149,6 +149,33 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "username": {"type": ["string", "null"], "minLength": 1},
             },
             "additionalProperties": True,
+        },
+        "logentry": {
+            "description": " Custom parameterized message for this event.",
+            "default": None,
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "formatted": {
+                            "description": " The formatted message. If `message` and `params` are given, Sentry\n will attempt to backfill `formatted` if empty.\n\n It must not exceed 8192 characters. Longer messages will be truncated.",
+                            "default": None,
+                            "anyOf": [{"type": "string"}, {"type": "null"}],
+                        },
+                        "message": {
+                            "description": "The log message with parameter placeholders.\n\n This attribute is primarily used for grouping related events together into issues.\n Therefore this really should just be a string template, i.e. `Sending %d requests` instead\n of `Sending 9999 requests`. The latter is much better at home in `formatted`.\n\n It must not exceed 8192 characters. Longer messages will be truncated.",
+                            "default": None,
+                            "anyOf": [{"type": "string"}, {"type": "null"}],
+                        },
+                        "params": {
+                            "description": " Parameters to be interpolated into the log message. This can be an array of positional\n parameters as well as a mapping of named arguments to their values.",
+                            "default": None,
+                        },
+                    },
+                    "additionalProperties": False,
+                },
+                {"type": "null"},
+            ],
         },
     },
     "required": [
