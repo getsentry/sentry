@@ -583,7 +583,7 @@ def test_query_cardinality_called_with_projects(
 def test_support_columns_from_tables(project: Project) -> None:
     """Test the task creates enabled on-demand widgets"""
     # The tag requires on-demand metrics extraction
-    query = "app_recommended_owner:#onboarding-experience"
+    query = "event.type:transaction transaction.op:pageload some_tag:#foo"
     # We include a non-function and a function in the list of columns
     # The non-functions are used as group bys
     columns = ["apdex(300)", "transaction"]
@@ -597,7 +597,46 @@ def test_support_columns_from_tables(project: Project) -> None:
     with override_options({"on_demand_metrics.check_widgets.enable": True}), Feature(
         _WIDGET_EXTRACTION_FEATURES
     ):
-        process_widget_specs([widget_query.id])
+        metric_specs = process_widget_specs([widget_query.id])
+        # Let's assert the latest spec version
+        assert metric_specs[-1][1] == {
+            "category": "transaction",
+            "mri": "c:transactions/on_demand@none",
+            "field": None,
+            "tags": [
+                {
+                    "key": "satisfaction",
+                    "value": "satisfactory",
+                    "condition": {"name": "event.duration", "op": "lte", "value": 300.0},
+                },
+                {
+                    "key": "satisfaction",
+                    "value": "tolerable",
+                    "condition": {
+                        "inner": [
+                            {"name": "event.duration", "op": "gt", "value": 300.0},
+                            {"name": "event.duration", "op": "lte", "value": 1200.0},
+                        ],
+                        "op": "and",
+                    },
+                },
+                {
+                    "key": "satisfaction",
+                    "value": "frustrated",
+                    "condition": {"name": "event.duration", "op": "gt", "value": 1200.0},
+                },
+                {"key": "query_hash", "value": "75ea5bad"},
+                {"key": "transaction", "field": "event.transaction"},
+                {"key": "environment", "field": "event.environment"},
+            ],
+            "condition": {
+                "inner": [
+                    {"name": "event.contexts.trace.op", "op": "eq", "value": "pageload"},
+                    {"name": "event.tags.some_tag", "op": "eq", "value": "#foo"},
+                ],
+                "op": "and",
+            },
+        }
 
     widget_models = DashboardWidgetQueryOnDemand.objects.filter(
         dashboard_widget_query_id=widget_query.id
@@ -608,5 +647,5 @@ def test_support_columns_from_tables(project: Project) -> None:
             widget_model,
             has_features=True,
             expected_state=OnDemandExtractionState.ENABLED_ENROLLED,
-            expected_hashes={1: ["c050ea81"], 2: ["8cea6fe0"]},
+            expected_hashes={1: ["283fe6e6"], 2: ["75ea5bad"]},
         )

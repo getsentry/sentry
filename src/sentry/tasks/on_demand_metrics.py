@@ -183,12 +183,12 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> list[HashedMetricSpec]:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
     if not options.get("on_demand_metrics.check_widgets.enable"):
-        return
+        return []
 
     widget_query_count = 0
     widget_query_high_cardinality_count = 0
@@ -243,12 +243,13 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
         amount=widget_query_count,
         sample_rate=1.0,
     )
+    return widget_specs
 
 
 def _get_widget_on_demand_specs(
     widget_query: DashboardWidgetQuery,
     organization: Organization,
-) -> Sequence[HashedMetricSpec]:
+) -> list[HashedMetricSpec]:
     """
     Saves on-demand state for a widget query.
     """
