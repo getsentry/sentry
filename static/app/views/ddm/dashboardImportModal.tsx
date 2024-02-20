@@ -85,7 +85,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
     const importedWidgets = (formState.importResult?.widgets ?? [])
       .filter(widget => !!widget.mri)
       .map(widget =>
-        convertToDashboardWidget({...widget, ...selection}, widget.displayType)
+        convertToDashboardWidget([{...widget, ...selection}], widget.displayType)
       )
       // Only import the first 30 widgets because of dashboard widget limit
       .slice(0, 30);

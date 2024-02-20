@@ -223,7 +223,7 @@ export function useCreateDashboardWidget(
           environments,
           datetime,
         },
-        widget: convertToDashboardWidget(metricsQuery, displayType),
+        widget: convertToDashboardWidget([metricsQuery], displayType),
         router,
         widgetAsQueryParams,
         location: router.location,

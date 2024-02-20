@@ -11,7 +11,9 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input from 'sentry/components/input';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
+  IconAdd,
   IconCheckmark,
+  IconClose,
   IconEdit,
   IconEllipsis,
   IconSettings,
@@ -20,7 +22,8 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl, getFormattedMQL, isCustomMetric} from 'sentry/utils/metrics';
+import {getDdmUrl, getWidgetTitle, isCustomMetric} from 'sentry/utils/metrics';
+import {emptyWidget} from 'sentry/utils/metrics/constants';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -53,26 +56,28 @@ function MetricWidgetViewerModal({
   onMetricWidgetEdit,
 }: Props) {
   const {selection} = usePageFilters();
-  const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>(convertToMetricWidget(widget));
+  const [metricWidgetQueries, setMetricWidgetQueries] = useState<
+    MetricWidgetQueryParams[]
+  >(convertToMetricWidget(widget));
 
   const widgetMQL = useMemo(
-    () => getFormattedMQL(metricWidgetQueryParams),
-    [metricWidgetQueryParams]
+    () => getWidgetTitle(metricWidgetQueries),
+    [metricWidgetQueries]
   );
 
-  const [editedTitle, setEditedTitle] = useState<string>(widget.title || widgetMQL);
+  const [editedTitle, setEditedTitle] = useState<string>(widget.title);
   // If user renamed the widget, dislay that title, otherwise display the MQL
   const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
 
   const handleChange = useCallback(
-    (data: Partial<MetricWidgetQueryParams>) => {
-      setMetricWidgetQueryParams(curr => ({
-        ...curr,
-        ...data,
-      }));
+    (data: Partial<MetricWidgetQueryParams>, index: number) => {
+      setMetricWidgetQueries(curr => {
+        const updated = [...curr];
+        updated[index] = {...updated[index], ...data};
+        return updated;
+      });
     },
-    [setMetricWidgetQueryParams]
+    [setMetricWidgetQueries]
   );
 
   const handleTitleChange = useCallback(
@@ -82,10 +87,28 @@ function MetricWidgetViewerModal({
     [setEditedTitle, widgetMQL]
   );
 
+  const addQuery = useCallback(() => {
+    setMetricWidgetQueries(curr => [...curr, emptyWidget]);
+  }, [setMetricWidgetQueries]);
+
+  const removeQuery = useCallback(
+    (index: number) => {
+      setMetricWidgetQueries(curr => {
+        const updated = [...curr];
+        updated.splice(index, 1);
+        return updated;
+      });
+    },
+    [setMetricWidgetQueries]
+  );
+
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
-      {...selection, ...metricWidgetQueryParams},
-      toMetricDisplayType(metricWidgetQueryParams.displayType)
+      metricWidgetQueries.map(query => ({
+        ...query,
+        ...selection,
+      })),
+      toMetricDisplayType(metricWidgetQueries[0].displayType)
     );
 
     const updatedWidget = {
@@ -100,7 +123,7 @@ function MetricWidgetViewerModal({
     closeModal();
   }, [
     titleToDisplay,
-    metricWidgetQueryParams,
+    metricWidgetQueries,
     onMetricWidgetEdit,
     closeModal,
     widget,
@@ -132,50 +155,31 @@ function MetricWidgetViewerModal({
           </WidgetHeader>
         </Header>
         <Body>
-          <Query
-            widget={metricWidgetQueryParams}
-            projects={selection.projects}
-            onChange={handleChange}
-            contextMenu={
-              <ContextMenu
-                metricsQuery={{
-                  mri: metricWidgetQueryParams.mri,
-                  query: metricWidgetQueryParams.query,
-                  op: metricWidgetQueryParams.op,
-                  groupBy: metricWidgetQueryParams.groupBy,
-                  projects: selection.projects,
-                  datetime: selection.datetime,
-                  environments: selection.environments,
-                }}
-              />
-            }
+          <Queries
+            metricWidgetQueries={metricWidgetQueries}
+            handleChange={handleChange}
+            addQuery={addQuery}
+            removeQuery={removeQuery}
           />
           <MetricWidget
-            queries={[
-              {
-                mri: metricWidgetQueryParams.mri,
-                query: metricWidgetQueryParams.query,
-                op: metricWidgetQueryParams.op,
-                groupBy: metricWidgetQueryParams.groupBy,
-              },
-            ]}
-            focusedSeries={metricWidgetQueryParams.focusedSeries}
-            displayType={metricWidgetQueryParams.displayType}
+            queries={metricWidgetQueries}
+            focusedSeries={metricWidgetQueries[0].focusedSeries}
+            displayType={metricWidgetQueries[0].displayType}
             filters={selection}
             onChange={(_, data) => {
-              handleChange(data);
+              handleChange(data, 0);
             }}
             context="dashboard"
           />
-          <MetricDetails widget={metricWidgetQueryParams} />
+          <MetricDetails widget={metricWidgetQueries[0]} />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: [metricWidgetQueryParams],
-                project: selection.projects,
+                widgets: metricWidgetQueries,
                 ...selection.datetime,
+                project: selection.projects,
                 environment: selection.environments,
               })}
             >
@@ -226,7 +230,53 @@ function WidgetTitle({value, displayValue, placeholder, onSubmit}) {
   );
 }
 
-export function ContextMenu({metricsQuery}: {metricsQuery: MetricsQuery}) {
+function Queries({metricWidgetQueries, handleChange, addQuery, removeQuery}) {
+  const {selection} = usePageFilters();
+
+  return (
+    <QueriesWrapper>
+      {metricWidgetQueries.map((query, index) => (
+        <Query
+          key={index}
+          widget={query}
+          projects={selection.projects}
+          onChange={data => handleChange(data, index)}
+          contextMenu={
+            <ContextMenu
+              removeQuery={removeQuery}
+              queryIndex={index}
+              canRemoveQuery={metricWidgetQueries.length > 1}
+              metricsQuery={{
+                mri: query.mri,
+                query: query.query,
+                op: query.op,
+                groupBy: query.groupBy,
+                projects: selection.projects,
+                datetime: selection.datetime,
+                environments: selection.environments,
+              }}
+            />
+          }
+        />
+      ))}
+      <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
+        Add query
+      </Button>
+    </QueriesWrapper>
+  );
+}
+
+function ContextMenu({
+  metricsQuery,
+  removeQuery,
+  canRemoveQuery,
+  queryIndex,
+}: {
+  canRemoveQuery: boolean;
+  metricsQuery: MetricsQuery;
+  queryIndex: number;
+  removeQuery: (index: number) => void;
+}) {
   const organization = useOrganization();
   const router = useRouter();
 
@@ -246,6 +296,15 @@ export function ContextMenu({metricsQuery}: {metricsQuery: MetricsQuery}) {
         createAlert?.();
       },
     };
+    const removeQueryItem = {
+      leadingItems: [<IconClose key="icon" />],
+      key: 'delete',
+      label: t('Remove Query'),
+      disabled: !canRemoveQuery,
+      onAction: () => {
+        removeQuery(queryIndex);
+      },
+    };
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
@@ -259,8 +318,10 @@ export function ContextMenu({metricsQuery}: {metricsQuery: MetricsQuery}) {
       },
     };
 
-    return customMetric ? [addAlertItem, settingsItem] : [addAlertItem];
-  }, [createAlert, metricsQuery.mri, router]);
+    return customMetric
+      ? [addAlertItem, removeQueryItem, settingsItem]
+      : [addAlertItem, removeQueryItem];
+  }, [createAlert, metricsQuery.mri, removeQuery, canRemoveQuery, queryIndex, router]);
 
   return (
     <DropdownMenu
@@ -289,6 +350,10 @@ const WidgetTitleRow = styled('div')`
   justify-content: flex-start;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const QueriesWrapper = styled('div')`
+  padding-bottom: ${space(2)};
 `;
 
 export const modalCss = css`

@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/dashboards/types';
 
 export function convertToDashboardWidget(
-  metricsQuery: MetricsQuery,
+  metricQueries: MetricsQuery[],
   displayType?: MetricDisplayType
 ): Widget {
   // @ts-expect-error TODO: pass interval
@@ -21,23 +21,24 @@ export function convertToDashboardWidget(
     title: '',
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
-    limit: !metricsQuery.groupBy?.length ? 1 : 10,
-    queries: [getWidgetQuery(metricsQuery)],
+    limit: 10,
+    queries: metricQueries.map(getWidgetQuery),
   };
 }
 
-export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams[] {
+  return widget.queries.map(query => {
+    const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
 
-  return {
-    id: NO_QUERY_ID,
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
+    return {
+      id: NO_QUERY_ID,
+      mri: parsed.mri,
+      op: parsed.op,
+      query: query.conditions,
+      groupBy: query.columns,
+      displayType: toMetricDisplayType(widget.displayType),
+    };
+  });
 }
 
 export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
@@ -55,7 +56,10 @@ export function toDisplayType(displayType: unknown): DisplayType {
 }
 
 export function defaultMetricWidget(selection: PageFilters) {
-  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
+  return convertToDashboardWidget(
+    [{...selection, ...emptyWidget}],
+    MetricDisplayType.LINE
+  );
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
