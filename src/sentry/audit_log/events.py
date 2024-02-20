@@ -95,12 +95,8 @@ class TeamEditAuditLogEvent(AuditLogEvent):
         super().__init__(event_id=21, name="TEAM_EDIT", api_name="team.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
-        old_org_role = audit_log_entry.data.get("old_org_role")
-        new_org_role = audit_log_entry.data.get("org_role")
         slug = audit_log_entry.data["slug"]
 
-        if old_org_role != new_org_role:
-            return f"edited team {slug}'s org role to {new_org_role}"
         return f"edited team {slug}"
 
 
