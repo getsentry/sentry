@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
-import {emptyWidget} from 'sentry/utils/metrics/constants';
+import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -122,6 +122,8 @@ export function useMetricWidgets() {
         ...lastWidget,
       };
 
+      newWidget.id = NO_QUERY_ID;
+
       return [...currentWidgets, newWidget];
     });
   }, [setWidgets]);
@@ -141,7 +143,9 @@ export function useMetricWidgets() {
     (index: number) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        newWidgets.splice(index, 0, currentWidgets[index]);
+        const newWidget = {...currentWidgets[index]};
+        newWidget.id = NO_QUERY_ID;
+        newWidgets.splice(index + 1, 0, newWidget);
         return newWidgets;
       });
     },

@@ -1,5 +1,5 @@
 import {getDefaultMetricDisplayType, getDefaultMetricOp} from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type FocusedMetricsSeries,
@@ -7,6 +7,7 @@ import {
   type MetricWidgetQueryParams,
   type SortState,
 } from 'sentry/utils/metrics/types';
+import {getUniqueQueryIdGenerator} from 'sentry/views/ddm/utils/uniqueQueryId';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -26,6 +27,14 @@ function parseStringParam(
 ): string | undefined {
   const value = widget[key];
   return typeof value === 'string' ? value : undefined;
+}
+
+function parseNumberParam(
+  widget: Record<string, unknown>,
+  key: string
+): number | undefined {
+  const value = widget[key];
+  return typeof value === 'number' && !Number.isNaN(value) ? value : undefined;
 }
 
 function parseBooleanParam(
@@ -96,6 +105,10 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
   return {name: undefined, order};
 }
 
+function isValidId(n: number | undefined): n is number {
+  return n !== undefined && Number.isInteger(n) && n >= 0;
+}
+
 export function parseMetricWidgetsQueryParam(
   queryParam?: string
 ): MetricWidgetQueryParams[] | undefined {
@@ -112,8 +125,11 @@ export function parseMetricWidgetsQueryParam(
     return undefined;
   }
 
+  const usedIds = new Set<number>();
+  const indezesWithoutId = new Set<number>();
+
   const parsedWidgets = currentWidgets
-    .map((widget: unknown): MetricWidgetQueryParams | null => {
+    .map((widget: unknown, index): MetricWidgetQueryParams | null => {
       if (!isRecord(widget)) {
         return null;
       }
@@ -124,10 +140,21 @@ export function parseMetricWidgetsQueryParam(
         return null;
       }
 
+      const id = parseNumberParam(widget, 'id');
+      if (!isValidId(id)) {
+        indezesWithoutId.add(index);
+      } else if (usedIds.has(id)) {
+        // We drop qidgets with duplicate ids
+        return null;
+      } else {
+        usedIds.add(id);
+      }
+
       const op = parseStringParam(widget, 'op');
       const displayType = parseStringParam(widget, 'displayType');
 
       return {
+        id: !isValidId(id) ? NO_QUERY_ID : id,
         mri,
         op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
         query: parseStringParam(widget, 'query') ?? '',
@@ -143,6 +170,19 @@ export function parseMetricWidgetsQueryParam(
       };
     })
     .filter((widget): widget is MetricWidgetQueryParams => !!widget);
+
+  // Iterate over the widgets without an id and assign them a unique one
+  if (indezesWithoutId.size > 0) {
+    const generateId = getUniqueQueryIdGenerator(usedIds);
+    for (const index of indezesWithoutId) {
+      parsedWidgets[index].id = generateId.next().value;
+    }
+  }
+
+  // We can reset the id if there is only one widget
+  if (parsedWidgets.length === 1) {
+    parsedWidgets[0].id = 0;
+  }
 
   return parsedWidgets.length > 0 ? parsedWidgets : undefined;
 }

@@ -426,7 +426,7 @@ export function getWidgetDDMUrl(
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies MetricWidgetQueryParams;
+      } satisfies Partial<MetricWidgetQueryParams>;
     }),
   });
 

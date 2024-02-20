@@ -1,7 +1,7 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {MRI, PageFilters} from 'sentry/types';
-import {emptyWidget} from 'sentry/utils/metrics/constants';
+import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -31,6 +31,7 @@ export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams {
   const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
 
   return {
+    id: NO_QUERY_ID,
     mri: parsed.mri,
     op: parsed.op,
     query: query.conditions,

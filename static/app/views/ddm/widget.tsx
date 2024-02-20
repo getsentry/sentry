@@ -66,6 +66,7 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
+  queryId?: number;
   showQuerySymbols?: boolean;
   tableSort?: SortState;
 };
@@ -79,6 +80,7 @@ export type Sample = {
 
 export const MetricWidget = memo(
   ({
+    queryId,
     queries,
     filters,
     displayType,
@@ -154,7 +156,9 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols && <QuerySymbol index={index} isSelected={isSelected} />}
+            {showQuerySymbols && queryId !== undefined && (
+              <QuerySymbol queryId={queryId} isSelected={isSelected} />
+            )}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}

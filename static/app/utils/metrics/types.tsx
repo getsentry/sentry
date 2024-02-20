@@ -22,6 +22,7 @@ export interface FocusedMetricsSeries {
 
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
+  id: number;
   focusedSeries?: FocusedMetricsSeries[];
   highlightedSample?: string | null;
   powerUserMode?: boolean;

@@ -133,7 +133,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             ? [
                 <QuerySymbol
                   key="icon"
-                  index={index}
+                  queryId={widget.id}
                   isSelected={index === selectedWidgetIndex}
                 />,
               ]

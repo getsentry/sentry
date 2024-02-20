@@ -39,17 +39,17 @@ const Symbol = styled('div')<{isSelected: boolean}>`
 `;
 
 export function QuerySymbol({
-  index,
+  queryId,
   isSelected,
   ...props
-}: React.ComponentProps<typeof Symbol> & {index: number; isSelected: boolean}) {
+}: React.ComponentProps<typeof Symbol> & {isSelected: boolean; queryId: number}) {
   const {showQuerySymbols, isMultiChartMode} = useDDMContext();
-  if (!showQuerySymbols) {
+  if (!showQuerySymbols || queryId < 0) {
     return null;
   }
   return (
     <Symbol isSelected={isMultiChartMode && isSelected} {...props}>
-      <span>{getQuerySymbol(index)}</span>
+      <span>{getQuerySymbol(queryId)}</span>
     </Symbol>
   );
 }

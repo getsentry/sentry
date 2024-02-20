@@ -18,6 +18,7 @@ describe('parseMetricWidgetQueryParam', () => {
       parseMetricWidgetsQueryParam(
         JSON.stringify([
           {
+            id: 0,
             mri: 'd:transactions/duration@millisecond',
             op: 'sum',
             query: 'test:query',
@@ -31,6 +32,7 @@ describe('parseMetricWidgetQueryParam', () => {
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'sum',
         query: 'test:query',
@@ -48,6 +50,7 @@ describe('parseMetricWidgetQueryParam', () => {
       parseMetricWidgetsQueryParam(
         JSON.stringify([
           {
+            id: 0,
             mri: 'd:transactions/duration@millisecond',
             op: 'sum',
             query: 'test:query',
@@ -58,6 +61,7 @@ describe('parseMetricWidgetQueryParam', () => {
             sort: {name: 'avg', order: 'desc'},
           },
           {
+            id: 1,
             mri: 'd:custom/sentry.event_manager.save@second',
             op: 'avg',
             query: '',
@@ -71,6 +75,7 @@ describe('parseMetricWidgetQueryParam', () => {
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'sum',
         query: 'test:query',
@@ -81,6 +86,7 @@ describe('parseMetricWidgetQueryParam', () => {
         sort: {name: 'avg', order: 'desc'},
       },
       {
+        id: 1,
         mri: 'd:custom/sentry.event_manager.save@second',
         op: 'avg',
         query: '',
@@ -105,6 +111,7 @@ describe('parseMetricWidgetQueryParam', () => {
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'avg',
         query: '',
@@ -121,6 +128,7 @@ describe('parseMetricWidgetQueryParam', () => {
       parseMetricWidgetsQueryParam(
         JSON.stringify([
           {
+            id: 'invalid',
             mri: 'd:transactions/duration@millisecond',
             op: 1,
             query: 12,
@@ -134,6 +142,7 @@ describe('parseMetricWidgetQueryParam', () => {
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'avg',
         query: '',
@@ -151,6 +160,7 @@ describe('parseMetricWidgetQueryParam', () => {
       parseMetricWidgetsQueryParam(
         JSON.stringify([
           {
+            id: 0,
             mri: 'd:transactions/duration@millisecond',
           },
           {
@@ -160,10 +170,16 @@ describe('parseMetricWidgetQueryParam', () => {
             // Mallformed MRI
             mri: 'transactions/duration@millisecond',
           },
+          {
+            // Duplicate id
+            id: 0,
+            mri: 'd:transactions/duration@second',
+          },
         ])
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'avg',
         query: '',
@@ -193,6 +209,7 @@ describe('parseMetricWidgetQueryParam', () => {
       parseMetricWidgetsQueryParam(
         JSON.stringify([
           {
+            id: 0,
             mri: 'd:transactions/duration@millisecond',
             op: 'sum',
             query: 'test:query',
@@ -206,6 +223,7 @@ describe('parseMetricWidgetQueryParam', () => {
       )
     ).toEqual([
       {
+        id: 0,
         mri: 'd:transactions/duration@millisecond',
         op: 'sum',
         query: 'test:query',
@@ -214,6 +232,69 @@ describe('parseMetricWidgetQueryParam', () => {
         focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
         powerUserMode: true,
         sort: {name: undefined, order: 'asc'},
+      },
+    ]);
+  });
+
+  it('adds missing ids', () => {
+    const widgetWithId = (id: number | undefined) => ({
+      id,
+      mri: 'd:transactions/duration@millisecond',
+      op: 'sum',
+      query: 'test:query',
+      groupBy: ['dist'],
+      displayType: 'line',
+      focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+      powerUserMode: true,
+      sort: {name: 'avg', order: 'desc'},
+    });
+    expect(
+      parseMetricWidgetsQueryParam(
+        JSON.stringify([
+          widgetWithId(0),
+          widgetWithId(undefined),
+          widgetWithId(2),
+          widgetWithId(undefined),
+          widgetWithId(3),
+        ])
+      )
+    ).toEqual([
+      widgetWithId(0),
+      widgetWithId(1),
+      widgetWithId(2),
+      widgetWithId(4),
+      widgetWithId(3),
+    ]);
+  });
+
+  it('resets the id of a single widget to 0', () => {
+    expect(
+      parseMetricWidgetsQueryParam(
+        JSON.stringify([
+          {
+            id: 5,
+            mri: 'd:transactions/duration@millisecond',
+            op: 'sum',
+            query: 'test:query',
+            groupBy: ['dist'],
+            displayType: 'line',
+            focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+            powerUserMode: true,
+            sort: {name: 'avg', order: 'desc'},
+          },
+        ])
+      )
+    ).toEqual([
+      {
+        id: 0,
+        mri: 'd:transactions/duration@millisecond',
+        op: 'sum',
+        query: 'test:query',
+        groupBy: ['dist'],
+        displayType: 'line',
+        focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+        powerUserMode: true,
+        sort: {name: 'avg', order: 'desc'},
       },
     ]);
   });
