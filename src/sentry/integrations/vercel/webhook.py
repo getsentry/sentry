@@ -223,7 +223,7 @@ class VercelWebhookEndpoint(Endpoint):
         #      organization integration AND the integration (since there is only one)
         #  2.) we already deleted the organization integration tied to this configuration
         #      and the remaining one is for a different org (and configuration)
-        
+
         if len(org_ids) == 1 and has_webhooks == new_webhook:
             try:
                 # Case no. 1: do the deleting and return
