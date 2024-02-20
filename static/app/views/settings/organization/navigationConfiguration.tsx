@@ -58,7 +58,7 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/audit-log/`,
         title: t('Audit Log'),
-        show: ({access}) => access!.has('org:write'),
+        show: ({access}) => access!.has('org:read'),
         description: t('View the audit log for an organization'),
         id: 'audit-log',
       },

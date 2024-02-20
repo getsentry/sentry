@@ -271,7 +271,7 @@ function AuditLogList({
 
   return (
     <div>
-      {!organization.access ? (
+      {!organization.access.includes('org:write') ? (
         <PermissionAlert />
       ) : (
         <div>
