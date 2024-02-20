@@ -18,7 +18,7 @@ describe('AiAutofix', () => {
   it('renders the Banner component when autofixData is null', () => {
     render(<AiAutofix group={group} />);
 
-    expect(screen.getByText('AI Autofix')).toBeInTheDocument();
+    expect(screen.getByText('Try AI Autofix')).toBeInTheDocument();
   });
 
   it('renders the FixResult component when autofixData is present', () => {

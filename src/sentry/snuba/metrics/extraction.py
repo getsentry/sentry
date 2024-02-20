@@ -127,6 +127,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.url": "request.url",
     "http.referer": "request.headers.Referer",
     "transaction.source": "transaction.source",
+    # Computed fields
+    "sentry_user": "sentry_user",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -1161,7 +1163,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("user.id")
+            return _map_field_name("sentry_user")
 
         if not self._arguments:
             return None

@@ -14,6 +14,7 @@ import {SavedSearchType} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   DEVICE_CLASS_TAG_VALUES,
+  FieldKey,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
@@ -23,18 +24,22 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection) =>
-  Object.fromEntries(
-    Object.keys(supportedTags).map(key => [
-      key,
-      {
-        ...supportedTags[key],
-        kind:
-          getFieldDefinition(key)?.kind ??
-          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
-      },
-    ])
+const getSupportedTags = (supportedTags: TagCollection, org: Organization) => {
+  const include_priority = org.features.includes('issue-priority-ui');
+  return Object.fromEntries(
+    Object.keys(supportedTags)
+      .map(key => [
+        key,
+        {
+          ...supportedTags[key],
+          kind:
+            getFieldDefinition(key)?.kind ??
+            (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+        },
+      ])
+      .filter(([key, _]) => (key === FieldKey.ISSUE_PRIORITY ? include_priority : true))
   );
+};
 
 interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTagsProps {
   organization: Organization;
@@ -148,7 +153,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags)}
+      supportedTags={getSupportedTags(tags, organization)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
       {...props}

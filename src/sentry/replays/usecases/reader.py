@@ -249,41 +249,35 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
     """Download segment data from remote storage."""
 
     # start a sentry transaction to pass to the thread pool workers
-    transaction = sentry_sdk.start_transaction(
-        op="http.server",
-        name="ProjectReplayRecordingSegmentIndexEndpoint.download_segments",
-        sampled=True,
-    )
+    with sentry_sdk.start_span(op="download_segments", description="thread_pool") as span:
+        download_segment_with_fixed_args = functools.partial(
+            download_segment, span=span, current_hub=sentry_sdk.Hub.current
+        )
 
-    download_segment_with_fixed_args = functools.partial(
-        download_segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
-    )
+        yield b"["
+        # Map all of the segments to a worker process for download.
+        with ThreadPoolExecutor(max_workers=10) as exe:
+            results = exe.map(download_segment_with_fixed_args, segments)
 
-    yield b"["
-    # Map all of the segments to a worker process for download.
-    with ThreadPoolExecutor(max_workers=10) as exe:
-        results = exe.map(download_segment_with_fixed_args, segments)
+            for i, result in enumerate(results):
+                if result is None:
+                    yield b"[]"
+                else:
+                    yield result
 
-        for i, result in enumerate(results):
-            if result is None:
-                yield b"[]"
-            else:
-                yield result
-
-            if i < len(segments) - 1:
-                yield b","
-    yield b"]"
-    transaction.finish()
+                if i < len(segments) - 1:
+                    yield b","
+        yield b"]"
 
 
 def download_segment(
     segment: RecordingSegmentStorageMeta,
-    transaction: Span,
+    span: Span,
     current_hub: sentry_sdk.Hub,
 ) -> bytes | None:
     """Return the segment blob data."""
     with sentry_sdk.Hub(current_hub):
-        with transaction.start_child(
+        with span.start_child(
             op="download_segment",
             description="thread_task",
         ):
