@@ -1079,20 +1079,9 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   return tree;
 }
-
-function replaceAt(str, index, replacement) {
-  return (
-    str.substring(0, index) + replacement + str.substring(index + replacement.length)
-  );
-}
-
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
-  let padding = '  '.repeat(t.depth + offset);
-
-  for (let i = 0; i < t.connectors.length; i++) {
-    padding = replaceAt(padding, Math.abs(t.connectors[i] * 2 - 2), '|');
-  }
+  const padding = '  '.repeat(t.depth + offset);
 
   if (isAutogroupedNode(t)) {
     if (isParentAutogroupedNode(t)) {
