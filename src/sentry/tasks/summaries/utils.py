@@ -33,14 +33,13 @@ class OrganizationReportContext:
 class DailySummaryProjectContext:
     total_today = 0
     fourteen_day_total = 0
-    count_days = 0
     fourteen_day_avg = 0
-    key_error_issues = []
+    key_errors = []
     key_performance_issues = []
 
     def __init__(self, project: Project):
         self.project = project
-        self.key_error_issues = []
+        self.key_errors = []
         self.key_performance_issues = []
 
 

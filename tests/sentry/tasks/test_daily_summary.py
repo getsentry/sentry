@@ -43,6 +43,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         group.substatus = None
         group.resolved_at = timestamp + timedelta(minutes=1)
         group.save()
+        return group
 
     @freeze_time(before_now(days=2).replace(hour=12, minute=0, second=0, microsecond=0))
     def test_prepare_summary_data(self):
@@ -59,7 +60,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         user_option_service.set_option(user_id=user.id, key="timezone", value="America/Los_Angeles")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
 
-        self.store_event_and_outcomes(
+        group1 = self.store_event_and_outcomes(
             self.project.id,
             two_hours_ago,
             fingerprint="group-1",
@@ -80,7 +81,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
             category=DataCategory.ERROR,
             num_times=4,
         )
-        self.store_event_and_outcomes(
+        group2 = self.store_event_and_outcomes(
             self.project.id,
             three_days_ago,
             fingerprint="group-2",
@@ -105,15 +106,10 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         timestamp = to_timestamp(now)
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 14, self.organization, daily=True)
         summary = prepare_summary_data(ctx)
-        # key_errors = project_key_errors(start, end, self.project, "reports.key_errors")
-        # key_errors2 = project_key_errors(start, end, project2, "reports.key_errors")
-
-        # event_counts = project_event_counts_for_organization(start, end, self.organization.id, "weekly_reports.outcomes")
         project_id = self.project.id
+
         assert summary.projects[project_id].total_today == 2
-        assert summary.projects[project_id].fourteen_day_avg == 2
-        assert summary.projects[project_id].key_error_issues == [
-            {"group_id": 1, "count()": 3},
-            {"group_id": 2, "count()": 1},
-        ]
+        assert summary.projects[project_id].fourteen_day_avg == 1
+        assert summary.projects[project_id].key_errors == [(group1, None, 3), (group2, None, 1)]
+        # TODO: test performance issues later
         assert summary.projects[project_id].key_performance_issues == []

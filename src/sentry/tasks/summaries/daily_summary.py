@@ -13,6 +13,8 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
+    fetch_key_error_groups,
+    fetch_key_performance_issue_groups,
     project_event_counts_for_organization,
     project_key_errors,
     project_key_performance_issues,
@@ -77,9 +79,9 @@ def prepare_summary_data(
     target_user: User | None = None,
     email_override: str | None = None,
 ):
-    # build 'Today's Event Count vs. 14 day average'
-    fourteen_days = ONE_DAY * 14
-    start = to_datetime(ctx.timestamp - fourteen_days)
+    # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
+    fifteen_days = ONE_DAY * 15
+    start = to_datetime(ctx.timestamp - fifteen_days)
     # TODO: create new referrers, simply passing a new string seems to not work
     event_counts = project_event_counts_for_organization(
         start=start, end=ctx.end, org_id=ctx.organization.id, referrer="weekly_reports.outcomes"
@@ -94,26 +96,22 @@ def prepare_summary_data(
         total = data["total"]
         if data["category"] == DataCategory.ERROR:
             if data["outcome"] == Outcome.ACCEPTED:
-                # should we calculate the average of 14 days or just the days errors were recorded?
-                project_ctx.count_days += 1
                 time = datetime.fromisoformat(data["time"])
                 if time.date() == ctx.end.date():
                     project_ctx.total_today = total
                 else:
-                    # should today's count be included in this?
                     project_ctx.fourteen_day_total += total
 
     for project in ctx.organization.project_set.all():
         project_id = project.id
         project_ctx = ctx.projects[project_id]
-        project_ctx.fourteen_day_avg = math.ceil(
-            project_ctx.fourteen_day_total / project_ctx.count_days
-        )
+        project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
         # Today's Top 3 Error Issues
         key_errors = project_key_errors(
             start=ctx.start, end=ctx.end, project=project, referrer="reports.key_errors"
         )
-        project_ctx.key_error_issues = key_errors
+        if key_errors:
+            project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
         # Today's Top 3 Performance Issues
         key_performance_issues = project_key_performance_issues(
             start=ctx.start,
@@ -123,4 +121,7 @@ def prepare_summary_data(
         )
         if key_performance_issues:
             project_ctx.key_performance_issues = key_performance_issues
+
+    fetch_key_error_groups(ctx)
+    fetch_key_performance_issue_groups(ctx)
     return ctx
