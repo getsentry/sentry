@@ -767,6 +767,7 @@ class AlertRuleActivityType(Enum):
     DISABLED = 5
     SNAPSHOT = 6
     ACTIVATED = 7
+    DEACTIVATED = 8
 
 
 @region_silo_only_model
