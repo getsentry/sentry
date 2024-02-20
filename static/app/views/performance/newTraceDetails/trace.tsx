@@ -872,7 +872,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceIndicator {
     z-index: 1;
-    width: 5px;
+    width: 3px;
     height: 100%;
     top: 0;
     position: absolute;

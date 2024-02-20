@@ -147,6 +147,25 @@ function fetchTransactionSpans(
   );
 }
 
+const unitToSeconds = {
+  second: 1,
+  millisecond: 1e3,
+  nanosecond: 1e9,
+};
+function measurementToTimestamp(
+  start_timestamp: number,
+  measurement: number,
+  unit: string
+) {
+  const multiplier = unitToSeconds[unit];
+  if (multiplier === undefined) {
+    throw new TypeError(
+      `Unsupported measurement unit ${unit} for measurement ${measurement}`
+    );
+  }
+  return start_timestamp + measurement / multiplier;
+}
+
 function maybeInsertMissingInstrumentationSpan(
   parent: TraceTreeNode<TraceTree.NodeValue>,
   node: TraceTreeNode<TraceTree.Span>
@@ -185,7 +204,8 @@ type Indicator = {
   type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
 };
 
-const RENDERABLE_MEASUREMENTS = ['cls', 'fcp', 'fp', 'lcp', 'ttfb'];
+// cls is not included as it is a cumulative layout shift and not a single point in time
+const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
   type: 'loading' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -228,12 +248,12 @@ export class TraceTree {
             continue;
           }
 
-          if (value.measurements[measurement].value === 0) {
-            continue;
-          }
-
           tree.indicators.push({
-            start: value.start_timestamp + value.measurements[measurement].value / 1000,
+            start: measurementToTimestamp(
+              value.start_timestamp,
+              value.measurements[measurement].value,
+              value.measurements[measurement].unit ?? 'milliseconds'
+            ),
             duration: 0,
             node,
             type: measurement as Indicator['type'],
