@@ -286,6 +286,7 @@ class WidgetCard extends Component<Props, State> {
             widget={widget}
             dashboardFilters={dashboardFilters}
             renderErrorMessage={renderErrorMessage}
+            showContextMenu={this.props.showContextMenu}
           />
         );
       }

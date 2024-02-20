@@ -4,7 +4,6 @@ import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -100,7 +99,7 @@ export function MetricScratchpad() {
             focusArea={focusArea}
             showQuerySymbols={showQuerySymbols}
             onSampleClick={handleSampleClick}
-            chartHeight={hasDDMExperimentalFeature(organization) ? 200 : 300}
+            chartHeight={200}
             highlightedSampleId={
               selectedWidgetIndex === index ? highlightedSampleId : undefined
             }
@@ -123,7 +122,7 @@ export function MetricScratchpad() {
           focusArea={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
-          chartHeight={hasDDMExperimentalFeature(organization) ? 200 : 300}
+          chartHeight={200}
           highlightedSampleId={highlightedSampleId}
           context="ddm"
         />
