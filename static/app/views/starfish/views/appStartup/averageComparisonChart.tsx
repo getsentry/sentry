@@ -54,8 +54,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
-  const pageFilter = usePageFilters();
-  const {selection} = pageFilter;
+  const {selection} = usePageFilters();
 
   const appStartType =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';

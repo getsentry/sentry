@@ -26,8 +26,8 @@ import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 function transformData(data?: MultiSeriesEventsStats) {
   const transformedSeries: {[release: string]: Series} = {};
 
-  // Check for 'meta' in the data object because if the multi-series
-  // request fails, the response is in the form of a single series
+  // Check that 'meta' is not in the data object because that's a sign
+  // that we did not get a multi-series response for comparison
   if (defined(data) && !('meta' in data)) {
     Object.keys(data).forEach(release => {
       transformedSeries[release] = {
