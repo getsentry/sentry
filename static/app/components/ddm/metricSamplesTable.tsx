@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -10,9 +11,9 @@ import {t, tct} from 'sentry/locale';
 import type {MRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime} from 'sentry/utils/discover/styles';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
@@ -28,6 +29,34 @@ import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 interface MetricSamplesTableProps {
   mri?: MRI;
   query?: string;
+}
+
+export function isSupportedMRI(mri: MRI): boolean {
+  // extracted transaction metrics
+  if (mri === 'd:transactions/duration@millisecond') {
+    return true;
+  }
+
+  // extracted span metrics
+  if (
+    mri === 'd:spans/exclusive_time@millisecond' ||
+    mri === 'd:spans/duration@millisecond'
+  ) {
+    return true;
+  }
+
+  const parsedMRI = parseMRI(mri);
+  if (defined(parsedMRI)) {
+    // extracted measurement metrics
+    if (
+      parsedMRI.useCase === 'transactions' &&
+      parsedMRI.name.startsWith('measurements.')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
@@ -54,8 +83,6 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
     }
   }, [previousMri, mri]);
 
-  // TODO: this is just a temporary solution for the spans.exlusive_time MRI
-  // long term, we should use an unified endpoint
   const result = useMetricSamples({
     fields: [
       'project',
@@ -69,11 +96,8 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
       'transaction.id',
       'profile_id',
     ],
-    query: [query, 'has:profile_id'].filter(Boolean).join(' '),
-    sort: {field: 'timestamp', kind: 'desc'},
-    // TODO: support other MRIs later
-    enabled: mri === 'd:spans/exclusive_time@millisecond',
-    limit: 100,
+    mri,
+    query,
     referrer: 'foo',
   });
 
@@ -100,39 +124,31 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
 interface UseMetricSamplesOptions<F extends string> {
   fields: F[];
   referrer: string;
-  sort: {field: F; kind: 'asc' | 'desc'};
-  cursor?: string;
   enabled?: boolean;
-  limit?: number;
+  mri?: MRI;
   query?: string;
 }
 
 function useMetricSamples<F extends string>({
-  cursor,
-  enabled,
   fields,
+  mri,
   referrer,
-  limit,
   query,
-  sort,
 }: UseMetricSamplesOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/events/`;
+  const path = `/organizations/${organization.slug}/metrics/samples/`;
 
   const endpointOptions = {
     query: {
-      dataset: DiscoverDatasets.SPANS_INDEXED,
-      referrer,
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       field: fields,
-      per_page: limit,
+      mri,
       query,
-      sort: sort.kind === 'asc' ? sort.field : `-${sort.field}`,
-      cursor,
+      referrer,
     },
   };
 
@@ -140,7 +156,7 @@ function useMetricSamples<F extends string>({
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,
-    enabled,
+    enabled: defined(mri) && isSupportedMRI(mri),
   });
 }
 
@@ -191,7 +207,7 @@ function renderBodyCell(col, dataRow) {
     return (
       <ProfileId
         projectSlug={dataRow.project}
-        profileId={dataRow.profile_id.replace('-', '')}
+        profileId={dataRow.profile_id?.replace('-', '')}
       />
     );
   }
@@ -298,14 +314,24 @@ function TraceId({traceId}) {
 
 function ProfileId({projectSlug, profileId}) {
   const organization = useOrganization();
+
+  if (!defined(profileId)) {
+    return <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+  }
+
   const target = generateProfileFlamechartRoute({
     orgSlug: organization.slug,
     projectSlug,
     profileId,
   });
+
   return (
     <Container>
       <Link to={target}>{getShortEventId(profileId)}</Link>
     </Container>
   );
 }
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
