@@ -75,12 +75,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if project_id:
             releases.filter(project_id=project_id)
 
-        logger.info("DEBUG PROJECT_ID: %s", project_id)
-        logger.info("DEBUG VERSION: %s", version)
-
-        logger.info("DEBUG RELEASES %s", releases)
-        logger.info("DEBUG DEPLOYS %s", queryset)
-
         return self.paginate(
             request=request,
             queryset=queryset,
