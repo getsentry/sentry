@@ -24,6 +24,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {
   getFreeTextFromQuery,
   TOP_SCREENS,
@@ -189,6 +190,12 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
   );
 
   const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
+  const [singularTopScreenTitle, pluralTopScreenTitle] =
+    appStartType === COLD_START_TYPE
+      ? [t('Top Screen Cold Start'), t('Top %s Screen Cold Starts', countTopScreens)]
+      : [t('Top Screen Warm Start'), t('Top %s Screen Warm Starts', countTopScreens)];
+  const yAxis =
+    YAXIS_COLUMNS[appStartType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
 
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
@@ -196,15 +203,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
         <ScreensBarChart
           chartOptions={[
             {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Cold Starts', countTopScreens)
-                  : t('Top Screen Cold Start'),
-              yAxis: YAXIS_COLUMNS[YAxis.COLD_START],
+              title: countTopScreens > 1 ? pluralTopScreenTitle : singularTopScreenTitle,
+              yAxis,
               xAxisLabel: topTransactions,
-              series: Object.values(
-                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.COLD_START]]
-              ),
+              series: Object.values(transformedReleaseEvents[yAxis]),
               subtitle: primaryRelease
                 ? t(
                     '%s v. %s',
@@ -216,32 +218,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           ]}
           chartHeight={chartHeight ?? 180}
           isLoading={isReleaseEventsLoading}
-          chartKey="coldStart"
-        />
-        <ScreensBarChart
-          chartOptions={[
-            {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Warm Starts', countTopScreens)
-                  : t('Top Screen Warm Start'),
-              yAxis: YAXIS_COLUMNS[YAxis.WARM_START],
-              xAxisLabel: topTransactions,
-              series: Object.values(
-                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.WARM_START]]
-              ),
-              subtitle: primaryRelease
-                ? t(
-                    '%s v. %s',
-                    truncatedPrimaryChart,
-                    secondaryRelease ? truncatedSecondaryChart : ''
-                  )
-                : '',
-            },
-          ]}
-          chartHeight={chartHeight ?? 180}
-          isLoading={isReleaseEventsLoading}
-          chartKey="warmStart"
+          chartKey={`${appStartType}Start`}
         />
       </ChartContainer>
       <StyledSearchBar
