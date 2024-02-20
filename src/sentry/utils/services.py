@@ -489,6 +489,9 @@ def make_writebehind_selector(
     is expected to return a consistent str|int that will be hashed for consistent
     rollouts. If no consistent key exists you can use random number generation.
 
+    The `move_to` and `move_from` parameters should match the keys used to defined
+    the backends in the `ServiceDelegator` configuration.
+
     Example:
 
     selector = make_writebehind_selector(
