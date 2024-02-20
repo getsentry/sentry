@@ -211,6 +211,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    private=True,
                 ),
                 SnQLFunction(
                     "rounded_timestamp",
@@ -234,6 +235,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    private=True,
                 ),
             ]
         }
