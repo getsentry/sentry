@@ -187,7 +187,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     def test_transaction_duration_samples(self):
         span_ids = [uuid4().hex[:16] for _ in range(1)]
         for i, span_id in enumerate(span_ids):
-            ts = before_now(days=i, minutes=10)
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
 
             # first write to the transactions dataset
             data = load_data("transaction", timestamp=ts)
@@ -222,7 +222,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
         good_span_ids = [uuid4().hex[:16] for _ in range(1)]
         bad_span_ids = [uuid4().hex[:16] for _ in range(1)]
         for i, (good_span_id, bad_span_id) in enumerate(zip(good_span_ids, bad_span_ids)):
-            ts = before_now(days=i, minutes=10)
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
 
             # first write to the transactions dataset
             data = load_data("transaction", timestamp=ts)
