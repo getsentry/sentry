@@ -1,9 +1,15 @@
+import type {List} from 'react-virtualized';
+
 import clamp from 'sentry/utils/number/clamp';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceTree';
+import type {
+  TraceTree,
+  TraceTreeNode,
+} from 'sentry/views/performance/newTraceDetails/traceTree';
 
 const DIVIDER_WIDTH = 6;
 
 type ViewColumn = {
+  column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
   column_refs: (HTMLElement | undefined)[];
   translate: [number, number];
   width: number;
@@ -18,6 +24,7 @@ type Matrix2D = [number, number, number, number, number, number];
  */
 export class VirtualizedViewManager {
   width: number = 0;
+  virtualizedList: List | null = null;
 
   container: HTMLElement | null = null;
   dividerRef: HTMLElement | null = null;
@@ -41,12 +48,17 @@ export class VirtualizedViewManager {
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
   constructor(columns: {
-    list: Omit<ViewColumn, 'translate'>;
-    span_list: Omit<ViewColumn, 'translate'>;
+    list: Pick<ViewColumn, 'width'>;
+    span_list: Pick<ViewColumn, 'width'>;
   }) {
     this.columns = {
-      list: {...columns.list, translate: [0, 0]},
-      span_list: {...columns.span_list, translate: [0, 0]},
+      list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
+      span_list: {
+        ...columns.span_list,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
     };
 
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
@@ -61,6 +73,10 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
+  }
+
+  registerVirtualizedList(list: List | null) {
+    this.virtualizedList = list;
   }
 
   registerDividerRef(ref: HTMLElement | null) {
@@ -165,6 +181,10 @@ export class VirtualizedViewManager {
       throw new TypeError('Invalid column');
     }
 
+    if (typeof index !== 'number' || isNaN(index)) {
+      throw new TypeError('Invalid index');
+    }
+
     if (column === 'list') {
       const element = this.columns[column].column_refs[index];
       if (ref === undefined && element) {
@@ -179,10 +199,17 @@ export class VirtualizedViewManager {
     }
 
     this.columns[column].column_refs[index] = ref ?? undefined;
+    this.columns[column].column_nodes[index] = node ?? undefined;
   }
 
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
+    if (this.bringRowIntoViewAnimation !== null) {
+      window.cancelAnimationFrame(this.bringRowIntoViewAnimation);
+      this.bringRowIntoViewAnimation = null;
+    }
+
+    this.enqueueOnScrollEndOutOfBoundsCheck();
     const columnWidth = this.columns.list.width * this.width;
 
     this.columns.list.translate[0] = clamp(
@@ -210,6 +237,101 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0] + 'px'
       );
     });
+  }
+
+  scrollEndSyncRaf: number | null = null;
+  enqueueOnScrollEndOutOfBoundsCheck() {
+    if (this.scrollEndSyncRaf !== null) {
+      window.cancelAnimationFrame(this.scrollEndSyncRaf);
+    }
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      if (elapsed > 300) {
+        this.onScrollEndOutOfBoundsCheck();
+      } else {
+        this.scrollEndSyncRaf = window.requestAnimationFrame(rafCallback);
+      }
+    };
+
+    this.scrollEndSyncRaf = window.requestAnimationFrame(rafCallback);
+  }
+
+  onScrollEndOutOfBoundsCheck() {
+    this.scrollEndSyncRaf = null;
+
+    const translation = this.columns.list.translate[0];
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    let innerMostNode: TraceTreeNode<any> | undefined;
+
+    const offset = this.virtualizedList?.Grid?.props.overscanRowCount ?? 0;
+    const renderCount = this.columns.span_list.column_refs.length;
+
+    for (let i = offset + 1; i < renderCount - offset; i++) {
+      const width = this.measurer.cache.get(this.columns.list.column_nodes[i]);
+      if (width === undefined) {
+        // this is unlikely to happen, but we should trigger a sync measure event if it does
+        continue;
+      }
+
+      min = Math.min(min, width);
+      max = Math.max(max, width);
+      innerMostNode =
+        !innerMostNode || this.columns.list.column_nodes[i].depth < innerMostNode.depth
+          ? this.columns.list.column_nodes[i]
+          : innerMostNode;
+    }
+
+    // Scroll to half row so as to indicate other child/parent links
+    const VISUAL_OFFSET = 24 / 2;
+
+    if (innerMostNode) {
+      if (translation + max < 0) {
+        const target = Math.min(-innerMostNode.depth * 24 + VISUAL_OFFSET, 0);
+        this.animateScrollColumnTo(target);
+      } else if (
+        translation + innerMostNode.depth * 24 >
+        this.columns.list.width * this.width
+      ) {
+        const target = Math.min(-innerMostNode.depth * 24 + VISUAL_OFFSET, 0);
+        this.animateScrollColumnTo(target);
+      }
+    }
+  }
+
+  bringRowIntoViewAnimation: number | null = null;
+  animateScrollColumnTo(x: number) {
+    const start = performance.now();
+
+    const duration = 600;
+    const startPosition = this.columns.list.translate[0];
+    const distance = x - startPosition;
+
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = elapsed / duration;
+      const eased = easeOutQuad(progress);
+
+      const pos = startPosition + distance * eased;
+
+      for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+        const list = this.columns.list.column_refs[i];
+        if (list?.children?.[0]) {
+          (list.children[0] as HTMLElement).style.transform = `translateX(${pos}px)`;
+        }
+      }
+
+      if (progress < 1) {
+        this.columns.list.translate[0] = pos;
+        this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
+      } else {
+        this.columns.list.translate[0] = x;
+      }
+    };
+
+    this.bringRowIntoViewAnimation = window.requestAnimationFrame(animate);
   }
 
   initialize(container: HTMLElement) {
@@ -255,10 +377,7 @@ export class VirtualizedViewManager {
   computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
     // https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix
     // biome-ignore format: off
-    const mat3: Matrix2D = [
-      1, 0, 0,
-      1, 0, 0,
-    ];
+    const mat3: Matrix2D = [1, 0, 0, 1, 0, 0];
 
     if (this.spanSpace[1] === 0 || this.spanView[1] === 0) {
       return mat3;
@@ -315,8 +434,6 @@ export class VirtualizedViewManager {
     return [scale, 0, 0, 1, translateInPixels, 0];
   }
 
-  draw() {}
-
   teardown() {
     if (this.container) {
       this.container.removeEventListener('wheel', this.onPreventBackForwardNavigation);
@@ -327,6 +444,10 @@ export class VirtualizedViewManager {
   }
 }
 
+function easeOutQuad(x: number): number {
+  return 1 - (1 - x) * (1 - x);
+}
+
 class RowMeasurer {
   cache: Map<TraceTreeNode<any>, number> = new Map();
   elements: HTMLElement[] = [];
@@ -334,6 +455,10 @@ class RowMeasurer {
   measureQueue: [TraceTreeNode<any>, HTMLElement][] = [];
   drainRaf: number | null = null;
   max: number = 0;
+
+  constructor() {
+    this.drain = this.drain.bind(this);
+  }
 
   enqueueMeasure(node: TraceTreeNode<any>, element: HTMLElement) {
     if (this.cache.has(node)) {
@@ -345,9 +470,7 @@ class RowMeasurer {
     if (this.drainRaf !== null) {
       window.cancelAnimationFrame(this.drainRaf);
     }
-    this.drainRaf = window.requestAnimationFrame(() => {
-      this.drain();
-    });
+    this.drainRaf = window.requestAnimationFrame(this.drain);
   }
 
   drain() {

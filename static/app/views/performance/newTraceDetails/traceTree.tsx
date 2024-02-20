@@ -749,6 +749,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     node.canFetchData = this.canFetchData;
     node.space = this.space;
     node.children = this.children;
+    node.invalidate(node);
     return node;
   }
 
@@ -757,7 +758,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 
   get isLastChild() {
-    return this.parent?.children[this.parent.children.length - 1] === this;
+    if (!this.parent || this.parent.children.length === 0) {
+      return true;
+    }
+    return this.parent.children[this.parent.children.length - 1] === this;
   }
 
   /**
@@ -795,6 +799,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     this._connectors = [];
+
+    if (!this.parent) {
+      return this._connectors;
+    }
 
     if (this.parent?.connectors !== undefined) {
       this._connectors = [...this.parent.connectors];
