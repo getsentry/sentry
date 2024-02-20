@@ -435,7 +435,7 @@ class ServiceDelegator(Delegator, Service):
       imported at backend instantiation, or
     - A reference to a callable object.
 
-    If you're shift a service from one backend storage system to another
+    If you're shifting a service from one backend storage system to another
     consider using `make_writebehind_selector` to generate your selector function.
     """
 
