@@ -61,6 +61,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     slack: t('Slack'),
     projectOwnership: t('Ownership Rule'),
     codeowners: t('Codeowners Rule'),
+    suspectCommitter: t('Suspect Committer'),
   };
 
   return (
