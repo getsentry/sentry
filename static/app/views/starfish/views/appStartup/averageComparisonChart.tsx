@@ -63,7 +63,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
   const query = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    'count_total_starts():>0',
+    `count_starts(measurements.app_start_${appStartType}):>0`,
   ]);
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
@@ -80,7 +80,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
   const {data, isLoading} = useTableQuery({
     eventView: tableEventView,
     enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-screen-table',
+    referrer: 'api.starfish.mobile-startup-bar-chart',
   });
 
   const transformedData = useMemo(() => {
