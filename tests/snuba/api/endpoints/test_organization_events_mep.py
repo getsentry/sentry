@@ -13,6 +13,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.relay.config.metric_extraction import _separate_aggregates_and_groupbys_from_columns
 from sentry.search.events import constants
 from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
@@ -3179,12 +3180,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     ) -> list[OnDemandMetricSpec]:
         """Creates all specs based on the parameters that would be passed to the endpoint."""
         specs = []
-        _groupbys = groupbys or []
-        if "transaction" in params["field"]:
-            params["field"].remove("transaction")
-            _groupbys.append("transaction")
+        aggregates, _groupbys = _separate_aggregates_and_groupbys_from_columns(params["field"])
+        groupbys = _groupbys + (groupbys or [])
 
-        for field in params["field"]:
+        for field in aggregates:
             spec = OnDemandMetricSpec(
                 field=field,
                 query=params["query"],
@@ -3253,13 +3252,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
-    def test_support_columns_in_tables(self) -> None:
-        field = "apdex(300)"
-        params = {
-            "field": [field, "transaction"],
-            "query": "transaction.duration:>100",
-            "yAxis": field,
-        }
+    def test_support_columns_from_tables(self) -> None:
+        apdex = "apdex(300)"
+        query = "event.type:transaction transaction.op:pageload some_tag:#foo"
+        # The fields include function and non-function columns. transaction will be used as a group-by
+        params = {"field": [apdex, "transaction"], "query": query, "yAxis": apdex}
         specs = self._create_specs(params)
         days_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         for spec in specs:
@@ -3279,10 +3276,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data == {
-            "data": [{field: 0.75}],
+            "data": [{apdex: 0.75, "transaction": "event.transaction"}],
             "meta": {
-                "fields": {field: "number"},
-                "units": {field: None},
+                "fields": {apdex: "number", "transaction": "string"},
+                "units": {apdex: None, "transaction": None},
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},

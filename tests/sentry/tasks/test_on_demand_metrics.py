@@ -580,9 +580,12 @@ def test_query_cardinality_called_with_projects(
 
 
 @django_db_all
-def test_support_columns_in_tables(project: Project) -> None:
+def test_support_columns_from_tables(project: Project) -> None:
+    """Test the task creates enabled on-demand widgets"""
     # The tag requires on-demand metrics extraction
     query = "app_recommended_owner:#onboarding-experience"
+    # We include a non-function and a function in the list of columns
+    # The non-functions are used as group bys
     columns = ["apdex(300)", "transaction"]
 
     widget_query, _, _ = create_widget([], query, project, columns=columns)
@@ -605,5 +608,5 @@ def test_support_columns_in_tables(project: Project) -> None:
             widget_model,
             has_features=True,
             expected_state=OnDemandExtractionState.ENABLED_ENROLLED,
-            expected_hashes={1: ["031ceadc"], 2: ["1705bb61"]},
+            expected_hashes={1: ["c050ea81"], 2: ["8cea6fe0"]},
         )

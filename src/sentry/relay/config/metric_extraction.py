@@ -406,16 +406,12 @@ def convert_widget_query_to_metric(
     """
     metrics_specs: list[HashedMetricSpec] = []
 
-    if not widget_query.aggregates:
-        aggregates, groupbys = _separate_aggregates_and_groupbys_from_columns(widget_query.columns)
-    else:
-        aggregates = widget_query.aggregates or []
-        groupbys = widget_query.columns
+    aggregates = widget_query.aggregates or []
+    groupbys = widget_query.columns or []
 
-    for aggregate in aggregates:
-        metrics_specs += _generate_metric_specs(
-            aggregate, widget_query, project, prefilling, groupbys
-        )
+    # Tables do not have aggregates, however, we create metrics from its columns
+    if not widget_query.aggregates:
+        aggregates, groupbys = _separate_aggregates_and_groupbys_from_columns(groupbys)
 
     for aggregate in aggregates:
         metrics_specs += _generate_metric_specs(
@@ -465,8 +461,10 @@ def _generate_metric_specs(
 
 
 def _separate_aggregates_and_groupbys_from_columns(
-    columns: str | None,
+    columns: list[str],
 ) -> tuple[list[str], list[str]]:
+    """Separate aggregates and groupbys from columns.
+    This is because columns can use functions and non-functions (e.g. transaction) fields."""
     aggregates = []
     groupbys = []
 
