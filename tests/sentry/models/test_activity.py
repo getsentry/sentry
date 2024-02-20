@@ -1,7 +1,6 @@
 import logging
 
 from sentry.event_manager import EventManager
-from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -30,6 +29,7 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -43,7 +43,7 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PriorityLevel.LOW.to_str()},
                 send_notification=False,
             ),
         ]
@@ -53,7 +53,7 @@ class ActivityTest(TestCase):
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
-        assert act_for_group[-1].data["priority"] == PRIORITY_LEVEL_TO_STR[PriorityLevel.HIGH]
+        assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
     @with_feature("projects:issue-priority")
     def test_get_activities_for_group_no_priority_ff_on(self):
@@ -61,6 +61,7 @@ class ActivityTest(TestCase):
         group.data.get("metadata", {})[""] = None
         group.save()
         user1 = self.create_user()
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -86,27 +87,28 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PriorityLevel.LOW.to_str()},
                 send_notification=False,
             ),
             Activity.objects.create_group_activity(
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PriorityLevel.LOW.to_str()},
                 send_notification=False,
             ),
             Activity.objects.create_group_activity(
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.MEDIUM]},
+                data={"priority": PriorityLevel.MEDIUM.to_str()},
                 send_notification=False,
             ),
         ]
@@ -117,7 +119,7 @@ class ActivityTest(TestCase):
         assert act_for_group[0] == activities[-1]
         assert act_for_group[1] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
-        assert act_for_group[-1].data["priority"] == PRIORITY_LEVEL_TO_STR[PriorityLevel.HIGH]
+        assert act_for_group[-1].data["priority"] == PriorityLevel.HIGH.to_str()
 
     def test_get_activities_for_group_simple_priority_ff_off(self):
         manager = EventManager(make_event(level=logging.FATAL))
@@ -126,6 +128,7 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -139,7 +142,7 @@ class ActivityTest(TestCase):
                 group=group,
                 type=ActivityType.SET_PRIORITY,
                 user=user1,
-                data={"priority": PRIORITY_LEVEL_TO_STR[PriorityLevel.LOW]},
+                data={"priority": PriorityLevel.LOW.to_str()},
                 send_notification=False,
             ),
         ]
