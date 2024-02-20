@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import AuthenticatedRequest, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
@@ -15,6 +15,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 
 @region_silo_endpoint
@@ -24,7 +25,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: AuthenticatedRequest, group) -> Response:
+    def get(self, request: AuthenticatedHttpRequest, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
@@ -35,7 +36,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request: AuthenticatedRequest, group) -> Response:
+    def post(self, request: AuthenticatedHttpRequest, group) -> Response:
         serializer = NoteSerializer(
             data=request.data,
             context={

@@ -552,7 +552,9 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         environment = Environment.get_or_create(project=project, name=environment_name)
 
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
+            monitor=monitor,
+            environment_id=environment.id,
+            defaults={"status": MonitorStatus.ACTIVE},
         )
 
         # recompute per-project monitor check-in rate limit quota

@@ -44,10 +44,10 @@ type Formula = {
 };
 
 // result types
-type MetricWidget = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> & {
+interface MetricWidget extends MetricsQuery {
   displayType: MetricDisplayType;
   title: string;
-};
+}
 
 type MetricWidgetReport = {
   errors: string[];

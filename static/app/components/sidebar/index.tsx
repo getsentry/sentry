@@ -117,7 +117,14 @@ function Sidebar() {
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   // Avoid showing superuser UI on self-hosted instances
-  const hasSuperuserSession = isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  const showSuperuserWarning = () => {
+    return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  };
+
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = () => {
+    return HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+  };
 
   useOpenOnboardingSidebar();
 
@@ -229,7 +236,8 @@ function Sidebar() {
         if (
           organization.features.includes('performance-database-view') ||
           organization.features.includes('starfish-browser-webvitals') ||
-          organization.features.includes('performance-screens-view')
+          organization.features.includes('performance-screens-view') ||
+          organization.features.includes('performance-http-view')
         ) {
           return (
             <SidebarAccordion
@@ -251,6 +259,15 @@ function Sidebar() {
                   id="performance-database"
                   // collapsed controls whether the dot is visible or not.
                   // We always want it visible for these sidebar items so force it to true.
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="performance-http-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={<GuideAnchor target="performance-http">{t('HTTP')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/http/`}
+                  id="performance-http"
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
@@ -492,10 +509,12 @@ function Sidebar() {
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
+        <DropdownSidebarSection isSuperuser={showSuperuserWarning() && !isExcludedOrg()}>
           <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
+          {showSuperuserWarning() && !isExcludedOrg() && (
+            <Hook name="component:superuser-warning" organization={organization} />
+          )}
         </DropdownSidebarSection>
 
         <PrimaryItems>
