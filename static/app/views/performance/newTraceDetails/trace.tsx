@@ -828,10 +828,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(0, 2px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   @keyframes showPlaceholder {
     0% {
@@ -839,10 +839,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(-8px, 0px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   &.Loading {
     .TraceRow {
@@ -1001,7 +1001,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &::after {
-      content: "";
+      content: '';
       background-color: rgb(224, 220, 229);
       border-radius: 50%;
       height: 6px;

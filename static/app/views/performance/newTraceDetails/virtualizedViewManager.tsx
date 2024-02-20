@@ -377,10 +377,7 @@ export class VirtualizedViewManager {
   computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
     // https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix
     // biome-ignore format: off
-    const mat3: Matrix2D = [
-      1, 0, 0,
-      1, 0, 0,
-    ];
+    const mat3: Matrix2D = [1, 0, 0, 1, 0, 0];
 
     if (this.spanSpace[1] === 0 || this.spanView[1] === 0) {
       return mat3;
