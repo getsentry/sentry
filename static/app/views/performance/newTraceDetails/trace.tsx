@@ -380,8 +380,12 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">
-              {props.node.value.description ?? '<unknown>'}
+            <span className="TraceDescription" title={props.node.value.description}>
+              {!props.node.value.description
+                ? 'unknown'
+                : props.node.value.description.length > 100
+                  ? props.node.value.description.slice(0, 100).trim() + '\u2026'
+                  : props.node.value.description}
             </span>
             {props.node.canFetchData ? (
               <button
@@ -838,10 +842,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(0, 2px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   @keyframes showPlaceholder {
     0% {
@@ -849,10 +853,10 @@ const TraceStylingWrapper = styled('div')`
       transform: translate(-8px, 0px);
     }
     100% {
-      opacity: .7;
+      opacity: 0.7;
       transform: translate(0, 0px);
     }
-  };
+  }
 
   &.Loading {
     .TraceRow {
@@ -1011,7 +1015,7 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &::after {
-      content: "";
+      content: '';
       background-color: rgb(224, 220, 229);
       border-radius: 50%;
       height: 6px;
