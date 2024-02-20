@@ -265,7 +265,7 @@ export class TraceTree {
           }
 
           tree.indicators.push({
-            start: value.start_timestamp + value.measurements[measurement].value / 1000,
+            start: timestamp,
             duration: 0,
             node,
             type: measurement as Indicator['type'],
