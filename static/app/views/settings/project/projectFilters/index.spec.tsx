@@ -180,15 +180,15 @@ describe('ProjectFilters', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
+      'safari_pre_6',
+      'android_pre_4',
+      'edge_pre_79',
       'ie_pre_9',
       'ie9',
       'ie10',
       'ie11',
-      'safari_pre_6',
       'opera_pre_15',
       'opera_mini_pre_8',
-      'android_pre_4',
-      'edge_pre_79',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
