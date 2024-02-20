@@ -9,12 +9,8 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {
-  getAbsoluteDateTimeRange,
-  useInstantRef,
-  useUpdateQuery,
-} from 'sentry/utils/metrics';
-import {emptyWidget} from 'sentry/utils/metrics/constants';
+import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
+import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -126,6 +122,8 @@ export function useMetricWidgets() {
         ...lastWidget,
       };
 
+      newWidget.id = NO_QUERY_ID;
+
       return [...currentWidgets, newWidget];
     });
   }, [setWidgets]);
@@ -145,7 +143,9 @@ export function useMetricWidgets() {
     (index: number) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        newWidgets.splice(index, 0, currentWidgets[index]);
+        const newWidget = {...currentWidgets[index]};
+        newWidget.id = NO_QUERY_ID;
+        newWidgets.splice(index + 1, 0, newWidget);
         return newWidgets;
       });
     },
@@ -215,8 +215,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
-  const pageFilters = usePageFilters().selection;
-
   const selectedProjects = useSelectedProjects();
   const hasMetrics = useMemo(
     () =>
@@ -248,18 +246,11 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
         Sentry.metrics.increment('ddm.enhance.range-undefined');
         return;
       }
-
-      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
-      if (area.range.end < dateRange.start || area.range.start > dateRange.end) {
-        Sentry.metrics.increment('ddm.enhance.range-outside');
-        return;
-      }
-
       Sentry.metrics.increment('ddm.enhance.add');
       handleSetSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)}, {replace: true});
     },
-    [pageFilters.datetime, handleSetSelectedWidgetIndex, updateQuery]
+    [handleSetSelectedWidgetIndex, updateQuery]
   );
 
   const handleRemoveFocusArea = useCallback(() => {

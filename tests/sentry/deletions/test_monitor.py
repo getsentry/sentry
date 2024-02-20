@@ -28,7 +28,7 @@ class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         )
         monitor_env = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=env,
+            environment_id=env.id,
         )
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,

@@ -53,7 +53,7 @@ export function Queries() {
               symbol={
                 showQuerySymbols && (
                   <StyledQuerySymbol
-                    index={index}
+                    queryId={widget.id}
                     isClickable={isMultiChartMode}
                     isSelected={index === selectedWidgetIndex}
                     onClick={() => setSelectedWidgetIndex(index)}
@@ -71,9 +71,6 @@ export function Queries() {
                     query: widget.query,
                     op: widget.op,
                     groupBy: widget.groupBy,
-                    projects: selection.projects,
-                    datetime: selection.datetime,
-                    environments: selection.environments,
                   }}
                 />
               }
@@ -139,8 +136,7 @@ const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 
-const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
-`;
+const Wrapper = styled('div')<{showQuerySymbols: boolean}>``;
 
 const Row = styled('div')`
   display: contents;

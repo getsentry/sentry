@@ -31,84 +31,86 @@ export const errorConfig: IssueCategoryConfigMapping = {
 type ErrorInfo = {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp;
-  projectPlatform: PlatformKey;
+  projectPlatforms: PlatformKey[];
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
   {
     errorTitle: 'ChunkLoadError',
-    projectPlatform: 'javascript',
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR,
   },
   {
     errorTitle: /(window is not defined|document is not defined)/i,
     projectPlatform: 'javascript',
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
   {
     errorTitle: 'Invariant: attempted to hard navigate to the same URL',
-    projectPlatform: 'javascript-nextjs',
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
     errorTitle: "Module not found: Can't resolve",
-    projectPlatform: 'javascript-nextjs',
+    projectPlatforms: ['javascript-nextjs'],
+
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
   {
     errorTitle: 'Dynamic server usage',
-    projectPlatform: 'javascript-nextjs',
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
   {
     errorTitle:
       /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i,
-    projectPlatform: 'javascript-nextjs',
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
     errorTitle: 'TypeError: Load failed',
-    projectPlatform: 'javascript',
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
     errorTitle: 'Failed to fetch',
-    projectPlatform: 'javascript',
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },
   {
     errorTitle: 'socket hang up',
-    projectPlatform: 'javascript',
+    projectPlatforms: ['javascript'],
     errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
   },
   {
     errorTitle: 'Error: NextRouter was not mounted',
-    projectPlatform: 'javascript-nextjs',
+    projectPlatforms: ['javascript-nextjs'],
     errorHelpType: ErrorHelpType.NEXTJS_ROUTER_NOT_MOUNTED,
   },
   {
     errorTitle: 'UnboundLocalError',
-    projectPlatform: 'python',
+    projectPlatforms: ['python'],
     errorHelpType: ErrorHelpType.UNBOUND_LOCAL_ERROR,
   },
   {
     errorTitle: 'Error: Cannot find module',
-    projectPlatform: 'node',
+    projectPlatforms: ['node'],
     errorHelpType: ErrorHelpType.NODEJS_CANNOT_FIND_MODULE,
   },
   {
-    errorTitle: 'ModuleNotFoundError: No module named',
-    projectPlatform: 'python',
+    errorTitle: 'ImportError: No module named',
+    projectPlatforms: ['python'],
     errorHelpType: ErrorHelpType.NO_MODULE_NAMED,
   },
   {
     errorTitle: "TypeError: 'str' object does not support item assignment",
-    projectPlatform: 'python',
+    projectPlatforms: ['python'],
     errorHelpType: ErrorHelpType.STRINGS_ARE_IMMUTABLE,
   },
   {
     errorTitle: 'Invariant Violation',
-    projectPlatform: 'javascript',
+    projectPlatforms: ['javascript', 'react'],
     errorHelpType: ErrorHelpType.INVARIANT_VIOLATION_ERROR,
   },
 ];
@@ -276,7 +278,7 @@ const errorHelpTypeResourceMap: Record<
     resources: {
       description: tct(
         '[errorTypes] occur in Python applications when a variable is defined in both global and local contexts. To learn more about how to fix these errors, check out these resources:',
-        {errorTypes: <b>Unbound local errors</b>}
+        {errorTypes: <b>UnboundLocalError errors</b>}
       ),
       links: [
         {
@@ -361,7 +363,7 @@ export function getErrorHelpResource({
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const errorInfo of ErrorInfoChecks) {
-    const {errorTitle, errorHelpType, projectPlatform} = errorInfo;
+    const {errorTitle, errorHelpType, projectPlatforms} = errorInfo;
     const shouldShowCustomResource =
       typeof errorTitle === 'string'
         ? title.includes(errorTitle)
@@ -369,11 +371,12 @@ export function getErrorHelpResource({
 
     if (shouldShowCustomResource) {
       // Issues without a platform will never have a custom "Sentry Answers" resource
-      const isCorrectPlatform = (project.platform || '').includes(projectPlatform);
-      if (!isCorrectPlatform) {
-        continue;
+      for (const platform of projectPlatforms) {
+        const isCorrectPlatform = (project.platform || '').includes(platform);
+        if (isCorrectPlatform) {
+          return errorHelpTypeResourceMap[errorHelpType];
+        }
       }
-      return errorHelpTypeResourceMap[errorHelpType];
     }
   }
   return null;
