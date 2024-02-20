@@ -60,8 +60,7 @@ function getInitialFormState(selection: PageFilters): FormState {
   };
 }
 
-function getAlertPeriod(selection: PageFilters) {
-  const {period, start, end} = selection.datetime;
+function getAlertPeriod({period, start, end}: PageFilters['datetime']) {
   const inHours = statsPeriodToDays(period, start, end) * 24;
 
   switch (true) {
@@ -92,9 +91,13 @@ const TIME_WINDOWS_TO_CHECK = [
   TimeWindow.ONE_DAY,
 ];
 
-export function getAlertInterval(metricsQuery, period: TimePeriod) {
+export function getAlertInterval(
+  metricsQuery: MetricsQuery,
+  datetime: PageFilters['datetime'],
+  period: TimePeriod
+) {
   const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
-  const interval = getDDMInterval(metricsQuery.datetime, useCase);
+  const interval = getDDMInterval(datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
 
   function toInterval(timeWindow: TimeWindow) {
@@ -127,10 +130,13 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const selectedProject = projects.find(p => p.id === formState.project);
   const isFormValid = formState.project !== null;
 
-  const alertPeriod = useMemo(() => getAlertPeriod(selection), [selection]);
+  const alertPeriod = useMemo(
+    () => getAlertPeriod(selection.datetime),
+    [selection.datetime]
+  );
   const alertInterval = useMemo(
-    () => getAlertInterval(metricsQuery, alertPeriod),
-    [metricsQuery, alertPeriod]
+    () => getAlertInterval(metricsQuery, selection.datetime, alertPeriod),
+    [metricsQuery, selection.datetime, alertPeriod]
   );
 
   const alertChartQuery = pick(metricsQuery, 'mri', 'op', 'query');

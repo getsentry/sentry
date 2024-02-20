@@ -47,12 +47,11 @@ export function MetricQueryContextMenu({
 }: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
-  const {selection} = usePageFilters();
 
   const {removeWidget, duplicateWidget, widgets} = useDDMContext();
   const createAlert = useMemo(
-    () => getCreateAlert(organization, {...metricsQuery, ...selection}),
-    [metricsQuery, organization, selection]
+    () => getCreateAlert(organization, metricsQuery),
+    [metricsQuery, organization]
   );
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
