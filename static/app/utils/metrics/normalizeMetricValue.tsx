@@ -63,6 +63,35 @@ const byte2ConversionFactors = {
   exbibytes: 1024 ** 6,
 };
 
+export function getMetricConversionFunction(fromUnit: string, toUnit: string) {
+  let conversionFactors: Record<string, number> | null = null;
+
+  if (fromUnit in timeConversionFactors && toUnit in timeConversionFactors) {
+    conversionFactors = timeConversionFactors[fromUnit];
+  }
+
+  if (fromUnit in byte10ConversionFactors && toUnit in byte10ConversionFactors) {
+    conversionFactors = byte10ConversionFactors;
+  }
+
+  if (fromUnit in byte2ConversionFactors && toUnit in byte2ConversionFactors) {
+    conversionFactors = byte2ConversionFactors;
+  }
+
+  if (conversionFactors) {
+    return <T extends number | null>(value: T): T => {
+      if (!value) {
+        return value;
+      }
+
+      return ((value * timeConversionFactors[fromUnit]) /
+        timeConversionFactors[toUnit]) as T;
+    };
+  }
+
+  return <T extends number | null>(value: T): T => value;
+}
+
 export function getNormalizedMetricUnit(unit: string) {
   if (!unit) {
     return 'none';
@@ -85,15 +114,15 @@ export function getNormalizedMetricUnit(unit: string) {
 
 export function getMetricValueNormalizer(unit: string) {
   if (unit in timeConversionFactors) {
-    return (value: number | null) => value && value * timeConversionFactors[unit];
+    return getMetricConversionFunction(unit, 'millisecond');
   }
 
   if (unit in byte10ConversionFactors) {
-    return (value: number | null) => value && value * byte10ConversionFactors[unit];
+    return getMetricConversionFunction(unit, 'byte');
   }
 
   if (unit in byte2ConversionFactors) {
-    return (value: number | null) => value && value * byte2ConversionFactors[unit];
+    return getMetricConversionFunction(unit, 'byte2');
   }
 
   return (value: number | null) => value;
