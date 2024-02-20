@@ -781,6 +781,9 @@
   "sentry.sentryfunction": [
     "sentry.organization"
   ],
+  "sentry.sentryshot": [
+    "sentry.organization"
+  ],
   "sentry.servicehook": [
     "sentry.apiapplication",
     "sentry.organization",
