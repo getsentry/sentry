@@ -5,7 +5,7 @@ import os
 import subprocess
 
 from devenv import constants
-from devenv.lib import venv  # mypy: ignore
+from devenv.lib import venv  # type: ignore
 from devenv.lib import colima, config, limactl, proc, volta
 
 
