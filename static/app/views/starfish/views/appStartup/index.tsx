@@ -73,21 +73,20 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const orderby = decodeScalar(locationQuery.sort, `-count_total_starts`);
+  const appStartType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const sortCountField = `count_starts_measurements_app_start_${appStartType}`;
+  const orderby = decodeScalar(locationQuery.sort, `-${sortCountField}`);
   const newQuery: NewQuery = {
     name: '',
     fields: [
       'transaction',
       SpanMetricsField.PROJECT_ID,
-      `avg_if(measurements.app_start_cold,release,${primaryRelease})`,
-      `avg_if(measurements.app_start_cold,release,${secondaryRelease})`,
-      `avg_if(measurements.app_start_warm,release,${primaryRelease})`,
-      `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
-      `avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`,
-      `avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`,
+      `avg_if(measurements.app_start_${appStartType},release,${primaryRelease})`,
+      `avg_if(measurements.app_start_${appStartType},release,${secondaryRelease})`,
+      `avg_compare(measurements.app_start_${appStartType},release,${primaryRelease},${secondaryRelease})`,
       'count_starts(measurements.app_start_cold)',
       'count_starts(measurements.app_start_warm)',
-      'count_total_starts()',
     ],
     query: queryString,
     dataset: DiscoverDatasets.METRICS,
