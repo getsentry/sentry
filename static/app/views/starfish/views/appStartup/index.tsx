@@ -24,6 +24,7 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {AverageComparisonChart} from 'sentry/views/starfish/views/appStartup/averageComparisonChart';
+import {CountChart} from 'sentry/views/starfish/views/appStartup/countChart';
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {
@@ -61,10 +62,13 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   const router = useRouter();
 
+  const appStartType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+
   const query = new MutableSearch([
     'event.type:transaction',
     'transaction.op:ui.load',
-    'count_total_starts():>0',
+    `count_starts(measurements.app_start_${appStartType}):>0`,
     ...(additionalFilters ?? []),
   ]);
 
@@ -75,8 +79,6 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const appStartType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
   const sortCountField = `count_starts_measurements_app_start_${appStartType}`;
   const orderby = decodeScalar(locationQuery.sort, `-${sortCountField}`);
   const newQuery: NewQuery = {
@@ -222,6 +224,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
           isLoading={isReleaseEventsLoading}
           chartKey={`${appStartType}Start`}
         />
+        <CountChart chartHeight={chartHeight ?? 180} />
       </ChartContainer>
       <StyledSearchBar
         eventView={tableEventView}
@@ -262,6 +265,6 @@ const StyledSearchBar = styled(SearchBar)`
 
 const ChartContainer = styled('div')`
   display: grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 33% 33% 33%;
   gap: ${space(1)};
 `;
