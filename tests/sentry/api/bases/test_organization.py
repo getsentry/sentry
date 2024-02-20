@@ -218,6 +218,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             assert not self.has_object_perm("POST", self.org, user=user)
 
 
+@region_silo_test
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def setUp(self):
         super().setUp()
@@ -247,7 +248,8 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         self.org.flags.require_2fa = True
         self.org.save()
 
-        assert not permission.is_not_2fa_compliant(request=request, organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not permission.is_not_2fa_compliant(request=request, organization=self.org)
         assert mock_is_active_staff.call_count == 1
 
 
