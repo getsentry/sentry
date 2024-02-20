@@ -65,6 +65,10 @@ function Trace({trace, trace_id}: TraceProps) {
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
+      if (!isTransactionNode(node) && !isSpanNode(node)) {
+        throw new TypeError('Node must be a transaction or span');
+      }
+
       treeRef.current
         .zoomIn(node, value, {
           api,
