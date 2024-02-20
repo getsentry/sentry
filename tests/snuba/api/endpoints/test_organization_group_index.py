@@ -52,7 +52,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 
 
@@ -1923,6 +1923,38 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
+
+    def test_default_search(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="", expand="inbox", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event.group.id]
+
+    @with_feature("organizations:issue-priority-ui")
+    def test_default_search_with_priority(self):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event1.group.update(priority=PriorityLevel.HIGH)
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        event2.group.update(priority=PriorityLevel.LOW)
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="", expand="inbox", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
     def test_collapse_stats(self):
         event = self.store_event(
