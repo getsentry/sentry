@@ -118,10 +118,15 @@ function Sidebar() {
 
   // Avoid showing superuser UI on self-hosted instances
   const hasSuperuserSession = () => {
-    const shoulExclude = HookStore.get('component:superuser-warning-excluded')[0]?.(
+    return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
+  };
+
+  // Avoid showing superuser UI on certain organizations
+  const isExcludedOrg = () => {
+    const shouldExclude = HookStore.get('component:superuser-warning-excluded')[0]?.(
       organization
     );
-    return isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !shoulExclude;
+    return !shouldExclude;
   };
 
   useOpenOnboardingSidebar();
@@ -497,10 +502,10 @@ function Sidebar() {
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <DropdownSidebarSection isSuperuser={hasSuperuserSession()}>
+        <DropdownSidebarSection isSuperuser={hasSuperuserSession() && isExcludedOrg()}>
           <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {hasSuperuserSession() && (
+          {hasSuperuserSession() && isExcludedOrg() && (
             <Hook name="component:superuser-warning" organization={organization} />
           )}
         </DropdownSidebarSection>
