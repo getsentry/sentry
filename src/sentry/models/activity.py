@@ -42,9 +42,9 @@ class ActivityManager(BaseManager["Activity"]):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
             # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_key = group.get_event_metadata().get("initial_priority")
+            initial_priority_value = group.get_event_metadata().get("initial_priority")
             initial_priority = (
-                PriorityLevel(initial_priority_key).to_str() if initial_priority_key else None
+                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
             )
 
         prev_sig = None
