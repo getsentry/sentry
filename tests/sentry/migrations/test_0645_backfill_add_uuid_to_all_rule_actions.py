@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillAddUuidToAllRuleActions(TestMigrations):
-    migrate_from = "0647_apitoken_add_hashed_columns"
-    migrate_to = "0648_add_index_for_group_priority"
+    migrate_from = "0644_backfill_priority_for_groups"
+    migrate_to = "0645_backfill_add_uuid_to_all_rule_actions"
 
     def setup_before_migration(self, apps):
         # Create your db state here
