@@ -26,12 +26,27 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="alertrule",
-            name="monitor_type",
-            field=models.IntegerField(
-                default=sentry.incidents.models.AlertRuleMonitorType["CONTINUOUS"]
-            ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_alertrule" ADD COLUMN "monitor_type" integer NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_alertrule DROP COLUMN "monitor_type";
+                    """,
+                    hints={"tables": ["sentry_alertrule"]},
+                )
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="alertrule",
+                    name="monitor_type",
+                    field=models.IntegerField(
+                        default=sentry.incidents.models.AlertRuleMonitorType["CONTINUOUS"]
+                    ),
+                ),
+            ],
         ),
         migrations.AddField(
             model_name="snubaquery",
