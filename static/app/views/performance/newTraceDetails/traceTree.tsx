@@ -302,11 +302,9 @@ export class TraceTree {
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     spans: RawSpanType[],
-    options: {platform: string | undefined} | undefined
+    options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
-    const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(
-      options?.platform
-    );
+    const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
@@ -649,7 +647,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data, {platform: data.platform});
+      TraceTree.FromSpans(node, spans.data, {sdk: data.sdk?.name});
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);

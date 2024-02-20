@@ -344,7 +344,7 @@ describe('TraceTree', () => {
         makeSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
         makeSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
       ],
-      {platform: undefined}
+      {sdk: undefined}
     );
 
     if (!isSpanNode(node.children[0])) {
@@ -398,7 +398,7 @@ describe('TraceTree', () => {
         }),
         makeSpan({start_timestamp: 0.2, timestamp: 0.25, op: 'span', span_id: 'none'}),
       ],
-      {platform: undefined}
+      {sdk: undefined}
     );
 
     assertTransactionNode(node.children[1]);
@@ -445,7 +445,7 @@ describe('TraceTree', () => {
           span_id: 'child-transaction',
         }),
       ],
-      {platform: undefined}
+      {sdk: undefined}
     );
 
     assertTransactionNode(node.children[1]);
@@ -479,7 +479,7 @@ describe('TraceTree', () => {
           span_id: '2',
         }),
       ],
-      {platform: undefined}
+      {sdk: undefined}
     );
 
     assertSpanNode(node.children[0]);
@@ -519,10 +519,9 @@ describe('TraceTree', () => {
           span_id: '2',
         }),
       ],
-      {platform: 'javascript'}
+      {sdk: 'sentry.javascript.browser'}
     );
 
-    node.print();
     assertSpanNode(node.children[0]);
     assertSpanNode(node.children[1]);
 
