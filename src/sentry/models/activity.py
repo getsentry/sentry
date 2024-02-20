@@ -24,6 +24,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -40,10 +41,11 @@ class ActivityManager(BaseManager["Activity"]):
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
-            event_metadata = group.get_event_metadata()
             # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_key = event_metadata.get("initial_priority")
-            initial_priority = initial_priority_key.to_str() if initial_priority_key else None
+            initial_priority_key = group.get_event_metadata().get("initial_priority")
+            initial_priority = (
+                PriorityLevel(initial_priority_key).to_str() if initial_priority_key else None
+            )
 
         prev_sig = None
         sig = None
