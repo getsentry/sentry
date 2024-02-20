@@ -44,6 +44,7 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: (index: string) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
 };
 
 export function MetricWidgetCard({
@@ -57,6 +58,7 @@ export function MetricWidgetCard({
   router,
   dashboardFilters,
   renderErrorMessage,
+  showContextMenu = true,
 }: Props) {
   const metricWidgetQueries = useMemo(() => convertToMetricWidget(widget), [widget]);
 
@@ -83,7 +85,7 @@ export function MetricWidgetCard({
           </WidgetHeaderDescription>
 
           <ContextMenuWrapper>
-            {!isEditingDashboard && (
+            {showContextMenu && !isEditingDashboard && (
               <WidgetCardContextMenu
                 organization={organization}
                 widget={widget}
