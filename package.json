@@ -93,7 +93,7 @@
     "babel-loader": "^9.1.2",
     "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
-    "browserslist": "^4.22.2",
+    "browserslist": "^4.23.0",
     "buffer": "^6.0.3",
     "cbor-web": "^8.1.0",
     "classnames": "2.3.1",
