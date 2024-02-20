@@ -5,7 +5,8 @@ import os
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, limactl, proc, venv, volta
+from devenv.lib import venv  # mypy: ignore
+from devenv.lib import colima, config, limactl, proc, volta
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
