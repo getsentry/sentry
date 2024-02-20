@@ -217,3 +217,59 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
         expected = {int(span_id, 16) for span_id in span_ids}
         actual = {int(row["id"], 16) for row in response.data["data"]}
         assert actual == expected
+
+    def test_measurement_samples(self):
+        good_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        bad_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        for i, (good_span_id, bad_span_id) in enumerate(zip(good_span_ids, bad_span_ids)):
+            ts = before_now(days=i, minutes=10)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # bad span ids will not have the measurement
+            data["measurements"] = {}
+            data["contexts"]["trace"]["span_id"] = bad_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=bad_span_id,
+                timestamp=ts,
+            )
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # good span ids will have the measurement
+            data["measurements"] = {"lcp": {"value": 10}}
+            data["contexts"]["trace"]["span_id"] = good_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=good_span_id,
+                timestamp=ts,
+            )
+
+        query = {
+            "mri": "d:transactions/measurements.lcp@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in good_span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
