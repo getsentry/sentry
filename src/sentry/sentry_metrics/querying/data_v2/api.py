@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
@@ -14,6 +14,18 @@ from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransform
 from sentry.utils import metrics
 
 
+def _time_equal_within_bound(time_1: datetime, time_2: datetime, bound: timedelta) -> bool:
+    return time_2 - bound <= time_1 <= time_2 + bound
+
+
+def _within_last_7_days(start: datetime, end: datetime) -> bool:
+    current_datetime = datetime.now()
+    seven_days_ago = current_datetime - timedelta(days=7)
+    return _time_equal_within_bound(
+        time_1=start, time_2=seven_days_ago, bound=timedelta(minutes=5)
+    ) and _time_equal_within_bound(time_1=end, time_2=current_datetime, bound=timedelta(minutes=5))
+
+
 def run_metrics_queries_plan(
     metrics_queries_plan: MetricsQueriesPlan,
     start: datetime,
@@ -24,6 +36,12 @@ def run_metrics_queries_plan(
     environments: Sequence[Environment],
     referrer: str,
 ) -> Mapping[str, Any]:
+    metrics.incr(
+        key="ddm.metrics_api.queried_time_range",
+        amount=1,
+        tags={"within_last_7_days": _within_last_7_days(start, end)},
+    )
+
     # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
     # to a better data type.
     if metrics_queries_plan.is_empty():
