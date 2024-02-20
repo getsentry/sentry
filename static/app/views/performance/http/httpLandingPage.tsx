@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import styled from '@emotion/styled';
 import pickBy from 'lodash/pickBy';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -10,7 +9,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,6 +18,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {DomainsTable, isAValidSort} from 'sentry/views/performance/http/domainsTable';
 import {ThroughputChart} from 'sentry/views/performance/http/throughputChart';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -112,36 +111,43 @@ export function HTTPLandingPage() {
         <Layout.Main fullWidth>
           <FloatingFeedbackWidget />
 
-          <PaddedContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-          </PaddedContainer>
+          <ModuleLayout.Layout>
+            <ModuleLayout.Full>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </PageFilterBar>
+            </ModuleLayout.Full>
 
-          {onboardingProject && (
-            <Onboarding organization={organization} project={onboardingProject} />
-          )}
-          {!onboardingProject && (
-            <Fragment>
-              <ChartContainer>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                />
+            {onboardingProject && (
+              <Onboarding organization={organization} project={onboardingProject} />
+            )}
 
-                <DurationChart
-                  series={durationData[`avg(span.self_time)`]}
-                  isLoading={isDurationDataLoading}
-                  error={durationError}
-                />
-              </ChartContainer>
+            {!onboardingProject && (
+              <Fragment>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                  />
+                </ModuleLayout.Half>
 
-              <DomainsTable response={domainsListResponse} sort={sort} />
-            </Fragment>
-          )}
+                <ModuleLayout.Half>
+                  <DurationChart
+                    series={durationData[`avg(span.self_time)`]}
+                    isLoading={isDurationDataLoading}
+                    error={durationError}
+                  />
+                </ModuleLayout.Half>
+
+                <ModuleLayout.Full>
+                  <DomainsTable response={domainsListResponse} sort={sort} />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+          </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </React.Fragment>
@@ -152,20 +158,6 @@ const DEFAULT_SORT = {
   field: 'time_spent_percentage()' as const,
   kind: 'desc' as const,
 };
-
-const PaddedContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const ChartContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr 1fr;
-    gap: ${space(2)};
-  }
-`;
 
 const DOMAIN_TABLE_ROW_COUNT = 10;
 

@@ -36,7 +36,6 @@ import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metr
 import type {
   DdmQueryParams,
   MetricsQuery,
-  MetricsQuerySubject,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -291,9 +290,7 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
-export function getFormattedMQL(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
-
+export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
   if (!op) {
     return '';
   }
@@ -333,7 +330,7 @@ export function isFormattedMQL(mql: string) {
   return true;
 }
 
-export function getWidgetTitle(queries: MetricsQuerySubject[]) {
+export function getWidgetTitle(queries: MetricsQuery[]) {
   if (queries.length === 1) {
     return getFormattedMQL(queries[0]);
   }
