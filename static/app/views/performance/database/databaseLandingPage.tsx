@@ -154,10 +154,12 @@ export function DatabaseLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             {!onboardingProject && !isCriticalDataLoading && (
-              <NoDataMessage
-                Wrapper={AlertBanner}
-                isDataAvailable={isAnyCriticalDataAvailable}
-              />
+              <ModuleLayout.Full>
+                <NoDataMessage
+                  Wrapper={AlertBanner}
+                  isDataAvailable={isAnyCriticalDataAvailable}
+                />
+              </ModuleLayout.Full>
             )}
 
             <FloatingFeedbackWidget />
