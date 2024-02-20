@@ -44,6 +44,11 @@ class NewMetricAlertNotificationMessage(BaseNewNotificationMessage):
     trigger_action_id: int | None = None
 
     def get_validation_error(self) -> Exception | None:
+        """
+        Helper method for getting any potential validation errors based on the state of the data.
+        There are particular restrictions about the various fields, and this is to help the user check before
+        trying to instantiate a new instance in the datastore.
+        """
         if self.message_identifier is not None:
             if self.error_code is not None or self.error_code is not None:
                 return Exception(
@@ -71,7 +76,7 @@ class MetricAlertNotificationMessageRepository:
     alerts.
     """
 
-    _model: NotificationMessage = NotificationMessage
+    _model = NotificationMessage
 
     def __init__(self, logger: Logger) -> None:
         self._logger: Logger = logger
@@ -108,6 +113,7 @@ class MetricAlertNotificationMessageRepository:
                     "trigger_action_id": trigger_action_id,
                 },
             )
+            raise
 
     def create_notification_message(
         self, data: NewMetricAlertNotificationMessage
@@ -131,3 +137,4 @@ class MetricAlertNotificationMessageRepository:
                 exc_info=e,
                 extra=data.__dict__,
             )
+            raise
