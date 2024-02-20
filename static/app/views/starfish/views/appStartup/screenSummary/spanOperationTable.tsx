@@ -155,7 +155,7 @@ export function SpanOperationTable({
         spanOp: row[SpanMetricsField.SPAN_OP],
         spanGroup: row[SpanMetricsField.SPAN_GROUP],
         spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
-        spanAppStartType: row[SpanMetricsField.APP_START_TYPE],
+        appStartType: row[SpanMetricsField.APP_START_TYPE],
       };
 
       return (
