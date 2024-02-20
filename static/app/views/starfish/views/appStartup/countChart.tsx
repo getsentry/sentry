@@ -45,7 +45,11 @@ function transformData(data?: MultiSeriesEventsStats) {
   return transformedSeries;
 }
 
-export function CountChart({chartHeight}) {
+interface Props {
+  chartHeight?: number;
+}
+
+export function CountChart({chartHeight}: Props) {
   const location = useLocation();
   const pageFilter = usePageFilters();
   const {
