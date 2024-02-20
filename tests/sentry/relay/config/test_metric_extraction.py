@@ -1130,6 +1130,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
@@ -1149,7 +1150,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.sentry_user",
+                "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1165,7 +1166,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.sentry_user",
+                "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1180,6 +1181,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
@@ -1203,7 +1205,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.sentry_user",
+                "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1221,7 +1223,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.sentry_user",
+                "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
