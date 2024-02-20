@@ -38,14 +38,15 @@ describe('isOnDemandMetricWidget', () => {
     expect(_isOnDemandMetricWidget(widget(['count()'], 'platform:foo'))).toBeFalsy();
   });
 
-  it('should return false for a widget that has multiple or unsupported aggregates', () => {
+  it('should return false for a widget with freetext', () => {
     expect(
-      _isOnDemandMetricWidget(
-        widget(['count()', 'count_unique()'], 'transaction.duration:>1')
-      )
+      _isOnDemandMetricWidget(widget(['count()', 'count_unique()'], 'test123'))
     ).toBeFalsy();
+  });
+
+  it('should return true for a widget with no conditions', () => {
     expect(
-      _isOnDemandMetricWidget(widget(['apdex(100)'], 'transaction.duration:>1'))
+      _isOnDemandMetricWidget(widget(['count()', 'count_unique()'], ''))
     ).toBeFalsy();
   });
 });
