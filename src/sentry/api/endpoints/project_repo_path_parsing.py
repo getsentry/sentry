@@ -1,3 +1,5 @@
+from pathlib import PureWindowsPath
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -57,11 +59,8 @@ class PathMappingSerializer(CamelSnakeSerializer):
         # first check to see if we are even looking at the same file
         stack_path = self.initial_data["stack_path"]
 
-        if "\\" in stack_path:
-            stack_file = stack_path.split("\\")[-1]
-        else:
-            stack_file = stack_path.split("/")[-1]
-        source_file = source_url.split("/")[-1]
+        stack_file = PureWindowsPath(stack_path).name
+        source_file = PureWindowsPath(source_url).name
 
         if stack_file != source_file:
             raise serializers.ValidationError(
@@ -138,7 +137,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         is_backslash_stack_path = False
         if "\\" in stack_path:
             is_backslash_stack_path = True
-            stack_path = stack_path.replace("\\", "/")
+            stack_path = PureWindowsPath(stack_path).as_posix()
 
         repo = serializer.repo
         integration = serializer.integration
@@ -150,7 +149,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         # If stack_path used backslashes, convert forward slashes back to backslashes
         if is_backslash_stack_path:
-            stack_root = stack_root.replace("/", "\\")
+            stack_root = str(PureWindowsPath(stack_root))
 
         return self.respond(
             {

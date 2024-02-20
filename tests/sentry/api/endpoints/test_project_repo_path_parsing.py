@@ -153,7 +153,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "C:\\sentry\\",
+            "stackRoot": "C:\\sentry",
             "sourceRoot": "",
             "defaultBranch": "main",
         }
