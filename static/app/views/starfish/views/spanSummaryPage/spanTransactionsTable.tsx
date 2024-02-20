@@ -62,6 +62,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
   const {
     data: spanTransactionMetrics = [],
     meta,
+    error,
     isLoading,
     pageLinks,
   } = useSpanTransactionMetrics(
@@ -155,6 +156,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       >
         <GridEditable
           isLoading={isLoading}
+          error={error}
           data={spanTransactionsWithMetrics}
           columnOrder={getColumnOrder(span)}
           columnSortBy={[]}

@@ -74,6 +74,7 @@ interface Props {
   response: {
     data: Row[];
     isLoading: boolean;
+    error?: Error | null;
     meta?: EventsMetaType;
     pageLinks?: string;
   };
@@ -100,6 +101,7 @@ export function DomainsTable({response, sort}: Props) {
     >
       <GridEditable
         isLoading={isLoading}
+        error={response.error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
