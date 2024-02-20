@@ -76,6 +76,7 @@ def test_fix_for_issue_platform():
             "id": 880461,
             "isStaff": False,
             "name": "Josh Ferge",
+            "sentry_user": "test@test.com",
         },
         "contexts": {
             "feedback": {
