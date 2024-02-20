@@ -112,6 +112,7 @@ class EventPerformanceProblem:
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: dict[str, Any], project: Project) -> list[PerformanceProblem]:
     try:
+        # TODO: this random rollout is backwards?
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.

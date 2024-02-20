@@ -195,6 +195,7 @@ def index_urls_in_bundle(
 
 @sentry_sdk.tracing.trace
 def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
+    # TODO this rollout comparison is backwards
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
         return
 

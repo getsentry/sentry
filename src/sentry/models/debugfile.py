@@ -635,6 +635,7 @@ class DIFCache:
 
         # If this call is for proguard purposes, we probabilistically cut this function short
         # right here so we don't overload filestore.
+        # TODO this random rollout is backwards
         if features is not None:
             if "mapping" in features and random.random() >= options.get(
                 "filestore.proguard-throttle"
