@@ -2,8 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -133,7 +131,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
   }`.trim();
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
-    eventView: EventView.fromNewQueryWithLocation(
+    eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
         fields: ['transaction', 'release', ...Y_AXIS_COLS],
@@ -143,19 +141,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
         dataset: DiscoverDatasets.METRICS,
         version: 2,
       },
-      location
+      selection
     ),
     enabled: !topTransactionsLoading,
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
-
-  if (isReleasesLoading) {
-    return (
-      <LoadingContainer>
-        <LoadingIndicator />
-      </LoadingContainer>
-    );
-  }
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
@@ -220,11 +210,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
                 : '',
             },
           ]}
-          chartHeight={chartHeight ?? 180}
-          isLoading={isReleaseEventsLoading}
+          chartHeight={chartHeight}
+          isLoading={isReleaseEventsLoading || isReleasesLoading}
           chartKey={`${appStartType}Start`}
         />
-        <CountChart chartHeight={chartHeight ?? 180} />
+        <CountChart chartHeight={chartHeight} />
       </ChartContainer>
       <StyledSearchBar
         eventView={tableEventView}

@@ -120,7 +120,7 @@ export function CountChart({chartHeight}: Props) {
         chartColors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
         data={Object.values(transformedSeries)}
         height={chartHeight}
-        loading={isSeriesLoading}
+        loading={isSeriesLoading || isReleasesLoading}
         grid={{
           left: '0',
           right: '0',

@@ -119,8 +119,8 @@ export function AverageComparisonChart({chartHeight}: Props) {
             : '',
         },
       ]}
-      chartHeight={chartHeight ?? 180}
-      isLoading={isLoading}
+      chartHeight={chartHeight}
+      isLoading={isLoading || isReleasesLoading}
       chartKey={`averageStart`}
     />
   );

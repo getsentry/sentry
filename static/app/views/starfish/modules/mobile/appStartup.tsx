@@ -70,7 +70,7 @@ export default function InitializationModule() {
                   </Container>
                 </PageFiltersContainer>
                 <ErrorBoundary mini>
-                  <AppStartup chartHeight={240} />
+                  <AppStartup chartHeight={200} />
                 </ErrorBoundary>
               </Layout.Main>
             </Layout.Body>
