@@ -177,9 +177,19 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+type Indicator = {
+  duration: number;
+  label: string;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  start: number;
+  type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+};
+
+const RENDERABLE_MEASUREMENTS = ['cls', 'fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
   type: 'loading' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
+  indicators: Indicator[] = [];
 
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
     new Map();
@@ -211,6 +221,26 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetchData = true;
+
+      if ('measurements' in value) {
+        for (const measurement of RENDERABLE_MEASUREMENTS) {
+          if (!value.measurements?.[measurement]) {
+            continue;
+          }
+
+          if (value.measurements[measurement].value === 0) {
+            continue;
+          }
+
+          tree.indicators.push({
+            start: value.start_timestamp + value.measurements[measurement].value / 1000,
+            duration: 0,
+            node,
+            type: measurement as Indicator['type'],
+            label: measurement.toUpperCase(),
+          });
+        }
+      }
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -254,6 +284,7 @@ export class TraceTree {
 
     traceNode.space = [traceStart, traceEnd - traceStart];
     tree.root.space = [traceStart, traceEnd - traceStart];
+
     return tree.build();
   }
 
