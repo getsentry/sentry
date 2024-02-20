@@ -2359,43 +2359,43 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         # query by release release_1
 
-        results = self.make_query(search_filter_query="first_release:%s" % "release_1")
+        results = self.make_query(search_filter_query="first_release:release_1")
         assert set(results) == {group_a, group_b}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
-            search_filter_query="first_release:%s" % "release_1",
+            search_filter_query="first_release:release_1",
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[staging_env], search_filter_query="first_release:%s" % "release_1"
+            environments=[staging_env], search_filter_query="first_release:release_1"
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[prod_env], search_filter_query="first_release:%s" % "release_1"
+            environments=[prod_env], search_filter_query="first_release:release_1"
         )
         assert set(results) == set()
 
         # query by release release_2
 
-        results = self.make_query(search_filter_query="first_release:%s" % "release_2")
+        results = self.make_query(search_filter_query="first_release:release_2")
         assert set(results) == {group_c}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
-            search_filter_query="first_release:%s" % "release_2",
+            search_filter_query="first_release:release_2",
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[staging_env], search_filter_query="first_release:%s" % "release_2"
+            environments=[staging_env], search_filter_query="first_release:release_2"
         )
         assert set(results) == set()
 
         results = self.make_query(
-            environments=[prod_env], search_filter_query="first_release:%s" % "release_2"
+            environments=[prod_env], search_filter_query="first_release:release_2"
         )
         assert set(results) == {group_a}
 
