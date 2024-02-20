@@ -7,14 +7,10 @@ import Chart from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {getThroughputChartTitle} from 'sentry/views/starfish/views/spans/types';
 
-interface ErrorLike {
-  message?: string;
-}
-
 interface Props {
   isLoading: boolean;
   series: Series;
-  error?: ErrorLike | null;
+  error?: Error | null;
 }
 
 export function ThroughputChart({series, isLoading, error}: Props) {

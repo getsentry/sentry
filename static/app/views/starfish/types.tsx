@@ -4,11 +4,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
-export interface ErrorLike {
-  message?: string;
-  name?: string;
-}
-
 export enum StarfishType {
   BACKEND = 'backend',
   MOBILE = 'mobile',
