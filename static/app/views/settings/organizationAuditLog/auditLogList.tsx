@@ -232,7 +232,6 @@ function AuditNote({
 }
 
 type Props = {
-  access: boolean;
   entries: AuditLog[] | null;
   eventType: string | undefined;
   eventTypes: string[] | null;
@@ -243,7 +242,6 @@ type Props = {
 };
 
 function AuditLogList({
-  access,
   isLoading,
   pageLinks,
   entries,
@@ -273,7 +271,7 @@ function AuditLogList({
 
   return (
     <div>
-      {!access ? (
+      {!organization.access ? (
         <PermissionAlert />
       ) : (
         <div>
