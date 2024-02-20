@@ -1,8 +1,8 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {MRI, PageFilters} from 'sentry/types';
-import {emptyWidget} from 'sentry/utils/metrics/constants';
-import {formatMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
+import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import {MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -12,35 +12,33 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
-  return `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`;
-};
-
 export function convertToDashboardWidget(
-  metricsQuery: MetricsQuery,
+  metricQueries: MetricsQuery[],
   displayType?: MetricDisplayType
 ): Widget {
   // @ts-expect-error TODO: pass interval
   return {
-    title: getDDMWidgetName(metricsQuery),
+    title: '',
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
-    limit: !metricsQuery.groupBy?.length ? 1 : 10,
-    queries: [getWidgetQuery(metricsQuery)],
+    limit: 10,
+    queries: metricQueries.map(getWidgetQuery),
   };
 }
 
-export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams[] {
+  return widget.queries.map(query => {
+    const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
 
-  return {
-    mri: parsed.mri,
-    op: parsed.op,
-    query: query.conditions,
-    groupBy: query.columns,
-    displayType: toMetricDisplayType(widget.displayType),
-  };
+    return {
+      id: NO_QUERY_ID,
+      mri: parsed.mri,
+      op: parsed.op,
+      query: query.conditions,
+      groupBy: query.columns,
+      displayType: toMetricDisplayType(widget.displayType),
+    };
+  });
 }
 
 export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
@@ -58,7 +56,10 @@ export function toDisplayType(displayType: unknown): DisplayType {
 }
 
 export function defaultMetricWidget(selection: PageFilters) {
-  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
+  return convertToDashboardWidget(
+    [{...selection, ...emptyWidget}],
+    MetricDisplayType.LINE
+  );
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
@@ -84,12 +85,12 @@ export function encodeWidgetQuery(query) {
 }
 
 export function getWidgetAsQueryParams(
-  metricsQuery: MetricsQuery,
+  selection: PageFilters,
   urlWidgetQuery: string,
   displayType?: MetricDisplayType
 ) {
-  const {start, end, period} = metricsQuery.datetime;
-  const {projects} = metricsQuery;
+  const {start, end, period} = selection.datetime;
+  const {projects} = selection;
 
   return {
     source: DashboardWidgetSource.DDM,
@@ -98,8 +99,8 @@ export function getWidgetAsQueryParams(
     statsPeriod: period,
     defaultWidgetQuery: urlWidgetQuery,
     defaultTableColumns: [],
-    defaultTitle: getDDMWidgetName(metricsQuery),
-    environment: metricsQuery.environments,
+    defaultTitle: '',
+    environment: selection.environments,
     displayType,
     project: projects,
   };

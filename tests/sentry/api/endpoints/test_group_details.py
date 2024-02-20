@@ -211,7 +211,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             organization=self.organization,
             scopes=("project:read", "org:read", "event:write"),
         )
-        token = internal_app.installations.first().api_token
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_app,
+        )
 
         group = self.create_group(project=project)
         url = f"/api/0/issues/{group.id}/"

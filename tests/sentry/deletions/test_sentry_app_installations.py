@@ -52,8 +52,10 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
     def test_deletes_api_tokens(self):
         internal_app = self.create_internal_integration(organization=self.org)
+        api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_app
+        )
         install = SentryAppInstallation.objects.get(sentry_app_id=internal_app.id)
-        api_token = install.api_token
 
         deletions.exec_sync(install)
 
