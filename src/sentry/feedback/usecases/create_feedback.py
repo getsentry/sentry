@@ -119,6 +119,15 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
+
+    if (
+        event.get("contexts") is None
+        or event["contexts"].get("feedback") is None
+        or event["contexts"]["feedback"].get("message") is None
+    ):
+        metrics.incr("feedback.filtered", tags={"reason": "missing_context"}, sample_rate=1.0)
+        return True
+
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
         metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
         return True
