@@ -46,6 +46,8 @@ class ProjectPermission(OrganizationPermission):
 
 
 class ProjectAndStaffPermission(StaffPermissionMixin, ProjectPermission):
+    """Allows staff to access project endpoints"""
+
     pass
 
 
