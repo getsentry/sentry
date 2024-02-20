@@ -23,6 +23,7 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {AverageComparisonChart} from 'sentry/views/starfish/views/appStartup/averageComparisonChart';
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {
@@ -35,7 +36,7 @@ import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChar
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/starfish/views/screens/utils';
 
-const MAX_CHART_RELEASE_CHARS = 12;
+export const MAX_CHART_RELEASE_CHARS = 12;
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
 
@@ -200,6 +201,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
       <ChartContainer>
+        <AverageComparisonChart chartHeight={chartHeight} />
         <ScreensBarChart
           chartOptions={[
             {
