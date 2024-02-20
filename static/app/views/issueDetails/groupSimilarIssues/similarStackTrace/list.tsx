@@ -64,7 +64,7 @@ function List({
         id: item.issue.id,
         shouldBeGrouped: item.aggregate?.shouldBeGrouped,
       }))
-    : null;
+    : undefined;
 
   if (!hasResults) {
     return <Empty />;

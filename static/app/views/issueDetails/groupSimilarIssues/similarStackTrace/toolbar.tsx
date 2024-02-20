@@ -15,7 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 type Props = {
   onMerge: () => void;
   groupId?: string;
-  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string}> | null;
+  itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
   organization?: Organization;
   project?: Project;
 };
