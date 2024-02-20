@@ -1096,6 +1096,34 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
+    it('correctly adds autogrouped siblings as children under autogrouped node', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      const autoGroupedNode = root.children[0];
+      assertAutogroupedNode(autoGroupedNode);
+
+      expect(autoGroupedNode.groupCount).toBe(5);
+      expect(autoGroupedNode.children.length).toBe(5);
+    });
+
     it('autogroups when number of children is > 5', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
