@@ -368,7 +368,7 @@ function Chart({
   function getChart() {
     if (error) {
       return (
-        <ErrorPanel height={`${height}px`}>
+        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       );
