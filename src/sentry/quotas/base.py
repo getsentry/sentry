@@ -97,6 +97,7 @@ class QuotaConfig:
         limit: int | None = None,
         window=None,
         reason_code=None,
+        namespace=None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
@@ -122,6 +123,7 @@ class QuotaConfig:
         self.limit = limit
         self.window = window
         self.reason_code = reason_code
+        self.namespace = namespace
 
     @property
     def should_track(self):
@@ -494,6 +496,7 @@ class Quota(Service):
                     categories=quota.categories,
                     window=abuse_window,
                     reason_code=reason_codes[quota.scope],
+                    namespace=quota.namespace,
                 )
 
     def get_monitor_quota(self, project):
