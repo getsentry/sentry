@@ -3,7 +3,8 @@ import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
   getDDMInterval,
-  stringifyMetricWidget,
+  getFormattedMQL,
+  isFormattedMQL,
 } from 'sentry/utils/metrics';
 
 describe('getDDMInterval', () => {
@@ -58,9 +59,9 @@ describe('getDateTimeParams', () => {
   });
 });
 
-describe('stringifyMetricWidget', () => {
+describe('getFormattedMQL', () => {
   it('should format metric widget object into a string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: 'avg',
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: ['result'],
@@ -73,7 +74,7 @@ describe('stringifyMetricWidget', () => {
   });
 
   it('defaults to an empty string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: '' as MetricsOperation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
@@ -81,6 +82,41 @@ describe('stringifyMetricWidget', () => {
     });
 
     expect(result).toEqual('');
+  });
+});
+
+describe('isFormattedMQL', () => {
+  it('should return true for a valid MQL string - simple', () => {
+    const result = isFormattedMQL('avg(sentry.process_profile.symbolicate.process)');
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success}'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - groupy by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process) by result'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter and group by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success} by result'
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false for an invalid MQL string', () => {
+    const result = isFormattedMQL('not MQL string');
+
+    expect(result).toBe(false);
   });
 });
 

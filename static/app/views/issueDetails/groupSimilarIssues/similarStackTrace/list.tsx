@@ -59,6 +59,12 @@ function List({
     'similarity-embeddings'
   );
   const organization = useOrganization();
+  const itemsWouldGroup = hasSimilarityEmbeddingsFeature
+    ? itemsWithFiltered.map(item => ({
+        id: item.issue.id,
+        shouldBeGrouped: item.aggregate?.shouldBeGrouped,
+      }))
+    : undefined;
 
   if (!hasResults) {
     return <Empty />;
@@ -80,6 +86,7 @@ function List({
           groupId={groupId}
           project={project}
           organization={organization}
+          itemsWouldGroup={itemsWouldGroup}
         />
 
         <PanelBody>

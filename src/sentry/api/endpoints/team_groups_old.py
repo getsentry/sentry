@@ -17,7 +17,7 @@ from sentry.models.group import Group, GroupStatus
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team) -> Response:

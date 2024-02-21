@@ -45,7 +45,7 @@ export function MobileStarfishView() {
   const {
     isLoading: seriesIsLoading,
     data: firstReleaseSeries,
-    isError,
+    error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
@@ -185,7 +185,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
               }}
-              errored={isError}
+              error={seriesError}
             />
 
             <Spacer />
@@ -212,7 +212,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
               }}
-              errored={isError}
+              error={seriesError}
             />
           </MiniChartPanel>
         </ChartsContainerItem>
@@ -239,7 +239,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
               }}
-              errored={isError}
+              error={seriesError}
             />
 
             <Spacer />
@@ -265,7 +265,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'duration'),
               }}
-              errored={isError}
+              error={seriesError}
             />
           </MiniChartPanel>
         </ChartsContainerItem>
@@ -292,7 +292,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
               }}
-              errored={isError}
+              error={seriesError}
             />
 
             <Spacer />
@@ -318,7 +318,7 @@ export function MobileStarfishView() {
                 valueFormatter: value =>
                   tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
               }}
-              errored={isError}
+              error={seriesError}
             />
           </MiniChartPanel>
         </ChartsContainerItem>
