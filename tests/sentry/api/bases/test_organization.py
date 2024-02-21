@@ -34,6 +34,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -243,7 +244,7 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
     def test_staff_passes_2FA(self, mock_is_active_staff):
         staff_user = self.create_user(is_staff=True)
-        request = self.make_request(user=staff_user, is_staff=True)
+        request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
         permission = self.permission_cls()
         self.org.flags.require_2fa = True
         self.org.save()
