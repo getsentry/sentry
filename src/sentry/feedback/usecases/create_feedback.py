@@ -34,25 +34,25 @@ class FeedbackCreationSource(Enum):
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
 
     @classmethod
-    def new_feedback_category_values(cls) -> list[str]:
-        return [
+    def new_feedback_category_values(cls) -> set[str]:
+        return {
             c.value
             for c in [
                 cls.NEW_FEEDBACK_ENVELOPE,
                 cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
             ]
-        ]
+        }
 
     @classmethod
-    def old_feedback_category_values(cls) -> list[str]:
-        return [
+    def old_feedback_category_values(cls) -> set[str]:
+        return {
             c.value
             for c in [
                 cls.CRASH_REPORT_EMBED_FORM,
                 cls.USER_REPORT_ENVELOPE,
                 cls.USER_REPORT_DJANGO_ENDPOINT,
             ]
-        ]
+        }
 
 
 def make_evidence(feedback, source: FeedbackCreationSource):
