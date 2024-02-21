@@ -449,7 +449,7 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
-    projects = FlexibleForeignKey(
+    projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProject
     )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
