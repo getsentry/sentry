@@ -135,14 +135,10 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)
         return None
-
-    def get_organization_roles(self) -> Iterable[OrganizationRole]:
-        return []
 
     @abc.abstractmethod
     def has_role_in_organization(
