@@ -330,6 +330,50 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project
 
 
 @django_db_all
+def test_parse_replay_click_actions_not_dead(patch_rage_click_issue, default_project):
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "timeafterclickms": 5000.0,
+                        "nodeId": 59,
+                        "url": "https://www.sentry.io",
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                                "data-sentry-component": "SignUpForm",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        }
+    ]
+
+    replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
+    assert patch_rage_click_issue.delay.call_count == 0
+    assert replay_actions is None
+
+
+@django_db_all
 def test_parse_replay_rage_click_actions(default_project):
     events = [
         {
