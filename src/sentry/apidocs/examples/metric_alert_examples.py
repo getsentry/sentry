@@ -49,6 +49,7 @@ class MetricAlertExamples:
                     "dateModified": "2023-09-25T22:15:26.375126Z",
                     "dateCreated": "2023-09-25T22:15:26.375126Z",
                     "createdBy": {"id": 983948, "name": "John Doe", "email": "john.doe@sentry.io"},
+                    "monitorType": 0,
                 }
             ],
             status_codes=["200"],
@@ -160,6 +161,7 @@ class MetricAlertExamples:
                     "email": "anon@sentry.io",
                 },
                 "eventTypes": ["default", "error"],
+                "monitorType": 0,
             },
             status_codes=["200"],
             response_only=True,
@@ -204,6 +206,7 @@ class MetricAlertExamples:
                     "name": "Spongebob Squarepants",
                     "email": "spongebob.s@example.com",
                 },
+                "monitorType": 0,
             },
             status_codes=["200"],
             response_only=True,
