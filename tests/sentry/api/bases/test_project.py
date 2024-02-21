@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
 from sentry.auth.staff import is_active_staff
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -434,7 +435,7 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
     def test_staff_passes_2FA(self, mock_is_active_staff):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
-        request = self.make_request(user=staff_user, is_staff=True)
+        request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
         permission = self.permission_cls()
 
         self.organization.flags.require_2fa = True
