@@ -258,7 +258,7 @@ def adjust_sample_rates_of_projects(
     # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case of issues.
     if organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_sliding_window_org_sample_rate(
-            org_id=org_id, default_sample_rate=sample_rate
+            org_id=org_id, default_sample_rate=sample_rate, notify_missing=True
         )
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate

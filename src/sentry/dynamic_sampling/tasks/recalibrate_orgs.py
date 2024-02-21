@@ -108,7 +108,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
         # of issues.
         if organization is not None and is_sliding_window_org_enabled(organization):
             target_sample_rate = get_sliding_window_org_sample_rate(
-                org_id=org_volume.org_id, default_sample_rate=target_sample_rate
+                org_id=org_volume.org_id,
+                default_sample_rate=target_sample_rate,
+                notify_missing=True,
             )
             log_sample_rate_source(
                 org_volume.org_id,
