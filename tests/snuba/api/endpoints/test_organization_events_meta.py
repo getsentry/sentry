@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -73,6 +74,15 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
     def test_invalid_query(self):
         with self.feature(self.features):
             response = self.client.get(self.url, {"query": "is:unresolved"}, format="json")
+
+        assert response.status_code == 400, response.content
+
+    @with_feature("organizations:issue-priority-ui")
+    def test_invalid_query_priority(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
+            )
 
         assert response.status_code == 400, response.content
 
