@@ -658,7 +658,7 @@ class OrganizationMember(ReplicatedRegionModel):
         """
         member_scopes = self.get_scopes()
         if log_scopes:
-            logger.info("member.scopes", extra={"scopes": member_scopes})
+            logger.info("member.scopes", extra={"member_id": self.id, "scopes": member_scopes})
 
         return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
