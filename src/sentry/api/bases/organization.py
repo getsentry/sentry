@@ -92,6 +92,8 @@ class OrganizationPermission(SentryPermission):
 
 
 class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
+    """Allows staff to to access organization endpoints."""
+
     pass
 
 
