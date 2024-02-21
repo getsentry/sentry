@@ -5677,6 +5677,24 @@
       ]
     ]
   },
+  "sentry.sentryshot": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.sentryshot",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_sentryshot",
+    "uniques": []
+  },
   "sentry.servicehook": {
     "dangling": false,
     "foreign_keys": {
