@@ -106,6 +106,7 @@ export type IssueEventParameters = {
     parentGroupId: string;
     value: string;
     projectId?: string;
+    wouldGroup?: string;
   };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
@@ -190,7 +191,7 @@ export type IssueEventParameters = {
   };
   'issues_stream.archived': {
     action_status_details?: string;
-    action_substatus?: string;
+    action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
