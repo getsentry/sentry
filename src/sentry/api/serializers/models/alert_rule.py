@@ -244,7 +244,7 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
-            "monitorType": attrs.get("monitor_type", AlertRuleMonitorType.CONTINUOUS),
+            "monitorType": attrs.get("monitor_type", AlertRuleMonitorType.CONTINUOUS.value),
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

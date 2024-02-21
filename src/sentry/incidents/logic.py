@@ -477,7 +477,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS.value,
     **kwargs,
 ):
     """

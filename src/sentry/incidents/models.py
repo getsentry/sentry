@@ -479,7 +479,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
 
     class Meta:
         app_label = "sentry"

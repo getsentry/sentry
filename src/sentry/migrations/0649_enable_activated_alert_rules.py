@@ -45,7 +45,7 @@ class Migration(CheckedMigration):
                     model_name="alertrule",
                     name="monitor_type",
                     field=models.IntegerField(
-                        default=sentry.incidents.models.AlertRuleMonitorType["CONTINUOUS"]
+                        default=sentry.incidents.models.AlertRuleMonitorType.CONTINUOUS.value
                     ),
                 ),
             ],
