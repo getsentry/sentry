@@ -145,7 +145,6 @@ class PerformanceDetector(ABC):
             elif isinstance(
                 creation_option_value, float
             ):  # If the option is a float, we are controlling it with a rate. TODO - make all detectors use boolean
-                # TODO this rollout rate is backwards
                 return creation_option_value > random.random()
             return False
 
