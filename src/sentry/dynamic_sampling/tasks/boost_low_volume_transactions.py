@@ -2,6 +2,7 @@ from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime
 from typing import TypedDict, cast
 
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -22,7 +23,10 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
+from sentry.dynamic_sampling.rules.base import (
+    is_sliding_window_enabled,
+    is_sliding_window_org_enabled,
+)
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -37,6 +41,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
@@ -167,8 +172,17 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     # By default, we use the blended sample rate.
     sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
 
-    # We get the sample rate either directly from quotas or from boosted project sampled rate.
-    if organization is not None and is_sliding_window_org_enabled(organization):
+    # In case we have specific feature flags enabled, we will change the sample rate either basing ourselves
+    # on sliding window per project or per org. In case such calls error out, we will fall back to the blended sample
+    # rate.
+    if organization is not None and is_sliding_window_enabled(organization):
+        sample_rate = get_sliding_window_sample_rate(
+            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
+        )
+        log_sample_rate_source(
+            org_id, project_id, "boost_low_volume_transactions", "sliding_window", sample_rate
+        )
+    elif organization is not None and is_sliding_window_org_enabled(organization):
         sample_rate = get_boost_low_volume_projects_sample_rate(
             org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
         )
@@ -184,8 +198,14 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
             org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
         )
 
-    if sample_rate is None or sample_rate == 1.0:
-        # no sampling => no rebalancing
+    if sample_rate is None:
+        sentry_sdk.capture_message(
+            "Sample rate of project not found when trying to adjust the sample rates of "
+            "its transactions"
+        )
+        return
+
+    if sample_rate == 1.0:
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)

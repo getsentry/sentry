@@ -288,7 +288,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     ):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 0.8
+        get_blended_sample_rate.return_value = 1.0
+
         # Create a org
         test_org = self.create_old_organization(name="sample-org")
 
