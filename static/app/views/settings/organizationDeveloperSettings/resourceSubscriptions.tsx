@@ -50,6 +50,7 @@ export default class Subscriptions extends Component<Props> {
     }
   }
 
+  declare context: Required<React.ContextType<typeof FormContext>>;
   static contextType = FormContext;
   declare context: React.ContextType<typeof FormContext>;
 
