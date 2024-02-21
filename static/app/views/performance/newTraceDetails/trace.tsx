@@ -199,6 +199,68 @@ function RenderRow(props: {
   }
 
   if (isAutogroupedNode(props.node)) {
+    const bars: React.ReactNode[] = [];
+
+    if (isParentAutogroupedNode(props.node)) {
+      bars.push(
+        <TraceBar
+          virtualizedIndex={virtualizedIndex}
+          viewManager={props.viewManager}
+          color={props.theme.blue300}
+          node_space={props.node.space}
+        />
+      );
+    } else {
+      // Render collapsed representation of sibling autogrouping, using multiple bars for when
+      // there are gaps between siblings.
+      let start = isSpanNode(props.node.children[0])
+        ? props.node.children[0].value.start_timestamp
+        : Number.POSITIVE_INFINITY;
+      let end = isSpanNode(props.node.children[0])
+        ? props.node.children[0].value.timestamp
+        : Number.NEGATIVE_INFINITY;
+      for (let i = 0; i < props.node.children.length; i++) {
+        const node = props.node.children[i];
+        if (!isSpanNode(node)) {
+          throw new TypeError('Invalid type of autogrouped child');
+        }
+
+        const hasGap = node.value.start_timestamp > end;
+
+        if (!(hasGap || node.isLastChild)) {
+          start = Math.min(start, node.value.start_timestamp);
+          end = Math.max(end, node.value.timestamp);
+          continue;
+        }
+
+        // Render a bar for already collapsed group.
+        bars.push(
+          <TraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
+            color={props.theme.blue300}
+            node_space={[start, end - start]}
+          />
+        );
+
+        if (hasGap) {
+          // Start a new group.
+          start = node.value.start_timestamp;
+          end = node.value.timestamp;
+
+          // Render a bar if the sibling with a gap is the last sibling.
+          if (node.isLastChild) {
+            <TraceBar
+              virtualizedIndex={virtualizedIndex}
+              viewManager={props.viewManager}
+              color={props.theme.blue300}
+              node_space={[start, end - start]}
+            />;
+          }
+        }
+      }
+    }
+
     return (
       <div
         className="TraceRow Autogrouped"
@@ -253,12 +315,7 @@ function RenderRow(props: {
               props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
-          <TraceBar
-            virtualizedIndex={virtualizedIndex}
-            viewManager={props.viewManager}
-            color={pickBarColor('autogrouping')}
-            node_space={props.node.space}
-          />
+          {bars}
         </div>
       </div>
     );
