@@ -256,6 +256,7 @@ class WidgetCard extends Component<Props, State> {
       }
       return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
     }
+    // prettier-ignore
     const widgetContainsErrorFields = widget.queries.some(
       ({columns, aggregates, conditions}) =>
         ERROR_FIELDS.some(
@@ -434,12 +435,14 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
+  // prettier-ignore
   const widgetContainsHighCardinality = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(
         d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
       )
   );
+  // prettier-ignore
   const widgetReachedSpecLimit = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(
