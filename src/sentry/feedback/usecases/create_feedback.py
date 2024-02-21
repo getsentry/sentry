@@ -218,7 +218,15 @@ def validate_issue_platform_event_schema(event_data):
     """
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+        logger.warning(
+            "invalid event data for issue platform event payload schema",
+            extra={"event_data": event_data},
+        )
     except jsonschema.exceptions.ValidationError:
+        logger.warning(
+            "invalid event data for issue platform event payload legacy schema",
+            extra={"event_data": event_data},
+        )
         jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
 
 
