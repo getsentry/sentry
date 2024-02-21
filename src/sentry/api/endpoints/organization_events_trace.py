@@ -725,7 +725,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                     )
                 except Exception as err:
                     sentry_sdk.capture_exception(err)
-                    raise ParseError(detail=str(err))
+                    raise ParseError(detail="augment error")
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
