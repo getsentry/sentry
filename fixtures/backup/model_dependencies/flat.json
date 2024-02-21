@@ -62,6 +62,10 @@
     "sentry.alertrule",
     "sentry.project"
   ],
+  "sentry.alertruleproject": [
+    "sentry.alertrule",
+    "sentry.project"
+  ],
   "sentry.alertruletrigger": [
     "sentry.alertrule"
   ],
