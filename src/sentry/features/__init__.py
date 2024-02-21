@@ -254,7 +254,6 @@ default_manager.add("organizations:slack-overage-notifications", OrganizationFea
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-flat-file-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-upload-release-as-artifact-bundle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:spike-protection-decay-heuristic", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:stacktrace-processing-caching", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:starfish-aggregate-span-waterfall", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
