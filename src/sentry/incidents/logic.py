@@ -478,7 +478,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS.value,
+    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     **kwargs,
 ):
     """
@@ -552,7 +552,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,
             team_id=actor.team_id if actor else None,
-            monitor_type=monitor_type,
+            monitor_type=monitor_type.value,
         )
 
         if user:
