@@ -292,13 +292,7 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners: Sequence[
-                                tuple[
-                                    Rule,
-                                    Sequence[Team | RpcUser],
-                                    str,
-                                ]
-                            ] = []
+                            issue_owners: Sequence[tuple[Rule, Sequence[Team | RpcUser], str]] = []
                         else:
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 

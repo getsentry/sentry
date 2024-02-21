@@ -195,8 +195,8 @@ class GroupOwner(Model):
     @classmethod
     def invalidate_assignee_exists_cache(cls, project_id, group_id=None):
         """
-        If `group_id` is provided, clear the invalidate assignee exists cache for that group, else
-        clear the cache of all groups for a project hat had an event within the
+        If `group_id` is provided, clear the assignee exists cache for that group, else
+        clear the cache of all groups for a project that had an event within the
         ASSIGNEE_EXISTS_DURATION window.
         """
         if group_id:
