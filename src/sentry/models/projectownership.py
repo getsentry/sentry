@@ -106,7 +106,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> tuple[Sequence[ActorTuple], Sequence[Rule] | None]:
+    ) -> tuple[_Everyone | Sequence[ActorTuple], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
