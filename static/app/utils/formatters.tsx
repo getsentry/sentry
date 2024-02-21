@@ -64,6 +64,9 @@ export const DAY = 86400000;
 export const HOUR = 3600000;
 export const MINUTE = 60000;
 export const SECOND = 1000;
+export const MILLISECOND = 1;
+export const MICROSECOND = 0.001;
+export const NANOSECOND = 0.000001;
 
 /**
  * Returns a human redable duration rounded to the largest unit.

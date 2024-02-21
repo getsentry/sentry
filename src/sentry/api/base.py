@@ -391,7 +391,9 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=f"{type(self).__name__}.{handler.__name__}",
+                description=".".join(
+                    getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
+                ),
             ) as span:
                 with rpcmetrics.wrap_sdk_span(span):
                     response = handler(request, *args, **kwargs)
@@ -569,7 +571,7 @@ class StatsMixin:
             if end_s:
                 end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=timezone.utc)
+                end = datetime.now(timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 

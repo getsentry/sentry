@@ -17,7 +17,7 @@ type InputFieldProps = FormField['props'] & {
 /**
  * @deprecated Do not use this
  */
-class InputField<
+abstract class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state'],
 > extends FormField<Props, State> {
@@ -49,9 +49,7 @@ class InputField<
     return 'control-group';
   }
 
-  getType(): string {
-    throw new Error('Must be implemented by child.');
-  }
+  abstract getType(): string;
 }
 
 export default InputField;

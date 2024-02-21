@@ -188,7 +188,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {}
 
 
-def plugin_is_regression(group: Group, event: Event) -> bool:
+def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
         result = safe_execute(
@@ -1146,7 +1146,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 @metrics.wraps("save_event.nodestore_save_many")
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
-    inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    inserted_time = datetime.now(timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
         subkeys = {}
@@ -1378,7 +1378,6 @@ def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> G
         group_info = _save_aggregate_new(
             event=event,
             job=job,
-            release=job["release"],
             metric_tags=metric_tags,
         )
     else:
@@ -1626,7 +1625,6 @@ def _save_aggregate(
 def _save_aggregate_new(
     event: Event,
     job: Job,
-    release: Release | None,
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
@@ -1650,57 +1648,54 @@ def _save_aggregate_new(
     if existing_grouphash is None:
         check_for_group_creation_load_shed(project, event)
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
             span.set_tag("create_group_transaction.outcome", "no_group")
-            metric_tags["create_group_transaction.outcome"] = "no_group"
+            metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
 
+            # If we're in this branch, we checked our grouphashes and didn't find one with a group
+            # attached. We thus want to create a new group, but we need to guard against another
+            # event with the same hash coming in before we're done here and also thinking it needs
+            # to create a new group. To prevent this, we're using double-checked locking
+            # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+            # hashed) event is also in the process of creating a group and has grabbed the lock
+            # before us, we'll block here until it's done. If not, we've now got the lock and other
+            # identically-hashed events will have to wait for us.
             grouphashes = list(
                 GroupHash.objects.filter(
                     id__in=[h.id for h in grouphashes],
                 ).select_for_update()
             )
 
+            # Now check again to see if any of our grouphashes have a group. In the first race
+            # condition scenario above, we'll have been blocked long enough for the other event to
+            # have created the group and updated our grouphashes with a group id, which means this
+            # time, we'll find something.
             existing_grouphash = find_existing_grouphash_new(grouphashes)
 
+            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+            # the group.
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_processing_kwargs)
 
-                if (
-                    features.has("projects:first-event-severity-calculation", event.project)
-                    and group.data.get("metadata", {}).get("severity") is None
-                ):
-                    logger.error(
-                        "Group created without severity score",
-                        extra={
-                            "event_id": event.data["event_id"],
-                            "group_id": group.id,
-                        },
-                    )
-
                 add_group_id_to_grouphashes(group, grouphashes)
 
-                is_new = True
-                is_regression = False
-
                 span.set_tag("create_group_transaction.outcome", "new_group")
-                metric_tags["create_group_transaction.outcome"] = "new_group"
+                metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
 
                 record_new_group_metrics(event)
 
-                return GroupInfo(group, is_new, is_regression)
+                return GroupInfo(group=group, is_new=True, is_regression=False)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
 
     if check_for_category_mismatch(group):
         return None
-
-    is_new = False
 
     # There may still be secondary hashes that we did not use to find an
     # existing group. A classic example is when grouping makes changes to
@@ -1732,10 +1727,10 @@ def _save_aggregate_new(
         group=group,
         event=event,
         incoming_group_values=group_processing_kwargs,
-        release=release,
+        release=job["release"],
     )
 
-    return GroupInfo(group, is_new, is_regression)
+    return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
@@ -1781,7 +1776,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Release | None) -> bool | None:
+def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1924,7 +1919,10 @@ def _handle_regression(group: Group, event: Event, release: Release | None) -> b
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Release | None
+    group: Group,
+    event: BaseEvent,
+    incoming_group_values: Mapping[str, Any],
+    release: Release | None,
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values: dict[str, Any] = {"last_seen": last_seen}
@@ -2372,7 +2370,7 @@ def save_attachment(
     if start_time is not None:
         timestamp = to_datetime(start_time)
     else:
-        timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+        timestamp = datetime.now(timezone.utc)
 
     try:
         attachment.data

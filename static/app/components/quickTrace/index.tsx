@@ -99,9 +99,7 @@ export default function QuickTrace({
     return noTrace;
   }
 
-  const traceLength =
-    (quickTrace.trace && quickTrace.trace.length) ||
-    (quickTrace.orphanErrors && quickTrace.orphanErrors.length);
+  const traceLength = quickTrace.trace?.length || quickTrace.orphanErrors?.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];

@@ -16,6 +16,7 @@ from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
+    ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -398,7 +399,7 @@ def _convert_snuba_query_to_metrics(
 
 def convert_widget_query_to_metric(
     project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
-) -> Sequence[HashedMetricSpec]:
+) -> list[HashedMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
@@ -408,39 +409,53 @@ def convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    for aggregate in widget_query.aggregates:
-        metrics.incr(
-            "on_demand_metrics.before_widget_spec_generation",
-            tags={"prefilling": prefilling},
-        )
-        if results := _convert_aggregate_and_query_to_metrics(
-            project,
-            # there is an internal check to make sure we extract metrics only for performance dataset
-            # however widgets do not have a dataset field, so we need to pass it explicitly
-            Dataset.PerformanceMetrics.value,
-            aggregate,
-            widget_query.conditions,
-            None,
-            prefilling,
-            groupbys=widget_query.columns,
-            spec_type=MetricSpecType.DYNAMIC_QUERY,
-        ):
-            for spec in results:
-                _log_on_demand_metric_spec(
-                    project_id=project.id,
-                    spec_for="widget",
-                    spec=spec,
-                    id=widget_query.id,
-                    field=aggregate,
-                    query=widget_query.conditions,
-                    prefilling=prefilling,
-                )
-                metrics.incr(
-                    "on_demand_metrics.on_demand_spec.for_widget",
-                    tags={"prefilling": prefilling},
-                )
-                metrics_specs.append(spec)
+    aggregates = widget_query.aggregates
+    groupbys = widget_query.columns
 
+    for aggregate in aggregates:
+        metrics_specs += _generate_metric_specs(
+            aggregate, widget_query, project, prefilling, groupbys
+        )
+
+    return metrics_specs
+
+
+def _generate_metric_specs(
+    aggregate: str,
+    widget_query: DashboardWidgetQuery,
+    project: Project,
+    prefilling: bool,
+    groupbys: Sequence[str] | None = None,
+) -> list[HashedMetricSpec]:
+    metrics_specs = []
+    metrics.incr("on_demand_metrics.before_widget_spec_generation")
+    if results := _convert_aggregate_and_query_to_metrics(
+        project,
+        # there is an internal check to make sure we extract metrics only for performance dataset
+        # however widgets do not have a dataset field, so we need to pass it explicitly
+        Dataset.PerformanceMetrics.value,
+        aggregate,
+        widget_query.conditions,
+        None,
+        prefilling,
+        groupbys=groupbys,
+        spec_type=MetricSpecType.DYNAMIC_QUERY,
+    ):
+        for spec in results:
+            _log_on_demand_metric_spec(
+                project_id=project.id,
+                spec_for="widget",
+                spec=spec,
+                id=widget_query.id,
+                field=aggregate,
+                query=widget_query.conditions,
+                prefilling=prefilling,
+            )
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.for_widget",
+                tags={"prefilling": prefilling},
+            )
+            metrics_specs.append(spec)
     return metrics_specs
 
 
@@ -515,12 +530,6 @@ def _can_widget_query_use_stateful_extraction(
 
     if set(spec_hashes) != set(on_demand_hashes):
         # Spec hashes should match.
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("spec_hashes", spec_hashes)
-            scope.set_extra("on_demand_hashes", on_demand_hashes)
-            scope.set_extra("spec_entries", metrics_specs)
-            scope.set_extra("on_demand_entries", on_demand_entries)
-            sentry_sdk.capture_message(f"Hashes don't match for widget_query: {widget_query.id}")
         metrics.incr(
             "on_demand_metrics.on_demand_spec.failed_on_demand_hashes",
             amount=len(metrics_specs),
@@ -1427,6 +1436,29 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     )
 
     return rules
+
+
+def get_current_widget_specs(organization):
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    widget_specs = DashboardWidgetQueryOnDemand.objects.filter(
+        spec_version=current_version.version,
+        dashboard_widget_query__widget__dashboard__organization=organization,
+        extraction_state__startswith=ON_DEMAND_ENABLED_KEY,
+    ).values_list("spec_hashes", flat=True)
+    current_widget_specs: set[str] = set()
+    for spec_list in widget_specs:
+        current_widget_specs = current_widget_specs.union(spec_list)
+    return current_widget_specs
+
+
+def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    new_widget_specs = {
+        widget_hash for widget_hash, _, spec_version in new_specs if spec_version == current_version
+    }
+
+    max_widget_specs = get_max_widget_specs(organization)
+    return len(current_widget_specs.union(new_widget_specs)) > max_widget_specs
 
 
 HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)

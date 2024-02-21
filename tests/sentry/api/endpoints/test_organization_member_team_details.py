@@ -398,9 +398,12 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
     def test_integration_token_needs_elevated_permissions(self):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["org:read"]
+        )
         # Integration tokens with org:read should generate an access request when open membership is off
         integration_token = self.create_internal_integration_token(
-            user=self.user, org=self.org, scopes=["org:read"]
+            user=self.user, internal_integration=internal_integration
         )
 
         self.get_success_response(

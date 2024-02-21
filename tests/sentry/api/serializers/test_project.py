@@ -28,7 +28,6 @@ from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
@@ -37,7 +36,6 @@ TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -188,37 +186,6 @@ class ProjectSerializerTest(TestCase):
             assert result["hasAccess"] is True
             assert result["isMember"] is False
 
-    def test_member_on_owner_team(self):
-        organization = self.create_organization()
-        manager_team = self.create_team(organization=organization, org_role="manager")
-        owner_team = self.create_team(organization=organization, org_role="owner")
-        self.create_member(
-            user=self.user,
-            organization=self.organization,
-            role="member",
-            teams=[manager_team, owner_team],
-        )
-
-        result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        result = serialize(self.project, self.user)
-        # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is False
-
-        self.create_team_membership(user=self.user, team=self.team)
-        result = serialize(self.project, self.user)
-        # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
-        assert result["hasAccess"] is True
-        assert result["isMember"] is True
-
     @mock.patch("sentry.features.batch_has")
     def test_project_batch_has(self, mock_batch):
         mock_batch.return_value = {
@@ -297,7 +264,6 @@ class ProjectSerializerTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -318,7 +284,6 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
@@ -688,7 +653,6 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -705,7 +669,6 @@ class ProjectWithOrganizationSerializerTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -743,7 +706,6 @@ class DetailedProjectSerializerTest(TestCase):
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("organizations:cleanup-project-serializer")
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):

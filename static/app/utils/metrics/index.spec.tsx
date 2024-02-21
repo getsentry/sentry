@@ -1,206 +1,11 @@
-import type {
-  MetricsApiRequestQueryOptions,
-  MetricsOperation,
-  PageFilters,
-} from 'sentry/types';
+import type {MetricsOperation} from 'sentry/types';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
   getDDMInterval,
-  getMetricsApiRequestQuery,
-  stringifyMetricWidget,
+  getFormattedMQL,
+  isFormattedMQL,
 } from 'sentry/utils/metrics';
-
-describe('getMetricsApiRequestQuery', () => {
-  it('should return the correct query object with default values', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-31', period: null, utc: true},
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters);
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-31T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: 'sessions',
-      useCase: 'custom',
-      interval: '2h',
-      groupBy: ['project'],
-      orderBy: '-sessions',
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should return the correct query object with default values (period)', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {period: '7d', utc: true} as PageFilters['datetime'],
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters);
-
-    expect(result).toEqual({
-      statsPeriod: '7d',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: 'sessions',
-      useCase: 'custom',
-      interval: '30m',
-      groupBy: ['project'],
-      orderBy: '-sessions',
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should return the correct query object with overridden values', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters, {groupBy: ['environment']});
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-02T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: 'sessions',
-      useCase: 'custom',
-      interval: '5m',
-      groupBy: ['environment'],
-      orderBy: '-sessions',
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should not add a default orderBy if one is already present', () => {
-    const metric = {
-      field: 'sessions',
-      query: 'error',
-      groupBy: ['project'],
-      orderBy: 'foo',
-    };
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters);
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-02T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: 'sessions',
-      useCase: 'custom',
-      interval: '5m',
-      groupBy: ['project'],
-      orderBy: 'foo',
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should not add a default orderBy if there are no groups', () => {
-    const metric = {
-      field: 'sessions',
-      query: 'error',
-      groupBy: [],
-    };
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters);
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-02T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: 'sessions',
-      useCase: 'custom',
-      interval: '5m',
-      groupBy: [],
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should not add a default orderBy if there is no field', () => {
-    const metric = {
-      field: '',
-      query: 'error',
-      groupBy: [],
-    };
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
-    };
-
-    const result = getMetricsApiRequestQuery(metric, filters);
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-02T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: '',
-      useCase: 'custom',
-      interval: '5m',
-      groupBy: [],
-      useNewMetricsLayer: true,
-    });
-  });
-
-  it('should not add all overrides into the request', () => {
-    const metric = {
-      field: '',
-      query: 'error',
-      groupBy: [],
-    };
-    const filters = {
-      projects: [1],
-      environments: ['production'],
-      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
-    };
-    const overrides: MetricsApiRequestQueryOptions = {intervalLadder: 'ddm'};
-
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
-
-    expect(result).toEqual({
-      start: '2023-01-01T00:00:00.000Z',
-      end: '2023-01-02T00:00:00.000Z',
-      query: 'error',
-      project: [1],
-      environment: ['production'],
-      field: '',
-      useCase: 'custom',
-      interval: '5m',
-      groupBy: [],
-      useNewMetricsLayer: true,
-    });
-  });
-});
 
 describe('getDDMInterval', () => {
   it('should return the correct interval for non-"1m" intervals', () => {
@@ -254,9 +59,9 @@ describe('getDateTimeParams', () => {
   });
 });
 
-describe('stringifyMetricWidget', () => {
+describe('getFormattedMQL', () => {
   it('should format metric widget object into a string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: 'avg',
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: ['result'],
@@ -269,7 +74,7 @@ describe('stringifyMetricWidget', () => {
   });
 
   it('defaults to an empty string', () => {
-    const result = stringifyMetricWidget({
+    const result = getFormattedMQL({
       op: '' as MetricsOperation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
@@ -277,6 +82,41 @@ describe('stringifyMetricWidget', () => {
     });
 
     expect(result).toEqual('');
+  });
+});
+
+describe('isFormattedMQL', () => {
+  it('should return true for a valid MQL string - simple', () => {
+    const result = isFormattedMQL('avg(sentry.process_profile.symbolicate.process)');
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success}'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - groupy by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process) by result'
+    );
+
+    expect(result).toBe(true);
+  });
+  it('should return true for a valid MQL string - filter and group by', () => {
+    const result = isFormattedMQL(
+      'avg(sentry.process_profile.symbolicate.process){result:success} by result'
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false for an invalid MQL string', () => {
+    const result = isFormattedMQL('not MQL string');
+
+    expect(result).toBe(false);
   });
 });
 

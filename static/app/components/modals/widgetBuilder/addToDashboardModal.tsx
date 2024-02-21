@@ -26,7 +26,7 @@ import type {
   DashboardListItem,
   Widget,
 } from 'sentry/views/dashboards/types';
-import {DisplayType, MAX_WIDGETS} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_WIDGETS, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   getDashboardFiltersFromURL,
@@ -51,6 +51,11 @@ type WidgetAsQueryParams = Query<{
   statsPeriod?: string | null;
 }>;
 
+type AddToDashboardModalActions =
+  | 'add-and-open-dashboard'
+  | 'add-and-stay-on-current-page'
+  | 'open-in-widget-builder';
+
 export type AddToDashboardModalProps = {
   location: Location;
   organization: Organization;
@@ -58,11 +63,17 @@ export type AddToDashboardModalProps = {
   selection: PageFilters;
   widget: Widget;
   widgetAsQueryParams: WidgetAsQueryParams;
+  actions?: AddToDashboardModalActions[];
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
+
+const DEFAULT_ACTIONS: AddToDashboardModalActions[] = [
+  'add-and-stay-on-current-page',
+  'open-in-widget-builder',
+];
 
 function AddToDashboardModal({
   Header,
@@ -75,6 +86,7 @@ function AddToDashboardModal({
   selection,
   widget,
   widgetAsQueryParams,
+  actions = DEFAULT_ACTIONS,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -123,11 +135,13 @@ function AddToDashboardModal({
     };
   }, [api, organization.slug, selectedDashboardId]);
 
-  function handleGoToBuilder() {
-    const pathname =
+  function goToDashboard(page: 'builder' | 'preview') {
+    const dashboardsPath =
       selectedDashboardId === NEW_DASHBOARD_ID
-        ? `/organizations/${organization.slug}/dashboards/new/widget/new/`
-        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/widget/new/`;
+        ? `/organizations/${organization.slug}/dashboards/new/`
+        : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
+
+    const pathname = page === 'builder' ? `${dashboardsPath}widget/new/` : dashboardsPath;
 
     router.push(
       normalizeUrl({
@@ -141,7 +155,7 @@ function AddToDashboardModal({
     closeModal();
   }
 
-  async function handleAddAndStayOnCurrentPage() {
+  async function handleAddWidget() {
     if (selectedDashboard === null) {
       return;
     }
@@ -152,9 +166,15 @@ function AddToDashboardModal({
     }
     const query = widget.queries[0];
 
+    const title =
+      // Metric widgets have their default title derived from the query
+      widget.title === '' && widget.widgetType !== WidgetType.METRICS
+        ? t('All Events')
+        : widget.title;
+
     const newWidget = {
       ...widget,
-      title: widget.title === '' ? t('All Events') : widget.title,
+      title,
       queries: [{...query, orderby}],
     };
 
@@ -164,9 +184,19 @@ function AddToDashboardModal({
     };
 
     await updateDashboard(api, organization.slug, newDashboard);
+  }
+
+  async function handleAddAndStayOnCurrentPage() {
+    await handleAddWidget();
 
     closeModal();
     addSuccessMessage(t('Successfully added widget to dashboard'));
+  }
+
+  async function handleAddAndOpenDaashboard() {
+    await handleAddWidget();
+
+    goToDashboard('preview');
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -228,6 +258,7 @@ function AddToDashboardModal({
                 <WidgetCard
                   organization={organization}
                   isEditingDashboard={false}
+                  showContextMenu={false}
                   widgetLimitReached={false}
                   selection={
                     selectedDashboard
@@ -248,21 +279,34 @@ function AddToDashboardModal({
 
       <Footer>
         <StyledButtonBar gap={1.5}>
-          <Button
-            onClick={handleAddAndStayOnCurrentPage}
-            disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
-          >
-            {t('Add + Stay on this Page')}
-          </Button>
-          <Button
-            priority="primary"
-            onClick={handleGoToBuilder}
-            disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
-          >
-            {t('Open in Widget Builder')}
-          </Button>
+          {actions.includes('add-and-stay-on-current-page') && (
+            <Button
+              onClick={handleAddAndStayOnCurrentPage}
+              disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Add + Stay on this Page')}
+            </Button>
+          )}
+          {actions.includes('add-and-open-dashboard') && (
+            <Button
+              onClick={handleAddAndOpenDaashboard}
+              disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Add + Open Dashboard')}
+            </Button>
+          )}
+          {actions.includes('open-in-widget-builder') && (
+            <Button
+              priority="primary"
+              onClick={() => goToDashboard('builder')}
+              disabled={!canSubmit}
+              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            >
+              {t('Open in Widget Builder')}
+            </Button>
+          )}
         </StyledButtonBar>
       </Footer>
     </OrganizationContext.Provider>

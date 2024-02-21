@@ -28,9 +28,7 @@ from sentry.utils.snuba import (
 
 class SnubaUtilsTest(TestCase):
     def setUp(self):
-        self.now = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+        self.now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
         self.proj1group1 = self.create_group(self.proj1)

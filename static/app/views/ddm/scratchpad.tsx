@@ -4,18 +4,27 @@ import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {useGetCachedChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
 import type {Sample} from './widget';
 import {MetricWidget} from './widget';
+
+function widgetToQuery(widget: MetricWidgetQueryParams): MetricsQueryApiQueryParams {
+  return {
+    mri: widget.mri,
+    op: widget.op,
+    groupBy: widget.groupBy,
+    query: widget.query,
+  };
+}
 
 export function MetricScratchpad() {
   const {
@@ -26,6 +35,7 @@ export function MetricScratchpad() {
     showQuerySymbols,
     highlightedSampleId,
     focusArea,
+    isMultiChartMode,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -62,33 +72,61 @@ export function MetricScratchpad() {
     [projects, router, organization]
   );
 
+  const firstWidget = widgets[0];
+
   const Wrapper =
-    widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
+    !isMultiChartMode || widgets.length === 1
+      ? StyledSingleWidgetWrapper
+      : StyledMetricDashboard;
 
   return (
     <Wrapper>
-      {widgets.map((widget, index) => (
+      {isMultiChartMode ? (
+        widgets.map((widget, index) => (
+          <MetricWidget
+            key={index}
+            index={index}
+            getChartPalette={getChartPalette}
+            onSelect={setSelectedWidgetIndex}
+            displayType={widget.displayType}
+            focusedSeries={widget.focusedSeries}
+            tableSort={widget.sort}
+            queries={[widgetToQuery(widget)]}
+            isSelected={selectedWidgetIndex === index}
+            hasSiblings={widgets.length > 1}
+            onChange={handleChange}
+            filters={selection}
+            focusArea={focusArea}
+            showQuerySymbols={showQuerySymbols}
+            onSampleClick={handleSampleClick}
+            chartHeight={200}
+            highlightedSampleId={
+              selectedWidgetIndex === index ? highlightedSampleId : undefined
+            }
+            context="ddm"
+          />
+        ))
+      ) : (
         <MetricWidget
-          key={index}
-          index={index}
+          index={0}
           getChartPalette={getChartPalette}
           onSelect={setSelectedWidgetIndex}
-          isSelected={selectedWidgetIndex === index}
-          hasSiblings={widgets.length > 1}
+          displayType={firstWidget.displayType}
+          focusedSeries={firstWidget.focusedSeries}
+          tableSort={firstWidget.sort}
+          queries={widgets.map(widgetToQuery)}
+          isSelected
+          hasSiblings={false}
           onChange={handleChange}
-          widget={widget}
-          datetime={selection.datetime}
-          projects={selection.projects}
-          environments={selection.environments}
+          filters={selection}
           focusArea={focusArea}
-          showQuerySymbols={showQuerySymbols}
+          showQuerySymbols={false}
           onSampleClick={handleSampleClick}
-          chartHeight={hasDDMExperimentalFeature(organization) ? 200 : 300}
-          highlightedSampleId={
-            selectedWidgetIndex === index ? highlightedSampleId : undefined
-          }
+          chartHeight={200}
+          highlightedSampleId={highlightedSampleId}
+          context="ddm"
         />
-      ))}
+      )}
     </Wrapper>
   );
 }

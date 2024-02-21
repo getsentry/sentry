@@ -23,7 +23,7 @@ class TestCreatorInternal(TestCreatorBase):
     def setUp(self):
         super().setUp()
 
-        # will create the installation and the first token
+        # Create the internal integration (NOTE: This no longer creates an initial token as well)
         self.sentry_app = self.create_internal_integration(
             name="internal_app", organization=self.org
         )
@@ -41,12 +41,10 @@ class TestCreatorInternal(TestCreatorBase):
         # verify token was created properly
         assert api_token.expires_at is None
 
-        # check we have two tokens
         sentry_app_installation_tokens = SentryAppInstallationToken.objects.filter(
             sentry_app_installation=self.sentry_app_installation
         )
-
-        assert len(sentry_app_installation_tokens) == 2
+        assert len(sentry_app_installation_tokens) == 1
 
         assert not create_audit_entry.called
 

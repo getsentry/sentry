@@ -23,7 +23,8 @@
         "useIsNan": "error"
       },
       "complexity": {
-        "useFlatMap": "error"
+        "useFlatMap": "error",
+        "useOptionalChain": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
@@ -78,7 +79,7 @@
   },
   "javascript": {
     "formatter": {
-      "enabled": true,
+      "enabled": false,
       "lineWidth": 90,
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",

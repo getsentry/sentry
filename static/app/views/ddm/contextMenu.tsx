@@ -28,6 +28,7 @@ import {
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {CreateAlertModal} from 'sentry/views/ddm/createAlertModal';
@@ -46,6 +47,7 @@ export function MetricQueryContextMenu({
 }: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
+
   const {removeWidget, duplicateWidget, widgets} = useDDMContext();
   const createAlert = useMemo(
     () => getCreateAlert(organization, metricsQuery),
@@ -200,7 +202,7 @@ export function useCreateDashboardWidget(
   displayType?: MetricDisplayType
 ) {
   const router = useRouter();
-  const {projects, environments, datetime} = metricsQuery;
+  const {selection} = usePageFilters();
 
   return useMemo(() => {
     if (!metricsQuery.mri || !metricsQuery.op || isCustomMeasurement(metricsQuery)) {
@@ -210,7 +212,7 @@ export function useCreateDashboardWidget(
     const widgetQuery = getWidgetQuery(metricsQuery);
     const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
     const widgetAsQueryParams = getWidgetAsQueryParams(
-      metricsQuery,
+      selection,
       urlWidgetQuery,
       displayType
     );
@@ -218,17 +220,14 @@ export function useCreateDashboardWidget(
     return () =>
       openAddToDashboardModal({
         organization,
-        selection: {
-          projects,
-          environments,
-          datetime,
-        },
-        widget: convertToDashboardWidget(metricsQuery, displayType),
+        selection,
+        widget: convertToDashboardWidget([metricsQuery], displayType),
         router,
         widgetAsQueryParams,
         location: router.location,
+        actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
       });
-  }, [metricsQuery, datetime, displayType, environments, organization, projects, router]);
+  }, [metricsQuery, selection, displayType, organization, router]);
 }
 
 const AddToDashboardItem = styled('div')<{disabled: boolean}>`
