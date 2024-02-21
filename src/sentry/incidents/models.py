@@ -427,7 +427,7 @@ class AlertRuleProject(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    project = FlexibleForeignKey("sentry.Project")
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
