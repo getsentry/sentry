@@ -57,12 +57,12 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> &
-  WithRouteAnalyticsProps & {
-    organization: Organization;
-    releaseMeta: ReleaseMeta;
-    selection: PageFilters;
-  };
+interface Props extends RouteComponentProps<RouteParams, {}>, WithRouteAnalyticsProps {
+  children: React.ReactNode;
+  organization: Organization;
+  releaseMeta: ReleaseMeta;
+  selection: PageFilters;
+}
 
 type State = {
   deploys: Deploy[];
