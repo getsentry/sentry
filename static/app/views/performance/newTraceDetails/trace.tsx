@@ -3,6 +3,7 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Omit} from 'framer-motion/types/types';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -28,7 +29,6 @@ import {
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
-import type {Omit} from 'framer-motion/types/types';
 
 interface TraceProps {
   trace: TraceTree;
