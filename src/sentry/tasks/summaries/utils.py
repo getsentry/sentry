@@ -100,7 +100,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-def project_key_errors(ctx: OrganizationReportContext, project) -> dict[str, Any] | None:
+def project_key_errors(ctx: OrganizationReportContext, project) -> list[dict[str, Any]] | None:
     if not project.first_event:
         return None
     # Take the 3 most frequently occuring events
@@ -318,7 +318,7 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
         ]
 
 
-def project_event_counts_for_organization(ctx: OrganizationReportContext) -> dict[str, Any]:
+def project_event_counts_for_organization(ctx: OrganizationReportContext) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
