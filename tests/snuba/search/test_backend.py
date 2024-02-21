@@ -3951,6 +3951,15 @@ class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
             date_from=self.base_datetime - timedelta(days=30),
         )
 
+    def test_sort_priority(self):
+        self.run_test(
+            "is:unresolved",
+            [self.group1, self.group2],
+            None,
+            sort_by="priority",
+            date_from=self.base_datetime - timedelta(days=30),
+        )
+
     def test_cursor(self):
         group3 = self.store_event(
             data={
