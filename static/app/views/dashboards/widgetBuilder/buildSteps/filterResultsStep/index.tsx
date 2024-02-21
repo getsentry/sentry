@@ -17,6 +17,7 @@ import type {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
   isOnDemandQueryString,
+  shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -26,15 +27,13 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
-import type {
-  DashboardFilters,
-  ValidateWidgetResponse,
-  WidgetQuery,
-} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
+  type DashboardFilters,
   OnDemandExtractionState,
-  WidgetType,
+  type ValidateWidgetResponse,
+  type WidgetQuery,
+  type WidgetType,
 } from 'sentry/views/dashboards/types';
 
 import {BuildStep, SubHeading} from '../buildStep';
@@ -122,8 +121,6 @@ export function FilterResultsStep({
       }
     )
   );
-  const shouldDisplayOnDemandWarning =
-    hasOnDemandMetricWidgetFeature(organization) && widgetType === WidgetType.DISCOVER;
 
   return (
     <BuildStep
@@ -171,7 +168,9 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
                   getFilterWarning={
-                    shouldDisplayOnDemandWarning ? getOnDemandFilterWarning : undefined
+                    shouldDisplayOnDemandWidgetWarning(query, widgetType, organization)
+                      ? getOnDemandFilterWarning
+                      : undefined
                   }
                   organization={organization}
                   pageFilters={selection}
@@ -179,7 +178,7 @@ export function FilterResultsStep({
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {shouldDisplayOnDemandWarning && (
+                {shouldDisplayOnDemandWidgetWarning(query, widgetType, organization) && (
                   <WidgetOnDemandQueryWarning
                     query={query}
                     validatedWidgetResponse={validatedWidgetResponse}
