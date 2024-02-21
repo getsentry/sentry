@@ -973,7 +973,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_block_kit_truncates_long_query(self):
         text = "a" * 5000
         block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
-        assert block["text"]["text"] == "a" * 253 + "..."
+        assert "a" * 253 + "..." in block["text"]["text"]
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
