@@ -154,7 +154,7 @@ class QueryConditions:
         # from the returned timeseries.
         phantom_query = f"count(phantom){{{query or ''}}}"
 
-        parsed_phantom_query = parse_mql(phantom_query).query
+        parsed_phantom_query = parse_mql(phantom_query)
         if not isinstance(parsed_phantom_query, Timeseries):
             # For now, we reuse data from `api` but we will soon lift out common components from that file.
             raise InvalidMetricsQueryError("The supplied query is not valid")

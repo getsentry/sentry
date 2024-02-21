@@ -12,6 +12,7 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import make_recording_filename, make_video_filename, storage
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
@@ -56,6 +57,7 @@ class RecordingIngestMessage:
     key_id: int | None
     received: int
     payload_with_headers: bytes
+    replay_event: bytes | None
     replay_video: bytes | None
 
 
@@ -75,6 +77,7 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
+                replay_event=cast(bytes | None, message_dict.get("replay_event")),
                 replay_video=cast(bytes | None, message_dict.get("replay_video")),
             )
             _ingest_recording(message, transaction)
@@ -114,6 +117,10 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             ),
             message.replay_video,
         )
+
+    if message.replay_event:
+        publisher = initialize_replays_publisher(is_async=False)
+        publisher.publish("ingest-replay-events", message.replay_event, send_async=False)
 
     recording_post_processor(message, headers, recording_segment, transaction)
 

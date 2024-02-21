@@ -40,11 +40,20 @@ export function isOnDemandAggregate(aggregate: string): boolean {
 
 export function isOnDemandQueryString(query: string): boolean {
   const searchFilterKeys = getSearchFilterKeys(query);
+  const queryTokens = parseSearch(query);
+
+  // Free text is almost exclusively used in the errors side of the discover dataset.
+  // It's possible free text is intended to be a transaction, but until we split the discover dataset it's impossible to determine.
+  // We err towards not sending on-demand for free text since the free-text for errors is more prevalent.
+  const hasFreeText = queryTokens?.some(token => token.type === Token.FREE_TEXT);
+
   const isStandardSearch = searchFilterKeys.every(isStandardSearchFilterKey);
   const isOnDemandSupportedSearch = searchFilterKeys.some(isOnDemandSupportedFilterKey);
   const hasCustomTags = searchFilterKeys.some(isCustomTag);
 
-  return !isStandardSearch && (isOnDemandSupportedSearch || hasCustomTags);
+  return (
+    !hasFreeText && !isStandardSearch && (isOnDemandSupportedSearch || hasCustomTags)
+  );
 }
 
 export function isOnDemandSearchKey(searchKey: string): boolean {

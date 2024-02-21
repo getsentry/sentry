@@ -108,7 +108,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
   const {
     data: series,
     isLoading: isSeriesLoading,
-    isError,
+    error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
@@ -278,7 +278,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                           OUTPUT_TYPE[YAxis.TTID]
                         ),
                     }}
-                    errored={isError}
+                    error={seriesError}
                   />
                 </MiniChartPanel>
               </ChartsContainerItem>
@@ -346,7 +346,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                           OUTPUT_TYPE[YAxis.TTFD]
                         ),
                     }}
-                    errored={isError}
+                    error={seriesError}
                   />
                 </MiniChartPanel>
               </ChartsContainerItem>
@@ -388,7 +388,7 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
                       OUTPUT_TYPE[YAxis.COUNT]
                     ),
                 }}
-                errored={isError}
+                error={seriesError}
               />
             </MiniChartPanel>
           </ChartsContainerItem>

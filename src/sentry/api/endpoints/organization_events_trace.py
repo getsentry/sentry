@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
 
 import sentry_sdk
@@ -352,6 +352,25 @@ class TraceEvent:
         return result
 
 
+def find_timestamp_params(transactions: Sequence[SnubaTransaction]) -> dict[str, datetime | None]:
+    min_timestamp = None
+    max_timestamp = None
+    if transactions:
+        first_timestamp = datetime.fromisoformat(transactions[0]["timestamp"])
+        min_timestamp = first_timestamp
+        max_timestamp = first_timestamp
+        for transaction in transactions[1:]:
+            timestamp = datetime.fromisoformat(transaction["timestamp"])
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            elif timestamp > max_timestamp:
+                max_timestamp = timestamp
+    return {
+        "min": min_timestamp,
+        "max": max_timestamp,
+    }
+
+
 def find_event(
     items: Iterable[_T | None],
     function: Callable[[_T | None], Any],
@@ -491,7 +510,12 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-    projects = set()
+    projects = {e["project.id"] for e in errors if e["trace.span"]}
+    ts_params = find_timestamp_params(transactions)
+    if ts_params["min"]:
+        params["start"] = ts_params["min"] - timedelta(hours=1)
+    if ts_params["max"]:
+        params["end"] = ts_params["max"] + timedelta(hours=1)
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
@@ -672,6 +696,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        # Temporary for debugging
+        augment_only: bool = request.GET.get("augmentOnly", "0") == "1"
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit: int = (
@@ -692,7 +718,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         )
         with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
-            if use_spans:
+            if use_spans or augment_only:
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )
