@@ -1688,8 +1688,8 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
     if (
         not projects
-        or not ("organizations:on-demand-metrics-extraction" in enabled_features)
-        or prefilling
+        or "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
     ):
         return
 
