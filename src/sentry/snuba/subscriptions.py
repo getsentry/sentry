@@ -153,6 +153,8 @@ def create_snuba_subscription(project, subscription_type, alert_rule) -> QuerySu
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
+
+    TODO: construct QuerySubscription with query_extra
     """
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
@@ -161,7 +163,6 @@ def create_snuba_subscription(project, subscription_type, alert_rule) -> QuerySu
         type=subscription_type,
     )
 
-    # TODO: only create subscription in snuba if AlertRule.monitor_type === 'CONTINUOUS'
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )

@@ -847,7 +847,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     :return: The list of created subscriptions
 
     TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
-    NOTE: This is where we should prevent the snuba query from being created
+    TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
     """
     return bulk_create_snuba_subscriptions(
         projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule

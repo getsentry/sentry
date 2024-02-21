@@ -40,11 +40,6 @@ class SnubaQuery(Model):
     aggregate = models.TextField()
     time_window = models.IntegerField()
     resolution = models.IntegerField()
-    # TODO: Modify snuba query creation to make use of `start_time` if provided (eg. query all events _after_ provided start_date)
-    start_time = models.DateTimeField(null=True, default=None)
-    release = FlexibleForeignKey(
-        "sentry.Release", null=True, db_constraint=False, on_delete=models.SET_NULL
-    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -108,11 +103,16 @@ class QuerySubscription(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
-    type = models.TextField()
+    type = (
+        models.TextField()
+    )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now, null=True)
+    query_extra = models.TextField(
+        null=True
+    )  # additional query filters to attach to the query created in Snuba
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

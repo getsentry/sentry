@@ -418,6 +418,11 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
+class AlertRuleProject(Model):
+    project = models.ForeignKey("sentry.Project")
+    alert_rule = models.ForeignKey("sentry.AlertRule")
+
+
 class AlertRuleMonitorType(Enum):
     CONTINUOUS = 0
     ACTIVATED = 1
@@ -431,6 +436,7 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
+    projects = FlexibleForeignKey("sentry.Project", through="sentry.AlertRuleProject", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     owner = FlexibleForeignKey(
         "sentry.Actor",
@@ -441,12 +447,14 @@ class AlertRule(Model):
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )
+    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
-    include_all_projects = models.BooleanField(default=False)
+    include_all_projects = models.BooleanField(
+        default=False
+    )  # NOTE: This feature is not currently utilized.
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
