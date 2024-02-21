@@ -798,11 +798,13 @@ type SiblingAutogroupedBarProps = Omit<TraceBarProps, 'node_space' | 'duration'>
   node: TraceTreeNode<TraceTree.NodeValue>;
 };
 
+// Render collapsed representation of sibling autogrouping, using multiple bars for when
+// there are gaps between siblings.
 function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
   const bars: React.ReactNode[] = [];
 
-  // Render collapsed representation of sibling autogrouping, using multiple bars for when
-  // there are gaps between siblings.
+  // Start and end represents the earliest start_timestamp and the latest
+  // end_timestamp for a set of overlapping siblings.
   let start = isSpanNode(props.node.children[0])
     ? props.node.children[0].value.start_timestamp
     : Number.POSITIVE_INFINITY;
@@ -824,7 +826,7 @@ function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
       continue;
     }
 
-    // Render a bar for already collapsed group.
+    // Render a bar for already collapsed set.
     totalDuration += end - start;
     bars.push(
       <TraceBar
@@ -838,20 +840,22 @@ function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
     );
 
     if (hasGap) {
-      // Start a new group.
+      // Start a new set.
       start = node.value.start_timestamp;
       end = node.value.timestamp;
 
       // Render a bar if the sibling with a gap is the last sibling.
       if (node.isLastChild) {
         totalDuration += end - start;
-        <TraceBar
-          virtualizedIndex={props.virtualizedIndex}
-          viewManager={props.viewManager}
-          color={props.color}
-          duration={totalDuration}
-          node_space={[start, end - start]}
-        />;
+        bars.push(
+          <TraceBar
+            virtualizedIndex={props.virtualizedIndex}
+            viewManager={props.viewManager}
+            color={props.color}
+            duration={totalDuration}
+            node_space={[start, end - start]}
+          />
+        );
       }
     }
   }
