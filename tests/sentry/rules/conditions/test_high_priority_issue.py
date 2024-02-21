@@ -37,19 +37,23 @@ class HighPriorityIssueConditionTest(RuleTestCase):
         rule = self.get_rule()
         event = self.get_event()
 
-        # This will always pass
+        # This will never pass for non-new or non-escalating issuesalways pass
         event.group.update(priority=PriorityLevel.HIGH)
-        self.assertPasses(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
-        self.assertPasses(rule, event, is_new=True, has_reappeared=False, has_escalated=True)
-        self.assertPasses(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
-        self.assertPasses(rule, event, is_new=True, has_reappeared=True, has_escalated=False)
+        self.assertPasses(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
+        self.assertPasses(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertPasses(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
 
         # This will never pass
         event.group.update(priority=PriorityLevel.LOW)
         self.assertDoesNotPass(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
         self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
 
         # This will never pass
         event.group.update(priority=PriorityLevel.MEDIUM)
-        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=True)
         self.assertDoesNotPass(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=True, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
