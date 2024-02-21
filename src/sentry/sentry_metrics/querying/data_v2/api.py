@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
@@ -19,11 +19,19 @@ def _time_equal_within_bound(time_1: datetime, time_2: datetime, bound: timedelt
 
 
 def _within_last_7_days(start: datetime, end: datetime) -> bool:
-    current_datetime = datetime.now()
-    seven_days_ago = current_datetime - timedelta(days=7)
+    # Get current datetime in UTC
+    current_datetime_utc = datetime.now(timezone.utc)
+
+    # Calculate datetime 7 days ago in UTC
+    seven_days_ago_utc = current_datetime_utc - timedelta(days=7)
+
+    # Normalize start and end datetimes to UTC
+    start_utc = start.astimezone(timezone.utc)
+    end_utc = end.astimezone(timezone.utc)
+
     return _time_equal_within_bound(
-        time_1=start, time_2=seven_days_ago, bound=timedelta(minutes=5)
-    ) and _time_equal_within_bound(time_1=end, time_2=current_datetime, bound=timedelta(minutes=5))
+        start_utc, seven_days_ago_utc, timedelta(minutes=5)
+    ) and _time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
 
 
 def run_metrics_queries_plan(
