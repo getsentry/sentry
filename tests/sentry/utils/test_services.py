@@ -5,8 +5,10 @@ from unittest.mock import Mock
 
 import pytest
 
+from sentry import options
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.concurrent import SynchronousExecutor
-from sentry.utils.services import Delegator, Service
+from sentry.utils.services import Delegator, Service, make_writebehind_selector
 
 
 class Operation(Service, ABC):
@@ -98,3 +100,103 @@ def test_invalid_secondary_backend(delegator_fixture: tuple[Delegator, Mock, Moc
     primary_future, secondary_future = futures
     assert primary_future.result() == 2
     assert secondary_future is None
+
+
+@pytest.fixture
+def register_option():
+    options.register("feature.rollout", default=0.0, flags=options.FLAG_AUTOMATOR_MODIFIABLE)
+
+    yield
+
+    options.unregister("feature.rollout")
+
+
+def test_make_writebehind_selector_str_key(register_option):
+    context = Mock()
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: "a-random-key",
+    )
+    with override_options({"feature.rollout": 0.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old"]
+
+    with override_options({"feature.rollout": -0.5}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old"]
+
+    with override_options({"feature.rollout": -0.8}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": -1.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": 0.01}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": 0.1}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": 0.5}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": 0.8}):
+        result = selector(context, "do_thing", {})
+        assert result == ["new", "old"]
+
+    with override_options({"feature.rollout": 1.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["new", "old"]
+
+
+def test_make_writebehind_selector_int_key(register_option):
+    context = Mock()
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: 42,
+    )
+    with override_options({"feature.rollout": 0.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old"]
+
+    with override_options({"feature.rollout": -0.5}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": -1.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old", "new"]
+
+    with override_options({"feature.rollout": 0.01}):
+        result = selector(context, "do_thing", {})
+        assert result == ["new", "old"]
+
+    with override_options({"feature.rollout": 0.5}):
+        result = selector(context, "do_thing", {})
+        assert result == ["new", "old"]
+
+    with override_options({"feature.rollout": 1.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["new", "old"]
+
+
+def test_make_writebehind_selector_invalid_key(register_option):
+    context = Mock()
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: {"lol": "nope"},  # type: ignore
+    )
+    with override_options({"feature.rollout": 1.0}):
+        result = selector(context, "do_thing", {})
+        assert result == ["old"]
