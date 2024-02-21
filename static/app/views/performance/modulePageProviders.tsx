@@ -7,21 +7,22 @@ import {NoAccess} from 'sentry/views/performance/database/noAccess';
 import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 interface Props {
+  baseURL: string;
   children: React.ReactNode;
+  features: string;
   title: string;
-  baseURL?: string;
 }
 
-export function ModulePageProviders({title, children, baseURL}: Props) {
+export function ModulePageProviders({title, children, features, baseURL}: Props) {
   const organization = useOrganization();
 
   return (
-    <RoutingContextProvider value={{baseURL: baseURL || '/performance/database'}}>
+    <RoutingContextProvider value={{baseURL: baseURL}}>
       <PageFiltersContainer>
         <SentryDocumentTitle title={title} orgSlug={organization.slug}>
           <Layout.Page>
             <Feature
-              features="performance-database-view"
+              features={features}
               organization={organization}
               renderDisabled={NoAccess}
             >

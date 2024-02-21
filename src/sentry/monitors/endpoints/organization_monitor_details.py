@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.constants import ObjectStatus
+from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
@@ -36,12 +37,13 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import (
-    create_alert_rule,
+    create_issue_alert_rule,
     get_checkin_margin,
     get_max_runtime,
-    update_alert_rule,
+    update_issue_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
 
@@ -98,7 +100,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization, project, monitor) -> Response:
+    def put(self, request: AuthenticatedHttpRequest, organization, project, monitor) -> Response:
         """
         Update a monitor.
         """
@@ -186,22 +188,24 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         # Update alert rule after in case slug or name changed
         if "alert_rule" in result:
             # Check to see if rule exists
-            alert_rule = monitor.get_alert_rule()
+            issue_alert_rule = monitor.get_issue_alert_rule()
             # If rule exists, update as necessary
-            if alert_rule:
-                alert_rule_id = update_alert_rule(
-                    request, project, monitor, alert_rule, result["alert_rule"]
+            if issue_alert_rule:
+                issue_alert_rule_id = update_issue_alert_rule(
+                    request, project, monitor, issue_alert_rule, result["alert_rule"]
                 )
             # If rule does not exist, create
             else:
-                alert_rule_id = create_alert_rule(request, project, monitor, result["alert_rule"])
+                issue_alert_rule_id = create_issue_alert_rule(
+                    request, project, monitor, result["alert_rule"]
+                )
 
-            if alert_rule_id:
+            if issue_alert_rule_id:
                 # If config is not sent, use existing config to update alert_rule_id
                 if "config" not in params:
                     params["config"] = monitor.config
 
-                params["config"]["alert_rule_id"] = alert_rule_id
+                params["config"]["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(**params)
 
         return self.respond(serialize(monitor, request.user))
@@ -228,9 +232,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         environment_names = request.query_params.getlist("environment")
         with transaction.atomic(router.db_for_write(MonitorEnvironment)):
             if environment_names:
+                env_ids = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name__in=environment_names
+                    ).values_list("id", flat=True)
+                )
                 monitor_objects = (
                     MonitorEnvironment.objects.filter(
-                        environment__name__in=environment_names, monitor__id=monitor.id
+                        environment_id__in=env_ids, monitor_id=monitor.id
                     )
                     .exclude(
                         monitor__status__in=[
@@ -257,12 +266,12 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
                 # Mark rule for deletion if present and monitor is being deleted
                 monitor = monitor_objects.first()
-                alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
-                if alert_rule_id:
+                issue_alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
+                if issue_alert_rule_id:
                     rule = (
                         Rule.objects.filter(
                             project_id=monitor.project_id,
-                            id=alert_rule_id,
+                            id=issue_alert_rule_id,
                         )
                         .exclude(
                             status__in=[

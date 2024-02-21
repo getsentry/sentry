@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 import {getDateTimeParams, getDDMInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -16,7 +17,11 @@ export function createMqlQuery({
   field,
   query,
   groupBy = [],
-}: {field: string; groupBy?: string[]; query?: string}) {
+}: {
+  field: string;
+  groupBy?: string[];
+  query?: string;
+}) {
   let mql = field;
   if (query) {
     mql = `${mql}{${query}}`;
@@ -36,6 +41,16 @@ interface MetricsQueryApiRequestQuery {
   query?: string;
 }
 
+const getQueryInterval = (
+  query: MetricsQueryApiRequestQuery,
+  datetime: PageFilters['datetime'],
+  intervalLadder?: MetricsDataIntervalLadder
+) => {
+  const {mri: mri} = parseField(query.field) ?? {};
+  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
+  return getDDMInterval(datetime, useCase, intervalLadder);
+};
+
 export function getMetricsQueryApiRequestPayload(
   queries: MetricsQueryApiRequestQuery[],
   {projects, environments, datetime}: PageFilters,
@@ -44,12 +59,16 @@ export function getMetricsQueryApiRequestPayload(
     interval: intervalParam,
   }: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
 ) {
-  // We take the first queries useCase to determine the interval
-  // If no useCase is found we default to custom
-  // The backend will error if the interval is not valid for any of the useCases
-  const {mri: mri} = parseField(queries[0]?.field) ?? {};
-  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = intervalParam ?? getDDMInterval(datetime, useCase, intervalLadder);
+  // We want to use the largest interval from all queries so none fails
+  // In the future the endpoint should handle this
+  const interval =
+    intervalParam ??
+    queries
+      .map(query => getQueryInterval(query, datetime, intervalLadder))
+      .reduce(
+        (acc, curr) => (parsePeriodToHours(curr) > parsePeriodToHours(acc) ? curr : acc),
+        '10s'
+      );
 
   const requestQueries: {mql: string; name: string}[] = [];
   const requestFormulas: {mql: string; limit?: number; order?: 'asc' | 'desc'}[] = [];
@@ -80,8 +99,13 @@ export function getMetricsQueryApiRequestPayload(
   };
 }
 
+export type MetricsQueryApiQueryParams = Omit<MetricsQueryApiRequestQuery, 'field'> & {
+  mri: MRI;
+  op?: string;
+};
+
 export function useMetricsQuery(
-  queries: (Omit<MetricsQueryApiRequestQuery, 'field'> & {mri: MRI; op?: string})[],
+  queries: MetricsQueryApiQueryParams[],
   {projects, environments, datetime}: PageFilters,
   overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
 ) {

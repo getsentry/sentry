@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
-    soft_time_limit=10,
-    time_limit=15,  # Extra 5 seconds to remove the debounce key.
-    expires=30,  # Relay stops waiting for this anyway.
+    soft_time_limit=25,
+    time_limit=30,  # Extra 5 seconds to remove the debounce key.
+    expires=30,  # Relay query timeout (https://github.com/getsentry/relay/blob/eba85e3130adb43208ce4547807c0aeb92e1cde2/relay-config/src/config.rs#L599)
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.

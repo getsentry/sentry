@@ -9,13 +9,13 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_only_model, sane_repr
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 MAX_ATTEMPTS = 10
 
-BACKOFF_INTERVAL = 3 * 60
-BACKOFF_RATE = 1.2
+BACKOFF_INTERVAL = 3
+BACKOFF_RATE = 1.4
 
 
 @control_silo_only_model
@@ -80,6 +80,7 @@ class WebhookPayload(Model):
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
+        metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
             region_name=region,
@@ -90,7 +91,7 @@ class WebhookPayload(Model):
     def schedule_next_attempt(self):
         attempts = self.attempts + 1
         backoff = BACKOFF_INTERVAL * BACKOFF_RATE**attempts
-        backoff_delta = datetime.timedelta(minutes=backoff)
-        new_time = timezone.now() + min(backoff_delta, datetime.timedelta(hours=1))
+        backoff_delta = datetime.timedelta(minutes=min(backoff, 60))
+        new_time = timezone.now() + backoff_delta
 
         self.update(attempts=attempts, schedule_for=max(new_time, self.schedule_for))

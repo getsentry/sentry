@@ -25,7 +25,10 @@ export const DEFAULT_SORT_STATE: SortState = {
   order: 'asc',
 };
 
+export const NO_QUERY_ID = -1;
+
 export const emptyWidget: MetricWidgetQueryParams = {
+  id: NO_QUERY_ID,
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
   op: 'avg',
   query: '',

@@ -1,7 +1,10 @@
-import {useCallback, useLayoutEffect} from 'react';
+import {Fragment, useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import {Button} from 'sentry/components/button';
+import SwitchButton from 'sentry/components/switchButton';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
@@ -19,7 +22,11 @@ export function Queries() {
     setSelectedWidgetIndex,
     showQuerySymbols,
     selectedWidgetIndex,
+    isMultiChartMode,
+    setIsMultiChartMode,
+    addWidget,
   } = useDDMContext();
+
   const {selection} = usePageFilters();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -35,43 +42,55 @@ export function Queries() {
   );
 
   return (
-    <Wrapper showQuerySymbols={showQuerySymbols}>
-      {widgets.map((widget, index) => (
-        <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-          <Query
-            widget={widget}
-            onChange={data => handleChange(index, data)}
-            projects={selection.projects}
-            symbol={
-              showQuerySymbols && (
-                <StyledQuerySymbol
-                  index={index}
-                  isSelected={index === selectedWidgetIndex}
-                  onClick={() => setSelectedWidgetIndex(index)}
-                  role="button"
-                  aria-label={t('Select query')}
+    <Fragment>
+      <Wrapper showQuerySymbols={showQuerySymbols}>
+        {widgets.map((widget, index) => (
+          <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
+            <Query
+              widget={widget}
+              onChange={data => handleChange(index, data)}
+              projects={selection.projects}
+              symbol={
+                showQuerySymbols && (
+                  <StyledQuerySymbol
+                    queryId={widget.id}
+                    isClickable={isMultiChartMode}
+                    isSelected={index === selectedWidgetIndex}
+                    onClick={() => setSelectedWidgetIndex(index)}
+                    role={isMultiChartMode ? 'button' : undefined}
+                    aria-label={t('Select query')}
+                  />
+                )
+              }
+              contextMenu={
+                <MetricQueryContextMenu
+                  displayType={widget.displayType}
+                  widgetIndex={index}
+                  metricsQuery={{
+                    mri: widget.mri,
+                    query: widget.query,
+                    op: widget.op,
+                    groupBy: widget.groupBy,
+                  }}
                 />
-              )
-            }
-            contextMenu={
-              <MetricQueryContextMenu
-                displayType={widget.displayType}
-                widgetIndex={index}
-                metricsQuery={{
-                  mri: widget.mri,
-                  query: widget.query,
-                  op: widget.op,
-                  groupBy: widget.groupBy,
-                  projects: selection.projects,
-                  datetime: selection.datetime,
-                  environments: selection.environments,
-                }}
-              />
-            }
+              }
+            />
+          </Row>
+        ))}
+      </Wrapper>
+      <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
+        <Button size="sm" icon={<IconAdd isCircled />} onClick={addWidget}>
+          Add query
+        </Button>
+        <SwitchWrapper>
+          {t('One chart per query')}
+          <SwitchButton
+            isActive={isMultiChartMode}
+            toggle={() => setIsMultiChartMode(!isMultiChartMode)}
           />
-        </Row>
-      ))}
-    </Wrapper>
+        </SwitchWrapper>
+      </ButtonBar>
+    </Fragment>
   );
 }
 
@@ -112,15 +131,35 @@ const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
   ${p => p.hasSymbol && `grid-template-columns: min-content 1fr max-content;`}
 `;
 
-const StyledQuerySymbol = styled(QuerySymbol)`
+const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
   margin-top: 10px;
-  cursor: pointer;
+  ${p => p.isClickable && `cursor: pointer;`}
 `;
 
-const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
-  padding-bottom: ${space(2)};
-`;
+const Wrapper = styled('div')<{showQuerySymbols: boolean}>``;
 
 const Row = styled('div')`
   display: contents;
+`;
+
+const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
+  align-items: center;
+  display: flex;
+  padding-bottom: ${space(2)};
+  padding-top: ${space(1)};
+  gap: ${space(2)};
+
+  ${p =>
+    p.addQuerySymbolSpacing &&
+    `
+    padding-left: ${space(1)};
+    margin-left: ${space(2)};
+  `}
+`;
+
+const SwitchWrapper = styled('label')`
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: ${space(1)};
 `;

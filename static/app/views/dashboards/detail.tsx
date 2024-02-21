@@ -47,6 +47,7 @@ import {
   getDashboardFiltersFromURL,
   hasUnsavedFilterChanges,
   isWidgetUsingTransactionName,
+  openWidgetPreviewModal,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -118,7 +119,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
-  editingWidgetIndex: number;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
@@ -128,7 +128,6 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
-    editingWidgetIndex: -1,
     setData: data => {
       this.setState(data);
     },
@@ -462,9 +461,9 @@ class DashboardDetail extends Component<Props, State> {
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
     if (this.isEditingDashboard || this.isPreview) {
-      return;
+      return null;
     }
-    updateDashboard(api, organization.slug, newModifiedDashboard).then(
+    return updateDashboard(api, organization.slug, newModifiedDashboard).then(
       (newDashboard: DashboardDetails) => {
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
@@ -482,8 +481,8 @@ class DashboardDetail extends Component<Props, State> {
               },
             })
           );
-          return;
         }
+        return newDashboard;
       },
       // `updateDashboard` does its own error handling
       () => undefined
@@ -497,36 +496,8 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  handleStartEditMetricWidget = (index: number) => {
-    this.setState({editingWidgetIndex: index});
-  };
-
-  handleEndEditMetricWidget = (widgets: Widget[], isCancel = false) => {
-    if (isCancel) {
-      this.setState({
-        dashboardState: DashboardState.VIEW,
-        modifiedDashboard: null,
-        editingWidgetIndex: -1,
-      });
-      return;
-    }
-
-    this.setState(
-      (state: State) => ({
-        ...state,
-        widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        dashboardState: DashboardState.EDIT,
-        modifiedDashboard: {
-          ...(state.modifiedDashboard || this.props.dashboard),
-          widgets,
-        },
-      }),
-      this.onCommit
-    );
-  };
-
   handleAddMetricWidget = (layout?: Widget['layout']) => {
-    const {dashboard, selection} = this.props;
+    const {dashboard, selection, router, location} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({
@@ -540,7 +511,14 @@ class DashboardDetail extends Component<Props, State> {
 
     this.onUpdateWidget(nextList);
     if (!this.isEditingDashboard) {
-      this.handleUpdateWidgetList(nextList);
+      this.handleUpdateWidgetList(nextList)?.then((newDashboard?: DashboardDetails) => {
+        if (!newDashboard) {
+          return;
+        }
+
+        const lastWidget = newDashboard?.widgets[newDashboard.widgets.length - 1];
+        openWidgetPreviewModal(router, location, lastWidget);
+      });
     }
   };
 
@@ -635,23 +613,16 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
-          const isInlineEdit = this.state.editingWidgetIndex !== -1;
-          if (isInlineEdit) {
-            this.setState({
-              dashboardState: DashboardState.VIEW,
-            });
-          }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
-              !isInlineEdit && addSuccessMessage(t('Dashboard updated'));
+              addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
-                editingWidgetIndex: -1,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -795,9 +766,6 @@ class DashboardDetail extends Component<Props, State> {
                             handleUpdateWidgetList={this.handleUpdateWidgetList}
                             handleAddCustomWidget={this.handleAddCustomWidget}
                             handleAddMetricWidget={this.handleAddMetricWidget}
-                            editingWidgetIndex={this.state.editingWidgetIndex}
-                            onStartEditMetricWidget={this.handleStartEditMetricWidget}
-                            onEndEditMetricWidget={this.handleEndEditMetricWidget}
                             isPreview={this.isPreview}
                             router={router}
                             location={location}
@@ -1006,11 +974,6 @@ class DashboardDetail extends Component<Props, State> {
                                     handleUpdateWidgetList={this.handleUpdateWidgetList}
                                     handleAddCustomWidget={this.handleAddCustomWidget}
                                     handleAddMetricWidget={this.handleAddMetricWidget}
-                                    onStartEditMetricWidget={
-                                      this.handleStartEditMetricWidget
-                                    }
-                                    onEndEditMetricWidget={this.handleEndEditMetricWidget}
-                                    editingWidgetIndex={this.state.editingWidgetIndex}
                                     router={router}
                                     location={location}
                                     newWidget={newWidget}

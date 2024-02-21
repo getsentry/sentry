@@ -52,6 +52,7 @@ export default function TraceWarnings({type}: TraceWarningsProps) {
         </Alert>
       );
     case TraceType.ONE_ROOT:
+    case TraceType.EMPTY_TRACE:
       return null;
     default:
       throw new TypeError('Invalid trace type');

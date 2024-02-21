@@ -313,14 +313,6 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     uid: 13,
   },
-  [DataCategoryExact.METRICS]: {
-    name: DataCategoryExact.METRICS,
-    apiName: 'metric_bucket',
-    plural: 'metric_buckets',
-    displayName: 'metrics',
-    titleName: t('Metrics'),
-    uid: 15,
-  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
