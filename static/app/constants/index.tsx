@@ -59,6 +59,7 @@ export const ALLOWED_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:billing',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
