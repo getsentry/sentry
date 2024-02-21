@@ -238,6 +238,12 @@ def before_send_transaction(event, _):
     return event
 
 
+def before_send(event, _):
+    if event.get("tags") and settings.SILO_MODE:
+        event["tags"]["silo_mode"] = settings.SILO_MODE
+    return event
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -263,6 +269,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["before_send"] = before_send
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
