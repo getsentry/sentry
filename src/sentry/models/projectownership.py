@@ -256,13 +256,6 @@ class ProjectOwnership(Model):
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user import RpcUser
 
-        enable_force_autoassign = False
-        # Force auto-assign will override an existing manual assignment.
-        if (event is None and logging_extra is None) or force_autoassign:
-            # TODO(Leander): Remove this event/logging_details check. This is currently only missing
-            # from getsentry's admin tools, so we can change that caller to set force_autoassign instead
-            enable_force_autoassign = True
-
         if logging_extra is None:
             logging_extra = {}
 
@@ -314,7 +307,7 @@ class ProjectOwnership(Model):
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
-                if not auto_assigned and not enable_force_autoassign:
+                if not auto_assigned and not force_autoassign:
                     logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
             if (
@@ -327,9 +320,9 @@ class ProjectOwnership(Model):
                 assignment = GroupAssignee.objects.assign(
                     group,
                     owner,
-                    create_only=not enable_force_autoassign,
+                    create_only=not force_autoassign,
                     extra=activity_details,
-                    force_autoassign=enable_force_autoassign,
+                    force_autoassign=force_autoassign,
                 )
 
                 if assignment["new_assignment"] or assignment["updated_assignment"]:
@@ -382,7 +375,7 @@ def process_resource_change(instance, change, **kwargs):
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
     if len(autoassignment_types) > 0:
         GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
-
+    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 
