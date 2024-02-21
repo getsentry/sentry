@@ -17,7 +17,11 @@ export function createMqlQuery({
   field,
   query,
   groupBy = [],
-}: {field: string; groupBy?: string[]; query?: string}) {
+}: {
+  field: string;
+  groupBy?: string[];
+  query?: string;
+}) {
   let mql = field;
   if (query) {
     mql = `${mql}{${query}}`;
