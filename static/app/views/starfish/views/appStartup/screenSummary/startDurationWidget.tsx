@@ -11,7 +11,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {RELEASE_COMPARISON} from 'sentry/views/starfish/colours';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR_BAR,
+} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -27,14 +30,11 @@ const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};
+
   if (defined(data)) {
     Object.keys(data).forEach(releaseName => {
       transformedSeries[releaseName] = {
         seriesName: releaseName,
-        color:
-          releaseName === primaryRelease
-            ? RELEASE_COMPARISON.PRIMARY_RELEASE_COLOR
-            : RELEASE_COMPARISON.SECONDARY_RELEASE_COLOR,
         data:
           data[releaseName]?.data?.map(datum => {
             return {
@@ -42,6 +42,12 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
               value: datum[1][0].count,
             } as SeriesDataUnit;
           }) ?? [],
+        ...(primaryRelease === releaseName
+          ? {color: PRIMARY_RELEASE_COLOR}
+          : {
+              color: SECONDARY_RELEASE_COLOR_BAR,
+              lineStyle: {type: 'dashed'},
+            }),
       };
     });
   }
@@ -103,7 +109,9 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
 
   // Only transform the data is we know there's at least one release
   const transformedSeries = hasReleaseData
-    ? Object.values(transformData(series, primaryRelease)).sort()
+    ? Object.values(transformData(series, primaryRelease)).sort((releaseA, _releaseB) =>
+        releaseA.seriesName === primaryRelease ? -1 : 1
+      )
     : [];
 
   return (
