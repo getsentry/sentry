@@ -50,10 +50,15 @@ from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
     check_for_group_creation_load_shed,
+    extract_hashes,
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    maybe_run_background_grouping,
+    maybe_run_secondary_grouping,
+    record_hash_calculation_metrics,
     record_new_group_metrics,
+    run_primary_grouping,
     update_grouping_config_if_needed,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
@@ -1631,7 +1636,22 @@ def _save_aggregate_new(
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
-    _, _, hashes = get_hash_values(project, job, metric_tags)
+    # Background grouping is a way for us to get performance metrics for a new
+    # config without having it actually affect on how events are grouped. It runs
+    # either before or after the main grouping logic, depending on the option value.
+    maybe_run_background_grouping(project, job)
+
+    secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
+        project, job, metric_tags
+    )
+
+    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
+
+    record_hash_calculation_metrics(
+        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+    )
+
+    all_hashes = extract_hashes(primary_hashes) + extract_hashes(secondary_hashes)
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
     # hashes, we're free to perform a config update if needed. Future events will use the new
@@ -1640,7 +1660,7 @@ def _save_aggregate_new(
     update_grouping_config_if_needed(project)
 
     grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
+        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in all_hashes
     ]
 
     existing_grouphash = find_existing_grouphash_new(grouphashes)
