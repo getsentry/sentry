@@ -22,6 +22,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_context,
     get_option_groups,
     get_option_groups_block_kit,
+    get_tags,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -983,7 +984,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     def test_block_kit_truncates_long_query(self):
         text = "a" * 5000
         block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
-        assert block["elements"][0]["elements"][0]["text"] == "a" * 997 + "..."
+        assert block["elements"][0]["elements"][0]["text"] == "a" * 253 + "..."
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
@@ -1655,3 +1656,11 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
 
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_tags(self):
+        # don't use default tags. if we don't pass in tags to get_tags, we don't return any
+        tags = get_tags(
+            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
+        )
+        assert not tags
