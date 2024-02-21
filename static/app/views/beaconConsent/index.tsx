@@ -28,7 +28,7 @@ function BeaconConsent({onSubmitSuccess}: Props) {
       >
         <FieldWrapper stacked={false} hasControlState={false}>
           {t(
-            'We have made some updates to our self-hosted beacon broadcast system, and we just need to get a quick answer from you.'
+            'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.'
           )}
         </FieldWrapper>
         <RadioField
@@ -47,7 +47,7 @@ function BeaconConsent({onSubmitSuccess}: Props) {
           required
           help={tct(
             `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
-            is being typically used, and to keep track of improvements that we hope to bring you in the future.`,
+            is typically being used, and to keep track of improvements that we hope to bring you in the future.`,
             {link: <ExternalLink href="https://sentry.io/privacy/" />}
           )}
           inline={false}
