@@ -23,7 +23,6 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -214,17 +213,13 @@ class VercelWebhookEndpoint(Endpoint):
 
         configuration = integration.metadata["configurations"].pop(configuration_id)
 
-        first_org = organization_service.get_organization_by_id(
-            id=org_ids[0], include_projects=False, include_teams=False
-        )
-        has_webhooks = features.has("organizations:vercel-integration-webhooks", first_org)
         # one of two cases:
         #  1.) someone is deleting from vercel's end and we still need to delete the
         #      organization integration AND the integration (since there is only one)
         #  2.) we already deleted the organization integration tied to this configuration
         #      and the remaining one is for a different org (and configuration)
 
-        if len(org_ids) == 1 and has_webhooks == new_webhook:
+        if len(org_ids) == 1:
             try:
                 # Case no. 1: do the deleting and return
                 OrganizationIntegration.objects.get(
@@ -252,10 +247,7 @@ class VercelWebhookEndpoint(Endpoint):
                     },
                 )
 
-        if (
-            configuration_id == integration.metadata["installation_id"]
-            and has_webhooks == new_webhook
-        ):
+        if configuration_id == integration.metadata["installation_id"]:
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
             # the credentials (access_token, webhook_id etc).
