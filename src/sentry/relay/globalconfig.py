@@ -12,6 +12,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-usage-metric",
     "relay.cardinality-limiter.mode",
     "relay.cardinality-limiter.error-sample-rate",
+    "relay.metric-bucket-encodings",
 ]
 
 
