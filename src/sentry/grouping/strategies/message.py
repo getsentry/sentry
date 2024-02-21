@@ -64,14 +64,16 @@ _parameterization_regex = re.compile(
         \b[0-9a-fA-F]{32}\b
     ) |
     (?P<date>
-         # RFC822, RFC1123, RFC1123Z
-        (\b(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))\b)
+
+        \b
+        # RFC822, RFC1123, RFC1123Z
+        ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
         |
-        # # RFC850
-        (\b(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])\b)
+        # RFC850
+        ((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         |
         # RFC3339, RFC3339Nano
-        (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[Z\s]([+-]?\d{2}:\d{2})?)
+        (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
         |
         # LongDate
         ((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+[0-3]\d,\s+\d{4})
@@ -111,6 +113,10 @@ _parameterization_regex = re.compile(
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         ) |
         (datetime.datetime\(.*?\))
+        \b
+    ) |
+    (?P<duration>
+        \b\d+ms\b
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
@@ -129,6 +135,10 @@ _parameterization_regex = re.compile(
         ='([^']+)' |
         ="([^"]+)"
     ) |
+    (?P<json_str_val>
+        :\s?'([^']+)' |
+        :\s?"([^"]+)"
+    ) |
     (?P<bool>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all instances of the words 'true' and 'false'.
@@ -136,6 +146,15 @@ _parameterization_regex = re.compile(
         =true |
         =False |
         =false
+    )
+    |
+    (?P<uniq_id>
+        \b
+        (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
+        (?=\w*?[0-9]\w*?\b) # At least one digit
+        (?=\w*?[a-zA-Z]\w*?\b) # At least one letter
+        [\w_]+?
+        \b
     )
 """
 )
@@ -167,7 +186,12 @@ def normalize_message_for_grouping(message: str) -> str:
                 # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
                 # the match in order not to replace random quoted strings and the words 'true' and 'false'
                 # in contexts other than key-value pairs
-                return f"=<{key}>" if key in ["quoted_str", "bool"] else f"<{key}>"
+                if key in ["quoted_str", "bool"]:
+                    return f"=<{key}>"
+                elif key == "json_str_val":
+                    return f": <{key}>"
+                else:
+                    return f"<{key}>"
         return ""
 
     return _parameterization_regex.sub(_handle_match, trimmed)
