@@ -118,7 +118,7 @@ def calculate_unresolved_counts(team, project_list, start, end, environment_id):
 class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team: Team) -> Response:
