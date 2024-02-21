@@ -882,7 +882,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 4.0, 3.0]
         assert data[0][0]["totals"] == 3.5
 
-    @pytest.mark.skip(reason="Nested formulas are not supported")
     def test_query_with_complex_formula(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
@@ -891,6 +890,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_2 * $query_1 + 100")
+            .apply_formula("$query_1")
+            .apply_formula("$query_2")
         )
 
         results = run_metrics_queries_plan(
@@ -906,8 +907,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 4.0, 3.0]
-        assert data[0][0]["totals"] == 3.5
+        assert data[0][0]["series"] == [None, 136.0, 127.0]
+        assert data[0][0]["totals"] == 226.0
 
     def test_query_with_formula_and_group_by(self):
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
