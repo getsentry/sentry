@@ -358,6 +358,9 @@ def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, An
 def _handle_breadcrumb(
     event: dict[str, Any], project_id: int, replay_id: str, replay_event: dict[str, Any] | None
 ) -> ReplayActionsEventPayloadClick | None:
+
+    click = None
+
     payload = event["data"].get("payload", {})
     category = payload.get("category")
     if category == "ui.slowClickDetected":
