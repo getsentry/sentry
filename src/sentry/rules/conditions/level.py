@@ -57,7 +57,7 @@ class LevelCondition(EventCondition):
         return False
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        return self._passes(event.get_tag("level"))
+        return self._passes(event.get_tag("level") or "")
 
     def render_label(self) -> str:
         data = {
