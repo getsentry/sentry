@@ -1853,13 +1853,13 @@ def create_group_with_grouphashes(
             )
 
 
-def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
+def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) -> Group:
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
     # make sure it still exists
-    first_release = kwargs.pop("first_release", None)
+    first_release = group_creation_kwargs.pop("first_release", None)
     first_release_id = (
         Release.objects.filter(id=cast(Release, first_release).id)
         .values_list("id", flat=True)
@@ -1868,7 +1868,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    group_data = kwargs.pop("data", {})
+    group_data = group_creation_kwargs.pop("data", {})
 
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
@@ -1878,8 +1878,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
-        priority = _get_priority_for_group(severity, kwargs)
-        kwargs["priority"] = priority
+        priority = _get_priority_for_group(severity, group_creation_kwargs)
+        group_creation_kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 
     return Group.objects.create(
@@ -1887,7 +1887,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         short_id=short_id,
         first_release_id=first_release_id,
         data=group_data,
-        **kwargs,
+        **group_creation_kwargs,
     )
 
 
