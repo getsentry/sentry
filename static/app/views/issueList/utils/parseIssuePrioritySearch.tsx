@@ -13,7 +13,7 @@ export function parseIssuePrioritySearch(query: string) {
 
   const issuePriorityToken = parsed?.find(
     token => token.type === Token.FILTER && token.key.text === 'issue.priority'
-  ) as TokenResult<Token.FILTER>;
+  ) as TokenResult<Token.FILTER> | undefined;
 
   if (!issuePriorityToken) {
     return VALID_PRIORITIES;
