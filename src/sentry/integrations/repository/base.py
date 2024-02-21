@@ -13,6 +13,7 @@ class BaseNotificationMessage:
     parent_notification_message_id: int | None = None
 
 
+@dataclass
 class BaseNewNotificationMessage:
     error_details: dict[Any, Any] | None = None
     error_code: int | None = None

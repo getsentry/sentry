@@ -4,10 +4,20 @@ from dataclasses import dataclass
 from logging import Logger, getLogger
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident
+from sentry.integrations.repository.base import BaseNewNotificationMessage, BaseNotificationMessage
 from sentry.models.notificationmessage import NotificationMessage
-from sentry.notifications.repository.base import BaseNewNotificationMessage, BaseNotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
+
+_default_repository = None
+
+
+def get_default_repository() -> MetricAlertNotificationMessageRepository:
+    global _default_repository
+    if _default_repository is None:
+        _default_repository = MetricAlertNotificationMessageRepository.default()
+
+    return _default_repository
 
 
 @dataclass(frozen=True)
@@ -39,6 +49,7 @@ class IncidentAndTriggerActionValidationError(NewMetricAlertNotificationMessageV
     message = "both incident and trigger action need to exist together with a reference"
 
 
+@dataclass
 class NewMetricAlertNotificationMessage(BaseNewNotificationMessage):
     incident_id: int | None = None
     trigger_action_id: int | None = None
@@ -85,27 +96,27 @@ class MetricAlertNotificationMessageRepository:
     def default(cls) -> MetricAlertNotificationMessageRepository:
         return cls(logger=_default_logger)
 
-    def get_parent_message_identifier(
+    def get_parent_notification_message(
         self, alert_rule_id: int, incident_id: int, trigger_action_id: int
-    ) -> str | None:
+    ) -> MetricAlertNotificationMessage | None:
         """
-        Returns the message identifier for a metric rule if it exists, otherwise returns None.
+        Returns the parent notification message for a metric rule if it exists, otherwise returns None.
         Will raise an exception if the query fails and logs the error with associated data.
         """
         try:
-            notification_message = self._model.objects.get(
+            instance: NotificationMessage = self._model.objects.get(
                 incident__alert_rule__id=alert_rule_id,
                 incident__id=incident_id,
                 trigger_action__id=trigger_action_id,
                 parent_notification_message__isnull=True,
                 error_code__isnull=True,
             )
-            return notification_message.message_identifier
+            return MetricAlertNotificationMessage.from_model(instance=instance)
         except NotificationMessage.DoesNotExist:
             return None
         except Exception as e:
             self._logger.exception(
-                "Failed to get parent message identifier for metric rule",
+                "Failed to get parent notification for metric rule",
                 exc_info=e,
                 extra={
                     "incident_id": incident_id,

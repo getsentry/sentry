@@ -16,6 +16,11 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
+from ...repository.metric_alert import (
+    MetricAlertNotificationMessageRepository,
+    NewMetricAlertNotificationMessage,
+    get_default_repository,
+)
 from . import logger
 
 
@@ -34,6 +39,7 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return False
 
+    repository: MetricAlertNotificationMessageRepository = get_default_repository()
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
@@ -63,12 +69,49 @@ def send_incident_alert_notification(
     }
 
     client = SlackClient(integration_id=integration.id)
+    parent_notification_message = repository.get_parent_notification_message(
+        alert_rule_id=incident.alert_rule_id,
+        incident_id=incident.id,
+        trigger_action_id=action.id,
+    )
+    new_notification_message_object = NewMetricAlertNotificationMessage(
+        incident_id=incident.id,
+        trigger_action_id=action.id,
+    )
+
+    # If a parent notification exists for this rule and action, then we can reply in a thread
+    if parent_notification_message is not None:
+        # Make sure we track that this reply will be in relation to the parent row
+        new_notification_message_object.parent_notification_message_id = (
+            parent_notification_message.id
+        )
+
+        # Only reply and use threads if the organization is enabled in the FF
+        if features.has("organizations:slack-thread", incident.organization):
+            # To reply to a thread, use the specific key in the payload as referenced by the docs
+            # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
+            payload["thread_ts"] = parent_notification_message.message_identifier
+
+    success = False
     try:
-        client.post("/chat.postMessage", data=payload, timeout=5)
-        return True
-    except ApiError:
+        response = client.post("/chat.postMessage", data=payload, timeout=5)
+        # response should include a "ts" key that represents the unique identifier for the message
+        # referenced at https://api.slack.com/methods/chat.postMessage#examples
+        success = True
+    except ApiError as e:
+        # Record the error code and details from the exception
+        new_notification_message_object.error_code = e.code
+        new_notification_message_object.error_details = e.__dict__
         logger.info("rule.fail.slack_post", exc_info=True)
-    return False
+    else:
+        data = response.json
+        # Throw exception if the key can't be found
+        new_notification_message_object.message_identifier = data["ts"]
+
+    # Save the notification message we just sent with the response id or error we received
+    repository.create_notification_message(data=new_notification_message_object)
+
+    return success
 
 
 def send_slack_response(
