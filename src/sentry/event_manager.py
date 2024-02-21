@@ -1860,7 +1860,7 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     # when we queried for the release and now, so
     # make sure it still exists
     first_release = group_creation_kwargs.pop("first_release", None)
-    first_release_id = (
+    group_creation_kwargs["first_release_id"] = (
         Release.objects.filter(id=cast(Release, first_release).id)
         .values_list("id", flat=True)
         .first()
@@ -1882,11 +1882,11 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
         group_creation_kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 
+    group_creation_kwargs["data"] = group_data
+
     return Group.objects.create(
         project=project,
         short_id=short_id,
-        first_release_id=first_release_id,
-        data=group_data,
         **group_creation_kwargs,
     )
 
