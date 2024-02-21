@@ -17,7 +17,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
-from sentry.tasks.weekly_reports import (
+from sentry.tasks.summaries.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
@@ -121,8 +121,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
-    @mock.patch("sentry.tasks.weekly_reports.prepare_template_context")
-    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_deliver_reports_respects_settings(
         self, mock_send_email, mock_prepare_template_context
     ):
@@ -158,7 +158,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             dry_run=False,
         )
 
-    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
@@ -171,7 +171,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_user_inactive(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
@@ -182,7 +182,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_invited_member(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
@@ -194,7 +194,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         deliver_reports(ctx)
         assert mock_send_email.call_count == 1
 
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_transferred_project(self, message_builder):
         self.login_as(user=self.user)
 
@@ -277,7 +277,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.total_substatus_count == 2
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder, record):
         now = django_timezone.now()
 
@@ -378,7 +378,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_multiple_users_prevent_resend(self, message_builder, record):
         now = django_timezone.now()
 
@@ -449,8 +449,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         group2.save()
 
         with mock.patch(
-            "sentry.tasks.weekly_reports.prepare_template_context", side_effect=ValueError("oh no!")
-        ), mock.patch("sentry.tasks.weekly_reports.send_email") as mock_send_email:
+            "sentry.tasks.summaries.weekly_reports.prepare_template_context",
+            side_effect=ValueError("oh no!"),
+        ), mock.patch("sentry.tasks.summaries.weekly_reports.send_email") as mock_send_email:
             with pytest.raises(Exception):
                 prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
                 mock_send_email.assert_not_called()
@@ -493,7 +494,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             user_project_count=1,
         )
 
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
         now = django_timezone.now()
@@ -549,7 +550,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "total_substatus_count": 2,
             }
 
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
@@ -619,7 +620,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             "transaction_count": 3,
         }
 
-    @mock.patch("sentry.tasks.weekly_reports.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_empty_report(self, mock_send_email):
         now = django_timezone.now()
 
@@ -642,7 +643,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @with_feature("organizations:session-replay")
     @with_feature("organizations:session-replay-weekly_report")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
@@ -702,7 +703,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert len(group_status_to_color) == unique_enum_count
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
@@ -757,7 +758,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_email_override_no_target_user(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
@@ -807,7 +808,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
             message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
 
-    @mock.patch("sentry.tasks.weekly_reports.logger")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.logger")
     def test_email_override_invalid_target_user(self, logger):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
@@ -847,7 +848,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         )
 
     @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_dry_run_simple(self, message_builder, record):
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)

@@ -7,7 +7,7 @@ from django.utils.text import slugify
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.weekly_reports import (
+from sentry.tasks.summaries.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
