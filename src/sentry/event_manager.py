@@ -1794,12 +1794,7 @@ def create_group_with_grouphashes(
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
-    try:
-        short_id = project.next_short_id()
-    except OperationalError:
-        metrics.incr("next_short_id.timeout")
-        sentry_sdk.capture_message("short_id.timeout")
-        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
+    short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
@@ -1834,6 +1829,17 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         data=group_data,
         **kwargs,
     )
+
+
+def _get_next_short_id(project: Project, delta: int = 1) -> int:
+    try:
+        short_id = project.next_short_id(delta=delta)
+    except OperationalError:
+        metrics.incr("next_short_id.timeout")
+        sentry_sdk.capture_message("short_id.timeout")
+        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
+
+    return short_id
 
 
 def _handle_regression(group: Group, event: BaseEvent, release: Release | None) -> bool | None:
