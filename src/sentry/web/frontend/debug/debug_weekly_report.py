@@ -7,12 +7,8 @@ from django.utils.text import slugify
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.summaries.weekly_reports import (
-    ONE_DAY,
-    OrganizationReportContext,
-    ProjectContext,
-    render_template_context,
-)
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
+from sentry.tasks.summaries.weekly_reports import render_template_context
 from sentry.utils import loremipsum
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 

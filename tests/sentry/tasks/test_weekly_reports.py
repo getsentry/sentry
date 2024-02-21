@@ -17,12 +17,14 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode, unguarded_write
-from sentry.tasks.summaries.weekly_reports import (
+from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    organization_project_issue_substatus_summaries,
+)
+from sentry.tasks.summaries.weekly_reports import (
     deliver_reports,
     group_status_to_color,
-    organization_project_issue_substatus_summaries,
     prepare_organization_report,
     prepare_template_context,
     schedule_organizations,
