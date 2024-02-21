@@ -62,10 +62,6 @@ def log_query_timeout(query: str, offset: int, timeout_seconds: int) -> None:
     metrics.incr("dynamic_sampling.query_timeout", tags={"query": query})
 
 
-def log_recalibrate_org_error(org_id: int, error: str) -> None:
-    logger.info("dynamic_sampling.recalibrate_org_error", extra={"org_id": org_id, "error": error})
-
-
 def log_recalibrate_org_state(
     org_id: int, previous_factor: float, effective_sample_rate: float, target_sample_rate: float
 ) -> None:

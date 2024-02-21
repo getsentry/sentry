@@ -1,6 +1,5 @@
 import time
 
-import sentry_sdk
 from snuba_sdk import Granularity
 
 from sentry import quotas
@@ -25,11 +24,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import (
-    log_recalibrate_org_error,
-    log_recalibrate_org_state,
-    log_sample_rate_source,
-)
+from sentry.dynamic_sampling.tasks.logging import log_recalibrate_org_state, log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 from sentry.models.organization import Organization
@@ -68,13 +63,18 @@ def recalibrate_orgs(context: TaskContext) -> None:
         ),
     ):
         for org_volume in org_volumes:
-            try:
-                recalibrate_org(org_volume, context)
-            except RecalibrationError as e:
-                sentry_sdk.set_extra("context-data", context.to_dict())
-                log_recalibrate_org_error(org_volume.org_id, str(e))
+            recalibrate_org.delay(org_volume, context)
 
 
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.recalibrate_org",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=25 * 60,
+    time_limit=2 * 60 + 5,
+    silo_mode=SiloMode.REGION,
+)
 def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) -> None:
     if time.monotonic() > context.expiration_time:
         raise TimeoutException(context)
