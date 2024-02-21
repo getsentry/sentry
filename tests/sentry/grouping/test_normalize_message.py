@@ -1,6 +1,6 @@
+from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
-from src.sentry.grouping.strategies.message import normalize_message_for_grouping
 
 
 @region_silo_test
