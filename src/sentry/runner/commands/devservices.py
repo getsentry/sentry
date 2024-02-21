@@ -24,7 +24,9 @@ DARWIN = sys.platform == "darwin"
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
 USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
-USE_ORBSTACK = os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+USE_ORBSTACK = (
+    os.path.exists("/Applications/Orbstack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+)
 
 if USE_ORBSTACK:
     USE_COLIMA = False
