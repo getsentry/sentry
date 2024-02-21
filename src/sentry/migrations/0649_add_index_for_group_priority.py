@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0647_apitoken_add_hashed_columns"),
+        ("sentry", "0648_monitor_env_break_env_fk"),
     ]
 
     operations = [
