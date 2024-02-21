@@ -635,20 +635,23 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         )
 
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_rebalance_orgs(self, get_blended_sample_rate):
+    def test_rebalance_orgs_with_sliding_window_org(self, get_blended_sample_rate):
         """
-        Test that the org are going to be rebalanced at 20%
+        Test that the org are going to be rebalanced at 20% and that the sample rate used is the one from the sliding
+        window org.
 
         The first org is 10%, so we should increase the sampling
         The second org is at 20%, so we are spot on
         The third is at 30%, so we should decrease the sampling
         """
-        get_blended_sample_rate.return_value = 0.2
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
 
         redis_client = get_redis_client_for_ds()
 
-        with self.tasks():
-            recalibrate_orgs()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
             cache_key = generate_recalibrate_orgs_cache_key(org.id)
@@ -666,8 +669,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
         # now if we run it again (with the same data in the database, the algorithm
         # should double down... the previous factor didn't do anything so apply it again)
-        with self.tasks():
-            recalibrate_orgs()
+        with self.feature("organizations:ds-sliding-window-org"):
+            with self.tasks():
+                recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
             cache_key = generate_recalibrate_orgs_cache_key(org.id)
