@@ -418,9 +418,22 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
+@region_silo_only_model
 class AlertRuleProject(Model):
-    project = models.ForeignKey("sentry.Project")
-    alert_rule = models.ForeignKey("sentry.AlertRule")
+    """
+    Specify a project for the AlertRule
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleprojects"
+        unique_together = (("alert_rule", "project"),)
 
 
 class AlertRuleMonitorType(Enum):
@@ -436,7 +449,9 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
-    projects = FlexibleForeignKey("sentry.Project", through="sentry.AlertRuleProject", null=True)
+    projects = FlexibleForeignKey(
+        "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProject
+    )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     owner = FlexibleForeignKey(
         "sentry.Actor",
