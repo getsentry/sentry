@@ -48,6 +48,12 @@ repos:
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
+      - id: mypy
+        name: mypy
+        entry: bash -c 'if [ -n "${SENTRY_MYPY_PRE_PUSH:-}" ]; then exec mypy "$@"; fi' --
+        language: system
+        stages: [pre-push]
+        types: [python]
       - id: lint-requirements
         name: lint-requirements
         entry: python -m tools.lint_requirements
