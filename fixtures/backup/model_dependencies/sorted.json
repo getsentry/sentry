@@ -45,6 +45,7 @@
   "sentry.reprocessingreport",
   "sentry.scheduleddeletion",
   "sentry.sentryfunction",
+  "sentry.sentryshot",
   "sentry.stringindexer",
   "sentry.team",
   "sentry.teamreplica",
