@@ -22,7 +22,7 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
     if event is None:
         raise ResourceDoesNotExist
 
-    rv = {}
+    grouping_info = {}
 
     # We always fetch the stored hashes here.  The reason for this is
     # that we want to show in the UI if the forced grouping algorithm
@@ -54,14 +54,14 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
         raise ResourceDoesNotExist(detail="Unknown grouping config")
 
     for key, variant in variants.items():
-        d = variant.as_dict()
+        variant_dict = variant.as_dict()
         # Since the hashes are generated on the fly and might no
         # longer match the stored ones we indicate if the hash
         # generation caused the hash to mismatch.
-        d["hashMismatch"] = hash_mismatch = (
-            d["hash"] is not None
-            and d["hash"] not in hashes.hashes
-            and d["hash"] not in hashes.hierarchical_hashes
+        variant_dict["hashMismatch"] = hash_mismatch = (
+            variant_dict["hash"] is not None
+            and variant_dict["hash"] not in hashes.hashes
+            and variant_dict["hash"] not in hashes.hierarchical_hashes
         )
 
         if hash_mismatch:
@@ -73,10 +73,10 @@ def get_grouping_info(config_name: str | None, project: Project, event_id: str):
         else:
             metrics.incr("event_grouping_info.hash_match")
 
-        d["key"] = key
-        rv[key] = d
+        variant_dict["key"] = key
+        grouping_info[key] = variant_dict
 
-    return rv
+    return grouping_info
 
 
 @region_silo_endpoint
@@ -94,6 +94,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         This endpoint returns a JSON dump of the metadata that went into the
         grouping algorithm.
         """
-        rv = get_grouping_info(request.GET.get("config", None), project, event_id)
+        grouping_info = get_grouping_info(request.GET.get("config", None), project, event_id)
 
-        return HttpResponse(json.dumps(rv), content_type="application/json")
+        return HttpResponse(json.dumps(grouping_info), content_type="application/json")

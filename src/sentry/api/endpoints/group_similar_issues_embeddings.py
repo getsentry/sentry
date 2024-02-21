@@ -20,6 +20,7 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
@@ -30,21 +31,16 @@ def get_value_if_exists(exception_value):
 
 
 def get_stacktrace_string(data):
-    if (
-        not data.get("app")
-        or not data["app"].get("hash")
-        or not data["app"].get("component")
-        or not data["app"]["component"].get("values")
-    ) and (
-        not data.get("system")
-        or not data["system"].get("hash")
-        or not data["system"].get("component")
-        or not data["system"]["component"].get("values")
+    """Format a stacktrace string from the grouping information."""
+    if not (
+        get_path(data, "app", "hash") and get_path(data, "app", "component", "values")
+    ) and not (
+        get_path(data, "system", "hash") and get_path(data, "system", "component", "values")
     ):
         return ""
 
     # Get the data used for grouping
-    if data.get("app") and data["app"].get("hash"):
+    if get_path(data, "app", "hash"):
         exceptions = data["app"]["component"]["values"]
     else:
         exceptions = data["system"]["component"]["values"]

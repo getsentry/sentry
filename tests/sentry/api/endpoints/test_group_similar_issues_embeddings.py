@@ -495,6 +495,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             assert ("test = " + str(i) + "!") in stacktrace_str
         assert num_frames == 50
 
+    def test_get_stacktrace_string_no_exception(self):
+        data_no_exception = copy.deepcopy(BASE_APP_DATA)
+        data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
+        stacktrace_str = get_stacktrace_string(data_no_exception)
+        assert stacktrace_str == ""
+
     def test_get_formatted_results(self):
         new_group = self.create_group(project=self.project)
         response_1: SimilarIssuesEmbeddingsData = {

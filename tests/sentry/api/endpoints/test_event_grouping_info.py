@@ -1,6 +1,10 @@
+from unittest import mock
+
 import pytest
 from django.urls import reverse
 
+from sentry.api.endpoints.event_grouping_info import get_grouping_info
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -93,3 +97,43 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "d74ed7012596c3fb",
             "d74ed7012596c3fb",
         ]
+
+    def test_get_grouping_info_no_event(self):
+        with pytest.raises(ResourceDoesNotExist):
+            get_grouping_info(None, self.project, "fake-event-id")
+
+    def test_get_grouping_info_unkown_grouping_config(self):
+        data = load_data(platform="javascript")
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        with pytest.raises(ResourceDoesNotExist):
+            get_grouping_info("fake-config", self.project, event.event_id)
+
+    @mock.patch("sentry.api.endpoints.event_grouping_info.logger")
+    @mock.patch("sentry.api.endpoints.event_grouping_info.metrics")
+    def test_get_grouping_info_hash_mismatch(self, mock_metrics, mock_logger):
+        # Make a Python event
+        data = load_data(platform="python")
+        python_event = self.store_event(data=data, project_id=self.project.id)
+        python_grouping_variants = python_event.get_grouping_variants(
+            force_config=None, normalize_stacktraces=True
+        )
+        # Delete all grouping variants but system
+        del python_grouping_variants["app"]
+        del python_grouping_variants["default"]
+
+        # Make a Javascript event
+        data = load_data(platform="javascript")
+        javascript_event = self.store_event(data=data, project_id=self.project.id)
+        # Force a hash mismatch by setting the variants to be for the python event
+        with mock.patch(
+            "sentry.eventstore.models.BaseEvent.get_grouping_variants"
+        ) as mock_get_grouping_variants:
+            mock_get_grouping_variants.return_value = python_grouping_variants
+            get_grouping_info(None, self.project, javascript_event.event_id)
+
+        mock_metrics.incr.assert_called_with("event_grouping_info.hash_mismatch")
+        mock_logger.error.assert_called_with(
+            "event_grouping_info.hash_mismatch",
+            extra={"project_id": self.project.id, "event_id": javascript_event.event_id},
+        )
