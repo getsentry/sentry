@@ -29,6 +29,7 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -60,6 +61,7 @@ class ActivityTest(TestCase):
         group.data.get("metadata", {})[""] = None
         group.save()
         user1 = self.create_user()
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -85,6 +87,7 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(
@@ -125,6 +128,7 @@ class ActivityTest(TestCase):
         user1 = self.create_user()
         group = event.group
         assert group is not None
+        group.refresh_from_db()
 
         activities = [
             Activity.objects.create_group_activity(

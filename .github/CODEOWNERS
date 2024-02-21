@@ -23,7 +23,6 @@
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
-/src/sentry/sentry_metrics/metrics_correlations.py       @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
@@ -335,7 +334,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/digests/                                                 @getsentry/issues
 /src/sentry/identity/                                                @getsentry/issues
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
-/src/sentry/mail/                                                    @getsentry/issues
+/src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/mediators/                                               @getsentry/issues
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
 /src/sentry/pipeline/                                                @getsentry/issues
@@ -351,11 +350,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
 /src/sentry/tasks/commit_context.py                                  @getsentry/issues
-/src/sentry/tasks/digests.py                                         @getsentry/issues
-/src/sentry/tasks/email.py                                           @getsentry/issues
+/src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
+/src/sentry/tasks/email.py                                           @getsentry/alerts-notifications
 /src/sentry/tasks/integrations/                                      @getsentry/ecosystem
-/src/sentry/tasks/reports.py                                         @getsentry/issues
-/src/sentry/tasks/user_report.py                                     @getsentry/issues
+/src/sentry/tasks/user_report.py                                     @getsentry/alerts-notifications
 /src/sentry/tasks/weekly_reports.py                                  @getsentry/alerts-notifications
 
 /src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
@@ -457,22 +455,29 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 
 ## Telemetry Experience
+/src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
-/src/sentry/api/endpoints/project_dynamic_sampling.py                            @getsentry/telemetry-experience
-/src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
-/src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
-/src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_data.py                     @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_details.py                  @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_tag_details.py              @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_tags.py                     @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metrics.py                         @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_project_dynamic_sampling.py                     @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_dynamic_sampling_sdk_versions.py   @getsentry/telemetry-experience
-/tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
+/src/sentry/api/endpoints/projects_metrics.py                                    @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
+/src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
+/tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
+/src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
+/tests/sentry/release_health/test_metrics_sessions_v2.py                         @getsentry/telemetry-experience
+/src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
+/tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
+/src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
+/tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
+/tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
+/src/sentry/relay/config/metric_extraction.py                                    @getsentry/telemetry-experience
+/tests/sentry/relay/config/test_metric_extraction.py                             @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
