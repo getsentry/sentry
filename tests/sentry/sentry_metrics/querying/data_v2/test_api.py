@@ -905,7 +905,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             referrer="metrics.data.api",
         )
         data = results["data"]
-        assert len(data) == 1
+        assert len(data) == 3
         assert data[0][0]["by"] == {}
         assert data[0][0]["series"] == [None, 136.0, 127.0]
         assert data[0][0]["totals"] == 226.0
