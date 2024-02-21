@@ -694,11 +694,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     dependency_aggregations = {"trends": ["last_seen", "times_seen"]}
     postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
+    # TODO(snigdha): we will need to remove priority from here once we have renamed all instances to trends
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
         "trends": "trends",
+        "priority": "priority",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -710,10 +712,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
+        "priority": trends_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
         "trends_issue_platform": trends_issue_platform_aggregation,
+        "priority_issue_platform": trends_issue_platform_aggregation,
     }
 
     @property
@@ -1117,6 +1121,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
+        # TODO(snigdha): we will need to remove priority from here once we have renamed all instances to trends
+        "priority": "priority",
         "trends": "trends",
         "user": "user_count",
     }
@@ -1165,6 +1171,27 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "last_seen": last_seen_aggregation,
         # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
         "trends": Function(
+            "toUInt64",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "multiply",
+                            [
+                                Function(
+                                    "log",
+                                    [times_seen_aggregation],
+                                ),
+                                600,
+                            ],
+                        ),
+                        last_seen_aggregation,
+                    ],
+                )
+            ],
+        ),
+        "priority": Function(
             "toUInt64",
             [
                 Function(

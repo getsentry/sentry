@@ -17,6 +17,7 @@ from sentry.models.search_common import SearchType
 class SortOptions:
     DATE = "date"
     NEW = "new"
+    PRIORITY = "priority"
     TRENDS = "trends"
     FREQ = "freq"
     USER = "user"
@@ -27,6 +28,7 @@ class SortOptions:
         return (
             (cls.DATE, _("Last Seen")),
             (cls.NEW, _("First Seen")),
+            (cls.PRIORITY, _("Priority")),
             (cls.TRENDS, _("Trends")),
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
