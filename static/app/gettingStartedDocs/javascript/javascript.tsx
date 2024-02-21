@@ -220,7 +220,7 @@ const feedbackOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isFeedbackSelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },
