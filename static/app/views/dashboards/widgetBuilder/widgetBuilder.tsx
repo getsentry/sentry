@@ -36,7 +36,10 @@ import {
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {
+  isOnDemandMetricWidget,
+  OnDemandControlProvider,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -373,6 +376,8 @@ function WidgetBuilder({
     limit: state.limit,
     widgetType,
   };
+
+  const isOnDemandWidget = isOnDemandMetricWidget(currentWidget);
 
   const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
 
@@ -1155,6 +1160,7 @@ function WidgetBuilder({
                                           explodedFields={explodedFields}
                                           tags={tags}
                                           organization={organization}
+                                          isOnDemandWidget={isOnDemandWidget}
                                         />
                                       )}
                                     </DashboardsMEPConsumer>
