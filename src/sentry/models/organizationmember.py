@@ -566,7 +566,7 @@ class OrganizationMember(ReplicatedRegionModel):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        if not set(self.role) & {r.id for r in allowed_roles}:
+        if not {self.role} & {r.id for r in allowed_roles}:
             raise UnableToAcceptMemberInvitationException(
                 f"You do not have permission to approve a member invitation with the role {self.role}."
             )

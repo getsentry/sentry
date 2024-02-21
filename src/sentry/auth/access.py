@@ -142,8 +142,6 @@ class Access(abc.ABC):
         return None
 
     def get_organization_roles(self) -> Iterable[OrganizationRole]:
-        if self.roles is not None:
-            return [organization_roles.get(r) for r in self.roles]
         return []
 
     @abc.abstractmethod
