@@ -197,7 +197,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
+            logger.exception(
+                "slack.event.unfurl-error", extra={"error": str(e), "payload": payload}
+            )
 
         return True
 
