@@ -10,7 +10,7 @@ from sentry.integrations.slack.message_builder.base.base import SlackMessageBuil
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.dates import to_timestamp
 
-MAX_BLOCK_TEXT_LENGTH = 1000
+MAX_BLOCK_TEXT_LENGTH = 256
 
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):

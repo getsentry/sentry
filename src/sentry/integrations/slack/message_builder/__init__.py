@@ -54,7 +54,7 @@ CATEGORY_TO_EMOJI = {
 }
 
 CATEGORY_TO_EMOJI_V2 = {
-    GroupCategory.PERFORMANCE: ":large_blue_circle::chart_with_upwards_trend:",
-    GroupCategory.FEEDBACK: ":large_blue_circle::busts_in_silhouette:",
-    GroupCategory.CRON: ":large_yellow_circle::spiral_calendar_pad:",
+    GroupCategory.PERFORMANCE: ":large_blue_circle: :chart_with_upwards_trend:",
+    GroupCategory.FEEDBACK: ":large_blue_circle: :busts_in_silhouette:",
+    GroupCategory.CRON: ":large_yellow_circle: :spiral_calendar_pad:",
 }
