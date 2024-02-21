@@ -687,7 +687,7 @@ def compute_sliding_window_sample_rate(
 
     func_name = "get_transaction_sampling_tier_for_volume"
     with context.get_timer(func_name):
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
+        sampling_tier = quotas.backend.get_transaction_sampling_tier_for_volume(
             org_id, extrapolated_volume
         )
         state = context.get_function_state(func_name)

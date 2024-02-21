@@ -112,7 +112,8 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.OK
             assert (
-                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+                checkin.monitor_environment.get_environment().name
+                == monitor_environment.get_environment().name
             )
             assert checkin.timeout_at is None
 
@@ -148,7 +149,8 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.OK
             assert (
-                checkin.monitor_environment.environment.name == monitor_environment.environment.name
+                checkin.monitor_environment.get_environment().name
+                == monitor_environment.get_environment().name
             )
 
             monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
