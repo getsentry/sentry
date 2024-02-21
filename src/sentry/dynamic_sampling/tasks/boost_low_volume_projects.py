@@ -251,14 +251,18 @@ def adjust_sample_rates_of_projects(
         # the query triggering this job and the actual execution of the job.
         organization = None
 
+    # By default, we use the blended sample rate.
+    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+
     # We get the sample rate either directly from quotas or from the new sliding window org mechanism.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_sliding_window_org_sample_rate(org_id)
+        sample_rate = get_sliding_window_org_sample_rate(
+            org_id=org_id, default_sample_rate=sample_rate
+        )
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
     else:
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
         )

@@ -3,6 +3,7 @@ import time
 import sentry_sdk
 from snuba_sdk import Granularity
 
+from sentry import quotas
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
@@ -88,14 +89,32 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
 
         assert org_volume.indexed is not None
 
-        target_sample_rate = get_sliding_window_org_sample_rate(org_volume.org_id)
-        log_sample_rate_source(
-            org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
-        )
+        target_sample_rate = get_sliding_window_org_sample_rate(org_id=org_volume.org_id)
+        if target_sample_rate is not None:
+            log_sample_rate_source(
+                org_volume.org_id,
+                None,
+                "recalibrate_orgs",
+                "sliding_window_org",
+                target_sample_rate,
+            )
+        else:
+            target_sample_rate = quotas.backend.get_blended_sample_rate(
+                organization_id=org_volume.org_id
+            )
+            if target_sample_rate is not None:
+                log_sample_rate_source(
+                    org_volume.org_id,
+                    None,
+                    "recalibrate_orgs",
+                    "blended_sample_rate",
+                    target_sample_rate,
+                )
+
         if target_sample_rate is None:
             raise RecalibrationError(
                 org_id=org_volume.org_id,
-                message="couldn't get target sample rate for recalibration",
+                message="Couldn't get target sample rate for recalibration",
             )
 
         # We compute the effective sample rate that we had in the last considered time window.
