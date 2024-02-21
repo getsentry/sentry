@@ -442,11 +442,8 @@ describe('ReplayReader', () => {
     });
 
     it('should adjust the end time and duration for the clip window', () => {
-      // Duration should be between the clip start time and the last rrweb frame
-      // within the clip window
-      expect(replay?.getDurationMs()).toEqual(
-        rrwebFrame2.timestamp - clipStartTimestamp.getTime()
-      );
+      // Duration should be between the clip start time and end time
+      expect(replay?.getDurationMs()).toEqual(10_000);
       // Start offset should be set
       expect(replay?.getStartOffsetMs()).toEqual(
         clipStartTimestamp.getTime() - replayStartedAt.getTime()
@@ -467,6 +464,11 @@ describe('ReplayReader', () => {
         expect.objectContaining({
           type: EventType.FullSnapshot,
           timestamp: rrwebFrame2.timestamp,
+        }),
+        expect.objectContaining({
+          type: EventType.Custom,
+          data: {tag: 'replay.clip_end', payload: {}},
+          timestamp: clipEndTimestamp.getTime(),
         }),
         // rrwebFrame3 should not be returned
       ]);
