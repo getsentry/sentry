@@ -50,7 +50,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         List a Release's Deploys
         ````````````````````````
 
-        Return a list of deploys for a given release.
+        Returns a list of deploys based on the organization, version, and project.
 
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
@@ -63,9 +63,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        queryset = Deploy.objects.filter(organization_id=organization.id, release=release)
-
-        # TODO add filter by project.
         releases = ReleaseProjectEnvironment.objects.select_related("release").filter(
             release__organization_id=organization.id,
             release__version=version,
@@ -75,11 +72,14 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if project_id:
             releases.filter(project_id=project_id)
 
+        deploy_ids = releases.values_list("last_deploy_id", flat=True)
+        queryset = Deploy.objects.filter(id__in=deploy_ids)
+
         return self.paginate(
             request=request,
+            paginator_cls=OffsetPaginator,
             queryset=queryset,
             order_by="-date_finished",
-            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
