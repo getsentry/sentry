@@ -15,6 +15,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -387,14 +388,24 @@ class OrganizationEndpoint(Endpoint):
             if force_global_perms:
                 span.set_tag("mode", "force_global_perms")
             else:
-                if (
-                    user
-                    and is_active_superuser(request)  # superuser should fetch all projects
-                    or not filter_by_membership  # explicitly requested projects
-                    or include_all_accessible  # requested $all projects
-                ):
+                active_superuser = user and is_active_superuser(request)
+                # Superuser should fetch all projects.
+                # Also check if explicitly requesting all projects with include_all_accessible
+                if active_superuser or include_all_accessible:
                     span.set_tag("mode", "has_project_access")
                     func = request.access.has_project_access
+                # Check if explicitly requesting specific projects
+                elif not filter_by_membership:
+                    if is_active_staff(request):
+                        # There is a special case for staff, where we want to fetch usage stats for a single
+                        # project in _admin using OrganizationStatsEndpointV2 but cannot use as_project_access
+                        # like superuser because it fails. The workaround is to create a lambda that mimics
+                        # checking for active projects like has_project_access without further validation.
+                        span.set_tag("mode", "staff_fetch_all")
+                        func = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
+                    else:
+                        span.set_tag("mode", "has_project_access")
+                        func = request.access.has_project_access
                 else:
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
