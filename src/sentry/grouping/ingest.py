@@ -236,6 +236,38 @@ def _calculate_secondary_hash(
     return secondary_hashes
 
 
+def run_primary_grouping(
+    project: Project, job: Job, metric_tags: MutableTags
+) -> tuple[GroupingConfig, CalculatedHashes]:
+    """
+    Get the primary grouping config and primary hashes for the event.
+    """
+    with metrics.timer("event_manager.load_grouping_config"):
+        if is_reprocessed_event(job["data"]):
+            # The customer might have changed grouping enhancements since
+            # the event was ingested -> make sure we get the fresh one for reprocessing.
+            grouping_config = get_grouping_config_dict_for_project(project)
+            # Write back grouping config because it might have changed since the
+            # event was ingested.
+            # NOTE: We could do this unconditionally (regardless of `is_processed`).
+            job["data"]["grouping_config"] = grouping_config
+        else:
+            grouping_config = get_grouping_config_dict_for_event_data(
+                job["event"].data.data, project
+            )
+
+    with (
+        sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ),
+        metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
+    ):
+        hashes = _calculate_primary_hash(project, job, grouping_config)
+
+    return (grouping_config, hashes)
+
+
 def _calculate_primary_hash(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -362,30 +394,10 @@ def get_hash_values(
         project, job, metric_tags
     )
 
-    with metrics.timer("event_manager.load_grouping_config"):
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        if is_reprocessed_event(job["data"]):
-            # The customer might have changed grouping enhancements since
-            # the event was ingested -> make sure we get the fresh one for reprocessing.
-            grouping_config = get_grouping_config_dict_for_project(project)
-            # Write back grouping config because it might have changed since the
-            # event was ingested.
-            # NOTE: We could do this unconditionally (regardless of `is_processed`).
-            job["data"]["grouping_config"] = grouping_config
-        else:
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
-
-    with sentry_sdk.start_span(
-        op="event_manager",
-        description="event_manager.save.calculate_event_grouping",
-    ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-        primary_hashes = _calculate_primary_hash(project, job, grouping_config)
+    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
     record_hash_calculation_metrics(
-        grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
     )
 
     all_hashes = CalculatedHashes(
