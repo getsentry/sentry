@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import type {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import withOrganization from 'sentry/utils/withOrganization';
 
 // Props that function children will get.
 type ChildRenderProps = {
@@ -11,10 +11,9 @@ type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
+type ChildFunction = (props: ChildRenderProps) => JSX.Element;
 
-type Props = {
-  organization: Organization;
+interface Props {
   /**
    * List of required access levels
    */
@@ -45,19 +44,13 @@ type Props = {
    * the team, they will have appropriate scopes.
    */
   team?: Team | null | undefined;
-};
+}
 
 /**
  * Component to handle access restrictions.
  */
-function Access({
-  children,
-  isSuperuser = false,
-  access = [],
-  team,
-  project,
-  organization,
-}: Props) {
+function Access({children, isSuperuser = false, access = [], team, project}: Props) {
+  const organization = useOrganization();
   const user = useUser();
   team = team ?? undefined;
   project = project ?? undefined;
@@ -96,4 +89,4 @@ export function hasEveryAccess(
   );
 }
 
-export default withOrganization(Access);
+export default Access;

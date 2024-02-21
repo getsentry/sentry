@@ -181,7 +181,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
                     {t('Cancel')}
                   </Button>
 
-                  <Access access={['org:integrations']} organization={organization}>
+                  <Access access={['org:integrations']}>
                     {({hasAccess}) =>
                       hasAccess && (
                         <Button
