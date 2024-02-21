@@ -719,9 +719,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
             if use_spans or augment_only:
-                transactions = augment_transactions_with_spans(
-                    transactions, errors, trace_id, params
-                )
+                try:
+                    transactions = augment_transactions_with_spans(
+                        transactions, errors, trace_id, params
+                    )
+                except Exception as err:
+                    sentry_sdk.capture_exception(err)
+                    raise ParseError(detail=str(err))
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
