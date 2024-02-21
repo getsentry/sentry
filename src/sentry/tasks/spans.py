@@ -7,7 +7,12 @@ from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
-from sentry.event_manager import _detect_performance_problems
+from sentry.event_manager import (
+    _detect_performance_problems,
+    _pull_out_data,
+    _send_occurrence_to_platform,
+)
+from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.project import Project
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.tasks.base import instrumented_task
@@ -44,6 +49,11 @@ def transform_spans_to_event_dict(spans):
                 "type": "trace",
                 "op": sentry_tags.get("transaction.op"),
             }
+            event["received"] = deserialized_span["received"]
+            event["timestamp"] = (
+                deserialized_span.get("start_timestamp_ms", 0)
+                + deserialized_span.get("duration_ms")
+            ) / 1000
 
             if (profile_id := deserialized_span.get("profile_id")) is not None:
                 event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
@@ -82,16 +92,28 @@ def _process_segment(project_id, segment_id):
     projects = {project.id: project}
 
     data = CanonicalKeyDict(event)
-    job: dict[str, Any] = {
-        "data": data,
-        "project_id": project.id,
-        "raw": False,
-        "start_time": None,  # TODO: figure out how to get start time
-    }
+    jobs: dict[str, Any] = [
+        {
+            "data": data,
+            "project_id": project.id,
+            "raw": False,
+            "start_time": None,  # TODO: figure out how to get start time
+        }
+    ]
 
-    _detect_performance_problems([job], projects)
+    _pull_out_data(jobs, projects)
+    _detect_performance_problems(jobs, projects)
+    performance_problems = jobs[0].pop("performance_problems")
+    updated_problems = []
 
-    return job
+    for performance_problem in performance_problems:
+        performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
+        updated_problems.append(performance_problem)
+
+    jobs[0]["performance_problems"] = updated_problems
+    _send_occurrence_to_platform(jobs, projects)
+
+    return jobs[0]
 
 
 @instrumented_task(

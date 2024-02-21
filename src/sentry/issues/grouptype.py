@@ -401,6 +401,18 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     notification_config = NotificationConfig(context=["Users Affected", "State", "Regressed Date"])
 
 
+# experimental
+@dataclass(frozen=True)
+class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
+    type_id = 1019
+    slug = "performance_streamed_spans_exp"
+    description = "Streamed Spans (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):

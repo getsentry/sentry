@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 
+from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.tasks.spans import _process_segment
 from sentry.testutils.cases import TestCase
@@ -29,3 +30,5 @@ class TestSpansTask(TestCase):
             job["performance_problems"][0].fingerprint
             == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-d4e059f4c8c61480237bd2051e7c3869f3d4ff51"
         )
+
+        assert job["performance_problems"][0].type == PerformanceStreamedSpansGroupTypeExperimental
