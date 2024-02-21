@@ -41,6 +41,7 @@ OPTION_KEYS = frozenset(
         "sentry:recap_server_url",
         "sentry:recap_server_token",
         "sentry:replay_rage_click_issues",
+        "sentry:feedback_user_report_notifications",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
