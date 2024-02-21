@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
                     ALTER TABLE "sentry_alertrule" ADD COLUMN "monitor_type" integer NOT NULL DEFAULT 0;
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_alertrule DROP COLUMN "monitor_type";
+                    ALTER TABLE "sentry_alertrule" DROP COLUMN "monitor_type";
                     """,
                     hints={"tables": ["sentry_alertrule"]},
                 )
