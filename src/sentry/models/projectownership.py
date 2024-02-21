@@ -272,26 +272,35 @@ class ProjectOwnership(Model):
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
+            logging_extra["ownership"] = ownership
 
             autoassignment_types = cls._get_autoassignment_types(ownership)
             if not len(autoassignment_types):
+                logger.info("handle_auto_assignment.autoassignment_disabled", extra=logging_extra)
                 return
+            logging_extra["autoassignment_types"] = autoassignment_types
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
             issue_owner = GroupOwner.get_autoassigned_owner_cached(
                 group.id, project_id, autoassignment_types
             )
             if issue_owner is False:
+                logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return
+            logging_extra["issue_owner"] = issue_owner
 
             owner = issue_owner.owner()
             if not owner:
+                logger.info("handle_auto_assignment.no_owner", extra=logging_extra)
                 return
 
+            logging_extra["owner"] = owner
             try:
                 owner = owner.resolve()
             except (User.DoesNotExist, Team.DoesNotExist):
+                logger.info("handle_auto_assignment.no_resolved_owner", extra=logging_extra)
                 return
+            logging_extra["resolved_owner"] = owner
 
             activity_details = {}
             if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
@@ -313,42 +322,55 @@ class ProjectOwnership(Model):
                 if not auto_assigned and not enable_force_autoassign:
                     logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
+
+            if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
+                logging_extra["owner_type"] = str(type(owner))
+                logger.info("handle_auto_assignment.owner", extra=logging_extra)
+                return
+
             if (
                 isinstance(owner, Team)
-                and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
-            ) or (
-                isinstance(owner, RpcUser)
-                and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+                and GroupAssignee.objects.filter(group=group, team=owner.id).exists()
             ):
-                assignment = GroupAssignee.objects.assign(
-                    group,
-                    owner,
-                    create_only=not enable_force_autoassign,
-                    extra=activity_details,
-                    force_autoassign=enable_force_autoassign,
-                )
+                logger.info("handle_auto_assignment.team_already_assigned", extra=logging_extra)
+                return
 
-                if assignment["new_assignment"] or assignment["updated_assignment"]:
-                    analytics.record(
-                        (
-                            "codeowners.assignment"
-                            if activity_details.get("integration")
-                            == ActivityIntegration.CODEOWNERS.value
-                            else "issueowners.assignment"
-                        ),
-                        organization_id=organization_id or ownership.project.organization_id,
-                        project_id=project_id,
-                        group_id=group.id,
-                    )
-                    logger.info(
-                        "handle_auto_assignment.success",
-                        extra={
-                            **logging_extra,
-                            # owner_id returns a string including the owner type (user or team) and id
-                            "assignee": issue_owner.owner_id(),
-                            "reason": "created" if assignment["new_assignment"] else "updated",
-                        },
-                    )
+            if (
+                isinstance(owner, RpcUser)
+                and GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+            ):
+                logger.info("handle_auto_assignment.user_already_assigned", extra=logging_extra)
+                return
+
+            assignment = GroupAssignee.objects.assign(
+                group,
+                owner,
+                create_only=not enable_force_autoassign,
+                extra=activity_details,
+                force_autoassign=enable_force_autoassign,
+            )
+
+            if assignment["new_assignment"] or assignment["updated_assignment"]:
+                analytics.record(
+                    (
+                        "codeowners.assignment"
+                        if activity_details.get("integration")
+                        == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment"
+                    ),
+                    organization_id=organization_id or ownership.project.organization_id,
+                    project_id=project_id,
+                    group_id=group.id,
+                )
+                logger.info(
+                    "handle_auto_assignment.success",
+                    extra={
+                        **logging_extra,
+                        # owner_id returns a string including the owner type (user or team) and id
+                        "assignee": issue_owner.owner_id(),
+                        "reason": "created" if assignment["new_assignment"] else "updated",
+                    },
+                )
 
     @classmethod
     def _matching_ownership_rules(
