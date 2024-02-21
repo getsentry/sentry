@@ -38,6 +38,8 @@ class AbuseQuota:
     categories: list[DataCategory]
     # Quota Scope.
     scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
+    # The optional namespace that the quota belongs to.
+    namespace: str | None = None
     # Old org option name still used for compatibility reasons,
     # takes precedence over `option` and `compat_option_sentry`.
     compat_option_org: str | None = None
@@ -141,6 +143,7 @@ class QuotaConfig:
             "categories": categories,
             "limit": self.limit,
             "window": self.window,
+            "namespace": self.namespace,
             "reasonCode": self.reason_code,
         }
 
@@ -410,6 +413,34 @@ class Quota(Service):
                 option="global-abuse-quota.metric-bucket-limit",
                 categories=[DataCategory.METRIC_BUCKET],
                 scope=QuotaScope.GLOBAL,
+            ),
+            AbuseQuota(
+                id="gams",
+                option="global-abuse-quota-sessions.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="sessions",
+            ),
+            AbuseQuota(
+                id="gamt",
+                option="global-abuse-quota-transactions.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="transactions",
+            ),
+            AbuseQuota(
+                id="gamp",
+                option="global-abuse-quota-spans.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="spans",
+            ),
+            AbuseQuota(
+                id="gamc",
+                option="global-abuse-quota-custom.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+                namespace="custom",
             ),
         ]
 
