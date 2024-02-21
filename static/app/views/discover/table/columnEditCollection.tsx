@@ -741,11 +741,9 @@ const RowContainer = styled('div')<{
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
 
       @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-template-columns: ${
-          p.singleColumn
-            ? `1fr calc(200px + ${space(1)})`
-            : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`
-        };
+        grid-template-columns: ${p.singleColumn
+          ? `1fr calc(200px + ${space(1)})`
+          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
       }
     `};
 `;

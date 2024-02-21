@@ -2,7 +2,7 @@ import {Component, createRef, Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
+import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -469,7 +469,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
 
   return (
     <BannerWrapper>
-      <div>
+      <ActionsWrapper>
         <BannerTitle>{t('Connect with Dots')}</BannerTitle>
         <BannerDescription>
           {t(
@@ -494,8 +494,8 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
         </ButtonsWrapper>
-      </div>
-      {<Background image={emptyStateImg} />}
+      </ActionsWrapper>
+      {<Background image={connectDotsImg} />}
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{
@@ -537,6 +537,11 @@ const BannerWrapper = styled('div')`
     ${p => p.theme.backgroundSecondary}FF 70%,
     ${p => p.theme.backgroundSecondary}FF 100%
   );
+  min-width: 850px;
+`;
+
+const ActionsWrapper = styled('div')`
+  max-width: 50%;
 `;
 
 const ButtonsWrapper = styled('div')`
@@ -569,9 +574,9 @@ const Background = styled('div')<{image: any}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;
-  top: 6px;
-  right: 49px;
-  height: 100%;
+  top: 14px;
+  right: 15px;
+  height: 81%;
   width: 100%;
   max-width: 413px;
   background-image: url(${p => p.image});
