@@ -14,11 +14,12 @@ import {
 
 export function convertToDashboardWidget(
   metricQueries: MetricsQuery[],
-  displayType?: MetricDisplayType
+  displayType?: MetricDisplayType,
+  title = ''
 ): Widget {
   // @ts-expect-error TODO: pass interval
   return {
-    title: '',
+    title,
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
     limit: 10,
