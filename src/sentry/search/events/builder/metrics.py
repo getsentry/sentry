@@ -27,7 +27,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -75,6 +74,7 @@ from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+    use_default_tags = True
 
     organization_column: str = "organization_id"
 
@@ -124,17 +124,6 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
-
-    @property
-    def use_default_tags(self) -> bool:
-        if self._use_default_tags is None:
-            if self.params.organization is not None:
-                self._use_default_tags = features.has(
-                    "organizations:mep-use-default-tags", self.params.organization, actor=None
-                )
-            else:
-                self._use_default_tags = False
-        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the

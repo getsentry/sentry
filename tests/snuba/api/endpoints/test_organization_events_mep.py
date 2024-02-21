@@ -3145,18 +3145,17 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         transaction_data["tags"].append(("faketag", "foo"))
         self.store_event(transaction_data, self.project.id)
 
-        with self.feature({"organizations:mep-use-default-tags": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "faketag",
-                        "count()",
-                    ],
-                    "query": "event.type:transaction",
-                    "dataset": "metricsEnhanced",
-                    "per_page": 50,
-                }
-            )
+        response = self.do_request(
+            {
+                "field": [
+                    "faketag",
+                    "count()",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+        )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]

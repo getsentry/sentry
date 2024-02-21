@@ -15,6 +15,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    use_default_tags = False
 
     def __init__(
         self,
@@ -31,10 +32,6 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         config.parser_config_overrides = parser_config_overrides
         kwargs["config"] = config
         super().__init__(*args, **kwargs)
-
-    @property
-    def use_default_tags(self) -> bool:
-        return False
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
