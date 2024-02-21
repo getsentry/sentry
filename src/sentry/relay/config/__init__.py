@@ -668,6 +668,67 @@ def _get_project_config(
                         "value": "Opera",
                     },
                 },
+                {
+                    "name": "Chrome INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "or",
+                        "inner": [
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Chrome",
+                            },
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Google Chrome",
+                            },
+                        ],
+                    },
+                },
+                {
+                    "name": "Edge INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
             ]
         }
 
