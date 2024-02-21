@@ -9,6 +9,11 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.integrations.repository.metric_alert import (
+    MetricAlertNotificationMessageRepository,
+    NewMetricAlertNotificationMessage,
+    get_default_repository,
+)
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.models.integrations.integration import Integration
@@ -16,11 +21,6 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 
-from ...repository.metric_alert import (
-    MetricAlertNotificationMessageRepository,
-    NewMetricAlertNotificationMessage,
-    get_default_repository,
-)
 from . import logger
 
 
@@ -69,11 +69,17 @@ def send_incident_alert_notification(
     }
 
     client = SlackClient(integration_id=integration.id)
-    parent_notification_message = repository.get_parent_notification_message(
-        alert_rule_id=incident.alert_rule_id,
-        incident_id=incident.id,
-        trigger_action_id=action.id,
-    )
+    parent_notification_message = None
+    try:
+        parent_notification_message = repository.get_parent_notification_message(
+            alert_rule_id=incident.alert_rule_id,
+            incident_id=incident.id,
+            trigger_action_id=action.id,
+        )
+    except Exception:
+        # if there's an error trying to grab a parent notification, don't let that error block this flow
+        pass
+
     new_notification_message_object = NewMetricAlertNotificationMessage(
         incident_id=incident.id,
         trigger_action_id=action.id,
@@ -109,7 +115,12 @@ def send_incident_alert_notification(
         new_notification_message_object.message_identifier = data["ts"]
 
     # Save the notification message we just sent with the response id or error we received
-    repository.create_notification_message(data=new_notification_message_object)
+    try:
+        repository.create_notification_message(data=new_notification_message_object)
+    except Exception:
+        # If we had an unexpected error with saving a record to our datastore,
+        # don't let the error bubble up and block this flow from finishing
+        pass
 
     return success
 
