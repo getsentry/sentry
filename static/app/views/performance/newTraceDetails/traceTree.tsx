@@ -308,6 +308,7 @@ export class TraceTree {
     spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
+    parent.invalidate(parent);
     const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
 
     const parentIsSpan = isSpanNode(parent);
@@ -616,6 +617,7 @@ export class TraceTree {
       this._list.splice(index + 1, childrenCount);
 
       node.zoomedIn = zoomedIn;
+      node.invalidate(node);
 
       if (node.expanded) {
         this._list.splice(index + 1, 0, ...node.getVisibleChildren());
@@ -761,6 +763,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     if (!this.parent || this.parent.children.length === 0) {
       return true;
     }
+
     return this.parent.children[this.parent.children.length - 1] === this;
   }
 
@@ -1076,10 +1079,9 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   return tree;
 }
-
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
-  const padding = ' '.repeat(t.depth + offset);
+  const padding = '  '.repeat(t.depth + offset);
 
   if (isAutogroupedNode(t)) {
     if (isParentAutogroupedNode(t)) {
