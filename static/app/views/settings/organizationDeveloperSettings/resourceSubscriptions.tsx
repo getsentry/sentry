@@ -28,8 +28,7 @@ export default class Subscriptions extends Component<Props> {
 
   constructor(props: Props, context) {
     super(props, context);
-    // TODO(TS): Events type don't make sense here
-    this.context.form!.setValue('events', this.props.events as any);
+    this.context.form.setValue('events', this.props.events);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -61,8 +60,7 @@ export default class Subscriptions extends Component<Props> {
 
   save = (events: WebhookEvent[]) => {
     this.props.onChange(events);
-    // TODO(TS): Events type don't make sense here
-    this.context.form!.setValue('events', events as any);
+    this.context.form.setValue('events', events);
   };
 
   render() {
