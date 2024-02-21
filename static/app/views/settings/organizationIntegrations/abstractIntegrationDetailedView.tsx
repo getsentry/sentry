@@ -52,7 +52,7 @@ type Props = {
 } & RouteComponentProps<{integrationSlug: string}, {}> &
   DeprecatedAsyncComponent['props'];
 
-class AbstractIntegrationDetailedView<
+abstract class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
@@ -184,10 +184,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns the list of configurations for the integration
-  renderConfigurations() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
-  }
+  abstract renderConfigurations(): React.ReactNode;
 
   /**
    * Actually implemented methods below
