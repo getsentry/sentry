@@ -350,6 +350,7 @@ class Referrer(Enum):
     API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
         "api.performance.transactions.statistical-detector-stats"
     )
+    API_PERFORMANCE_BUNDLE_ANALYSIS = "api.performance.bundle-analysis"
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
