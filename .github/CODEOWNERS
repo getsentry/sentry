@@ -159,7 +159,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/issueDetails/                           @getsentry/issues
-/static/app/views/issueDetails/groupEventDetails/*        @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/alerts-notifications
@@ -509,7 +508,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
 /static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issues
 /static/app/utils/analytics.tsx                                 @getsentry/issues
-/static/app/utils/routeAnalytics*                               @getsentry/issues
+/static/app/utils/routeAnalytics/                               @getsentry/issues
 ## End of Issues
 
 ## Billing
