@@ -3241,8 +3241,8 @@
   "sentry.monitorenvironment": {
     "dangling": false,
     "foreign_keys": {
-      "environment": {
-        "kind": "FlexibleForeignKey",
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
         "model": "sentry.environment",
         "nullable": false
       },
@@ -3261,7 +3261,7 @@
     "table_name": "sentry_monitorenvironment",
     "uniques": [
       [
-        "environment",
+        "environment_id",
         "monitor"
       ]
     ]

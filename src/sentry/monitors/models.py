@@ -569,7 +569,7 @@ class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor")
-    environment = FlexibleForeignKey("sentry.Environment")
+    environment_id = BoundedBigIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     status = BoundedPositiveIntegerField(
@@ -616,7 +616,7 @@ class MonitorEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        unique_together = (("monitor", "environment"),)
+        unique_together = (("monitor", "environment_id"),)
         indexes = [
             models.Index(fields=["status", "next_checkin_latest"]),
         ]
