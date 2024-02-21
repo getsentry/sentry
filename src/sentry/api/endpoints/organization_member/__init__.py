@@ -77,7 +77,7 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
         return False
 
     org_role = access.get_organization_role()
-    if org_role.can_manage_team_role(new_role):
+    if org_role and org_role.can_manage_team_role(new_role):
         return True
 
     team_role = access.get_team_role(team)
