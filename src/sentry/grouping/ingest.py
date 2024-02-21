@@ -192,6 +192,24 @@ def _should_run_secondary_grouping(project: Project) -> bool:
     return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
+def maybe_run_secondary_grouping(
+    project: Project, job: Job, metric_tags: MutableTags
+) -> tuple[GroupingConfig | None, CalculatedHashes | None]:
+    """
+    If the projct is in a grouping config transition phase, calculate a set of secondary hashes for
+    the job's event.
+    """
+
+    secondary_grouping_config = secondary_hashes = None
+
+    if _should_run_secondary_grouping(project):
+        with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+            secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
+            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+
+    return (secondary_grouping_config, secondary_hashes)
+
+
 def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
 ) -> CalculatedHashes | None:
@@ -340,12 +358,9 @@ def get_hash_values(
     # either before or after the main grouping logic, depending on the option value.
     _maybe_run_background_grouping(project, job)
 
-    secondary_grouping_config = secondary_hashes = None
-
-    if _should_run_secondary_grouping(project):
-        with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-            secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+    secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
+        project, job, metric_tags
+    )
 
     with metrics.timer("event_manager.load_grouping_config"):
         # At this point we want to normalize the in_app values in case the
