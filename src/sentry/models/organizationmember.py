@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import secrets
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
@@ -66,6 +67,8 @@ _OrganizationMemberFlags = TypedDict(
         "partnership:restricted": bool,
     },
 )
+
+logger = logging.getLogger("sentry.org_roles")
 
 
 INVITE_DAYS_VALID = 30
@@ -384,8 +387,8 @@ class OrganizationMember(ReplicatedRegionModel):
         try:
             msg.send_async([self.get_email()])
         except Exception as e:
-            logger = get_logger(name="sentry.mail")
-            logger.exception(e)
+            mail_logger = get_logger(name="sentry.mail")
+            mail_logger.exception(e)
 
     def send_sso_link_email(self, sending_user_email: str, provider):
         from sentry.utils.email import MessageBuilder
@@ -503,9 +506,9 @@ class OrganizationMember(ReplicatedRegionModel):
             "teams_slugs": [t["slug"] for t in teams],
             "has_global_access": self.has_global_access,
             "role": self.role,
-            "invite_status": invite_status_names[self.invite_status]
-            if self.invite_status is not None
-            else None,
+            "invite_status": (
+                invite_status_names[self.invite_status] if self.invite_status is not None else None
+            ),
         }
 
     def get_teams(self):
@@ -614,9 +617,11 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
     def reject_member_invitation(
@@ -646,12 +651,15 @@ class OrganizationMember(ReplicatedRegionModel):
 
         self.delete()
 
-    def get_allowed_org_roles_to_invite(self):
+    def get_allowed_org_roles_to_invite(self, log_scopes: bool = False) -> list[OrganizationRole]:
         """
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         member_scopes = self.get_scopes()
+        if log_scopes:
+            logger.info("member.scopes", extra={"scopes": member_scopes})
+
         return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
 
     def is_only_owner(self) -> bool:
