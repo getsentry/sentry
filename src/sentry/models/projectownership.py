@@ -318,7 +318,7 @@ class ProjectOwnership(Model):
 
             if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
                 logging_extra["owner_type"] = str(type(owner))
-                logger.info("handle_auto_assignment.owner", extra=logging_extra)
+                logger.info("handle_auto_assignment.unknown_owner_type", extra=logging_extra)
                 return
 
             if (
