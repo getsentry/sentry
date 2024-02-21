@@ -25,7 +25,7 @@ COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
 USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
-    os.path.exists("/Applications/Orbstack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+    os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
 
 if USE_ORBSTACK:
@@ -80,7 +80,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                 elif USE_ORBSTACK:
                     click.echo("Attempting to start orbstack...")
                     subprocess.check_call(
-                        ("open", "-a", "/Applications/Orbstack.app", "--args", "--unattended")
+                        ("open", "-a", "/Applications/OrbStack.app", "--args", "--unattended")
                     )
             else:
                 raise click.ClickException("Make sure docker is running.")
