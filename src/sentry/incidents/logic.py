@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleMonitorType,
+    AlertRuleProject,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -528,8 +529,6 @@ def create_alert_rule(
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
         # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
-        # TODO: ensure created SnubaQuery has all relevant fields for constructing query in snuba on the fly
-        # (constructed in `subscribe_projects_to_alert_rule`)
         snuba_query = create_snuba_query(
             query_type=query_type,
             dataset=dataset,
@@ -577,6 +576,9 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
+        elif monitor_type == AlertRuleMonitorType.ACTIVATED.value and projects:
+            for project in projects:
+                AlertRuleProject.objects.create(alert_rule=alert_rule, project=project)
 
         # NOTE: This constructs the query in snuba
         # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
