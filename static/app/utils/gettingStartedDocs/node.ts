@@ -98,8 +98,8 @@ export function getDefaultNodeImports({
   productSelection: ProductSelectionMap;
 }) {
   const imports: string[] = [
-    `// You can also use CommonJS \`require('@sentry/node')\` instead of \`import\``,
-    `import * as Sentry from "@sentry/node";`,
+    `// You can also use ESM \`import * as Sentry from "@sentry/node"\` instead of \`require\``,
+    `const Sentry = require("@sentry/node");`,
   ];
   if (productSelection.profiling) {
     imports.push(`import { ProfilingIntegration } from "@sentry/profiling-node";`);
