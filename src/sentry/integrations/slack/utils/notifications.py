@@ -9,10 +9,10 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
-    get_default_repository,
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -39,7 +39,7 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return False
 
-    repository: MetricAlertNotificationMessageRepository = get_default_repository()
+    repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:

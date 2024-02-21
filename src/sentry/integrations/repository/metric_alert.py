@@ -9,16 +9,6 @@ from sentry.models.notificationmessage import NotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
 
-_default_repository = None
-
-
-def get_default_repository() -> MetricAlertNotificationMessageRepository:
-    global _default_repository
-    if _default_repository is None:
-        _default_repository = MetricAlertNotificationMessageRepository.default()
-
-    return _default_repository
-
 
 @dataclass(frozen=True)
 class MetricAlertNotificationMessage(BaseNotificationMessage):
