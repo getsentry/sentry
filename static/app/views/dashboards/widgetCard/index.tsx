@@ -261,8 +261,8 @@ class WidgetCard extends Component<Props, State> {
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(aggregate =>
-              parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(
+              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField
@@ -434,15 +434,17 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
-  const widgetContainsHighCardinality = props.widget.queries.some(wq =>
-    wq.onDemand?.some(
-      d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
-    )
+  const widgetContainsHighCardinality = props.widget.queries.some(
+    wq =>
+      wq.onDemand?.some(
+        d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+      )
   );
-  const widgetReachedSpecLimit = props.widget.queries.some(wq =>
-    wq.onDemand?.some(
-      d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
-    )
+  const widgetReachedSpecLimit = props.widget.queries.some(
+    wq =>
+      wq.onDemand?.some(
+        d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
+      )
   );
 
   if (widgetContainsHighCardinality) {
