@@ -576,7 +576,7 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
-        elif monitor_type == AlertRuleMonitorType.ACTIVATED.value and projects:
+        elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
             for project in projects:
                 AlertRuleProject.objects.create(alert_rule=alert_rule, project=project)
 
