@@ -368,7 +368,7 @@ def test_parse_replay_click_actions_not_dead(patch_rage_click_issue, default_pro
         }
     ]
 
-    replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
+    replay_actions = parse_replay_actions(default_project.id, "1", 30, events, None)
     assert patch_rage_click_issue.delay.call_count == 0
     assert replay_actions is None
 
