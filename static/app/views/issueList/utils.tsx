@@ -1,5 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
@@ -176,7 +176,10 @@ export enum IssueSortOptions {
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
 export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+  return (
+    (query === DEFAULT_QUERY || query === NEW_DEFAULT_QUERY) &&
+    sort === DEFAULT_ISSUE_STREAM_SORT
+  );
 }
 
 export function getSortLabel(key: string) {
