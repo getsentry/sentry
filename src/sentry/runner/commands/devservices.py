@@ -26,18 +26,23 @@ COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 
-if USE_COLIMA and USE_ORBSTACK:
-    raise SystemExit("You can't use both colima and orbstack, choose one.")
+if USE_ORBSTACK:
+    USE_COLIMA = False
+
+if USE_COLIMA:
+    USE_ORBSTACK = False
 
 USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
 
-
 if DARWIN:
     if USE_COLIMA:
+        click.echo("Using colima.")
         RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
     elif USE_ORBSTACK:
+        click.echo("Using orbstack.")
         RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
     elif USE_DOCKER_DESKTOP:
+        click.echo("Using docker desktop.")
         # /var/run/docker.sock is now gated behind a docker desktop advanced setting
         RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
