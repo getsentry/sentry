@@ -152,6 +152,8 @@ class DeprecatedAsyncComponent<
     document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
+  declare context: RouteComponentProps<{}, {}>;
+
   /**
    * Override this flag to have the component reload its state when the window
    * becomes visible again. This will set the loading and reloading state, but
