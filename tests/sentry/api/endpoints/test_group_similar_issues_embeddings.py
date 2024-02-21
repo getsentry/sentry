@@ -3,7 +3,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from unittest import mock
 
-from django.http import HttpResponse
 from urllib3.response import HTTPResponse
 
 from sentry.api.endpoints.group_similar_issues_embeddings import (
@@ -19,15 +18,15 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
-BASE_DATA: dict[str, Any] = {
+BASE_APP_DATA: dict[str, Any] = {
     "app": {
         "type": "component",
         "description": "in-app",
-        "hash": None,
+        "hash": "hash",
         "component": {
             "id": "app",
             "name": "in-app",
-            "contributes": False,
+            "contributes": True,
             "hint": None,
             "values": [
                 {
@@ -100,21 +99,21 @@ BASE_DATA: dict[str, Any] = {
         },
     }
 }
-CHAINED_DATA = {
+CHAINED_APP_DATA: dict[str, Any] = {
     "app": {
         "type": "component",
         "description": "in-app",
-        "hash": None,
+        "hash": "hash",
         "component": {
             "id": "app",
             "name": "in-app",
-            "contributes": False,
+            "contributes": True,
             "hint": None,
             "values": [
                 {
                     "id": "chained-exception",
                     "name": None,
-                    "contributes": False,
+                    "contributes": True,
                     "hint": None,
                     "values": [
                         {
@@ -394,7 +393,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         return response
 
     def test_get_stacktrace_string_simple(self):
-        stacktrace_str = get_stacktrace_string(BASE_DATA)
+        stacktrace_str = get_stacktrace_string(BASE_APP_DATA)
         expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
@@ -402,8 +401,28 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         stacktrace_string = get_stacktrace_string({})
         assert stacktrace_string == ""
 
+    def test_get_stacktrace_string_contributing_exception_no_frames(self):
+        data_non_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
+
+    def test_get_stacktrace_string_contributing_exception_no_contributing_frames(self):
+        data_no_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
+            "values"
+        ] = self.create_frames(1, False)
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
+        assert stacktrace_str == "ZeroDivisionError: division by zero"
+
+    def test_get_stacktrace_string_no_contributing_exception(self):
+        data_no_contributing_frame = copy.deepcopy(BASE_APP_DATA)
+        data_no_contributing_frame["app"]["component"]["values"][0]["contributes"] = False
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
+        assert stacktrace_str == ""
+
     def test_get_stacktrace_string_non_contributing_frame(self):
-        data_non_contributing_frame = copy.deepcopy(BASE_DATA)
+        data_non_contributing_frame = copy.deepcopy(BASE_APP_DATA)
         data_non_contributing_frame["app"]["component"]["values"][0]["values"][0][
             "values"
         ] += self.create_frames(1, False)
@@ -411,12 +430,36 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
         assert stacktrace_str == expected_stacktrace_str
 
+    def test_get_stacktrace_string_no_stacktrace(self):
+        data_no_stacktrace = copy.deepcopy(BASE_APP_DATA)
+        data_no_stacktrace["app"]["component"]["values"].pop(0)
+        stacktrace_str = get_stacktrace_string(data_no_stacktrace)
+        assert stacktrace_str == ""
+
     def test_get_stacktrace_string_chained(self):
-        stacktrace_str = get_stacktrace_string(CHAINED_DATA)
+        stacktrace_str = get_stacktrace_string(CHAINED_APP_DATA)
         expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0\nException: Catch divide by zero error\n  File "python_onboarding.py", line <module>\n    divide_by_zero()\n  File "python_onboarding.py", line divide_by_zero\n    raise Exception("Catch divide by zero error")'
         assert stacktrace_str == expected_stacktrace_str
 
-    def test_get_stacktrace_string_no_in_app(self):
+    def test_get_stacktrace_string_system(self):
+        data_system = copy.deepcopy(BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        stacktrace_str = get_stacktrace_string(data_system)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_app_and_system(self):
+        data = copy.deepcopy(BASE_APP_DATA)
+        data_system = copy.deepcopy(BASE_APP_DATA)
+        data_system = data_system.pop("app")
+        data_system["component"]["values"][0]["values"][0]["values"] = self.create_frames(1, True)
+        data.update({"system": data_system})
+
+        stacktrace_str = get_stacktrace_string(data)
+        expected_stacktrace_str = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line divide_by_zero\n    divide = 1/0'
+        assert stacktrace_str == expected_stacktrace_str
+
+    def test_get_stacktrace_string_no_app_no_system(self):
         data = {"default": "something"}
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
@@ -424,7 +467,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def test_get_stacktrace_string_over_50_contributing_frames(self):
         """Check that when there are over 50 contributing frames, the last 50 are included."""
 
-        data_frames = copy.deepcopy(BASE_DATA)
+        data_frames = copy.deepcopy(BASE_APP_DATA)
         # Create 30 contributing frames, 1-30 -> last 20 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
             30, True
@@ -480,12 +523,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.status_code == 404, response.content
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple(self, mock_logger, mock_seer_request, mock_group_info):
-        mock_group_info.return_value = HttpResponse(content=json.dumps(BASE_DATA))
-
+    def test_simple(self, mock_logger, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -529,12 +569,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_multiple(self, mock_seer_request, mock_record, mock_group_info):
-        mock_group_info.return_value = HttpResponse(content=json.dumps(BASE_DATA))
-
+    def test_multiple(self, mock_seer_request, mock_record):
         similar_group_over_threshold = self.create_group(project=self.project)
         similar_group_under_threshold = self.create_group(project=self.project)
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -587,15 +624,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_invalid_return(self, mock_seer_request, mock_group_info):
+    def test_invalid_return(self, mock_seer_request):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
         """
-        mock_group_info.return_value = HttpResponse(content=json.dumps(BASE_DATA))
-
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -619,12 +653,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_empty_seer_return(self, mock_seer_request, mock_record, mock_group_info):
-        mock_group_info.return_value = HttpResponse(content=json.dumps(BASE_DATA))
-
+    def test_empty_seer_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
         assert response.data == []
@@ -639,42 +670,41 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
-    def test_empty_grouping_info(self, mock_group_info):
-        mock_group_info.return_value = HttpResponse(content=json.dumps({}))
-
-        response = self.client.get(
-            self.path,
-            data={"k": "1", "threshold": "0.98"},
+    def test_no_contributing_exception(self):
+        data_no_contributing_exception = {
+            "fingerprint": ["message"],
+            "message": "Message",
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "divide_by_zero",
+                                    "module": "__main__",
+                                    "filename": "python_onboarding.py",
+                                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                                    "lineno": 20,
+                                    "context_line": " divide = 1/0",
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "type": "ZeroDivisionError",
+                        "value": "division by zero",
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+        event_no_contributing_exception = self.store_event(
+            data=data_no_contributing_exception, project_id=self.project
         )
-
-        assert response.data == []
-
-    @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
-    def test_no_contributing_frames(self, mock_group_info):
-        data_no_contributing_frame = copy.deepcopy(BASE_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
-            "values"
-        ] = self.create_frames(1, False)
-        mock_group_info.return_value = HttpResponse(content=json.dumps(data_no_contributing_frame))
+        group_no_contributing_exception = event_no_contributing_exception.group
+        assert group_no_contributing_exception
 
         response = self.client.get(
-            self.path,
-            data={"k": "1", "threshold": "0.98"},
-        )
-
-        assert response.data == []
-
-    @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
-    def test_no_stacktrace(self, mock_group_info):
-        data_no_contributing_frame = copy.deepcopy(BASE_DATA)
-        data_no_contributing_frame["app"]["component"]["values"].pop(0)
-        mock_group_info.return_value = HttpResponse(content=json.dumps(data_no_contributing_frame))
-
-        response = self.client.get(
-            self.path,
+            f"/api/0/issues/{group_no_contributing_exception.id}/similar-issues-embeddings/",
             data={"k": "1", "threshold": "0.98"},
         )
 
@@ -693,14 +723,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.api.endpoints.event_grouping_info.EventGroupingInfoEndpoint.get")
     @mock.patch("sentry.seer.utils.seer_staging_connection_pool.urlopen")
-    def test_no_optional_params(self, mock_seer_request, mock_group_info):
+    def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
         """
-        mock_group_info.return_value = HttpResponse(content=json.dumps(BASE_DATA))
-
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {

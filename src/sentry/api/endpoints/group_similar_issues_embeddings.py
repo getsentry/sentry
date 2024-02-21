@@ -3,7 +3,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpRequest
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.endpoints.event_grouping_info import EventGroupingInfoEndpoint
+from sentry.api.endpoints.event_grouping_info import get_grouping_info
 from sentry.api.serializers import serialize
 from sentry.models.group import Group
 from sentry.models.user import User
@@ -21,7 +20,6 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
@@ -32,16 +30,26 @@ def get_value_if_exists(exception_value):
 
 
 def get_stacktrace_string(data):
-    # Get the in-app data
     if (
         not data.get("app")
+        or not data["app"].get("hash")
         or not data["app"].get("component")
         or not data["app"]["component"].get("values")
+    ) and (
+        not data.get("system")
+        or not data["system"].get("hash")
+        or not data["system"].get("component")
+        or not data["system"]["component"].get("values")
     ):
         return ""
 
+    # Get the data used for grouping
+    if data.get("app") and data["app"].get("hash"):
+        exceptions = data["app"]["component"]["values"]
+    else:
+        exceptions = data["system"]["component"]["values"]
+
     # Handle chained exceptions
-    exceptions = data["app"]["component"]["values"]
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
@@ -83,9 +91,10 @@ def get_stacktrace_string(data):
                         frame_dict["filename"], frame_dict["function"], frame_dict["context-line"]
                     )
 
-        if frame_str:
+        if exception.get("contributes"):
             stacktrace_str += exc_type + ": " + exc_value + "\n"
-            stacktrace_str += frame_str
+            if frame_str:
+                stacktrace_str += frame_str
 
     return stacktrace_str.strip()
 
@@ -140,10 +149,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         latest_event = group.get_latest_event()
         stacktrace_string = ""
         if latest_event.data.get("exception"):
-            grouping_info_response = EventGroupingInfoEndpoint().get(
-                request=HttpRequest(), project=group.project, event_id=latest_event.event_id
+            grouping_info = get_grouping_info(
+                None, project=group.project, event_id=latest_event.event_id
             )
-            stacktrace_string = get_stacktrace_string(json.loads(grouping_info_response.content))
+            stacktrace_string = get_stacktrace_string(grouping_info)
 
         if stacktrace_string == "":
             return Response([])  # No exception, stacktrace or in-app frames
