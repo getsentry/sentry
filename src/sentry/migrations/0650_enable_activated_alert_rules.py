@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0648_monitor_env_break_env_fk"),
+        ("sentry", "0649_add_index_for_group_priority"),
     ]
 
     operations = [
