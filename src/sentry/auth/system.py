@@ -79,7 +79,7 @@ class SystemToken:
     @memoize
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
-        user.is_active = True
+        user.is_active = True  # type: ignore[assignment]
         return user
 
     def get_allowed_origins(self) -> list[str]:

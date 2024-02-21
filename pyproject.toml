@@ -258,7 +258,6 @@ module = [
     "sentry.auth.providers.saml2.provider",
     "sentry.auth.providers.saml2.rippling.provider",
     "sentry.auth.providers.saml2.views",
-    "sentry.auth.system",
     "sentry.auth.view",
     "sentry.db.mixin",
     "sentry.db.models.manager.base",
