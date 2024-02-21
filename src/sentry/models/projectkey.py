@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import re
 import secrets
 from typing import Any, ClassVar
@@ -52,6 +53,15 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
         )
 
 
+class UseCase(enum.Enum):
+    # A user-visible project key.
+    USER = "user"
+    # An internal project key for submitting aggregate function metrics.
+    PROFILING = "profiling"
+    # An internal project key for submitting escalating issues metrics.
+    ESCALATING_ISSUES = "escalating_issues"
+
+
 @region_silo_only_model
 class ProjectKey(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -60,6 +70,11 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
+    use_case = models.CharField(
+        max_length=32,
+        choices={v.value: v.value for v in UseCase},
+        default=UseCase.USER.value,
+    )
 
     class roles(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
