@@ -16,6 +16,7 @@ interface Props {
   displayType: DisplayType;
   explodedFields: QueryFieldValue[];
   handleColumnFieldChange: (newFields: QueryFieldValue[]) => void;
+  isOnDemandWidget: boolean;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
   organization: Organization;
   tags: TagCollection;
@@ -32,6 +33,7 @@ export function ColumnsStep({
   queryErrors,
   explodedFields,
   tags,
+  isOnDemandWidget,
 }: Props) {
   const {customMeasurements} = useCustomMeasurements();
   const datasetConfig = getDatasetConfig(widgetType);
@@ -86,6 +88,7 @@ export function ColumnsStep({
           tags,
           customMeasurements
         )}
+        isOnDemandWidget={isOnDemandWidget}
         filterAggregateParameters={datasetConfig.filterAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}
         onChange={handleColumnFieldChange}
