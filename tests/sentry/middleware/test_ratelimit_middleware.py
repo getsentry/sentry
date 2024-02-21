@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models.apikey import ApiKey
 from sentry.models.user import User

@@ -102,7 +102,7 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_org_sample_rate(
-    org_id: int, default_sample_rate: float | None = None
+    org_id: int, default_sample_rate: float | None = None, notify_missing: bool = False
 ) -> float | None:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)
@@ -110,6 +110,9 @@ def get_sliding_window_org_sample_rate(
     try:
         return float(redis_client.get(cache_key))
     except (TypeError, ValueError):
+        if notify_missing:
+            sentry_sdk.capture_message("Missing or invalid sliding window org sample rate in cache")
+
         return default_sample_rate
 
 

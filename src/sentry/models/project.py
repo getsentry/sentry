@@ -309,7 +309,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
-    def next_short_id(self):
+    def next_short_id(self, delta: int = 1) -> int:
         from sentry.models.counter import Counter
 
         with sentry_sdk.start_span(op="project.next_short_id") as span, metrics.timer(
@@ -317,7 +317,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         ):
             span.set_data("project_id", self.id)
             span.set_data("project_slug", self.slug)
-            return Counter.increment(self)
+            return Counter.increment(self, delta)
 
     def save(self, *args, **kwargs):
         if not self.slug:
