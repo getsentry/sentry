@@ -111,6 +111,7 @@ def prepare_summary_data(
         project_id = project.id
         project_ctx = ctx.projects[project_id]
         project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
+
         # Today's Top 3 Error Issues
         key_errors = project_key_errors(
             start=ctx.start, end=ctx.end, project=project, referrer="reports.key_errors"
@@ -137,9 +138,11 @@ def prepare_summary_data(
             type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
         )
         if regressed_or_escalated_groups_today:
-            project_ctx.escalated_or_regressed_today = [
-                group for group in regressed_or_escalated_groups_today.group
-            ]
+            for activity in regressed_or_escalated_groups_today:
+                if activity.type == ActivityType.SET_REGRESSION.value:
+                    project_ctx.regressed_today.append(activity.group)
+                else:
+                    project_ctx.escalated_today.append(activity.group)
 
         # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
         release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
@@ -149,7 +152,9 @@ def prepare_summary_data(
         for release in releases[:2]:  # or whatever we limit this to
             new_groups_in_release = Group.objects.filter(project=project, first_release=release)
             if new_groups_in_release:
-                project_ctx.new_in_release[release] = [group for group in new_groups_in_release]
+                project_ctx.new_in_release = {
+                    release.id: [group for group in new_groups_in_release]
+                }
 
     fetch_key_error_groups(ctx)
     fetch_key_performance_issue_groups(ctx)

@@ -36,14 +36,16 @@ class DailySummaryProjectContext:
     fourteen_day_avg = 0
     key_errors = []
     key_performance_issues = []
-    escalated_or_regressed_today = []
+    escalated_today = []
+    regressed_today = []
     new_in_release = []
 
     def __init__(self, project: Project):
         self.project = project
         self.key_errors = []
         self.key_performance_issues = []
-        self.escalated_or_regressed_today = []
+        self.escalated_today = []
+        self.regressed_today = []
         self.new_in_release = []
 
 
