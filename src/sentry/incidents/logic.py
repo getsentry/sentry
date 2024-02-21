@@ -24,7 +24,7 @@ from sentry.incidents.models import (
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
     AlertRuleMonitorType,
-    AlertRuleProject,
+    AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -577,8 +577,10 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
         elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
-            for project in projects:
-                AlertRuleProject.objects.create(alert_rule=alert_rule, project=project)
+            arps = [
+                AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
+            ]
+            AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
         # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba

@@ -56,7 +56,7 @@ class Migration(CheckedMigration):
             field=models.TextField(null=True),
         ),
         migrations.CreateModel(
-            name="AlertRuleProject",
+            name="AlertRuleProjects",
             fields=[
                 (
                     "id",
@@ -90,7 +90,7 @@ class Migration(CheckedMigration):
             name="projects",
             field=models.ManyToManyField(
                 related_name="alert_rule_projects",
-                through="sentry.AlertRuleProject",
+                through="sentry.AlertRuleProjects",
                 to="sentry.project",
             ),
         ),

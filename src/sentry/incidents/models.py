@@ -419,7 +419,7 @@ class AlertRuleExcludedProjects(Model):
 
 
 @region_silo_only_model
-class AlertRuleProject(Model):
+class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
     """
@@ -450,7 +450,7 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     projects = models.ManyToManyField(
-        "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProject
+        "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
     )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     owner = FlexibleForeignKey(
