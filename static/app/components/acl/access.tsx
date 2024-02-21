@@ -11,7 +11,7 @@ type ChildRenderProps = {
   hasSuperuser: boolean;
 };
 
-type ChildFunction = (props: ChildRenderProps) => JSX.Element;
+type ChildFunction = (props: ChildRenderProps) => JSX.Element | JSX.Element[] | null;
 
 interface Props {
   /**
