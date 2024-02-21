@@ -130,6 +130,7 @@ def send_incident_alert_notification(
         integration_id=integration_id,
         organization_id=organization_id,
     )
+    org_integration_id: int | None = None
     if org_integration:
         org_integration_id = org_integration.id
     else:
