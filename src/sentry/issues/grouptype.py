@@ -112,9 +112,6 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class NotificationConfig:
-    default_tags: list[str] = field(
-        default_factory=lambda: ["level", "release", "handled", "environment"]
-    )  # TODO(cathy): no tags for crons (empty list)
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
         default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
