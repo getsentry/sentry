@@ -68,6 +68,10 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 
+# check for possibly unbound variables
+
+enable_error_code = ["possibly-undefined"]
+
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
 
@@ -622,6 +626,7 @@ disable_error_code = [
     "union-attr",
     "unreachable",
     "var-annotated",
+    "possibly-undefined",
 ]
 # end: sentry modules with typing issues
 
@@ -637,3 +642,51 @@ module = [
 ]
 disallow_untyped_defs = true
 # end: stronger typing
+
+# beginning: modules with possibly undefined variables
+[[tool.mypy.overrides]]
+module = [
+    "sentry.api.helpers.span_analysis",
+    "sentry.http",
+    "sentry.nodestore.base",
+    "sentry.models.groupsubscription",
+    "sentry.tasks.post_process",
+    "sentry.tasks.assemble",
+    "sentry.tasks.commit_context",
+    "sentry.utils.mockdata.core",
+    "sentry.snuba.metrics_performance",
+    "sentry.snuba.metrics_layer.query",
+    "sentry.runner.commands.devservices",
+    "sentry.middleware.integrations.tasks",
+    "sentry.integrations.github.installation",
+    "sentry.api.endpoints.project_filter_details",
+    "sentry.runner.commands.cleanup",
+    "sentry.services.hybrid_cloud.import_export.impl",
+    "sentry.runner.commands.backup",
+    "sentry.api.endpoints.relocations.unpause",
+    "sentry.integrations.slack.actions.notification",
+    "sentry.api.endpoints.release_thresholds.release_threshold_status_index",
+    "tests.sentry.tasks.test_reprocessing2",
+    "tests.snuba.tsdb.test_tsdb_backend",
+    "tests.snuba.tagstore.test_tagstore_backend",
+    "tests.snuba.api.endpoints.test_project_group_index",
+    "tests.snuba.api.endpoints.test_organization_group_index",
+    "tests.snuba.api.endpoints.test_organization_events_stats",
+    "tests.snuba.api.endpoints.test_organization_events",
+    "tests.snuba.api.endpoints.test_group_events",
+    "tests.sentry.web.frontend.test_twofactor",
+    "tests.sentry.utils.test_event",
+    "tests.sentry.tasks.test_auto_ongoing_issues",
+    "tests.sentry.rules.history.test_preview",
+    "tests.sentry.replays.test_organization_replay_count",
+    "tests.sentry.integrations.github.test_issues",
+    "tests.sentry.integrations.bitbucket.test_issues",
+    "tests.sentry.api.endpoints.test_project_rules",
+    "tests.sentry.api.endpoints.test_debug_files",
+    "tests.sentry.models.test_groupsnooze",
+    "tests.sentry.issues.test_escalating",
+    "tests.apidocs.endpoints.events.test_group_issue_details",
+    "tests.apidocs.endpoints.events.test_group_events",
+]
+disable_error_code = ["possibly-undefined"]
+# end: modules with possibly undefined variables
