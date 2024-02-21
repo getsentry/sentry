@@ -1056,28 +1056,28 @@ register(
 )
 
 register(
-    "global-abuse-quota-sessions.metric-bucket-limit",
+    "global-abuse-quota.sessions-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
-    "global-abuse-quota-transactions.metric-bucket-limit",
+    "global-abuse-quota.transactions-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
-    "global-abuse-quota-spans.metric-bucket-limit",
+    "global-abuse-quota.spans-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
-    "global-abuse-quota-custom.metric-bucket-limit",
+    "global-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

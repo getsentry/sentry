@@ -120,10 +120,10 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
         self.organization.update_option("global-abuse-quota.metric-bucket-limit", 604)
-        self.organization.update_option("global-abuse-quota-sessions.metric-bucket-limit", 605)
-        self.organization.update_option("global-abuse-quota-transactions.metric-bucket-limit", 606)
-        self.organization.update_option("global-abuse-quota-spans.metric-bucket-limit", 607)
-        self.organization.update_option("global-abuse-quota-custom.metric-bucket-limit", 608)
+        self.organization.update_option("global-abuse-quota.sessions-metric-bucket-limit", 605)
+        self.organization.update_option("global-abuse-quota.transactions-metric-bucket-limit", 606)
+        self.organization.update_option("global-abuse-quota.spans-metric-bucket-limit", 607)
+        self.organization.update_option("global-abuse-quota.custom-metric-bucket-limit", 608)
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
