@@ -24,16 +24,19 @@ DARWIN = sys.platform == "darwin"
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
-# TODO: USE_ORBSTACK
-USE_DOCKER_DESKTOP = not USE_COLIMA
+ORBSTACK = os.path.expanduser("~/.orbstack/run/docker.sock")
+USE_ORBSTACK = os.path.exists(ORBSTACK) and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+
+USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
 
 if DARWIN:
     if USE_COLIMA:
         RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    elif USE_ORBSTACK:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
     elif USE_DOCKER_DESKTOP:
         # /var/run/docker.sock is now gated behind a docker desktop advanced setting
         RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
-    # TODO: USE_ORBSTACK
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
@@ -64,7 +67,11 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
                     )
-                # TODO: USE_ORBSTACK
+                elif USE_ORBSTACK:
+                    click.echo("Attempting to start orbstack...")
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/Orbstack.app", "--args", "--unattended")
+                    )
             else:
                 raise click.ClickException("Make sure docker is running.")
 
