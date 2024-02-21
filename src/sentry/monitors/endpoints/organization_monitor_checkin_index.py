@@ -66,7 +66,9 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         environments = get_environments(request, organization)
 
         if environments:
-            queryset = queryset.filter(monitor_environment__environment__in=environments)
+            queryset = queryset.filter(
+                monitor_environment__environment_id__in=[e.id for e in environments]
+            )
 
         expand: list[str] = request.GET.getlist("expand", [])
 
