@@ -643,8 +643,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         The second org is at 20%, so we are spot on
         The third is at 30%, so we should decrease the sampling
         """
-        BLENDED_RATE = 0.20
-        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+        get_blended_sample_rate.return_value = 0.2
 
         redis_client = get_redis_client_for_ds()
 
@@ -686,14 +685,12 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # half it again to 0.25
                 assert float(val) == 0.25
 
-    def test_rules_generation_with_recalibrate_orgs(self):
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_rules_generation_with_recalibrate_orgs(self, get_blended_sample_rate):
         """
-        Test that we pass rebalancing values all the way to the rules
-
-        (An integration test)
+        Test that we pass rebalancing values all the way to the rules.
         """
-        BLENDED_RATE = 0.20
-        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+        get_blended_sample_rate.return_value = 0.20
 
         with self.tasks():
             recalibrate_orgs()
