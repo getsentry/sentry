@@ -330,7 +330,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
 
 /src/sentry/digests/                                                 @getsentry/alerts-notifications
-/src/sentry/identity/                                                @getsentry/ecosystem
+/src/sentry/identity/                                                @getsentry/enterprise
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/mediators/                                               @getsentry/issues
