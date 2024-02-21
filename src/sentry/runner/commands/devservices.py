@@ -22,12 +22,15 @@ if TYPE_CHECKING:
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
 COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
-USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
-ORBSTACK = os.path.expanduser("~/.orbstack/run/docker.sock")
-USE_ORBSTACK = os.path.exists(ORBSTACK) and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_ORBSTACK = os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+
+if USE_COLIMA and USE_ORBSTACK:
+    raise SystemExit("You can't use both colima and orbstack, choose one.")
 
 USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
+
 
 if DARWIN:
     if USE_COLIMA:
