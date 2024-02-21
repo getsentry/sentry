@@ -696,6 +696,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        # Temporary for debugging
+        augment_only: bool = request.GET.get("augmentOnly", "0") == "1"
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit: int = (
@@ -716,7 +718,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         )
         with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
-            if use_spans:
+            if use_spans or augment_only:
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params
                 )

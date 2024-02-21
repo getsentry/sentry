@@ -2002,7 +2002,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         self.run_test_query(f"first_release:[{release_1.version}, {release_2.version}]", [])
 
-        # Create a new event so that we get a group in this release
+        # Create a new event so that we get a group in release 1
         group = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group9001"],
@@ -2022,7 +2022,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [self.group1, self.group2],
         )
 
-        # Create a new event so that we get a group in this release
+        # Create a new event so that we get a group in release 2
         group_2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group9002"],
@@ -2039,6 +2039,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         self.run_test_query(
             f"first_release:[{release_1.version}, {release_2.version}]",
             [group, group_2],
+            [self.group1, self.group2],
         )
 
     def test_first_release_environments(self):
@@ -2081,6 +2082,8 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             group_id=self.group1.id, environment_id=self.environments["production"].id
         )
         group_1_env.update(first_release=release)
+        self.group1.first_release = release
+        self.group1.save()
 
         self.run_test_query(
             f"first_release:[{release.version}, fake2]",
@@ -2093,6 +2096,9 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             group_id=self.group2.id, environment_id=self.environments["staging"].id
         )
         group_2_env.update(first_release=release)
+        self.group2.first_release = release
+        self.group2.save()
+
         self.run_test_query(
             f"first_release:[{release.version}, fake2]",
             [self.group1, self.group2],
@@ -2289,7 +2295,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         #         env=[production]: nothing
         #
         #     first_release: 2
-        #         env=[]: A, C
+        #         env=[]: C
         #         env=[production, staging]: A
         #         env=[staging]: nothing
         #         env=[production]: A
@@ -2355,43 +2361,43 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         # query by release release_1
 
-        results = self.make_query(search_filter_query="first_release:%s" % "release_1")
+        results = self.make_query(search_filter_query="first_release:release_1")
         assert set(results) == {group_a, group_b}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
-            search_filter_query="first_release:%s" % "release_1",
+            search_filter_query="first_release:release_1",
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[staging_env], search_filter_query="first_release:%s" % "release_1"
+            environments=[staging_env], search_filter_query="first_release:release_1"
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[prod_env], search_filter_query="first_release:%s" % "release_1"
+            environments=[prod_env], search_filter_query="first_release:release_1"
         )
         assert set(results) == set()
 
         # query by release release_2
 
-        results = self.make_query(search_filter_query="first_release:%s" % "release_2")
-        assert set(results) == {group_a, group_c}
+        results = self.make_query(search_filter_query="first_release:release_2")
+        assert set(results) == {group_c}
 
         results = self.make_query(
             environments=[staging_env, prod_env],
-            search_filter_query="first_release:%s" % "release_2",
+            search_filter_query="first_release:release_2",
         )
         assert set(results) == {group_a}
 
         results = self.make_query(
-            environments=[staging_env], search_filter_query="first_release:%s" % "release_2"
+            environments=[staging_env], search_filter_query="first_release:release_2"
         )
         assert set(results) == set()
 
         results = self.make_query(
-            environments=[prod_env], search_filter_query="first_release:%s" % "release_2"
+            environments=[prod_env], search_filter_query="first_release:release_2"
         )
         assert set(results) == {group_a}
 

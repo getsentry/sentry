@@ -154,14 +154,10 @@ def first_release_all_environments_filter(
             # We only need to find the first non-existent release here
             break
 
-    return Q(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(
-            first_release_id__in=list(releases.values()),
-        ).values_list("group_id")
-    )
+    return Q(first_release_id__in=list(releases.values()))
 
 
 def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
