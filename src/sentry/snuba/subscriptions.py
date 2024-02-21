@@ -30,10 +30,6 @@ def create_snuba_query(
     :param event_types: A (currently) optional list of event_types that apply to this
     query. If not passed, we'll infer a default value based on the dataset.
     :return: A list of QuerySubscriptions
-
-    TODO:
-    - Don't create query in snuba yet for activated alert rules
-    - Add start timestamp to the SnubaQuery representation
     """
     snuba_query = SnubaQuery.objects.create(
         type=query_type.value,
@@ -127,7 +123,7 @@ def update_snuba_query(
         )
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, alert_rule):
+def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     """
     Creates a subscription to a snuba query for each project.
 
@@ -140,11 +136,11 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, alert_rule):
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(create_snuba_subscription(project, subscription_type, alert_rule))
+        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, alert_rule) -> QuerySubscription:
+def create_snuba_subscription(project, subscription_type, snuba_query) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 
@@ -159,7 +155,7 @@ def create_snuba_subscription(project, subscription_type, alert_rule) -> QuerySu
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
-        snuba_query=alert_rule.snuba_query,
+        snuba_query=snuba_query,
         type=subscription_type,
     )
 

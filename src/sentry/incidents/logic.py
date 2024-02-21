@@ -841,7 +841,7 @@ def update_alert_rule(
     return alert_rule
 
 
-def subscribe_projects_to_alert_rule(alert_rule, projects):
+def subscribe_projects_to_alert_rule(alert_rule: AlertRule, projects: list[Project]):
     """
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
@@ -850,7 +850,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
     """
     return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule
+        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
     )
 
 
