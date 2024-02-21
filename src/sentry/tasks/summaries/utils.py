@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Count
@@ -99,7 +100,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-def project_key_errors(ctx: OrganizationReportContext, project) -> None:
+def project_key_errors(ctx: OrganizationReportContext, project) -> dict[str:Any]:
     if not project.first_event:
         return
     # Take the 3 most frequently occuring events
@@ -317,7 +318,7 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
         ]
 
 
-def project_event_counts_for_organization(ctx: OrganizationReportContext) -> None:
+def project_event_counts_for_organization(ctx: OrganizationReportContext) -> dict[str:Any]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
