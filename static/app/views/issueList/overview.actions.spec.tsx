@@ -8,13 +8,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import Indicators from 'sentry/components/indicators';
 import GroupStore from 'sentry/stores/groupStore';
@@ -173,10 +167,8 @@ describe('IssueListOverview (actions)', function () {
         })
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
-        expect(screen.getByText('Group 2')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
     });
 
     it('can undo resolve action', async function () {
@@ -219,10 +211,8 @@ describe('IssueListOverview (actions)', function () {
         })
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
-        expect(screen.getByText('Group 2')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
 
       // Should show a toast message
       expect(screen.getByText('Resolved JAVASCRIPT-1')).toBeInTheDocument();
@@ -316,10 +306,8 @@ describe('IssueListOverview (actions)', function () {
         })
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
-        expect(screen.getByText('Group 2')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
     });
   });
 
@@ -370,17 +358,15 @@ describe('IssueListOverview (actions)', function () {
       await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
-      await waitFor(() => {
-        expect(updateIssueMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/issues/',
-          expect.objectContaining({
-            query: expect.objectContaining({id: ['1']}),
-            data: {priority: PriorityLevel.LOW},
-          })
-        );
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1']}),
+          data: {priority: PriorityLevel.LOW},
+        })
+      );
 
-        expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
-      });
+      expect(screen.queryByText('Medium priority issue')).not.toBeInTheDocument();
     });
 
     it('does not remove issues after reprioritizing (when query includes all priorities)', async function () {
@@ -392,18 +378,16 @@ describe('IssueListOverview (actions)', function () {
       render(
         <IssueListOverview
           {...defaultProps}
-          {...{
-            ...RouteComponentPropsFixture({
-              location: LocationFixture({
-                query: {query: 'is:unresolved'},
-              }),
-              params: {
-                orgId: organization.slug,
-                projectId: project.slug,
-                searchId: undefined,
-              },
+          {...RouteComponentPropsFixture({
+            location: LocationFixture({
+              query: {query: 'is:unresolved'},
             }),
-          }}
+            params: {
+              orgId: organization.slug,
+              projectId: project.slug,
+              searchId: undefined,
+            },
+          })}
         />,
         {organization}
       );
@@ -420,17 +404,15 @@ describe('IssueListOverview (actions)', function () {
       await userEvent.hover(screen.getByRole('menuitemradio', {name: /priority/i}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: /low/i}));
 
-      await waitFor(() => {
-        expect(updateIssueMock).toHaveBeenCalledWith(
-          '/organizations/org-slug/issues/',
-          expect.objectContaining({
-            query: expect.objectContaining({id: ['1']}),
-            data: {priority: PriorityLevel.LOW},
-          })
-        );
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1']}),
+          data: {priority: PriorityLevel.LOW},
+        })
+      );
 
-        expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
     });
   });
 });
