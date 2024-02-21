@@ -3,6 +3,8 @@ import time
 import sentry_sdk
 from snuba_sdk import Granularity
 
+from sentry import quotas
+from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
@@ -30,6 +32,7 @@ from sentry.dynamic_sampling.tasks.logging import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
@@ -88,14 +91,48 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
 
         assert org_volume.indexed is not None
 
-        target_sample_rate = get_sliding_window_org_sample_rate(org_volume.org_id)
-        log_sample_rate_source(
-            org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
+        try:
+            # We need the organization object for the feature flag.
+            organization = Organization.objects.get_from_cache(id=org_volume.org_id)
+        except Organization.DoesNotExist:
+            # In case an org is not found, it might be that it has been deleted in the time between
+            # the query triggering this job and the actual execution of the job.
+            organization = None
+
+        # By default, we use the blended sample rate.
+        target_sample_rate = quotas.backend.get_blended_sample_rate(
+            organization_id=org_volume.org_id
         )
+
+        # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case
+        # of issues.
+        if organization is not None and is_sliding_window_org_enabled(organization):
+            target_sample_rate = get_sliding_window_org_sample_rate(
+                org_id=org_volume.org_id,
+                default_sample_rate=target_sample_rate,
+                notify_missing=True,
+            )
+            log_sample_rate_source(
+                org_volume.org_id,
+                None,
+                "recalibrate_orgs",
+                "sliding_window_org",
+                target_sample_rate,
+            )
+        else:
+            log_sample_rate_source(
+                org_volume.org_id,
+                None,
+                "recalibrate_orgs",
+                "blended_sample_rate",
+                target_sample_rate,
+            )
+
+        # If we didn't find any sample rate, we can't recalibrate the organization.
         if target_sample_rate is None:
             raise RecalibrationError(
                 org_id=org_volume.org_id,
-                message="couldn't get target sample rate for recalibration",
+                message="Couldn't get target sample rate for org recalibration",
             )
 
         # We compute the effective sample rate that we had in the last considered time window.
@@ -113,7 +150,7 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
         )
         if adjusted_factor is None:
             raise RecalibrationError(
-                org_id=org_volume.org_id, message="adjusted factor can't be computed"
+                org_id=org_volume.org_id, message="The adjusted factor can't be computed"
             )
 
         if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
@@ -122,7 +159,7 @@ def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) ->
             delete_adjusted_factor(org_volume.org_id)
             raise RecalibrationError(
                 org_id=org_volume.org_id,
-                message=f"factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
+                message=f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
                 f"{MAX_REBALANCE_FACTOR}]",
             )
 

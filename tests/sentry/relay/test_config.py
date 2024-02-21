@@ -342,7 +342,7 @@ def test_project_config_with_all_biases_enabled(
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
             return_value=0.1,
         ):
             project_cfg = get_project_config(default_project)
