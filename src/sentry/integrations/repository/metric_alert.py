@@ -39,6 +39,12 @@ class IncidentAndTriggerActionValidationError(NewMetricAlertNotificationMessageV
     message = "both incident and trigger action need to exist together with a reference"
 
 
+class MessageIdentifierWithErrorValidationError(NewMetricAlertNotificationMessageValidationError):
+    message = (
+        "cannot create a new notification message with message identifier when an error exists"
+    )
+
+
 @dataclass
 class NewMetricAlertNotificationMessage(BaseNewNotificationMessage):
     incident_id: int | None = None
@@ -51,10 +57,8 @@ class NewMetricAlertNotificationMessage(BaseNewNotificationMessage):
         trying to instantiate a new instance in the datastore.
         """
         if self.message_identifier is not None:
-            if self.error_code is not None or self.error_code is not None:
-                return Exception(
-                    "cannot create a new notification message with message identifier when an error exists"
-                )
+            if self.error_code is not None or self.error_details is not None:
+                return MessageIdentifierWithErrorValidationError()
 
             if self.incident_id is None or self.trigger_action_id is None:
                 return IncidentAndTriggerActionValidationError()
