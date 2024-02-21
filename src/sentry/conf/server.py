@@ -970,7 +970,7 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.tasks.deletion.reattempt_deletions_control",
-        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour="10", minute="0"),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -997,7 +997,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "send-beacon": {
         "task": "sentry.tasks.send_beacon",
         # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
     "send-ping": {
@@ -1082,13 +1082,13 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.tasks.deletion.reattempt_deletions",
-        "schedule": crontab(hour=10, minute=0),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
+        "schedule": crontab(hour="10", minute="0"),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
         "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
-            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+            minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1108,7 +1108,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "monitor-release-adoption": {
         "task": "sentry.release_health.tasks.monitor_release_adoption",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute="0"),
         "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
@@ -1120,7 +1120,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "fetch-appstore-builds": {
         "task": "sentry.tasks.app_store_connect.refresh_all_builds",
         # Run every hour
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
@@ -1131,18 +1131,18 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": crontab(minute=17),
+        "schedule": crontab(minute="17"),
         "options": {"expires": 3600},
     },
     "span.descs.clusterer": {
         "task": "sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-        "schedule": crontab(minute=42),
+        "schedule": crontab(minute="42"),
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.enable_for_org",
         # Run job once a day at 00:30
-        "schedule": crontab(minute=30, hour="0"),
+        "schedule": crontab(minute="30", hour="0"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-boost-low-volume-projects": {
@@ -1178,7 +1178,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         # TODO: Change this to run weekly once we verify the results
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute="0", hour="*/6"),
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1190,7 +1190,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
-        "schedule": crontab(minute=0, hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+        "schedule": crontab(minute="0", hour="16"),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
@@ -1205,7 +1205,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
-        "schedule": crontab(minute=0, hour="*/1"),
+        "schedule": crontab(minute="0", hour="*/1"),
     },
     "backfill-artifact-bundle-index": {
         "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
@@ -1387,7 +1387,7 @@ def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
     """
     param_type = parameter["in"]
     required = parameter.get("required", False)
-    return (param_type, 0 if required else 1)
+    return param_type, 0 if required else 1
 
 
 if os.environ.get("OPENAPIGENERATE", False):
@@ -1456,8 +1456,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:alert-allow-indexed": False,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
-    # Enables transaction to metric dataset migration UI for alert rules
-    "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
     # Enable anr frame analysis
@@ -1508,6 +1506,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-rh-widget": False,
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
+    # Enables ddm formula features
+    "organizations:ddm-formulas": False,
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
@@ -1941,6 +1941,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback new onboarding experience
+    "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable using new webhooks from Vercel
