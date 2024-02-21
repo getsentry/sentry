@@ -32,10 +32,9 @@ def _within_last_7_days(start: datetime, end: datetime) -> bool:
     return (
         _time_equal_within_bound(start_utc, seven_days_ago_utc, timedelta(minutes=5))
         and _time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
-        or (
-            _time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
-            and (end - start).days <= 7
-        )
+    ) or (
+        _time_equal_within_bound(end_utc, current_datetime_utc, timedelta(minutes=5))
+        and (end - start).days <= 7
     )
 
 
