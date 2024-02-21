@@ -256,7 +256,10 @@ export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQue
   });
 }
 
-type ApiMutationVariables<Headers = Record<string, string>, Query = Record<string, any>> =
+type ApiMutationVariables<
+  Headers = Record<string, string>,
+  Query = Record<string, any>,
+> =
   | ['PUT' | 'POST' | 'DELETE', string]
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
   | [
