@@ -1646,64 +1646,23 @@ def _save_aggregate_new(
     existing_grouphash = find_existing_grouphash_new(grouphashes)
 
     if existing_grouphash is None:
-        check_for_group_creation_load_shed(project, event)
+        return create_group_with_grouphashes(job, grouphashes, group_processing_kwargs)
 
-        with (
-            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
-            metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
-            transaction.atomic(router.db_for_write(GroupHash)),
-        ):
-            span.set_tag("create_group_transaction.outcome", "no_group")
-            metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
+    return handle_existing_grouphash(job, existing_grouphash, grouphashes, group_processing_kwargs)
 
-            # If we're in this branch, we checked our grouphashes and didn't find one with a group
-            # attached. We thus want to create a new group, but we need to guard against another
-            # event with the same hash coming in before we're done here and also thinking it needs
-            # to create a new group. To prevent this, we're using double-checked locking
-            # (https://en.wikipedia.org/wiki/Double-checked_locking).
 
-            # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
-            # hashed) event is also in the process of creating a group and has grabbed the lock
-            # before us, we'll block here until it's done. If not, we've now got the lock and other
-            # identically-hashed events will have to wait for us.
-            grouphashes = list(
-                GroupHash.objects.filter(
-                    id__in=[h.id for h in grouphashes],
-                ).select_for_update()
-            )
+def handle_existing_grouphash(
+    job: Job,
+    existing_grouphash: GroupHash,
+    all_grouphashes: list[GroupHash],
+    group_processing_kwargs: dict[str, Any],
+) -> GroupInfo | None:
+    """
+    Handle the case where an incoming event matches an existing group, by assigning the event to the
+    group, updating the group metadata with data from the event, and linking any newly-calculated
+    grouphashes to the group.
+    """
 
-            # Now check again to see if any of our grouphashes have a group. In the first race
-            # condition scenario above, we'll have been blocked long enough for the other event to
-            # have created the group and updated our grouphashes with a group id, which means this
-            # time, we'll find something.
-            existing_grouphash = find_existing_grouphash_new(grouphashes)
-
-            # If we still haven't found a matching grouphash, we're now safe to go ahead and create
-            # the group.
-            if existing_grouphash is None:
-                group = _create_group(project, event, **group_processing_kwargs)
-
-                add_group_id_to_grouphashes(group, grouphashes)
-
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
-
-                record_new_group_metrics(event)
-
-                return GroupInfo(group=group, is_new=True, is_regression=False)
-
-    group = Group.objects.get(id=existing_grouphash.group_id)
-
-    if check_for_category_mismatch(group):
-        return None
-
-    # There may still be secondary hashes that we did not use to find an
-    # existing group. A classic example is when grouping makes changes to
-    # the app-hash (changes to in_app logic), but the system hash stays
-    # stable and is used to find an existing group. Associate any new
-    # hashes with the group such that event saving continues to be
-    # resilient against grouping algorithm changes.
-    #
     # There is a race condition here where two processes could "steal"
     # hashes from each other. In practice this should not be user-visible
     # as group creation is synchronized, meaning the only way hashes could
@@ -1714,23 +1673,104 @@ def _save_aggregate_new(
     #    codepath which has transaction isolation/acquires row locks)
     # 2) AND are looking at the same set, or an overlapping set of hashes
     #    (otherwise they would not operate on the same rows)
-    # 3) yet somehow also sort their respective events into two different groups
+    # 3) yet somehow also retrieve different groups here
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
     # _save_aggregate had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
-    add_group_id_to_grouphashes(group, grouphashes)
+    group = Group.objects.get(id=existing_grouphash.group_id)
+
+    if check_for_category_mismatch(group):
+        return None
+
+    # There may still be hashes that we did not use to find an existing
+    # group. A classic example is when grouping makes changes to the
+    # app-hash (changes to in_app logic), but the system hash stays
+    # stable and is used to find an existing group. Associate any new
+    # hashes with the group such that event saving continues to be
+    # resilient against grouping algorithm changes.
+    add_group_id_to_grouphashes(group, all_grouphashes)
 
     is_regression = _process_existing_aggregate(
         group=group,
-        event=event,
+        event=job["event"],
         incoming_group_values=group_processing_kwargs,
         release=job["release"],
     )
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+
+def create_group_with_grouphashes(
+    job: Job, grouphashes: list[GroupHash], group_processing_kwargs: dict[str, Any]
+) -> GroupInfo | None:
+    """
+    Create a group from the data in `job` and `group_processing_kwargs` and link it to the given
+    grouphashes.
+
+    In very rare circumstances, we can end up in a race condition with another process trying to
+    create the same group. If the current process loses the race, this function will update the
+    group the other process just created, rather than creating a group itself.
+    """
+    event = job["event"]
+    project = event.project
+
+    # If the load-shed killswitch is enabled, this will raise a `HashDiscarded` error to pop us out
+    # of this function all the way back to `save_error_events`, preventing group creation
+    check_for_group_creation_load_shed(project, event)
+
+    with (
+        sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+        metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
+        transaction.atomic(router.db_for_write(GroupHash)),
+    ):
+        span.set_tag("create_group_transaction.outcome", "no_group")
+        metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
+
+        # If we're in this branch, we checked our grouphashes and didn't find one with a group
+        # attached. We thus want to create a new group, but we need to guard against another
+        # event with the same hash coming in before we're done here and also thinking it needs
+        # to create a new group. To prevent this, we're using double-checked locking
+        # (https://en.wikipedia.org/wiki/Double-checked_locking).
+
+        # First, try to lock the relevant rows in the `GroupHash` table. If another (identically
+        # hashed) event is also in the process of creating a group and has grabbed the lock
+        # before us, we'll block here until it's done. If not, we've now got the lock and other
+        # identically-hashed events will have to wait for us.
+        grouphashes = list(
+            GroupHash.objects.filter(
+                id__in=[h.id for h in grouphashes],
+            ).select_for_update()
+        )
+
+        # Now check again to see if any of our grouphashes have a group. In the first race
+        # condition scenario above, we'll have been blocked long enough for the other event to
+        # have created the group and updated our grouphashes with a group id, which means this
+        # time, we'll find something.
+        existing_grouphash = find_existing_grouphash_new(grouphashes)
+
+        # If we still haven't found a matching grouphash, we're now safe to go ahead and create
+        # the group.
+        if existing_grouphash is None:
+            span.set_tag("create_group_transaction.outcome", "new_group")
+            metrics_timer_tags["create_group_transaction.outcome"] = "new_group"
+            record_new_group_metrics(event)
+
+            group = _create_group(project, event, **group_processing_kwargs)
+            add_group_id_to_grouphashes(group, grouphashes)
+
+            return GroupInfo(group=group, is_new=True, is_regression=False)
+
+        # On the other hand, if we did in fact end up on the losing end of a race condition, treat
+        # this the same way we would if we'd found a grouphash to begin with (and never landed in
+        # this function at all)
+        else:
+            # TODO: should we be setting tags here, too?
+            return handle_existing_grouphash(
+                job, existing_grouphash, grouphashes, group_processing_kwargs
+            )
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
