@@ -175,10 +175,13 @@ def get_results_from_saving_event(
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }
 
-        hash_search_result = return_values[find_existing_grouphash_fn][0]
+        hash_search_results = return_values[find_existing_grouphash_fn]
         # The current logic wraps the search result in an extra layer which we need to unwrap
         if not new_logic_enabled:
-            hash_search_result = hash_search_result[0]
+            hash_search_results = list(map(lambda result: result[0], hash_search_results))
+        # Filter out all the Nones to see if we actually found anything
+        filtered_results = list(filter(lambda result: bool(result), hash_search_results))
+        hash_search_result = filtered_results[0] if filtered_results else None
 
         # We should never call any of these more than once, regardless of the test
         assert calculate_primary_hash_spy.call_count <= 1
