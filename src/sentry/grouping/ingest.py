@@ -340,7 +340,7 @@ def get_hash_values(
     # either before or after the main grouping logic, depending on the option value.
     _maybe_run_background_grouping(project, job)
 
-    secondary_hashes = None
+    secondary_grouping_config = secondary_hashes = None
 
     if _should_run_secondary_grouping(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
@@ -369,10 +369,38 @@ def get_hash_values(
     ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
         primary_hashes = _calculate_primary_hash(project, job, grouping_config)
 
-    if secondary_hashes:
+    record_hash_calculation_metrics(
+        grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+    )
+
+    all_hashes = CalculatedHashes(
+        hashes=list(primary_hashes.hashes)
+        + list(secondary_hashes and secondary_hashes.hashes or []),
+        hierarchical_hashes=(
+            list(primary_hashes.hierarchical_hashes)
+            + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+        ),
+        tree_labels=(
+            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+        ),
+    )
+
+    if all_hashes.tree_labels:
+        job["finest_tree_label"] = all_hashes.finest_tree_label
+
+    return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def record_hash_calculation_metrics(
+    primary_config: GroupingConfig,
+    primary_hashes: CalculatedHashes,
+    secondary_config: GroupingConfig | None,
+    secondary_hashes: CalculatedHashes | None,
+):
+    if secondary_config and secondary_hashes:
         tags = {
-            "primary_config": grouping_config["id"],
-            "secondary_config": secondary_grouping_config["id"],
+            "primary_config": primary_config["id"],
+            "secondary_config": secondary_config["id"],
         }
         current_values = primary_hashes.hashes
         secondary_values = secondary_hashes.hashes
@@ -392,23 +420,6 @@ def get_hash_values(
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
     metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
-
-    all_hashes = CalculatedHashes(
-        hashes=list(primary_hashes.hashes)
-        + list(secondary_hashes and secondary_hashes.hashes or []),
-        hierarchical_hashes=(
-            list(primary_hashes.hierarchical_hashes)
-            + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
-        ),
-        tree_labels=(
-            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-        ),
-    )
-
-    if all_hashes.tree_labels:
-        job["finest_tree_label"] = all_hashes.finest_tree_label
-
-    return (primary_hashes, secondary_hashes, all_hashes)
 
 
 def record_new_group_metrics(event: Event):
