@@ -234,7 +234,7 @@ def validate_issue_platform_event_schema(event_data):
             extra={"event_data": event_data},
         )
     except jsonschema.exceptions.ValidationError:
-        
+
         try:
             jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
         except jsonschema.exceptions.ValidationError:
