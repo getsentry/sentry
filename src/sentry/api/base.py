@@ -391,7 +391,9 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=".".join(self._extract_name(part) for part in (type(self), handler)),
+                description=".".join(
+                    getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
+                ),
             ) as span:
                 with rpcmetrics.wrap_sdk_span(span):
                     response = handler(request, *args, **kwargs)
@@ -416,10 +418,6 @@ class Endpoint(APIView):
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         return self.response
-
-    @staticmethod
-    def _extract_name(obj: Any) -> str:
-        return getattr(obj, "__name__", None) or str(obj)
 
     def add_cors_headers(self, request: Request, response):
         response["Access-Control-Allow-Origin"] = request.META["HTTP_ORIGIN"]
