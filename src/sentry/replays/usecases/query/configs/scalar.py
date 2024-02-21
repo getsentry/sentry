@@ -1,23 +1,17 @@
 """Scalar query filtering configuration module."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
 
 from sentry.api.event_search import ParenExpression, SearchFilter
-from sentry.replays.lib.new_query.conditions import (
-    IPv4Scalar,
-    NonEmptyStringScalar,
-    StringArray,
-    StringScalar,
-    UUIDArray,
-)
-from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
+from sentry.replays.lib.new_query.conditions import NonEmptyStringScalar, StringArray, StringScalar
+from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     ClickSelectorComposite,
     DeadClickSelectorComposite,
-    ErrorIdsArray,
     RageClickSelectorComposite,
 )
 from sentry.replays.usecases.query.fields import ComputedField
@@ -28,7 +22,7 @@ def string_field(column_name: str) -> StringColumnField:
 
 
 # Static Search Config
-static_search_config: dict[str, FieldProtocol] = {
+scalar_search_config: dict[str, FieldProtocol] = {
     "browser.name": StringColumnField("browser_name", parse_str, NonEmptyStringScalar),
     "browser.version": StringColumnField("browser_version", parse_str, NonEmptyStringScalar),
     "device.brand": StringColumnField("device_brand", parse_str, NonEmptyStringScalar),
@@ -46,31 +40,7 @@ static_search_config: dict[str, FieldProtocol] = {
     "sdk.version": StringColumnField("sdk_version", parse_str, NonEmptyStringScalar),
 }
 # Aliases
-static_search_config["release"] = static_search_config["releases"]
-
-
-# Varying Search Config
-#
-# Fields in this configuration file can vary.  This makes it difficult to draw conclusions when
-# multiple conditions are strung together.  By isolating these values into a separate config we
-# are codifying a rule which should be enforced elsewhere in code: "only one condition from this
-# config allowed".
-varying_search_config: dict[str, FieldProtocol] = {
-    "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
-    "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
-    "urls": StringColumnField("urls", parse_str, StringArray),
-    "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
-    "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
-    "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
-}
-
-# Aliases
-varying_search_config["error_id"] = varying_search_config["error_ids"]
-varying_search_config["trace_id"] = varying_search_config["trace_ids"]
-varying_search_config["trace"] = varying_search_config["trace_ids"]
-varying_search_config["url"] = varying_search_config["urls"]
-varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
+scalar_search_config["release"] = scalar_search_config["releases"]
 
 
 # Click Search Config
@@ -91,17 +61,10 @@ click_search_config: dict[str, FieldProtocol] = {
 }
 
 
-# Clicks are omitted from the scalar search config because they do not share the same row like
-# the other configs do.
-scalar_search_config = {**static_search_config, **varying_search_config}
-
-
 def can_scalar_search_subquery(
     search_filters: Sequence[ParenExpression | SearchFilter | str],
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""
-    has_seen_varying_field = False
-
     for search_filter in search_filters:
         # String operators have no value here. We can skip them.
         if isinstance(search_filter, str):
@@ -115,23 +78,9 @@ def can_scalar_search_subquery(
         else:
             name = search_filter.key.name
 
-            # If the search-filter does not exist in either configuration then return false.
-            if name not in static_search_config and name not in varying_search_config:
+            # If the search-filter does not exist in the configuration then return false.
+            if name not in scalar_search_config:
                 return False
-
-            if name in varying_search_config:
-                # If a varying field has been seen before then we can't use a row-based sub-query. We
-                # need to use an aggregation query to ensure the two values are found or not found
-                # within the context of the aggregate replay.
-                if has_seen_varying_field:
-                    return False
-
-                # Negated conditionals require knowledge of the aggregate state to determine if the
-                # value truly does not exist in the aggregate replay result.
-                if search_filter.operator in ("!=", "NOT IN"):
-                    return False
-
-                has_seen_varying_field = True
 
     # The set of filters are considered valid if the function did not return early.
     return True

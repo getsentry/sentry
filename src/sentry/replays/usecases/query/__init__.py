@@ -12,6 +12,7 @@ external source, makes decisions around what to query and when, and is responsib
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
 """
+
 from __future__ import annotations
 
 from collections import namedtuple
@@ -233,6 +234,7 @@ def make_scalar_search_conditions_query(
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.LT, period_stop),
             Condition(Column("timestamp"), Op.GTE, period_start),
+            Condition(Column("segment_id"), Op.EQ, 0),
             *where,
         ],
         orderby=orderby,
