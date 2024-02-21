@@ -8,6 +8,7 @@ from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.release import Release, ReleaseProject
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
@@ -139,6 +140,16 @@ def prepare_summary_data(
             project_ctx.escalated_or_regressed_today = [
                 group for group in regressed_or_escalated_groups_today.group
             ]
+
+        # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
+        release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
+            "release_id", flat=True
+        )
+        releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end.date())
+        for release in releases[:2]:  # or whatever we limit this to
+            new_groups_in_release = Group.objects.filter(project=project, first_release=release)
+            if new_groups_in_release:
+                project_ctx.new_in_release[release] = [group for group in new_groups_in_release]
 
     fetch_key_error_groups(ctx)
     fetch_key_performance_issue_groups(ctx)

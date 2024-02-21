@@ -114,3 +114,4 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         # TODO: test performance issues later
         assert summary.projects[project_id].key_performance_issues == []
         # TODO: add test for escalated or regressed today
+        # TODO: add test for new issues in release
