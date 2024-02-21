@@ -16,9 +16,9 @@ class UseCaseID(Enum):
     TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
     ESCALATING_ISSUES = "escalating_issues"
-    CUSTOM = "custom"
-=======
+    CUSTOM = ("custom",)
     PROFILES = "profiles"
+    BUNDLE_ANALYSIS = "bundle_analysis"
 
 
 # UseCaseKey will be renamed to MetricPathKey

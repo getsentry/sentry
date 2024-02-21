@@ -224,13 +224,16 @@ ESCALATING_ISSUES_METRIC_NAMES = {
     "c:escalating_issues/event_ingested@none": PREFIX + 500,
 }
 
-BUNDLE_ANALYSIS_METRIC_NAMES = {
-    "d:bundle_analysis/bundle_size@byte": PREFIX + 600,
-}
-
+# 600-699
 PROFILING_METRIC_NAMES = {
     "d:profiles/function.duration@millisecond": PREFIX + 600,
 }
+
+# 700-799
+BUNDLE_ANALYSIS_METRIC_NAMES = {
+    "d:bundle_analysis/bundle_size@byte": PREFIX + 700,
+}
+
 
 SHARED_STRINGS = {
     **SESSION_METRIC_NAMES,
