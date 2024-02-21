@@ -86,7 +86,16 @@ class QuotaConfig:
                         since unlimited quotas can never be exceeded.
     """
 
-    __slots__ = ["id", "categories", "scope", "scope_id", "limit", "window", "reason_code"]
+    __slots__ = [
+        "id",
+        "categories",
+        "scope",
+        "scope_id",
+        "limit",
+        "window",
+        "reason_code",
+        "namespace",
+    ]
 
     def __init__(
         self,
