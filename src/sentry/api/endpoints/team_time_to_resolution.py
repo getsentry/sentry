@@ -20,7 +20,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team) -> Response:
