@@ -74,12 +74,16 @@ class View {
     );
   }
 
-  transform(mat: mat3): [number, number, number, number] {
+  transform(mat: mat3) {
     const x = this.x * mat[0] + this.y * mat[3] + mat[6];
     const y = this.x * mat[1] + this.y * mat[4] + mat[7];
     const width = this.width * mat[0] + this.height * mat[3];
     const height = this.width * mat[1] + this.height * mat[4];
-    return [x, y, width, height];
+
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
   }
 
   get center() {
@@ -321,18 +325,17 @@ export class VirtualizedViewManager {
     const left_view = left_percentage * this.trace_view.width;
 
     return [this.trace_view.x + left_view, 0];
+    // const left = this.trace_view.x;
+    // const leftInSpace =
+    //   this.trace_space.x +
+    //   (left / this.trace_physical_space.width) * this.trace_space.width;
+
+    // return [leftInSpace, 0];
   }
 
   onWheelZoom(event: WheelEvent) {
     if (event.metaKey) {
       event.preventDefault();
-
-      if (!this.onWheelEndRaf) {
-        this.onWheelStart();
-        this.enqueueOnWheelEndRaf();
-        return;
-      }
-
       const scale = 1 - event.deltaY * 0.01 * -1; // -1 to invert scale
 
       const configSpaceCursor = this.getConfigSpaceCursor({
@@ -342,7 +345,6 @@ export class VirtualizedViewManager {
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
       const centerScaleMatrix = mat3.create();
-
       mat3.fromTranslation(centerScaleMatrix, center);
       mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
       mat3.translate(
@@ -351,58 +353,15 @@ export class VirtualizedViewManager {
         vec2.fromValues(-center[0], 0)
       );
 
-      const newView = this.trace_view.transform(centerScaleMatrix);
-      this.setTraceView({
-        x: newView[0],
-        width: newView[2],
-      });
+      this.trace_view.transform(centerScaleMatrix);
       this.draw();
     } else {
-      const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
-      const view_delta = physical_delta_pct * this.trace_view.width;
-      this.setTraceView({
-        x: this.trace_view.x + view_delta,
-      });
+      const traceViewToSpace = this.trace_space.between(this.trace_view);
+      const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+      const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
+
+      this.setTraceView({x: this.trace_view.x + event.deltaX * to_px[0]});
       this.draw();
-    }
-  }
-
-  onWheelEndRaf: number | null = null;
-  enqueueOnWheelEndRaf() {
-    if (this.onWheelEndRaf !== null) {
-      window.cancelAnimationFrame(this.onWheelEndRaf);
-    }
-
-    const start = performance.now();
-    const rafCallback = (now: number) => {
-      const elapsed = now - start;
-      if (elapsed > 100) {
-        this.onWheelEnd();
-      } else {
-        this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
-      }
-    };
-
-    this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
-  }
-
-  onWheelStart() {
-    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
-      const span_list = this.columns.span_list.column_refs[i];
-      if (span_list?.children?.[0]) {
-        (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
-      }
-    }
-  }
-
-  onWheelEnd() {
-    this.onWheelEndRaf = null;
-
-    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
-      const span_list = this.columns.span_list.column_refs[i];
-      if (span_list?.children?.[0]) {
-        (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
-      }
     }
   }
 
@@ -574,7 +533,7 @@ export class VirtualizedViewManager {
   ): [number, number, number, number, number, number] {
     const scale = space[1] / this.trace_view.width;
 
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
+    const traceViewToSpace = this.trace_view.between(this.trace_space);
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
     const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
 
@@ -583,7 +542,7 @@ export class VirtualizedViewManager {
       0,
       0,
       1,
-      (space[0] - this.to_origin) / to_px[0] - this.trace_view.x / to_px[0],
+      (space[0] - this.to_origin - this.trace_view.x) / to_px[0],
       0,
     ];
   }
