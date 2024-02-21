@@ -6,7 +6,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.registry.base import Argument, ExpressionRegistry
+from sentry.sentry_metrics.querying.registry.base import Argument, ExpressionRegistry, InheritFilters
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
@@ -273,9 +273,9 @@ class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
         # result in a list of arguments [param_1, param_2, param_3].
         arguments = (formula.aggregate_params or []) + (formula.parameters or [])
         expression = registry_entry.expression()
-        # For now, we assume that formula-level filters and group bys are not used, and instead they are directly
-        # specified in the supplied expressions in the parameters.
-        expression = ReplacementVisitor(arguments=arguments).visit(expression)
+        expression = ReplacementVisitor(
+            arguments=arguments, filters=formula.filters, group_bys=formula.groupby
+        ).visit(expression)
 
         # We recursively run substitutions in the newly created tree. We need to be careful about possible infinite
         # recursion.
@@ -322,7 +322,6 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
             else:
                 replaced_parameters.append(self.visit(parameter))
 
-        # TODO: implement merging also for timeseries.
         merged_filters = self._merge_filters(formula.filters)
         if merged_filters:
             formula = formula.set_filters(self._merge_filters(formula.filters))
@@ -361,9 +360,24 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
         return arg_value
 
     def _merge_filters(self, filters: ConditionGroup | None) -> ConditionGroup | None:
-        return []
+        if not self._filters and not filters:
+            return None
+
+        # new_filters = filters[:]
+        # for index, _filter in enumerate(filters):
+        #     if isinstance(_filter, InheritFilters):
+        #         new_filters = self._insert_at_index(index, new_filters, self._filters)
+
+        return (self._filters or []) + (filters or [])
 
     def _merge_group_bys(
         self, group_bys: Sequence[Column | AliasedExpression] | None
     ) -> Sequence[Column | AliasedExpression] | None:
-        return []
+        if not self._group_bys and not group_bys:
+            return None
+
+        filters = list(filter(lambda f: not isinstance(f, InheritFilters), filters))
+        return (self._group_bys or []) + (group_bys or [])
+
+    def _insert_at_index(self, index: int, list_1: list[Any], list_2: list[Any]) -> list[Any]:
+        return list_1[:index] + list_2 + list_1[index:]
