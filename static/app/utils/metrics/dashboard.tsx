@@ -1,10 +1,10 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {MRI, PageFilters} from 'sentry/types';
-import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import {emptyMetricsQueryWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {MRIToField, parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import type {MetricQueryWidgetParams, MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -27,11 +27,12 @@ export function convertToDashboardWidget(
   };
 }
 
-export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams[] {
+export function convertToMetricWidget(widget: Widget): MetricQueryWidgetParams[] {
   return widget.queries.map(query => {
     const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
 
     return {
+      type: MetricQueryType.QUERY,
       id: NO_QUERY_ID,
       mri: parsed.mri,
       op: parsed.op,
@@ -58,7 +59,7 @@ export function toDisplayType(displayType: unknown): DisplayType {
 
 export function defaultMetricWidget(selection: PageFilters) {
   return convertToDashboardWidget(
-    [{...selection, ...emptyWidget}],
+    [{...selection, ...emptyMetricsQueryWidget}],
     MetricDisplayType.LINE
   );
 }

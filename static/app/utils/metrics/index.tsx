@@ -39,12 +39,16 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import {
+  isMetricFormular,
+  type MetricsQueryApiQueryParams,
+} from 'sentry/utils/metrics/useMetricsQuery';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
+  mri?: MetricsQuery['mri'],
+  op?: MetricsQuery['op']
 ): MetricDisplayType {
   if (mri?.startsWith('c') || op === 'count') {
     return MetricDisplayType.BAR;
@@ -221,14 +225,25 @@ export function useClearQuery() {
 }
 
 export function getMetricsSeriesName(
-  field: string,
+  query: MetricsQueryApiQueryParams,
   groupBy?: Record<string, string>,
   isMultiQuery: boolean = true
 ) {
+  let name = '';
+  if (isMetricFormular(query)) {
+    name = query.formula.replaceAll('$', '');
+  } else {
+    name = formatMRIField(MRIToField(query.mri, query.op));
+  }
+
+  if (isMultiQuery) {
+    name = `${query.name}: ${name}`;
+  }
+
   const groupByEntries = Object.entries(groupBy ?? {});
 
   if (!groupByEntries || !groupByEntries.length) {
-    return formatMRIField(field);
+    return name;
   }
 
   const formattedGrouping = groupByEntries
@@ -236,7 +251,7 @@ export function getMetricsSeriesName(
     .join(', ');
 
   if (isMultiQuery) {
-    return `${formatMRIField(field)} - ${formattedGrouping}`;
+    return `${name} - ${formattedGrouping}`;
   }
   return formattedGrouping;
 }

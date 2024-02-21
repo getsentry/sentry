@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import {MetricQueryType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -19,7 +20,7 @@ export function useCreateDashboard() {
         title: 'Metrics Dashboard',
         description: '',
         widgets: widgets
-          .filter(widget => !!widget.mri)
+          .filter(widget => widget.type === MetricQueryType.QUERY && !!widget.mri)
           .map(widget =>
             // @ts-expect-error TODO(ogi): fix this
             convertToDashboardWidget(widget, widget.displayType)

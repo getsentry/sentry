@@ -1,9 +1,13 @@
-import {getDefaultMetricDisplayType, getDefaultMetricOp} from 'sentry/utils/metrics';
+import {getDefaultMetricOp} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
+  type BaseWidgetParams,
   type FocusedMetricsSeries,
   MetricDisplayType,
+  type MetricFormulaWidgetParams,
+  MetricQueryType,
+  type MetricQueryWidgetParams,
   type MetricWidgetQueryParams,
   type SortState,
 } from 'sentry/utils/metrics/types';
@@ -109,6 +113,55 @@ function isValidId(n: number | undefined): n is number {
   return n !== undefined && Number.isInteger(n) && n >= 0;
 }
 
+function parseQueryType(
+  widget: Record<string, unknown>,
+  key: string
+): MetricQueryType | undefined {
+  const value = widget[key];
+  return typeof value === 'number' && Object.values(MetricQueryType).includes(value)
+    ? value
+    : undefined;
+}
+
+function parseQueryWidget(
+  widget: Record<string, unknown>,
+  baseWidgetParams: BaseWidgetParams
+): MetricQueryWidgetParams | null {
+  const mri = getMRIParam(widget);
+  // If we cannot retrieve an MRI the resulting widget will be useless anyway
+  if (!mri) {
+    return null;
+  }
+
+  return {
+    mri,
+    op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
+    query: parseStringParam(widget, 'query') ?? '',
+    groupBy: parseArrayParam(widget, 'groupBy', entry =>
+      typeof entry === 'string' ? entry : undefined
+    ),
+    powerUserMode: parseBooleanParam(widget, 'powerUserMode') ?? false,
+    ...baseWidgetParams,
+    type: MetricQueryType.QUERY,
+  };
+}
+
+function parseFormulaWidget(
+  widget: Record<string, unknown>,
+  baseWidgetParams: BaseWidgetParams
+): MetricFormulaWidgetParams | null {
+  const formula = parseStringParam(widget, 'formula');
+  if (formula === undefined) {
+    return null;
+  }
+
+  return {
+    formula,
+    ...baseWidgetParams,
+    type: MetricQueryType.FORMULA,
+  };
+}
+
 export function parseMetricWidgetsQueryParam(
   queryParam?: string
 ): MetricWidgetQueryParams[] | undefined {
@@ -128,17 +181,13 @@ export function parseMetricWidgetsQueryParam(
   const usedIds = new Set<number>();
   const indezesWithoutId = new Set<number>();
 
-  const parsedWidgets = currentWidgets
-    .map((widget: unknown, index): MetricWidgetQueryParams | null => {
+  const parsedWidgets = currentWidgets.map(
+    (widget: unknown, index): MetricWidgetQueryParams | null => {
       if (!isRecord(widget)) {
         return null;
       }
 
-      const mri = getMRIParam(widget);
-      // If we cannot retrieve an MRI the resulting widget will be useless anyway
-      if (!mri) {
-        return null;
-      }
+      const type = parseQueryType(widget, 'type') ?? MetricQueryType.QUERY;
 
       const id = parseNumberParam(widget, 'id');
       if (!isValidId(id)) {
@@ -150,39 +199,49 @@ export function parseMetricWidgetsQueryParam(
         usedIds.add(id);
       }
 
-      const op = parseStringParam(widget, 'op');
       const displayType = parseStringParam(widget, 'displayType');
 
-      return {
+      const baseWidgetParams: BaseWidgetParams = {
+        type,
         id: !isValidId(id) ? NO_QUERY_ID : id,
-        mri,
-        op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
-        query: parseStringParam(widget, 'query') ?? '',
-        groupBy: parseArrayParam(widget, 'groupBy', entry =>
-          typeof entry === 'string' ? entry : undefined
-        ),
         displayType: isMetricDisplayType(displayType)
           ? displayType
-          : getDefaultMetricDisplayType(mri, op),
+          : MetricDisplayType.LINE,
         focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
-        powerUserMode: parseBooleanParam(widget, 'powerUserMode') ?? false,
         sort: parseSortParam(widget, 'sort'),
       };
-    })
-    .filter((widget): widget is MetricWidgetQueryParams => !!widget);
+
+      switch (type) {
+        case MetricQueryType.QUERY:
+          return parseQueryWidget(widget, baseWidgetParams);
+        case MetricQueryType.FORMULA:
+          return parseFormulaWidget(widget, baseWidgetParams);
+        default:
+          return null;
+      }
+    }
+  );
 
   // Iterate over the widgets without an id and assign them a unique one
   if (indezesWithoutId.size > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
     for (const index of indezesWithoutId) {
-      parsedWidgets[index].id = generateId.next().value;
+      const widget = parsedWidgets[index];
+      if (!widget) {
+        continue;
+      }
+      widget.id = generateId.next().value;
     }
   }
 
+  const filteredWidgets = parsedWidgets.filter(
+    (widget): widget is MetricWidgetQueryParams => widget !== null
+  );
+
   // We can reset the id if there is only one widget
-  if (parsedWidgets.length === 1) {
-    parsedWidgets[0].id = 0;
+  if (filteredWidgets.length === 1) {
+    filteredWidgets[0].id = 0;
   }
 
-  return parsedWidgets.length > 0 ? parsedWidgets : undefined;
+  return filteredWidgets.length > 0 ? filteredWidgets : undefined;
 }
