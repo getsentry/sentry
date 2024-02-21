@@ -84,10 +84,7 @@ def build_query_params_from_request(
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        if features.has("organizations:issue-priority-ui", organization):
-            query = "is:unresolved issue.priority:[high, medium]"
-        else:
-            query = "is:unresolved"
+        query = _get_default_query(organization)
 
     query = query.strip()
 
@@ -321,3 +318,10 @@ def get_first_last_release_info(
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
+
+
+def _get_default_query(organization: Organization) -> str:
+    if features.has("organizations:issue-priority-ui", organization):
+        return "is:unresolved issue.priority:[high, medium]"
+
+    return "is:unresolved"
