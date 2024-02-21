@@ -119,7 +119,7 @@ def send_incident_alert_notification(
         repository.create_notification_message(data=new_notification_message_object)
     except Exception:
         # If we had an unexpected error with saving a record to our datastore,
-        # don't let the error bubble up and block this flow from finishing
+        # do not let the error bubble up, nor block this flow from finishing
         pass
 
     return success
