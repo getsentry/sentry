@@ -401,8 +401,7 @@ def get_hash_values(
     )
 
     all_hashes = CalculatedHashes(
-        hashes=list(primary_hashes.hashes)
-        + list(secondary_hashes and secondary_hashes.hashes or []),
+        hashes=extract_hashes(primary_hashes) + extract_hashes(secondary_hashes),
         hierarchical_hashes=(
             list(primary_hashes.hierarchical_hashes)
             + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
@@ -517,3 +516,7 @@ def check_for_category_mismatch(group: Group) -> bool:
         return True
 
     return False
+
+
+def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
+    return [] if not calculated_hashes else list(calculated_hashes.hashes)
