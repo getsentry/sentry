@@ -63,7 +63,7 @@ class EventFrequencyForm(forms.Form):
     )
     value = forms.IntegerField(widget=forms.TextInput())
     comparisonType = forms.ChoiceField(
-        choices=comparison_types.items(),
+        choices=tuple(comparison_types.items()),
         required=False,
     )
     comparisonInterval = forms.ChoiceField(
