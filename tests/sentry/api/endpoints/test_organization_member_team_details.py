@@ -398,9 +398,12 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
     def test_integration_token_needs_elevated_permissions(self):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["org:read"]
+        )
         # Integration tokens with org:read should generate an access request when open membership is off
         integration_token = self.create_internal_integration_token(
-            user=self.user, org=self.org, scopes=["org:read"]
+            user=self.user, internal_integration=internal_integration
         )
 
         self.get_success_response(
@@ -918,24 +921,3 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=other_member
         )
         assert target_omt.role is None
-
-    @with_feature("organizations:team-roles")
-    def test_member_on_owner_team_can_promote_member(self):
-        owner_team = self.create_team(org_role="owner")
-        member = self.create_member(
-            organization=self.org,
-            user=self.create_user(),
-            role="member",
-            teams=[owner_team],
-        )
-
-        self.login_as(member)
-        resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
-        )
-        assert resp.status_code == 200
-
-        updated_omt = OrganizationMemberTeam.objects.get(
-            team=self.team, organizationmember=self.member_on_team
-        )
-        assert updated_omt.role == "admin"

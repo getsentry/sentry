@@ -22,7 +22,7 @@ from snuba_sdk.formula import FormulaParameterGroup
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.utils import to_intervals
@@ -46,19 +46,6 @@ AGGREGATE_ALIASES = {
     "p95": ("quantiles", [0.95]),
     "p99": ("quantiles", [0.99]),
     "count_unique": ("uniq", None),
-}
-
-RELEASE_HEALTH_ENTITIES = {
-    "c": EntityKey.MetricsCounters,
-    "d": EntityKey.MetricsDistributions,
-    "s": EntityKey.MetricsSets,
-}
-
-GENERIC_ENTITIES = {
-    "c": EntityKey.GenericMetricsCounters,
-    "d": EntityKey.GenericMetricsDistributions,
-    "s": EntityKey.GenericMetricsSets,
-    "g": EntityKey.GenericMetricsGauges,
 }
 
 
@@ -149,12 +136,6 @@ def run_query(request: Request) -> Mapping[str, Any]:
 def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]:
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
-
-    # Currently we don't support nested Formula queries. Check to make sure that is what is being passed in.
-    # TODO: This should be removed once we fully support Formulas.
-    if isinstance(metrics_query.query, Formula):
-        if any(isinstance(p, Formula) for p in metrics_query.query.parameters):
-            raise InvalidParams("Nested formulas are not supported")
 
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
@@ -346,10 +327,6 @@ def _resolve_timeseries_metadata(
     else:
         mappings[metric.mri] = metric.id
 
-    if not metric.entity:
-        entity = _resolve_metrics_entity(metric.mri)  # This should eventually be done in Snuba
-        metric = metric.set_entity(entity.value)
-
     series = series.set_metric(metric)
     return series, mappings
 
@@ -381,17 +358,6 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         raise InvalidParams("Formula parameters must all be from the same use case")
 
     return namespaces.pop()
-
-
-def _resolve_metrics_entity(mri: str) -> EntityKey:
-    parsed_mri = parse_mri(mri)
-    if parsed_mri is None:
-        raise InvalidParams(f"'{mri}' is not a valid MRI")
-
-    if parsed_mri.namespace == "sessions":
-        return RELEASE_HEALTH_ENTITIES[parsed_mri.entity]
-
-    return GENERIC_ENTITIES[parsed_mri.entity]
 
 
 def _lookup_indexer_resolve(

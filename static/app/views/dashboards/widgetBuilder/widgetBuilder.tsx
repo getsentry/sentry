@@ -36,7 +36,10 @@ import {
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {
+  isOnDemandMetricWidget,
+  OnDemandControlProvider,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -57,6 +60,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
+import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
 import {hasThresholdMaxValue} from '../utils';
 import {
   DashboardsMEPConsumer,
@@ -373,6 +377,10 @@ function WidgetBuilder({
     widgetType,
   };
 
+  const isOnDemandWidget = isOnDemandMetricWidget(currentWidget);
+
+  const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
+
   const currentDashboardId = state.selectedDashboard ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
@@ -548,9 +556,12 @@ function WidgetBuilder({
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
+      const didDatasetChange =
+        widgetToBeUpdated?.widgetType &&
+        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet;
+
       newState.queries.push(
-        ...(widgetToBeUpdated?.widgetType &&
-        WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
+        ...(didDatasetChange
           ? widgetToBeUpdated.queries
           : [{...config.defaultWidgetQuery}])
       );
@@ -1149,6 +1160,7 @@ function WidgetBuilder({
                                           explodedFields={explodedFields}
                                           tags={tags}
                                           organization={organization}
+                                          isOnDemandWidget={isOnDemandWidget}
                                         />
                                       )}
                                     </DashboardsMEPConsumer>
@@ -1181,6 +1193,7 @@ function WidgetBuilder({
                                     dashboardFilters={dashboard.filters}
                                     location={location}
                                     onQueryConditionChange={setQueryConditionsValid}
+                                    validatedWidgetResponse={validatedWidgetResponse}
                                   />
                                   {isTimeseriesChart && (
                                     <GroupByStep
@@ -1194,9 +1207,9 @@ function WidgetBuilder({
                                         )}
                                       onGroupByChange={handleGroupByChange}
                                       organization={organization}
+                                      validatedWidgetResponse={validatedWidgetResponse}
                                       tags={tags}
                                       dataSet={state.dataSet}
-                                      queries={state.queries}
                                     />
                                   )}
                                   {displaySortByStep && (

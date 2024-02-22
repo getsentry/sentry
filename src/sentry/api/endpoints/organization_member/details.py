@@ -132,7 +132,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the member to delete."),
+            GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -152,7 +152,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Will return a pending invite as long as it's already approved.
         """
-        allowed_roles = get_allowed_org_roles(request, organization, member)
+        allowed_roles = get_allowed_org_roles(request, organization, member, log_scopes=True)
         return Response(
             serialize(
                 member,
@@ -412,12 +412,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
-                        can_manage = False
-                        # check org roles through teams
-                        for role in acting_member.get_all_org_roles():
-                            if roles.can_manage(role, member.role):
-                                can_manage = True
-                                break
+                        can_manage = roles.can_manage(acting_member.role, member.role)
 
                         if not can_manage:
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)

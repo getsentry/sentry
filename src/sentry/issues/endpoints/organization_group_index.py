@@ -354,9 +354,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             serializer(
                 start=start,
                 end=end,
-                search_filters=query_kwargs["search_filters"]
-                if "search_filters" in query_kwargs
-                else None,
+                search_filters=(
+                    query_kwargs["search_filters"] if "search_filters" in query_kwargs else None
+                ),
                 organization_id=organization.id,
             ),
             request=request,

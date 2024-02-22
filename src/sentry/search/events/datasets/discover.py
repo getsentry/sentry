@@ -1000,6 +1000,21 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_aggregate=self._resolve_count_scores_function,
                     default_result_type="integer",
                 ),
+                SnQLFunction(
+                    "example",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
+                        ["timestamp", "span_id"], alias
+                    ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "rounded_timestamp",
+                    required_args=[IntervalDefault("interval", 1, None)],
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias
+                    ),
+                    private=True,
+                ),
             ]
         }
 

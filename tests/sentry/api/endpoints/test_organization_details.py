@@ -197,15 +197,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert "orgRoleList" not in response.data
 
     def test_as_superuser(self):
-        self.user = self.create_user("super@example.org", is_superuser=True)
-        org = self.create_organization(owner=self.user)
-        team = self.create_team(name="appy", organization=org)
+        self.superuser = self.create_user(is_superuser=True)
+        team = self.create_team(name="appy", organization=self.organization)
 
-        self.login_as(user=self.user)
+        self.login_as(user=self.superuser, superuser=True)
         for i in range(5):
-            self.create_project(organization=org, teams=[team])
+            self.create_project(organization=self.organization, teams=[team])
 
-        response = self.get_success_response(org.slug)
+        response = self.get_success_response(self.organization.slug)
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
@@ -275,41 +274,41 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["hasAuthProvider"] is True
 
     def test_is_dynamically_sampled(self):
-        self.user = self.create_user("super@example.org", is_superuser=True)
-        org = self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
-
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=0.5,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 0.5
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 1.0
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
         with self.feature({"organizations:dynamic-sampling": False}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
@@ -1178,8 +1177,8 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
     def test_superuser_can_access_org_details(self):
-        user = self.create_user(is_superuser=True)
-        self.login_as(user, superuser=True)
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
         self.get_success_response(self.org_2fa.slug)
 
 

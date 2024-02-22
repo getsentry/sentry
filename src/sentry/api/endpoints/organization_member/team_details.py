@@ -88,9 +88,9 @@ def _has_elevated_scope(access: Access) -> bool:
 
 
 def _is_org_owner_or_manager(access: Access) -> bool:
-    roles = access.get_organization_roles()
+    role = access.get_organization_role()
     # only org owners and managers have org:write scope
-    return any("org:write" in role.scopes for role in roles)
+    return "org:write" in role.scopes if role else False
 
 
 @extend_schema(tags=["Teams"])
