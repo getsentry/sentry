@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import Pills from 'sentry/components/pills';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -98,6 +99,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   return (
     <StyledClippedBox clipHeight={150}>
+      <EventTagsTree tags={tags} />
       <Pills>
         {tags.map((tag, index) => (
           <EventTagsPill
