@@ -216,6 +216,8 @@ def _get_entity_of_metric_mri(
         )
     elif use_case_id is UseCaseID.ESCALATING_ISSUES:
         entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
+    elif use_case_id is UseCaseID.BUNDLE_ANALYSIS:
+        entity_keys_set = frozenset({EntityKey.GenericMetricsDistributions})
     elif use_case_id is UseCaseID.CUSTOM:
         entity_keys_set = frozenset(
             {
@@ -448,6 +450,7 @@ class RawOp(MetricOperation):
             UseCaseID.SPANS,
             UseCaseID.CUSTOM,
             UseCaseID.ESCALATING_ISSUES,
+            UseCaseID.BUNDLE_ANALYSIS,
         ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
@@ -1295,8 +1298,10 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         compute_func_args = []
         for constituent in self.metrics:
             key = f"{constituent}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}"
-            compute_func_args.append(data[key]) if idx is None else compute_func_args.append(
-                data[key][idx]
+            (
+                compute_func_args.append(data[key])
+                if idx is None
+                else compute_func_args.append(data[key][idx])
             )
         # ToDo(ahmed): This won't work if there is not post_query_func because there is an assumption that this function
         #  will aggregate the result somehow
