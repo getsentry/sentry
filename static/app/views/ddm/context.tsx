@@ -134,7 +134,7 @@ export function useMetricWidgets() {
             ? emptyMetricsQueryWidget
             : emptyMetricsFormulaWidget;
 
-        // if the last widhet is of the same type, we duplicate it
+        // if the last widget is of the same type, we duplicate it
         if (lastWidget && lastWidget.type === newWidget.type) {
           newWidget = {
             ...newWidget,

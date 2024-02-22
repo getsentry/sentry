@@ -20,6 +20,7 @@ export function useCreateDashboard() {
         title: 'Metrics Dashboard',
         description: '',
         widgets: widgets
+          // TODO(aknaus): Remove filtering once dashboard supports metrics formulas
           .filter(widget => widget.type === MetricQueryType.QUERY && !!widget.mri)
           .map(widget =>
             // @ts-expect-error TODO(ogi): fix this

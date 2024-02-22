@@ -163,18 +163,10 @@ export function useMetricsQuery(
 ) {
   const organization = useOrganization();
 
-  const queryIsComplete = queries.every(query =>
-    isMetricFormular(query) ? !!query.formula : !!query.op
-  );
-
   const {query: queryToSend, body} = useMemo(
     () =>
       getMetricsQueryApiRequestPayload(
-        queries.map(query =>
-          isMetricFormular(query)
-            ? query
-            : {...query, field: MRIToField(query.mri, query.op)}
-        ),
+        queries,
         {datetime, projects, environments},
         {...overrides}
       ),
@@ -192,7 +184,6 @@ export function useMetricsQuery(
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,
       refetchInterval: false,
-      enabled: queryIsComplete,
     }
   );
 }

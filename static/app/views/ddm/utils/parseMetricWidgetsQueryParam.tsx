@@ -128,7 +128,7 @@ function parseQueryWidget(
   baseWidgetParams: BaseWidgetParams
 ): MetricQueryWidgetParams | null {
   const mri = getMRIParam(widget);
-  // If we cannot retrieve an MRI the resulting widget will be useless anyway
+  // If we cannot retrieve an MRI, there is nothing to display
   if (!mri) {
     return null;
   }
@@ -151,6 +151,7 @@ function parseFormulaWidget(
   baseWidgetParams: BaseWidgetParams
 ): MetricFormulaWidgetParams | null {
   const formula = parseStringParam(widget, 'formula');
+  // If we cannot retrieve a formula, there is nothing to display
   if (formula === undefined) {
     return null;
   }

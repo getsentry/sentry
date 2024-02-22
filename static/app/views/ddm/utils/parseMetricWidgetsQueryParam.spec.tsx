@@ -304,6 +304,9 @@ describe('parseMetricWidgetQueryParam', () => {
           widgetWithId(0),
           widgetWithId(undefined),
           widgetWithId(2),
+          {
+            // Invalid widget
+          },
           widgetWithId(undefined),
           widgetWithId(3),
         ])
