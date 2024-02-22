@@ -82,6 +82,15 @@ class StorageBlob(Blob):
         )
 
 
+def make_filename(segment: RecordingSegmentStorageMeta) -> str:
+    return make_recording_filename(
+        segment.retention_days,
+        segment.project_id,
+        segment.replay_id,
+        segment.segment_id,
+    )
+
+
 def make_recording_filename(
     retention_days: int | None,
     project_id: int,
