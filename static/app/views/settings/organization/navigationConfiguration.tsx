@@ -76,6 +76,8 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${organizationSettingsPathPrefix}/rate-limits/`,
         title: t('Rate Limits'),
+        show: ({access, features}) =>
+          features!.has('legacy-rate-limits') && access!.has('org:write'),
         description: t('Configure rate limits for all projects in the organization'),
         id: 'rate-limits',
       },
