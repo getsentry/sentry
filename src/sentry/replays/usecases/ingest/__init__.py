@@ -118,9 +118,12 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             message.replay_video,
         )
 
-    if message.replay_event:
-        publisher = initialize_replays_publisher(is_async=False)
-        publisher.publish("ingest-replay-events", message.replay_event, send_async=False)
+        # For now we only publish replay-events if they were part of the video payload.
+        # Otherwise we would double publish.  In the future this can be removed once the
+        # recording consumer is responsible for publishing all replay-events to snuba.
+        if message.replay_event:
+            publisher = initialize_replays_publisher(is_async=False)
+            publisher.publish("ingest-replay-events", message.replay_event, send_async=False)
 
     recording_post_processor(message, headers, recording_segment, transaction)
 
