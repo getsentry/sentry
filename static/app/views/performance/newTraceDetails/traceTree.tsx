@@ -342,22 +342,20 @@ export class TraceTree {
     }
 
     for (const span of spans) {
-      const parentNode = transactionsToSpanMap.get(span.span_id);
-      let node: TraceTreeNode<TraceTree.Span>;
+      const childTxn = transactionsToSpanMap.get(span.span_id);
+      const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, span, {
+        event_id: undefined,
+        project_slug: undefined,
+      });
 
-      if (parentNode) {
-        node = parentNode.clone() as unknown as TraceTreeNode<TraceTree.Span>;
-      } else {
-        node = new TraceTreeNode(null, span, {
-          event_id: undefined,
-          project_slug: undefined,
-        });
-      }
-
-      node.canFetchData = !!parentNode;
-
-      if (parentNode) {
-        node.metadata = parentNode.metadata;
+      // This is the case where the current span is the parent of a txn at the
+      // trace level. When zooming into the parent of the txn, we want to place a copy
+      // of the txn as a child of the parenting span.
+      if (childTxn) {
+        const clonedChildTxn =
+          childTxn.deepClone() as unknown as TraceTreeNode<TraceTree.Span>;
+        node.spanChildren.push(clonedChildTxn);
+        clonedChildTxn.parent = node;
       }
 
       lookuptable[span.span_id] = node;
@@ -744,14 +742,20 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
   }
 
-  clone(): TraceTreeNode<T> {
+  deepClone(): TraceTreeNode<T> {
     const node = new TraceTreeNode(this.parent, this.value, this.metadata);
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
     node.canFetchData = this.canFetchData;
     node.space = this.space;
-    node.children = this.children;
-    node.invalidate(node);
+    node.metadata = this.metadata;
+
+    for (const child of this.children) {
+      const childClone = child.deepClone() as TraceTreeNode<TraceTree.Span>;
+      node.children.push(childClone);
+      childClone.parent = node;
+    }
+
     return node;
   }
 
