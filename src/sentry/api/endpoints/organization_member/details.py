@@ -152,7 +152,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Will return a pending invite as long as it's already approved.
         """
-        allowed_roles = get_allowed_org_roles(request, organization, member, log_scopes=True)
+        allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
             serialize(
                 member,
