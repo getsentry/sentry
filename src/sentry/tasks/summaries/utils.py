@@ -36,14 +36,14 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
+        self.projects_context_map: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
-            self.projects[project.id] = ProjectContext(project)
+            self.projects_context_map[project.id] = ProjectContext(project)
 
     def __repr__(self):
-        return self.projects.__repr__()
+        return self.projects_context_map.__repr__()
 
 
 class ProjectContext:
@@ -196,7 +196,7 @@ def project_key_performance_issues(ctx, project):
         return key_performance_issues
 
 
-def project_key_transactions(ctx, project):
+def project_key_transactions_this_week(ctx, project):
     if not project.flags.has_transactions:
         return
     with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
@@ -220,49 +220,39 @@ def project_key_transactions(ctx, project):
         request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
         query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.this_week")
         key_transactions = query_result["data"]
-        ctx.projects[project.id].key_transactions_this_week = [
-            (i["transaction_name"], i["count"], i["p95"]) for i in key_transactions
-        ]
+        return key_transactions
 
-        # Query the p95 for those transactions last week
-        query = Query(
-            match=Entity("transactions"),
-            select=[
+
+def project_key_transactions_last_week(ctx, project, key_transactions):
+    # Query the p95 for those transactions last week
+    query = Query(
+        match=Entity("transactions"),
+        select=[
+            Column("transaction_name"),
+            Function("quantile(0.95)", [Column("duration")], "p95"),
+            Function("count", [], "count"),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, ctx.start - timedelta(days=7)),
+            Condition(Column("finish_ts"), Op.LT, ctx.end - timedelta(days=7)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(
                 Column("transaction_name"),
-                Function("quantile(0.95)", [Column("duration")], "p95"),
-                Function("count", [], "count"),
-            ],
-            where=[
-                Condition(Column("finish_ts"), Op.GTE, ctx.start - timedelta(days=7)),
-                Condition(Column("finish_ts"), Op.LT, ctx.end - timedelta(days=7)),
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(
-                    Column("transaction_name"),
-                    Op.IN,
-                    [i["transaction_name"] for i in key_transactions],
-                ),
-            ],
-            groupby=[Column("transaction_name")],
-        )
-        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
-
-        # Join this week with last week
-        last_week_data = {
-            i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
-        }
-
-        ctx.projects[project.id].key_transactions = [
-            (i["transaction_name"], i["count"], i["p95"])
-            + last_week_data.get(i["transaction_name"], (0, 0))
-            for i in key_transactions
-        ]
+                Op.IN,
+                [i["transaction_name"] for i in key_transactions],
+            ),
+        ],
+        groupby=[Column("transaction_name")],
+    )
+    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+    query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
+    return query_result
 
 
 def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     # Organization pass. Depends on project_key_errors.
     all_key_error_group_ids = []
-    for project_ctx in ctx.projects.values():
+    for project_ctx in ctx.projects_context_map.values():
         all_key_error_group_ids.extend([group_id for group_id, count in project_ctx.key_errors])
 
     if len(all_key_error_group_ids) == 0:
@@ -272,7 +262,7 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    for project_ctx in ctx.projects.values():
+    for project_ctx in ctx.projects_context_map.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
         project_ctx.key_errors = list(
@@ -293,7 +283,7 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
 def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
     # Organization pass. Depends on project_key_performance_issue.
     all_groups = []
-    for project_ctx in ctx.projects.values():
+    for project_ctx in ctx.projects_context_map.values():
         all_groups.extend([group for group, count in project_ctx.key_performance_issues])
 
     if len(all_groups) == 0:
@@ -311,7 +301,7 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
     )
     group_id_to_group_history = {g.group_id: g for g in group_history}
 
-    for project_ctx in ctx.projects.values():
+    for project_ctx in ctx.projects_context_map.values():
         project_ctx.key_performance_issues = [
             (group, group_id_to_group_history.get(group.id, None), count)
             for group, count in project_ctx.key_performance_issues
@@ -369,11 +359,11 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
     )
     for item in substatus_counts:
         if item["substatus"] == GroupSubStatus.NEW:
-            ctx.projects[item["project_id"]].new_substatus_count = item["total"]
+            ctx.projects_context_map[item["project_id"]].new_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.ESCALATING:
-            ctx.projects[item["project_id"]].escalating_substatus_count = item["total"]
+            ctx.projects_context_map[item["project_id"]].escalating_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.ONGOING:
-            ctx.projects[item["project_id"]].ongoing_substatus_count = item["total"]
+            ctx.projects_context_map[item["project_id"]].ongoing_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.REGRESSED:
-            ctx.projects[item["project_id"]].regression_substatus_count = item["total"]
-        ctx.projects[item["project_id"]].total_substatus_count += item["total"]
+            ctx.projects_context_map[item["project_id"]].regression_substatus_count = item["total"]
+        ctx.projects_context_map[item["project_id"]].total_substatus_count += item["total"]

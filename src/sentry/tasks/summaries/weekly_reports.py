@@ -32,7 +32,8 @@ from sentry.tasks.summaries.utils import (
     project_event_counts_for_organization,
     project_key_errors,
     project_key_performance_issues,
-    project_key_transactions,
+    project_key_transactions_last_week,
+    project_key_transactions_this_week,
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
@@ -69,7 +70,9 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send an email.
     """
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects.values())
+    return all(
+        check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects_context_map.values()
+    )
 
 
 # The entry point. This task is scheduled to run every week.
@@ -140,9 +143,9 @@ def prepare_organization_report(
         for data in event_counts:
             project_id = data["project_id"]
             # Project no longer in organization, but events still exist
-            if project_id not in ctx.projects:
+            if project_id not in ctx.projects_context_map:
                 continue
-            project_ctx = ctx.projects[project_id]
+            project_ctx = ctx.projects_context_map[project_id]
             total = data["total"]
             timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
             if data["category"] == DataCategory.TRANSACTION:
@@ -177,7 +180,7 @@ def prepare_organization_report(
         for project in organization.project_set.all():
             key_errors = project_key_errors(ctx, project)
             if key_errors:
-                ctx.projects[project.id].key_errors = [
+                ctx.projects_context_map[project.id].key_errors = [
                     (e["group_id"], e["count()"]) for e in key_errors
                 ]
                 if ctx.organization.slug == "sentry":
@@ -185,10 +188,29 @@ def prepare_organization_report(
                         "project_key_errors.results",
                         extra={"project_id": project.id, "num_key_errors": len(key_errors)},
                     )
-            project_key_transactions(ctx, project)
+            key_transactions_this_week = project_key_transactions_this_week(ctx, project)
+            if key_transactions_this_week:
+                ctx.projects_context_map[project.id].key_transactions_this_week = [
+                    (i["transaction_name"], i["count"], i["p95"])
+                    for i in key_transactions_this_week
+                ]
+                query_result = project_key_transactions_last_week(
+                    ctx, project, key_transactions_this_week
+                )
+                # Join this week with last week
+                last_week_data = {
+                    i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
+                }
+
+                ctx.projects_context_map[project.id].key_transactions_this_week = [
+                    (i["transaction_name"], i["count"], i["p95"])
+                    + last_week_data.get(i["transaction_name"], (0, 0))
+                    for i in key_transactions_this_week
+                ]
+
             key_performance_issues = project_key_performance_issues(ctx, project)
             if key_performance_issues:
-                ctx.projects[project.id].key_performance_issues = key_performance_issues
+                ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
 
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
@@ -337,14 +359,14 @@ def render_template_context(ctx, user_id):
         user_projects = list(
             filter(
                 lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
-                ctx.projects.values(),
+                ctx.projects_context_map.values(),
             )
         )
         if len(user_projects) == 0:
             return None
     else:
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
-        user_projects = ctx.projects.values()
+        user_projects = ctx.projects_context_map.values()
 
     notification_uuid = str(uuid.uuid4())
 

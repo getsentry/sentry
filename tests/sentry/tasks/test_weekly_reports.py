@@ -270,7 +270,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
 
-        project_ctx = ctx.projects[self.project.id]
+        project_ctx = ctx.projects_context_map[self.project.id]
 
         assert project_ctx.new_substatus_count == 1
         assert project_ctx.escalating_substatus_count == 0

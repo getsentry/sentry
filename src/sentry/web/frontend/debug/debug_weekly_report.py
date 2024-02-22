@@ -38,7 +38,7 @@ class DebugWeeklyReportView(MailPreviewView):
             )
         )
         ctx = OrganizationReportContext(timestamp, duration, organization)
-        ctx.projects.clear()
+        ctx.projects_context_map.clear()
 
         start_timestamp = to_timestamp(ctx.start)
 
@@ -115,7 +115,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
             ]
 
-            ctx.projects[project.id] = project_context
+            ctx.projects_context_map[project.id] = project_context
 
         return render_template_context(ctx, None)
 
