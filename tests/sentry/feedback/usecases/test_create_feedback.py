@@ -76,6 +76,7 @@ def test_fix_for_issue_platform():
             "id": 880461,
             "isStaff": False,
             "name": "Josh Ferge",
+            "sentry_user": "test@test.com",
         },
         "contexts": {
             "feedback": {
@@ -320,5 +321,103 @@ def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_
     }
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
     create_feedback_issue(event_2, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 0
+
+
+@django_db_all
+def test_create_feedback_filters_no_contexts_or_message(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    event_no_context = {
+        "project_id": 1,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+
+    event_no_message = {
+        "project_id": 1,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "contexts": {
+            "feedback": {
+                "contact_email": "josh.ferge@sentry.io",
+                "name": "Josh Ferge",
+                "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            },
+        },
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+
+    event_no_feedback = {
+        "project_id": 1,
+        "request": {
+            "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+            },
+        },
+        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "timestamp": 1698255009.574,
+        "received": "2021-10-24T22:23:29.574000+00:00",
+        "environment": "prod",
+        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+        "user": {
+            "ip_address": "72.164.175.154",
+            "email": "josh.ferge@sentry.io",
+            "id": 880461,
+            "isStaff": False,
+            "name": "Josh Ferge",
+        },
+        "contexts": {},
+        "breadcrumbs": [],
+        "platform": "javascript",
+    }
+
+    create_feedback_issue(
+        event_no_context, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    )
+    create_feedback_issue(
+        event_no_message, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    )
+    create_feedback_issue(
+        event_no_feedback, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    )
 
     assert mock_produce_occurrence_to_kafka.call_count == 0

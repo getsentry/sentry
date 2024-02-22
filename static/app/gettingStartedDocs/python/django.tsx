@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[django]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[django]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 # settings.py

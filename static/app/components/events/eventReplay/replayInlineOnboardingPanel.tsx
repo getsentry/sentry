@@ -174,5 +174,5 @@ const Background = styled('div')<{image: any}>`
 
 const ActionButton = styled('div')`
   display: flex;
-  gap: ${space(1)}
+  gap: ${space(1)};
 `;

@@ -361,6 +361,9 @@ def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, An
 def _handle_breadcrumb(
     event: dict[str, Any], project_id: int, replay_id: str, replay_event: dict[str, Any] | None
 ) -> ReplayActionsEventPayloadClick | None:
+
+    click = None
+
     payload = event["data"].get("payload", {})
     category = payload.get("category")
     if category == "ui.slowClickDetected":
@@ -392,9 +395,10 @@ def _handle_breadcrumb(
                                 payload["data"]["node"],
                                 replay_event,
                             )
-                        report_rage_click_issue.delay(
-                            project_id, replay_id, cast(SentryEvent, event)
-                        )
+                        else:
+                            report_rage_click_issue.delay(
+                                project_id, replay_id, cast(SentryEvent, event)
+                            )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id

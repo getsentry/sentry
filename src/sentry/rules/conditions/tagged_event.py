@@ -21,7 +21,9 @@ class TaggedEventForm(forms.Form):
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
 
         match = cleaned_data.get("match")
         value = cleaned_data.get("value")

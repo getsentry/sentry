@@ -1,10 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  INBOX = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -46,6 +47,15 @@ type OverviewTab = {
  */
 export function getTabs(organization: Organization) {
   const tabs: Array<[string, OverviewTab]> = [
+    [
+      Query.INBOX,
+      {
+        name: t('Inbox'),
+        analyticsName: 'inbox',
+        count: true,
+        enabled: organization.features.includes('issue-priority-ui'),
+      },
+    ],
     [
       Query.UNRESOLVED,
       {
@@ -175,8 +185,15 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch(
+  {query, sort}: {query: string; sort: string},
+  {organization}: {organization: Organization}
+) {
+  const defaultQuery = organization.features.includes('issue-priority-ui')
+    ? NEW_DEFAULT_QUERY
+    : DEFAULT_QUERY;
+
+  return query === defaultQuery && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {

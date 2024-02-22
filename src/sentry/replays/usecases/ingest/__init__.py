@@ -56,6 +56,7 @@ class RecordingIngestMessage:
     key_id: int | None
     received: int
     payload_with_headers: bytes
+    replay_event: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -74,7 +75,11 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
-                replay_event=cast(bytes, message_dict["replay_event"]),
+                replay_event=(
+                    cast(bytes, message_dict["replay_event"])
+                    if "replay_event" in message_dict
+                    else None
+                ),
             )
             _ingest_recording(message, transaction)
 
@@ -103,7 +108,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     # within this scope.
     storage.set(segment_data, recording_segment)
 
-    recording_post_processor(message, headers, recording_segment, transaction)
+    recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
