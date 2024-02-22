@@ -473,8 +473,11 @@ class IndexerBatch:
                         "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                        new_payload_v2["aggregation_option"] = aggregation_option.value
+                    if aggregation_options := get_aggregation_option(old_payload_value["name"]):
+                        # TODO: This should eventually handle multiple aggregation options
+                        option = aggregation_options.popitem()[0]
+                        assert option is not None
+                        new_payload_v2["aggregation_option"] = option.value
 
                     new_payload_value = new_payload_v2
 
