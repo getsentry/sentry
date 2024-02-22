@@ -1,7 +1,5 @@
 from collections.abc import Sequence
 
-import sentry_sdk
-
 from sentry import quotas
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
@@ -17,21 +15,16 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_factor,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_recalibrate_org_state, log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import (
+    log_recalibrate_org_error,
+    log_recalibrate_org_state,
+    log_sample_rate_source,
+)
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
 from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-
-# Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
-# multiple queries on Snuba.
-RECALIBRATE_ORGS_MAX_SECONDS = 600
-
-
-class RecalibrationError(Exception):
-    def __init__(self, org_id, message):
-        super().__init__(f"Error during recalibration of org {org_id}: {message}")
 
 
 @instrumented_task(
@@ -53,6 +46,10 @@ def recalibrate_orgs(context: TaskContext) -> None:
         for org_volume in org_volumes:
             if org_volume.is_valid_for_recalibration:
                 valid_orgs.append((org_volume.org_id, org_volume.total, org_volume.indexed))
+            else:
+                log_recalibrate_org_error(
+                    org_volume.org_id, "The organization is not valid for recalibration"
+                )
 
         # We run an asynchronous job for recalibrating a batch of orgs whose size is specified in
         # `GetActiveOrgsVolumes`.
@@ -70,10 +67,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
 )
 def recalibrate_orgs_batch(orgs: Sequence[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
-        try:
-            recalibrate_org(org_id, total, indexed)
-        except RecalibrationError as e:
-            sentry_sdk.capture_exception(e)
+        recalibrate_org(org_id, total, indexed)
 
 
 def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
@@ -114,10 +108,8 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
 
     # If we didn't find any sample rate, we can't recalibrate the organization.
     if target_sample_rate is None:
-        raise RecalibrationError(
-            org_id=org_id,
-            message="couldn't get target sample rate for org recalibration",
-        )
+        log_recalibrate_org_error(org_id, "The target sample rate was not found")
+        return
 
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
@@ -131,17 +123,19 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         previous_factor, effective_sample_rate, target_sample_rate
     )
     if adjusted_factor is None:
-        raise RecalibrationError(org_id=org_id, message="the adjusted factor can't be computed")
+        log_recalibrate_org_error(org_id, "The adjusted factor can't be computed")
+        return
 
     if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_factor(org_id)
-        raise RecalibrationError(
-            org_id=org_id,
-            message=f"the adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
+        log_recalibrate_org_error(
+            org_id,
+            f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
             f"{MAX_REBALANCE_FACTOR}]",
         )
+        return
 
     # At the end we set the adjusted factor.
     set_guarded_adjusted_factor(org_id, adjusted_factor)
