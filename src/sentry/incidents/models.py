@@ -441,6 +441,12 @@ class AlertRuleMonitorType(Enum):
     ACTIVATED = 1
 
 
+class AlertRuleActivationTrigger(Enum):
+    RELEASE = 0
+    DEPLOY = 1
+    CUSTOM = 2
+
+
 @region_silo_only_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
@@ -654,6 +660,35 @@ class AlertRuleTrigger(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruletrigger"
+        unique_together = (("alert_rule", "label"),)
+
+
+class AlertRuleActivationConditionType(Enum):
+    RELEASE_CREATION = 0
+    DEPLOY_CREATION = 1
+
+
+@region_silo_only_model
+class AlertRuleActivationCondition(Model):
+    """
+    This model represents the activation condition for an activated AlertRule
+
+    label is an optional identifier for an activation condition
+    condition_type is AlertRuleActivationConditionType
+    TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
+    label = models.TextField()
+    condition_type = models.SmallIntegerField(null=True)
+
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivationcondition"
         unique_together = (("alert_rule", "label"),)
 
 
