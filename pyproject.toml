@@ -621,7 +621,6 @@ disable_error_code = [
     "union-attr",
     "unreachable",
     "var-annotated",
-    "possibly-undefined",
 ]
 # end: sentry modules with typing issues
 
