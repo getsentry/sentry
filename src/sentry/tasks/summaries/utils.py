@@ -102,8 +102,8 @@ class ProjectContext:
 
 class DailySummaryProjectContext:
     total_today = 0
-    fourteen_day_total = 0
-    fourteen_day_avg = 0
+    comparison_period_total = 0
+    comparison_period_avg = 0
     key_errors = []
     key_performance_issues = []
     escalated_today = []

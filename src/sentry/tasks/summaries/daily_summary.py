@@ -90,8 +90,9 @@ def prepare_summary_data(
     ctx: OrganizationReportContext,
 ):
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
-    fifteen_days = ONE_DAY * 15
-    start = to_datetime(to_timestamp(ctx.end) - fifteen_days)
+    COMPARISON_PERIOD = 14
+    comparison_offset = ONE_DAY * COMPARISON_PERIOD + 1
+    start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
             start=start, end=ctx.end, ctx=ctx, referrer=Referrer.DAILY_SUMMARY_OUTCOMES.value
@@ -110,13 +111,15 @@ def prepare_summary_data(
                     if time.date() == ctx.end.date():
                         project_ctx.total_today = total
                     else:
-                        project_ctx.fourteen_day_total += total
+                        project_ctx.comparison_period_total += total
 
     with sentry_sdk.start_span(op="daily_summary.project_passes"):
         for project in ctx.organization.project_set.all():
             project_id = project.id
             project_ctx = ctx.projects_context_map[project_id]
-            project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
+            project_ctx.comparison_period_avg = math.ceil(
+                project_ctx.comparison_period_total / COMPARISON_PERIOD
+            )
 
             # Today's Top 3 Error Issues
             key_errors = project_key_errors(
@@ -162,10 +165,10 @@ def prepare_summary_data(
                     project_ctx.new_in_release = {
                         release.id: [group for group in new_groups_in_release]
                     }
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
+    with sentry_sdk.start_span(op="daily_summary.fetch_key_error_groups"):
         fetch_key_error_groups(ctx)
 
-    with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
+    with sentry_sdk.start_span(op="daily_summary.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
     return ctx
