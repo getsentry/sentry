@@ -4,6 +4,7 @@ from datetime import timedelta
 from hashlib import sha1
 from uuid import uuid4
 
+import psutil
 from django.conf import settings
 from django.utils import timezone
 
@@ -120,7 +121,14 @@ def send_beacon():
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
+    # getting an option sets it to the default value, so let's avoid doing that if for some reason consent prompt is somehow skipped because of this
+    send_cpu_ram_usage = (
+        options.get("beacon.record_cpu_ram_usage")
+        if options.isset("beacon.record_cpu_ram_usage")
+        else False
+    )
     event_categories_count = get_category_event_count_24h()
+    byte_in_gibibyte = 1024**3
 
     payload = {
         "install_id": install_id,
@@ -138,6 +146,14 @@ def send_beacon():
             "replays.24h": event_categories_count["replay"],
             "profiles.24h": event_categories_count["profile"],
             "monitors.24h": event_categories_count["monitor"],
+            "cpu_cores_available": psutil.cpu_count() if send_cpu_ram_usage else None,
+            "cpu_percentage_utilized": psutil.cpu_percent() if send_cpu_ram_usage else None,
+            "ram_available_gb": (
+                psutil.virtual_memory().total / byte_in_gibibyte if send_cpu_ram_usage else None
+            ),
+            "ram_percentage_utilized": (
+                psutil.virtual_memory().percent if send_cpu_ram_usage else None
+            ),
         },
         "packages": get_all_package_versions(),
         "anonymous": anonymous,
