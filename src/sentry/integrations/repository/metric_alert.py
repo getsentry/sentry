@@ -131,9 +131,9 @@ class MetricAlertNotificationMessageRepository:
                 error_details=data.error_details,
                 error_code=data.error_code,
                 message_identifier=data.message_identifier,
-                parent_notification_message__id=data.parent_notification_message_id,
-                incident__id=data.incident_id,
-                trigger_action__id=data.trigger_action_id,
+                parent_notification_message_id=data.parent_notification_message_id,
+                incident_id=data.incident_id,
+                trigger_action_id=data.trigger_action_id,
             )
             return MetricAlertNotificationMessage.from_model(instance=new_instance)
         except Exception as e:
