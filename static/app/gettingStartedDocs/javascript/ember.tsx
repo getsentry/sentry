@@ -198,7 +198,7 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/ember]) installed, minimum version 7.85.0.',
         {
           code: <code />,
         }
