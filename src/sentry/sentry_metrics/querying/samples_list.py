@@ -281,6 +281,8 @@ class CustomSamplesListExecutor(SamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
+        builder.add_conditions([Condition(builder.column("metric"), Op.EQ, self.mri)])
+
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
