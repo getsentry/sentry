@@ -10,6 +10,14 @@ class KafkaPublisher:
         """Publish a message to Kafka."""
         self.producer.produce(topic=channel, value=value, key=key)
         if self.asynchronous:
-            self.producer.poll(0)
+            self.poll(0)
         else:
-            self.producer.flush()
+            self.flush()
+
+    def flush(self) -> None:
+        """Block and flush messages in the client buffer to Kafka."""
+        self.producer.flush()
+
+    def poll(self, timeout: int) -> None:
+        """Poll the producer."""
+        self.producer.poll(timeout)
