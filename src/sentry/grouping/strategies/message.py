@@ -15,7 +15,7 @@ from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
 _parameterization_regex = re.compile(
-    # The `(?x)` tells the regex compiler to ingore comments and unescaped whitespace,
+    # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
     # so we can use newlines and indentation for better legibility.
     r"""(?x)
     (?P<email>
@@ -90,7 +90,7 @@ _parameterization_regex = re.compile(
         # Time
         ([0-2]\d:[0-5]\d:[0-5]\d)
         |
-        # Old Formats, TODO: possibly safe to remove?
+        # Old Date Formats, TODO: possibly safe to remove?
         (
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
@@ -135,10 +135,6 @@ _parameterization_regex = re.compile(
         ='([^']+)' |
         ="([^"]+)"
     ) |
-    (?P<json_str_val>
-        :\s?'([^']+)' |
-        :\s?"([^"]+)"
-    ) |
     (?P<bool>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all instances of the words 'true' and 'false'.
@@ -146,15 +142,6 @@ _parameterization_regex = re.compile(
         =true |
         =False |
         =false
-    )
-    |
-    (?P<uniq_id>
-        \b
-        (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
-        (?=\w*?[0-9]\w*?\b) # At least one digit
-        (?=\w*?[a-zA-Z]\w*?\b) # At least one letter
-        [\w_]+?
-        \b
     )
 """
 )
