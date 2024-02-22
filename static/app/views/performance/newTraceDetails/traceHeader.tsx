@@ -36,8 +36,10 @@ export default function TraceHeader(props: TraceHeaderProps) {
   const {meta, isLoading: metaLoading} = metaResults;
   const {data: rootEvent, isLoading: rootEventLoading} = rootEventResults;
   const emptyTrace =
-    (traces?.transactions && traces?.transactions.length === 0) ||
-    (traces?.orphan_errors && traces.orphan_errors.length === 0);
+    traces?.transactions &&
+    traces?.transactions.length === 0 &&
+    traces?.orphan_errors &&
+    traces.orphan_errors.length === 0;
   const showLoadingIndicator = rootEventLoading && !emptyTrace;
   const errors = meta?.errors || 0;
   const performanceIssues = meta?.performance_issues || 0;
