@@ -2,6 +2,7 @@ import math
 from collections import defaultdict
 from datetime import datetime
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
@@ -57,7 +58,8 @@ def schedule_organizations(
     ):
         if features.has("organizations:daily-summary", organization):
             ctx = OrganizationReportContext(timestamp, duration, organization, daily=True)
-            user_project_ownership(ctx)
+            with sentry_sdk.start_span(op="daily_summary.user_project_ownership"):
+                user_project_ownership(ctx)
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
             uos = user_option_service.get_many(
@@ -89,71 +91,78 @@ def prepare_summary_data(
     fifteen_days = ONE_DAY * 15
     start = to_datetime(to_timestamp(ctx.end) - fifteen_days)
     # TODO: create new referrers, simply passing a new string seems to not work
-    event_counts = project_event_counts_for_organization(
-        start=start, end=ctx.end, ctx=ctx, referrer="weekly_reports.outcomes"
-    )
-    for data in event_counts:
-        project_id = data["project_id"]
-        # project no longer in organization, but events still exist
-        if project_id not in ctx.projects_context_map:
-            continue
-
-        project_ctx = ctx.projects_context_map[project_id]
-        total = data["total"]
-        if data["category"] == DataCategory.ERROR:
-            if data["outcome"] == Outcome.ACCEPTED:
-                time = datetime.fromisoformat(data["time"])
-                if time.date() == ctx.end.date():
-                    project_ctx.total_today = total
-                else:
-                    project_ctx.fourteen_day_total += total
-
-    for project in ctx.organization.project_set.all():
-        project_id = project.id
-        project_ctx = ctx.projects_context_map[project_id]
-        project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
-
-        # Today's Top 3 Error Issues
-        key_errors = project_key_errors(ctx=ctx, project=project, referrer="reports.key_errors")
-        if key_errors:
-            project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
-
-        # Today's Top 3 Performance Issues
-        key_performance_issues = project_key_performance_issues(
-            ctx=ctx,
-            project=project,
-            referrer="reports.key_performance_issues",
+    with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
+        event_counts = project_event_counts_for_organization(
+            start=start, end=ctx.end, ctx=ctx, referrer="weekly_reports.outcomes"
         )
-        if key_performance_issues:
-            project_ctx.key_performance_issues = key_performance_issues
+        for data in event_counts:
+            project_id = data["project_id"]
+            # project no longer in organization, but events still exist
+            if project_id not in ctx.projects_context_map:
+                continue
 
-        # Issues that escalated or regressed today
-        regressed_or_escalated_groups = Group.objects.filter(
-            project=project, substatus__in=(GroupSubStatus.ESCALATING, GroupSubStatus.REGRESSED)
-        ).using_replica()
-        regressed_or_escalated_groups_today = Activity.objects.filter(
-            group__in=(regressed_or_escalated_groups),
-            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
-        )
-        if regressed_or_escalated_groups_today:
-            for activity in regressed_or_escalated_groups_today:
-                if activity.type == ActivityType.SET_REGRESSION.value:
-                    project_ctx.regressed_today.append(activity.group)
-                else:
-                    project_ctx.escalated_today.append(activity.group)
+            project_ctx = ctx.projects_context_map[project_id]
+            total = data["total"]
+            if data["category"] == DataCategory.ERROR:
+                if data["outcome"] == Outcome.ACCEPTED:
+                    time = datetime.fromisoformat(data["time"])
+                    if time.date() == ctx.end.date():
+                        project_ctx.total_today = total
+                    else:
+                        project_ctx.fourteen_day_total += total
 
-        # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
-        release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
-            "release_id", flat=True
-        )
-        releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end.date())
-        for release in releases[:2]:  # or whatever we limit this to
-            new_groups_in_release = Group.objects.filter(project=project, first_release=release)
-            if new_groups_in_release:
-                project_ctx.new_in_release = {
-                    release.id: [group for group in new_groups_in_release]
-                }
+    with sentry_sdk.start_span(op="daily_summary.project_passes"):
+        for project in ctx.organization.project_set.all():
+            project_id = project.id
+            project_ctx = ctx.projects_context_map[project_id]
+            project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
 
-    fetch_key_error_groups(ctx)
-    fetch_key_performance_issue_groups(ctx)
+            # Today's Top 3 Error Issues
+            key_errors = project_key_errors(ctx=ctx, project=project, referrer="reports.key_errors")
+            if key_errors:
+                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+
+            # Today's Top 3 Performance Issues
+            key_performance_issues = project_key_performance_issues(
+                ctx=ctx,
+                project=project,
+                referrer="reports.key_performance_issues",
+            )
+            if key_performance_issues:
+                project_ctx.key_performance_issues = key_performance_issues
+
+            # Issues that escalated or regressed today
+            regressed_or_escalated_groups = Group.objects.filter(
+                project=project, substatus__in=(GroupSubStatus.ESCALATING, GroupSubStatus.REGRESSED)
+            ).using_replica()
+            regressed_or_escalated_groups_today = Activity.objects.filter(
+                group__in=(regressed_or_escalated_groups),
+                type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
+            )
+            if regressed_or_escalated_groups_today:
+                for activity in regressed_or_escalated_groups_today:
+                    if activity.type == ActivityType.SET_REGRESSION.value:
+                        project_ctx.regressed_today.append(activity.group)
+                    else:
+                        project_ctx.escalated_today.append(activity.group)
+
+            # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
+            release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
+                "release_id", flat=True
+            )
+            releases = Release.objects.filter(
+                id__in=release_projects, date_added__gte=ctx.end.date()
+            )
+            for release in releases[:2]:  # or whatever we limit this to
+                new_groups_in_release = Group.objects.filter(project=project, first_release=release)
+                if new_groups_in_release:
+                    project_ctx.new_in_release = {
+                        release.id: [group for group in new_groups_in_release]
+                    }
+    with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
+        fetch_key_error_groups(ctx)
+
+    with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
+        fetch_key_performance_issue_groups(ctx)
+
     return ctx
