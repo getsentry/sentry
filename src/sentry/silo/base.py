@@ -10,6 +10,8 @@ from collections.abc import Callable, Generator, Iterable
 from enum import Enum
 from typing import Any
 
+from sentry.utils.env import in_test_environment
+
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
 
@@ -89,6 +91,25 @@ class SingleProcessSiloModeState(threading.local):
         return None
 
 
+_silo_checks_disabled = 0
+
+
+@contextlib.contextmanager
+def disable_silo_checks_in_test_env():
+    if not in_test_environment():
+        raise Exception("Silo mode checks can be disabled only in test environment")
+    global _silo_checks_disabled
+    try:
+        _silo_checks_disabled += 1
+        yield
+    finally:
+        _silo_checks_disabled -= 1
+
+
+def are_silo_checks_disabled() -> bool:
+    return in_test_environment() and _silo_checks_disabled > 0
+
+
 class SiloLimit(abc.ABC):
     """Decorator for classes or methods that are limited to certain modes."""
 
@@ -142,7 +163,7 @@ class SiloLimit(abc.ABC):
             # immutably determined when the decorator is first evaluated.
             is_available = self.is_available()
 
-            if is_available:
+            if is_available or are_silo_checks_disabled():
                 return original_method(*args, **kwargs)
             else:
                 handler = self.handle_when_unavailable(

@@ -489,14 +489,13 @@ def django_cache():
 
 
 @pytest.fixture(scope="session")
-def before_setup():
-    from sentry.silo import SiloMode
-    from sentry.testutils.silo import assume_test_silo_mode
+def disable_silo_checks_for_db_setup():
+    from sentry.silo import disable_silo_checks_in_test_env
 
-    with assume_test_silo_mode(SiloMode.MONOLITH):
+    with disable_silo_checks_in_test_env():
         yield
 
 
 @pytest.fixture(scope="session")
-def django_db_setup(before_setup, django_db_setup):
+def django_db_setup(disable_silo_checks_for_db_setup, django_db_setup):
     pass
