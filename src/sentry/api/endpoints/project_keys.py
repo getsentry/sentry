@@ -19,7 +19,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ProjectParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 
 
 @extend_schema(tags=["Projects"])
@@ -52,7 +52,9 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         Return a list of client keys bound to a project.
         """
         queryset = ProjectKey.objects.filter(
-            project=project, roles=F("roles").bitor(ProjectKey.roles.store)
+            project=project,
+            roles=F("roles").bitor(ProjectKey.roles.store),
+            **({} if request.user.is_superuser else {"use_case": UseCase.USER.value}),
         )
         status = request.GET.get("status")
         if status == "active":

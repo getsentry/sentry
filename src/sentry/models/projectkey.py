@@ -103,16 +103,16 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects: ClassVar[ProjectKeyManager] = UserProjectKeyManager(
+    objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
     )
 
-    all_objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
-        cache_fields=("public_key", "secret_key"),
-        # store projectkeys in memcached for longer than other models,
-        # specifically to make the relay_projectconfig endpoint faster.
-        cache_ttl=60 * 30,
-    )
+    # all_objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
+    #     cache_fields=("public_key", "secret_key"),
+    #     # store projectkeys in memcached for longer than other models,
+    #     # specifically to make the relay_projectconfig endpoint faster.
+    #     cache_ttl=60 * 30,
+    # )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 

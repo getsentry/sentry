@@ -55,6 +55,7 @@ class ProjectKeySerializerResponse(TypedDict):
     browserSdk: BrowserSDK
     dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
+    use_case: str | None
 
 
 @register(ProjectKey)
@@ -76,9 +77,11 @@ class ProjectKeySerializer(Serializer):
             "secret": obj.secret_key,
             "projectId": obj.project_id,
             "isActive": obj.is_active,
-            "rateLimit": {"window": obj.rate_limit_window, "count": obj.rate_limit_count}
-            if (obj.rate_limit_window and obj.rate_limit_count)
-            else None,
+            "rateLimit": (
+                {"window": obj.rate_limit_window, "count": obj.rate_limit_count}
+                if (obj.rate_limit_window and obj.rate_limit_count)
+                else None
+            ),
             "dsn": {
                 "secret": obj.dsn_private,
                 "public": obj.dsn_public,
@@ -100,4 +103,8 @@ class ProjectKeySerializer(Serializer):
                 "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
             },
         }
+
+        if user.is_superuser:
+            data["use_case"] = obj.use_case
+
         return data

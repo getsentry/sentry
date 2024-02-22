@@ -7,6 +7,9 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class ListProjectKeysTest(APITestCase):
+    def setUp(self):
+        self.user = self.create_user(is_superuser=False)
+
     def test_simple(self):
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -52,13 +55,15 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-        response_data = response.data[0]
-        assert response_data["use_case"] == {"user"}
-        assert response_data["public"] == key1.public_key
+        response.data.sort(key=lambda k: k["use_case"])
 
         response_data = response.data[0]
-        assert response_data["use_case"] == {"profiling"}
+        assert response_data["use_case"] == "profiling"
         assert response_data["public"] == key2.public_key
+
+        response_data = response.data[1]
+        assert response_data["use_case"] == "user"
+        assert response_data["public"] == key1.public_key
 
 
 @region_silo_test

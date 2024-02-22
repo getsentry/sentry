@@ -290,7 +290,7 @@ class UpdateProjectKeyTest(APITestCase):
 class DeleteProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
-        self.login_as(user=self.user)
+        self.login_as(user=self.user, superuser=False)
         key = ProjectKey.objects.get_or_create(project=project)[0]
         url = reverse(
             "sentry-api-0-project-key-details",
@@ -307,6 +307,7 @@ class DeleteProjectKeyTest(APITestCase):
     def test_use_case(self):
         """Cannot delete an internal DSN"""
         project = self.create_project()
+        self.user.is_superuser = False
         self.login_as(user=self.user)
         key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
         url = reverse(
