@@ -137,12 +137,6 @@ def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
 
-    # Currently we don't support nested Formula queries. Check to make sure that is what is being passed in.
-    # TODO: This should be removed once we fully support Formulas.
-    if isinstance(metrics_query.query, Formula):
-        if any(isinstance(p, Formula) for p in metrics_query.query.parameters):
-            raise InvalidParams("Nested formulas are not supported")
-
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
     tenant_ids = request.tenant_ids or {"organization_id": organization_id}
