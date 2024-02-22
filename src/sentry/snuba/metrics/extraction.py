@@ -37,6 +37,10 @@ from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_col
 
 logger = logging.getLogger(__name__)
 
+SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
+# Certain functions will only be supported with certain feature flags
+OPS_REQUIRE_FEAT_FLAG = {}
+
 
 # This helps us control the different spec versions
 # in order to migrate customers from invalid specs
@@ -73,7 +77,7 @@ class OnDemandMetricSpecVersioning:
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:on-demand-metrics-query-spec-version-two", org):
+        if features.has(SPEC_VERSION_TWO_FLAG, org):
             return cls.spec_versions[1]
         return cls.spec_versions[0]
 
@@ -561,6 +565,22 @@ class SupportedBy:
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
+
+
+def org_can_query_on_demand_spec(organization_id: int, **kwargs) -> bool:
+    """Helper function to check if an organization can query an specific on-demand function"""
+    components = _extract_aggregate_components(kwargs["aggregate"])
+    if components is None:
+        return False
+    function, _ = components
+
+    # This helps us control which functions are allowed to use the new spec version.
+    if function in OPS_REQUIRE_FEAT_FLAG:
+        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
+        if not features.has(feat_flag, organization_id):
+            return False
+
+    return should_use_on_demand_metrics(**kwargs)
 
 
 def should_use_on_demand_metrics(
