@@ -99,7 +99,13 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   return (
     <StyledClippedBox clipHeight={150}>
-      <EventTagsTree tags={tags} />
+      <EventTagsTree
+        tags={tags}
+        meta={meta}
+        projectSlug={projectSlug}
+        projectId={projectId}
+        streamPath={streamPath}
+      />
       <Pills>
         {tags.map((tag, index) => (
           <EventTagsPill

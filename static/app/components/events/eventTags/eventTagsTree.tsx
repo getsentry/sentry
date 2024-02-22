@@ -1,7 +1,11 @@
 import styled from '@emotion/styled';
 
+import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
 import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
+import {generateQueryWithTag} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface TagTree {
   [key: string]: TagTreeContent;
@@ -9,33 +13,46 @@ interface TagTree {
 interface TagTreeContent {
   subtree: TagTree;
   value: string;
+  // These will be omitted on pseudo tags (see addToTagTree)
+  meta?: Record<any, any>;
+  originalTag?: EventTag;
 }
 
-function addToTagTree(tree: TagTree, {key, value}: EventTag): TagTree {
-  const splitIndex = key.indexOf('.');
+function addToTagTree(
+  tree: TagTree,
+  tag: EventTag,
+  meta: Record<any, any>,
+  originalTag: EventTag
+): TagTree {
+  const splitIndex = tag.key.indexOf('.');
   // No need to split this key
   if (splitIndex === -1) {
-    tree[key] = {value, subtree: {}};
+    tree[tag.key] = {value: tag.value, subtree: {}, meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
-  const trunk = key.slice(0, splitIndex); // 'device'
-  const branch = key.slice(splitIndex + 1); // 'model.version'
+  const trunk = tag.key.slice(0, splitIndex); // 'device'
+  const branch = tag.key.slice(splitIndex + 1); // 'model.version'
 
   if (tree[trunk] === undefined) {
-    // We need to define the default as an empty space for alignment, with `white-space: pre-wrap`
+    // We need to define the default as an empty space for alignment
     tree[trunk] = {value: ' ', subtree: {}};
   }
-  tree[trunk].subtree = addToTagTree(tree[trunk].subtree, {key: branch, value});
+  // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
+  const pseudoTag = {
+    key: branch,
+    value: tag.value,
+  };
+  tree[trunk].subtree = addToTagTree(tree[trunk].subtree, pseudoTag, meta, originalTag);
   return tree;
 }
 
-interface TagsTreeProps {
+interface TagsTreeKeysProps {
   content: TagTreeContent;
   tag: string;
 }
 
-function TagTreeKeys({content, tag}: TagsTreeProps) {
+function TagTreeKeys({content, tag}: TagsTreeKeysProps) {
   const subtreeTags = Object.keys(content.subtree);
   return (
     <TreeKeyTrunk>
@@ -49,33 +66,67 @@ function TagTreeKeys({content, tag}: TagsTreeProps) {
     </TreeKeyTrunk>
   );
 }
+interface TagsTreeValuesProps extends TagsTreeKeysProps {
+  projectId: string;
+  projectSlug: string;
+  streamPath: string;
+}
 
-function TagTreeValues({content, tag}: TagsTreeProps) {
+function TagTreeValues({content, tag, ...props}: TagsTreeValuesProps) {
   const subtreeTags = Object.keys(content.subtree);
+  const organization = useOrganization();
+  const location = useLocation();
+  const originalTag = content.originalTag;
   return (
     <TreeValueTrunk>
-      <TreeValue>{content.value}</TreeValue>
+      <TreeValue>
+        {originalTag ? (
+          <EventTagsContent
+            tag={originalTag}
+            organization={organization}
+            query={generateQueryWithTag(
+              {...location.query, referrer: 'event-tags-tree'},
+              originalTag
+            )}
+            meta={content?.meta ?? {}}
+            {...props}
+          />
+        ) : (
+          content.value
+        )}
+      </TreeValue>
       {subtreeTags.map((t, i) => (
-        <TagTreeValues key={`${tag}-${i}-value`} tag={t} content={content.subtree[t]} />
+        <TagTreeValues
+          key={`${tag}-${i}-value`}
+          tag={t}
+          content={content.subtree[t]}
+          {...props}
+        />
       ))}
     </TreeValueTrunk>
   );
 }
 
 interface EventTagsTreeProps {
+  projectId: string;
+  projectSlug: string;
+  streamPath: string;
   tags: EventTag[];
+  meta?: Record<any, any>;
 }
 
-function EventTagsTree({tags}: EventTagsTreeProps) {
-  const tagTree = tags.reduce<TagTree>((tree, tag) => addToTagTree(tree, tag), {});
-
+function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
+  const tagTree = tags.reduce<TagTree>(
+    (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+    {}
+  );
   return (
     <TreeContainer>
       <TreeGarden>
-        {Object.keys(tagTree).map((tag, i) => (
-          <TreeItem key={`${tag}_${i}`}>
-            <TagTreeKeys tag={tag} content={tagTree[tag]} />
-            <TagTreeValues tag={tag} content={tagTree[tag]} />
+        {Object.keys(tagTree).map((tagKey, i) => (
+          <TreeItem key={`${tagKey}_${i}`}>
+            <TagTreeKeys tag={tagKey} content={tagTree[tagKey]} />
+            <TagTreeValues tag={tagKey} content={tagTree[tagKey]} {...props} />
           </TreeItem>
         ))}
       </TreeGarden>
@@ -83,11 +134,7 @@ function EventTagsTree({tags}: EventTagsTreeProps) {
   );
 }
 
-const TreeContainer = styled('div')`
-  column-count: 2;
-  column-rule: 1px solid ${p => p.theme.gray100};
-  column-gap: 15%;
-`;
+const TreeContainer = styled('div')``;
 
 const TreeGarden = styled('div')`
   display: grid;
@@ -100,6 +147,12 @@ const TreeItem = styled('div')`
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
+  background-color: ${p => p.theme.background};
+  :nth-child(odd) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.5)} ${space(1)};
 `;
 
 const TreeKeyTrunk = styled('div')`
