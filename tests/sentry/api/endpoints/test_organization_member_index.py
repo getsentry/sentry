@@ -180,6 +180,17 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert not response.data[0]["pending"]
         assert not response.data[0]["expired"]
 
+    def test_staff_simple(self):
+        staff_user = self.create_user("staff@localhost", is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+        assert not response.data[0]["pending"]
+        assert not response.data[0]["expired"]
+
     def test_empty_query(self):
         response = self.get_success_response(self.organization.slug, qs_params={"query": ""})
 
