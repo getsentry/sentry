@@ -192,19 +192,6 @@ function ProjectKeyCredentials({
           </TextCopyInput>
         </FieldGroup>
       )}
-
-      {data.use_case !== 'user' && (
-        <FieldGroup
-          label={t('Use Case')}
-          help={t('Special DSN for internal submissions.')}
-          inline
-          flexibleControlStateSize
-        >
-          <StyledField label={null} inline={false} flexibleControlStateSize>
-            {data.use_case}
-          </StyledField>
-        </FieldGroup>
-      )}
     </Fragment>
   );
 }
