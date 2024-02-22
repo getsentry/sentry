@@ -97,11 +97,11 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 
 def transform_spans_to_event_dict(spans):
-    event: Mapping[str, Any] = {"type": "transaction", "level": "info", "contexts": {}}
-    deserialized_spans: list[Mapping[str, Any]] = []
+    event: dict[str, Any] = {"type": "transaction", "level": "info", "contexts": {}}
+    deserialized_spans: list[dict[str, Any]] = []
     for span in spans:
         try:
-            deserialized_span: Mapping[str, Any] = _deserialize_span(span)
+            deserialized_span: dict[str, Any] = _deserialize_span(span)
         except Exception:
             logger.exception("Failed to process span payload")
             continue
