@@ -46,7 +46,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     ):
         valid_orgs = []
         for org_volume in org_volumes:
-            if org_volume.is_valid_for_recalibration:
+            if org_volume.is_valid_for_recalibration():
                 valid_orgs.append((org_volume.org_id, org_volume.total, org_volume.indexed))
             else:
                 log_recalibrate_org_error(
@@ -69,7 +69,11 @@ def recalibrate_orgs(context: TaskContext) -> None:
 )
 def recalibrate_orgs_batch(orgs: Sequence[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
-        recalibrate_org(org_id, total, indexed)
+        try:
+            recalibrate_org(org_id, total, indexed)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            continue
 
 
 def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
