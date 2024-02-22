@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+import sentry_sdk
+
 from sentry import quotas
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
@@ -108,7 +110,7 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
 
     # If we didn't find any sample rate, we can't recalibrate the organization.
     if target_sample_rate is None:
-        log_recalibrate_org_error(org_id, "The target sample rate was not found")
+        sentry_sdk.capture_message("Sample rate of org not found when trying to recalibrate it")
         return
 
     # We compute the effective sample rate that we had in the last considered time window.
