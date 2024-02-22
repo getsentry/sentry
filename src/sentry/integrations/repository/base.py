@@ -7,7 +7,7 @@ from typing import Any
 class BaseNotificationMessage:
     id: int
     date_added: datetime
-    error_details: dict[Any, Any] | None = None
+    error_details: dict[str, Any] | None = None
     error_code: int | None = None
     message_identifier: str | None = None
     parent_notification_message_id: int | None = None
@@ -15,7 +15,7 @@ class BaseNotificationMessage:
 
 @dataclass
 class BaseNewNotificationMessage:
-    error_details: dict[Any, Any] | None = None
+    error_details: dict[str, Any] | None = None
     error_code: int | None = None
     message_identifier: str | None = None
     parent_notification_message_id: int | None = None

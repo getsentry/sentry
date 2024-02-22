@@ -78,3 +78,23 @@ class TestCreateNotificationMessage(TestCase):
         result = self.repository.create_notification_message(data=data)
         assert result is not None
         assert result.message_identifier == message_identifier
+
+    def test_with_error_details(self) -> None:
+        error_detail = {
+            "message": "message",
+            "some_nested_obj": {
+                "some_nested_key": "some_nested_value",
+                "some_array": ["some_array"],
+                "int": 203,
+            },
+        }
+        data = NewMetricAlertNotificationMessage(
+            incident_id=self.incident.id,
+            trigger_action_id=self.trigger_action.id,
+            error_code=405,
+            error_details=error_detail,
+        )
+
+        result = self.repository.create_notification_message(data=data)
+        assert result is not None
+        assert result.error_details == error_detail

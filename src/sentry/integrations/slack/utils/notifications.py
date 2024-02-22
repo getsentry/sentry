@@ -107,12 +107,17 @@ def send_incident_alert_notification(
     except ApiError as e:
         # Record the error code and details from the exception
         new_notification_message_object.error_code = e.code
-        new_notification_message_object.error_details = e.__dict__
+        new_notification_message_object.error_details = {
+            "url": e.url,
+            "host": e.host,
+            "path": e.path,
+            "data": e.json if e.json else e.text,
+        }
         logger.info("rule.fail.slack_post", exc_info=True)
     else:
-        data = response.json
-        # Throw exception if the key can't be found
-        new_notification_message_object.message_identifier = data["ts"]
+        # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
+        # on a successful message
+        new_notification_message_object.message_identifier = response.json.get("ts")
 
     # Save the notification message we just sent with the response id or error we received
     try:

@@ -109,7 +109,7 @@ class MetricAlertNotificationMessageRepository:
         except NotificationMessage.DoesNotExist:
             return None
         except Exception as e:
-            self._logger.exception(
+            self._logger.error(
                 "Failed to get parent notification for metric rule",
                 exc_info=e,
                 extra={
@@ -137,7 +137,7 @@ class MetricAlertNotificationMessageRepository:
             )
             return MetricAlertNotificationMessage.from_model(instance=new_instance)
         except Exception as e:
-            self._logger.exception(
+            self._logger.error(
                 "failed to create new metric alert notification alert",
                 exc_info=e,
                 extra=data.__dict__,
