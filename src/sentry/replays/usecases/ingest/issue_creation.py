@@ -79,7 +79,7 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
                 "id": replay_info["user_id"],
                 "username": replay_info["user_username"],
                 "email": replay_info["user_email"],
-                "ip": replay_info["user_ip"],
+                "ip_address": replay_info["user_ip"],
             },
         },
     )
