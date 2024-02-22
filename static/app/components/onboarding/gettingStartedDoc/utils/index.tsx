@@ -154,3 +154,22 @@ export const getReplayConfigOptions = ({
           blockAllMedia: false,
         }`;
 };
+
+export const getFeedbackSDKSetupSnippet = ({
+  importStatement,
+  dsn,
+}: {
+  dsn: string;
+  importStatement: string;
+}) =>
+  `${importStatement}
+
+  Sentry.init({
+    dsn: "${dsn}",
+    integrations: [
+      Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "light",
+}),
+    ],
+  });`;
