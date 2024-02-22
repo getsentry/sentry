@@ -1,6 +1,6 @@
-from sentry.integrations.repository import MetricAlertNotificationMessageRepository
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessage,
+    MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
 )
 from sentry.models.notificationmessage import NotificationMessage

@@ -19,6 +19,7 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
 from sentry.utils import json
 
 from . import logger
@@ -117,7 +118,20 @@ def send_incident_alert_notification(
     else:
         # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
         # on a successful message
-        new_notification_message_object.message_identifier = response.json.get("ts")
+        ts = None
+        # This is a workaround for typing, and the dynamic nature of the return value
+        if isinstance(response, BaseApiResponse):
+            ts = response.json.get("ts")
+        elif isinstance(response, MappingApiResponse):
+            ts = response.get("ts")
+        else:
+            logger.info(
+                "failed to get ts from slack response",
+                extra={
+                    "response_type": type(response).__name__,
+                },
+            )
+        new_notification_message_object.message_identifier = ts
 
     # Save the notification message we just sent with the response id or error we received
     try:
