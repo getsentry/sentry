@@ -14,6 +14,7 @@ from sentry.utils import metrics
 logger = logging.getLogger()
 
 RAGE_CLICK_TITLE = "Rage Click"
+RAGE_CLICK_LEVEL = "info"
 
 
 @instrumented_task(
@@ -54,6 +55,7 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         environment=replay_info["agg_environment"],
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
+        level=RAGE_CLICK_LEVEL,
         platform="javascript",
         project_id=project_id,
         subtitle=selector,
@@ -71,6 +73,7 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         ],
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
+            "level": RAGE_CLICK_LEVEL,
             "tags": {"replayId": replay_id, "url": payload["data"]["url"]},
             "user": {
                 "id": replay_info["user_id"],
