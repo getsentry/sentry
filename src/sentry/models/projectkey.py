@@ -105,7 +105,7 @@ class ProjectKey(Model):
 
     use_case = models.CharField(
         max_length=32,
-        choices={v.value: v.value for v in UseCase},
+        choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
     )
 

@@ -37,7 +37,7 @@ class DynamicSDKLoaderOptions(TypedDict):
     hasDebug: bool
 
 
-class ProjectKeySerializerResponse(TypedDict):
+class ProjectKeySerializerResponse(TypedDict, total=False):
     """
     This represents a Sentry Project Client Key.
     """
@@ -55,6 +55,7 @@ class ProjectKeySerializerResponse(TypedDict):
     browserSdk: BrowserSDK
     dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
+    useCase: str | None
 
 
 @register(ProjectKey)
@@ -104,6 +105,6 @@ class ProjectKeySerializer(Serializer):
         }
 
         if user.is_superuser:
-            data["use_case"] = obj.use_case
+            data["useCase"] = obj.use_case
 
         return data
