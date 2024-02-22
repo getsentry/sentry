@@ -689,6 +689,9 @@ def _get_args_support(fields: Sequence[str], used_in_function: str | None = None
         # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
+    if used_in_function in ["epm", "eps"]:
+        return SupportedBy.both()
+
     arg = fields[0]
     return _get_field_support(arg)
 

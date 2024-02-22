@@ -1428,7 +1428,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "fields": {"time": "date", "epm_900": "rate"},
             "units": {"time": None, "epm_900": None},
             "isMetricsData": True,
-            "isMetricsExtractedData": True,
+            "isMetricsExtractedData": False,
             "tips": {},
             "datasetReason": "unchanged",
             "dataset": "metricsEnhanced",
