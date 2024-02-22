@@ -12,9 +12,14 @@ import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
+from io import BytesIO
+
+from django.conf import settings
+from django.db.utils import IntegrityError
 
 from sentry.models.files.file import File
 from sentry.replays.lib.storage.blob import storage_kv
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
 
 logger = logging.getLogger()
@@ -42,6 +47,11 @@ class Blob(ABC):
         """Return blob from remote storage."""
         raise NotImplementedError
 
+    @abstractmethod
+    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        """Set blob in remote storage."""
+        raise NotImplementedError
+
 
 class FilestoreBlob(Blob):
     """Filestore service driver blob manager."""
@@ -54,6 +64,49 @@ class FilestoreBlob(Blob):
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
         file = segment.file or File.objects.get(pk=segment.file_id)
         return file.getfile().read()
+
+    @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
+    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        with metrics.timer("replays.process_recording.store_recording.count_segments"):
+            count_existing_segments = ReplayRecordingSegment.objects.filter(
+                replay_id=segment.replay_id,
+                project_id=segment.project_id,
+                segment_id=segment.segment_id,
+            ).count()
+
+        if count_existing_segments > 0:
+            logging.warning(
+                "Recording segment was already processed.",
+                extra={
+                    "project_id": segment.project_id,
+                    "replay_id": segment.replay_id,
+                },
+            )
+            return
+
+        file = File.objects.create(name=make_filename(segment), type="replay.recording")
+        file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+
+        try:
+            segment = ReplayRecordingSegment.objects.create(
+                project_id=segment.project_id,
+                replay_id=segment.replay_id,
+                segment_id=segment.segment_id,
+                file_id=file.id,
+                size=len(value),
+            )
+        except IntegrityError:
+            logger.warning(
+                "Recording-segment has already been processed.",
+                extra={
+                    "replay_id": segment.replay_id,
+                    "project_id": segment.project_id,
+                    "segment_id": segment.segment_id,
+                },
+            )
+
+            # Delete the file from remote storage since it is un-retrievable.
+            file.delete()
 
 
 class StorageBlob(Blob):
@@ -69,6 +122,10 @@ class StorageBlob(Blob):
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
         return storage_kv.get(self.make_key(segment))
+
+    @metrics.wraps("replays.lib.storage.StorageBlob.set")
+    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        return storage_kv.set(self.make_key(segment), value)
 
     def initialize_client(self):
         return storage_kv.initialize_client()

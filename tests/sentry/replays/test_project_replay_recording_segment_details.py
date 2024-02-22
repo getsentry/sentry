@@ -3,7 +3,7 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.lib.storage import (
+from sentry.replays.lib.storage.legacy import (
     FilestoreBlob,
     RecordingSegmentStorageMeta,
     StorageBlob,

@@ -15,7 +15,8 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
-from sentry.replays.lib.storage import StorageBlob, make_recording_filename, make_video_filename
+from sentry.replays.lib.storage import storage_kv
+from sentry.replays.lib.storage.legacy import make_recording_filename, make_video_filename
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
 
@@ -63,7 +64,7 @@ class RecordingTestCase(TransactionTestCase):
             assert bytes == b'[{"hello":"world"}]'
 
     def get_recording_data(self, segment_id):
-        return StorageBlob().get(
+        return storage_kv.get(
             make_recording_filename(
                 project_id=self.project.id,
                 replay_id=self.replay_id,
@@ -73,7 +74,7 @@ class RecordingTestCase(TransactionTestCase):
         )
 
     def get_video_data(self, segment_id):
-        return StorageBlob().get(
+        return storage_kv.get(
             make_video_filename(
                 project_id=self.project.id,
                 replay_id=self.replay_id,
