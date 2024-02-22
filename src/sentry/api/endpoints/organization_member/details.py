@@ -132,7 +132,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the member to delete."),
+            GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -152,7 +152,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Will return a pending invite as long as it's already approved.
         """
-        allowed_roles = get_allowed_org_roles(request, organization, member)
+        allowed_roles = get_allowed_org_roles(request, organization, member, log_scopes=True)
         return Response(
             serialize(
                 member,

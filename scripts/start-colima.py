@@ -3,15 +3,15 @@ from __future__ import annotations
 import os
 import platform
 import subprocess
-import sys
 from collections.abc import Sequence
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    # platform.processor() changed at some point between these:
-    # 11.2.3: arm
-    # 12.3.1: arm64
-    APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
+    if not os.getenv("CI"):
+        macos_version = platform.mac_ver()[0]
+        macos_major_version = int(macos_version.split(".")[0])
+        if macos_major_version < 14:
+            raise SystemExit(f"macos >= 14 is required to use colima, found {macos_version}")
 
     cpus = os.cpu_count()
     if cpus is None:
@@ -31,7 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--memory",
         f"{memsize_bytes//(2*1024**3)}",
     ]
-    if APPLE_ARM64:
+    if platform.machine() == "arm64":
         args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
     HOME = os.path.expanduser("~")
     rc = subprocess.call(

@@ -41,14 +41,8 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
-const {
-  SPAN_SELF_TIME,
-  SPAN_DESCRIPTION,
-  SPAN_GROUP,
-  SPAN_OP,
-  PROJECT_ID,
-  APP_START_TYPE,
-} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
+  SpanMetricsField;
 
 type Props = {
   primaryRelease?: string;
@@ -110,7 +104,6 @@ export function SpanOperationTable({
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
       `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      SpanMetricsField.APP_START_TYPE,
       `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
@@ -143,7 +136,6 @@ export function SpanOperationTable({
     ),
     [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
-    [APP_START_TYPE]: t('Start Type'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -163,7 +155,7 @@ export function SpanOperationTable({
         spanOp: row[SpanMetricsField.SPAN_OP],
         spanGroup: row[SpanMetricsField.SPAN_GROUP],
         spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
-        spanAppStartType: row[SpanMetricsField.APP_START_TYPE],
+        appStartType: row[SpanMetricsField.APP_START_TYPE],
       };
 
       return (
@@ -245,7 +237,6 @@ export function SpanOperationTable({
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
         columnOrder={[
-          APP_START_TYPE,
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
