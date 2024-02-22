@@ -40,17 +40,16 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return False
 
-    repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
+    organization = incident.organization
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=incident.organization,
-                alert_rule=incident.alert_rule,
-                selected_incident=incident,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+    try:
+        chart_url = build_metric_alert_chart(
+            organization=organization,
+            alert_rule=incident.alert_rule,
+            selected_incident=incident,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
@@ -70,31 +69,33 @@ def send_incident_alert_notification(
     }
 
     client = SlackClient(integration_id=integration.id)
+
+    repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     parent_notification_message = None
-    try:
-        parent_notification_message = repository.get_parent_notification_message(
-            alert_rule_id=incident.alert_rule_id,
-            incident_id=incident.id,
-            trigger_action_id=action.id,
-        )
-    except Exception:
-        # if there's an error trying to grab a parent notification, don't let that error block this flow
-        pass
+    if features.has("organizations:slack-thread", organization):
+        try:
+            parent_notification_message = repository.get_parent_notification_message(
+                alert_rule_id=incident.alert_rule_id,
+                incident_id=incident.id,
+                trigger_action_id=action.id,
+            )
+        except Exception:
+            # if there's an error trying to grab a parent notification, don't let that error block this flow
+            pass
 
     new_notification_message_object = NewMetricAlertNotificationMessage(
         incident_id=incident.id,
         trigger_action_id=action.id,
     )
 
-    # If a parent notification exists for this rule and action, then we can reply in a thread
-    if parent_notification_message is not None:
-        # Make sure we track that this reply will be in relation to the parent row
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
-        )
-
-        # Only reply and use threads if the organization is enabled in the FF
-        if features.has("organizations:slack-thread", incident.organization):
+    # Only reply and use threads if the organization is enabled in the FF
+    if features.has("organizations:slack-thread", organization):
+        # If a parent notification exists for this rule and action, then we can reply in a thread
+        if parent_notification_message is not None:
+            # Make sure we track that this reply will be in relation to the parent row
+            new_notification_message_object.parent_notification_message_id = (
+                parent_notification_message.id
+            )
             # To reply to a thread, use the specific key in the payload as referenced by the docs
             # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
             payload["thread_ts"] = parent_notification_message.message_identifier
@@ -104,7 +105,6 @@ def send_incident_alert_notification(
         response = client.post("/chat.postMessage", data=payload, timeout=5)
         # response should include a "ts" key that represents the unique identifier for the message
         # referenced at https://api.slack.com/methods/chat.postMessage#examples
-        success = True
     except ApiError as e:
         # Record the error code and details from the exception
         new_notification_message_object.error_code = e.code
@@ -116,6 +116,7 @@ def send_incident_alert_notification(
         }
         logger.info("rule.fail.slack_post", exc_info=True)
     else:
+        success = True
         # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
         # on a successful message
         ts = None
@@ -133,13 +134,14 @@ def send_incident_alert_notification(
             )
         new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
-    # Save the notification message we just sent with the response id or error we received
-    try:
-        repository.create_notification_message(data=new_notification_message_object)
-    except Exception:
-        # If we had an unexpected error with saving a record to our datastore,
-        # do not let the error bubble up, nor block this flow from finishing
-        pass
+    if features.has("organizations:slack-thread", organization):
+        # Save the notification message we just sent with the response id or error we received
+        try:
+            repository.create_notification_message(data=new_notification_message_object)
+        except Exception:
+            # If we had an unexpected error with saving a record to our datastore,
+            # do not let the error bubble up, nor block this flow from finishing
+            pass
 
     return success
 
