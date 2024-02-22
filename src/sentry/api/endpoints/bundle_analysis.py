@@ -1,53 +1,69 @@
 from __future__ import annotations
 
+from enum import Enum
+
+from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
+from sentry.models.project import Project
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.utils import json
+
+
+class ResourceSizeType(Enum):
+    TOTAL = "total"
+    JAVASCRIPT = "javascript"
+    CSS = "css"
+    FONTS = "fonts"
+    IMAGES = "images"
+
 
 MINUTE = 60  # 60 seconds
 
 
 @region_silo_endpoint
 class BundleAnalysisEndpoint(ProjectEndpoint):
-    publish_status = {
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectReleasePermission,)
+    owner: ApiOwner = ApiOwner.PERFORMANCE
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project) -> Response:
-        data = json.loads(request.body)
-        total_size = data.get("total_size")
-        js_size = data.get("javascript_size")
-        css_size = data.get("css_size")
-        img_size = data.get("image_size")
-        font_size = data.get("font_size")
-        bundle_name = data.get("bundle_name")
+    def post(self, request: Request, project: Project) -> Response:
+        serializer = BundleStatsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-        if (
-            not total_size
-            or not js_size
-            or not css_size
-            or not img_size
-            or not font_size
-            or not bundle_name
-        ):
-            return Response({"error": "Please provide all the required parameters"}, status=400)
+        result = serializer.validated_data
 
-        self._add_bundle_size_metric(project, "total", total_size, bundle_name)
-        self._add_bundle_size_metric(project, "javascript", js_size, bundle_name)
-        self._add_bundle_size_metric(project, "css", css_size, bundle_name)
-        self._add_bundle_size_metric(project, "image", img_size, bundle_name)
-        self._add_bundle_size_metric(project, "font", font_size, bundle_name)
+        bundle_name = result["bundle_name"]
+
+        self._add_bundle_size_metric(
+            project, ResourceSizeType.TOTAL, result["total_size"], bundle_name
+        )
+        self._add_bundle_size_metric(
+            project, ResourceSizeType.JAVASCRIPT, result["javascript_size"], bundle_name
+        )
+        self._add_bundle_size_metric(project, ResourceSizeType.CSS, result["css_size"], bundle_name)
+        self._add_bundle_size_metric(
+            project, ResourceSizeType.FONTS, result["fonts_size"], bundle_name
+        )
+        self._add_bundle_size_metric(
+            project, ResourceSizeType.IMAGES, result["images_size"], bundle_name
+        )
 
         return Response({"data": "Bundle size metric added"}, status=200)
 
-    def _add_bundle_size_metric(self, project, type, size, bundle_name):
+    def _add_bundle_size_metric(
+        self, project: Project, type: ResourceSizeType, size: int, bundle_name: str
+    ):
         org_id = project.organization_id
         project_id = project.id
         generic_metrics_backend.distribution(
@@ -56,6 +72,16 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
             project_id=project_id,
             metric_name="bundle_size",
             value=[size],
-            tags={"type": type, "bundle_name": bundle_name},
+            tags={"type": type.value, "bundle_name": bundle_name},
             unit="byte",
         )
+
+
+class BundleStatsSerializer(serializers.Serializer):
+    total_size = serializers.IntegerField(required=True)
+    javascript_size = serializers.IntegerField(required=True)
+    css_size = serializers.IntegerField(required=True)
+    images_size = serializers.IntegerField(required=True)
+    fonts_size = serializers.IntegerField(required=True)
+    bundle_name = serializers.CharField(required=True)
+    environment = serializers.CharField(required=True)
