@@ -2,10 +2,20 @@ from functools import wraps
 
 import sentry_sdk
 
+from sentry import features
 from sentry.dynamic_sampling.tasks.common import TimeoutException
 from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.models.organization import Organization
 from sentry.utils import metrics
+
+
+def has_dynamic_sampling(organization: Organization | None) -> bool:
+    # If an organization can't be fetched, we will assume it has no dynamic sampling.
+    if organization is None:
+        return False
+
+    return features.has("organizations:dynamic-sampling", organization, actor=None)
 
 
 def _compute_task_name(function_name: str) -> str:
