@@ -128,7 +128,7 @@ def send_beacon():
         else False
     )
     event_categories_count = get_category_event_count_24h()
-    byte_in_gibibyte = 1024**-3
+    byte_in_gibibyte = 1024**3
 
     payload = {
         "install_id": install_id,
