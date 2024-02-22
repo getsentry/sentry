@@ -236,12 +236,18 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
 
         with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
             parsed_recording_data = json.loads(decompressed_segment)
+            parsed_replay_event = (
+                json.loads(decoded_message["replay_event"])
+                if decoded_message.get("replay_event")
+                else None
+            )
 
         replay_actions = parse_replay_actions(
             decoded_message["project_id"],
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
+            parsed_replay_event,
         )
 
         if replay_actions is not None:
