@@ -22,8 +22,8 @@ export interface FocusedMetricsSeries {
 
 export interface MetricsQuery {
   mri: MRI;
+  op: string;
   groupBy?: string[];
-  op?: string;
   query?: string;
 }
 

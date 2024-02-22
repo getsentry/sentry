@@ -304,10 +304,10 @@ export function isSpanMetric({mri}: {mri: MRI}) {
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+    return MRIToField(metricsQuery.mri, metricsQuery.op);
   }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op));
 }
 
 export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {

@@ -164,7 +164,7 @@ function MetricWidgetViewerModal({
           <MetricWidget
             queries={metricWidgetQueries.map(w => ({
               mri: w.mri,
-              op: w.op!,
+              op: w.op,
               query: w.query,
               groupBy: w.groupBy,
             }))}

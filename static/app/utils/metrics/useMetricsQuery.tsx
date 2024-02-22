@@ -173,7 +173,7 @@ export function useMetricsQuery(
         queries.map(query =>
           isMetricFormular(query)
             ? query
-            : {...query, field: MRIToField(query.mri, query.op!)}
+            : {...query, field: MRIToField(query.mri, query.op)}
         ),
         {datetime, projects, environments},
         {...overrides}

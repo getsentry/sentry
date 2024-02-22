@@ -35,7 +35,7 @@ function widgetToQuery(
       }
     : {
         mri: widget.mri,
-        op: widget.op!,
+        op: widget.op,
         groupBy: widget.groupBy,
         query: widget.query,
         name: getQuerySymbol(widget.id),
