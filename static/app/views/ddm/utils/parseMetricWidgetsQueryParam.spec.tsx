@@ -3,17 +3,17 @@ import {MetricQueryType} from 'sentry/utils/metrics/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 
 describe('parseMetricWidgetQueryParam', () => {
-  it('returns single default widget for invalid param', () => {
-    const defaultState = [emptyMetricsQueryWidget];
-    expect(parseMetricWidgetsQueryParam(undefined)).toBe(defaultState);
-    expect(parseMetricWidgetsQueryParam('')).toBe(defaultState);
-    expect(parseMetricWidgetsQueryParam('{}')).toBe(defaultState);
-    expect(parseMetricWidgetsQueryParam('true')).toBe(defaultState);
-    expect(parseMetricWidgetsQueryParam('2')).toBe(defaultState);
-    expect(parseMetricWidgetsQueryParam('"test"')).toBe(defaultState);
+  const defaultState = [{...emptyMetricsQueryWidget, id: 0}];
+  it('returns default widget for invalid param', () => {
+    expect(parseMetricWidgetsQueryParam(undefined)).toStrictEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('')).toStrictEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('{}')).toStrictEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('true')).toStrictEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('2')).toStrictEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('"test"')).toStrictEqual(defaultState);
 
     // empty array is not valid
-    expect(parseMetricWidgetsQueryParam('[]')).toEqual(defaultState);
+    expect(parseMetricWidgetsQueryParam('[]')).toStrictEqual(defaultState);
   });
 
   it('returns a single widget', () => {
@@ -28,13 +28,13 @@ describe('parseMetricWidgetQueryParam', () => {
             query: 'test:query',
             groupBy: ['dist'],
             displayType: 'line',
-            focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+            focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
             powerUserMode: true,
             sort: {order: 'asc'},
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -43,7 +43,7 @@ describe('parseMetricWidgetQueryParam', () => {
         query: 'test:query',
         groupBy: ['dist'],
         displayType: 'line',
-        focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+        focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
         powerUserMode: true,
         sort: {name: undefined, order: 'asc'},
       },
@@ -62,7 +62,7 @@ describe('parseMetricWidgetQueryParam', () => {
             query: 'test:query',
             groupBy: ['dist'],
             displayType: 'line',
-            focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+            focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
             powerUserMode: true,
             sort: {name: 'avg', order: 'desc'},
           },
@@ -75,7 +75,7 @@ describe('parseMetricWidgetQueryParam', () => {
             groupBy: ['event_type'],
             displayType: 'line',
             powerUserMode: false,
-            focusedSeries: [{seriesName: 'default', groupBy: {event_type: 'default'}}],
+            focusedSeries: [{id: 'default', groupBy: {event_type: 'default'}}],
             sort: {name: 'sum', order: 'asc'},
           },
           {
@@ -88,7 +88,7 @@ describe('parseMetricWidgetQueryParam', () => {
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -97,7 +97,7 @@ describe('parseMetricWidgetQueryParam', () => {
         query: 'test:query',
         groupBy: ['dist'],
         displayType: 'line',
-        focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+        focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
         powerUserMode: true,
         sort: {name: 'avg', order: 'desc'},
       },
@@ -110,7 +110,7 @@ describe('parseMetricWidgetQueryParam', () => {
         groupBy: ['event_type'],
         displayType: 'line',
         powerUserMode: false,
-        focusedSeries: [{seriesName: 'default', groupBy: {event_type: 'default'}}],
+        focusedSeries: [{id: 'default', groupBy: {event_type: 'default'}}],
         sort: {name: 'sum', order: 'asc'},
       },
       {
@@ -138,7 +138,7 @@ describe('parseMetricWidgetQueryParam', () => {
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -179,7 +179,7 @@ describe('parseMetricWidgetQueryParam', () => {
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -221,7 +221,7 @@ describe('parseMetricWidgetQueryParam', () => {
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -232,12 +232,12 @@ describe('parseMetricWidgetQueryParam', () => {
         displayType: 'line',
         focusedSeries: [],
         powerUserMode: false,
-        sort: {order: 'asc'},
+        sort: {name: undefined, order: 'asc'},
       },
     ]);
   });
 
-  it('returns undefined if there is no valid widget', () => {
+  it('returns default widget if there is no valid widget', () => {
     expect(
       parseMetricWidgetsQueryParam(
         JSON.stringify([
@@ -250,7 +250,7 @@ describe('parseMetricWidgetQueryParam', () => {
           },
         ])
       )
-    ).toBe(undefined);
+    ).toStrictEqual(defaultState);
   });
 
   it('handles missing array in array params', () => {
@@ -265,13 +265,13 @@ describe('parseMetricWidgetQueryParam', () => {
             query: 'test:query',
             groupBy: 'dist',
             displayType: 'line',
-            focusedSeries: {seriesName: 'default', groupBy: {dist: 'default'}},
+            focusedSeries: {id: 'default', groupBy: {dist: 'default'}},
             powerUserMode: true,
             sort: {order: 'asc'},
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -280,7 +280,7 @@ describe('parseMetricWidgetQueryParam', () => {
         query: 'test:query',
         groupBy: ['dist'],
         displayType: 'line',
-        focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+        focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
         powerUserMode: true,
         sort: {name: undefined, order: 'asc'},
       },
@@ -296,7 +296,7 @@ describe('parseMetricWidgetQueryParam', () => {
       query: 'test:query',
       groupBy: ['dist'],
       displayType: 'line',
-      focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+      focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
       powerUserMode: true,
       sort: {name: 'avg', order: 'desc'},
     });
@@ -313,7 +313,7 @@ describe('parseMetricWidgetQueryParam', () => {
           widgetWithId(3),
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       widgetWithId(0),
       widgetWithId(1),
       widgetWithId(2),
@@ -334,13 +334,13 @@ describe('parseMetricWidgetQueryParam', () => {
             query: 'test:query',
             groupBy: ['dist'],
             displayType: 'line',
-            focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+            focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
             powerUserMode: true,
             sort: {name: 'avg', order: 'desc'},
           },
         ])
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
         id: 0,
         type: MetricQueryType.QUERY,
@@ -349,7 +349,7 @@ describe('parseMetricWidgetQueryParam', () => {
         query: 'test:query',
         groupBy: ['dist'],
         displayType: 'line',
-        focusedSeries: [{seriesName: 'default', groupBy: {dist: 'default'}}],
+        focusedSeries: [{id: 'default', groupBy: {dist: 'default'}}],
         powerUserMode: true,
         sort: {name: 'avg', order: 'desc'},
       },
