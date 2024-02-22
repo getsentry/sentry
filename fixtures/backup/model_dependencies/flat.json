@@ -62,7 +62,7 @@
     "sentry.alertrule",
     "sentry.project"
   ],
-  "sentry.alertruleproject": [
+  "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
   ],

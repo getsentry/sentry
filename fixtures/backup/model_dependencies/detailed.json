@@ -435,7 +435,7 @@
       ]
     ]
   },
-  "sentry.alertruleproject": {
+  "sentry.alertruleprojects": {
     "dangling": false,
     "foreign_keys": {
       "alert_rule": {
@@ -449,7 +449,7 @@
         "nullable": false
       }
     },
-    "model": "sentry.alertruleproject",
+    "model": "sentry.alertruleprojects",
     "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
