@@ -7,6 +7,7 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -22,7 +23,6 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from './guards';
-import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 
 /**
  *

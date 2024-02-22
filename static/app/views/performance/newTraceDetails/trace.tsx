@@ -6,10 +6,12 @@ import styled from '@emotion/styled';
 import type {Omit} from 'framer-motion/types/types';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,8 +31,6 @@ import {
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
-import Link from 'sentry/components/links/link';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 
 interface TraceProps {
   trace: TraceTree;
@@ -207,13 +207,13 @@ function RenderRow(props: {
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
+  organization: Organization;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
   style: React.CSSProperties;
   theme: Theme;
   trace_id: string;
   viewManager: VirtualizedViewManager;
-  organization: Organization;
 }) {
   const virtualizedIndex = props.index - props.startIndex;
   if (!props.node.value) {
