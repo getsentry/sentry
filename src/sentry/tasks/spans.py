@@ -1,6 +1,6 @@
 import logging
 import random
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from typing import Any
 
@@ -71,8 +71,9 @@ def dfs(visited, flattened_spans, tree, span_id):
 
 
 def flatten_tree(tree, root_span_id):
-    visited = set()
-    flattened_spans = []
+    visited: Set[str] = set()
+    flattened_spans: list[Mapping[str, Any]] = []
+
     if root_span_id:
         dfs(visited, flattened_spans, tree, root_span_id)
 
@@ -96,11 +97,11 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
 
 
 def transform_spans_to_event_dict(spans):
-    event = {"type": "transaction", "level": "info", "contexts": {}}
-    deserialized_spans = []
+    event: Mapping[str, Any] = {"type": "transaction", "level": "info", "contexts": {}}
+    deserialized_spans: list[Mapping[str, Any]] = []
     for span in spans:
         try:
-            deserialized_span: SpanEvent = _deserialize_span(span)
+            deserialized_span: Mapping[str, Any] = _deserialize_span(span)
         except Exception:
             logger.exception("Failed to process span payload")
             continue
