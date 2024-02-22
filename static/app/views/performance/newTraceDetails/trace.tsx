@@ -109,47 +109,64 @@ function Trace({trace, trace_id}: TraceProps) {
         <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
         <AutoSizer>
           {({width, height}) => (
-            <List
-              ref={r => viewManager.current?.registerVirtualizedList(r)}
-              rowHeight={24}
-              height={height}
-              width={width}
-              overscanRowCount={5}
-              rowCount={treeRef.current.list.length ?? 0}
-              rowRenderer={p => {
-                return trace.type === 'loading' ? (
-                  <RenderPlaceholderRow
-                    style={p.style}
-                    node={treeRef.current.list[p.index]}
-                    index={p.index}
-                    theme={theme}
-                    projects={projectLookup}
-                    viewManager={viewManager.current!}
-                    startIndex={
-                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ??
-                      0
-                    }
-                  />
-                ) : (
-                  <RenderRow
-                    key={p.key}
-                    theme={theme}
-                    startIndex={
-                      (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ??
-                      0
-                    }
-                    index={p.index}
-                    style={p.style}
-                    trace_id={trace_id}
-                    projects={projectLookup}
-                    node={treeRef.current.list[p.index]}
-                    viewManager={viewManager.current!}
-                    onFetchChildren={handleFetchChildren}
-                    onExpandNode={handleExpandNode}
-                  />
-                );
-              }}
-            />
+            <Fragment>
+              {trace.indicators.length > 0
+                ? trace.indicators.map((indicator, i) => {
+                    return (
+                      <div
+                        key={i}
+                        ref={r =>
+                          viewManager.current?.registerIndicatorRef(r, i, indicator)
+                        }
+                        className="TraceIndicator"
+                      >
+                        <div className="TraceIndicatorLine" />
+                      </div>
+                    );
+                  })
+                : null}
+              <List
+                ref={r => viewManager.current?.registerVirtualizedList(r)}
+                rowHeight={24}
+                height={height}
+                width={width}
+                overscanRowCount={5}
+                rowCount={treeRef.current.list.length ?? 0}
+                rowRenderer={p => {
+                  return trace.type === 'loading' ? (
+                    <RenderPlaceholderRow
+                      style={p.style}
+                      node={treeRef.current.list[p.index]}
+                      index={p.index}
+                      theme={theme}
+                      projects={projectLookup}
+                      viewManager={viewManager.current!}
+                      startIndex={
+                        (p.parent as unknown as {_rowStartIndex: number})
+                          ._rowStartIndex ?? 0
+                      }
+                    />
+                  ) : (
+                    <RenderRow
+                      key={p.key}
+                      theme={theme}
+                      startIndex={
+                        (p.parent as unknown as {_rowStartIndex: number})
+                          ._rowStartIndex ?? 0
+                      }
+                      index={p.index}
+                      style={p.style}
+                      trace_id={trace_id}
+                      projects={projectLookup}
+                      node={treeRef.current.list[p.index]}
+                      viewManager={viewManager.current!}
+                      onFetchChildren={handleFetchChildren}
+                      onExpandNode={handleExpandNode}
+                    />
+                  );
+                }}
+              />
+            </Fragment>
           )}
         </AutoSizer>
       </TraceStylingWrapper>
@@ -164,7 +181,7 @@ const TraceDivider = styled('div')`
   height: 100%;
   background-color: transparent;
   top: 0;
-  z-index: 1;
+  z-index: 10;
   cursor: col-resize;
 
   &:before {
@@ -850,6 +867,28 @@ const TraceStylingWrapper = styled('div')`
     100% {
       opacity: 0.7;
       transform: translate(0, 0px);
+    }
+  }
+
+  .TraceIndicator {
+    z-index: 1;
+    width: 3px;
+    height: 100%;
+    top: 0;
+    position: absolute;
+
+    .TraceIndicatorLine {
+      width: 1px;
+      height: 100%;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: repeating-linear-gradient(
+          to bottom,
+          transparent 0 4px,
+          ${p => p.theme.textColor} 4px 8px
+        )
+        80%/2px 100% no-repeat;
     }
   }
 

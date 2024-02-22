@@ -79,7 +79,9 @@ export function flattenMultiSeriesDataWithGrouping(
 
   groupNames.forEach(groupName => {
     // Each group contains an order key which we should ignore
-    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+    const aggregateNames = Object.keys(
+      omit(result[groupName], ['order', 'isMetricsExtractedData'])
+    );
 
     aggregateNames.forEach(aggregate => {
       const seriesName = `${groupName} : ${aggregate}`;
