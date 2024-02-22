@@ -3,8 +3,10 @@ from unittest import TestCase, mock
 
 from sentry.testutils.pytest.mocking import capture_return_values
 from tests.sentry.testutils.pytest.mocking.animals import (
+    a_function_that_calls_erroring_get_dog,
     a_function_that_calls_get_cat,
     a_function_that_calls_get_dog,
+    erroring_get_dog,
     get_cat,
     get_dog,
 )
@@ -47,3 +49,22 @@ class CaptureReturnValuesTest(TestCase):
             a_function_that_calls_get_cat()
             assert get_cat_spy.call_count == 1
             assert return_values["get_cat"][0] == "piper"
+
+    def test_records_thrown_exception(self):
+        erroring_get_dog_results: list[Any] = []
+
+        wrapped_erroring_get_dog = capture_return_values(erroring_get_dog, erroring_get_dog_results)
+
+        with mock.patch(
+            "tests.sentry.testutils.pytest.mocking.animals.erroring_get_dog",
+            wraps=wrapped_erroring_get_dog,
+        ) as erroring_get_dog_spy:
+            a_function_that_calls_erroring_get_dog()
+
+            assert erroring_get_dog_spy.call_count == 1
+
+            result = erroring_get_dog_results[0]
+            assert isinstance(result, TypeError)
+
+            error_message = result.args[0]
+            assert error_message == "Expected dog, but got cat instead."
