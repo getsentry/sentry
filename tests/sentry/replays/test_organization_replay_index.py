@@ -605,11 +605,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Or expression.
                 f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
                 # Paren wrapped expression.
-                f"((id:{replay1_id} OR id:b) AND (duration:>15 OR id:d))",
+                f"((id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing))",
                 # Implicit paren wrapped expression.
-                f"(id:{replay1_id} OR id:b) AND (duration:>15 OR id:d)",
+                f"(id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing)",
                 # Implicit And.
-                f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
+                f"(id:{replay1_id} OR duration:0) OR (duration:>15 platform:javascript)",
                 # Tag filters.
                 "tags[a]:m",
                 "a:m",
@@ -641,22 +641,24 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
 
+            missing_uuid = "f8a783a4261a4b559f108c3721fc05cc"
+
             # Assert returns empty result sets.
             null_queries = [
                 "!replay_type:session",
                 "!error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
-                "error_ids:123",
+                f"error_ids:{missing_uuid}",
                 "!error_id:a3a62ef6ac86415b83c2416fc2f76db1",
-                "error_id:123",
+                f"error_id:{missing_uuid}",
                 "!trace_ids:4491657243ba4dbebd2f6bd62b733080",
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
                 "count_dead_clicks:>0",
                 "count_rage_clicks:>0",
-                f"id:{replay1_id} AND id:b",
+                f"id:{replay1_id} AND id:{missing_uuid}",
                 f"id:{replay1_id} AND duration:>1000",
-                "id:b OR duration:>1000",
+                f"id:{missing_uuid} OR duration:>1000",
                 "a:o",
                 "a:[o,p]",
                 "releases:a",

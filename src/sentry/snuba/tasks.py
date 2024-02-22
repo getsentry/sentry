@@ -215,6 +215,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
+        # TODO: pull query_extra from subscription and add to query builder
         snql_query = build_query_builder(
             entity_subscription,
             snuba_query.query,
