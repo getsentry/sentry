@@ -1,3 +1,5 @@
+import sentry_sdk
+
 from sentry import quotas
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
@@ -27,9 +29,7 @@ RECALIBRATE_ORGS_MAX_SECONDS = 600
 
 class RecalibrationError(Exception):
     def __init__(self, org_id, message):
-        final_message = f"Error during recalibration of org {org_id}: {message}"
-        self.message = final_message
-        super().__init__(self.message)
+        super().__init__(f"Error during recalibration of org {org_id}: {message}")
 
 
 @instrumented_task(
@@ -68,10 +68,19 @@ def recalibrate_orgs(context: TaskContext) -> None:
 )
 def recalibrate_orgs_batch(orgs: list[tuple[int, int, int | None]]) -> None:
     for org_id, total, indexed in orgs:
-        recalibrate_org(org_id, total, indexed)
+        try:
+            recalibrate_org(org_id, total, indexed)
+        except RecalibrationError as e:
+            sentry_sdk.capture_exception(e)
 
 
-def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
+def recalibrate_org(org_id: int, total: int, indexed: int | None) -> None:
+    if indexed is None:
+        RecalibrationError(
+            org_id,
+            "missing indexed data count for organization",
+        )
+
     try:
         # We need the organization object for the feature flag.
         organization = Organization.objects.get_from_cache(id=org_id)
@@ -111,7 +120,7 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
     if target_sample_rate is None:
         raise RecalibrationError(
             org_id=org_id,
-            message="Couldn't get target sample rate for org recalibration",
+            message="couldn't get target sample rate for org recalibration",
         )
 
     # We compute the effective sample rate that we had in the last considered time window.
@@ -126,7 +135,7 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         previous_factor, effective_sample_rate, target_sample_rate
     )
     if adjusted_factor is None:
-        raise RecalibrationError(org_id=org_id, message="The adjusted factor can't be computed")
+        raise RecalibrationError(org_id=org_id, message="the adjusted factor can't be computed")
 
     if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
@@ -134,7 +143,7 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         delete_adjusted_factor(org_id)
         raise RecalibrationError(
             org_id=org_id,
-            message=f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
+            message=f"the adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
             f"{MAX_REBALANCE_FACTOR}]",
         )
 
