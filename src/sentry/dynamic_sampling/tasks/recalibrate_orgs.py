@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.base import has_dynamic_sampling, is_sliding_window_org_enabled
+from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
@@ -23,7 +23,10 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_sample_rate_source,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
+)
 from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task

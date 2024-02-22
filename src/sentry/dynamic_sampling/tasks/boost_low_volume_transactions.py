@@ -24,7 +24,6 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.rules.base import (
-    has_dynamic_sampling,
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
@@ -48,6 +47,7 @@ from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, 
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
