@@ -675,7 +675,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
             if text:
-                blocks.append(self.get_rich_text_preformatted_block(text))
+                blocks.append(self.get_markdown_quote_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:
