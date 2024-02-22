@@ -164,7 +164,7 @@ def project_key_errors(
 def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
     if not project.first_event:
         return
-
+    # TODO: CEO agh I should pass in some variable to generate the op to differentiate
     with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
