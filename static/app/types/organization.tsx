@@ -56,9 +56,11 @@ export interface Organization extends OrganizationSummary {
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
+  openAIConsent: boolean;
   openMembership: boolean;
   orgRoleList: OrgRole[];
   pendingAccessRequests: number;
+  perplexityConsent: boolean;
   quota: {
     accountLimit: number | null;
     maxRate: number | null;
@@ -70,6 +72,7 @@ export interface Organization extends OrganizationSummary {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  serviceDataConsent: boolean;
   storeCrashReports: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
