@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import sentry_sdk
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
+from sentry.dynamic_sampling.rules.base import has_dynamic_sampling, is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
@@ -84,6 +84,10 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         # In case an org is not found, it might be that it has been deleted in the time between
         # the query triggering this job and the actual execution of the job.
         organization = None
+
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        return
 
     # By default, we use the blended sample rate.
     target_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)

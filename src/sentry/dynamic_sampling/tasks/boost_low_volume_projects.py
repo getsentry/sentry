@@ -24,7 +24,7 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
+from sentry.dynamic_sampling.rules.base import has_dynamic_sampling, is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -251,6 +251,10 @@ def adjust_sample_rates_of_projects(
         # In case an org is not found, it might be that it has been deleted in the time between
         # the query triggering this job and the actual execution of the job.
         organization = None
+
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        return
 
     # By default, we use the blended sample rate.
     sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)

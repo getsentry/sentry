@@ -24,6 +24,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
 from sentry.dynamic_sampling.rules.base import (
+    has_dynamic_sampling,
     is_sliding_window_enabled,
     is_sliding_window_org_enabled,
 )
@@ -168,6 +169,10 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
         organization = None
+
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        return
 
     # By default, we use the blended sample rate.
     sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
