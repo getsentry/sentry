@@ -1,16 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function ReplayOnboardingLayout({
+export function FeedbackOnboardingLayout({
   cdn,
   docsConfig,
   dsn,
@@ -24,8 +23,6 @@ export function ReplayOnboardingLayout({
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const [mask, setMask] = useState(true);
-  const [block, setBlock] = useState(true);
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -36,20 +33,16 @@ export function ReplayOnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
-      isFeedbackSelected: false,
+      isFeedbackSelected: true,
       isPerformanceSelected: false,
       isProfilingSelected: false,
-      isReplaySelected: true,
+      isReplaySelected: false,
       sourcePackageRegistries: {
         isLoading: isLoadingRegistry,
         data: registryData,
       },
       platformOptions: selectedOptions,
       newOrg,
-      replayOptions: {
-        mask,
-        block,
-      },
     };
 
     return {
@@ -74,34 +67,15 @@ export function ReplayOnboardingLayout({
     registryData,
     selectedOptions,
     configType,
-    mask,
-    block,
   ]);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
         <Steps>
-          {steps.map(step =>
-            step.type === StepType.CONFIGURE ? (
-              <Step
-                key={step.title ?? step.type}
-                {...{
-                  ...step,
-                  codeHeader: (
-                    <ReplayConfigToggle
-                      blockToggle={block}
-                      maskToggle={mask}
-                      onBlockToggle={() => setBlock(!block)}
-                      onMaskToggle={() => setMask(!mask)}
-                    />
-                  ),
-                }}
-              />
-            ) : (
-              <Step key={step.title ?? step.type} {...step} />
-            )
-          )}
+          {steps.map(step => (
+            <Step key={step.title ?? step.type} {...step} />
+          ))}
         </Steps>
       </Wrapper>
     </AuthTokenGeneratorProvider>
