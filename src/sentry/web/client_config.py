@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping
 from functools import cached_property
 from typing import Any
 
@@ -12,6 +12,7 @@ from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
 from django.http import HttpRequest
 from packaging.version import parse as parse_version
+from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
@@ -22,12 +23,12 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
@@ -82,11 +83,11 @@ def _needs_upgrade():
     return False
 
 
-def _get_statuspage():
-    id = settings.STATUS_PAGE_ID
-    if id is None:
+def _get_statuspage() -> dict[str, str] | None:
+    page_id: str | None = settings.STATUS_PAGE_ID
+    if page_id is None:
         return None
-    return {"id": id, "api_host": settings.STATUS_PAGE_API_HOST}
+    return {"id": page_id, "api_host": settings.STATUS_PAGE_API_HOST}
 
 
 def _get_public_dsn() -> str | None:
@@ -96,7 +97,7 @@ def _get_public_dsn() -> str | None:
     if settings.IS_DEV and not settings.SENTRY_USE_RELAY:
         return ""
 
-    project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
+    project_id: int | None = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     if project_id is None:
         return None
 
@@ -125,9 +126,9 @@ def _delete_activeorg(session):
 def _resolve_last_org(
     request: HttpRequest | None,
     session: SessionBase | None,
-    user: RpcUser | User | None,
+    user: AnonymousUser | User | None,
     org_context: RpcUserOrganizationContext | None = None,
-):
+) -> RpcOrganization | None:
     user_is_authenticated = (
         user is not None and not isinstance(user, AnonymousUser) and user.is_authenticated
     )
@@ -137,7 +138,7 @@ def _resolve_last_org(
         if not last_org_slug:
             return None
 
-        if user_is_authenticated:
+        if user_is_authenticated and user is not None:
             org_context = organization_service.get_organization_by_slug(
                 slug=last_org_slug,
                 only_visible=False,
@@ -149,7 +150,7 @@ def _resolve_last_org(
     has_org_access = bool(org_context and org_context.member)
 
     if not has_org_access and user_is_authenticated:
-        has_org_access = superuser.is_active_superuser(request)
+        has_org_access = request is not None and superuser.is_active_superuser(request)
 
     if org_context and has_org_access:
         return org_context.organization
@@ -160,13 +161,15 @@ def _resolve_last_org(
 class _ClientConfig:
     def __init__(
         self,
-        request: HttpRequest | None = None,
+        request: Request | None = None,
         org_context: RpcUserOrganizationContext | None = None,
     ) -> None:
         self.request = request
         if request is not None:
-            self.user = getattr(request, "user", None) or AnonymousUser()
-            self.session = getattr(request, "session", None)
+            self.user: User | AnonymousUser | None = (
+                getattr(request, "user", None) or AnonymousUser()
+            )
+            self.session: SessionBase | None = getattr(request, "session", None)
         else:
             self.user = None
             self.session = None
@@ -401,7 +404,7 @@ class _ClientConfig:
 
 def get_client_config(
     request=None, org_context: RpcUserOrganizationContext | None = None
-) -> MutableMapping[str, Any]:
+) -> Mapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """

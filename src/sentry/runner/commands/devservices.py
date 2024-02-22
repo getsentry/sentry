@@ -3,8 +3,6 @@ from __future__ import annotations
 import contextlib
 import http
 import os
-import platform
-import shutil
 import signal
 import subprocess
 import sys
@@ -23,16 +21,32 @@ if TYPE_CHECKING:
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
+COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
+USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_ORBSTACK = (
+    os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+)
 
-USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+if USE_ORBSTACK:
+    USE_COLIMA = False
 
 if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    USE_ORBSTACK = False
+
+USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
+
+if DARWIN:
+    if USE_COLIMA:
+        click.echo("Using colima.")
+        RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    elif USE_ORBSTACK:
+        click.echo("Using orbstack.")
+        RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
+    elif USE_DOCKER_DESKTOP:
+        click.echo("Using docker desktop.")
+        # /var/run/docker.sock is now gated behind a docker desktop advanced setting
+        RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
@@ -58,10 +72,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
-                else:
+                elif USE_DOCKER_DESKTOP:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                    )
+                elif USE_ORBSTACK:
+                    click.echo("Attempting to start orbstack...")
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/OrbStack.app", "--args", "--unattended")
                     )
             else:
                 raise click.ClickException("Make sure docker is running.")

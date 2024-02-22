@@ -1,5 +1,6 @@
 import copy
 from functools import partial
+from uuid import uuid4
 
 import pytest
 from django.urls import reverse
@@ -16,9 +17,11 @@ from sentry.snuba.metrics import (
     complement,
     division_float,
 )
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -101,15 +104,17 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
 
 @region_silo_test
-class OrganizationMetricsSamplesEndpointTest(APITestCase):
+class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
     view = "sentry-api-0-organization-metrics-samples"
+    default_features = ["organizations:metrics-samples-list"]
 
     def setUp(self):
+        super().setUp()
         self.login_as(user=self.user)
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = []
+            features = self.default_features
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
@@ -120,26 +125,26 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase):
 
     def test_feature_flag(self):
         query = {
-            "mri": "d:transactions/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [self.project.id],
         }
 
-        response = self.do_request(query)
-        assert response.status_code == 404
+        response = self.do_request(query, features=[])
+        assert response.status_code == 404, response.data
 
         response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
 
     def test_no_project(self):
         query = {
-            "mri": "d:transactions/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [],
         }
 
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 404
+        response = self.do_request(query)
+        assert response.status_code == 404, response.data
 
     def test_bad_params(self):
         query = {
@@ -148,9 +153,123 @@ class OrganizationMetricsSamplesEndpointTest(APITestCase):
             "project": [self.project.id],
         }
 
-        response = self.do_request(query, features=["organizations:metrics-samples-list"])
-        assert response.status_code == 400
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
         assert response.data == {
             "mri": [ErrorDetail(string="Invalid MRI: foo", code="invalid")],
             "field": [ErrorDetail(string="This field is required.", code="required")],
         }
+
+    def test_span_duration_samples(self):
+        span_ids = [uuid4().hex[:16] for _ in range(10)]
+        for i, span_id in enumerate(span_ids):
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                timestamp=before_now(days=i, minutes=10),
+                group=uuid4().hex[:16],  # we need a non 0 group
+            )
+
+        query = {
+            "mri": "d:spans/duration@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
+
+    def test_transaction_duration_samples(self):
+        span_ids = [uuid4().hex[:16] for _ in range(1)]
+        for i, span_id in enumerate(span_ids):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            data["contexts"]["trace"]["span_id"] = span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                timestamp=ts,
+            )
+
+        query = {
+            "mri": "d:transactions/duration@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
+
+    def test_measurement_samples(self):
+        good_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        bad_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        for i, (good_span_id, bad_span_id) in enumerate(zip(good_span_ids, bad_span_ids)):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # bad span ids will not have the measurement
+            data["measurements"] = {}
+            data["contexts"]["trace"]["span_id"] = bad_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=bad_span_id,
+                timestamp=ts,
+            )
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # good span ids will have the measurement
+            data["measurements"] = {"lcp": {"value": 10}}
+            data["contexts"]["trace"]["span_id"] = good_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=good_span_id,
+                timestamp=ts,
+            )
+
+        query = {
+            "mri": "d:transactions/measurements.lcp@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in good_span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected

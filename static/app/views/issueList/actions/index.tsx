@@ -19,6 +19,7 @@ import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import ActionSet from './actionSet';
@@ -38,8 +39,7 @@ type IssueListActionsProps = {
   selection: PageFilters;
   sort: string;
   statsPeriod: string;
-  onActionTaken?: (itemIds: string[]) => void;
-  onMarkReviewed?: (itemIds: string[]) => void;
+  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
 function IssueListActions({
@@ -48,7 +48,6 @@ function IssueListActions({
   groupIds,
   onActionTaken,
   onDelete,
-  onMarkReviewed,
   onSelectStatsPeriod,
   onSortChange,
   queryCount,
@@ -142,15 +141,16 @@ function IssueListActions({
     });
   }
 
-  function handleUpdate(data?: any) {
-    if (data.status === 'ignored') {
-      const statusDetails = data.statusDetails.ignoreCount
-        ? 'ignoreCount'
-        : data.statusDetails.ignoreDuration
-          ? 'ignoreDuration'
-          : data.statusDetails.ignoreUserCount
-            ? 'ignoreUserCount'
-            : undefined;
+  function handleUpdate(data: IssueUpdateData) {
+    if ('status' in data && data.status === 'ignored') {
+      const statusDetails =
+        'ignoreCount' in data.statusDetails
+          ? 'ignoreCount'
+          : 'ignoreDuration' in data.statusDetails
+            ? 'ignoreDuration'
+            : 'ignoreUserCount' in data.statusDetails
+              ? 'ignoreUserCount'
+              : undefined;
       trackAnalytics('issues_stream.archived', {
         action_status_details: statusDetails,
         action_substatus: data.substatus,
@@ -159,12 +159,6 @@ function IssueListActions({
     }
 
     actionSelectedGroups(itemIds => {
-      if (data?.inbox === false) {
-        onMarkReviewed?.(itemIds ?? []);
-      }
-
-      onActionTaken?.(itemIds ?? []);
-
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
       //
@@ -184,7 +178,11 @@ function IssueListActions({
           ...projectConstraints,
           ...selection.datetime,
         },
-        {}
+        {
+          complete: () => {
+            onActionTaken?.(itemIds ?? [], data);
+          },
+        }
       );
     });
   }
@@ -285,7 +283,7 @@ function useSelectedGroupsState() {
   const selected = SelectedGroupStore.getSelectedIds();
   const projects = [...selected]
     .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);

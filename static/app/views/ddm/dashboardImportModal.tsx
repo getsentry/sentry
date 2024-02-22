@@ -14,7 +14,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -83,10 +82,6 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
     const title = formState.importResult?.title ?? 'Metrics Dashboard';
 
     const importedWidgets = (formState.importResult?.widgets ?? [])
-      .filter(widget => !!widget.mri)
-      .map(widget =>
-        convertToDashboardWidget({...widget, ...selection}, widget.displayType)
-      )
       // Only import the first 30 widgets because of dashboard widget limit
       .slice(0, 30);
 
@@ -138,7 +133,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
                   formState.importResult?.report.length
                 )}
               </div>
-              <PanelTable headers={['Title', 'Outcome', 'Errors', 'Notes']}>
+              <PanelTable headers={['Title', 'Outcome', 'Errors']}>
                 {formState.importResult?.report.map(widget => {
                   return (
                     <Fragment key={widget.id}>
@@ -147,7 +142,6 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
                         <Tag type={widget.outcome}>{widget.outcome}</Tag>
                       </div>
                       <div>{widget.errors.join(', ')}</div>
-                      <div>{widget.notes.join(', ')}</div>
                     </Fragment>
                   );
                 })}

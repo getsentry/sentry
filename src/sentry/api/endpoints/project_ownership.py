@@ -93,10 +93,12 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             )
 
         schema = create_schema_from_issue_owners(
-            attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
+            project_id=self.context["ownership"].project_id,
+            issue_owners=attrs["raw"],
+            add_owner_ids=True,
         )
-
-        self._validate_no_codeowners(schema["rules"])
+        if schema:
+            self._validate_no_codeowners(schema["rules"])
 
         attrs["schema"] = schema
         return attrs
@@ -195,15 +197,16 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             )
 
     def refresh_ownership_schema(self, ownership: ProjectOwnership, project: Project) -> None:
-        if (
-            not hasattr(ownership, "schema")
-            or ownership.schema is None
-            or ownership.schema.get("rules") is None
+        if hasattr(ownership, "schema") and (
+            ownership.schema is None or ownership.schema.get("rules") is None
         ):
             return
 
         ownership.schema = create_schema_from_issue_owners(
-            ownership.raw, project.id, add_owner_ids=True, remove_deleted_owners=True
+            project_id=project.id,
+            issue_owners=ownership.raw,
+            add_owner_ids=True,
+            remove_deleted_owners=True,
         )
         ownership.save()
 

@@ -923,6 +923,12 @@ register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Controls the encoding used in Relay for encoding distributions and sets
+# when writing to Kafka.
+#
+# Key is the metric namespace (as used by Relay) and the value is the desired encoding.
+register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1044,6 +1050,34 @@ register(
 
 register(
     "global-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.sessions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.transactions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.spans-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1755,6 +1789,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "on_demand.max_widget_cardinality.killswitch",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1882,24 +1921,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# sample rate for using v2 of deobfuscation that
-# uses function params when line info is missing
-register(
-    "profiling.android.deobfuscation_v2_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# org IDs that will be using v2 of deobfuscation
-# regardless of the sample rate defined by:
-# "profiling.android.deobfuscation_v2_sample_rate"
-register(
-    "profiling.android.deobfuscation_v2_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # The flag disables the file io on main thread detector
 register(
     "performance_issues.file_io_main_thread.disabled",
@@ -1999,31 +2020,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to sentry org.
-# Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # org IDs for which we want to avoid using the unsampled profiles for function metrics.
 # This will let us selectively disable the behaviour for entire orgs that may have an
 # extremely high volume increase
 register(
     "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to specific projects of
-# the sentry org. Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_project_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2098,4 +2099,10 @@ register(
     "hybridcloud.webhookpayload.rollout",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metrics.sample-list.sample-rate",
+    type=Float,
+    default=100_000.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )

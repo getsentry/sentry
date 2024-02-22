@@ -3241,8 +3241,8 @@
   "sentry.monitorenvironment": {
     "dangling": false,
     "foreign_keys": {
-      "environment": {
-        "kind": "FlexibleForeignKey",
+      "environment_id": {
+        "kind": "ImplicitForeignKey",
         "model": "sentry.environment",
         "nullable": false
       },
@@ -3261,7 +3261,7 @@
     "table_name": "sentry_monitorenvironment",
     "uniques": [
       [
-        "environment",
+        "environment_id",
         "monitor"
       ]
     ]
@@ -3394,6 +3394,43 @@
     ],
     "table_name": "sentry_notificationactionproject",
     "uniques": []
+  },
+  "sentry.notificationmessage": {
+    "dangling": false,
+    "foreign_keys": {
+      "incident": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.incident",
+        "nullable": true
+      },
+      "rule_fire_history": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.rulefirehistory",
+        "nullable": true
+      },
+      "trigger_action": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruletriggeraction",
+        "nullable": true
+      }
+    },
+    "model": "sentry.notificationmessage",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_notificationmessage",
+    "uniques": [
+      [
+        "incident",
+        "trigger_action"
+      ],
+      [
+        "rule_action_uuid",
+        "rule_fire_history"
+      ]
+    ]
   },
   "sentry.notificationsettingoption": {
     "dangling": false,
@@ -5639,6 +5676,24 @@
         "slug"
       ]
     ]
+  },
+  "sentry.sentryshot": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.sentryshot",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_sentryshot",
+    "uniques": []
   },
   "sentry.servicehook": {
     "dangling": false,

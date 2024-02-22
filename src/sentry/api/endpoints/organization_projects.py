@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
@@ -47,6 +47,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="List an Organization's Projects",

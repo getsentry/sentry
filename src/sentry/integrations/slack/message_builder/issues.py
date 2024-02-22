@@ -27,7 +27,9 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
+    CATEGORY_TO_EMOJI_V2,
     LEVEL_TO_EMOJI,
+    LEVEL_TO_EMOJI_V2,
     SLACK_URL_FORMAT,
     SlackAttachment,
     SlackBlock,
@@ -72,6 +74,15 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "bitbucket",
     "integrations:bitbucket",
 )
+# NOTE: if this starts getting large and functions get complicated,
+# pull things out into their own functions
+SUPPORTED_CONTEXT_DATA = {
+    "Events": lambda group: get_group_global_count(group),
+    "Users Affected": lambda group: group.count_users_seen(),
+    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+    "First Seen": lambda group: time_since(group.first_seen),
+    "Regressed Date": lambda group: time_since(group.active_at),
+}
 
 REGRESSION_PERFORMANCE_ISSUE_TYPES = [
     PerformanceP95EndpointRegressionGroupType,
@@ -203,7 +214,13 @@ def get_tags(
     ):
         default_tags = set()
 
-    tags = tags | default_tags
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+    # improved block kit only uses alert rule tags
+    if not use_improved_block_kit:
+        tags = tags | default_tags
+
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -224,21 +241,40 @@ def get_tags(
 
 def get_context(group: Group) -> str:
     context_text = ""
-    context = {
-        "Events": get_group_global_count(group),
-        "Users Affected": group.count_users_seen(),
-        "State": SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
-        "First Seen": time_since(group.first_seen),
-    }
-    if group.issue_type in REGRESSION_PERFORMANCE_ISSUE_TYPES:
-        # another short term solution for non-error issues notification content
-        return context_text
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
 
-    if group.issue_category in [GroupCategory.ERROR, GroupCategory.PERFORMANCE]:
-        for k, v in context.items():
-            if k and v:
-                context_text += f"{k}: *{v}*   "
-    return context_text
+    # original block kit
+    if not use_improved_block_kit:
+        context = {
+            "Events": get_group_global_count(group),
+            "Users Affected": group.count_users_seen(),
+            "State": SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+            "First Seen": time_since(group.first_seen),
+        }
+        if group.issue_type in REGRESSION_PERFORMANCE_ISSUE_TYPES:
+            # another short term solution for non-error issues notification content
+            return context_text
+
+        if group.issue_category in [GroupCategory.ERROR, GroupCategory.PERFORMANCE]:
+            for k, v in context.items():
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
+
+        return context_text.rstrip()
+
+    # updated block kit
+    context = group.issue_type.notification_config.context
+    context_dict = {}
+    for c in context:
+        if c in SUPPORTED_CONTEXT_DATA:
+            context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
+
+    for k, v in context_dict.items():
+        if v:
+            context_text += f"{k}: *{v}*   "
+    return context_text.rstrip()
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
@@ -611,15 +647,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
+        use_improved_block_kit = features.has(
+            "organizations:slack-block-kit-improvements", self.group.project.organization
+        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            if use_improved_block_kit:
+                title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
+            else:
+                title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            if use_improved_block_kit:
+                title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
+            else:
+                title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
@@ -647,7 +692,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # add event count, user count, substate, first seen
         context = get_context(self.group)
         if context:
-            blocks.append(self.get_context_block(context[:-3]))
+            blocks.append(self.get_context_block(context))
 
         # build actions
         actions = []

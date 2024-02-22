@@ -45,6 +45,7 @@
   "sentry_reprocessingreport",
   "sentry_scheduleddeletion",
   "sentry_sentryfunction",
+  "sentry_sentryshot",
   "sentry_stringindexer",
   "sentry_team",
   "sentry_teamreplica",
@@ -226,5 +227,6 @@
   "sentry_dashboardwidgetqueryondemand",
   "sentry_alertruletriggerexclusion",
   "sentry_alertruletriggeraction",
-  "sentry_servicehookproject"
+  "sentry_servicehookproject",
+  "sentry_notificationmessage"
 ]

@@ -196,7 +196,7 @@ def build_metric_alert_chart(
     }
 
     allow_mri = features.has(
-        "organizations:ddm-experimental",
+        "organizations:custom-metrics",
         organization,
         actor=user,
     )
