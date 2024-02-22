@@ -38,13 +38,10 @@ USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
 
 if DARWIN:
     if USE_COLIMA:
-        click.echo("Using colima.")
         RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
     elif USE_ORBSTACK:
-        click.echo("Using orbstack.")
         RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
     elif USE_DOCKER_DESKTOP:
-        click.echo("Using docker desktop.")
         # /var/run/docker.sock is now gated behind a docker desktop advanced setting
         RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
@@ -176,6 +173,13 @@ def devservices() -> None:
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    if USE_DOCKER_DESKTOP:
+        click.echo("Using docker desktop.")
+    if USE_COLIMA:
+        click.echo("Using colima.")
+    if USE_ORBSTACK:
+        click.echo("Using orbstack.")
 
 
 @devservices.command()
