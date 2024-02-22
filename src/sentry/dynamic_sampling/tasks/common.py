@@ -359,7 +359,7 @@ class OrganizationDataVolume:
     # number of transactions indexed (i.e. stored)
     indexed: int | None
 
-    def is_valid_for_recalibration(self):
+    def is_valid_for_recalibration(self) -> bool:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 

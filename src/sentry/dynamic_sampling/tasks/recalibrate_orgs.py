@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import sentry_sdk
 
 from sentry import quotas
@@ -66,7 +68,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-def recalibrate_orgs_batch(orgs: list[tuple[int, int, int]]) -> None:
+def recalibrate_orgs_batch(orgs: Sequence[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
         try:
             recalibrate_org(org_id, total, indexed)
