@@ -252,9 +252,12 @@ class VercelWebhookEndpoint(Endpoint):
 
         configuration = integration.metadata["configurations"].pop(configuration_id)
 
-        first_org = organization_service.get_organization_by_id(
+        org_context = organization_service.get_organization_by_id(
             id=org_ids[0], include_projects=False, include_teams=False
         )
+        first_org = None
+        if org_context:
+            first_org = org_context.organization
         has_webhooks = features.has("organizations:vercel-integration-webhooks", first_org)
         # one of two cases:
         #  1.) someone is deleting from vercel's end and we still need to delete the
