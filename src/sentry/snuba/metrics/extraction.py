@@ -568,12 +568,12 @@ class SupportedBy:
 
 
 def should_use_on_demand_metrics(
-    organization: Organization,
     dataset: str | Dataset | None,
     aggregate: str,
     query: str | None,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
+    organization: Organization | None = None,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
     groupbys = groupbys or []
@@ -594,6 +594,8 @@ def should_use_on_demand_metrics(
 
     # This helps us control which functions are allowed to use the new spec version.
     if function in OPS_REQUIRE_FEAT_FLAG:
+        if not organization:
+            raise ValueError(f"Organization is required for function {function}")
         feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
         if not features.has(feat_flag, organization):
             return False
