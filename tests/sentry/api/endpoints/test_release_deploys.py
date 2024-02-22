@@ -109,7 +109,6 @@ class ReleaseDeploysListTest(APITestCase):
 
         # Test that the first project returns the deploy as expected
         response_bar = self.client.get(url + f"?project={project.id}")
-
         assert response_bar.status_code == 200, response_bar.content
         assert len(response_bar.data) == 1
         assert response_bar.data[0]["environment"] == "production"
@@ -121,17 +120,15 @@ class ReleaseDeploysListTest(APITestCase):
 
         # Test that not setting the project id returns the deploy
         response = self.client.get(url)
-
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["environment"] == "production"
 
-        # Negative ID
-        response = self.client.get(url, data={"project": "-1"})
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["environment"] == "production"
+        # Negative ID set as the project_id is same as not setting it
+        response_negative = self.client.get(url, data={"project": "-1"})
+        assert response_negative.status_code == 200, response_negative.content
+        assert len(response_negative.data) == 1
+        assert response_negative.data[0]["environment"] == "production"
 
 
 class ReleaseDeploysCreateTest(APITestCase):
