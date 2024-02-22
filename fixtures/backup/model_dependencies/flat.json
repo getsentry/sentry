@@ -54,6 +54,9 @@
     "sentry.team",
     "sentry.user"
   ],
+  "sentry.alertruleactivationcondition": [
+    "sentry.alertrule"
+  ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
