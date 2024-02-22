@@ -68,9 +68,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             release__version=version,
         )
 
-        project_id = request.GET.get("project", None)
+        projects = self.get_projects(request, organization)
+        project_id = [p.id for p in projects]
+
         if project_id and project_id != "-1":
-            release_project_envs = release_project_envs.filter(project_id=project_id)
+            release_project_envs = release_project_envs.filter(project_id__in=project_id)
 
         deploy_ids = release_project_envs.values_list("last_deploy_id", flat=True)
         queryset = Deploy.objects.filter(id__in=deploy_ids)
