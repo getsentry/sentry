@@ -37,6 +37,7 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
 
     def post(self, request: Request, project: Project) -> Response:
+        self._assert_has_feature(request, project.organization)
         serializer = BundleStatsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
