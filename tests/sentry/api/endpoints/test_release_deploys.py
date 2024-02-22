@@ -126,6 +126,13 @@ class ReleaseDeploysListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["environment"] == "production"
 
+        # Negative ID
+        response = self.client.get(url, data={"project": "-1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["environment"] == "production"
+
 
 class ReleaseDeploysCreateTest(APITestCase):
     def setUp(self):
