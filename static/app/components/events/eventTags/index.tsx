@@ -96,30 +96,35 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   const orgSlug = organization.slug;
   const streamPath = `/organizations/${orgSlug}/issues/`;
-
   return (
     <StyledClippedBox clipHeight={150}>
-      <EventTagsTree
-        tags={tags}
-        meta={meta}
-        projectSlug={projectSlug}
-        projectId={projectId}
-        streamPath={streamPath}
-      />
-      <Pills>
-        {tags.map((tag, index) => (
-          <EventTagsPill
-            key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
-            tag={tag}
-            projectSlug={projectSlug}
-            projectId={projectId}
-            organization={organization}
-            query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
-            streamPath={streamPath}
-            meta={meta?.[index]}
-          />
-        ))}
-      </Pills>
+      {location.query.tagsTree ? (
+        <EventTagsTree
+          tags={tags}
+          meta={meta}
+          projectSlug={projectSlug}
+          projectId={projectId}
+          streamPath={streamPath}
+        />
+      ) : (
+        <Pills>
+          {tags.map((tag, index) => (
+            <EventTagsPill
+              key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+              tag={tag}
+              projectSlug={projectSlug}
+              projectId={projectId}
+              organization={organization}
+              query={generateQueryWithTag(
+                {...location.query, referrer: 'event-tags'},
+                tag
+              )}
+              streamPath={streamPath}
+              meta={meta?.[index]}
+            />
+          ))}
+        </Pills>
+      )}
     </StyledClippedBox>
   );
 }
