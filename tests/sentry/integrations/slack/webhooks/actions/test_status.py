@@ -358,6 +358,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
         )
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert "via" not in update_data["blocks"][5]["elements"][0]["text"]
 
     @responses.activate
     def test_archive_issue_until_escalating_block_kit_through_unfurl(self):
