@@ -7,6 +7,11 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def backfill_last_token_characters(apps, _):
+    from sentry.silo import SiloMode
+
+    current_mode = SiloMode.get_current_mode()
+    print(current_mode)
+
     ApiToken = apps.get_model("sentry", "ApiToken")
 
     for api_token in RangeQuerySetWrapperWithProgressBar(ApiToken.objects.all()):

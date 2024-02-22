@@ -107,7 +107,7 @@ def _escape(s):
 
 
 @pytest.fixture(autouse=True)
-def validate_silo_mode():
+def validate_silo_mode(request: pytest.FixtureRequest):
     # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
     # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has

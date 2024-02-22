@@ -486,3 +486,17 @@ def set_sentry_option():
 def django_cache():
     yield cache
     cache.clear()
+
+
+@pytest.fixture(scope="session")
+def before_setup():
+    from sentry.silo import SiloMode
+    from sentry.testutils.silo import assume_test_silo_mode
+
+    with assume_test_silo_mode(SiloMode.MONOLITH):
+        yield
+
+
+@pytest.fixture(scope="session")
+def django_db_setup(before_setup, django_db_setup):
+    pass
