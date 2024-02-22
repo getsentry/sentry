@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 from unittest import TestCase, mock
 
 import pytest
+import rb
 from django.utils.functional import SimpleLazyObject
 from sentry_redis_tools.failover_redis import FailoverRedis
 
@@ -23,7 +23,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 logger.setLevel(logging.ERROR)
 
 
-def _options_manager() -> dict[str, Any]:
+def _options_manager():
     return {
         "redis.clusters": {
             "foo": {"hosts": {0: {"db": 0}}},
@@ -88,6 +88,7 @@ def test_get_cluster_from_options_cluster_provided():
     )
 
     assert cluster is manager.get("foo")
+    assert isinstance(cluster, rb.Cluster)
     assert cluster.pool_cls is _shared_pool
     assert options == {"foo": "bar"}
 
@@ -108,6 +109,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
     assert warn.message.replacement == 'sentinel.backend["cluster"]'
 
     assert cluster is not manager.get("foo")  # kind of a silly assertion
+    assert isinstance(cluster, rb.Cluster)
     assert cluster.pool_cls is _shared_pool
     assert options == {"foo": "bar"}
 

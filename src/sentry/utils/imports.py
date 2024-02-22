@@ -17,7 +17,7 @@ class ModuleProxyCache(dict):
 _cache = ModuleProxyCache()
 
 
-def import_string(path):
+def import_string(path: str):
     """
     Path must be module.path.ClassName
 

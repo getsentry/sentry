@@ -1,9 +1,11 @@
 import logging
 from typing import ClassVar, cast
 
+import rb
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from rediscluster import RedisCluster
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
@@ -16,7 +18,11 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.utils.redis import get_dynamic_cluster_from_options
+from sentry.utils.redis import (
+    get_dynamic_cluster_from_options,
+    is_instance_rb_cluster,
+    is_instance_redis_cluster,
+)
 from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
@@ -125,12 +131,14 @@ class FeatureAdoptionRedisBackend:
             "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
         )
 
-    def get_client(self, key):
+    def get_client(self, key: str) -> rb.Cluster | RedisCluster:
         # WARN: Carefully as this works only for single key operations.
-        if self.is_redis_cluster:
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster
-        else:
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster.get_local_client_for_key(key)
+        else:
+            raise AssertionError("unreachable")
 
     def in_cache(self, organization_id, feature_id):
         org_key = self.key_tpl.format(organization_id)

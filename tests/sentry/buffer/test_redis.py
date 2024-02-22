@@ -12,6 +12,7 @@ from sentry.models.project import Project
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.redis import is_instance_rb_cluster, is_instance_redis_cluster
 
 
 class TestRedisBuffer:
@@ -194,15 +195,17 @@ class TestRedisBuffer:
     @mock.patch("sentry.buffer.redis.process_pending")
     def test_process_pending_partitions_none(self, process_pending, process_incr):
         self.buf.pending_partitions = 2
-        if self.buf.is_redis_cluster:
+        if is_instance_redis_cluster(self.buf.cluster, self.buf.is_redis_cluster):
             self.buf.cluster.zadd("b:p:0", {"foo": 1})
             self.buf.cluster.zadd("b:p:1", {"bar": 1})
             self.buf.cluster.zadd("b:p", {"baz": 1})
-        else:
+        elif is_instance_rb_cluster(self.buf.cluster, self.buf.is_redis_cluster):
             with self.buf.cluster.map() as client:
                 client.zadd("b:p:0", {"foo": 1})
                 client.zadd("b:p:1", {"bar": 1})
                 client.zadd("b:p", {"baz": 1})
+        else:
+            raise RuntimeError("unreachable")
 
         # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)
