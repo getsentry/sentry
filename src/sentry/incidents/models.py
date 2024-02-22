@@ -441,12 +441,6 @@ class AlertRuleMonitorType(Enum):
     ACTIVATED = 1
 
 
-class AlertRuleActivationTrigger(Enum):
-    RELEASE = 0
-    DEPLOY = 1
-    CUSTOM = 2
-
-
 @region_silo_only_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
