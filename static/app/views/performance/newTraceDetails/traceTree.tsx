@@ -22,6 +22,7 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from './guards';
+import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 
 /**
  *
@@ -276,12 +277,12 @@ export class TraceTree {
       if ('start_timestamp' in value && value.start_timestamp < traceStart) {
         traceStart = value.start_timestamp;
       }
-      if (
-        'timestamp' in value &&
-        typeof value.timestamp === 'number' &&
-        value.timestamp > traceEnd
-      ) {
-        traceEnd = value.timestamp;
+      if ('timestamp' in value && typeof value.timestamp === 'number') {
+        if (isTraceError(value)) {
+          traceStart = Math.min(value.timestamp, traceStart);
+        }
+
+        traceEnd = Math.max(value.timestamp, traceEnd);
       }
 
       if (value && 'children' in value) {

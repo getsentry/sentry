@@ -126,7 +126,9 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const rootEvent = props.traceSplitResult?.transactions?.[0];
+  const rootEvent =
+    props.traceSplitResult?.transactions?.[0] ||
+    props.traceSplitResult?.orphan_errors?.[0];
   const {projects} = useProjects();
   const tree = useMemo(() => {
     if (!props.traceSplitResult) {
@@ -155,8 +157,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     {
       staleTime: 0,
       enabled: !!(
-        props.traceSplitResult?.transactions &&
-        props.traceSplitResult.transactions.length > 0
+        (props.traceSplitResult?.transactions &&
+          props.traceSplitResult.transactions.length > 0) ||
+        (props.traceSplitResult?.orphan_errors &&
+          props.traceSplitResult.orphan_errors.length > 0)
       ),
     }
   );

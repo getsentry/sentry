@@ -10,10 +10,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -29,6 +29,8 @@ import {
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
+import Link from 'sentry/components/links/link';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 
 interface TraceProps {
   trace: TraceTree;
@@ -163,6 +165,7 @@ function Trace({trace, trace_id}: TraceProps) {
                       viewManager={viewManager.current!}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
+                      organization={organization}
                     />
                   );
                 }}
@@ -210,6 +213,7 @@ function RenderRow(props: {
   theme: Theme;
   trace_id: string;
   viewManager: VirtualizedViewManager;
+  organization: Organization;
 }) {
   const virtualizedIndex = props.index - props.startIndex;
   if (!props.node.value) {
@@ -615,9 +619,14 @@ function RenderRow(props: {
               ) : null}
             </div>
 
-            <span className="TraceOperation">{t('Error')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <Link
+              className="Errored"
+              to={generateIssueEventTarget(props.node.value, props.organization)}
+            >
+              <span className="TraceOperation">{t('Error')}</span>
+              <strong className="TraceEmDash"> — </strong>
+              <span className="TraceDescription">{props.node.value.title}</span>
+            </Link>
           </div>
         </div>
         <div
@@ -636,12 +645,18 @@ function RenderRow(props: {
               props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
-          {/* @TODO: figure out what to do with trace errors */}
-          {/* <TraceBar
-          space={props.space}
-          start_timestamp={props.node.value.start_timestamp}
-          timestamp={props.node.value.timestamp}
-        /> */}
+          {props.node.value.timestamp ? (
+            <div
+              className="ErrorIconBorder"
+              style={{
+                transform: `translateX(${props.viewManager.computeTransformXFromTimestamp(
+                  props.node.value.timestamp
+                )}px)`,
+              }}
+            >
+              <IconFire color="errorText" size="xs" />
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -996,6 +1011,24 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
+
+    .Errored {
+      color: ${p => p.theme.error};
+    }
+
+    .ErrorIconBorder {
+      position: absolute;
+      margin: ${space(0.25)};
+      left: -12px;
+      background: ${p => p.theme.background};
+      width: ${space(3)};
+      height: ${space(3)};
+      border: 1px solid ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
