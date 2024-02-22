@@ -1,7 +1,7 @@
 from typing import Any
 from unittest import TestCase, mock
 
-from sentry.testutils.pytest.mocking import capture_return_values
+from sentry.testutils.pytest.mocking import capture_results
 from tests.sentry.testutils.pytest.mocking.animals import (
     a_function_that_calls_erroring_get_dog,
     a_function_that_calls_get_cat,
@@ -16,7 +16,7 @@ class CaptureReturnValuesTest(TestCase):
     def test_return_values_as_list(self):
         get_dog_return_values: list[Any] = []
 
-        wrapped_get_dog = capture_return_values(get_dog, get_dog_return_values)
+        wrapped_get_dog = capture_results(get_dog, get_dog_return_values)
 
         with mock.patch(
             "tests.sentry.testutils.pytest.mocking.animals.get_dog",
@@ -29,8 +29,8 @@ class CaptureReturnValuesTest(TestCase):
     def test_return_values_as_dict(self):
         return_values: dict[str, list[Any]] = {}
 
-        wrapped_get_dog = capture_return_values(get_dog, return_values)
-        wrapped_get_cat = capture_return_values(get_cat, return_values)
+        wrapped_get_dog = capture_results(get_dog, return_values)
+        wrapped_get_cat = capture_results(get_cat, return_values)
 
         with (
             mock.patch(
@@ -53,7 +53,7 @@ class CaptureReturnValuesTest(TestCase):
     def test_records_thrown_exception(self):
         erroring_get_dog_results: list[Any] = []
 
-        wrapped_erroring_get_dog = capture_return_values(erroring_get_dog, erroring_get_dog_results)
+        wrapped_erroring_get_dog = capture_results(erroring_get_dog, erroring_get_dog_results)
 
         with mock.patch(
             "tests.sentry.testutils.pytest.mocking.animals.erroring_get_dog",

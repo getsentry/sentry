@@ -4,13 +4,13 @@ from collections.abc import Callable
 from typing import ParamSpec, TypeVar
 
 # TODO: Once we're on python 3.12, we can get rid of these and change the first line of the
-# signature of `capture_return_values` to
-#   def capture_return_values[T, **P](
+# signature of `capture_results` to
+#   def capture_results[T, **P](
 P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def capture_return_values(
+def capture_results(
     fn: Callable[P, T],
     results: list[T] | dict[str, list[T]],
 ) -> Callable[P, T]:
@@ -26,12 +26,12 @@ def capture_return_values(
     a single function in a list:
 
         from unittest import mock
-        from wherever import capture_return_values
+        from wherever import capture_results
         from animals import a_function_that_calls_get_dog, get_dog
 
         def test_getting_dog():
             get_dog_return_values = []
-            wrapped_get_dog = capture_return_values(
+            wrapped_get_dog = capture_results(
                 get_dog, get_dog_return_values
             )
 
@@ -46,7 +46,7 @@ def capture_return_values(
     dictionary:
 
         from unittest import mock
-        from wherever import capture_return_values
+        from wherever import capture_results
         from animals import (
             a_function_that_calls_get_dog,
             a_function_that_calls_get_cat,
@@ -56,10 +56,10 @@ def capture_return_values(
 
         def test_getting_animals():
             return_values = {}
-            wrapped_get_dog = capture_return_values(
+            wrapped_get_dog = capture_results(
                 get_dog, return_values
             )
-            wrapped_get_cat = capture_return_values(
+            wrapped_get_cat = capture_results(
                 get_cat, return_values
             )
 
@@ -84,12 +84,12 @@ def capture_return_values(
     by pytest. (If it bubbles up without getting caught, you can just use `pytest.raises`.):
 
         from unittest import mock
-        from wherever import capture_return_values
+        from wherever import capture_results
         from animals import a_function_that_calls_erroring_get_dog, erroring_get_dog
 
         def test_getting_dog_with_error():
             erroring_get_dog_return_values = []
-            wrapped_erroring_get_dog = capture_return_values(
+            wrapped_erroring_get_dog = capture_results(
                 erroring_get_dog, erroring_get_dog_return_values
             )
 
