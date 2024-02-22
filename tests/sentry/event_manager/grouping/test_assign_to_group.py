@@ -20,7 +20,7 @@ from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.mocking import capture_return_values
+from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -32,14 +32,12 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
-    wrapped_find_existing_grouphash = capture_return_values(find_existing_grouphash, return_values)
-    wrapped_find_existing_grouphash_new = capture_return_values(
+    wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
+    wrapped_find_existing_grouphash_new = capture_results(
         find_existing_grouphash_new, return_values
     )
-    wrapped_calculate_primary_hash = capture_return_values(_calculate_primary_hash, return_values)
-    wrapped_calculate_secondary_hash = capture_return_values(
-        _calculate_secondary_hash, return_values
-    )
+    wrapped_calculate_primary_hash = capture_results(_calculate_primary_hash, return_values)
+    wrapped_calculate_secondary_hash = capture_results(_calculate_secondary_hash, return_values)
 
     with (
         mock.patch(
