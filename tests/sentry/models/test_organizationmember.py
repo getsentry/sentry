@@ -26,7 +26,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 class MockOrganizationRoles:
     TEST_ORG_ROLES = [
         {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
-        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
+        {"id": "bob", "name": "Bob", "scopes": ["project:read", "alerts:write"]},
         {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
     ]
 
@@ -516,6 +516,32 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert carol.get_allowed_org_roles_to_invite() == [
                 roles.get("carol"),
             ]
+
+    def test_get_allowed_org_roles_to_invite_subset_member_logic(self):
+        """
+        There are two org options which mutate org member scopes:
+            1. sentry:events_member_admin - if True, members have events:admin
+            2. sentry:alerts_member_write - if True, members have alerts:write
+        These settings are both True by default, although in the SENTRY_ROLES
+        config, we default to giving member alerts:write but not events:admin.
+        """
+        org_member = self.create_member(
+            user=self.create_user(), organization=self.organization, role="member"
+        )
+
+        assert "event:admin" in org_member.get_scopes()
+        assert "alerts:write" in org_member.get_scopes()
+
+        assert org_member.get_allowed_org_roles_to_invite() == [
+            roles.get("member"),
+        ]
+
+        self.organization.update_option("sentry:events_member_admin", False)
+        self.organization.update_option("sentry:events_member_admin", False)
+
+        assert org_member.get_allowed_org_roles_to_invite() == [
+            roles.get("member"),
+        ]
 
     def test_org_roles_by_source(self):
         manager_team = self.create_team(organization=self.organization, org_role="manager")
