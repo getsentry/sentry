@@ -812,6 +812,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
                 )
+            if "sentry:feedback_user_report_notification" in options:
+                project.update_option(
+                    "sentry:feedback_user_report_notification",
+                    bool(options["sentry:feedback_user_report_notification"]),
+                )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
                     "sentry:reprocessing_active",

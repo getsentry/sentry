@@ -214,7 +214,13 @@ def get_tags(
     ):
         default_tags = set()
 
-    tags = tags | default_tags
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+    # improved block kit only uses alert rule tags
+    if not use_improved_block_kit:
+        tags = tags | default_tags
+
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
