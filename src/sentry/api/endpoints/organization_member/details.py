@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.bases.organizationmember import MemberPermission
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
@@ -87,7 +87,7 @@ ROLE_CHOICES = [
 ]
 
 
-class RelaxedMemberPermission(MemberPermission):
+class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
