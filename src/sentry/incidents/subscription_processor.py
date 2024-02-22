@@ -282,8 +282,10 @@ class SubscriptionProcessor:
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
-        """Handle both update formats. Once all subscriptions have been updated
-        to v2, we can remove v1 and replace this function with current v2.
+        """
+        Handle both update formats.
+        Once all subscriptions have been updated to v2,
+        we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
         if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
@@ -410,6 +412,9 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
+        """
+        This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
+        """
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -438,6 +443,10 @@ class SubscriptionProcessor:
             )
             # TODO: Delete subscription here.
             return
+
+        # TODO:
+        # if AlertRule.monitor_type === ACTIVATED and AlertRule.is_expired():
+        #       delete query in snuba
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
@@ -482,6 +491,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
 
+        # OVER/UNDER value trigger
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]

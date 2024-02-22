@@ -35,6 +35,7 @@ from sentry.incidents.logic import (
     query_datasets_to_type,
 )
 from sentry.incidents.models import (
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
@@ -1481,6 +1482,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
+        monitor_type=AlertRuleMonitorType.CONTINUOUS,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1507,6 +1509,7 @@ class Factories:
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
+            monitor_type=monitor_type,
         )
 
         if date_added is not None:

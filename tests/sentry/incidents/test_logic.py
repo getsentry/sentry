@@ -2452,7 +2452,9 @@ class TestCustomMetricAlertRule(TestCase):
         mocked_schedule_invalidate_project_config.assert_not_called()
 
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule(self, mocked_schedule_invalidate_project_config):
+    def test_create_custom_metric_alert_rule_extraction(
+        self, mocked_schedule_invalidate_project_config
+    ):
         with self.feature({"organizations:on-demand-metrics-extraction": True}):
             self.create_alert_rule(
                 projects=[self.project],
@@ -2464,8 +2466,10 @@ class TestCustomMetricAlertRule(TestCase):
                 trigger="alerts:create-on-demand-metric", project_id=self.project.id
             )
 
-        mocked_schedule_invalidate_project_config.reset_mock()
-
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_alert_rule_prefill(
+        self, mocked_schedule_invalidate_project_config
+    ):
         with self.feature({"organizations:on-demand-metrics-prefill": True}):
             self.create_alert_rule(
                 projects=[self.project],

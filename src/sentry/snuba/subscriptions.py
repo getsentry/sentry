@@ -17,7 +17,7 @@ def create_snuba_query(
     query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
 ):
     """
-    Creates a SnubaQuery.
+    Constructs a SnubaQuery which is the postgres representation of a query in snuba
 
     :param query_type: The SnubaQuery.Type of this query
     :param dataset: The snuba dataset to query and aggregate over
@@ -81,6 +81,9 @@ def update_snuba_query(
     :param event_types: A (currently) optional list of event_types that apply to this
     query. If not passed, we'll use the existing event types on the query.
     :return: A list of QuerySubscriptions
+
+    TODO: Ensure update handles activated alert rule updates
+    eg. insert start_time into query, insert release version into query, etc.
     """
     current_event_types = set(snuba_query.event_types)
     if not event_types:
@@ -146,6 +149,8 @@ def create_snuba_subscription(project, subscription_type, snuba_query) -> QueryS
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
+
+    TODO: construct QuerySubscription with query_extra
     """
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,

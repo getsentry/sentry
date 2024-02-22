@@ -211,6 +211,7 @@
   "sentry_incident",
   "sentry_dashboardwidgetquery",
   "sentry_alertruletrigger",
+  "sentry_alertruleprojects",
   "sentry_alertruleexcludedprojects",
   "sentry_alertruleactivity",
   "sentry_timeseriessnapshot",

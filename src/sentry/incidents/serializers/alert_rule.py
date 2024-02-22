@@ -86,6 +86,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
+    monitor_type = serializers.IntegerField(required=False, min_value=0)
 
     class Meta:
         model = AlertRule
@@ -107,6 +108,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "excluded_projects",
             "triggers",
             "event_types",
+            "monitor_type",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
