@@ -63,16 +63,16 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        releases = ReleaseProjectEnvironment.objects.select_related("release").filter(
+        release_project_envs = ReleaseProjectEnvironment.objects.select_related("release").filter(
             release__organization_id=organization.id,
             release__version=version,
         )
 
         project_id = request.GET.get("project", None)
         if project_id:
-            releases.filter(project_id=project_id)
+            release_project_envs.filter(project_id=project_id)
 
-        deploy_ids = releases.values_list("last_deploy_id", flat=True)
+        deploy_ids = release_project_envs.values_list("last_deploy_id", flat=True)
         queryset = Deploy.objects.filter(id__in=deploy_ids)
 
         return self.paginate(

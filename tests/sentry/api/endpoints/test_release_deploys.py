@@ -18,20 +18,41 @@ class ReleaseDeploysListTest(APITestCase):
             version="1–0",
         )
         release.add_project(project)
-        Deploy.objects.create(
-            environment_id=Environment.objects.create(
-                organization_id=project.organization_id, name="production"
-            ).id,
+        production_env = Environment.objects.create(
+            organization_id=project.organization_id,
+            name="production",
+        )
+
+        prod_deploy = Deploy.objects.create(
+            environment_id=production_env.id,
             organization_id=project.organization_id,
             release=release,
             date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
         )
-        Deploy.objects.create(
-            environment_id=Environment.objects.create(
-                organization_id=project.organization_id, name="staging"
-            ).id,
+
+        staging_env = Environment.objects.create(
+            organization_id=project.organization_id,
+            name="staging",
+        )
+
+        staging_deploy = Deploy.objects.create(
+            environment_id=staging_env.id,
             organization_id=project.organization_id,
             release=release,
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release=release,
+            environment=production_env,
+            last_deploy_id=prod_deploy.id,
+        )
+
+        ReleaseProjectEnvironment.objects.create(
+            project=project,
+            release=release,
+            environment=staging_env,
+            last_deploy_id=staging_deploy.id,
         )
 
         url = reverse(
