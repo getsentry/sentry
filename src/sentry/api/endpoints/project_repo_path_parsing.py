@@ -1,4 +1,5 @@
-from pathlib import PureWindowsPath
+from pathlib import PurePath, PureWindowsPath
+from urllib.parse import urlparse
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -19,18 +20,25 @@ def find_roots(stack_path, source_path):
     Returns a tuple containing the stack_root, and the source_root.
     If there is no overlap, raise an exception since this should not happen
     """
-    overlap_to_check = stack_path
-    stack_root = ""
+    stack_path_delim = "/" if "/" in stack_path else "\\"
+    overlap_to_check = stack_path.split(stack_path_delim)
+    stack_root = []
     while overlap_to_check:
-        # see if our path ends with the overlap we want
-        if source_path.endswith(overlap_to_check):
-            # determine the source root by removing the overlap
-            source_root = source_path.rpartition(overlap_to_check)[0]
+        if source_path.endswith(overlap := "/".join(overlap_to_check)):
+            source_root = source_path.rpartition(overlap)[0]
+            stack_root = stack_path_delim.join(stack_root)
+            if not source_root:  # replace empty source root with "slash"
+                source_root = "/"
+            if not stack_root:  # replace empty stack root with "dot slash"
+                stack_root = f".{stack_path_delim}"
+            else:  # append trailing slash
+                stack_root = f"{stack_root}{stack_path_delim}"
+
             return (stack_root, source_root)
-        # increase the stack root specificity
-        # while decreasing the overlap
-        stack_root += overlap_to_check[0]
-        overlap_to_check = overlap_to_check[1:]
+
+        # increase stack root specificity, decrease overlap specifity
+        stack_root.append(overlap_to_check.pop(0))
+
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
     raise Exception("Could not find common root from paths")
@@ -60,7 +68,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
         stack_path = self.initial_data["stack_path"]
 
         stack_file = PureWindowsPath(stack_path).name
-        source_file = PureWindowsPath(source_url).name
+        source_file = PurePath(urlparse(source_url).path).name
 
         if stack_file != source_file:
             raise serializers.ValidationError(
@@ -133,12 +141,6 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         source_url = data["source_url"]
         stack_path = data["stack_path"]
 
-        # If stack_path uses backslashes, convert them to forward slashes for find_root function
-        is_backslash_stack_path = False
-        if "\\" in stack_path:
-            is_backslash_stack_path = True
-            stack_path = PureWindowsPath(stack_path).as_posix()
-
         repo = serializer.repo
         integration = serializer.integration
         installation = integration.get_installation(project.organization_id)
@@ -146,10 +148,6 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
         stack_root, source_root = find_roots(stack_path, source_path)
-
-        # If stack_path used backslashes, convert forward slashes back to backslashes
-        if is_backslash_stack_path:
-            stack_root = str(PureWindowsPath(stack_root))
 
         return self.respond(
             {
