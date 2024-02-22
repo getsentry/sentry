@@ -24,6 +24,7 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
         organization=instance.organization, include_all_projects=True
     )
     for alert_rule in alert_rules:
+        # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
         subscribe_projects_to_alert_rule(alert_rule, [instance])
 
 

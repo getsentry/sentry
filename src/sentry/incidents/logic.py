@@ -586,7 +586,7 @@ def create_alert_rule(
             AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
-        # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
+        # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
         # Activity is an audit log of what's happened with this alert rule
@@ -854,11 +854,12 @@ def subscribe_projects_to_alert_rule(alert_rule: AlertRule, projects: list[Proje
     :return: The list of created subscriptions
 
     TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
-    TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
     """
-    return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
-    )
+    # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
+    if alert_rule.monitor_type == AlertRuleMonitorType.CONTINUOUS.value:
+        return bulk_create_snuba_subscriptions(
+            projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
+        )
 
 
 def enable_alert_rule(alert_rule):
