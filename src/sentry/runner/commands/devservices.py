@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import http
+import json  # noqa
 import os
 import signal
 import subprocess
@@ -163,6 +164,17 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
     return rv
 
 
+def ensure_docker_cli_context(context: str):
+    # this is faster than running docker context use ...
+    with open(os.path.expanduser("~/.docker/config.json"), "rb") as f:
+        config = json.loads(f.read())
+
+    config["currentContext"] = context
+
+    with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
+        f.write(json.dumps(config))
+
+
 @click.group()
 def devservices() -> None:
     """
@@ -176,10 +188,13 @@ def devservices() -> None:
 
     if USE_DOCKER_DESKTOP:
         click.echo("Using docker desktop.")
+        ensure_docker_cli_context("desktop-linux")
     if USE_COLIMA:
         click.echo("Using colima.")
+        ensure_docker_cli_context("colima")
     if USE_ORBSTACK:
         click.echo("Using orbstack.")
+        ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()
