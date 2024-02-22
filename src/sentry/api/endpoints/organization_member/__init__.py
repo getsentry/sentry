@@ -102,7 +102,6 @@ def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
-    log_scopes: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -115,12 +114,6 @@ def get_allowed_org_roles(
     if is_active_superuser(request):
         return roles.get_all()
     if not request.access.has_scope("member:admin"):
-        ids = {}
-        if member:
-            ids["member_id"] = member.id
-        if hasattr(request, "user") and hasattr(request.user, "id"):
-            ids["user_id"] = request.user.id
-        logger.info("request.missing_scope", extra=ids)
         return ()
 
     if member is None:
@@ -133,7 +126,7 @@ def get_allowed_org_roles(
             # token whose proxy user does not have an OrganizationMember object.
             return ()
 
-    return member.get_allowed_org_roles_to_invite(log_scopes=log_scopes)
+    return member.get_allowed_org_roles_to_invite()
 
 
 from .details import OrganizationMemberDetailsEndpoint
