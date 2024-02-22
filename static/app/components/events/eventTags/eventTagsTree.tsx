@@ -70,21 +70,30 @@ function EventTagsTree({tags}: EventTagsTreeProps) {
   const tagTree = tags.reduce<TagTree>((tree, tag) => addToTagTree(tree, tag), {});
 
   return (
-    <TreeGarden>
-      {Object.keys(tagTree).map((tag, i) => (
-        <TreeItem key={`${tag}_${i}`}>
-          <TagTreeKeys tag={tag} content={tagTree[tag]} />
-          <TagTreeValues tag={tag} content={tagTree[tag]} />
-        </TreeItem>
-      ))}
-    </TreeGarden>
+    <TreeContainer>
+      <TreeGarden>
+        {Object.keys(tagTree).map((tag, i) => (
+          <TreeItem key={`${tag}_${i}`}>
+            <TagTreeKeys tag={tag} content={tagTree[tag]} />
+            <TagTreeValues tag={tag} content={tagTree[tag]} />
+          </TreeItem>
+        ))}
+      </TreeGarden>
+    </TreeContainer>
   );
 }
 
+const TreeContainer = styled('div')`
+  column-count: 2;
+  column-rule: 1px solid ${p => p.theme.gray100};
+  column-gap: 15%;
+`;
+
 const TreeGarden = styled('div')`
   display: grid;
-  gap: ${space(1)};
-  grid-template-columns: auto 1fr;
+  gap: ${space(1)} ${space(2)};
+  grid-template-columns: 1fr 1fr;
+  width: 200px;
 `;
 
 const TreeItem = styled('div')`
@@ -122,7 +131,8 @@ const TreeValue = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   grid-column: 1 / 2;
   line-height: 1;
-  white-space: pre-wrap;
+  white-space: pre;
+  overflow-x: scroll;
 `;
 
 const TreeKey = styled(TreeValue)`
