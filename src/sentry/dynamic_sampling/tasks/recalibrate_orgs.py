@@ -1,21 +1,10 @@
-import time
-
-from snuba_sdk import Granularity
-
 from sentry import quotas
 from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
-from sentry.dynamic_sampling.tasks.common import (
-    GetActiveOrgsVolumes,
-    OrganizationDataVolume,
-    TimedIterator,
-    TimeoutException,
-)
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
-    CHUNK_SIZE,
     MAX_REBALANCE_FACTOR,
     MAX_TASK_SECONDS,
     MIN_REBALANCE_FACTOR,
-    RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
@@ -56,18 +45,20 @@ class RecalibrationError(Exception):
 def recalibrate_orgs(context: TaskContext) -> None:
     for org_volumes in TimedIterator(
         context,
-        GetActiveOrgsVolumes(
-            max_orgs=CHUNK_SIZE,
-            time_interval=RECALIBRATE_ORGS_QUERY_INTERVAL,
-            granularity=Granularity(60),
-        ),
+        GetActiveOrgsVolumes(),
     ):
+        valid_orgs = []
         for org_volume in org_volumes:
-            recalibrate_org.delay(org_volume, context)
+            if org_volume.is_valid_for_recalibration:
+                valid_orgs.append((org_volume.org_id, org_volume.total, org_volume.indexed))
+
+        # We run an asynchronous job for recalibrating a batch of orgs whose size is specified in
+        # `GetActiveOrgsVolumes`.
+        recalibrate_orgs_batch.delay(valid_orgs)
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.tasks.recalibrate_org",
+    name="sentry.dynamic_sampling.tasks.recalibrate_orgs_batch",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
@@ -75,95 +66,77 @@ def recalibrate_orgs(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-def recalibrate_org(org_volume: OrganizationDataVolume, context: TaskContext) -> None:
-    if time.monotonic() > context.expiration_time:
-        raise TimeoutException(context)
+def recalibrate_orgs_batch(orgs: list[tuple[int, int, int | None]]) -> None:
+    for org_id, total, indexed in orgs:
+        recalibrate_org(org_id, total, indexed)
 
-    func_name = recalibrate_org.__name__
-    timer = context.get_timer(func_name)
-    with timer:
-        # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
-        # recalibration.
-        if not org_volume.is_valid_for_recalibration():
-            raise RecalibrationError(
-                org_id=org_volume.org_id, message="invalid data for recalibration"
-            )
 
-        assert org_volume.indexed is not None
+def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
+    try:
+        # We need the organization object for the feature flag.
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        # In case an org is not found, it might be that it has been deleted in the time between
+        # the query triggering this job and the actual execution of the job.
+        organization = None
 
-        try:
-            # We need the organization object for the feature flag.
-            organization = Organization.objects.get_from_cache(id=org_volume.org_id)
-        except Organization.DoesNotExist:
-            # In case an org is not found, it might be that it has been deleted in the time between
-            # the query triggering this job and the actual execution of the job.
-            organization = None
+    # By default, we use the blended sample rate.
+    target_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
 
-        # By default, we use the blended sample rate.
-        target_sample_rate = quotas.backend.get_blended_sample_rate(
-            organization_id=org_volume.org_id
+    # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case
+    # of issues.
+    if organization is not None and is_sliding_window_org_enabled(organization):
+        target_sample_rate = get_sliding_window_org_sample_rate(
+            org_id=org_id,
+            default_sample_rate=target_sample_rate,
+            notify_missing=True,
+        )
+        log_sample_rate_source(
+            org_id,
+            None,
+            "recalibrate_orgs",
+            "sliding_window_org",
+            target_sample_rate,
+        )
+    else:
+        log_sample_rate_source(
+            org_id,
+            None,
+            "recalibrate_orgs",
+            "blended_sample_rate",
+            target_sample_rate,
         )
 
-        # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case
-        # of issues.
-        if organization is not None and is_sliding_window_org_enabled(organization):
-            target_sample_rate = get_sliding_window_org_sample_rate(
-                org_id=org_volume.org_id,
-                default_sample_rate=target_sample_rate,
-                notify_missing=True,
-            )
-            log_sample_rate_source(
-                org_volume.org_id,
-                None,
-                "recalibrate_orgs",
-                "sliding_window_org",
-                target_sample_rate,
-            )
-        else:
-            log_sample_rate_source(
-                org_volume.org_id,
-                None,
-                "recalibrate_orgs",
-                "blended_sample_rate",
-                target_sample_rate,
-            )
-
-        # If we didn't find any sample rate, we can't recalibrate the organization.
-        if target_sample_rate is None:
-            raise RecalibrationError(
-                org_id=org_volume.org_id,
-                message="Couldn't get target sample rate for org recalibration",
-            )
-
-        # We compute the effective sample rate that we had in the last considered time window.
-        effective_sample_rate = org_volume.indexed / org_volume.total
-        # We get the previous factor that was used for the recalibration.
-        previous_factor = get_adjusted_factor(org_volume.org_id)
-
-        log_recalibrate_org_state(
-            org_volume.org_id, previous_factor, effective_sample_rate, target_sample_rate
+    # If we didn't find any sample rate, we can't recalibrate the organization.
+    if target_sample_rate is None:
+        raise RecalibrationError(
+            org_id=org_id,
+            message="Couldn't get target sample rate for org recalibration",
         )
 
-        # We want to compute the new adjusted factor.
-        adjusted_factor = compute_adjusted_factor(
-            previous_factor, effective_sample_rate, target_sample_rate
+    # We compute the effective sample rate that we had in the last considered time window.
+    effective_sample_rate = indexed / total
+    # We get the previous factor that was used for the recalibration.
+    previous_factor = get_adjusted_factor(org_id)
+
+    log_recalibrate_org_state(org_id, previous_factor, effective_sample_rate, target_sample_rate)
+
+    # We want to compute the new adjusted factor.
+    adjusted_factor = compute_adjusted_factor(
+        previous_factor, effective_sample_rate, target_sample_rate
+    )
+    if adjusted_factor is None:
+        raise RecalibrationError(org_id=org_id, message="The adjusted factor can't be computed")
+
+    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+        # In case the new factor would result into too much recalibration, we want to remove it from cache,
+        # effectively removing the generated rule.
+        delete_adjusted_factor(org_id)
+        raise RecalibrationError(
+            org_id=org_id,
+            message=f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
+            f"{MAX_REBALANCE_FACTOR}]",
         )
-        if adjusted_factor is None:
-            raise RecalibrationError(
-                org_id=org_volume.org_id, message="The adjusted factor can't be computed"
-            )
 
-        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-            # In case the new factor would result into too much recalibration, we want to remove it from cache,
-            # effectively removing the generated rule.
-            delete_adjusted_factor(org_volume.org_id)
-            raise RecalibrationError(
-                org_id=org_volume.org_id,
-                message=f"The adjusted factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}.."
-                f"{MAX_REBALANCE_FACTOR}]",
-            )
-
-        # At the end we set the adjusted factor.
-        set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
-
-    context.incr_function_state(function_id=func_name, num_orgs=1, num_iterations=1)
+    # At the end we set the adjusted factor.
+    set_guarded_adjusted_factor(org_id, adjusted_factor)
