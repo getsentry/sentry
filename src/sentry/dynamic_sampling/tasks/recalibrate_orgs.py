@@ -25,6 +25,7 @@ from sentry.dynamic_sampling.tasks.logging import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
 )
@@ -71,6 +72,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
+@dynamic_sampling_task
 def recalibrate_orgs_batch(orgs: Sequence[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
         try:
