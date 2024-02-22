@@ -1891,6 +1891,24 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     )
 
 
+def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
+    """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
+
+    error_message = err.args[0]
+
+    if not error_message.startswith("UniqueViolation"):
+        return False
+
+    for substring in [
+        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+    ]:
+        if substring in error_message:
+            return True
+
+    return False
+
+
 def _get_next_short_id(project: Project, delta: int = 1) -> int:
     try:
         short_id = project.next_short_id(delta=delta)
