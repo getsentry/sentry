@@ -128,7 +128,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         # recording consumer is responsible for publishing all replay-events to snuba.
         if message.replay_event:
             publisher = initialize_replays_publisher(is_async=False)
-            publisher.publish("ingest-replay-events", message.replay_event, send_async=False)
+            publisher.publish("ingest-replay-events", message.replay_event)
 
     recording_post_processor(message, headers, recording_segment, transaction)
 
