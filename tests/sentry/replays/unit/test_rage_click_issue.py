@@ -100,20 +100,6 @@ def test_report_rage_click_issue_a_tag(mock_new_issue_occurrence, default_projec
         },
     }
 
-    # event = {
-    #     "data": {
-    #         "payload": {
-    #             "data": {
-    #                 "node": {"tagName": "a"},
-    #                 "endReason": "timeout",
-    #                 "url": "https://www.sentry.io",
-    #             },
-    #             "message": "div.xyz > a",
-    #             "timestamp": time.time(),
-    #         }
-    #     }
-    # }
-
 
 @django_db_all
 @patch("sentry.replays.usecases.ingest.issue_creation.new_issue_occurrence")
