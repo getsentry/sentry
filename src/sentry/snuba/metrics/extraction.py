@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
 # Certain functions will only be supported with certain feature flags
-OPS_REQUIRE_FEAT_FLAG = {}
+OPS_REQUIRE_FEAT_FLAG: dict[str, str] = {}
 
 
 # This helps us control the different spec versions
@@ -567,7 +567,7 @@ class SupportedBy:
         )
 
 
-def org_can_query_on_demand_spec(organization_id: int, **kwargs) -> bool:
+def org_can_query_on_demand_spec(organization_id: int, **kwargs: dict[str, Any]) -> bool:
     """Helper function to check if an organization can query an specific on-demand function"""
     components = _extract_aggregate_components(kwargs["aggregate"])
     if components is None:
