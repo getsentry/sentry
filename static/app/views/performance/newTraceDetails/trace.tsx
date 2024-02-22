@@ -791,7 +791,6 @@ interface TraceBarProps {
   viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
   duration?: number;
-  hideDuration?: boolean;
 }
 
 type SiblingAutogroupedBarProps = Omit<TraceBarProps, 'node_space' | 'duration'> & {
@@ -834,8 +833,7 @@ function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
         viewManager={props.viewManager}
         color={props.color}
         node_space={[start, end - start]}
-        duration={totalDuration}
-        hideDuration={hasGap}
+        duration={!hasGap ? totalDuration : undefined}
       />
     );
 
@@ -886,24 +884,21 @@ function TraceBar(props: TraceBarProps) {
         backgroundColor: props.color,
       }}
     >
-      {!props.hideDuration && (
-        <div
-          className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
-          style={{
-            left:
-              textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
-            transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
-              textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
-            }, 0)`,
-          }}
-        >
-          {/* Use node space to calculate duration if the duration prop is not provided. */}
-          <PerformanceDuration
-            seconds={props.duration ?? props.node_space[1]}
-            abbreviation
-          />
-        </div>
-      )}
+      <div
+        className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
+        style={{
+          left: textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
+          transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
+            textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
+          }, 0)`,
+        }}
+      >
+        {/* Use node space to calculate duration if the duration prop is not provided. */}
+        <PerformanceDuration
+          seconds={props.duration ?? props.node_space[1]}
+          abbreviation
+        />
+      </div>
     </div>
   );
 }
