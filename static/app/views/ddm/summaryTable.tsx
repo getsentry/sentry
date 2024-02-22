@@ -361,7 +361,7 @@ const SummaryTableWrapper = styled(`div`)`
 const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+    p.hasActions ? '24px 8fr repeat(5, 80px)' : '24px 8fr repeat(4, 80px)'};
   overflow-y: auto;
   scrollbar-gutter: stable;
   max-height: 170px;
@@ -371,7 +371,7 @@ const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
 const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+    p.hasActions ? '24px 8fr repeat(5, 80px)' : '24px 8fr repeat(4, 80px)'};
   overflow-y: auto;
   scrollbar-gutter: stable;
   background-color: ${p => p.theme.backgroundSecondary};
