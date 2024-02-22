@@ -16,7 +16,7 @@ export type SortState = {
 };
 
 export interface FocusedMetricsSeries {
-  seriesName: string;
+  id: string;
   groupBy?: Record<string, string>;
 }
 
