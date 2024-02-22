@@ -1636,28 +1636,12 @@ def _save_aggregate_new(
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
-    # Background grouping is a way for us to get performance metrics for a new
-    # config without having it actually affect on how events are grouped. It runs
-    # either before or after the main grouping logic, depending on the option value.
-    maybe_run_background_grouping(project, job)
-
+    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
     secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
         project, job, metric_tags
     )
 
-    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
-
-    record_hash_calculation_metrics(
-        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
-    )
-
     all_hashes = extract_hashes(primary_hashes) + extract_hashes(secondary_hashes)
-
-    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
-    # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
-    # erroneously create new groups.
-    update_grouping_config_if_needed(project)
 
     grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in all_hashes
@@ -1665,10 +1649,31 @@ def _save_aggregate_new(
 
     existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    if existing_grouphash is None:
-        return create_group_with_grouphashes(job, grouphashes, group_processing_kwargs)
+    if existing_grouphash:
+        group_info = handle_existing_grouphash(
+            job, existing_grouphash, grouphashes, group_processing_kwargs
+        )
+    else:
+        group_info = create_group_with_grouphashes(job, grouphashes, group_processing_kwargs)
 
-    return handle_existing_grouphash(job, existing_grouphash, grouphashes, group_processing_kwargs)
+    # From here on out, we're just doing housekeeping
+
+    # Background grouping is a way for us to get performance metrics for a new
+    # config without having it actually affect on how events are grouped. It runs
+    # either before or after the main grouping logic, depending on the option value.
+    maybe_run_background_grouping(project, job)
+
+    record_hash_calculation_metrics(
+        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+    )
+
+    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
+    # hashes, we're free to perform a config update if needed. Future events will use the new
+    # config, but will also be grandfathered into the current config for a week, so as not to
+    # erroneously create new groups.
+    update_grouping_config_if_needed(project)
+
+    return group_info
 
 
 def handle_existing_grouphash(
