@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR_BAR,
+  SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -45,7 +45,7 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
         ...(primaryRelease === releaseName
           ? {color: PRIMARY_RELEASE_COLOR}
           : {
-              color: SECONDARY_RELEASE_COLOR_BAR,
+              color: SECONDARY_RELEASE_COLOR,
               lineStyle: {type: 'dashed'},
             }),
       };

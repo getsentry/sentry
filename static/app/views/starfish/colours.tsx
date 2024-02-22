@@ -12,4 +12,4 @@ export const COLD_START_COLOR = '#3C74DD';
 export const WARM_START_COLOR = '#3A2D96';
 
 export const PRIMARY_RELEASE_COLOR = COLD_START_COLOR;
-export const SECONDARY_RELEASE_COLOR_BAR = Color(COLD_START_COLOR).lighten(0.4).string();
+export const SECONDARY_RELEASE_COLOR = Color(COLD_START_COLOR).lighten(0.4).string();

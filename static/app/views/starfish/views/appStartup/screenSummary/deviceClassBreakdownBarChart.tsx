@@ -20,7 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {
   PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR_BAR,
+  SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/starfish/colours';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -145,7 +145,7 @@ function DeviceClassBreakdownBarChart({
               right: 12,
             }}
             height={chartHeight}
-            colors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR_BAR]}
+            colors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
             series={
               data.map(series => ({
                 ...series,
@@ -157,7 +157,7 @@ function DeviceClassBreakdownBarChart({
                           color:
                             series.seriesName === primaryRelease
                               ? PRIMARY_RELEASE_COLOR
-                              : SECONDARY_RELEASE_COLOR_BAR,
+                              : SECONDARY_RELEASE_COLOR,
                         },
                       }
                     : datum
