@@ -85,7 +85,7 @@ def test_group_creation_race_new(
     group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
     save_aggregate_kwargs = {
         "event": event,
-        "job": {"event_metadata": {}, "release": "dogpark"},
+        "job": {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
         "metric_tags": {},
     }
     if not use_save_aggregate_new:
@@ -99,8 +99,8 @@ def test_group_creation_race_new(
     def save_event():
         try:
             with patch(
-                "sentry.event_manager.get_hash_values",
-                return_value=(hashes, hashes, hashes),
+                "sentry.grouping.ingest._calculate_event_grouping",
+                return_value=hashes,
             ):
                 with patch(
                     f"sentry.event_manager.{group_kwargs_fn_name}",

@@ -122,10 +122,13 @@ def send_beacon():
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
     # getting an option sets it to the default value, so let's avoid doing that if for some reason consent prompt is somehow skipped because of this
-    send_cpu_ram_usage = options.get("beacon.record_cpu_ram_usage")
+    send_cpu_ram_usage = (
+        options.get("beacon.record_cpu_ram_usage")
+        if options.isset("beacon.record_cpu_ram_usage")
+        else False
+    )
     event_categories_count = get_category_event_count_24h()
-    bytes_in_gibibyte = 1024**3
-
+    byte_in_gibibyte = 1024**3
     payload = {
         "install_id": install_id,
         "version": sentry.get_version(),
