@@ -83,7 +83,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             activity_type = ActivityType.SET_REGRESSION
         elif new_substatus == GroupSubStatus.ONGOING:
             if group.substatus == GroupSubStatus.ESCALATING:
-                # If the group was previously escalating, we need to update the priority via AUTO_SET_ONGOING
+                # If the group was previously escalating, update the priority via AUTO_SET_ONGOING
                 activity_type = ActivityType.AUTO_SET_ONGOING
             else:
                 activity_type = ActivityType.SET_UNRESOLVED

@@ -18,6 +18,7 @@ class SortOptions:
     DATE = "date"
     NEW = "new"
     PRIORITY = "priority"
+    TRENDS = "trends"
     FREQ = "freq"
     USER = "user"
     INBOX = "inbox"
@@ -28,6 +29,7 @@ class SortOptions:
             (cls.DATE, _("Last Seen")),
             (cls.NEW, _("First Seen")),
             (cls.PRIORITY, _("Priority")),
+            (cls.TRENDS, _("Trends")),
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
             (cls.INBOX, _("Date Added")),

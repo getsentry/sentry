@@ -39,7 +39,6 @@ def bulk_transition_group_to_ongoing(
     for group in groups_to_transistion:
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
-        # TODO(snigdha): do we need to update the priority here?
 
     with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)

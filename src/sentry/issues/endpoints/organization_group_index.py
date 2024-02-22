@@ -185,6 +185,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = inbox_search(**query_kwargs)
             else:
                 query_kwargs["referrer"] = "search.group_index"
+                # TODO(snigdha): remove this once we've migrated saved searches to replace priority with trends
+                if query_kwargs["sort_by"] == "priority":
+                    query_kwargs["sort_by"] = "trends"
+
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 
