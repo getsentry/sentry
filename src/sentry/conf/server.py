@@ -1092,6 +1092,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_reports",
+        "schedule": crontab(
+            minute=0,
+            hour=12,  # 16:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
     # "schedule-monthly-invite-missing-org-members": {
     #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
     #     "schedule": crontab(
@@ -1492,6 +1500,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": True,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards

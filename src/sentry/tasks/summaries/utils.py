@@ -18,6 +18,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
@@ -28,7 +29,9 @@ ONE_DAY = int(timedelta(days=1).total_seconds())
 
 
 class OrganizationReportContext:
-    def __init__(self, timestamp, duration, organization):
+    def __init__(
+        self, timestamp: float, duration: int, organization: Organization, daily: bool = False
+    ):
         self.timestamp = timestamp
         self.duration = duration
 
@@ -41,6 +44,13 @@ class OrganizationReportContext:
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
+
+        self.daily = daily
+        for project in organization.project_set.all():
+            if self.daily:
+                self.projects_context_map[project.id] = DailySummaryProjectContext(project)
+            else:
+                self.projects_context_map[project.id] = ProjectContext(project)
 
     def __repr__(self):
         return self.projects_context_map.__repr__()
@@ -90,6 +100,25 @@ class ProjectContext:
         )
 
 
+class DailySummaryProjectContext:
+    total_today = 0
+    fourteen_day_total = 0
+    fourteen_day_avg = 0
+    key_errors = []
+    key_performance_issues = []
+    escalated_today = []
+    regressed_today = []
+    new_in_release = []
+
+    def __init__(self, project: Project):
+        self.project = project
+        self.key_errors = []
+        self.key_performance_issues = []
+        self.escalated_today = []
+        self.regressed_today = []
+        self.new_in_release = []
+
+
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
     """Find the projects associated with each user.
     Populates context.project_ownership which is { user_id: set<project_id> }
@@ -100,7 +129,9 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-def project_key_errors(ctx: OrganizationReportContext, project) -> list[dict[str, Any]] | None:
+def project_key_errors(
+    ctx: OrganizationReportContext, project: Project, referrer: str
+) -> list[dict[str, Any]] | None:
     if not project.first_event:
         return None
     # Take the 3 most frequently occuring events
@@ -118,14 +149,14 @@ def project_key_errors(ctx: OrganizationReportContext, project) -> list[dict[str
             limit=Limit(3),
         )
         request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
-        query_result = raw_snql_query(request, referrer="reports.key_errors")
+        query_result = raw_snql_query(request, referrer=referrer)
         key_errors = query_result["data"]
         # Set project_ctx.key_errors to be an array of (group_id, count) for now.
         # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
         return key_errors
 
 
-def project_key_performance_issues(ctx, project):
+def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
     if not project.first_event:
         return
 
@@ -170,7 +201,7 @@ def project_key_performance_issues(ctx, project):
             app_id="reports",
             query=query,
         )
-        query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
+        query_result = raw_snql_query(request, referrer=referrer)["data"]
 
         key_performance_issues = []
         for result in query_result:
@@ -295,13 +326,13 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
         ]
 
 
-def project_event_counts_for_organization(ctx: OrganizationReportContext) -> list[dict[str, Any]]:
+def project_event_counts_for_organization(start, end, ctx, referrer: str) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
 
     def zerofill_data(data):
-        return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
+        return zerofill(data, start, end, ONE_DAY, fill_default=0)
 
     query = Query(
         match=Entity("outcomes"),
@@ -311,8 +342,8 @@ def project_event_counts_for_organization(ctx: OrganizationReportContext) -> lis
             Function("sum", [Column("quantity")], "total"),
         ],
         where=[
-            Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end + timedelta(days=1)),
             Condition(Column("org_id"), Op.EQ, ctx.organization.id),
             Condition(
                 Column("outcome"), Op.IN, [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
@@ -329,7 +360,7 @@ def project_event_counts_for_organization(ctx: OrganizationReportContext) -> lis
         limit=Limit(10000),
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
-    data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
+    data = raw_snql_query(request, referrer=referrer)["data"]
     return data
 
 

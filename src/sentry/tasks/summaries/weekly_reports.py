@@ -139,7 +139,9 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
-        event_counts = project_event_counts_for_organization(ctx)
+        event_counts = project_event_counts_for_organization(
+            start=ctx.start, end=ctx.end, ctx=ctx, referrer="weekly_reports.outcomes"
+        )
         for data in event_counts:
             project_id = data["project_id"]
             # Project no longer in organization, but events still exist
@@ -178,7 +180,7 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
         for project in organization.project_set.all():
-            key_errors = project_key_errors(ctx, project)
+            key_errors = project_key_errors(ctx, project, referrer="reports.key_errors")
             if key_errors:
                 ctx.projects_context_map[project.id].key_errors = [
                     (e["group_id"], e["count()"]) for e in key_errors
@@ -208,7 +210,9 @@ def prepare_organization_report(
                     for i in key_transactions_this_week
                 ]
 
-            key_performance_issues = project_key_performance_issues(ctx, project)
+            key_performance_issues = project_key_performance_issues(
+                ctx, project, referrer="reports.key_performance_issues"
+            )
             if key_performance_issues:
                 ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
 
