@@ -91,23 +91,29 @@ class SingleProcessSiloModeState(threading.local):
         return None
 
 
-_silo_checks_disabled = 0
+_are_silo_checks_disabled = False
 
 
-@contextlib.contextmanager
-def disable_silo_checks_in_test_env():
+def disable_silo_checks_in_test_env() -> None:
     if not in_test_environment():
         raise Exception("Silo mode checks can be disabled only in test environment")
-    global _silo_checks_disabled
-    try:
-        _silo_checks_disabled += 1
-        yield
-    finally:
-        _silo_checks_disabled -= 1
+    global _are_silo_checks_disabled
+    if _are_silo_checks_disabled:
+        raise Exception("Silo checks are already disabled (nested calls not supported)")
+    _are_silo_checks_disabled = True
+
+
+def reenable_silo_checks_in_test_env() -> None:
+    if not in_test_environment():
+        raise Exception("Silo mode checks can be disabled only in test environment")
+    global _are_silo_checks_disabled
+    if not _are_silo_checks_disabled:
+        raise Exception("Silo checks are not disabled (nested calls not supported)")
+    _are_silo_checks_disabled = False
 
 
 def are_silo_checks_disabled() -> bool:
-    return in_test_environment() and _silo_checks_disabled > 0
+    return in_test_environment() and _are_silo_checks_disabled
 
 
 class SiloLimit(abc.ABC):
