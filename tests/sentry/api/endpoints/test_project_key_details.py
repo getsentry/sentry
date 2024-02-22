@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -269,6 +269,22 @@ class UpdateProjectKeyTest(APITestCase):
             "hasDebug": False,
         }
 
+    def test_use_case(self):
+        """Cannot update an internal DSN"""
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        response = self.client.put(url, {"name": "hello world"})
+        assert response.status_code == 404
+
 
 @region_silo_test
 class DeleteProjectKeyTest(APITestCase):
@@ -287,3 +303,19 @@ class DeleteProjectKeyTest(APITestCase):
         resp = self.client.delete(url)
         assert resp.status_code == 204, resp.content
         assert not ProjectKey.objects.filter(id=key.id).exists()
+
+    def test_use_case(self):
+        """Cannot delete an internal DSN"""
+        project = self.create_project()
+        self.login_as(user=self.user)
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        resp = self.client.delete(url)
+        assert resp.status_code == 404, resp.content

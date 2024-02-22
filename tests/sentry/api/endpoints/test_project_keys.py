@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -19,6 +19,46 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["public"] == key.public_key
+
+    def test_use_case(self):
+        project = self.create_project()
+        key1 = ProjectKey.objects.get_or_create(project=project)[0]
+        ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        response_data = response.data[0]
+        assert "use_case" not in response_data
+        assert response_data["public"] == key1.public_key
+
+    def test_use_case_superuser(self):
+        project = self.create_project()
+        key1 = ProjectKey.objects.get_or_create(project=project)[0]
+        key2 = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[
+            0
+        ]
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        response_data = response.data[0]
+        assert response_data["use_case"] == {"user"}
+        assert response_data["public"] == key1.public_key
+
+        response_data = response.data[0]
+        assert response_data["use_case"] == {"profiling"}
+        assert response_data["public"] == key2.public_key
 
 
 @region_silo_test

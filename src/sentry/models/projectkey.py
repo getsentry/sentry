@@ -28,6 +28,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -53,6 +54,11 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
         )
 
 
+class UserProjectKeyManager(ProjectKeyManager):
+    def get_queryset(self) -> BaseQuerySet:
+        return super().get_queryset().filter(use_case=UseCase.USER.value)
+
+
 class UseCase(enum.Enum):
     # A user-visible project key.
     USER = "user"
@@ -70,11 +76,6 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    use_case = models.CharField(
-        max_length=32,
-        choices={v.value: v.value for v in UseCase},
-        default=UseCase.USER.value,
-    )
 
     class roles(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
@@ -102,7 +103,11 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
+    objects: ClassVar[ProjectKeyManager] = UserProjectKeyManager(
+        cache_fields=("public_key", "secret_key"),
+    )
+
+    all_objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
         # store projectkeys in memcached for longer than other models,
         # specifically to make the relay_projectconfig endpoint faster.
@@ -110,6 +115,12 @@ class ProjectKey(Model):
     )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+
+    use_case = models.CharField(
+        max_length=32,
+        choices={v.value: v.value for v in UseCase},
+        default=UseCase.USER.value,
+    )
 
     # support legacy project keys in API
     scopes = (
