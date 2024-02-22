@@ -3,15 +3,18 @@ from __future__ import annotations
 from enum import Enum
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -25,13 +28,10 @@ class ResourceSizeType(Enum):
     IMAGES = "images"
 
 
-MINUTE = 60  # 60 seconds
-
-
 @region_silo_endpoint
 class BundleAnalysisEndpoint(ProjectEndpoint):
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner: ApiOwner = ApiOwner.PERFORMANCE
     permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
@@ -61,8 +61,21 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
 
         return Response({"data": "Bundle size metric added"}, status=200)
 
+    def _assert_has_feature(self, request: Request, organization: Organization) -> None:
+        if not self._has_feature(request, organization):
+            raise PermissionDenied
+
+    @staticmethod
+    def _has_feature(request: Request, organization: Organization) -> bool:
+        return features.has(
+            "organizations:starfish-browser-resource-module-bundle-analysis",
+            organization,
+            actor=request.user,
+        )
+
+    @staticmethod
     def _add_bundle_size_metric(
-        self, project: Project, type: ResourceSizeType, size: int, bundle_name: str
+        project: Project, type: ResourceSizeType, size: int, bundle_name: str
     ):
         org_id = project.organization_id
         project_id = project.id
