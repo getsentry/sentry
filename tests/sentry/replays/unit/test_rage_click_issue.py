@@ -65,7 +65,6 @@ def test_report_rage_click_issue_a_tag(mock_new_issue_occurrence, default_projec
     assert issue_occurence_call["environment"] == "production"
     assert issue_occurence_call["fingerprint"] == ["div.xyz > a"]
     assert issue_occurence_call["issue_type"].type_id == 5002
-    assert issue_occurence_call["level"] == "error"
     assert issue_occurence_call["platform"] == "javascript"
     assert issue_occurence_call["project_id"] == default_project.id
     assert issue_occurence_call["subtitle"] == "div.xyz > a"
@@ -86,7 +85,6 @@ def test_report_rage_click_issue_a_tag(mock_new_issue_occurrence, default_projec
 
     assert issue_occurence_call["extra_event_data"] == {
         "contexts": {"replay": {"replay_id": "b58a67446c914f44a4e329763420047b"}},
-        "level": "error",
         "tags": {"replayId": "b58a67446c914f44a4e329763420047b", "url": "https://www.sentry.io"},
         "user": {
             "id": "123",
