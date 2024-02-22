@@ -122,7 +122,7 @@ export function getMetricsQueryApiRequestPayload(
       isQueryOnly,
     } = query;
     const name = nameParam || `query_${index + 1}`;
-    const hasGoupBy = groupBy && groupBy.length > 0;
+    const hasGroupBy = groupBy && groupBy.length > 0;
 
     requestQueries.push({
       name,
@@ -137,7 +137,7 @@ export function getMetricsQueryApiRequestPayload(
       requestFormulas.push({
         mql: `$${name}`,
         limit,
-        order: hasGoupBy ? orderBy ?? 'desc' : undefined,
+        order: hasGroupBy ? orderBy ?? 'desc' : undefined,
       });
     }
   });
