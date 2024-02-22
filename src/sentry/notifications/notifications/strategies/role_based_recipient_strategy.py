@@ -72,11 +72,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         elif self.scope:
             valid_roles = [r.id for r in roles.get_all() if r.has_scope(self.scope)]
 
-        member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
-            "id", flat=True
-        )
-        # ignore type because of optional filtering
-        members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
+        members = members.filter(role__in=valid_roles)
 
         return members
 

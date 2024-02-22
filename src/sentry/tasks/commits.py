@@ -6,6 +6,7 @@ import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
 
+from sentry import roles
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models.deploy import Deploy
@@ -261,7 +262,7 @@ def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
         return []
     if user.is_sentry_app:
         organization = Organization.objects.get(id=orgId)
-        members = organization.get_members_with_org_roles(roles=["owner"])
+        members = organization.get_members_with_org_role(role=roles.get_top_dog().id)
         user_ids = [m.user_id for m in members if m.user_id]
         emails = list(
             {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}

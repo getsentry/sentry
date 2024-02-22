@@ -161,10 +161,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 
                 elif key == "role":
-                    members_with_role = organization.get_members_with_org_roles(
-                        roles=value, include_null_users=True
-                    ).values_list("id", flat=True)
-                    queryset = queryset.filter(id__in=members_with_role)
+                    queryset = queryset.filter(role__in=value)
 
                 elif key == "isInvited":
                     isInvited = "true" in value
@@ -341,9 +338,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=om.id,
             data=om.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
         return Response(serialize(om), status=201)

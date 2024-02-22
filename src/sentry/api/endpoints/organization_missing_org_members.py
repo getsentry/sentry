@@ -128,7 +128,7 @@ def _get_missing_organization_members(
 
 def _get_shared_email_domain(organization: Organization) -> str | None:
     # if a member has user_email=None, then they have yet to accept an invite
-    org_owners = organization.get_members_with_org_roles(roles=[roles.get_top_dog().id]).exclude(
+    org_owners = organization.get_members_with_org_role(role=roles.get_top_dog().id).exclude(
         Q(user_email=None) | Q(user_email="")
     )
 

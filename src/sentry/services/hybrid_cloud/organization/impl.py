@@ -634,7 +634,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, organization_id: int
     ) -> list[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
-        owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
+        owner_members = org.get_members_with_org_role(roles=roles.get_top_dog().id)
 
         return list(map(serialize_member, owner_members))
 
