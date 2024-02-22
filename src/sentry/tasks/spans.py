@@ -1,6 +1,7 @@
 import logging
 import random
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
@@ -10,9 +11,10 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.event_manager import (
     Job,
+    ProjectsMapping,
+    _calculate_span_grouping,
     _detect_performance_problems,
     _pull_out_data,
-    _send_occurrence_to_platform,
 )
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.project import Project
@@ -31,8 +33,70 @@ def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
+def build_tree(spans):
+    span_tree = {}
+    root_span_id = None
+
+    for span in spans:
+        span_id = span["span_id"]
+        is_root = span["is_segment"]
+        if is_root:
+            root_span_id = span_id
+        if span_id not in span_tree:
+            span_tree[span_id] = span
+            span_tree[span_id]["children"] = []
+
+    for span in span_tree.values():
+        parent_id = span.get("parent_span_id")
+        if parent_id is not None and parent_id in span_tree:
+            parent_span = span_tree[parent_id]
+            children = parent_span["children"]
+            children.append(span)
+
+    return span_tree, root_span_id
+
+
+def dfs(visited, flattened_spans, tree, span_id):
+    if span_id not in visited:
+        span = deepcopy(tree[span_id])
+        children = span.pop("children")
+
+        visited.add(span_id)
+        flattened_spans.append(span)
+
+        for child in sorted(children, key=lambda span: span["start_timestamp"]):
+            dfs(visited, flattened_spans, tree, child["span_id"])
+
+        tree.pop(span_id)
+
+
+def flatten_tree(tree, root_span_id):
+    visited = set()
+    flattened_spans = []
+    if root_span_id:
+        dfs(visited, flattened_spans, tree, root_span_id)
+
+    # Catch all for orphan spans
+    remaining = sorted(tree.items(), key=lambda span: span[1]["start_timestamp"])
+    for span_id, _ in remaining:
+        dfs(visited, flattened_spans, tree, span_id)
+
+    return flattened_spans
+
+
+def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        updated_problems = []
+        performance_problems = job.pop("performance_problems")
+        for performance_problem in performance_problems:
+            performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
+            updated_problems.append(performance_problem)
+
+        job["performance_problems"] = updated_problems
+
+
 def transform_spans_to_event_dict(spans):
-    event = {"type": "transaction", "contexts": {}}
+    event = {"type": "transaction", "level": "info", "contexts": {}}
     deserialized_spans = []
     for span in spans:
         try:
@@ -45,11 +109,13 @@ def transform_spans_to_event_dict(spans):
 
         if deserialized_span["is_segment"] is True:
             event["event_id"] = deserialized_span.get("event_id")
+            event["project_id"] = deserialized_span["project_id"]
             event["transaction"] = sentry_tags.get("transaction")
             event["contexts"]["trace"] = {
                 "trace_id": deserialized_span["trace_id"],
                 "type": "trace",
                 "op": sentry_tags.get("transaction.op"),
+                "span_id": deserialized_span["span_id"],
             }
             event["received"] = deserialized_span["received"]
             event["timestamp"] = (
@@ -62,10 +128,6 @@ def transform_spans_to_event_dict(spans):
         if (op := sentry_tags.get("op")) is not None:
             deserialized_span["op"] = op
 
-        if (group := sentry_tags.get("group")) is not None:
-            # TODO: Calculate span hash based on raw span description when available.
-            deserialized_span["hash"] = group
-
         deserialized_span["start_timestamp"] = deserialized_span["start_timestamp_ms"] / 1000
         deserialized_span["timestamp"] = (
             deserialized_span["start_timestamp_ms"] + deserialized_span["duration_ms"]
@@ -75,8 +137,12 @@ def transform_spans_to_event_dict(spans):
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
-    # Orderby timestamp should work for synchronously executed code.
-    event["spans"] = sorted(deserialized_spans, key=lambda span: span["start_timestamp"])
+    # So we build a tree and flatten it depth first.
+    # TODO: See if we can update the detectors to work without this assumption so we can
+    # just pass it a list of spans.
+    tree, root_span_id = build_tree(deserialized_spans)
+    flattened_spans = flatten_tree(tree, root_span_id)
+    event["spans"] = flattened_spans
 
     return event
 
@@ -104,18 +170,9 @@ def _process_segment(project_id, segment_id):
     ]
 
     _pull_out_data(jobs, projects)
+    _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects)
-
-    for job in jobs:
-        updated_problems = []
-        performance_problems = job.pop("performance_problems")
-        for performance_problem in performance_problems:
-            performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
-            updated_problems.append(performance_problem)
-
-        job["performance_problems"] = updated_problems
-
-    _send_occurrence_to_platform(jobs, projects)
+    _update_occurrence_group_type(jobs, projects)
 
     return jobs
 
