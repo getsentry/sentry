@@ -190,7 +190,7 @@ def prepare_organization_report(
                     )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
-                ctx.projects_context_map[project.id].key_transactions_this_week = [
+                ctx.projects_context_map[project.id].key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     for i in key_transactions_this_week
                 ]
@@ -202,7 +202,7 @@ def prepare_organization_report(
                     i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
                 }
 
-                ctx.projects_context_map[project.id].key_transactions_this_week = [
+                ctx.projects_context_map[project.id].key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     + last_week_data.get(i["transaction_name"], (0, 0))
                     for i in key_transactions_this_week
