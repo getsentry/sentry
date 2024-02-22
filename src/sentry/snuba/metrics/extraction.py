@@ -567,23 +567,8 @@ class SupportedBy:
         )
 
 
-def org_can_query_on_demand_spec(organization_id: int, **kwargs) -> bool:
-    """Helper function to check if an organization can query an specific on-demand function"""
-    components = _extract_aggregate_components(kwargs["aggregate"])
-    if components is None:
-        return False
-    function, _ = components
-
-    # This helps us control which functions are allowed to use the new spec version.
-    if function in OPS_REQUIRE_FEAT_FLAG:
-        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
-        if not features.has(feat_flag, organization_id):
-            return False
-
-    return should_use_on_demand_metrics(**kwargs)
-
-
 def should_use_on_demand_metrics(
+    organization: Organization,
     dataset: str | Dataset | None,
     aggregate: str,
     query: str | None,
@@ -606,6 +591,13 @@ def should_use_on_demand_metrics(
         return False
 
     function, args = components
+
+    # This helps us control which functions are allowed to use the new spec version.
+    if function in OPS_REQUIRE_FEAT_FLAG:
+        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
+        if not features.has(feat_flag, organization):
+            return False
+
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         # For now, we do not support MRIs in on demand metrics.

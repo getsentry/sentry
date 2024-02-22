@@ -58,7 +58,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     fetch_on_demand_metric_spec,
-    org_can_query_on_demand_spec,
+    should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import (
@@ -159,7 +159,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         groupby_columns = self._get_group_bys()
 
-        if not org_can_query_on_demand_spec(
+        if not should_use_on_demand_metrics(
             self.organization_id,
             dataset=self.dataset,
             aggregate=field,
