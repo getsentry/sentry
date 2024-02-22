@@ -366,7 +366,7 @@ def commit_replay_events(replay_events: list[bytes]) -> None:
 
     # Push everything into the client queue.
     for event in replay_events:
-        publisher.publish("ingest-replay-events", event, send_async=True)
+        publisher.publish("ingest-replay-events", event)
 
     # Flush the client queue to Kafka.
     publisher.flush()
