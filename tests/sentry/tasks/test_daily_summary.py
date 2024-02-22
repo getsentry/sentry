@@ -173,6 +173,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase):
         ]
         # TODO: test performance issues later
         assert summary.projects_context_map[project_id].key_performance_issues == []
+        # TODO: test an issue that has escalated
         assert summary.projects_context_map[project_id].escalated_today == []
         assert summary.projects_context_map[project_id].regressed_today == [group5]
         assert summary.projects_context_map[project_id].new_in_release[release.id] == [group5]

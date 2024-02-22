@@ -11,7 +11,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.release import Release, ReleaseProject
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -65,12 +64,12 @@ def schedule_organizations(
             uos = user_option_service.get_many(
                 filter=dict(user_ids=list(ctx.project_ownership.keys()), key="timezone")
             )
+            # TODO: if a user has not set a timezone, default to UTC
             for uo in uos:
                 users_by_tz[uo.value].append(uo.user_id)
-
             for tz in users_by_tz.keys():
                 # Create a celery task per timezone
-                prepare_summary_data.delay(ctx=ctx, dry_run=dry_run)
+                prepare_summary_data.delay(ctx=ctx)
 
 
 @instrumented_task(
@@ -83,9 +82,6 @@ def schedule_organizations(
 @retry
 def prepare_summary_data(
     ctx: OrganizationReportContext,
-    dry_run: bool = False,
-    target_user: User | None = None,
-    email_override: str | None = None,
 ):
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
     fifteen_days = ONE_DAY * 15
