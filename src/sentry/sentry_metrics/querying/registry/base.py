@@ -54,6 +54,7 @@ class Argument(Generic[T], Placeholder):
 class InheritFilters(Placeholder):
     pass
 
+
 @dataclass(frozen=True)
 class InheritGroupBys(Placeholder):
     pass

@@ -6,7 +6,11 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.registry.base import Argument, ExpressionRegistry, InheritFilters
+from sentry.sentry_metrics.querying.registry.base import (
+    Argument,
+    ExpressionRegistry,
+    InheritFilters,
+)
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
