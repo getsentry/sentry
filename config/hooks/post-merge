@@ -20,6 +20,10 @@ EOF
 
   if [[ "$SENTRY_POST_MERGE_AUTO_UPDATE" ]]; then
     echo "${yellow}Automatically running devenv sync because SENTRY_POST_MERGE_AUTO_UPDATE is set.${reset}"
+    if ! command -v devenv >/dev/null 2>&1; then
+        echo "devenv not found! install: https://github.com/getsentry/devenv#install"
+        exit 1
+    fi
     devenv sync
   else
     echo "${yellow}If you want devenv sync to be executed automatically after pulling code, you can export the SENTRY_POST_MERGE_AUTO_UPDATE variable.${reset}"

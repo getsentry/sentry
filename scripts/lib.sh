@@ -135,8 +135,6 @@ setup-git() {
 
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-
-    pre-commit install --install-hooks
 }
 
 node-version-check() {
