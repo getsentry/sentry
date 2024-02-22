@@ -61,6 +61,7 @@ requests>=2.25.1
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
+selenium>=4.16.0
 sentry-arroyo>=2.16.0
 sentry-kafka-schemas>=0.1.56
 sentry-ophio==0.1.5
