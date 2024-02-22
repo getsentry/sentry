@@ -4,6 +4,7 @@ from typing import Any
 from unittest import mock
 
 import msgpack
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
@@ -13,6 +14,7 @@ from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
@@ -53,6 +55,7 @@ class MonitorConsumerTest(TestCase):
         monitor_slug: str,
         guid: str | None = None,
         ts: datetime | None = None,
+        project: Project | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -71,10 +74,13 @@ class MonitorConsumerTest(TestCase):
         }
         payload.update(overrides)
 
+        if project is None:
+            project = self.project
+
         wrapper = {
             "message_type": "check_in",
             "start_time": ts.timestamp(),
-            "project_id": self.project.id,
+            "project_id": project.id,
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
         }
@@ -714,3 +720,27 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_monitor_seat.assert_called_with(monitor)
+
+    def test_checkin_different_project_rejected(self) -> None:
+        project_2 = self.create_project(organization=self.project.organization)
+        slug = "my-monitor"
+        self.send_checkin(
+            slug,
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            project=self.project,
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        monitor = Monitor.objects.get(slug=slug, organization_id=self.project.organization_id)
+        assert monitor.project_id == self.project.id
+
+        self.send_checkin(
+            slug,
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            project=project_2,
+        )
+        monitor.refresh_from_db()
+        assert monitor.project_id == self.project.id
+        with pytest.raises(MonitorCheckIn.DoesNotExist):
+            MonitorCheckIn.objects.get(guid=self.guid)

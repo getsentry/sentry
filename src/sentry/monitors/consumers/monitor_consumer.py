@@ -61,15 +61,27 @@ def _ensure_monitor_with_config(
     monitor_slug: str,
     config: dict | None,
     quotas_outcome: PermitCheckInStatus,
-):
+) -> Monitor | None:
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
-            project_id=project.id,
             organization_id=project.organization_id,
         )
     except Monitor.DoesNotExist:
         monitor = None
+
+    if monitor and monitor.project_id != project.id:
+        # A checkin was sent with a monitor_slug that already exists in another
+        # project in this org. This checkin is invalid, so return no Monitor
+        logger.info(
+            "monitors.consumer.invalid_project_for_existing_monitor",
+            extra={
+                "organization.id": project.organization_id,
+                "monitor.project_id": monitor.project_id,
+                "project.id": project.id,
+            },
+        )
+        return None
 
     if not config:
         return monitor
