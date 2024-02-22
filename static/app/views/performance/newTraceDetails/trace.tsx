@@ -619,8 +619,9 @@ function RenderRow(props: {
               ) : null}
             </div>
 
+            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
             <Link
-              className="Errored"
+              className="Errored Link"
               to={generateIssueEventTarget(props.node.value, props.organization)}
             >
               <span className="TraceOperation">{t('Error')}</span>
@@ -1014,6 +1015,12 @@ const TraceStylingWrapper = styled('div')`
 
     .Errored {
       color: ${p => p.theme.error};
+    }
+
+    .Link {
+      &:hover {
+        color: ${p => p.theme.blue300};
+      }
     }
 
     .ErrorIconBorder {
