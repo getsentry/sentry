@@ -148,7 +148,7 @@ export function MetricWidgetChartContainer({
     return metricQueries.map(({mri, op, groupBy, query}) => {
       return {
         mri,
-        op: op,
+        op,
         query: extendQuery(query, dashboardFilters),
         groupBy,
       };

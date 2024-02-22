@@ -39,7 +39,7 @@ import type {
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {
-  isMetricFormular,
+  isMetricFormula,
   type MetricsQueryApiQueryParams,
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
@@ -90,7 +90,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
 
   if (filteredQueries.length === 1) {
     const firstQuery = filteredQueries[0];
-    if (isMetricFormular(firstQuery)) {
+    if (isMetricFormula(firstQuery)) {
       return formatMetricsFormula(firstQuery.formula);
     }
     return getFormattedMQL(firstQuery);
@@ -98,7 +98,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
 
   return filteredQueries
     .map(q =>
-      isMetricFormular(q)
+      isMetricFormula(q)
         ? formatMetricsFormula(q.formula)
         : formatMRIField(MRIToField(q.mri, q.op))
     )
@@ -128,7 +128,7 @@ export const MetricWidget = memo(
   }: MetricWidgetProps) => {
     const firstQuery = queries
       .filter(isNotQueryOnly)
-      .find((query): query is MetricsQueryApiRequestQuery => !isMetricFormular(query));
+      .find((query): query is MetricsQueryApiRequestQuery => !isMetricFormula(query));
 
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
@@ -171,7 +171,7 @@ export const MetricWidget = memo(
     const widgetTitle = getWidgetTitle(queries);
 
     const queriesAreComplete = queries.every(q =>
-      isMetricFormular(q) ? !!q.formula : !!q.mri
+      isMetricFormula(q) ? !!q.formula : !!q.mri
     );
 
     return (
@@ -442,12 +442,13 @@ export function getChartTimeseries(
 
     let unit = '';
     let operation = '';
-    if (!isMetricFormular(query)) {
+    if (!isMetricFormula(query)) {
       const parsed = parseMRI(query.mri);
       unit = parsed?.unit ?? '';
       operation = query.op ?? '';
     } else {
-      unit = 'count';
+      // Treat formulas as if they were a single query with none as the unit and count as the operation
+      unit = 'none';
       operation = 'count';
     }
 

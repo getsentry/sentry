@@ -141,7 +141,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const alertChartQuery = useMemo(
     () => ({
       mri: metricsQuery.mri,
-      op: metricsQuery.op || 'count',
+      op: metricsQuery.op,
       query: metricsQuery.query,
     }),
     [metricsQuery.mri, metricsQuery.op, metricsQuery.query]

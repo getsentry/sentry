@@ -65,7 +65,7 @@ export function defaultMetricWidget(selection: PageFilters) {
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
-  const field = MRIToField(metricsQuery.mri, metricsQuery.op || '');
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
 
   return {
     name: '',

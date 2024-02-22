@@ -63,7 +63,7 @@ const getQueryInterval = (
   return getDDMInterval(datetime, useCase, intervalLadder);
 };
 
-export function isMetricFormular(
+export function isMetricFormula(
   queryEntry: MetricsQueryApiQueryParams
 ): queryEntry is MetricsQueryApiRequestFormula {
   return 'formula' in queryEntry;
@@ -83,7 +83,7 @@ export function getMetricsQueryApiRequestPayload(
     intervalParam ??
     queries
       .map(query =>
-        !isMetricFormular(query)
+        !isMetricFormula(query)
           ? getQueryInterval(query, datetime, intervalLadder)
           : '10s'
       )
@@ -101,7 +101,7 @@ export function getMetricsQueryApiRequestPayload(
   }[] = [];
 
   queries.forEach((query, index) => {
-    if (isMetricFormular(query)) {
+    if (isMetricFormula(query)) {
       requestFormulas.push({
         name: query.name,
         mql: query.formula,

@@ -40,7 +40,7 @@ import type {
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {
-  isMetricFormular,
+  isMetricFormula,
   type MetricsQueryApiQueryParams,
 } from 'sentry/utils/metrics/useMetricsQuery';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -235,7 +235,7 @@ export function getMetricsSeriesName(
   isMultiQuery: boolean = true
 ) {
   let name = '';
-  if (isMetricFormular(query)) {
+  if (isMetricFormula(query)) {
     name = formatMetricsFormula(query.formula);
   } else {
     name = formatMRIField(MRIToField(query.mri, query.op));
