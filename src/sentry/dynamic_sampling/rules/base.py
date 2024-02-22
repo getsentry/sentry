@@ -57,7 +57,11 @@ def is_sliding_window_org_enabled(organization: Organization) -> bool:
     ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
-def has_dynamic_sampling(organization: Organization) -> bool:
+def has_dynamic_sampling(organization: Organization | None) -> bool:
+    # If an organization can't be fetched, we will assume it has no dynamic sampling.
+    if organization is None:
+        return False
+
     return features.has("organizations:dynamic-sampling", organization, actor=None)
 
 
