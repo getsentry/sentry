@@ -28,7 +28,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -52,11 +51,6 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
-
-
-class UserProjectKeyManager(ProjectKeyManager):
-    def get_queryset(self) -> BaseQuerySet:
-        return super().get_queryset().filter(use_case=UseCase.USER.value)
 
 
 class UseCase(enum.Enum):
@@ -106,13 +100,6 @@ class ProjectKey(Model):
     objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
     )
-
-    # all_objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
-    #     cache_fields=("public_key", "secret_key"),
-    #     # store projectkeys in memcached for longer than other models,
-    #     # specifically to make the relay_projectconfig endpoint faster.
-    #     cache_ttl=60 * 30,
-    # )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
