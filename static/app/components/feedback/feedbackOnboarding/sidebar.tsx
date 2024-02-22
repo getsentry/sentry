@@ -23,7 +23,6 @@ import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
-  replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -39,22 +38,13 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  // this hook is specific to replay platforms (FE and web BE)
-  // we'll start with only displaying these platforms as supported first
-  // then gradually add in our backend platforms
-  const {
-    projects,
-    allProjects,
-    currentProject,
-    setCurrentProject,
-    supportedProjects,
-    unsupportedProjects,
-  } = useCurrentProjectState({
-    currentPanel,
-  });
+  const {projects, allProjects, currentProject, setCurrentProject} =
+    useCurrentProjectState({
+      currentPanel,
+    });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects
+    const supportedProjectItems: SelectValue<string>[] = allProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
@@ -73,29 +63,13 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
         };
       });
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
-      project => {
-        return {
-          value: project.id,
-          textValue: project.id,
-          label: (
-            <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
-          ),
-          disabled: true,
-        };
-      }
-    );
     return [
       {
         label: t('Supported'),
         options: supportedProjectItems,
       },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
     ];
-  }, [supportedProjects, unsupportedProjects]);
+  }, [allProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
@@ -285,32 +259,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <Fragment>
         {radioButtons}
         <LoadingIndicator />
-      </Fragment>
-    );
-  }
-
-  const doesNotSupportFeedback = currentProject.platform
-    ? !replayPlatforms.includes(currentProject.platform)
-    : true;
-
-  if (doesNotSupportFeedback) {
-    return (
-      <Fragment>
-        <div>
-          {tct(
-            'User Feedback isn’t available for your [platform] project. It supports all browser JavaScript applications. It is built to work with @sentry/browser and our browser framework SDKs.',
-            {platform: currentPlatform?.name || currentProject.slug}
-          )}
-        </div>
-        <div>
-          <Button
-            size="sm"
-            href="https://docs.sentry.io/platforms/javascript/user-feedback/"
-            external
-          >
-            {t('Go to Sentry Documentation')}
-          </Button>
-        </div>
       </Fragment>
     );
   }
