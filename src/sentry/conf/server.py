@@ -38,13 +38,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -1889,6 +1887,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-resource-module-image-view": False,
     # Enables the resource module ui
     "organizations:starfish-browser-resource-module-ui": False,
+    # Enable bundle analysis ui and endpoint
+    "organizations:starfish-browser-resource-module-bundle-analysis": False,
     # Enable browser starfish webvitals module view
     "organizations:starfish-browser-webvitals": False,
     # Enable browser starfish webvitals module pageoverview v2 view
