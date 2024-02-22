@@ -29,7 +29,7 @@ SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 logger = logging.getLogger(__name__)
 
 
-def _deserialize_span(value: bytes) -> dict[str, Any]:
+def _deserialize_span(value: bytes) -> Mapping[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
@@ -101,7 +101,7 @@ def transform_spans_to_event_dict(spans):
     deserialized_spans: list[dict[str, Any]] = []
     for span in spans:
         try:
-            deserialized_span: dict[str, Any] = _deserialize_span(span)
+            deserialized_span = dict(_deserialize_span(span))
         except Exception:
             logger.exception("Failed to process span payload")
             continue
