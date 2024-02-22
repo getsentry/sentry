@@ -20,7 +20,7 @@ export function AutofixDoneLogs({data}: AutofixDoneLogsProps) {
       <AccordionHeader onClick={() => setIsExpanded(value => !value)}>
         <AccordionTitle>{t('View Logs')}</AccordionTitle>
         <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
           aria-label={t('Toggle log details')}
           aria-expanded={isExpanded}
           size="zero"

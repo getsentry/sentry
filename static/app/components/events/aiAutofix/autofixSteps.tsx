@@ -1,10 +1,15 @@
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
 import type {AutofixData, AutofixStep} from 'sentry/components/events/aiAutofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {IconClose, IconFatal} from 'sentry/icons';
+import {IconChevron, IconClose, IconFatal} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 interface StepIconProps {
   status: AutofixStep['status'];
@@ -34,25 +39,114 @@ interface AutofixStepsProps {
   data: AutofixData;
 }
 
+type LogData = {
+  message: string;
+  timestamp: Date;
+};
+
+const FAKE_LOGS = {
+  1: [
+    'Investigating src/sentry/file.py...',
+    'It looks like the flask endpoint is not correctly handling json data when the parameter has_transaction is set to None...',
+  ],
+  2: ['Second step log 1', 'Second step log 2'],
+  3: ['Third step log 1', 'Third step log 2'],
+};
+
+function useFakeLogs({stepNumber, isActive}: {isActive: boolean; stepNumber?: number}) {
+  const [logs, setLogs] = useState<LogData[]>([]);
+
+  useEffect(() => {
+    if (
+      !isActive ||
+      !defined(stepNumber) ||
+      logs.length >= FAKE_LOGS[stepNumber].length
+    ) {
+      return () => {};
+    }
+
+    const timer = setTimeout(
+      () => {
+        setLogs(prevLogs => [
+          ...prevLogs,
+          {
+            timestamp: new Date(),
+            message: FAKE_LOGS[stepNumber][prevLogs.length],
+          } as LogData,
+        ]);
+      },
+      Math.random() * 2000 + 3000
+    );
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isActive, logs.length, stepNumber]);
+
+  return logs;
+}
+
 export function Step({step, isChild, stepNumber}: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const logs = useFakeLogs({stepNumber, isActive});
+
+  const activeLog = step.description ?? logs[logs.length - 1]?.message ?? null;
 
   return (
     <StepCard active={isActive}>
-      <StepHeader isChild={isChild}>
+      <StepHeader
+        isActive={isActive}
+        isChild={isChild}
+        onClick={() => {
+          if (isActive && activeLog) {
+            setIsExpanded(value => !value);
+          }
+        }}
+      >
         <StepTitle>
           {stepNumber ? `${stepNumber}. ` : null}
           {step.title}
         </StepTitle>
-        <StepIcon status={step.status} />
+        {activeLog && !isExpanded && (
+          <StepHeaderDescription>{activeLog}</StepHeaderDescription>
+        )}
+        <StepHeaderRight>
+          <StepIcon status={step.status} />
+          {isActive && (
+            <Button
+              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+              aria-label={t('Toggle step details')}
+              aria-expanded={isExpanded}
+              size="zero"
+              borderless
+              disabled={!activeLog}
+            />
+          )}
+        </StepHeaderRight>
       </StepHeader>
-      {step.description && <StepBody>{step.description}</StepBody>}
-      {step.children && step.children.length > 0 && (
-        <StepChildrenArea>
-          {step.children.map(child => (
-            <Step step={child} key={child.id} isChild />
-          ))}
-        </StepChildrenArea>
+      {isExpanded && (
+        <Fragment>
+          {step.description && <StepBody>{step.description}</StepBody>}
+          {logs.length > 0 && (
+            <StepLogs>
+              {logs.map((log, index) => (
+                <Fragment key={index}>
+                  <DateTime date={log.timestamp} format="HH:mm:ss:SSS" />
+                  <div>{log.message}</div>
+                </Fragment>
+              ))}
+            </StepLogs>
+          )}
+          {step.children && step.children.length > 0 && (
+            <StepChildrenArea>
+              {step.children.map(child => (
+                <Step step={child} key={child.id} isChild />
+              ))}
+            </StepChildrenArea>
+          )}
+        </Fragment>
       )}
     </StepCard>
   );
@@ -83,16 +177,33 @@ const StepChildrenArea = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-const StepHeader = styled('div')<{isChild?: boolean}>`
+const StepHeader = styled('div')<{isActive: boolean; isChild?: boolean}>`
   display: grid;
   justify-content: space-between;
-  grid-template-columns: auto auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   padding: ${space(2)};
+  cursor: ${p => (p.isActive ? 'pointer' : 'default')};
 
   &:last-child {
     padding-bottom: ${space(2)};
   }
+`;
+
+const StepHeaderDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(2)} 0 ${space(1)};
+  margin-left: ${space(1)};
+  border-left: 1px solid ${p => p.theme.border};
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const StepHeaderRight = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  grid-column: -1;
 `;
 
 const StepTitle = styled('div')`
@@ -114,4 +225,15 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
     height: 14px;
     width: 14px;
   }
+`;
+
+const StepLogs = styled('div')`
+  background: ${p => p.theme.backgroundSecondary};
+  padding: ${space(2)};
+  list-style: none;
+  display: grid;
+  gap: ${space(1)} ${space(2)};
+  grid-template-columns: auto 1fr;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
 `;

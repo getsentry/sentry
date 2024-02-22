@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -9,6 +9,7 @@ import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type Props = {
   autofixData: AutofixData;
@@ -92,12 +93,21 @@ function AutofixResultContent({autofixData, onRetry}: Props) {
 }
 
 export function AutofixResult({autofixData, onRetry}: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  const previousStatus = usePrevious(autofixData.status);
+
+  useEffect(() => {
+    if (previousStatus === 'PROCESSING' && autofixData.status !== 'PROCESSING') {
+      ref.current?.scrollIntoView({behavior: 'smooth'});
+    }
+  }, [autofixData.status, previousStatus]);
+
   if (autofixData.status === 'PROCESSING') {
     return null;
   }
 
   return (
-    <ResultPanel>
+    <ResultPanel ref={ref}>
       <Title>{t('Review Suggested Fix')}</Title>
       <AutofixResultContent autofixData={autofixData} onRetry={onRetry} />
     </ResultPanel>
