@@ -266,7 +266,7 @@ export function getMetricsSeriesId(
   groupBy?: Record<string, string>
 ) {
   if (Object.keys(groupBy ?? {}).length === 0) {
-    return `${query.name}-${JSON.stringify(groupBy)}`;
+    return `${query.name}`;
   }
   return `${query.name}-${JSON.stringify(groupBy)}`;
 }
