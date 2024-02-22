@@ -66,7 +66,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-def recalibrate_orgs_batch(orgs: list[tuple[int, int, int | None]]) -> None:
+def recalibrate_orgs_batch(orgs: list[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
         try:
             recalibrate_org(org_id, total, indexed)
@@ -74,13 +74,7 @@ def recalibrate_orgs_batch(orgs: list[tuple[int, int, int | None]]) -> None:
             sentry_sdk.capture_exception(e)
 
 
-def recalibrate_org(org_id: int, total: int, indexed: int | None) -> None:
-    if indexed is None:
-        RecalibrationError(
-            org_id,
-            "missing indexed data count for organization",
-        )
-
+def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
     try:
         # We need the organization object for the feature flag.
         organization = Organization.objects.get_from_cache(id=org_id)
