@@ -165,7 +165,7 @@ class MetricsQueryBuilder(QueryBuilder):
             field,
             self.query,
             groupby_columns,
-            Organization.objects.get_from_cache(id=self.organization_id),
+            organization=Organization.objects.get_from_cache(id=self.organization_id),
         ):
             return None
 
