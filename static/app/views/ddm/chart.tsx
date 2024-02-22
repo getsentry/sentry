@@ -414,10 +414,12 @@ function createIngestionSeries(
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
 
+export const getIngestionSeriesId = (seriesId: string) => `${seriesId}-ingestion`;
+
 function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
-    id: `${series.id}-ingestion`,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     data: series.data.map((data, index) => ({
       ...data,
@@ -439,7 +441,7 @@ function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
-    id: `${series.id}-ingestion`,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
@@ -452,7 +454,7 @@ function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
-    id: `${series.id}-ingestion`,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     stack: 'fogOfWar',
     // We include the last non-fog of war bucket so that the line is connected

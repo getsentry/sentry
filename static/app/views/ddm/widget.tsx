@@ -45,7 +45,7 @@ import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
-import {MetricChart} from 'sentry/views/ddm/chart';
+import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -299,7 +299,7 @@ const MetricWidgetBody = memo(
       const echartsInstance = chartRef.current.getEchartsInstance();
       echartsInstance.dispatchAction({
         type: 'highlight',
-        seriesId: seriesId,
+        seriesId: [seriesId, getIngestionSeriesId(seriesId)],
       });
     }, []);
 
