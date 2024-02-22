@@ -411,7 +411,6 @@ module = [
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
-    "sentry.quotas.redis",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
     "sentry.release_health.metrics_sessions_v2",
