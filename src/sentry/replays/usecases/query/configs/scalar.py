@@ -17,9 +17,9 @@ from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     ClickSelectorComposite,
     DeadClickSelectorComposite,
-    ErrorIdsArray,
     RageClickSelectorComposite,
 )
+from sentry.replays.usecases.query.conditions.event_ids import ErrorIdScalar
 from sentry.replays.usecases.query.fields import ComputedField
 
 
@@ -56,7 +56,7 @@ static_search_config["release"] = static_search_config["releases"]
 # are codifying a rule which should be enforced elsewhere in code: "only one condition from this
 # config allowed".
 varying_search_config: dict[str, FieldProtocol] = {
-    "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
+    "error_ids": ComputedField(parse_uuid, ErrorIdScalar),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
     "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),

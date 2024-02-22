@@ -560,7 +560,12 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     /**
      * If the user was assigned via an integration
      */
-    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    integration?:
+      | 'projectOwnership'
+      | 'codeowners'
+      | 'slack'
+      | 'msteams'
+      | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
   };

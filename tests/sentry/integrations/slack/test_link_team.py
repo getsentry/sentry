@@ -101,12 +101,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             external_id=self.channel_id,
         )
 
-    def _create_user_with_valid_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        self.team.update(org_role="admin")
-        self.create_member(organization=self.organization, user=user, teams=[self.team])
-        self.login_as(user)
-
     def _create_user_valid_through_team_admin(self):
         user = self.create_user(email="foo@example.com")
         self.create_member(
@@ -169,13 +163,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 value="always",
             )
             assert len(team_settings) == 1
-
-    @responses.activate
-    def test_link_team_with_valid_role_through_team(self):
-        """Test that we successfully link a team to a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_link_team()
 
     @responses.activate
     def test_link_team_valid_through_team_admin(self):
@@ -313,13 +300,6 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
-
-    @responses.activate
-    def test_unlink_team_with_valid_role_through_team(self):
-        """Test that a team can be unlinked from a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_unlink_team()
 
     @responses.activate
     def test_unlink_team_valid_through_team_admin(self):

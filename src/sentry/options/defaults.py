@@ -285,6 +285,11 @@ register(
 
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
+register(
+    "beacon.record_cpu_ram_usage",
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
+)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -923,6 +928,12 @@ register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Controls the encoding used in Relay for encoding distributions and sets
+# when writing to Kafka.
+#
+# Key is the metric namespace (as used by Relay) and the value is the desired encoding.
+register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1044,6 +1055,34 @@ register(
 
 register(
     "global-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.sessions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.transactions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.spans-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

@@ -62,6 +62,10 @@
     "sentry.alertrule",
     "sentry.project"
   ],
+  "sentry.alertruleprojects": [
+    "sentry.alertrule",
+    "sentry.project"
+  ],
   "sentry.alertruletrigger": [
     "sentry.alertrule"
   ],
@@ -779,6 +783,9 @@
     "sentry.sentryappinstallation"
   ],
   "sentry.sentryfunction": [
+    "sentry.organization"
+  ],
+  "sentry.sentryshot": [
     "sentry.organization"
   ],
   "sentry.servicehook": [

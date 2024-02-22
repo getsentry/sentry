@@ -65,8 +65,8 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
@@ -238,6 +238,12 @@ def before_send_transaction(event, _):
     return event
 
 
+def before_send(event, _):
+    if event.get("tags") and settings.SILO_MODE:
+        event["tags"]["silo_mode"] = settings.SILO_MODE
+    return event
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -263,6 +269,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["before_send"] = before_send
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )

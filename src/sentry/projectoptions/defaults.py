@@ -2,7 +2,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 11
+LATEST_EPOCH = 12
 
 # grouping related configs
 #
@@ -135,6 +135,10 @@ register(
 register(
     key="sentry:replay_rage_click_issues",
     default=True,
+)
+register(
+    key="sentry:feedback_user_report_notifications",
+    epoch_defaults={12: True},
 )
 
 
