@@ -567,7 +567,7 @@ class SupportedBy:
         )
 
 
-def org_can_query_on_demand_spec(organization_id: int, **kwargs: dict[str, Any]) -> bool:
+def org_can_query_on_demand_spec(organization_id: int, **kwargs) -> bool:
     """Helper function to check if an organization can query an specific on-demand function"""
     components = _extract_aggregate_components(kwargs["aggregate"])
     if components is None:
