@@ -26,7 +26,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 class MockOrganizationRoles:
     TEST_ORG_ROLES = [
         {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
-        {"id": "bob", "name": "Bob", "scopes": ["project:read", "alerts:write"]},
+        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
         {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
     ]
 
