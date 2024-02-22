@@ -1410,6 +1410,30 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             dataset="metricsEnhanced",
         )
 
+    def test_on_demand_epm_no_query(self):
+        params = {
+            "dataset": "metricsEnhanced",
+            "environment": "production",
+            "onDemandType": "dynamic_query",
+            "project": self.project.id,
+            "query": "",
+            "statsPeriod": "1h",
+            "useOnDemandMetrics": "true",
+            "yAxis": ["epm()"],
+        }
+        response = self.do_request(params)
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "fields": {"time": "date", "epm_900": "rate"},
+            "units": {"time": None, "epm_900": None},
+            "isMetricsData": True,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "datasetReason": "unchanged",
+            "dataset": "metricsEnhanced",
+        }
+
     def test_group_by_transaction(self):
         field = "count()"
         groupbys = ["transaction"]

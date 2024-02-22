@@ -689,6 +689,9 @@ def _get_args_support(fields: Sequence[str], used_in_function: str | None = None
         # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
 
+    if used_in_function in ["epm", "eps"]:
+        return SupportedBy.both()
+
     arg = fields[0]
     return _get_field_support(arg)
 
@@ -1063,12 +1066,10 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
 
 
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator | None] = {
+_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
-    "on_demand_epm": None,
-    "on_demand_eps": None,
     "on_demand_count_web_vitals": count_web_vitals_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }

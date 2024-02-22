@@ -1564,15 +1564,26 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
 
 
 @django_db_all
-@pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
-def test_get_metric_extraction_config_with_no_tag_spec(
-    default_project: Project, metric: str
+@pytest.mark.parametrize(
+    "metric,query,query_hashes",
+    [
+        ("epm()", "transaction.duration:>=1000", ["8f8293cf", "5200e087"]),
+        ("eps()", "transaction.duration:>=1000", ["9ffdd8ac", "162178e9"]),
+        ("epm()", "", []),
+    ],
+)
+def test_get_metric_extraction_config_epm_eps(
+    default_project: Project, metric: str, query: str, query_hashes: list[str]
 ) -> None:
-    query_hashes = ["8f8293cf", "5200e087"] if metric == "epm()" else ["9ffdd8ac", "162178e9"]
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget([metric], "transaction.duration:>=1000", default_project)
+        create_widget([metric], query, default_project)
 
         config = get_metric_extraction_config(default_project)
+
+        # epm() and eps() are supported by standard metrics when there's no query
+        if query == "":
+            assert config is None
+            return None
 
         assert config
         assert config["metrics"] == [
