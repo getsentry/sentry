@@ -1,12 +1,11 @@
-from django.http import HttpRequest
-
 from sentry.types.activity import ActivityType
+from sentry.utils.auth import AuthenticatedHttpRequest
 
 from .mail import ActivityMailDebugView
 
 
 class DebugAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request: HttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event):
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
@@ -19,7 +18,7 @@ class DebugAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request: HttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event):
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
@@ -32,7 +31,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
-    def get_activity(self, request: HttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event):
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,

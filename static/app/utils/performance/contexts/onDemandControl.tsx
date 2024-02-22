@@ -74,7 +74,7 @@ export function OnDemandControlProvider({
  * 2. contains one of the keys that are not supported by standard metrics or conditions that
  *    can't be on-demand because they are part of errors. (eg. error.type, message, stack, etc.)
  */
-export function _isOnDemandMetricWidget(widget: Widget): boolean {
+export function isOnDemandMetricWidget(widget: Widget): boolean {
   if (widget.widgetType !== WidgetType.DISCOVER) {
     return false;
   }
@@ -106,7 +106,7 @@ export const shouldUseOnDemandMetrics = (
     return onDemandControlContext.forceOnDemand;
   }
 
-  return _isOnDemandMetricWidget(widget);
+  return isOnDemandMetricWidget(widget);
 };
 
 export function ToggleOnDemand() {

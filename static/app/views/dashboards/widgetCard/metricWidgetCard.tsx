@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {getWidgetTitle} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
@@ -129,7 +129,7 @@ type MetricWidgetChartContainerProps = {
   widget: Widget;
   chartHeight?: number;
   dashboardFilters?: DashboardFilters;
-  metricWidgetQueries?: MetricWidgetQueryParams[];
+  metricWidgetQueries?: MetricQueryWidgetParams[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
 
@@ -207,7 +207,6 @@ export function MetricWidgetChartContainer({
           ref={chartRef}
           series={chartSeries}
           displayType={displayType}
-          operation={metricQueries[0].op}
           widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}

@@ -54,7 +54,7 @@ class DocIntegrationsPermission(SentryPermission):
 
 
 class DocIntegrationsAndStaffPermission(StaffPermissionMixin, DocIntegrationsPermission):
-    """Allows staff to to access all doc integration endpoints"""
+    """Allows staff to to access doc integration endpoints."""
 
     pass
 

@@ -53,13 +53,12 @@ class SamplesListExecutor(ABC):
             offset=0,
         )
 
-        # Using `IN` sometimes does not use the bloomfilter index
-        # on the table. So we're explicitly writing the condition
-        # using `OR`s.
+        # This are the additional conditions to better take advantage of the ORDER BY
+        # on the spans table. This creates a list of conditions to be `OR`ed together
+        # that can will be used by ClickHouse to narrow down the granules.
         #
-        # May not be necessary because it's also filtering on the
-        # `span.group` as well which allows Clickhouse to filter
-        # via the primary key but this is a precaution.
+        # The span ids are not in this condition because they are more effective when
+        # specified within the `PREWHERE` clause. So, it's in a separate condition.
         conditions = [
             And(
                 [
@@ -67,18 +66,30 @@ class SamplesListExecutor(ABC):
                     Condition(
                         builder.column("timestamp"), Op.EQ, datetime.fromisoformat(timestamp)
                     ),
-                    Condition(builder.column("id"), Op.EQ, span_id),
                 ]
             )
-            for (group, timestamp, span_id) in span_ids
+            for (group, timestamp, _) in span_ids
         ]
 
         if len(conditions) == 1:
-            span_condition = conditions[0]
+            order_by_condition = conditions[0]
         else:
-            span_condition = Or(conditions)
+            order_by_condition = Or(conditions)
 
-        builder.add_conditions([span_condition])
+        # Using `IN` combined with putting the list in a SnQL "tuple" triggers an optimizer
+        # in snuba where it
+        # 1. moves the condition into the `PREWHERE` clause
+        # 2. maps the ids to the underlying UInt64 and uses the bloom filter index
+        #
+        # NOTE: the "tuple" here is critical as without it, snuba will not correctly
+        # rewrite the condition and keep it in the WHERE and as a hexidecimal.
+        span_id_condition = Condition(
+            builder.column("id"),
+            Op.IN,
+            Function("tuple", [span_id for _, _, span_id in span_ids]),
+        )
+
+        builder.add_conditions([order_by_condition, span_id_condition])
 
         query_results = builder.run_query(self.referrer.value)
         return builder.process_results(query_results)
