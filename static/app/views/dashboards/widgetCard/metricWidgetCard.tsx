@@ -44,6 +44,7 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: (index: string) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showContextMenu?: boolean;
 };
 
 export function MetricWidgetCard({
@@ -57,6 +58,7 @@ export function MetricWidgetCard({
   router,
   dashboardFilters,
   renderErrorMessage,
+  showContextMenu = true,
 }: Props) {
   const metricWidgetQueries = useMemo(() => convertToMetricWidget(widget), [widget]);
 
@@ -83,7 +85,7 @@ export function MetricWidgetCard({
           </WidgetHeaderDescription>
 
           <ContextMenuWrapper>
-            {!isEditingDashboard && (
+            {showContextMenu && !isEditingDashboard && (
               <WidgetCardContextMenu
                 organization={organization}
                 widget={widget}
@@ -114,6 +116,7 @@ export function MetricWidgetCard({
           widget={widget}
           dashboardFilters={dashboardFilters}
           renderErrorMessage={renderErrorMessage}
+          chartHeight={!showContextMenu ? 200 : undefined}
         />
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
@@ -124,6 +127,7 @@ export function MetricWidgetCard({
 type MetricWidgetChartContainerProps = {
   selection: PageFilters;
   widget: Widget;
+  chartHeight?: number;
   dashboardFilters?: DashboardFilters;
   metricWidgetQueries?: MetricWidgetQueryParams[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -135,6 +139,7 @@ export function MetricWidgetChartContainer({
   renderErrorMessage,
   metricWidgetQueries,
   widget,
+  chartHeight,
 }: MetricWidgetChartContainerProps) {
   // TODO: Remove this and the widget prop once this component is no longer used in widgetViewerModal
   const metricQueries = metricWidgetQueries || convertToMetricWidget(widget);
@@ -205,6 +210,7 @@ export function MetricWidgetChartContainer({
           operation={metricQueries[0].op}
           widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
+          height={chartHeight}
         />
       </TransitionChart>
     </MetricWidgetChartWrapper>

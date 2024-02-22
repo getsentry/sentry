@@ -153,6 +153,7 @@ class DeprecatedAsyncComponent<
   }
 
   declare context: {router: RouteContextInterface};
+
   /**
    * Override this flag to have the component reload its state when the window
    * becomes visible again. This will set the loading and reloading state, but

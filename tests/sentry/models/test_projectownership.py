@@ -26,6 +26,7 @@ def actor_key(actor):
 @region_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def setUp(self):
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.organization.member_set.create(user_id=self.user2.id)
         self.team = self.create_team(
@@ -279,7 +280,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project2.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
@@ -307,7 +308,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -356,7 +357,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"commitId": self.commit.id},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user2.id
@@ -388,7 +389,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -398,7 +399,7 @@ class ProjectOwnershipTestCase(TestCase):
         GroupAssignee.objects.assign(self.event.group, self.user)
 
         # ensure the issue was not reassigned
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user.id
@@ -433,7 +434,7 @@ class ProjectOwnershipTestCase(TestCase):
         GroupAssignee.objects.create(group=self.event.group, project=self.project, team=self.team)
 
         # ensure we skip calling assign
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         mock_assign.assert_not_called()
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
@@ -480,14 +481,14 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 0
 
         # Turn on auto assignment
         self.ownership.auto_assignment = True
         self.ownership.suspect_committer_auto_assignment = True
         self.ownership.save()
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -564,14 +565,14 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_c)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 0
 
         # Turn on auto assignment
         self.ownership.auto_assignment = True
         self.ownership.suspect_committer_auto_assignment = True
         self.ownership.save()
-        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.user_id == self.user2.id
@@ -626,7 +627,7 @@ class ProjectOwnershipTestCase(TestCase):
             context={"rule": str(rule_a)},
         )
 
-        ProjectOwnership.handle_auto_assignment(self.project.id, self.event, logging_extra={})
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
@@ -645,25 +646,52 @@ class ProjectOwnershipTestCase(TestCase):
         ProjectOwnership.handle_auto_assignment(
             self.project.id,
             group=self.event.group,
-            logging_extra={},
             force_autoassign=True,
         )
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
-        # TODO(Leander): Remove after caller in getsentry uses `force_autoassign`
-        # Manually assign the group to someone else (again)
-        GroupAssignee.objects.assign(self.event.group, self.user)
-        assert len(GroupAssignee.objects.all()) == 1
-        assignee = GroupAssignee.objects.get(group=self.event.group)
-        assert assignee.user_id == self.user.id
+    @patch("sentry.models.groupowner.GroupOwner")
+    def test_update_modifies_cache(self, mock_group_owner):
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+        schema_a = dump_schema([rule_a])
+        ownership = ProjectOwnership.objects.create(project_id=self.project.id, schema=schema_a)
+        cache_key = ProjectOwnership.get_cache_key(self.project.id)
 
-        # Run force auto-assignment without explicit parameter
-        ProjectOwnership.handle_auto_assignment(self.project.id, group=self.event.group)
-        assert len(GroupAssignee.objects.all()) == 1
-        assignee = GroupAssignee.objects.get(group=self.event.group)
-        assert assignee.team_id == self.team.id
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
+        ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
+        ownership_cache_a = cache.get(cache_key)
+        assert ownership_cache_a == ownership
+        assert ownership_cache_a.schema == schema_a
+
+        rule_b = Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)])
+        schema_b = dump_schema([rule_b])
+        ownership.update(schema=schema_b)
+
+        mock_group_owner.reset_mock()
+        ownership.save()
+
+        assert ProjectOwnership.get_issue_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
+        ) == [(rule_b, [self.rpc_user], OwnerRuleType.OWNERSHIP_RULE.value)]
+
+        ownership_cache_b = cache.get(cache_key)
+        assert ownership_cache_b.schema == schema_b
+        assert ownership_cache_b.schema != ownership_cache_a.schema
+
+        # Assert ingestion cache is also invalidated
+        autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership=ownership)
+        mock_group_owner.invalidate_autoassigned_owner_cache.assert_called_with(
+            self.project.id, autoassignment_types
+        )
+        mock_group_owner.invalidate_assignee_exists_cache.assert_called_with(self.project.id)
+        mock_group_owner.invalidate_debounce_issue_owners_evaluation_cache.assert_called_with(
+            self.project.id
+        )
 
 
 @region_silo_test
