@@ -13,7 +13,9 @@ from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str
 from requests import Request
+from requests.adapters import Retry
 
+from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
@@ -190,7 +192,15 @@ class RegionSiloClient(BaseSiloClient):
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
-        return build_session(is_ipaddress_permitted=validate_region_ip_address)
+        return build_session(
+            is_ipaddress_permitted=validate_region_ip_address,
+            max_retries=Retry(
+                total=options.get("hybridcloud.regionsiloclient.retries"),
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+            ),
+        )
 
     def _get_hash_cache_key(self, hash: str) -> str:
         return f"region_silo_client:request_attempts:{hash}"
