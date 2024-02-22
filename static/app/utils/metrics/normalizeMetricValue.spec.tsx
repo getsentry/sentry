@@ -29,8 +29,8 @@ describe('getNormalizedMetricUnit', () => {
   });
 
   it('returns none for count operations', () => {
-    expect(getMetricValueNormalizer('second', 'count')).toBe('none');
-    expect(getMetricValueNormalizer('seconds', 'count_unique')).toBe('none');
+    expect(getNormalizedMetricUnit('second', 'count')).toBe('none');
+    expect(getNormalizedMetricUnit('seconds', 'count_unique')).toBe('none');
   });
 });
 
