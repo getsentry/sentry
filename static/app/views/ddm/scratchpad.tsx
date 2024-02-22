@@ -25,6 +25,8 @@ function widgetToQuery(
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
     ? {
+        // TODO(aknaus): Properly parse formulas to format identifiers
+        // This solution is limited to single character identifiers
         formula: widget.formula
           .split('')
           .map(char => (queryLookup.has(char) ? `$${char}` : char))
@@ -102,6 +104,32 @@ export function MetricScratchpad() {
     return lookup;
   }, [widgets]);
 
+  const getFormulasQueryDependencies = useCallback(
+    (formula: string): MetricsQueryApiQueryParams[] => {
+      const children = formula
+        .split('')
+        .map(char => queriesLookup.get(char))
+        .filter((w): w is Exclude<typeof w, undefined> => !!w);
+
+      const dependencies: MetricsQueryApiQueryParams[] = [];
+
+      // ATM we recursively iterate over child formulas to find all dependencies
+      // TODO(aknaus): clarify API support for this
+      // TODO(aknaus): Memoize this
+      children.forEach(child => {
+        if (child.type === MetricQueryType.FORMULA) {
+          dependencies.push(widgetToQuery(child, queriesLookup, true));
+          dependencies.push(...getFormulasQueryDependencies(child.formula));
+        } else {
+          dependencies.push(widgetToQuery(child, queriesLookup, true));
+        }
+      });
+
+      return dependencies;
+    },
+    [queriesLookup]
+  );
+
   return (
     <Wrapper>
       {isMultiChartMode ? (
@@ -118,11 +146,9 @@ export function MetricScratchpad() {
             queries={[
               widgetToQuery(widget, queriesLookup),
               ...(widget.type === MetricQueryType.FORMULA
-                ? widget.formula
-                    .split('')
-                    .map(char => queriesLookup.get(char))
-                    .filter((w): w is Exclude<typeof w, undefined> => !!w)
-                    .map(w => widgetToQuery(w, queriesLookup, true))
+                ? // TODO(aknaus): Properly parse formulas to extract identifiers
+                  // This solution is limited to single character identifiers
+                  getFormulasQueryDependencies(widget.formula)
                 : []),
             ]}
             isSelected={selectedWidgetIndex === index}

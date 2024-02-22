@@ -93,11 +93,17 @@ export function getMetricsQueryApiRequestPayload(
       );
 
   const requestQueries: {mql: string; name: string}[] = [];
-  const requestFormulas: {mql: string; limit?: number; order?: 'asc' | 'desc'}[] = [];
+  const requestFormulas: {
+    mql: string;
+    limit?: number;
+    name?: string;
+    order?: 'asc' | 'desc';
+  }[] = [];
 
   queries.forEach((query, index) => {
     if (isMetricFormular(query)) {
       requestFormulas.push({
+        name: query.name,
         mql: query.formula,
         limit: query.limit,
         order: query.orderBy,
@@ -117,6 +123,7 @@ export function getMetricsQueryApiRequestPayload(
     } = query;
     const name = nameParam || `query_${index + 1}`;
     const hasGoupBy = groupBy && groupBy.length > 0;
+
     requestQueries.push({
       name,
       mql: createMqlQuery({

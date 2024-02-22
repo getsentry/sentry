@@ -224,6 +224,11 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
+export function formatMetricsFormula(formula: string) {
+  // Remove the $ from variable names
+  return formula.replaceAll('$', '');
+}
+
 export function getMetricsSeriesName(
   query: MetricsQueryApiQueryParams,
   groupBy?: Record<string, string>,
@@ -231,7 +236,7 @@ export function getMetricsSeriesName(
 ) {
   let name = '';
   if (isMetricFormular(query)) {
-    name = query.formula.replaceAll('$', '');
+    name = formatMetricsFormula(query.formula);
   } else {
     name = formatMRIField(MRIToField(query.mri, query.op));
   }

@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
+  formatMetricsFormula,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesName,
@@ -80,13 +81,17 @@ export type Sample = {
   transactionSpanId: string;
 };
 
+function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
+  return !('isQueryOnly' in query) || !query.isQueryOnly;
+}
+
 export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
-  const filteredQueries = queries.filter(q => !('isQueryOnly' in q) || !q.isQueryOnly);
+  const filteredQueries = queries.filter(isNotQueryOnly);
 
   if (filteredQueries.length === 1) {
     const firstQuery = filteredQueries[0];
     if (isMetricFormular(firstQuery)) {
-      return firstQuery.formula.replaceAll('$', '');
+      return formatMetricsFormula(firstQuery.formula);
     }
     return getFormattedMQL(firstQuery);
   }
@@ -94,7 +99,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   return filteredQueries
     .map(q =>
       isMetricFormular(q)
-        ? q.formula.replaceAll('$', '')
+        ? formatMetricsFormula(q.formula)
         : formatMRIField(MRIToField(q.mri, q.op))
     )
     .join(', ');
@@ -122,7 +127,7 @@ export const MetricWidget = memo(
     context = 'ddm',
   }: MetricWidgetProps) => {
     const firstQuery = queries
-      .filter(q => !('isQueryOnly' in q) || !q.isQueryOnly)
+      .filter(isNotQueryOnly)
       .find((query): query is MetricsQueryApiRequestQuery => !isMetricFormular(query));
 
     const handleChange = useCallback(
@@ -429,7 +434,7 @@ export function getChartTimeseries(
     showQuerySymbol?: boolean;
   }
 ) {
-  const filteredQueries = queries.filter(q => !('isQueryOnly' in q) || !q.isQueryOnly);
+  const filteredQueries = queries.filter(isNotQueryOnly);
 
   const series = data.data.flatMap((group, index) => {
     const query = filteredQueries[index];
