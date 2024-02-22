@@ -265,16 +265,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
         team_roles = teams = None
-        if "teamRoles" in result or "teams" in result:
-            if "teamRoles" in result:
-                # If orgs do not have the flag, we'll set their team-roles to None
-                team_roles = (
-                    result.get("teamRoles")
-                    if features.has("organizations:team-roles", organization)
-                    else [(team, None) for team, _ in result.get("teamRoles", [])]
-                )
-            elif "teams" in result:
-                teams = result.get("teams")
+        if "teamRoles" in result:
+            # If orgs do not have the flag, we'll set their team-roles to None
+            team_roles = (
+                result.get("teamRoles")
+                if features.has("organizations:team-roles", organization)
+                else [(team, None) for team, _ in result.get("teamRoles", [])]
+            )
+        elif "teams" in result:
+            teams = result.get("teams")
 
         if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
             new_role = assigned_org_role if assigned_org_role else member.role
