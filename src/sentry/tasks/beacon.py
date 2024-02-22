@@ -128,7 +128,8 @@ def send_beacon():
         else False
     )
     event_categories_count = get_category_event_count_24h()
-    bytes_in_gibibyte = 1024**3
+    byte_in_gibibyte = 1024**3
+
     payload = {
         "install_id": install_id,
         "version": sentry.get_version(),
@@ -148,7 +149,7 @@ def send_beacon():
             "cpu_cores_available": psutil.cpu_count() if send_cpu_ram_usage else None,
             "cpu_percentage_utilized": psutil.cpu_percent() if send_cpu_ram_usage else None,
             "ram_available_gb": (
-                psutil.virtual_memory().total / bytes_in_gibibyte if send_cpu_ram_usage else None
+                psutil.virtual_memory().total / byte_in_gibibyte if send_cpu_ram_usage else None
             ),
             "ram_percentage_utilized": (
                 psutil.virtual_memory().percent if send_cpu_ram_usage else None

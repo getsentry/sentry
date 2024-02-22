@@ -120,7 +120,7 @@ describe('App', function () {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 
     const beaconConsentText = await screen.findByText(
-      'We have made some updates to our self-hosted beacon broadcast system, and we just need to get a quick answer from you.',
+      'We have made some updates to our self-hosted beacon broadcast system, and just need to get a quick answer from you.',
       undefined,
       {timeout: 2000, interval: 100}
     );
