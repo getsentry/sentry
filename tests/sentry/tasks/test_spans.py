@@ -1,8 +1,6 @@
 import uuid
 from unittest import mock
 
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
-
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.tasks.spans import _process_segment
@@ -11,7 +9,7 @@ from sentry.utils import json
 
 
 def build_mock_span(project_id, span_op=None, **kwargs):
-    span: SpanEvent = {
+    span = {
         "description": "OrganizationNPlusOne",
         "duration_ms": 107,
         "event_id": "61ccae71d70f45bb9b1f2ccb7f7a49ec",

@@ -29,7 +29,7 @@ SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
 logger = logging.getLogger(__name__)
 
 
-def _deserialize_span(value: bytes) -> Mapping[str, Any]:
+def _deserialize_span(value: bytes) -> dict[str, Any]:
     return SPAN_SCHEMA.decode(value)
 
 
