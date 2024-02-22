@@ -22,7 +22,6 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 export const SummaryTable = memo(function SummaryTable({
   series,
-  operation,
   onRowClick,
   onColorDotClick,
   onSortChange,
@@ -33,7 +32,6 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  operation?: string;
   setHoveredSeries?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -174,6 +172,7 @@ export const SummaryTable = memo(function SummaryTable({
             color,
             hidden,
             unit,
+            operation,
             transaction,
             release,
             avg,

@@ -83,8 +83,8 @@ export function getMetricConversionFunction(fromUnit: string, toUnit: string) {
   };
 }
 
-export function getNormalizedMetricUnit(unit: string) {
-  if (!unit) {
+export function getNormalizedMetricUnit(unit: string, operation?: string) {
+  if (!unit || operation === 'count' || operation === 'count_unique') {
     return 'none';
   }
 
@@ -103,7 +103,7 @@ export function getNormalizedMetricUnit(unit: string) {
   return unit;
 }
 
-export function getMetricValueNormalizer(unit: string) {
-  const normalizedMetricUnit = getNormalizedMetricUnit(unit);
+export function getMetricValueNormalizer(unit: string, operation?: string) {
+  const normalizedMetricUnit = getNormalizedMetricUnit(unit, operation);
   return getMetricConversionFunction(unit, normalizedMetricUnit);
 }
