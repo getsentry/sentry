@@ -1098,6 +1098,7 @@ class CliTestCase(TestCase):
 
 
 @pytest.mark.usefixtures("browser")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
