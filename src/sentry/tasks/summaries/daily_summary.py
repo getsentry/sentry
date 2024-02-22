@@ -62,11 +62,16 @@ def schedule_organizations(
                 user_project_ownership(ctx)
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
-            uos = user_option_service.get_many(
+            users_with_tz = user_option_service.get_many(
                 filter=dict(user_ids=list(ctx.project_ownership.keys()), key="timezone")
             )
-            # TODO: if a user has not set a timezone, default to UTC
-            for uo in uos:
+            # if a user has not set a timezone, default to UTC
+            users_without_tz = set(ctx.project_ownership.keys()) - {
+                uo.user_id for uo in users_with_tz
+            }
+            if users_with_tz:
+                users_by_tz["UTC"] = users_without_tz
+            for uo in users_with_tz:
                 users_by_tz[uo.value].append(uo.user_id)
             for tz in users_by_tz.keys():
                 # Create a celery task per timezone
