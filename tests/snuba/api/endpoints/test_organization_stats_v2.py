@@ -472,6 +472,60 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_staff_org_single_category(self):
+        staff_user = self.create_user(is_staff=True, is_superuser=True)
+        self.login_as(user=staff_user, superuser=True)
+
+        category_group_mapping = {
+            "attachment": {
+                "by": {
+                    "outcome": "rate_limited",
+                    "reason": "spike_protection",
+                },
+                "totals": {"sum(quantity)": 1024},
+                "series": {"sum(quantity)": [0, 0, 1024]},
+            },
+            "error": {
+                "by": {"outcome": "accepted", "reason": "none"},
+                "totals": {"sum(quantity)": 6},
+                "series": {"sum(quantity)": [0, 0, 6]},
+            },
+            "transaction": {
+                "by": {
+                    "reason": "spike_protection",
+                    "outcome": "rate_limited",
+                },
+                "totals": {"sum(quantity)": 1},
+                "series": {"sum(quantity)": [0, 0, 1]},
+            },
+        }
+
+        # Test each category individually
+        for category in ["attachment", "error", "transaction"]:
+            response = self.do_request(
+                {
+                    "category": category,
+                    "statsPeriod": "2d",
+                    "interval": "1d",
+                    "field": ["sum(quantity)"],
+                    "groupBy": ["outcome", "reason"],
+                },
+                org=self.org,
+                status_code=200,
+            )
+
+            assert result_sorted(response.data) == {
+                "start": "2021-03-12T00:00:00Z",
+                "end": "2021-03-15T00:00:00Z",
+                "intervals": [
+                    "2021-03-12T00:00:00Z",
+                    "2021-03-13T00:00:00Z",
+                    "2021-03-14T00:00:00Z",
+                ],
+                "groups": [category_group_mapping[category]],
+            }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_multiple_fields(self):
         response = self.do_request(
             {
@@ -599,54 +653,41 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    # NOTE(schew2381): The test query is the only one _admin uses, although
-    # there is flexibility on the category and start/end time.
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_project_filter_staff(self):
+    def test_staff_project_filter(self):
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)
 
-        # Store additional error category
-        self.store_outcomes(
-            {
-                "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
-                "project_id": self.project.id,
-                "outcome": Outcome.FILTERED,
-                "reason": "error-message",
-                "category": DataCategory.ERROR,
-                "quantity": 30,
-            },
-        )
+        shared_query_params = {
+            "field": "sum(quantity)",
+            "groupBy": ["outcome", "reason"],
+            "interval": "1d",
+            "statsPeriod": "1d",
+        }
+        shared_data = {
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
+            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+        }
 
         # Test error category
         response = self.do_request(
             {
+                **shared_query_params,
                 "category": "error",
-                "field": "sum(quantity)",
-                "groupBy": ["outcome", "reason"],
                 "project": self.project.id,
-                "interval": "1d",
-                "statsPeriod": "1d",
             },
             org=self.org,
             status_code=200,
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            **shared_data,
             "groups": [
                 {
                     "by": {"outcome": "accepted", "reason": "none"},
                     "totals": {"sum(quantity)": 6},
                     "series": {"sum(quantity)": [0, 6]},
-                },
-                {
-                    "by": {"outcome": "filtered", "reason": "error-message"},
-                    "totals": {"sum(quantity)": 30},
-                    "series": {"sum(quantity)": [0, 30]},
                 },
             ],
         }
@@ -654,21 +695,16 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         # Test transaction category
         response = self.do_request(
             {
+                **shared_query_params,
                 "category": "transaction",
-                "field": "sum(quantity)",
-                "groupBy": ["outcome", "reason"],
                 "project": self.project2.id,
-                "interval": "1d",
-                "statsPeriod": "1d",
             },
             org=self.org,
             status_code=200,
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            **shared_data,
             "groups": [
                 {
                     "by": {"outcome": "rate_limited", "reason": "spike_protection"},
