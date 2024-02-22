@@ -178,7 +178,7 @@ class RegionSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
-    def __init__(self, region: Region) -> None:
+    def __init__(self, region: Region, retry: bool = False) -> None:
         super().__init__()
         if not isinstance(region, Region):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
@@ -186,12 +186,18 @@ class RegionSiloClient(BaseSiloClient):
         # Ensure the region is registered
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
+        self.retry = retry
 
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
+        if not self.retry:
+            return build_session(
+                is_ipaddress_permitted=validate_region_ip_address,
+            )
+
         return build_session(
             is_ipaddress_permitted=validate_region_ip_address,
             max_retries=Retry(
