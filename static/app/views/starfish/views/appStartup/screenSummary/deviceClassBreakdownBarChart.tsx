@@ -18,6 +18,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -136,10 +140,28 @@ function DeviceClassBreakdownBarChart({
           </ErrorPanel>
         ) : (
           <BarChart
+            legend={{
+              show: true,
+              right: 12,
+            }}
             height={chartHeight}
+            colors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
             series={
               data.map(series => ({
                 ...series,
+                data: series.data.map(datum =>
+                  datum.value !== 0
+                    ? {
+                        ...datum,
+                        itemStyle: {
+                          color:
+                            series.seriesName === primaryRelease
+                              ? PRIMARY_RELEASE_COLOR
+                              : SECONDARY_RELEASE_COLOR,
+                        },
+                      }
+                    : datum
+                ),
                 name: formatVersion(series.seriesName),
               })) ?? []
             }
