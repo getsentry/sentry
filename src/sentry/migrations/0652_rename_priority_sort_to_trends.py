@@ -3,17 +3,17 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 
 def rename_priority_sort_to_trends(apps, schema_editor):
     # We need to use apps.get_model to ensure we get the correct model for the
     # migration. This is especially important in the case of a renamed model.
     SavedSearch = apps.get_model("sentry", "SavedSearch")
-    priority_searches = SavedSearch.objects.filter(sort="priority")
-    for search in priority_searches:
-        search.sort = "trends"
-
-    SavedSearch.objects.bulk_update(priority_searches, ["sort"])
+    for search in RangeQuerySetWrapperWithProgressBarApprox(SavedSearch.objects.all()):
+        if search.sort == "priority":
+            search.sort = "trends"
+            search.save()
 
 
 class Migration(CheckedMigration):
@@ -27,16 +27,15 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
-
+    is_dangerous = False
     dependencies = [
-        ("sentry", "0646_create_notification_message_table"),
+        ("sentry", "0651_enable_activated_alert_rules"),
     ]
 
     operations = [
         migrations.RunPython(
             rename_priority_sort_to_trends,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_release"]},
+            hints={"tables": ["sentry_savedsearch"]},
         ),
     ]
