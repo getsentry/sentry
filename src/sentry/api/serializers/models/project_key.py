@@ -55,7 +55,6 @@ class ProjectKeySerializerResponse(TypedDict):
     browserSdk: BrowserSDK
     dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
-    use_case: str | None
 
 
 @register(ProjectKey)

@@ -8,6 +8,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class ListProjectKeysTest(APITestCase):
     def setUp(self):
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
 
     def test_simple(self):
