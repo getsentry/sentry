@@ -56,7 +56,8 @@ from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import make_recording_filename, make_video_filename, storage
+from sentry.replays.lib.storage import storage_kv
+from sentry.replays.lib.storage.legacy import make_recording_filename, make_video_filename
 from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
@@ -376,4 +377,4 @@ def _do_upload(upload_event: UploadEvent) -> None:
         # If an error occurs this will retry up to five times by default.
         #
         # Refer to `src.sentry.filestore.gcs.GCS_RETRIES`.
-        storage.set(upload_event["key"], upload_event["value"])
+        storage_kv.set(upload_event["key"], upload_event["value"])

@@ -13,7 +13,8 @@ from sentry_sdk.tracing import Span
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import make_recording_filename, make_video_filename, storage
+from sentry.replays.lib.storage import storage_kv
+from sentry.replays.lib.storage.legacy import make_recording_filename, make_video_filename
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -97,7 +98,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    storage.set(
+    storage_kv.set(
         make_recording_filename(
             project_id=message.project_id,
             replay_id=message.replay_id,
@@ -108,7 +109,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     )
 
     if message.replay_video:
-        storage.set(
+        storage_kv.set(
             make_video_filename(
                 project_id=message.project_id,
                 replay_id=message.replay_id,
