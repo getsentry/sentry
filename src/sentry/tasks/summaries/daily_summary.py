@@ -13,6 +13,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.release import Release, ReleaseProject
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.weekly_reports import (
     ONE_DAY,
@@ -86,10 +87,9 @@ def prepare_summary_data(
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
     fifteen_days = ONE_DAY * 15
     start = to_datetime(to_timestamp(ctx.end) - fifteen_days)
-    # TODO: create new referrers, simply passing a new string seems to not work
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
-            start=start, end=ctx.end, ctx=ctx, referrer="weekly_reports.outcomes"
+            start=start, end=ctx.end, ctx=ctx, referrer=Referrer.DAILY_SUMMARY_OUTCOMES.value
         )
         for data in event_counts:
             project_id = data["project_id"]
@@ -114,7 +114,9 @@ def prepare_summary_data(
             project_ctx.fourteen_day_avg = math.ceil(project_ctx.fourteen_day_total / 14)
 
             # Today's Top 3 Error Issues
-            key_errors = project_key_errors(ctx=ctx, project=project, referrer="reports.key_errors")
+            key_errors = project_key_errors(
+                ctx=ctx, project=project, referrer=Referrer.DAILY_SUMMARY_KEY_ERRORS.value
+            )
             if key_errors:
                 project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
 
@@ -122,7 +124,7 @@ def prepare_summary_data(
             key_performance_issues = project_key_performance_issues(
                 ctx=ctx,
                 project=project,
-                referrer="reports.key_performance_issues",
+                referrer=Referrer.DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES.value,
             )
             if key_performance_issues:
                 project_ctx.key_performance_issues = key_performance_issues

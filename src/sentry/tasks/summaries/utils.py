@@ -148,7 +148,12 @@ def project_key_errors(
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
-        request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
+        request = Request(
+            dataset=Dataset.Events.value,
+            app_id="reports",
+            query=query,
+            tenant_ids={"organization_id": ctx.organization.id},
+        )
         query_result = raw_snql_query(request, referrer=referrer)
         key_errors = query_result["data"]
         # Set project_ctx.key_errors to be an array of (group_id, count) for now.
@@ -200,6 +205,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
             dataset=Dataset.IssuePlatform.value,
             app_id="reports",
             query=query,
+            tenant_ids={"organization_id": ctx.organization.id},
         )
         query_result = raw_snql_query(request, referrer=referrer)["data"]
 
@@ -359,7 +365,12 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
         orderby=[OrderBy(Column("time"), Direction.ASC)],
         limit=Limit(10000),
     )
-    request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
+    request = Request(
+        dataset=Dataset.Outcomes.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
     data = raw_snql_query(request, referrer=referrer)["data"]
     return data
 

@@ -21,6 +21,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
@@ -140,7 +141,7 @@ def prepare_organization_report(
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
-            start=ctx.start, end=ctx.end, ctx=ctx, referrer="weekly_reports.outcomes"
+            start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
         )
         for data in event_counts:
             project_id = data["project_id"]
@@ -180,7 +181,9 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
         for project in organization.project_set.all():
-            key_errors = project_key_errors(ctx, project, referrer="reports.key_errors")
+            key_errors = project_key_errors(
+                ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
+            )
             if key_errors:
                 ctx.projects_context_map[project.id].key_errors = [
                     (e["group_id"], e["count()"]) for e in key_errors
@@ -211,7 +214,7 @@ def prepare_organization_report(
                 ]
 
             key_performance_issues = project_key_performance_issues(
-                ctx, project, referrer="reports.key_performance_issues"
+                ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
             )
             if key_performance_issues:
                 ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
