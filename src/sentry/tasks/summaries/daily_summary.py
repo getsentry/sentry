@@ -41,9 +41,7 @@ from sentry.utils.query import RangeQuerySetWrapper
     silo_mode=SiloMode.REGION,
 )
 @retry
-def schedule_organizations(
-    dry_run: bool = False, timestamp: float | None = None, duration: int | None = None
-) -> None:
+def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
     if timestamp is None:
         # The time that the report was generated
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
