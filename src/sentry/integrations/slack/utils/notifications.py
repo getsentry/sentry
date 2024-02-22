@@ -131,7 +131,7 @@ def send_incident_alert_notification(
                     "response_type": type(response).__name__,
                 },
             )
-        new_notification_message_object.message_identifier = ts
+        new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
     # Save the notification message we just sent with the response id or error we received
     try:
