@@ -331,7 +331,7 @@
         }
       },
       "required": ["event_id", "platform", "project_id", "timestamp"],
-      "additionalProperties": false
+      "additionalProperties": true
     }
   ],
   "definitions": {
@@ -400,7 +400,7 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -469,7 +469,7 @@
               "format": "uuid"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -537,7 +537,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -558,7 +558,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -580,7 +580,7 @@
               "format": "int64"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -623,7 +623,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -644,7 +644,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -690,7 +690,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -877,7 +877,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1115,7 +1115,7 @@
               "format": "uuid"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1149,7 +1149,7 @@
               "default": null
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1232,7 +1232,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1470,7 +1470,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1559,7 +1559,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1663,7 +1663,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1718,7 +1718,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1762,7 +1762,7 @@
               "default": null
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1798,7 +1798,7 @@
               "minimum": 0.0
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1876,7 +1876,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -1935,7 +1935,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2050,7 +2050,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2080,7 +2080,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2121,7 +2121,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2144,7 +2144,7 @@
               "additionalProperties": true
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2177,7 +2177,7 @@
               "format": "int64"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2200,7 +2200,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2217,7 +2217,7 @@
               "format": "uuid"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2280,7 +2280,7 @@
               "type": ["boolean", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2306,7 +2306,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2425,7 +2425,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2483,7 +2483,7 @@
               "minimum": 0.0
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2514,7 +2514,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2546,7 +2546,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2624,7 +2624,7 @@
               "minimum": 0.0
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2744,7 +2744,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2854,7 +2854,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2912,7 +2912,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -2953,7 +2953,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     },
@@ -3033,7 +3033,7 @@
               "type": ["string", "null"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       ]
     }

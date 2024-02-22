@@ -3,15 +3,23 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {Button} from 'sentry/components/button';
+import Input from 'sentry/components/input';
 import SwitchButton from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  type MetricFormulaWidgetParams,
+  MetricQueryType,
+  type MetricQueryWidgetParams,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {MetricQueryContextMenu} from 'sentry/views/ddm/contextMenu';
+import {MetricFormulaContextMenu} from 'sentry/views/ddm/metricFormulaContextMenu';
+import {MetricQueryContextMenu} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
@@ -28,6 +36,7 @@ export function Queries() {
   } = useDDMContext();
 
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -45,46 +54,76 @@ export function Queries() {
     <Fragment>
       <Wrapper showQuerySymbols={showQuerySymbols}>
         {widgets.map((widget, index) => (
-          <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-            <Query
-              widget={widget}
-              onChange={data => handleChange(index, data)}
-              projects={selection.projects}
-              symbol={
-                showQuerySymbols && (
-                  <StyledQuerySymbol
-                    index={index}
-                    isClickable={isMultiChartMode}
-                    isSelected={index === selectedWidgetIndex}
-                    onClick={() => setSelectedWidgetIndex(index)}
-                    role={isMultiChartMode ? 'button' : undefined}
-                    aria-label={t('Select query')}
+          <Row key={widget.id} onFocusCapture={() => setSelectedWidgetIndex(index)}>
+            {widget.type === MetricQueryType.QUERY ? (
+              <Query
+                widget={widget}
+                onChange={data => handleChange(index, data)}
+                projects={selection.projects}
+                symbol={
+                  showQuerySymbols && (
+                    <StyledQuerySymbol
+                      queryId={widget.id}
+                      isClickable={isMultiChartMode}
+                      isSelected={index === selectedWidgetIndex}
+                      onClick={() => setSelectedWidgetIndex(index)}
+                      role={isMultiChartMode ? 'button' : undefined}
+                      aria-label={t('Select query')}
+                    />
+                  )
+                }
+                contextMenu={
+                  <MetricQueryContextMenu
+                    displayType={widget.displayType}
+                    widgetIndex={index}
+                    metricsQuery={{
+                      mri: widget.mri,
+                      query: widget.query,
+                      op: widget.op,
+                      groupBy: widget.groupBy,
+                    }}
                   />
-                )
-              }
-              contextMenu={
-                <MetricQueryContextMenu
-                  displayType={widget.displayType}
-                  widgetIndex={index}
-                  metricsQuery={{
-                    mri: widget.mri,
-                    query: widget.query,
-                    op: widget.op,
-                    groupBy: widget.groupBy,
-                    projects: selection.projects,
-                    datetime: selection.datetime,
-                    environments: selection.environments,
-                  }}
-                />
-              }
-            />
+                }
+              />
+            ) : (
+              <Formula
+                onChange={data => handleChange(index, data)}
+                widget={widget}
+                symbol={
+                  showQuerySymbols && (
+                    <StyledQuerySymbol
+                      queryId={widget.id}
+                      isClickable={isMultiChartMode}
+                      isSelected={index === selectedWidgetIndex}
+                      onClick={() => setSelectedWidgetIndex(index)}
+                      role={isMultiChartMode ? 'button' : undefined}
+                      aria-label={t('Select query')}
+                    />
+                  )
+                }
+                contextMenu={<MetricFormulaContextMenu widgetIndex={index} />}
+              />
+            )}
           </Row>
         ))}
       </Wrapper>
       <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
-        <Button size="sm" icon={<IconAdd isCircled />} onClick={addWidget}>
+        <Button
+          size="sm"
+          icon={<IconAdd isCircled />}
+          onClick={() => addWidget(MetricQueryType.QUERY)}
+        >
           Add query
         </Button>
+        {organization.features.includes('ddm-formulas') && (
+          <Button
+            size="sm"
+            icon={<IconAdd isCircled />}
+            onClick={() => addWidget(MetricQueryType.FORMULA)}
+          >
+            Add formula
+          </Button>
+        )}
         <SwitchWrapper>
           {t('One chart per query')}
           <SwitchButton
@@ -97,15 +136,15 @@ export function Queries() {
   );
 }
 
-interface Props {
+interface QueryProps {
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
-  widget: MetricWidgetQueryParams;
+  widget: MetricQueryWidgetParams;
   contextMenu?: React.ReactNode;
   symbol?: React.ReactNode;
 }
 
-export function Query({widget, projects, onChange, contextMenu, symbol}: Props) {
+export function Query({widget, projects, onChange, contextMenu, symbol}: QueryProps) {
   return (
     <QueryWrapper hasSymbol={!!symbol}>
       {symbol}
@@ -126,6 +165,23 @@ export function Query({widget, projects, onChange, contextMenu, symbol}: Props) 
   );
 }
 
+interface FormulaProps {
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  widget: MetricFormulaWidgetParams;
+  contextMenu?: React.ReactNode;
+  symbol?: React.ReactNode;
+}
+
+export function Formula({widget, onChange, contextMenu, symbol}: FormulaProps) {
+  return (
+    <QueryWrapper hasSymbol={!!symbol}>
+      {symbol}
+      <Input value={widget.formula} onChange={e => onChange({formula: e.target.value})} />
+      {contextMenu}
+    </QueryWrapper>
+  );
+}
+
 const QueryWrapper = styled('div')<{hasSymbol: boolean}>`
   display: grid;
   gap: ${space(1)};
@@ -139,8 +195,7 @@ const StyledQuerySymbol = styled(QuerySymbol)<{isClickable: boolean}>`
   ${p => p.isClickable && `cursor: pointer;`}
 `;
 
-const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
-`;
+const Wrapper = styled('div')<{showQuerySymbols: boolean}>``;
 
 const Row = styled('div')`
   display: contents;
