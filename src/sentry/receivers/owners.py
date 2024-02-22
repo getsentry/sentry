@@ -23,10 +23,7 @@ def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
         return
 
     # member is the last owner and the update will remove the last owner
-    if (
-        member.is_only_owner()
-        and organization_roles.get_top_dog().id not in instance.get_all_org_roles()
-    ):
+    if member.is_only_owner() and instance.role != "owner":
         raise ValidationError(detail="An organization must have at least one owner")
 
 
@@ -67,6 +64,7 @@ pre_save.connect(
     dispatch_uid="prevent_demoting_last_owner",
     weak=False,
 )
+
 pre_save.connect(
     prevent_demoting_last_owner_team,
     sender=Team,
