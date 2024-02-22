@@ -25,20 +25,20 @@ function widgetToQuery(
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
     ? {
+        name: getQuerySymbol(widget.id),
         // TODO(aknaus): Properly parse formulas to format identifiers
         // This solution is limited to single character identifiers
         formula: widget.formula
           .split('')
           .map(char => (queryLookup.has(char) ? `$${char}` : char))
           .join(''),
-        name: getQuerySymbol(widget.id),
       }
     : {
+        name: getQuerySymbol(widget.id),
         mri: widget.mri,
         op: widget.op,
         groupBy: widget.groupBy,
         query: widget.query,
-        name: getQuerySymbol(widget.id),
         isQueryOnly: isQueryOnly,
       };
 }

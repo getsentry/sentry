@@ -1,5 +1,9 @@
 import {getDefaultMetricOp} from 'sentry/utils/metrics';
-import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
+import {
+  DEFAULT_SORT_STATE,
+  emptyMetricsQueryWidget,
+  NO_QUERY_ID,
+} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
@@ -71,17 +75,17 @@ function parseFocusedSeries(series: any): FocusedMetricsSeries | undefined {
   if (!isRecord(series)) {
     return undefined;
   }
-  const seriesName = parseStringParam(series, 'seriesName');
+  const id = parseStringParam(series, 'id');
   const groupBy =
     'groupBy' in series && isRecord(series.groupBy)
       ? (series.groupBy as Record<string, string>)
       : undefined;
 
-  if (!seriesName) {
+  if (!id) {
     return undefined;
   }
 
-  return {seriesName, groupBy};
+  return {id, groupBy};
 }
 
 function parseSortParam(widget: Record<string, unknown>, key: string): SortState {
@@ -165,24 +169,24 @@ function parseFormulaWidget(
 
 export function parseMetricWidgetsQueryParam(
   queryParam?: string
-): MetricWidgetQueryParams[] | undefined {
+): MetricWidgetQueryParams[] {
   let currentWidgets: unknown = undefined;
 
   try {
     currentWidgets = JSON.parse(queryParam || '');
   } catch (_) {
-    return undefined;
+    currentWidgets = [];
   }
 
   // It has to be an array and non-empty
-  if (!Array.isArray(currentWidgets) || currentWidgets.length === 0) {
-    return undefined;
+  if (!Array.isArray(currentWidgets)) {
+    currentWidgets = [];
   }
 
   const usedIds = new Set<number>();
   const indezesWithoutId = new Set<number>();
 
-  const parsedWidgets = currentWidgets.map(
+  const parsedWidgets = (currentWidgets as unknown[]).map(
     (widget: unknown, index): MetricWidgetQueryParams | null => {
       if (!isRecord(widget)) {
         return null;
@@ -239,10 +243,14 @@ export function parseMetricWidgetsQueryParam(
     (widget): widget is MetricWidgetQueryParams => widget !== null
   );
 
+  if (filteredWidgets.length === 0) {
+    filteredWidgets.push(emptyMetricsQueryWidget);
+  }
+
   // We can reset the id if there is only one widget
   if (filteredWidgets.length === 1) {
     filteredWidgets[0].id = 0;
   }
 
-  return filteredWidgets.length > 0 ? filteredWidgets : undefined;
+  return filteredWidgets;
 }

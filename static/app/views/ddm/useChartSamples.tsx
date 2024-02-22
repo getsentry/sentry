@@ -147,6 +147,7 @@ export function useChartSamples({
 
       return {
         seriesName: sample.transactionId,
+        id: sample.transactionId,
         // TODO: we should not use the same Series type for samples and metrics
         operation: '',
         unit: '',
