@@ -15,7 +15,7 @@ from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
 _parameterization_regex = re.compile(
-    # The `(?x)` tells the regex compiler to ingore comments and unescaped whitespace,
+    # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
     # so we can use newlines and indentation for better legibility.
     r"""(?x)
     (?P<email>
@@ -90,7 +90,7 @@ _parameterization_regex = re.compile(
         # Time
         ([0-2]\d:[0-5]\d:[0-5]\d)
         |
-        # Old Formats, TODO: possibly safe to remove?
+        # Old Date Formats, TODO: possibly safe to remove?
         (
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
