@@ -1517,6 +1517,7 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        group: str = "00",
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1532,7 +1533,11 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "sentry_tags": {
+                "transaction": transaction or "/hello",
+                "op": op or "http",
+                "group": group,
+            },
             "retention_days": 90,
         }
 
@@ -2850,8 +2855,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
         assert (
-            blocks[2]["elements"][0]["elements"][0]["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            blocks[2]["text"]["text"]
+            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
             blocks[3]["text"]["text"]
@@ -2896,8 +2901,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f":exclamation: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
         assert (
-            blocks[2]["elements"][0]["elements"][0]["text"]
-            == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+            blocks[2]["text"]["text"]
+            == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
         assert (
             blocks[5]["elements"][0]["text"]
@@ -3054,7 +3059,7 @@ class MonitorTestCase(APITestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment, **monitorenvironment_defaults
+            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
     def _create_issue_alert_rule(self, monitor):

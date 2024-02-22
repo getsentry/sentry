@@ -1,13 +1,12 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
-sentry-devenv>=1.2.2
+sentry-devenv>=1.2.3
 
 covdefaults>=2.3.0
 docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.18.2
-psutil
 pytest>=8
 pytest-cov>=4.0.0
 pytest-django>=4.8.0

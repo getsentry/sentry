@@ -207,8 +207,10 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
-        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues", "1")
-        == "1",
+        "sentry:feedback_user_report_notification": bool(
+            options.get("sentry:feedback_user_report_notification")
+        ),
+        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 
