@@ -275,6 +275,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
         assert actual == expected
 
     def test_custom_samples(self):
+        mri = "d:custom/value@millisecond"
         span_ids = [uuid4().hex[:16] for _ in range(10)]
         for i, span_id in enumerate(span_ids):
             self.store_indexed_span(
@@ -284,10 +285,21 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 span_id=span_id,
                 timestamp=before_now(days=i, minutes=10),
                 group=uuid4().hex[:16],  # we need a non 0 group
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {},
+                        }
+                    ]
+                },
             )
 
         query = {
-            "mri": "d:custom/duration@millisecond",
+            "mri": mri,
             "field": ["id"],
             "project": [self.project.id],
             "statsPeriod": "14d",
