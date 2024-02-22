@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  INBOX = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -46,6 +47,16 @@ type OverviewTab = {
  */
 export function getTabs(organization: Organization) {
   const tabs: Array<[string, OverviewTab]> = [
+    [
+      Query.INBOX,
+      {
+        name: t('Inbox'),
+        analyticsName: 'inbox',
+        count: true,
+        enabled: true,
+        hidden: !organization.features.includes('issue-priority-ui'),
+      },
+    ],
     [
       Query.UNRESOLVED,
       {
