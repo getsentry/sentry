@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
@@ -557,6 +558,12 @@ function Sidebar() {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <FeedbackOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

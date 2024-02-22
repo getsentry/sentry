@@ -72,6 +72,7 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),

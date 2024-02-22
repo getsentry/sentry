@@ -5,6 +5,7 @@ export type FeedbackEventParameters = {
   'feedback.index-setup-viewed': {};
   'feedback.list-item-selected': {};
   'feedback.mark-spam-clicked': {type: 'bulk' | 'details'};
+  'feedback.view-setup-sidebar': {};
   'feedback.whats-new-banner-dismissed': {};
   'feedback.whats-new-banner-viewed': {};
 };
@@ -19,4 +20,5 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.whats-new-banner-dismissed': 'Dismissed Feedback Whatss New Banner',
   'feedback.whats-new-banner-viewed': 'Viewed Feedback Whats New Banner',
   'feedback.mark-spam-clicked': 'Marked Feedback as Spam',
+  'feedback.view-setup-sidebar': 'Viewed Feedback Onboarding Sidebar',
 };

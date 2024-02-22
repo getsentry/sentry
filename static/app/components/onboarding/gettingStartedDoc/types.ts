@@ -37,6 +37,7 @@ export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
   dsn: string;
+  isFeedbackSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
@@ -76,6 +77,7 @@ export interface OnboardingConfig<
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
   replayOnboardingNpm?: OnboardingConfig<PlatformOptions>;
@@ -83,6 +85,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
 
 export type ConfigType =
   | 'onboarding'
+  | 'feedbackOnboardingNpm'
   | 'replayOnboardingNpm'
   | 'replayOnboardingJsLoader'
   | 'customMetricsOnboarding';
