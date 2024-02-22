@@ -12,8 +12,7 @@ import {defined} from 'sentry/utils';
 import {Container, FieldDateTime} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {parseMRI} from 'sentry/utils/metrics/mri';
-import {useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
+import {isSupportedMRI, useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
@@ -23,39 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-
-export function isSupportedMRI(mri: MRI): boolean {
-  // extracted transaction metrics
-  if (mri === 'd:transactions/duration@millisecond') {
-    return true;
-  }
-
-  // extracted span metrics
-  if (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'd:spans/duration@millisecond'
-  ) {
-    return true;
-  }
-
-  const parsedMRI = parseMRI(mri);
-  if (defined(parsedMRI)) {
-    // extracted measurement metrics
-    if (
-      parsedMRI.useCase === 'transactions' &&
-      parsedMRI.name.startsWith('measurements.')
-    ) {
-      return true;
-    }
-
-    // user defined custom metrics
-    if (parsedMRI.useCase === 'custom') {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 interface MetricSamplesTableProps {
   mri?: MRI;
