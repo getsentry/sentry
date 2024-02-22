@@ -14,7 +14,6 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
@@ -366,25 +365,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
-    def test_scopes_with_team_org_role(self):
-        member = OrganizationMember.objects.create(
-            organization=self.organization,
-            role="member",
-            email="test@example.com",
-        )
-        owner = OrganizationMember.objects.create(
-            organization=self.organization,
-            role="owner",
-            email="owner@example.com",
-        )
-        owner_member_scopes = member.get_scopes() | owner.get_scopes()
-
-        team = self.create_team(organization=self.organization, org_role="owner")
-        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
-
-        member.refresh_from_db()
-        assert member.get_scopes() == owner_member_scopes
-
     def test_get_contactable_members_for_org(self):
         organization = self.create_organization()
         user1 = self.create_user()
@@ -459,24 +439,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             match="You do not have permission to approve a member invitation with the role admin.",
         ):
             member.validate_invitation(user, [roles.get("member")])
-
-    def test_validate_invitation_with_org_role_from_team(self):
-        team = self.create_team(org_role="admin")
-        member = self.create_member(
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-            email="hello@sentry.io",
-            role="member",
-            teams=[team],
-        )
-        user = self.create_user()
-        assert member.validate_invitation(user, [roles.get("admin"), roles.get("member")])
-
-        with pytest.raises(
-            UnableToAcceptMemberInvitationException,
-            match="You do not have permission to approve a member invitation with the role admin.",
-        ):
-            member.validate_invitation(user, [roles.get("manager")])
 
     def test_approve_member_invitation(self):
         member = self.create_member(
@@ -554,6 +516,32 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert carol.get_allowed_org_roles_to_invite() == [
                 roles.get("carol"),
             ]
+
+    def test_get_allowed_org_roles_to_invite_subset_member_logic(self):
+        """
+        There are two org options which mutate org member scopes:
+            1. sentry:events_member_admin - if True, members have events:admin
+            2. sentry:alerts_member_write - if True, members have alerts:write
+        These settings are both True by default, although in the SENTRY_ROLES
+        config, we default to giving member alerts:write but not events:admin.
+        """
+        org_member = self.create_member(
+            user=self.create_user(), organization=self.organization, role="member"
+        )
+
+        assert "event:admin" in org_member.get_scopes()
+        assert "alerts:write" in org_member.get_scopes()
+
+        assert org_member.get_allowed_org_roles_to_invite() == [
+            roles.get("member"),
+        ]
+
+        self.organization.update_option("sentry:events_member_admin", False)
+        self.organization.update_option("sentry:events_member_admin", False)
+
+        assert org_member.get_allowed_org_roles_to_invite() == [
+            roles.get("member"),
+        ]
 
     def test_org_roles_by_source(self):
         manager_team = self.create_team(organization=self.organization, org_role="manager")

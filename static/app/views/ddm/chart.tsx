@@ -39,7 +39,6 @@ type ChartProps = {
   focusArea?: FocusAreaProps;
   group?: string;
   height?: number;
-  operation?: string;
   scatter?: SamplesProps;
 };
 
@@ -76,7 +75,7 @@ function addSeriesPadding(data: Series['data']) {
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
-    {series, displayType, operation, widgetIndex, focusArea, height, scatter, group},
+    {series, displayType, widgetIndex, focusArea, height, scatter, group},
     forwardedRef
   ) => {
     const router = useRouter();
@@ -91,6 +90,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     );
 
     const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
+    const hasCumulativeOp = series.some(s => isCumulativeOp(s.operation));
 
     const focusAreaBrush = useFocusArea({
       ...focusArea,
@@ -100,7 +100,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       opts: {
         widgetIndex,
         isDisabled: !focusArea?.onAdd || !handleZoom,
-        useFullYAxis: isCumulativeOp(operation),
+        useFullYAxis: hasCumulativeOp,
       },
       onZoom: handleZoom,
     });
@@ -147,7 +147,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       unit: scatter?.unit,
       onClick: scatter?.onClick,
       highlightedSampleId: scatter?.higlightedId,
-      operation,
+      operation: scatter?.operation,
       timeseries: series,
     });
 
@@ -166,7 +166,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       const timeseriesFormatters = {
         valueFormatter: (value: number, seriesName?: string) => {
-          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation};
+          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation: undefined};
           return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
         },
         isGroupedByDate: true,
@@ -272,7 +272,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                 return formatMetricsUsingUnitAndOp(
                   value,
                   hasMultipleUnits ? 'none' : unit,
-                  operation
+                  scatter?.operation
                 );
               },
             },
@@ -303,7 +303,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       samples.xAxis,
       samples.formatters,
       unit,
-      operation,
+      scatter?.operation,
     ]);
 
     return (
@@ -414,9 +414,12 @@ function createIngestionSeries(
 const EXTRAPOLATED_AREA_STRIPE_IMG =
   'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
 
+export const getIngestionSeriesId = (seriesId: string) => `${seriesId}-ingestion`;
+
 function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     data: series.data.map((data, index) => ({
       ...data,
@@ -438,6 +441,7 @@ function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
@@ -450,6 +454,7 @@ function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: getIngestionSeriesId(series.id),
     silent: true,
     stack: 'fogOfWar',
     // We include the last non-fog of war bucket so that the line is connected
