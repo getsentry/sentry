@@ -220,66 +220,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         }
 
         response = self.get_success_response(
-            sort="trends",
-            query="is:unresolved",
-            limit=25,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-            **aggregate_kwargs,
-        )
-        assert len(response.data) == 2
-        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
-
-    def test_sort_by_priority(self):
-        group = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=10)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        ).group
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=10)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(hours=13)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-
-        group_2 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=5)),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        ).group
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(hours=13)),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-
-        aggregate_kwargs: dict = {
-            "log_level": "3",
-            "has_stacktrace": "5",
-            "relative_volume": "1",
-            "event_halflife_hours": "4",
-            "issue_halflife_hours": "4",
-            "v2": "true",
-            "norm": "False",
-        }
-
-        response = self.get_success_response(
             sort="priority",
             query="is:unresolved",
             limit=25,
