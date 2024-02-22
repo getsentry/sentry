@@ -11,6 +11,7 @@ class MetricsSummariesQueryBuilder(QueryBuilder):
         self.validate_having_clause()
 
         return Request(
+            # the metrics summaries entity exists within the spans indexed dataset
             dataset=Dataset.SpansIndexed.value,
             app_id="default",
             query=Query(
