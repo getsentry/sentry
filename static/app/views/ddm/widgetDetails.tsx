@@ -8,7 +8,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricQueryType,
+  type MetricQueryWidgetParams,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
@@ -39,7 +43,10 @@ export function WidgetDetails() {
 
   return (
     <MetricDetails
-      widget={selectedWidget}
+      // TODO(aknaus): better fallback
+      widget={
+        selectedWidget?.type === MetricQueryType.FORMULA ? undefined : selectedWidget
+      }
       onRowHover={handleSampleRowHover}
       focusArea={focusArea}
     />
@@ -49,7 +56,7 @@ export function WidgetDetails() {
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   onRowHover?: SamplesTableProps['onRowHover'];
-  widget?: MetricWidgetQueryParams;
+  widget?: MetricQueryWidgetParams;
 }
 
 export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProps) {

@@ -58,7 +58,7 @@ def is_sliding_window_org_enabled(organization: Organization) -> bool:
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)  # type:ignore
+    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=organization.id)
 
     # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
     if sample_rate is None:

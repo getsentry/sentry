@@ -29,8 +29,4 @@ def parse_uuid(value: str) -> uuid.UUID:
     try:
         return uuid.UUID(value)
     except ValueError:
-        # Return an empty uuid. This emulates current behavior where inability to parse a UUID
-        # leads to an empty result-set rather than an error.
-        #
-        # TODO: Probably raise an error here...
-        return uuid.UUID("00000000000000000000000000000000")
+        raise CouldNotParseValue("Failed to parse uuid.")

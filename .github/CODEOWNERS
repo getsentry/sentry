@@ -159,34 +159,27 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/issueDetails/                           @getsentry/issues
-/static/app/views/issueDetails/groupEventDetails/*        @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/alerts-notifications
 /static/app/views/organizationStats/teamInsights/         @getsentry/issues
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
-/src/sentry/templates/sentry/emails/incidents/            @getsentry/issues
-/src/sentry/incidents/                                    @getsentry/issues
-/tests/sentry/incidents/                                  @getsentry/issues
-/tests/acceptance/test_incidents.py                       @getsentry/issues
+/src/sentry/templates/sentry/emails/incidents/            @getsentry/alerts-notifications
+/src/sentry/incidents/                                    @getsentry/alerts-notifications
+/tests/sentry/incidents/                                  @getsentry/alerts-notifications
+/tests/acceptance/test_incidents.py                       @getsentry/alerts-notifications
 
-/src/sentry/api/endpoints/group_events.py                 @getsentry/issues
-/src/sentry/api/endpoints/organization_group_index.py     @getsentry/issues
-/src/sentry/api/endpoints/organization_activity.py        @getsentry/issues
-/src/sentry/api/endpoints/organization_searches.py        @getsentry/issues
-/src/sentry/api/helpers/group_index.py                    @getsentry/issues
 /src/sentry/api/helpers/events.py                         @getsentry/issues
-/src/sentry/api/helpers/group_index/update.py             @getsentry/issues
+/src/sentry/api/helpers/group_index/                      @getsentry/issues
 
-/src/sentry/snuba/models.py                               @getsentry/issues
-/src/sentry/snuba/query_subscription_consumer.py          @getsentry/issues
-/src/sentry/snuba/subscriptions.py                        @getsentry/issues
-/tests/snuba/incidents/                                   @getsentry/issues
-/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/issues
-/tests/sentry/snuba/test_subscriptions.py                 @getsentry/issues
+/src/sentry/snuba/models.py                               @getsentry/alerts-notifications
+/src/sentry/snuba/query_subscriptions/                    @getsentry/alerts-notifications
+/src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
+/tests/snuba/incidents/                                   @getsentry/alerts-notifications
+/tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
+/tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/issues
-/tests/snuba/snuba/test_query_subscription_consumer.py    @getsentry/issues
 /src/sentry/api/issue_search.py                           @getsentry/issues
 /tests/sentry/api/test_issue_search.py                    @getsentry/issues
 
@@ -326,9 +319,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 ## Integrations
 /src/sentry/api/endpoints/integrations/                              @getsentry/product-owners-settings-integrations
-/src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
 /src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
@@ -337,23 +328,23 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/views/organizationIntegrations                           @getsentry/product-owners-settings-integrations
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
 
-/src/sentry/digests/                                                 @getsentry/issues
-/src/sentry/identity/                                                @getsentry/issues
+/src/sentry/digests/                                                 @getsentry/alerts-notifications
+/src/sentry/identity/                                                @getsentry/enterprise
 /src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
 /src/sentry/mail/                                                    @getsentry/alerts-notifications
 /src/sentry/mediators/                                               @getsentry/issues
 /src/sentry/notifications/                                           @getsentry/alerts-notifications
-/src/sentry/pipeline/                                                @getsentry/issues
-/src/sentry/plugins/                                                 @getsentry/issues
+/src/sentry/pipeline/                                                @getsentry/ecosystem
+/src/sentry/plugins/                                                 @getsentry/ecosystem
 /src/sentry/ratelimits/                                              @getsentry/issues
-/src/sentry/shared_integrations/                                     @getsentry/issues
+/src/sentry/shared_integrations/                                     @getsentry/ecosystem
 
 /src/sentry/models/externalactor.py                                  @getsentry/ecosystem
 /src/sentry/models/externalissue.py                                  @getsentry/ecosystem
 /src/sentry/models/identity.py                                       @getsentry/enterprise
 /src/sentry/models/integrations/                                     @getsentry/product-owners-settings-integrations
 
-/src/sentry/tasks/code_owners.py                                     @getsentry/issues
+/src/sentry/tasks/codeowners/                                        @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
 /src/sentry/tasks/commit_context.py                                  @getsentry/issues
 /src/sentry/tasks/digests.py                                         @getsentry/alerts-notifications
@@ -388,8 +379,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/project.py                 @getsentry/data @getsentry/telemetry-experience
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
-/src/sentry/models/sentryapp.py               @getsentry/data @getsentry/issues
-/src/sentry/models/sentryappinstallation.py   @getsentry/data @getsentry/issues
 /src/sentry/models/user.py                    @getsentry/data
 ## End of Data
 
@@ -507,7 +496,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/grouping/                               @getsentry/issues
 /src/sentry/issues/                                 @getsentry/issues
 /src/sentry/tasks/post_process.py                   @getsentry/issues
-/src/sentry/types/issues.py                         @getsentry/issues
 /tests/sentry/event_manager/test_event_manager.py   @getsentry/issues
 /tests/sentry/grouping/                             @getsentry/issues
 /tests/sentry/issues/                               @getsentry/issues
@@ -516,14 +504,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/snuba/search/                                @getsentry/issues
 /src/sentry/search/snuba/                           @getsentry/issues
 /static/app/views/issueList                                  @getsentry/issues
-/static/app/views/organizationGroupDetails                   @getsentry/issues
-/src/sentry/api/endpoints/source_map_debug.py                @getsentry/issues
 /src/sentry/api/helpers/source_map_helper.py                  @getsentry/issues
-/src/sentry/api/endpoints/actionable_items.py                @getsentry/issues
 /src/sentry/api/helpers/actionable_items_helper.py                  @getsentry/issues
-/static/app/components/events/interfaces/crashContent/exception/actionableItems   @getsentry/issues
+/static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issues
 /static/app/utils/analytics.tsx                                 @getsentry/issues
-/static/app/utils/routeAnalytics*                               @getsentry/issues
+/static/app/utils/routeAnalytics/                               @getsentry/issues
 ## End of Issues
 
 ## Billing

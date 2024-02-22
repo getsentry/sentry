@@ -5,10 +5,20 @@ from typing import Any
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.builder import (
+    MetricsSummariesQueryBuilder,
+    QueryBuilder,
+    SpansIndexedQueryBuilder,
+)
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI, is_measurement, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    SpanMRI,
+    TransactionMRI,
+    is_custom_metric,
+    is_measurement,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 
 
@@ -33,7 +43,7 @@ class SamplesListExecutor(ABC):
 
     @classmethod
     @abstractmethod
-    def supports(cls, metric_mri: str) -> bool:
+    def supports(cls, mri: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -53,13 +63,12 @@ class SamplesListExecutor(ABC):
             offset=0,
         )
 
-        # Using `IN` sometimes does not use the bloomfilter index
-        # on the table. So we're explicitly writing the condition
-        # using `OR`s.
+        # This are the additional conditions to better take advantage of the ORDER BY
+        # on the spans table. This creates a list of conditions to be `OR`ed together
+        # that can will be used by ClickHouse to narrow down the granules.
         #
-        # May not be necessary because it's also filtering on the
-        # `span.group` as well which allows Clickhouse to filter
-        # via the primary key but this is a precaution.
+        # The span ids are not in this condition because they are more effective when
+        # specified within the `PREWHERE` clause. So, it's in a separate condition.
         conditions = [
             And(
                 [
@@ -67,18 +76,30 @@ class SamplesListExecutor(ABC):
                     Condition(
                         builder.column("timestamp"), Op.EQ, datetime.fromisoformat(timestamp)
                     ),
-                    Condition(builder.column("id"), Op.EQ, span_id),
                 ]
             )
-            for (group, timestamp, span_id) in span_ids
+            for (group, timestamp, _) in span_ids
         ]
 
         if len(conditions) == 1:
-            span_condition = conditions[0]
+            order_by_condition = conditions[0]
         else:
-            span_condition = Or(conditions)
+            order_by_condition = Or(conditions)
 
-        builder.add_conditions([span_condition])
+        # Using `IN` combined with putting the list in a SnQL "tuple" triggers an optimizer
+        # in snuba where it
+        # 1. moves the condition into the `PREWHERE` clause
+        # 2. maps the ids to the underlying UInt64 and uses the bloom filter index
+        #
+        # NOTE: the "tuple" here is critical as without it, snuba will not correctly
+        # rewrite the condition and keep it in the WHERE and as a hexidecimal.
+        span_id_condition = Condition(
+            builder.column("id"),
+            Op.IN,
+            Function("tuple", [span_id for _, _, span_id in span_ids]),
+        )
+
+        builder.add_conditions([order_by_condition, span_id_condition])
 
         query_results = builder.run_query(self.referrer.value)
         return builder.process_results(query_results)
@@ -232,10 +253,52 @@ class SpansSamplesListExecutor(SamplesListExecutor):
         ]
 
 
+class CustomSamplesListExecutor(SamplesListExecutor):
+    @classmethod
+    def supports(cls, mri: str) -> bool:
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is not None and is_custom_metric(parsed_mri):
+            return True
+        return False
+
+    def execute(self, offset, limit):
+        span_keys = self.get_span_keys(offset, limit)
+        return self.get_spans_by_key(span_keys)
+
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+
+        builder = MetricsSummariesQueryBuilder(
+            Dataset.MetricsSummaries,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=[rounded_timestamp, "example()"],
+            limit=limit,
+            offset=offset,
+            # This table has a poor SAMPLE BY so DO NOT use it for now
+            # sample_rate=options.get("metrics.sample-list.sample-rate"),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+        )
+
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [
+            (
+                row["example"][0],  # group
+                row["example"][1],  # timestamp
+                row["example"][2],  # span_id
+            )
+            for row in result["data"]
+        ]
+
+
 SAMPLE_LIST_EXECUTORS = [
     SpansSamplesListExecutor,
     TransactionDurationSamplesListExecutor,
     MeasurementsSamplesListExecutor,
+    CustomSamplesListExecutor,
 ]
 
 

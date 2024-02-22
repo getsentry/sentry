@@ -112,9 +112,6 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class NotificationConfig:
-    default_tags: list[str] = field(
-        default_factory=lambda: ["level", "release", "handled", "environment"]
-    )  # TODO(cathy): no tags for crons (empty list)
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
         default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
@@ -399,6 +396,18 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = True
     notification_config = NotificationConfig(context=["Users Affected", "State", "Regressed Date"])
+
+
+# experimental
+@dataclass(frozen=True)
+class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
+    type_id = 1019
+    slug = "performance_streamed_spans_exp"
+    description = "Streamed Spans (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType

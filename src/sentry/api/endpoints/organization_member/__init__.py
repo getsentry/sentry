@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection
 
 from django.db import router, transaction
@@ -17,6 +18,8 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
+
+logger = logging.getLogger("sentry.org_roles")
 
 
 class InvalidTeam(SentryAPIException):
@@ -76,8 +79,8 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
     if not can_admin_team(access, team):
         return False
 
-    org_roles = access.get_organization_roles()
-    if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
+    org_role = access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
         return True
 
     team_role = access.get_team_role(team)
@@ -99,6 +102,7 @@ def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
+    log_scopes: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -111,6 +115,12 @@ def get_allowed_org_roles(
     if is_active_superuser(request):
         return roles.get_all()
     if not request.access.has_scope("member:admin"):
+        ids = {}
+        if member:
+            ids["member_id"] = member.id
+        if hasattr(request, "user") and hasattr(request.user, "id"):
+            ids["user_id"] = request.user.id
+        logger.info("request.missing_scope", extra=ids)
         return ()
 
     if member is None:
@@ -123,7 +133,7 @@ def get_allowed_org_roles(
             # token whose proxy user does not have an OrganizationMember object.
             return ()
 
-    return member.get_allowed_org_roles_to_invite()
+    return member.get_allowed_org_roles_to_invite(log_scopes=log_scopes)
 
 
 from .details import OrganizationMemberDetailsEndpoint
