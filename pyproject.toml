@@ -66,8 +66,6 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code"]
 
-# check for possibly unbound variables
-
 enable_error_code = ["possibly-undefined"]
 
 [tool.django-stubs]
