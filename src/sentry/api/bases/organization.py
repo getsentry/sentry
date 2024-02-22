@@ -396,7 +396,7 @@ class OrganizationEndpoint(Endpoint):
                     func = request.access.has_project_access
                 # Check if explicitly requesting specific projects
                 elif not filter_by_membership:
-                    if is_active_staff(request):
+                    if user and is_active_staff(request):
                         # There is a special case for staff, where we want to fetch usage stats for a single
                         # project in _admin using OrganizationStatsEndpointV2 but cannot use as_project_access
                         # like superuser because it fails. The workaround is to create a lambda that mimics
