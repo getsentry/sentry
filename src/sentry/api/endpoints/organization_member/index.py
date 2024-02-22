@@ -9,7 +9,8 @@ from sentry import audit_log, features, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organizationmember import MemberPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
@@ -27,15 +28,6 @@ from sentry.utils import metrics
 from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-
-class MemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
-    }
 
 
 class MemberConflictValidationError(serializers.ValidationError):
@@ -341,9 +333,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=om.id,
             data=om.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
         return Response(serialize(om), status=201)
