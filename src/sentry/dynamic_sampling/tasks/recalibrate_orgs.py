@@ -46,7 +46,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     ):
         valid_orgs = []
         for org_volume in org_volumes:
-            if org_volume.is_valid_for_recalibration:
+            if org_volume.is_valid_for_recalibration():
                 valid_orgs.append((org_volume.org_id, org_volume.total, org_volume.indexed))
             else:
                 log_recalibrate_org_error(
