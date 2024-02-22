@@ -168,6 +168,7 @@ export const SummaryTable = memo(function SummaryTable({
         {rows.map(
           ({
             seriesName,
+            id,
             groupBy,
             color,
             hidden,
@@ -181,19 +182,19 @@ export const SummaryTable = memo(function SummaryTable({
             sum,
           }) => {
             return (
-              <Fragment key={seriesName}>
+              <Fragment key={id}>
                 <CellWrapper
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
-                        seriesName,
+                        id,
                         groupBy,
                       });
                     }
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(seriesName);
+                      setHoveredSeries?.(id);
                     }
                   }}
                 >
@@ -202,7 +203,7 @@ export const SummaryTable = memo(function SummaryTable({
                       event.stopPropagation();
                       if (hasMultipleSeries) {
                         onColorDotClick?.({
-                          seriesName,
+                          id,
                           groupBy,
                         });
                       }

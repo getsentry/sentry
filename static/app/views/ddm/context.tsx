@@ -78,15 +78,13 @@ export function useDDMContext() {
   return useContext(DDMContext);
 }
 
-const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyMetricsQueryWidget];
-
 export function useMetricWidgets() {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
     useMemo<MetricWidgetQueryParams[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets) ?? DEFAULT_WIDGETS_STATE,
+      () => parseMetricWidgetsQueryParam(urlWidgets),
       [urlWidgets]
     )
   );
