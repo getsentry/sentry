@@ -1,8 +1,14 @@
 import type {List} from 'react-virtualized';
 
+import type {Client} from 'sentry/api';
+import type {Organization} from 'sentry/types';
 import clamp from 'sentry/utils/number/clamp';
-import type {
-  TraceTree,
+import {
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/guards';
+import {
+  type TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceTree';
 
@@ -27,7 +33,7 @@ export class VirtualizedViewManager {
   virtualizedList: List | null = null;
 
   container: HTMLElement | null = null;
-  dividerRef: HTMLElement | null = null;
+  divider: HTMLElement | null = null;
   resizeObserver: ResizeObserver | null = null;
 
   dividerStartVec: [number, number] | null = null;
@@ -45,6 +51,8 @@ export class VirtualizedViewManager {
     span_list: ViewColumn;
   };
 
+  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
+    [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
   constructor(columns: {
@@ -73,28 +81,6 @@ export class VirtualizedViewManager {
     } else {
       this.teardown();
     }
-  }
-
-  registerVirtualizedList(list: List | null) {
-    this.virtualizedList = list;
-  }
-
-  registerDividerRef(ref: HTMLElement | null) {
-    if (!ref) {
-      if (this.dividerRef) {
-        this.dividerRef.removeEventListener('mousedown', this.onDividerMouseDown);
-      }
-      this.dividerRef = null;
-      return;
-    }
-
-    this.dividerRef = ref;
-    this.dividerRef.style.width = `${DIVIDER_WIDTH}px`;
-    this.dividerRef.style.transform = `translateX(${
-      this.width * (this.columns.list.width - (2 * DIVIDER_WIDTH) / this.width)
-    }px)`;
-
-    ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
   }
 
   onDividerMouseDown(event: MouseEvent) {
@@ -130,7 +116,7 @@ export class VirtualizedViewManager {
   }
 
   onDividerMouseMove(event: MouseEvent) {
-    if (!this.dividerStartVec || !this.dividerRef) {
+    if (!this.dividerStartVec || !this.divider) {
       return;
     }
 
@@ -142,7 +128,7 @@ export class VirtualizedViewManager {
       this.columns.span_list.width - distancePercentage
     );
 
-    this.dividerRef.style.transform = `translateX(${
+    this.divider.style.transform = `translateX(${
       this.width * (this.columns.list.width + distancePercentage) - DIVIDER_WIDTH / 2
     }px)`;
 
@@ -165,6 +151,39 @@ export class VirtualizedViewManager {
         ).join(',')}`;
       }
     }
+
+    for (let i = 0; i < this.indicators.length; i++) {
+      const entry = this.indicators[i];
+      if (!entry) {
+        continue;
+      }
+      entry.ref.style.left = listWidth;
+      entry.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
+        entry.indicator.start
+      )}px)`;
+    }
+  }
+
+  registerVirtualizedList(list: List | null) {
+    this.virtualizedList = list;
+  }
+
+  registerDividerRef(ref: HTMLElement | null) {
+    if (!ref) {
+      if (this.divider) {
+        this.divider.removeEventListener('mousedown', this.onDividerMouseDown);
+      }
+      this.divider = null;
+      return;
+    }
+
+    this.divider = ref;
+    this.divider.style.width = `${DIVIDER_WIDTH}px`;
+    this.divider.style.transform = `translateX(${
+      this.width * (this.columns.list.width - (2 * DIVIDER_WIDTH) / this.width)
+    }px)`;
+
+    ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
   }
 
   registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
@@ -200,6 +219,25 @@ export class VirtualizedViewManager {
 
     this.columns[column].column_refs[index] = ref ?? undefined;
     this.columns[column].column_nodes[index] = node ?? undefined;
+  }
+
+  registerIndicatorRef(
+    ref: HTMLElement | null,
+    index: number,
+    indicator: TraceTree['indicators'][0]
+  ) {
+    if (!ref) {
+      this.indicators[index] = undefined;
+    } else {
+      this.indicators[index] = {ref, indicator};
+    }
+
+    if (ref) {
+      ref.style.left = this.columns.list.width * 100 + '%';
+      ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
+        indicator.start
+      )}px)`;
+    }
   }
 
   scrollSyncRaf: number | null = null;
@@ -351,8 +389,8 @@ export class VirtualizedViewManager {
       this.width = entry.contentRect.width;
       this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
 
-      if (this.dividerRef) {
-        this.dividerRef.style.transform = `translateX(${
+      if (this.divider) {
+        this.divider.style.transform = `translateX(${
           this.width * this.columns.list.width - DIVIDER_WIDTH / 2
         }px)`;
       }
@@ -374,9 +412,65 @@ export class VirtualizedViewManager {
     this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
   }
 
+  async scrollToPath(
+    tree: TraceTree,
+    scrollQueue: TraceTree.NodePath[],
+    rerender: () => void,
+    {api, organization}: {api: Client; organization: Organization}
+  ) {
+    const virtualizedList = this.virtualizedList;
+    if (!this || !this.virtualizedList) {
+      return;
+    }
+
+    async function scrollToRow(): Promise<boolean> {
+      if (!virtualizedList) {
+        return false;
+      }
+
+      const path = scrollQueue.pop();
+      const current = findInTreeFromSegment(tree.root, path!);
+
+      if (!current) {
+        console.log(`Failed to find ${path} node in tree, can't scroll to row`);
+        return false;
+      }
+
+      const index = tree.list.findIndex(node => node === current);
+      if (index === -1) {
+        throw new Error("Couldn't find node in list");
+      }
+
+      virtualizedList.scrollToRow(index);
+
+      if (isTransactionNode(current)) {
+        const nextSegment = scrollQueue[scrollQueue.length - 1];
+        if (nextSegment?.startsWith('span:')) {
+          console.log('Current is transaction and next segment is a span, zoom in');
+          return tree
+            .zoomIn(current, true, {
+              api,
+              organization,
+            })
+            .then(rerender)
+            .then(() => {
+              return scrollToRow();
+            });
+        }
+      }
+
+      if (scrollQueue.length > 0) {
+        return scrollToRow();
+      }
+
+      return true;
+    }
+
+    await scrollToRow();
+  }
+
   computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
     // https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix
-    // biome-ignore format: off
     const mat3: Matrix2D = [1, 0, 0, 1, 0, 0];
 
     if (this.spanSpace[1] === 0 || this.spanView[1] === 0) {
@@ -387,12 +481,19 @@ export class VirtualizedViewManager {
     const viewToSpace = this.spanSpace[1] / this.spanView[1];
     const physicalToView = spanColumnWidth / this.spanView[1];
 
+    // Set X scaling factor to the ratio of the span space to the span view
     mat3[0] = viewToSpace * physicalToView;
 
     this.spanScalingFactor = viewToSpace;
     this.minSpanScalingFactor = window.devicePixelRatio / this.width;
     this.spanDrawMatrix = mat3;
     return mat3;
+  }
+
+  computeTransformXFromTimestamp(timestamp: number): number {
+    const x = timestamp - this.spanView[0];
+    const translateInPixels = x * this.spanDrawMatrix[0];
+    return translateInPixels;
   }
 
   computeSpanTextPlacement(
@@ -492,4 +593,27 @@ class RowMeasurer {
     this.cache.set(node, width);
     return width;
   }
+}
+
+function findInTreeFromSegment(
+  start: TraceTreeNode<TraceTree.NodeValue>,
+  segment: TraceTree.NodePath
+): TraceTreeNode<TraceTree.NodeValue> | null {
+  const [type, id] = segment.split(':');
+
+  if (!type || !id) {
+    throw new TypeError('Node path must be in the format of `type:id`');
+  }
+
+  return TraceTreeNode.Find(start, node => {
+    if (type === 'txn' && isTransactionNode(node)) {
+      return node.value.event_id === id;
+    }
+
+    if (type === 'span' && isSpanNode(node)) {
+      return node.value.span_id === id;
+    }
+
+    return false;
+  });
 }

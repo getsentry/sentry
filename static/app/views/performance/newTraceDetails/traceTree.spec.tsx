@@ -978,6 +978,7 @@ describe('TraceTree', () => {
         organization: OrganizationFixture(),
       });
       await waitFor(() => {
+        expect(tree.list[1].zoomedIn).toBe(true);
         assertSpanNode(tree.list[1].children[0]);
         expect(tree.list[1].children[0].value.description).toBe('span1');
       });
