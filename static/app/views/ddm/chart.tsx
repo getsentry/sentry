@@ -417,6 +417,7 @@ const EXTRAPOLATED_AREA_STRIPE_IMG =
 function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: `${series.id}-ingestion`,
     silent: true,
     data: series.data.map((data, index) => ({
       ...data,
@@ -438,6 +439,7 @@ function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: `${series.id}-ingestion`,
     silent: true,
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
@@ -450,6 +452,7 @@ function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
 function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
   return {
     ...series,
+    id: `${series.id}-ingestion`,
     silent: true,
     stack: 'fogOfWar',
     // We include the last non-fog of war bucket so that the line is connected

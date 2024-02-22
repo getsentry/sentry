@@ -1,17 +1,19 @@
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {MetricQueryType} from 'sentry/utils/metrics/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 
 describe('parseMetricWidgetQueryParam', () => {
-  it('returns undefined for invalid param', () => {
-    expect(parseMetricWidgetsQueryParam(undefined)).toBe(undefined);
-    expect(parseMetricWidgetsQueryParam('')).toBe(undefined);
-    expect(parseMetricWidgetsQueryParam('{}')).toBe(undefined);
-    expect(parseMetricWidgetsQueryParam('true')).toBe(undefined);
-    expect(parseMetricWidgetsQueryParam('2')).toBe(undefined);
-    expect(parseMetricWidgetsQueryParam('"test"')).toBe(undefined);
+  it('returns single default widget for invalid param', () => {
+    const defaultState = [emptyMetricsQueryWidget];
+    expect(parseMetricWidgetsQueryParam(undefined)).toBe(defaultState);
+    expect(parseMetricWidgetsQueryParam('')).toBe(defaultState);
+    expect(parseMetricWidgetsQueryParam('{}')).toBe(defaultState);
+    expect(parseMetricWidgetsQueryParam('true')).toBe(defaultState);
+    expect(parseMetricWidgetsQueryParam('2')).toBe(defaultState);
+    expect(parseMetricWidgetsQueryParam('"test"')).toBe(defaultState);
 
     // empty array is not valid
-    expect(parseMetricWidgetsQueryParam('[]')).toEqual(undefined);
+    expect(parseMetricWidgetsQueryParam('[]')).toEqual(defaultState);
   });
 
   it('returns a single widget', () => {

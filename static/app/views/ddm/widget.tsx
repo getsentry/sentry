@@ -22,6 +22,7 @@ import {
   formatMetricsFormula,
   getDefaultMetricDisplayType,
   getFormattedMQL,
+  getMetricsSeriesId,
   getMetricsSeriesName,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -291,14 +292,14 @@ const MetricWidgetBody = memo(
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
-    const setHoveredSeries = useCallback((legend: string) => {
+    const setHoveredSeries = useCallback((seriesId: string) => {
       if (!chartRef.current) {
         return;
       }
       const echartsInstance = chartRef.current.getEchartsInstance();
       echartsInstance.dispatchAction({
         type: 'highlight',
-        seriesName: legend,
+        seriesId: seriesId,
       });
     }, []);
 
@@ -306,8 +307,7 @@ const MetricWidgetBody = memo(
       return timeseriesData
         ? getChartTimeseries(timeseriesData, queries, {
             getChartPalette,
-            focusedSeries:
-              focusedSeries && new Set(focusedSeries?.map(s => s.seriesName)),
+            focusedSeries: focusedSeries && new Set(focusedSeries?.map(s => s.id)),
           })
         : [];
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
@@ -320,18 +320,16 @@ const MetricWidgetBody = memo(
         if (!focusedSeries || focusedSeries.length === 0) {
           onChange?.({
             focusedSeries: chartSeries
-              .filter(s => s.seriesName !== series.seriesName)
+              .filter(s => s.id !== series.id)
               .map(s => ({
-                seriesName: s.seriesName,
+                id: s.id,
                 groupBy: s.groupBy,
               })),
           });
           return;
         }
 
-        const filteredSeries = focusedSeries.filter(
-          s => s.seriesName !== series.seriesName
-        );
+        const filteredSeries = focusedSeries.filter(s => s.id !== series.id);
 
         if (filteredSeries.length === focusedSeries.length) {
           // The series was not focused before so we can add it
@@ -348,10 +346,7 @@ const MetricWidgetBody = memo(
     const setSeriesVisibility = useCallback(
       (series: FocusedMetricsSeries) => {
         setHoveredSeries('');
-        if (
-          focusedSeries?.length === 1 &&
-          focusedSeries[0].seriesName === series.seriesName
-        ) {
+        if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
           onChange?.({
             focusedSeries: [],
           });
@@ -462,21 +457,23 @@ export function getChartTimeseries(
       operation: operation,
       values: entry.series.map(normalizeValue),
       name: getMetricsSeriesName(query, entry.by, isMultiQuery),
+      id: getMetricsSeriesId(query, entry.by),
       groupBy: entry.by,
       transaction: entry.by.transaction,
       release: entry.by.release,
     }));
   });
 
-  const chartPalette = getChartPalette(series.map(s => s.name));
+  const chartPalette = getChartPalette(series.map(s => s.id));
 
   return series.map(item => ({
+    id: item.id,
     seriesName: item.name,
     groupBy: item.groupBy,
     unit: item.unit,
     operation: item.operation,
-    color: chartPalette[item.name],
-    hidden: focusedSeries && focusedSeries.size > 0 && !focusedSeries.has(item.name),
+    color: chartPalette[item.id],
+    hidden: focusedSeries && focusedSeries.size > 0 && !focusedSeries.has(item.id),
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
       value,
@@ -492,6 +489,7 @@ export function getChartTimeseries(
 export type Series = {
   color: string;
   data: {name: number; value: number}[];
+  id: string;
   operation: string;
   seriesName: string;
   unit: string;
