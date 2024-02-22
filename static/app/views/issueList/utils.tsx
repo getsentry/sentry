@@ -53,8 +53,7 @@ export function getTabs(organization: Organization) {
         name: t('Inbox'),
         analyticsName: 'inbox',
         count: true,
-        enabled: true,
-        hidden: !organization.features.includes('issue-priority-ui'),
+        enabled: organization.features.includes('issue-priority-ui'),
       },
     ],
     [
