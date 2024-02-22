@@ -618,13 +618,13 @@ disable_error_code = [
     "misc",
     "operator",
     "override",
+    "possibly-undefined",
     "return-value",
     "typeddict-item",
     "typeddict-unknown-key",
     "union-attr",
     "unreachable",
     "var-annotated",
-    "possibly-undefined",
 ]
 # end: sentry modules with typing issues
 
