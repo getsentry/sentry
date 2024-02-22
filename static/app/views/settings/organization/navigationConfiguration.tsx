@@ -10,7 +10,7 @@ const organizationNavigation: NavigationSection[] = [
     name: t('User Settings'),
     items: [
       {
-        path: `${userSettingsPathPrefix}/details`,
+        path: `${userSettingsPathPrefix}`,
         title: t('General Settings'),
         description: t('Configure general settings for your account'),
         id: 'user-settings',
