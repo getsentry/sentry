@@ -22,7 +22,6 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 export const SummaryTable = memo(function SummaryTable({
   series,
-  operation,
   onRowClick,
   onColorDotClick,
   onSortChange,
@@ -33,7 +32,6 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  operation?: string;
   setHoveredSeries?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -170,10 +168,12 @@ export const SummaryTable = memo(function SummaryTable({
         {rows.map(
           ({
             seriesName,
+            id,
             groupBy,
             color,
             hidden,
             unit,
+            operation,
             transaction,
             release,
             avg,
@@ -182,19 +182,19 @@ export const SummaryTable = memo(function SummaryTable({
             sum,
           }) => {
             return (
-              <Fragment key={seriesName}>
+              <Fragment key={id}>
                 <CellWrapper
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
-                        seriesName,
+                        id,
                         groupBy,
                       });
                     }
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(seriesName);
+                      setHoveredSeries?.(id);
                     }
                   }}
                 >
@@ -203,7 +203,7 @@ export const SummaryTable = memo(function SummaryTable({
                       event.stopPropagation();
                       if (hasMultipleSeries) {
                         onColorDotClick?.({
-                          seriesName,
+                          id,
                           groupBy,
                         });
                       }

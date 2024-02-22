@@ -147,6 +147,25 @@ function fetchTransactionSpans(
   );
 }
 
+const unitToSeconds = {
+  second: 1,
+  millisecond: 1e3,
+  nanosecond: 1e9,
+};
+function measurementToTimestamp(
+  start_timestamp: number,
+  measurement: number,
+  unit: string
+) {
+  const multiplier = unitToSeconds[unit];
+  if (multiplier === undefined) {
+    throw new TypeError(
+      `Unsupported measurement unit ${unit} for measurement ${measurement}`
+    );
+  }
+  return start_timestamp + measurement / multiplier;
+}
+
 function maybeInsertMissingInstrumentationSpan(
   parent: TraceTreeNode<TraceTree.NodeValue>,
   node: TraceTreeNode<TraceTree.Span>
@@ -177,9 +196,20 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
+type Indicator = {
+  duration: number;
+  label: string;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  start: number;
+  type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+};
+
+// cls is not included as it is a cumulative layout shift and not a single point in time
+const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
   type: 'loading' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
+  indicators: Indicator[] = [];
 
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
     new Map();
@@ -211,6 +241,33 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetchData = true;
+
+      if ('measurements' in value) {
+        for (const measurement of RENDERABLE_MEASUREMENTS) {
+          if (!value.measurements?.[measurement]) {
+            continue;
+          }
+
+          const timestamp = measurementToTimestamp(
+            value.start_timestamp,
+            value.measurements[measurement].value,
+            value.measurements[measurement].unit ?? 'milliseconds'
+          );
+
+          // If a rendered measurement extends the trace bounds, we update the trace bounds
+          if (timestamp > traceEnd) {
+            traceEnd = timestamp;
+          }
+
+          tree.indicators.push({
+            start: timestamp,
+            duration: 0,
+            node,
+            type: measurement as Indicator['type'],
+            label: measurement.toUpperCase(),
+          });
+        }
+      }
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -254,6 +311,7 @@ export class TraceTree {
 
     traceNode.space = [traceStart, traceEnd - traceStart];
     tree.root.space = [traceStart, traceEnd - traceStart];
+
     return tree.build();
   }
 

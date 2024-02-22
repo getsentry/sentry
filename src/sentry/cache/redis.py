@@ -1,5 +1,5 @@
 from sentry.utils import json
-from sentry.utils.redis import get_cluster_from_options, redis_clusters
+from sentry.utils.redis import get_cluster_from_options, is_instance_rb_cluster, redis_clusters
 
 from .base import BaseCache
 
@@ -55,7 +55,10 @@ class CommonRedisCache(BaseCache):
 class RbCache(CommonRedisCache):
     def __init__(self, **options: object) -> None:
         cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
-        client = cluster.get_routing_client()
+        if is_instance_rb_cluster(cluster, False):
+            client = cluster.get_routing_client()
+        else:
+            raise AssertionError("unreachable")
         # XXX: rb does not have a "raw" client -- use the default client
         super().__init__(client=client, raw_client=client, **options)
 
