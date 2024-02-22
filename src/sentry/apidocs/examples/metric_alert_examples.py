@@ -117,7 +117,6 @@ class MetricAlertExamples:
                     "name": "Jane Doe",
                     "email": "jane.doe@sentry.io",
                 },
-                "monitorType": 0,
             },
             status_codes=["201"],
             response_only=True,
