@@ -17,6 +17,7 @@ from sentry.relay.config.metric_extraction import (
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
+    SPEC_VERSION_TWO_FLAG,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
@@ -1130,12 +1131,12 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+    # You can only query this function if you have the feature flag for the org
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True, SPEC_VERSION_TWO_FLAG: True}):
         create_widget(
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
@@ -1150,7 +1151,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1166,7 +1167,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1181,7 +1182,6 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
@@ -1205,7 +1205,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1223,7 +1223,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1263,7 +1263,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
                     {"key": "query_hash", "value": "d9f30df7"},
-                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user.id", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
@@ -1275,7 +1275,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
                     {"key": "query_hash", "value": "52427c0a"},
-                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user.id", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],

@@ -23,7 +23,13 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    SPEC_VERSION_TWO_FLAG,
+    MetricSpecType,
+    OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
+)
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -2035,7 +2041,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert spec._query_str_for_hash == expected_str_hash
 
         # Because we call the builder with the feature flag we will get the environment to be included
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+        with Feature(SPEC_VERSION_TWO_FLAG):
             query_builder = TimeseriesMetricQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
@@ -2857,80 +2863,87 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         threshold = 300
         field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
-        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
+        # You can only query this function if you have the feature flag for the org
+        with Feature(SPEC_VERSION_TWO_FLAG):
+            spec = OnDemandMetricSpec(
+                field=field,
+                query=query_s,
+                spec_type=MetricSpecType.SIMPLE_QUERY,
+                # Only the latest spec version allows the user_misery function to be on-demand
+                spec_version=OnDemandMetricSpecVersioning.spec_versions[-1],
+            )
 
-        for hour in range(0, 2):
-            for name, frustrated in user_to_frustration:
-                tags = (
-                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
-                    if frustrated
-                    else {"query_hash": spec.query_hash}
-                )
-                self.store_transaction_metric(
-                    value=name,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    # It's a set on demand because of using the users field
-                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                    entity=EntityKey.MetricsSets.value,
-                    tags=tags,
-                    timestamp=self.start + datetime.timedelta(hours=hour),
-                )
+            for hour in range(0, 2):
+                for name, frustrated in user_to_frustration:
+                    tags = (
+                        {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
+                        if frustrated
+                        else {"query_hash": spec.query_hash}
+                    )
+                    self.store_transaction_metric(
+                        value=name,
+                        metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                        # It's a set on demand because of using the users field
+                        internal_metric=TransactionMRI.SET_ON_DEMAND.value,
+                        entity=EntityKey.MetricsSets.value,
+                        tags=tags,
+                        timestamp=self.start + datetime.timedelta(hours=hour),
+                    )
 
-        query = TimeseriesMetricQueryBuilder(
-            self.params,
-            dataset=Dataset.PerformanceMetrics,
-            interval=3600,
-            query=query_s,
-            selected_columns=[field],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
-            ),
-        )
-        assert query._on_demand_metric_spec_map
-        selected_spec = query._on_demand_metric_spec_map[field]
-        metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=selected_spec, require_time_range=True
-        )
+            query = TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query_s,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                ),
+            )
+            assert query._on_demand_metric_spec_map
+            selected_spec = query._on_demand_metric_spec_map[field]
+            metrics_query = query._get_metrics_query_from_on_demand_spec(
+                spec=selected_spec, require_time_range=True
+            )
 
-        assert len(metrics_query.select) == 1
-        assert metrics_query.select[0].op == "on_demand_user_misery"
-        assert metrics_query.where
-        assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
-        # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
-        assert metrics_query.where[0].rhs == "f9a20ff3"
-        assert metrics_query.where[0].rhs == spec.query_hash
+            assert len(metrics_query.select) == 1
+            assert metrics_query.select[0].op == "on_demand_user_misery"
+            assert metrics_query.where
+            assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
+            # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+            assert metrics_query.where[0].rhs == "f9a20ff3"
+            assert metrics_query.where[0].rhs == spec.query_hash
 
-        result = query.run_query("test_query")
-        assert result["data"][:3] == [
-            {
-                "time": self.start.isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                "user_misery_300": expected_user_misery,
-            },
-            {
-                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                "user_misery_300": 0,
-            },
-        ]
-        self.assertCountEqual(
-            result["meta"],
-            [
-                {"name": "time", "type": "DateTime('Universal')"},
-                {"name": "user_misery_300", "type": "Float64"},
-            ],
-        )
+            result = query.run_query("test_query")
+            assert result["data"][:3] == [
+                {
+                    "time": self.start.isoformat(),
+                    "user_misery_300": expected_user_misery,
+                },
+                {
+                    "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                    "user_misery_300": expected_user_misery,
+                },
+                {
+                    "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                    "user_misery_300": 0,
+                },
+            ]
+            self.assertCountEqual(
+                result["meta"],
+                [
+                    {"name": "time", "type": "DateTime('Universal')"},
+                    {"name": "user_misery_300", "type": "Float64"},
+                ],
+            )
 
-    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("sad user", True)],
             user_misery_formula(1, 2),
         )
 
-    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("ok user", False)],
