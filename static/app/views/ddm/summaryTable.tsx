@@ -136,29 +136,32 @@ export const SummaryTable = memo(function SummaryTable({
     });
 
   return (
-    <SummaryTableWrapper hasActions={hasActions}>
-      <HeaderCell disabled />
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
-        {t('Name')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
-        {t('Avg')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
-        {t('Min')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
-        {t('Max')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
-        {t('Sum')}
-      </SortableHeaderCell>
-      {hasActions && (
-        <HeaderCell disabled right>
-          {t('Actions')}
-        </HeaderCell>
-      )}
+    <SummaryTableWrapper>
+      <TableHeaderWrapper hasActions={hasActions}>
+        <HeaderCell disabled />
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
+          {t('Name')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
+          {t('Avg')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
+          {t('Min')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
+          {t('Max')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
+          {t('Sum')}
+        </SortableHeaderCell>
+        {hasActions && (
+          <HeaderCell disabled right>
+            {t('Actions')}
+          </HeaderCell>
+        )}
+      </TableHeaderWrapper>
       <TableBodyWrapper
+        hasActions={hasActions}
         onMouseLeave={() => {
           if (hasMultipleSeries) {
             setHoveredSeries?.('');
@@ -350,24 +353,39 @@ function getValues(seriesData: Series['data']) {
   return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
-// TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
-// so we're using a custom styled component instead. Figure out what we want to do here
-const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
+const SummaryTableWrapper = styled(`div`)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
-  max-height: 200px;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  max-height: 170px;
+  padding: ${space(0.25)} 0;
 `;
 
-// TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
+const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
+  display: grid;
+  grid-template-columns: ${p =>
+    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
 const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   text-transform: uppercase;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
   line-height: 1;
   display: flex;
   flex-direction: row;
@@ -378,7 +396,8 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
 
   :hover {
     cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
-    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
+    border-left: 1px solid ${p => p.theme.border};
+    border-right: 1px solid ${p => p.theme.border};
   }
 `;
 
@@ -399,10 +418,6 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};
-`;
-
-const TableBodyWrapper = styled('div')`
-  display: contents;
 `;
 
 const CellWrapper = styled('div')`
