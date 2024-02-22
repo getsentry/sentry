@@ -33,5 +33,5 @@ def get_boost_low_volume_projects_sample_rate(
         return error_sample_rate_fallback
     # Thrown if the input is not a valid float.
     except ValueError:
-        sentry_sdk.capture_message("Invalid sliding window org value stored in cache")
+        sentry_sdk.capture_message("Invalid boosted project sample rate value stored in cache")
         return error_sample_rate_fallback

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -45,7 +46,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
-    user: User,
+    user: User | AnonymousUser,
 ) -> Sequence[SearchFilter]:
     try:
         search_filters = convert_query_values(
@@ -79,8 +80,14 @@ def build_query_params_from_request(
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
+
     has_query = request.GET.get("query")
-    query = request.GET.get("query", "is:unresolved").strip()
+    query = request.GET.get("query", None)
+    if query is None:
+        query = _get_default_query(organization)
+
+    query = query.strip()
+
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
         saved_searches = (
             SavedSearch.objects
@@ -311,3 +318,10 @@ def get_first_last_release_info(
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
+
+
+def _get_default_query(organization: Organization) -> str:
+    if features.has("organizations:issue-priority-ui", organization):
+        return "is:unresolved issue.priority:[high, medium]"
+
+    return "is:unresolved"

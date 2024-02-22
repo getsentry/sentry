@@ -7,7 +7,7 @@ from snuba_sdk import Column, Direction, Function, OrderBy
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder, constants
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnTagArg,
@@ -101,7 +101,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
-                SnQLFunction(
+                SnQLFunction(  # deprecated in favour of `example()`
                     "bounded_sample",
                     required_args=[
                         NumericColumn("column", spans=True),
@@ -111,7 +111,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     snql_aggregate=self._resolve_bounded_sample,
                     default_result_type="string",
                 ),
-                SnQLFunction(
+                SnQLFunction(  # deprecated in favour of `rounded_timestamp(...)`
                     "rounded_time",
                     optional_args=[with_default(3, NumberRange("intervals", None, None))],
                     snql_column=self._resolve_rounded_time,
@@ -192,6 +192,21 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
                     result_type_fn=self.reflective_result_type(),
                     redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "example",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
+                        ["group", "timestamp", "span_id"], alias
+                    ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "rounded_timestamp",
+                    required_args=[IntervalDefault("interval", 1, None)],
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias
+                    ),
+                    private=True,
                 ),
             ]
         }

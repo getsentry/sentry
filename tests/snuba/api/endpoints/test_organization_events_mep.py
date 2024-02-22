@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 from unittest import mock
 
@@ -3221,6 +3219,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         response = self._make_on_demand_request(params)
         self._assert_on_demand_response(response)
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_transaction_user_misery(self) -> None:
         user_misery_field = "user_misery(300)"
         apdex_field = "apdex(300)"

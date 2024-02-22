@@ -120,7 +120,11 @@ def get_rule(slack_request: SlackActionRequest) -> Group | None:
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
-    return Rule.objects.get(id=rule_id)
+    try:
+        rule = Rule.objects.get(id=rule_id)
+    except Rule.DoesNotExist:
+        return None
+    return rule
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:

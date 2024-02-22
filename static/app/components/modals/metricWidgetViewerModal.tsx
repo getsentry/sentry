@@ -6,12 +6,14 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import Input from 'sentry/components/deprecatedforms/input';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Input from 'sentry/components/input';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {
+  IconAdd,
   IconCheckmark,
+  IconClose,
   IconEdit,
   IconEllipsis,
   IconSettings,
@@ -20,13 +22,14 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {getDdmUrl, isCustomMetric, stringifyMetricWidget} from 'sentry/utils/metrics';
-import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {getDdmUrl, getWidgetTitle, isCustomMetric} from 'sentry/utils/metrics';
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import type {MetricQueryWidgetParams, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
-import {getCreateAlert} from 'sentry/views/ddm/contextMenu';
+import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {Query} from 'sentry/views/ddm/queries';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -53,39 +56,64 @@ function MetricWidgetViewerModal({
   onMetricWidgetEdit,
 }: Props) {
   const {selection} = usePageFilters();
-  const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>(convertToMetricWidget(widget));
+  const [metricWidgetQueries, setMetricWidgetQueries] = useState<
+    MetricQueryWidgetParams[]
+  >(convertToMetricWidget(widget));
 
-  const defaultTitle = useMemo(
-    () => stringifyMetricWidget(metricWidgetQueryParams),
-    [metricWidgetQueryParams]
+  const widgetMQL = useMemo(
+    () => getWidgetTitle(metricWidgetQueries),
+    [metricWidgetQueries]
   );
 
-  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState<string>(widget.title);
+  // If user renamed the widget, dislay that title, otherwise display the MQL
+  const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
 
   const handleChange = useCallback(
-    (data: Partial<MetricWidgetQueryParams>) => {
-      setMetricWidgetQueryParams(curr => ({
-        ...curr,
-        ...data,
-      }));
+    (data: Partial<MetricQueryWidgetParams>, index: number) => {
+      setMetricWidgetQueries(curr => {
+        const updated = [...curr];
+        updated[index] = {...updated[index], ...data};
+        return updated;
+      });
     },
-    [setMetricWidgetQueryParams]
+    [setMetricWidgetQueries]
+  );
+
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      setEditedTitle(value || widgetMQL);
+    },
+    [setEditedTitle, widgetMQL]
+  );
+
+  const addQuery = useCallback(() => {
+    setMetricWidgetQueries(curr => [...curr, emptyMetricsQueryWidget]);
+  }, [setMetricWidgetQueries]);
+
+  const removeQuery = useCallback(
+    (index: number) => {
+      setMetricWidgetQueries(curr => {
+        const updated = [...curr];
+        updated.splice(index, 1);
+        return updated;
+      });
+    },
+    [setMetricWidgetQueries]
   );
 
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
-      {...selection, ...metricWidgetQueryParams},
-      toMetricDisplayType(metricWidgetQueryParams.displayType)
+      metricWidgetQueries.map(query => ({
+        ...query,
+        ...selection,
+      })),
+      toMetricDisplayType(metricWidgetQueries[0].displayType)
     );
-
-    const isCustomTitle = title !== '' && title !== defaultTitle;
 
     const updatedWidget = {
       ...widget,
-      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
-      title: isCustomTitle ? title : defaultTitle,
+      title: titleToDisplay,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
@@ -94,9 +122,8 @@ function MetricWidgetViewerModal({
 
     closeModal();
   }, [
-    title,
-    defaultTitle,
-    metricWidgetQueryParams,
+    titleToDisplay,
+    metricWidgetQueries,
     onMetricWidgetEdit,
     closeModal,
     widget,
@@ -108,32 +135,12 @@ function MetricWidgetViewerModal({
       <OrganizationContext.Provider value={organization}>
         <Header closeButton>
           <WidgetHeader>
-            {/* { TODO: extract to a separate component in a followup } */}
-            <WidgetTitleRow>
-              {isEditingTitle ? (
-                <Input
-                  value={title}
-                  placeholder={stringifyMetricWidget(metricWidgetQueryParams)}
-                  onChange={e => {
-                    setTitle?.(e.target.value ?? defaultTitle);
-                  }}
-                />
-              ) : (
-                <h3>{title}</h3>
-              )}
-              <Button
-                aria-label="Edit Title"
-                size="sm"
-                borderless
-                icon={
-                  isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />
-                }
-                priority={isEditingTitle ? 'primary' : 'default'}
-                onClick={() => {
-                  setIsEditingTitle(curr => !curr);
-                }}
-              />
-            </WidgetTitleRow>
+            <WidgetTitle
+              value={editedTitle}
+              displayValue={titleToDisplay}
+              placeholder={widgetMQL}
+              onSubmit={handleTitleChange}
+            />
             {widget.description && (
               <Tooltip
                 title={widget.description}
@@ -148,42 +155,36 @@ function MetricWidgetViewerModal({
           </WidgetHeader>
         </Header>
         <Body>
-          <Query
-            widget={metricWidgetQueryParams}
-            projects={selection.projects}
-            onChange={handleChange}
-            contextMenu={
-              <ContextMenu
-                metricsQuery={{
-                  mri: metricWidgetQueryParams.mri,
-                  query: metricWidgetQueryParams.query,
-                  op: metricWidgetQueryParams.op,
-                  groupBy: metricWidgetQueryParams.groupBy,
-                  projects: selection.projects,
-                  datetime: selection.datetime,
-                  environments: selection.environments,
-                }}
-              />
-            }
+          <Queries
+            metricWidgetQueries={metricWidgetQueries}
+            handleChange={handleChange}
+            addQuery={addQuery}
+            removeQuery={removeQuery}
           />
           <MetricWidget
-            widget={metricWidgetQueryParams}
+            queries={metricWidgetQueries.map(w => ({
+              mri: w.mri,
+              op: w.op,
+              query: w.query,
+              groupBy: w.groupBy,
+            }))}
+            focusedSeries={metricWidgetQueries[0].focusedSeries}
+            displayType={metricWidgetQueries[0].displayType}
+            filters={selection}
             onChange={(_, data) => {
-              handleChange(data);
+              handleChange(data as MetricQueryWidgetParams, 0);
             }}
-            datetime={selection.datetime}
-            projects={selection.projects}
-            environments={selection.environments}
+            context="dashboard"
           />
-          <MetricDetails widget={metricWidgetQueryParams} />
+          <MetricDetails widget={metricWidgetQueries[0]} />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
             <LinkButton
               to={getDdmUrl(organization.slug, {
-                widgets: [metricWidgetQueryParams],
-                project: selection.projects,
+                widgets: metricWidgetQueries,
                 ...selection.datetime,
+                project: selection.projects,
                 environment: selection.environments,
               })}
             >
@@ -200,10 +201,78 @@ function MetricWidgetViewerModal({
   );
 }
 
-export function ContextMenu({
+function WidgetTitle({value, displayValue, placeholder, onSubmit}) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [title, setTitle] = useState<string>(value);
+
+  return (
+    <WidgetTitleRow>
+      {isEditingTitle ? (
+        <Input
+          value={title}
+          placeholder={placeholder}
+          onChange={e => {
+            setTitle?.(e.target.value);
+          }}
+        />
+      ) : (
+        <h3>{displayValue}</h3>
+      )}
+      <Button
+        aria-label="Edit Title"
+        size="sm"
+        borderless
+        icon={isEditingTitle ? <IconCheckmark size="sm" /> : <IconEdit size="sm" />}
+        priority={isEditingTitle ? 'primary' : 'default'}
+        onClick={() => {
+          if (isEditingTitle) {
+            onSubmit?.(title);
+          }
+          setIsEditingTitle(curr => !curr);
+        }}
+      />
+    </WidgetTitleRow>
+  );
+}
+
+function Queries({metricWidgetQueries, handleChange, addQuery, removeQuery}) {
+  const {selection} = usePageFilters();
+
+  return (
+    <QueriesWrapper>
+      {metricWidgetQueries.map((query, index) => (
+        <Query
+          key={index}
+          widget={query}
+          projects={selection.projects}
+          onChange={data => handleChange(data, index)}
+          contextMenu={
+            <ContextMenu
+              removeQuery={removeQuery}
+              queryIndex={index}
+              canRemoveQuery={metricWidgetQueries.length > 1}
+              metricsQuery={query}
+            />
+          }
+        />
+      ))}
+      <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
+        Add query
+      </Button>
+    </QueriesWrapper>
+  );
+}
+
+function ContextMenu({
   metricsQuery,
+  removeQuery,
+  canRemoveQuery,
+  queryIndex,
 }: {
+  canRemoveQuery: boolean;
   metricsQuery: MetricsQuery;
+  queryIndex: number;
+  removeQuery: (index: number) => void;
 }) {
   const organization = useOrganization();
   const router = useRouter();
@@ -224,6 +293,15 @@ export function ContextMenu({
         createAlert?.();
       },
     };
+    const removeQueryItem = {
+      leadingItems: [<IconClose key="icon" />],
+      key: 'delete',
+      label: t('Remove Query'),
+      disabled: !canRemoveQuery,
+      onAction: () => {
+        removeQuery(queryIndex);
+      },
+    };
     const settingsItem = {
       leadingItems: [<IconSettings key="icon" />],
       key: 'settings',
@@ -237,8 +315,10 @@ export function ContextMenu({
       },
     };
 
-    return customMetric ? [addAlertItem, settingsItem] : [addAlertItem];
-  }, [createAlert, metricsQuery.mri, router]);
+    return customMetric
+      ? [addAlertItem, removeQueryItem, settingsItem]
+      : [addAlertItem, removeQueryItem];
+  }, [createAlert, metricsQuery.mri, removeQuery, canRemoveQuery, queryIndex, router]);
 
   return (
     <DropdownMenu
@@ -267,6 +347,10 @@ const WidgetTitleRow = styled('div')`
   justify-content: flex-start;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const QueriesWrapper = styled('div')`
+  padding-bottom: ${space(2)};
 `;
 
 export const modalCss = css`

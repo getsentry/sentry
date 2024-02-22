@@ -38,6 +38,13 @@ def test_equality_of_specs(default_project) -> None:
         ("count_unique(geo.city)", "release:a", False),
         # transaction.duration not supported by standard metrics
         ("count()", "transaction.duration:>1", True),
+        ("epm()", "transaction.duration:>1", True),
+        ("eps()", "transaction.duration:>1", True),
+        ("epm()", "", False),  # supported by standard metrics
+        ("eps()", "", False),  # supported by standard metrics
+        # the endpoints introduce the field based on the interval
+        ("epm(900)", "", False),  # supported by standard metrics
+        ("eps(900)", "", False),  # supported by standard metrics
         ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
         ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
         ("apdex(10)", "", True),  # every apdex query is on-demand
@@ -141,24 +148,18 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "release:a"),  # supported by standard metrics
-            (
-                "count_unique(user)",
-                "transaction.duration:>0",
-            ),  # count_unique not supported by on demand
+            # count_unique not supported by on demand
+            ("count_unique(user)", "transaction.duration:>0"),
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
             # we do not support custom percentiles that can not be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
-            (
-                "count()",
-                "p75(transaction.duration):>0",
-            ),  # p75 without query is supported by standard metrics
+            # p75 without query is supported by standard metrics
+            ("count()", "p75(transaction.duration):>0"),
             ("message", "transaction.duration:>0"),  # message not supported by on demand
-            (
-                "equation| count() / count()",
-                "transaction.duration:>0",
-            ),  # equation not supported by on demand
+            # equation not supported by on demand
+            ("equation| count() / count()", "transaction.duration:>0"),
             ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
             # supported by standard metrics
             ("p95(measurements.lcp)", ""),
@@ -166,6 +167,8 @@ class TestCreatesOndemandMetricSpec:
             ("failure_count()", ""),
             ("failure_rate()", "release:bar"),
             ("failure_rate()", ""),
+            ("user_misery(300)", ""),
+            ("user_misery(300)", "transaction.duration:>0"),
         ],
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
