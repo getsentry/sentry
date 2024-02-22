@@ -510,21 +510,13 @@ def augment_transactions_with_spans(
     problem_project_map = {}
     issue_occurrences = []
     occurrence_spans = set()
-    if exit_early == 4:
-        raise ParseError(exit_early)
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
     projects = {e["project.id"] for e in errors if e["trace.span"]}
-    if exit_early == 5:
-        raise ParseError(exit_early)
     ts_params = find_timestamp_params(transactions)
-    if exit_early == 6:
-        raise ParseError(exit_early)
     if ts_params["min"]:
         params["start"] = ts_params["min"] - timedelta(hours=1)
     if ts_params["max"]:
         params["end"] = ts_params["max"] + timedelta(hours=1)
-    if exit_early == 7:
-        raise ParseError(exit_early)
 
     for index, transaction in enumerate(transactions):
         transaction["occurrence_spans"] = []
@@ -537,7 +529,8 @@ def augment_transactions_with_spans(
         transaction_problem_map[transaction["id"]] = transaction
         if project not in problem_project_map:
             problem_project_map[project] = []
-        problem_project_map[project].append(transaction["occurrence_id"])
+        if transaction["occurrence_id"] is not None:
+            problem_project_map[project].append(transaction["occurrence_id"])
 
         # Need to strip the leading "0"s to match our query to the spans table
         # This is cause spans are stored as UInt64, so a span like 0011
@@ -552,8 +545,8 @@ def augment_transactions_with_spans(
         )
         # parent span ids of the segment spans
         trace_parent_spans.add(transaction["trace.parent_span.stripped"])
-    if exit_early == 8:
-        raise ParseError(f"{exit_early} - {index}")
+    if exit_early == 1:
+        raise ParseError(f"{exit_early} - {len(issue_occurrences)} - {problem_project_map}")
 
     for project, occurrences in problem_project_map.items():
         if occurrences:
@@ -564,19 +557,17 @@ def augment_transactions_with_spans(
                     if occurrence is not None
                 ]
             )
-    if exit_early == 9:
+            if exit_early == 2:
+                raise ParseError(f"{exit_early} - {len(issue_occurrences)} - {occurrences}")
+    if exit_early == 3:
         raise ParseError(f"{exit_early} - {len(issue_occurrences)}")
 
     for problem in issue_occurrences:
         occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
-    if exit_early == 10:
-        raise ParseError(f"{exit_early} - {len(occurrence_spans)}")
 
     query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
     if "" in query_spans:
         query_spans.remove("")
-    if exit_early == 11:
-        raise ParseError(f"{exit_early} - {len(query_spans)}")
     # If there are no spans to query just return transactions as is
     if len(query_spans) == 0:
         return transactions
@@ -587,8 +578,6 @@ def augment_transactions_with_spans(
     spans_params = params.copy()
     spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
     spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
-    if exit_early == 12:
-        raise ParseError(f"{exit_early} - {spans_params}")
 
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -602,8 +591,6 @@ def augment_transactions_with_spans(
         orderby=["timestamp", "id"],
         limit=10000,
     ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
-    if exit_early == 13:
-        raise ParseError(f"{exit_early} - {len(parents_results)}")
 
     parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
     for transaction in transactions:
@@ -613,21 +600,15 @@ def augment_transactions_with_spans(
         if "trace.parent_span.stripped" in transaction:
             if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
                 transaction["trace.parent_transaction"] = parent["transaction.id"]
-    if exit_early == 14:
-        raise ParseError(f"{exit_early} - {len(transactions)}")
     for problem in issue_occurrences:
         for span_id in problem.evidence_data["offender_span_ids"]:
             if parent := parent_map.get(span_id):
                 transaction = transaction_problem_map[problem.event_id]
                 transaction["occurrence_spans"].append(parent)
                 transaction["issue_occurrences"].append(problem)
-    if exit_early == 15:
-        raise ParseError(f"{exit_early} - {len(transactions)}")
     for error in errors:
         if parent := parent_map.get(error["trace.span"]):
             error["trace.transaction"] = parent["transaction.id"]
-    if exit_early == 16:
-        raise ParseError(f"{exit_early} - {len(transactions)}")
     return transactions
 
 
@@ -745,17 +726,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            if exit_early == 1:
-                raise ParseError(exit_early)
             transactions, errors = query_trace_data(trace_id, params, limit)
-            if exit_early == 2:
-                raise ParseError(exit_early)
             if use_spans or augment_only:
                 transactions = augment_transactions_with_spans(
                     transactions, errors, trace_id, params, exit_early
                 )
-            if exit_early == 3:
-                raise ParseError(exit_early)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
@@ -778,8 +753,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 extra={"extra_roots": len(roots), **warning_extra},
             )
 
-        if exit_early == 17:
-            raise ParseError(exit_early)
         return Response(
             self.serialize(
                 limit,
