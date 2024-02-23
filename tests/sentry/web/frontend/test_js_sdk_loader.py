@@ -173,7 +173,6 @@ class JavaScriptSdkLoaderTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
-        print(resp.content)
         assert b"/7.100.0/bundle.tracing.replay.min.js" in resp.content
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.37.0"])
