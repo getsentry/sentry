@@ -17,9 +17,9 @@ import {
 
 type AdditionalQueryProps = {
   detailed?: boolean;
-  useSpans?: boolean;
   eventId?: string;
   limit?: number;
+  useSpans?: boolean;
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
