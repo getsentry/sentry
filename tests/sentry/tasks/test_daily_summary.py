@@ -8,7 +8,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.tasks.summaries.daily_summary import prepare_summary_data, schedule_organizations
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -224,15 +224,13 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group5"
         )
 
-        timestamp = to_timestamp(self.now)
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 14, self.organization, daily=True)
-        summary = prepare_summary_data(ctx)
+        summary = prepare_summary_data(to_timestamp(self.now), ONE_DAY, self.organization.id)
         project_id = self.project.id
 
         assert summary.projects_context_map[project_id].total_today == 15
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert summary.projects_context_map[project_id].key_errors == [
-            (group1, None, 3),
+            (group1, None, 1),
             (group3, None, 1),
             (group2, None, 1),
         ]
@@ -254,4 +252,4 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         assert summary.projects_context_map[project_id2].key_performance_issues == []
         assert summary.projects_context_map[project_id2].escalated_today == []
         assert summary.projects_context_map[project_id2].regressed_today == []
-        assert summary.projects_context_map[project_id2].new_in_release == []
+        assert summary.projects_context_map[project_id2].new_in_release == {}
