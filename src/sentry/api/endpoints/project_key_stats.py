@@ -36,8 +36,9 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     }
 
     def get(self, request: Request, project, key_id) -> Response:
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.user_objects
         try:
-            key = ProjectKey.objects.get(
+            key = objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
