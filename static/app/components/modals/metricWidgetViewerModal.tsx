@@ -25,20 +25,21 @@ import type {Organization} from 'sentry/types';
 import {getDdmUrl, getWidgetTitle, isCustomMetric} from 'sentry/utils/metrics';
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import type {MetricQueryWidgetParams, MetricsQuery} from 'sentry/utils/metrics/types';
+import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  getMetricQueries,
+  toMetricDisplayType,
+} from 'sentry/views/dashboards/metrics/utils';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {Query} from 'sentry/views/ddm/queries';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {
-  convertToDashboardWidget,
-  convertToMetricWidget,
-  toMetricDisplayType,
-} from '../../utils/metrics/dashboard';
+import {convertToDashboardWidget} from '../../utils/metrics/dashboard';
 import {MetricWidget} from '../../views/ddm/widget';
 import {Tooltip} from '../tooltip';
 
@@ -54,11 +55,12 @@ function MetricWidgetViewerModal({
   Header,
   closeModal,
   onMetricWidgetEdit,
+  dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
   const [metricWidgetQueries, setMetricWidgetQueries] = useState<
-    MetricQueryWidgetParams[]
-  >(convertToMetricWidget(widget));
+    MetricsQueryApiRequestQuery[]
+  >(getMetricQueries(widget, dashboardFilters));
 
   const widgetMQL = useMemo(
     () => getWidgetTitle(metricWidgetQueries),
@@ -108,7 +110,7 @@ function MetricWidgetViewerModal({
         ...query,
         ...selection,
       })),
-      toMetricDisplayType(metricWidgetQueries[0].displayType)
+      toMetricDisplayType(widget.displayType)
     );
 
     const updatedWidget = {
@@ -162,21 +164,18 @@ function MetricWidgetViewerModal({
             removeQuery={removeQuery}
           />
           <MetricWidget
-            queries={metricWidgetQueries.map(w => ({
-              mri: w.mri,
-              op: w.op,
-              query: w.query,
-              groupBy: w.groupBy,
-            }))}
-            focusedSeries={metricWidgetQueries[0].focusedSeries}
-            displayType={metricWidgetQueries[0].displayType}
+            queries={metricWidgetQueries}
+            displayType={toMetricDisplayType(widget.displayType)}
             filters={selection}
             onChange={(_, data) => {
               handleChange(data as MetricQueryWidgetParams, 0);
             }}
             context="dashboard"
           />
-          <MetricDetails widget={metricWidgetQueries[0]} />
+          <MetricDetails
+            mri={metricWidgetQueries[0].mri}
+            query={metricWidgetQueries[0].query}
+          />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
