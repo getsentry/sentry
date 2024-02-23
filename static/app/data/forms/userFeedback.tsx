@@ -18,6 +18,14 @@ const formGroups: JsonFormObject[] = [
         help: 'Show "powered by Sentry within the feedback dialog. We appreciate you helping get the word out about Sentry! <3',
         getData: data => ({options: data}),
       },
+      {
+        name: 'sentry:feedback_user_report_notifications',
+        type: 'boolean',
+
+        label: 'Enable Crash Report Notifications',
+        help: 'Get notified on Crash Reports and User Report API submissions. Feedback widget notifications are not affected by this setting and are on by default.',
+        getData: data => ({options: data}),
+      },
     ],
   },
 ];
