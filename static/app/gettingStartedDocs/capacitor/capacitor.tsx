@@ -6,6 +6,7 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
@@ -72,6 +73,14 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
           ${
             params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
           }})`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "light",
+}),`
       : ''
   }${
     params.isReplaySelected
@@ -427,9 +436,29 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => getInstallStep(params),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/',
+      }),
+      configurations: getSetupConfiguration({
+        params,
+        showExtraStep: false,
+        showDescription: false,
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
 };
 

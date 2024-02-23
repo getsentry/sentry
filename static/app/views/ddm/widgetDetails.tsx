@@ -6,13 +6,15 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {
-  MetricQueryType,
-  type MetricQueryWidgetParams,
-  type MetricWidgetQueryParams,
+import type {
+  FocusedMetricsSeries,
+  MetricQueryWidgetParams,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
+import {MetricQueryType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
@@ -41,12 +43,18 @@ export function WidgetDetails() {
     [setHighlightedSampleId]
   );
 
+  // TODO(aknaus): better fallback
+  if (selectedWidget?.type === MetricQueryType.FORMULA) {
+    <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
+  }
+
+  const {mri, query, focusedSeries} = selectedWidget as MetricQueryWidgetParams;
+
   return (
     <MetricDetails
-      // TODO(aknaus): better fallback
-      widget={
-        selectedWidget?.type === MetricQueryType.FORMULA ? undefined : selectedWidget
-      }
+      mri={mri}
+      query={query}
+      focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
       focusArea={focusArea}
     />
@@ -55,24 +63,32 @@ export function WidgetDetails() {
 
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
+  focusedSeries?: FocusedMetricsSeries[];
+  mri?: MRI;
   onRowHover?: SamplesTableProps['onRowHover'];
-  widget?: MetricQueryWidgetParams;
+  query?: string;
 }
 
-export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProps) {
+export function MetricDetails({
+  mri,
+  query,
+  focusedSeries,
+  onRowHover,
+  focusArea,
+}: MetricDetailsProps) {
   const organization = useOrganization();
 
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
 
-  const isCodeLocationsDisabled = widget?.mri && !isCustomMetric({mri: widget.mri});
+  const isCodeLocationsDisabled = mri && !isCustomMetric({mri});
 
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
   }
 
   const queryWithFocusedSeries = useMemo(
-    () => widget && getQueryWithFocusedSeries(widget.query || '', widget.focusedSeries),
-    [widget]
+    () => focusedSeries && getQueryWithFocusedSeries(query || '', focusedSeries),
+    [focusedSeries, query]
   );
 
   const handleTabChange = useCallback(
@@ -111,10 +127,10 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
               {organization.features.includes('metrics-samples-list') ? (
-                <MetricSamplesTable mri={widget?.mri} query={queryWithFocusedSeries} />
+                <MetricSamplesTable mri={mri} query={queryWithFocusedSeries} />
               ) : (
                 <SampleTable
-                  mri={widget?.mri}
+                  mri={mri}
                   {...focusArea?.selection?.range}
                   query={queryWithFocusedSeries}
                   onRowHover={onRowHover}
@@ -122,7 +138,7 @@ export function MetricDetails({widget, onRowHover, focusArea}: MetricDetailsProp
               )}
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={widget?.mri} {...focusArea?.selection?.range} />
+              <CodeLocations mri={mri} {...focusArea?.selection?.range} />
             </TabPanels.Item>
           </TabPanels>
         </ContentWrapper>
