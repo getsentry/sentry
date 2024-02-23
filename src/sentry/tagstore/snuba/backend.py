@@ -1422,7 +1422,7 @@ class SnubaTagStorage(TagStorage):
                 ["min", "timestamp", "first_seen"],
                 ["max", "timestamp", "last_seen"],
             ],
-            orderby="-first_seen",  # Closest thing to pre-existing `-id` order
+            orderby="-last_seen",
             limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
