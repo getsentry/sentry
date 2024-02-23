@@ -73,7 +73,7 @@ export function FeedbackOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        <Header>{introduction && <Introduction>{introduction}</Introduction>}</Header>
+        {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
           {steps.map(step => (
             <Step key={step.title ?? step.type} {...step} />
@@ -102,11 +102,6 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
-`;
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const Introduction = styled('div')`
