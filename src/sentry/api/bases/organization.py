@@ -382,23 +382,20 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        user = getattr(request, "user", None)
-
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
             span.set_data("Project Count", len(projects))
             if force_global_perms:
                 span.set_tag("mode", "force_global_perms")
                 return projects
 
-            active_superuser = user and is_active_superuser(request)
             # Superuser should fetch all projects.
             # Also fetch all accessible projects if requesting $all
-            if active_superuser or include_all_accessible:
+            if is_active_superuser(request) or include_all_accessible:
                 span.set_tag("mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             # Check if explicitly requesting specific projects
             elif not filter_by_membership:
-                if user and is_active_staff(request):
+                if is_active_staff(request):
                     # There is a special case for staff, where we want to fetch usage stats for a single
                     # project in _admin using OrganizationStatsEndpointV2 but cannot use has_project_access
                     # like superuser because it fails. The workaround is to create a lambda that mimics
