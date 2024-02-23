@@ -11,8 +11,9 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.data_v2.api import IntermediateQuery
 from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
+from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery
+from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
 from sentry.sentry_metrics.querying.visitors import (
@@ -146,6 +147,8 @@ class ScheduledQuery:
     next: Union["ScheduledQuery", None] = None
     order: QueryOrder | None = None
     limit: int | None = None
+    unit_family: UnitFamily | None = None
+    unit: MeasurementUnit | None = None
 
     def initialize(
         self,
@@ -284,35 +287,43 @@ class QueryResult:
         )
 
     @classmethod
-    def from_query_type(
-        cls, query_type: ScheduledQueryType, query: MetricsQuery, query_result: Mapping[str, Any]
+    def from_scheduled_query(
+        cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any]
     ) -> "QueryResult":
+        # We add these fields as top level, so that when merging `QueryResult`(s) we are able to do that easily.
         extended_result = {
             "modified_start": query_result["modified_start"],
             "modified_end": query_result["modified_end"],
+            # We add unit metadata as if it was returned by Snuba to make the code more linear.
+            "unit_family": scheduled_query.unit_family,
+            "unit": scheduled_query.unit,
         }
 
-        if query_type == ScheduledQueryType.SERIES:
+        if scheduled_query.type == ScheduledQueryType.SERIES:
             extended_result["series"] = query_result
             return QueryResult(
-                series_executable_query=query,
+                series_executable_query=scheduled_query.metrics_query,
                 totals_executable_query=None,
                 result=extended_result,
             )
-        elif query_type == ScheduledQueryType.TOTALS:
+        elif scheduled_query.type == ScheduledQueryType.TOTALS:
             extended_result["totals"] = query_result
             return QueryResult(
                 series_executable_query=None,
-                totals_executable_query=query,
+                totals_executable_query=scheduled_query.metrics_query,
                 result=extended_result,
             )
 
-        raise MetricsQueryExecutionError(f"Can't build query result from query type {query_type}")
+        raise MetricsQueryExecutionError(
+            f"Can't build query result from query type {scheduled_query.type}"
+        )
 
     def merge(self, other: "QueryResult") -> "QueryResult":
         return QueryResult(
             series_executable_query=self.series_executable_query or other.series_executable_query,
             totals_executable_query=self.totals_executable_query or other.totals_executable_query,
+            # We merge the dictionaries and in case of duplicated keys, the ones from `other` will be used, as per
+            # Python semantics.
             result={**self.result, **other.result},
         )
 
@@ -349,6 +360,14 @@ class QueryResult:
         return self.result[meta_source]["meta"]
 
     @property
+    def unit_family(self) -> UnitFamily | None:
+        return self.result.get("unit_family")
+
+    @property
+    def unit(self) -> MeasurementUnit | None:
+        return self.result.get("unit")
+
+    @property
     def groups(self) -> GroupsCollection:
         # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
         # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
@@ -382,18 +401,6 @@ class QueryResult:
             return self.totals_executable_query.limit.limit
 
         return None
-
-    @property
-    def length(self) -> int:
-        # We try to see how many series results we got, since that is the query which is likely to surpass the limit.
-        if "series" in self.result:
-            return len(self.series)
-
-        # If we have no series, totals will give us a hint of the size of the dataset.
-        if "totals" in self.result:
-            return len(self.totals)
-
-        return 0
 
     def align_series_to_totals(self) -> "QueryResult":
         """
@@ -431,9 +438,8 @@ class PartialQueryResult:
     executed_result: Mapping[str, Any]
 
     def to_query_result(self) -> QueryResult:
-        return QueryResult.from_query_type(
-            query_type=self.scheduled_query.type,
-            query=self.scheduled_query.metrics_query,
+        return QueryResult.from_scheduled_query(
+            scheduled_query=self.scheduled_query,
             query_result=self.executed_result,
         )
 
@@ -553,9 +559,8 @@ class QueryExecutor:
                 )
             else:
                 self._pending_query_results.append(
-                    QueryResult.from_query_type(
-                        query_type=scheduled_query.type,
-                        query=scheduled_query.metrics_query,
+                    QueryResult.from_scheduled_query(
+                        scheduled_query=scheduled_query,
                         query_result=query_result,
                     )
                 )
@@ -585,9 +590,8 @@ class QueryExecutor:
 
                 # If there is a next query, we will merge the first and second queries into a single `QueryResult`.
                 first_query_result = partial_query_result.to_query_result()
-                second_query_result = QueryResult.from_query_type(
-                    query_type=next_scheduled_query.type,
-                    query=next_scheduled_query.metrics_query,
+                second_query_result = QueryResult.from_scheduled_query(
+                    scheduled_query=next_scheduled_query,
                     query_result=query_result,
                 )
                 self._pending_query_results[query_index] = first_query_result.merge(
@@ -616,21 +620,19 @@ class QueryExecutor:
         """
         # For now, we are always building a (totals -> series) query, but the execution engine is fully capable of
         # supporting either a single totals or series query.
-        executable_query = ScheduledQuery(
-            type=ScheduledQueryType.TOTALS,
+        series_query = ScheduledQuery(
+            type=ScheduledQueryType.SERIES,
             metrics_query=intermediate_query.metrics_query,
-            next=ScheduledQuery(
-                type=ScheduledQueryType.SERIES,
-                metrics_query=intermediate_query.metrics_query,
-                order=intermediate_query.order,
-                limit=intermediate_query.limit,
-            ),
             order=intermediate_query.order,
             limit=intermediate_query.limit,
+            unit_family=intermediate_query.unit_family,
+            unit=intermediate_query.unit,
         )
+        totals_query = replace(series_query, type=ScheduledQueryType.TOTALS, next=series_query)
+
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
-        executable_query = executable_query.initialize(
+        executable_query = totals_query.initialize(
             self._organization, self._projects, self._blocked_metrics_for_projects
         )
         self._scheduled_queries.append(executable_query)

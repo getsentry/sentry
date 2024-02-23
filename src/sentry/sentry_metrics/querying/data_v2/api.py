@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -10,17 +9,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
-from sentry.sentry_metrics.querying.data_v2.preparation import normalize_units
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery, normalize_units
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
 from sentry.utils import metrics
-
-
-@dataclass(frozen=True)
-class IntermediateQuery:
-    metrics_query: MetricsQuery
-    order: QueryOrder | None
-    limit: int | None
 
 
 def _time_equal_within_bound(time_1: datetime, time_2: datetime, bound: timedelta) -> bool:
@@ -95,6 +87,7 @@ def run_metrics_queries_plan(
             )
         )
 
+    # We normalize all units in the queries that can be normalized.
     intermediate_queries = normalize_units(intermediate_queries)
 
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
