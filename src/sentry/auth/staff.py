@@ -65,8 +65,8 @@ class Staff(ElevatedMode):
 
     @property
     def is_active(self) -> bool:
-        # We have a wsgi request with no user.
-        if not hasattr(self.request, "user"):
+        # We have a wsgi request with no user or user is None
+        if not hasattr(self.request, "user") or self.request.user is None:
             return False
         # if we've been logged out
         if not self.request.user.is_authenticated:
