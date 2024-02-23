@@ -45,7 +45,9 @@ import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart';
+import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
+import type {Series} from 'sentry/views/ddm/chart/types';
+import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -312,6 +314,16 @@ const MetricWidgetBody = memo(
         : [];
     }, [timeseriesData, queries, getChartPalette, focusedSeries]);
 
+    const samplesProp = useMetricChartSamples({
+      chartRef,
+      correlations: samples?.data,
+      unit: samples?.unit,
+      onClick: samples?.onClick,
+      highlightedSampleId: samples?.higlightedId,
+      operation: samples?.operation,
+      timeseries: chartSeries,
+    });
+
     const toggleSeriesVisibility = useCallback(
       (series: FocusedMetricsSeries) => {
         setHoveredSeries('');
@@ -400,7 +412,7 @@ const MetricWidgetBody = memo(
           displayType={displayType}
           widgetIndex={widgetIndex}
           height={chartHeight}
-          scatter={samples}
+          samples={samplesProp}
           focusArea={focusArea}
           group={chartGroup}
         />
@@ -484,33 +496,6 @@ export function getChartTimeseries(
       focus: 'series',
     } as SeriesOption['emphasis'],
   })) as Series[];
-}
-
-export type Series = {
-  color: string;
-  data: {name: number; value: number}[];
-  id: string;
-  operation: string;
-  seriesName: string;
-  unit: string;
-  groupBy?: Record<string, string>;
-  hidden?: boolean;
-  paddingIndices?: Set<number>;
-  release?: string;
-  transaction?: string;
-};
-
-export interface ScatterSeries extends Series {
-  itemStyle: {
-    color: string;
-    opacity: number;
-  };
-  projectId: number;
-  spanId: string;
-  symbol: string;
-  symbolSize: number;
-  transactionId: string;
-  z: number;
 }
 
 const MetricWidgetPanel = styled(Panel)<{
