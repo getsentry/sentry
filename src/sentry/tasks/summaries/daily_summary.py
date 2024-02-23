@@ -1,6 +1,7 @@
 import math
 from collections import defaultdict
 from datetime import datetime
+from typing import cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -115,7 +116,7 @@ def prepare_summary_data(
             if project_id not in ctx.projects_context_map:
                 continue
 
-            project_ctx: DailySummaryProjectContext = ctx.projects_context_map[project_id]
+            project_ctx = cast(DailySummaryProjectContext, ctx.projects_context_map[project_id])
             total = data["total"]
             if data["category"] == DataCategory.ERROR:
                 if data["outcome"] == Outcome.ACCEPTED:
@@ -128,7 +129,7 @@ def prepare_summary_data(
     with sentry_sdk.start_span(op="daily_summary.project_passes"):
         for project in ctx.organization.project_set.all():
             project_id = project.id
-            project_ctx = ctx.projects_context_map[project_id]
+            project_ctx = cast(DailySummaryProjectContext, ctx.projects_context_map[project_id])
             project_ctx.comparison_period_avg = math.ceil(
                 project_ctx.comparison_period_total / COMPARISON_PERIOD
             )
