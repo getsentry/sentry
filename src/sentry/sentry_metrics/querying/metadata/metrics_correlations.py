@@ -283,7 +283,9 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         )
 
         data = raw_snql_query(
-            request, Referrer.API_DDM_FETCH_METRICS_SUMMARIES.value, use_cache=True
+            request,
+            Referrer.API_ORGANIZATION_METRICS_METADATA_FETCH_METRICS_SUMMARIES.value,
+            use_cache=True,
         )["data"]
 
         # For now, we assume that each span will have an aggregated metric summary for simplicity.
@@ -328,7 +330,9 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
             tenant_ids={"organization_id": self.organization.id},
         )
 
-        data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
+        data = raw_snql_query(
+            request, Referrer.API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS.value, use_cache=True
+        )["data"]
 
         segments_spans: dict[str, list[tuple[str, int, datetime]]] = {}
         for value in data:
@@ -609,7 +613,9 @@ class SpansDurationCorrelationsSource(CorrelationsSource):
             tenant_ids={"organization_id": self.organization.id},
         )
 
-        data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
+        data = raw_snql_query(
+            request, Referrer.API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS.value, use_cache=True
+        )["data"]
 
         segments_spans: dict[str, list[tuple[str, int, datetime]]] = {}
         for value in data:
@@ -733,7 +739,9 @@ def _get_segments(
         )
         requests.append(request)
 
-    results = bulk_snuba_queries(requests, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)
+    results = bulk_snuba_queries(
+        requests, Referrer.API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS.value, use_cache=True
+    )
     if len(results) != 2:
         raise Exception("Error while fetching segments for the metric")
 
