@@ -193,9 +193,12 @@ def get_user_actions(
         if tag == "options" and random.randint(0, 499) < 1:
             _handle_options_logging_event(project_id, replay_id, event)
         # log large dom mutation breadcrumb events 1/100 times
+
+        payload = event.get("data", {}).get("payload", {})
         if (
-            tag == "breadcrumb"
-            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            isinstance(payload, dict)
+            and tag == "breadcrumb"
+            and payload.get("category") == "replay.mutations"
             and random.randint(0, 99) < 1
         ):
             _handle_mutations_event(project_id, replay_id, event)
@@ -365,6 +368,9 @@ def _handle_breadcrumb(
     click = None
 
     payload = event["data"].get("payload", {})
+    if not isinstance(payload, dict):
+        return None
+
     category = payload.get("category")
     if category == "ui.slowClickDetected":
         is_timeout_reason = payload["data"].get("endReason") == "timeout"
