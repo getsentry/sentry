@@ -25,6 +25,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -40,7 +41,6 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -78,15 +78,12 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
-import {MetricWidgetChartContainer} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -869,9 +866,6 @@ function WidgetViewerModal(props: Props) {
                 noPadding
                 chartZoomOptions={chartZoomOptions}
               />
-            ) : widget.widgetType === WidgetType.METRICS &&
-              hasDDMFeature(organization) ? (
-              <MetricWidgetChartContainer widget={widget} selection={selection} />
             ) : (
               <MemoizedWidgetCardChartContainer
                 location={location}

@@ -41,9 +41,8 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             return False
 
         required_role = roles.get(required_role)
-        return any(
-            role.priority >= required_role.priority for role in om.get_all_org_roles_sorted()
-        )
+        om_role = roles.get(om.role)
+        return om_role.priority >= required_role.priority
 
 
 @region_silo_endpoint

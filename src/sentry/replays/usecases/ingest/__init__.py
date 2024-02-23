@@ -130,7 +130,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             publisher = initialize_replays_publisher(is_async=False)
             publisher.publish("ingest-replay-events", message.replay_event)
 
-    recording_post_processor(message, headers, recording_segment, transaction)
+    recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -218,12 +218,14 @@ def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
+    replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
             parsed_segment_data = json.loads(decompressed_segment)
+            parsed_replay_event = json.loads(replay_event_bytes) if replay_event_bytes else None
             _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
@@ -236,6 +238,7 @@ def recording_post_processor(
                 project_id=message.project_id,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
+                replay_event=parsed_replay_event,
             )
 
         # Log canvas mutations to bigquery.

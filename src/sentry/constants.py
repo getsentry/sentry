@@ -42,8 +42,10 @@ COMMIT_RANGE_DELIMITER = ".."
 # semver constants
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
+# TODO(snigdha): we will need to remove priority from here once we have renamed all instances to trends
 SORT_OPTIONS = {
     "priority": _("Priority"),
+    "trends": _("Trends"),
     "date": _("Last Seen"),
     "new": _("First Seen"),
     "freq": _("Frequency"),
