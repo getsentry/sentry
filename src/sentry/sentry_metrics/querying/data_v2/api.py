@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -9,9 +10,17 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
+from sentry.sentry_metrics.querying.data_v2.preparation import normalize_units
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
 from sentry.utils import metrics
+
+
+@dataclass(frozen=True)
+class IntermediateQuery:
+    metrics_query: MetricsQuery
+    order: QueryOrder | None
+    limit: int | None
 
 
 def _time_equal_within_bound(time_1: datetime, time_2: datetime, bound: timedelta) -> bool:
@@ -69,22 +78,33 @@ def run_metrics_queries_plan(
         ),
     )
 
-    # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
-    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
-
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(
         projects=projects, environments=environments, metrics_queries_plan=metrics_queries_plan
     )
 
+    intermediate_queries = []
     for query_expression, query_order, query_limit in parser.generate_queries():
-        query = base_query.set_query(query_expression).set_rollup(Rollup(interval=interval))
-        executor.schedule(query=query, order=query_order, limit=query_limit)
+        intermediate_queries.append(
+            IntermediateQuery(
+                metrics_query=base_query.set_query(query_expression).set_rollup(
+                    Rollup(interval=interval)
+                ),
+                order=query_order,
+                limit=query_limit,
+            )
+        )
+
+    intermediate_queries = normalize_units(intermediate_queries)
+
+    # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
+    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
+
+    for intermediate_query in intermediate_queries:
+        executor.schedule(intermediate_query)
 
     with metrics.timer(key="ddm.metrics_api.metrics_queries_plan.execution_time"):
-        # Iterating over each result.
         results = executor.execute()
 
     # We transform the result into a custom format which for now it's statically defined.
-    transformer = QueryTransformer(results)
-    return transformer.transform()
+    return QueryTransformer(results).transform()

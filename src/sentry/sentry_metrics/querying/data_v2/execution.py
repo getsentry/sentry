@@ -11,6 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.data_v2.api import IntermediateQuery
 from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
@@ -607,12 +608,7 @@ class QueryExecutor:
 
         return self._bulk_execute()
 
-    def schedule(
-        self,
-        query: MetricsQuery,
-        order: QueryOrder | None,
-        limit: int | None,
-    ):
+    def schedule(self, intermediate_query: IntermediateQuery):
         """
         Lazily schedules a query for execution.
 
@@ -622,15 +618,15 @@ class QueryExecutor:
         # supporting either a single totals or series query.
         executable_query = ScheduledQuery(
             type=ScheduledQueryType.TOTALS,
-            metrics_query=query,
+            metrics_query=intermediate_query.metrics_query,
             next=ScheduledQuery(
                 type=ScheduledQueryType.SERIES,
-                metrics_query=query,
-                order=order,
-                limit=limit,
+                metrics_query=intermediate_query.metrics_query,
+                order=intermediate_query.order,
+                limit=intermediate_query.limit,
             ),
-            order=order,
-            limit=limit,
+            order=intermediate_query.order,
+            limit=intermediate_query.limit,
         )
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
