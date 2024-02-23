@@ -45,7 +45,12 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
+from sentry.grouping.api import (
+    NULL_GROUPHASH_INFO,
+    GroupHashInfo,
+    GroupingConfig,
+    get_grouping_config_dict_for_project,
+)
 from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -144,14 +149,6 @@ class GroupInfo:
     is_regression: bool
     group_release: GroupRelease | None = None
     is_new_group_environment: bool = False
-
-
-@dataclass
-class GroupHashInfo:
-    config: GroupingConfig | None
-    hashes: CalculatedHashes | None
-    grouphashes: list[GroupHash]
-    existing_grouphash: GroupHash | None
 
 
 def pop_tag(data: dict[str, Any], key: str) -> None:
@@ -1642,7 +1639,7 @@ def _save_aggregate_new(
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
-    secondary = GroupHashInfo(None, None, [], None)
+    secondary = NULL_GROUPHASH_INFO
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
@@ -1677,14 +1674,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        # Cast in lieu of a non-null assertion operator, which Python doesn't have
-        #
-        # TODO: The typing and necessity of casting here is gross, but might be able to be improved
-        # once hierarchical grouping is gone
-        cast(GroupingConfig, primary.config),
-        cast(CalculatedHashes, primary.hashes),
-        secondary.config,
-        secondary.hashes,
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
@@ -1700,7 +1690,7 @@ def create_and_seek_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig | None, CalculatedHashes | None],
+        tuple[GroupingConfig, CalculatedHashes],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1714,13 +1704,10 @@ def create_and_seek_grouphashes(
     """
     project = job["event"].project
 
-    grouphashes = []
-    existing_grouphash = None
-
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
-    if hashes:
+    if extract_hashes(hashes):
         grouphashes = [
             GroupHash.objects.get_or_create(project=project, hash=hash)[0]
             for hash in extract_hashes(hashes)
@@ -1728,7 +1715,9 @@ def create_and_seek_grouphashes(
 
         existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+    else:
+        return NULL_GROUPHASH_INFO
 
 
 def handle_existing_grouphash(
