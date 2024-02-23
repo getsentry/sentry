@@ -497,7 +497,7 @@ class AlertRule(Model):
         self._processor_hooks = []
 
         if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
-            self.add_hook(self.clean_activated_alert)
+            self.add_processor_hook(self.clean_activated_alert)
 
     def _validate_actor(self):
         # TODO: Remove once owner is fully removed.
@@ -508,7 +508,7 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    def add_hook(self, hook):
+    def add_processor_hook(self, hook):
         self._processor_hooks.append(hook)
 
     def process_hooks(self, subscription):
@@ -516,7 +516,9 @@ class AlertRule(Model):
 
     def clean_activated_alert(self, subscription):
         now = timezone.now()
-        time_window = subscription.date_added + timedelta(subscription.snuba_query.time_window)
+        time_window = subscription.date_added + timedelta(
+            seconds=subscription.snuba_query.time_window
+        )
 
         if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value and now > time_window:
             subscription.remove()
