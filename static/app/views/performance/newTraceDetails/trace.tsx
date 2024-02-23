@@ -3,6 +3,7 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Omit} from 'framer-motion/types/types';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -270,12 +271,21 @@ function RenderRow(props: {
               props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
-          <TraceBar
-            virtualizedIndex={virtualizedIndex}
-            viewManager={props.viewManager}
-            color={pickBarColor('autogrouping')}
-            node_space={props.node.space}
-          />
+          {isParentAutogroupedNode(props.node) ? (
+            <TraceBar
+              virtualizedIndex={virtualizedIndex}
+              viewManager={props.viewManager}
+              color={props.theme.blue300}
+              node_space={props.node.space}
+            />
+          ) : (
+            <SiblingAutogroupedBar
+              virtualizedIndex={virtualizedIndex}
+              viewManager={props.viewManager}
+              color={props.theme.blue300}
+              node={props.node}
+            />
+          )}
         </div>
       </div>
     );
@@ -797,7 +807,77 @@ interface TraceBarProps {
   node_space: [number, number] | null;
   viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
+  duration?: number;
 }
+
+type SiblingAutogroupedBarProps = Omit<TraceBarProps, 'node_space' | 'duration'> & {
+  node: TraceTreeNode<TraceTree.NodeValue>;
+};
+
+// Render collapsed representation of sibling autogrouping, using multiple bars for when
+// there are gaps between siblings.
+function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
+  const bars: React.ReactNode[] = [];
+
+  // Start and end represents the earliest start_timestamp and the latest
+  // end_timestamp for a set of overlapping siblings.
+  let start = isSpanNode(props.node.children[0])
+    ? props.node.children[0].value.start_timestamp
+    : Number.POSITIVE_INFINITY;
+  let end = isSpanNode(props.node.children[0])
+    ? props.node.children[0].value.timestamp
+    : Number.NEGATIVE_INFINITY;
+  let totalDuration = 0;
+  for (let i = 0; i < props.node.children.length; i++) {
+    const node = props.node.children[i];
+    if (!isSpanNode(node)) {
+      throw new TypeError('Invalid type of autogrouped child');
+    }
+
+    const hasGap = node.value.start_timestamp > end;
+
+    if (!(hasGap || node.isLastChild)) {
+      start = Math.min(start, node.value.start_timestamp);
+      end = Math.max(end, node.value.timestamp);
+      continue;
+    }
+
+    // Render a bar for already collapsed set.
+    totalDuration += end - start;
+    bars.push(
+      <TraceBar
+        virtualizedIndex={props.virtualizedIndex}
+        viewManager={props.viewManager}
+        color={props.color}
+        node_space={[start, end - start]}
+        duration={!hasGap ? totalDuration : undefined}
+      />
+    );
+
+    if (hasGap) {
+      // Start a new set.
+      start = node.value.start_timestamp;
+      end = node.value.timestamp;
+
+      // Render a bar if the sibling with a gap is the last sibling.
+      if (node.isLastChild) {
+        totalDuration += end - start;
+        bars.push(
+          <TraceBar
+            virtualizedIndex={props.virtualizedIndex}
+            viewManager={props.viewManager}
+            color={props.color}
+            duration={totalDuration}
+            node_space={[start, end - start]}
+          />
+        );
+      }
+    }
+  }
+
+  return <Fragment>{bars}</Fragment>;
+}
+
 function TraceBar(props: TraceBarProps) {
   if (!props.node_space) {
     return null;
@@ -830,7 +910,11 @@ function TraceBar(props: TraceBarProps) {
           }, 0)`,
         }}
       >
-        <PerformanceDuration seconds={props.node_space[1]} abbreviation />
+        {/* Use node space to calculate duration if the duration prop is not provided. */}
+        <PerformanceDuration
+          seconds={props.duration ?? props.node_space[1]}
+          abbreviation
+        />
       </div>
     </div>
   );
