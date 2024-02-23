@@ -84,6 +84,7 @@ describe('AiAutofix', () => {
                 description: 'This is a description',
                 pr_url: 'https://github.com/pulls/1234',
                 repo_name: 'getsentry/sentry',
+                diff: [],
               },
               steps: [],
             },

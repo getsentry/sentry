@@ -1,7 +1,20 @@
 import type {EventMetadata, Group} from 'sentry/types';
 
+export enum DiffFileType {
+  ADDED = 'A',
+  MODIFIED = 'M',
+  DELETED = 'D',
+}
+
+export enum DiffLineType {
+  ADDED = '+',
+  REMOVED = '-',
+  CONTEXT = ' ',
+}
+
 export type AutofixResult = {
   description: string;
+  diff: FilePatch[];
   pr_number: number;
   pr_url: string;
   repo_name: string;
@@ -43,4 +56,31 @@ export type EventMetadataWithAutofix = EventMetadata & {
 
 export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
+};
+
+export type FilePatch = {
+  added: number;
+  hunks: Hunk[];
+  path: string;
+  removed: number;
+  source_file: string;
+  target_file: string;
+  type: DiffFileType;
+};
+
+type Hunk = {
+  lines: DiffLine[];
+  section_header: string;
+  source_length: number;
+  source_start: number;
+  target_length: number;
+  target_start: number;
+};
+
+export type DiffLine = {
+  diff_line_no: number | null;
+  line_type: DiffLineType;
+  source_line_no: number | null;
+  target_line_no: number | null;
+  value: string;
 };
