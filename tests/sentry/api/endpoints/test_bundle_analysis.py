@@ -8,20 +8,6 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-data = {
-    "stats": [
-        {
-            "total_size": 210,
-            "javascript_size": 130,
-            "css_size": 20,
-            "fonts_size": 20,
-            "images_size": 40,
-            "bundle_name": "bundle_one",
-            "environment": "test",
-        }
-    ]
-}
-
 
 @region_silo_test
 class BundleAnalysisEndpoint(APITestCase):
@@ -39,6 +25,19 @@ class BundleAnalysisEndpoint(APITestCase):
                 "project_slug": self.project1.slug,
             },
         )
+        self.data = {
+            "stats": [
+                {
+                    "total_size": 210,
+                    "javascript_size": 130,
+                    "css_size": 20,
+                    "fonts_size": 20,
+                    "images_size": 40,
+                    "bundle_name": "bundle_one",
+                    "environment": "test",
+                }
+            ]
+        }
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
 
@@ -47,7 +46,7 @@ class BundleAnalysisEndpoint(APITestCase):
     def test_raises_permission_denied_if_missing_feature(self):
         response = self.client.post(
             self.url,
-            data,
+            self.data,
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 403
@@ -56,7 +55,17 @@ class BundleAnalysisEndpoint(APITestCase):
         with self.feature({"organizations:starfish-browser-resource-module-bundle-analysis": True}):
             response = self.client.post(
                 self.url,
-                data,
+                self.data,
                 HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             )
             assert response.status_code == 200
+
+    def test_fails_on_invalid_name(self):
+        with self.feature({"organizations:starfish-browser-resource-module-bundle-analysis": True}):
+            self.data["stats"][0]["bundle_name"] = "invalid!name"
+            response = self.client.post(
+                self.url,
+                self.data,
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+            assert response.status_code == 400
