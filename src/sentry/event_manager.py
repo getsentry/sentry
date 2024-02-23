@@ -1697,7 +1697,7 @@ def create_and_seek_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig | None, CalculatedHashes | None],
+        tuple[GroupingConfig, CalculatedHashes],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1717,7 +1717,7 @@ def create_and_seek_grouphashes(
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
-    if hashes:
+    if extract_hashes(hashes):
         grouphashes = [
             GroupHash.objects.get_or_create(project=project, hash=hash)[0]
             for hash in extract_hashes(hashes)
