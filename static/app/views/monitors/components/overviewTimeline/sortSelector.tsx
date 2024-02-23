@@ -1,4 +1,4 @@
-import {Button} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/button';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {IconSort} from 'sentry/icons';
@@ -31,10 +31,11 @@ interface Props {
   onChangeOrder?: (order: SelectOption<MonitorSortOrder>) => void;
   onChangeSort?: (sort: SelectOption<MonitorSortOption>) => void;
   order?: MonitorSortOrder;
+  size?: ButtonProps['size'];
   sort?: MonitorSortOption;
 }
 
-export function SortSelector({onChangeOrder, onChangeSort, order, sort}: Props) {
+export function SortSelector({onChangeOrder, onChangeSort, order, sort, size}: Props) {
   const {replace, location} = useRouter();
 
   const selectedSort = sort ?? location.query?.sort ?? MonitorSortOption.STATUS;
@@ -53,7 +54,7 @@ export function SortSelector({onChangeOrder, onChangeSort, order, sort}: Props) 
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          size="xs"
+          size={size ?? 'xs'}
           aria-label={t('Sort Cron Monitors')}
           icon={<IconSort size="sm" />}
         >
