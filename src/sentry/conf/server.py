@@ -1094,10 +1094,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_reports",
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
         "schedule": crontab(
+            day_of_week="mon-fri",
             minute=0,
-            hour=12,  # 16:00 PDT, 09:00 EDT, 12:00 UTC
+            hour="*/1",  # Run every hour
         ),
         "options": {"expires": 60 * 60 * 3},
     },

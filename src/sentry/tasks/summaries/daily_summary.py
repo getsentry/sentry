@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import cast
 
+import pytz
 import sentry_sdk
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -35,6 +36,8 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 
+HOUR_TO_SEND_REPORT = 16
+
 
 # The entry point. This task is scheduled to run every day at 4pm PST.
 @instrumented_task(
@@ -65,7 +68,6 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                     organization_id=organization.id, teams__projectteam__project__isnull=False
                 ).values_list("user_id", flat=True)
             }
-
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
             users_with_tz = user_option_service.get_many(
@@ -79,7 +81,18 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                 users_by_tz["UTC"] = list(users_without_tz)
             for user_option in users_with_tz:
                 users_by_tz[user_option.value].append(user_option.user_id)
-            for tz in users_by_tz.keys():
+
+            # if it's ~4pm (btwn 4 and 5) for any of the users, generate the report
+            # we'll check the timezone for the users again before sending
+            time_to_send_timezones = []
+            for user_tz in users_by_tz.keys():
+                utc_datetime = to_datetime(timestamp)
+                local_timezone = pytz.timezone(user_tz)
+                local_datetime = utc_datetime.astimezone(local_timezone)
+                if local_datetime.hour == HOUR_TO_SEND_REPORT:
+                    time_to_send_timezones.append(user_tz)
+
+            if any(time_to_send_timezones):
                 # Create a celery task per timezone
                 prepare_summary_data(timestamp, duration, organization.id)
 
