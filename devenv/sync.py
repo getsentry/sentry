@@ -77,9 +77,6 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    print(f"syncing {venv_dir} with {requirements}...")
-    venv.sync(venv_dir, requirements, editable_paths, bins)
-
     if not run_procs(
         repo,
         reporoot,

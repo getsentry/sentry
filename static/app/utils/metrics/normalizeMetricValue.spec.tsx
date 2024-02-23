@@ -27,6 +27,11 @@ describe('getNormalizedMetricUnit', () => {
   it('returns the unit when it is not in any of the conversion factors', () => {
     expect(getNormalizedMetricUnit('foo')).toBe('foo');
   });
+
+  it('returns none for count operations', () => {
+    expect(getNormalizedMetricUnit('second', 'count')).toBe('none');
+    expect(getNormalizedMetricUnit('seconds', 'count_unique')).toBe('none');
+  });
 });
 
 describe('getMetricValueNormalizer', () => {
@@ -52,5 +57,10 @@ describe('getMetricValueNormalizer', () => {
 
     expect(getMetricValueNormalizer('tebibyte')(1)).toBe(1024 ** 4);
     expect(getMetricValueNormalizer('tebibytes')(2)).toBe(2 * 1024 ** 4);
+  });
+
+  it('skips nomalization for count operations', () => {
+    expect(getMetricValueNormalizer('second', 'count')(1)).toBe(1);
+    expect(getMetricValueNormalizer('seconds', 'count_unique')(2)).toBe(2);
   });
 });

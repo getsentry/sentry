@@ -52,7 +52,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 
 
@@ -109,6 +109,66 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(sort_by="date", query="is:archived")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
+
+    def test_sort_by_trends(self):
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=10)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        group_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=5)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(hours=13)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        aggregate_kwargs: dict = {
+            "log_level": "3",
+            "has_stacktrace": "5",
+            "relative_volume": "1",
+            "event_halflife_hours": "4",
+            "issue_halflife_hours": "4",
+            "v2": "true",
+            "norm": "False",
+        }
+
+        response = self.get_success_response(
+            sort="trends",
+            query="is:unresolved",
+            limit=25,
+            start=iso_format(before_now(days=1)),
+            end=iso_format(before_now(seconds=1)),
+            **aggregate_kwargs,
+        )
+        assert len(response.data) == 2
+        assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
     def test_sort_by_priority(self):
         group = self.store_event(
@@ -1923,6 +1983,47 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event.group.id]
+
+    def test_default_search(self):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        event2.group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event1.group.id]
+
+    @with_feature("organizations:issue-priority-ui")
+    def test_default_search_with_priority(self):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event1.group.update(priority=PriorityLevel.HIGH)
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+        event2.group.update(
+            priority=PriorityLevel.HIGH, status=GroupStatus.RESOLVED, substatus=None
+        )
+        event3 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        event3.group.update(priority=PriorityLevel.LOW)
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, expand="inbox", collapse="stats")
+        assert response.status_code == 200
+        assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
     def test_collapse_stats(self):
         event = self.store_event(

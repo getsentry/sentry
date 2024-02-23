@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint
 from sentry.api.paginator import CallbackPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventuser import EventUserSerializer
@@ -22,6 +22,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             RateLimitCategory.ORGANIZATION: RateLimit(5, 60),
         },
     }
+    permission_classes = (ProjectAndStaffPermission,)
 
     def get(self, request: Request, project) -> Response:
         """

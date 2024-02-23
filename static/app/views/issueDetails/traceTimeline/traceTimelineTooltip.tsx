@@ -51,6 +51,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
                 pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
                 query: {
                   ...location.query,
+                  project: undefined,
                   referrer: 'issues_trace_timeline',
                 },
               }}

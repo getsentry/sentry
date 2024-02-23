@@ -768,7 +768,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
-    "sentry.tasks.weekly_reports",
+    "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1086,7 +1086,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
-        "task": "sentry.tasks.weekly_reports.schedule_organizations",
+        "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
@@ -1549,6 +1549,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable the Event Tags Tree UI feature
+    "organizations:event-tags-tree-ui": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1870,8 +1872,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
-    # Updated spike protection heuristic
-    "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
@@ -1891,6 +1891,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-resource-module-image-view": False,
     # Enables the resource module ui
     "organizations:starfish-browser-resource-module-ui": False,
+    # Enable bundle analysis ui and endpoint
+    "organizations:starfish-browser-resource-module-bundle-analysis": False,
     # Enable browser starfish webvitals module view
     "organizations:starfish-browser-webvitals": False,
     # Enable browser starfish webvitals module pageoverview v2 view
@@ -1941,6 +1943,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable User Feedback new onboarding experience
+    "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable using new webhooks from Vercel

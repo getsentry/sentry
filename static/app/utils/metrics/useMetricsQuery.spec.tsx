@@ -1,4 +1,4 @@
-import type {PageFilters} from 'sentry/types';
+import type {MRI, PageFilters} from 'sentry/types';
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,
@@ -42,7 +42,12 @@ describe('createMqlQuery', () => {
 
 describe('getMetricsQueryApiRequestPayload', () => {
   it('should return the correct query object with default values', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const metric = {
+      query: 'error',
+      groupBy: ['project'],
+      mri: 'c:custom/sessions@none' as MRI,
+      op: 'avg',
+    };
     const filters = {
       projects: [1],
       environments: ['production'],
@@ -63,7 +68,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'sessions{error} by (project)',
+          mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
@@ -71,7 +76,12 @@ describe('getMetricsQueryApiRequestPayload', () => {
   });
 
   it('should return the correct query object with default values (period)', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const metric = {
+      mri: 'c:custom/sessions@none' as MRI,
+      op: 'avg',
+      query: 'error',
+      groupBy: ['project'],
+    };
     const filters = {
       projects: [1],
       environments: ['production'],
@@ -91,7 +101,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'sessions{error} by (project)',
+          mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
@@ -99,7 +109,12 @@ describe('getMetricsQueryApiRequestPayload', () => {
   });
 
   it('should return the correct query object with overridden values', () => {
-    const metric = {field: 'sessions', query: 'error', groupBy: ['project']};
+    const metric = {
+      mri: 'c:custom/sessions@none' as MRI,
+      op: 'avg',
+      query: 'error',
+      groupBy: ['project'],
+    };
     const filters = {
       projects: [1],
       environments: ['production'],
@@ -122,7 +137,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'sessions{error} by (project)',
+          mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: 'desc'}],
@@ -131,7 +146,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if one is already present', () => {
     const metric = {
-      field: 'sessions',
+      mri: 'c:custom/sessions@none' as MRI,
+      op: 'avg',
       query: 'error',
       groupBy: ['project'],
       orderBy: 'asc' as const,
@@ -156,7 +172,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'sessions{error} by (project)',
+          mql: 'avg(c:custom/sessions@none){error} by (project)',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: 'asc'}],
@@ -165,7 +181,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if there are no groups', () => {
     const metric = {
-      field: 'sessions',
+      mri: 'c:custom/sessions@none' as MRI,
+      op: 'avg',
       query: 'error',
       groupBy: [],
     };
@@ -189,7 +206,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'sessions{error}',
+          mql: 'avg(c:custom/sessions@none){error}',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: undefined}],
@@ -198,7 +215,8 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add intervalLadder override into the request', () => {
     const metric = {
-      field: 'test',
+      mri: 'c:custom/test@seconds' as MRI,
+      op: 'sum',
       query: 'error',
       groupBy: [],
     };
@@ -224,7 +242,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       queries: [
         {
           name: 'query_1',
-          mql: 'test{error}',
+          mql: 'sum(c:custom/test@seconds){error}',
         },
       ],
       formulas: [{mql: '$query_1', limit: undefined, order: undefined}],

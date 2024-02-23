@@ -14,21 +14,25 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {getWidgetTitle} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {
+  type MetricsQueryApiRequestQuery,
+  useMetricsQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {
+  getMetricQueries,
+  toMetricDisplayType,
+} from 'sentry/views/dashboards/metrics/utils';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
-import {MetricChart} from 'sentry/views/ddm/chart';
+import {MetricChart} from 'sentry/views/ddm/chart/chart';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
-
-import {convertToMetricWidget} from '../../../utils/metrics/dashboard';
-import {DASHBOARD_CHART_GROUP} from '../dashboard';
-import type {DashboardFilters, Widget} from '../types';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -60,12 +64,12 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
-  const metricWidgetQueries = useMemo(() => convertToMetricWidget(widget), [widget]);
-
-  const widgetMQL = useMemo(
-    () => getWidgetTitle(metricWidgetQueries),
-    [metricWidgetQueries]
+  const metricQueries = useMemo(
+    () => getMetricQueries(widget, dashboardFilters),
+    [widget, dashboardFilters]
   );
+
+  const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
 
   return (
     <DashboardsMEPContext.Provider
@@ -111,12 +115,11 @@ export function MetricWidgetCard({
         </WidgetHeaderWrapper>
 
         <MetricWidgetChartContainer
-          metricWidgetQueries={metricWidgetQueries}
+          metricQueries={metricQueries}
           selection={selection}
-          widget={widget}
-          dashboardFilters={dashboardFilters}
           renderErrorMessage={renderErrorMessage}
           chartHeight={!showContextMenu ? 200 : undefined}
+          displayType={widget.displayType}
         />
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
@@ -125,58 +128,40 @@ export function MetricWidgetCard({
 }
 
 type MetricWidgetChartContainerProps = {
+  displayType: DisplayType;
+  metricQueries: MetricsQueryApiRequestQuery[];
   selection: PageFilters;
-  widget: Widget;
   chartHeight?: number;
-  dashboardFilters?: DashboardFilters;
-  metricWidgetQueries?: MetricWidgetQueryParams[];
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
 
 export function MetricWidgetChartContainer({
   selection,
-  dashboardFilters,
   renderErrorMessage,
-  metricWidgetQueries,
-  widget,
+  metricQueries,
   chartHeight,
+  displayType,
 }: MetricWidgetChartContainerProps) {
-  // TODO: Remove this and the widget prop once this component is no longer used in widgetViewerModal
-  const metricQueries = metricWidgetQueries || convertToMetricWidget(widget);
-
-  const chartQueries = useMemo(() => {
-    return metricQueries.map(({mri, op, groupBy, query}) => {
-      return {
-        mri,
-        op,
-        query: extendQuery(query, dashboardFilters),
-        groupBy,
-      };
-    });
-  }, [metricQueries, dashboardFilters]);
-
-  const displayType = metricQueries[0].displayType;
-
   const {
     data: timeseriesData,
     isLoading,
     isError,
     error,
-  } = useMetricsQuery(chartQueries, selection, {
-    intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard',
+  } = useMetricsQuery(metricQueries, selection, {
+    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
   });
 
   const chartRef = useRef<ReactEchartsRef>(null);
 
   const chartSeries = useMemo(() => {
     return timeseriesData
-      ? getChartTimeseries(timeseriesData, chartQueries, {
+      ? getChartTimeseries(timeseriesData, metricQueries, {
           getChartPalette: createChartPalette,
         })
       : [];
-  }, [timeseriesData, chartQueries]);
+  }, [timeseriesData, metricQueries]);
 
-  if (isError) {
+  if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
     return (
@@ -206,8 +191,7 @@ export function MetricWidgetChartContainer({
         <MetricChart
           ref={chartRef}
           series={chartSeries}
-          displayType={displayType}
-          operation={metricQueries[0].op}
+          displayType={toMetricDisplayType(displayType)}
           widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}
@@ -215,30 +199,6 @@ export function MetricWidgetChartContainer({
       </TransitionChart>
     </MetricWidgetChartWrapper>
   );
-}
-
-function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
-  if (!dashboardFilters?.release?.length) {
-    return query;
-  }
-
-  const releaseQuery = convertToQuery(dashboardFilters);
-
-  return `${query} ${releaseQuery}`;
-}
-
-function convertToQuery(dashboardFilters: DashboardFilters) {
-  const {release} = dashboardFilters;
-
-  if (!release?.length) {
-    return '';
-  }
-
-  if (release.length === 1) {
-    return `release:${release[0]}`;
-  }
-
-  return `release:[${release.join(',')}]`;
 }
 
 const WidgetHeaderWrapper = styled('div')`

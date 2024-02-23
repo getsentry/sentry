@@ -30,7 +30,6 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/members/`,
         title: t('Members'),
-        show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
       },
@@ -58,15 +57,13 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/audit-log/`,
         title: t('Audit Log'),
-        show: ({access}) => access!.has('org:write'),
         description: t('View the audit log for an organization'),
         id: 'audit-log',
       },
       {
         path: `${pathPrefix}/rate-limits/`,
         title: t('Rate Limits'),
-        show: ({access, features}) =>
-          features!.has('legacy-rate-limits') && access!.has('org:write'),
+        show: ({features}) => features!.has('legacy-rate-limits'),
         description: t('Configure rate limits for all projects in the organization'),
         id: 'rate-limits',
       },
