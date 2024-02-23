@@ -10,7 +10,11 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery, normalize_units
+from sentry.sentry_metrics.querying.data_v2.preparation import (
+    IntermediateQuery,
+    UnitNormalizationStep,
+    run_preparation_steps,
+)
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
 from sentry.utils import metrics
 
@@ -70,12 +74,11 @@ def run_metrics_queries_plan(
         ),
     )
 
+    intermediate_queries = []
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(
         projects=projects, environments=environments, metrics_queries_plan=metrics_queries_plan
     )
-
-    intermediate_queries = []
     for query_expression, query_order, query_limit in parser.generate_queries():
         intermediate_queries.append(
             IntermediateQuery(
@@ -87,12 +90,11 @@ def run_metrics_queries_plan(
             )
         )
 
-    # We normalize all units in the queries that can be normalized.
-    intermediate_queries = normalize_units(intermediate_queries)
+    # We run a series of preparation steps which operate on the entire list of queries.
+    intermediate_queries = run_preparation_steps(intermediate_queries, UnitNormalizationStep())
 
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
     executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
-
     for intermediate_query in intermediate_queries:
         executor.schedule(intermediate_query)
 

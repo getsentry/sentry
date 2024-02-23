@@ -56,6 +56,7 @@ class Unit:
         return value * (self.scaling_factor or 1)
 
     def apply_on_timeseries(self, timeseries: Timeseries) -> Formula:
+        # We represent the scaling factor as a multiplicative factor, so that we can just multiply.
         return Formula(
             function_name=ArithmeticOperator.MULTIPLY.value,
             parameters=[timeseries, self.scaling_factor],
@@ -66,13 +67,13 @@ class Unit:
 
 
 @dataclass(frozen=True)
-class Units:
+class UnitsSpec:
     reference_unit: MeasurementUnit
     units: Sequence[Unit]
 
 
 FAMILY_TO_UNITS = {
-    UnitFamily.DURATION: Units(
+    UnitFamily.DURATION: UnitsSpec(
         reference_unit="nanosecond",
         units=[
             Unit("nanosecond", 1),
@@ -84,14 +85,35 @@ FAMILY_TO_UNITS = {
             Unit("day", 24 * 60 * 60 * 1e9),
             Unit("week", 7 * 24 * 60 * 60 * 1e9),
         ],
-    )
+    ),
+    UnitFamily.INFORMATION: UnitsSpec(
+        reference_unit="bit",
+        units=[
+            Unit("bit", 1),
+            Unit("byte", 8),
+            Unit("kilobyte", 1e3 * 8),
+            Unit("kibibyte", 1024 * 8),
+            Unit("megabyte", 1e3 * 1e3 * 8),
+            Unit("mebibyte", 1024 * 1024 * 8),
+            Unit("gigabyte", 1e3 * 1e3 * 1e3 * 8),
+            Unit("gibibyte", 1024 * 1024 * 1024 * 8),
+            Unit("terabyte", 1e3 * 1e3 * 1e3 * 1e3 * 8),
+            Unit("tebibyte", 1024 * 1024 * 1024 * 1024 * 8),
+            Unit("petabyte", 1e3 * 1e3 * 1e3 * 1e3 * 1e3 * 8),
+            Unit("pebibyte", 1024 * 1024 * 1024 * 1024 * 1024 * 8),
+            Unit("exabyte", 1e3 * 1e3 * 1e3 * 1e3 * 1e3 * 1e3 * 8),
+            Unit("exbibyte", 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 8),
+        ],
+    ),
 }
 
 
-def get_unit_family_and_unit(unit: MeasurementUnit) -> tuple[UnitFamily, Unit] | None:
-    for unit_family, units in FAMILY_TO_UNITS.items():
-        for inner_unit in units.units:
+def get_unit_family_and_unit(
+    unit: MeasurementUnit,
+) -> tuple[UnitFamily, MeasurementUnit, Unit] | None:
+    for unit_family, units_spec in FAMILY_TO_UNITS.items():
+        for inner_unit in units_spec.units:
             if inner_unit.name == unit:
-                return unit_family, inner_unit
+                return unit_family, units_spec.reference_unit, inner_unit
 
     return None

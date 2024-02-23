@@ -172,8 +172,10 @@ class QueryTransformer:
                     group_bys=group_bys,
                     order=query_result.order.value if query_result.order else None,
                     limit=query_result.limit,
-                    unit_family=query_result.unit_family,
-                    unit=query_result.unit,
+                    unit_family=query_result.unit_family.value
+                    if query_result.unit_family
+                    else None,
+                    referece_unit=query_result.reference_unit,
                 )
             )
 
