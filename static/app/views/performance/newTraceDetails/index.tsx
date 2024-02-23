@@ -33,6 +33,7 @@ import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree} from './traceTree';
 import TraceWarnings from './traceWarnings';
+import {TraceFooter} from './traceFooter';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
@@ -204,6 +205,13 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.traceSplitResult}
           />
           <Trace trace={tree} trace_id={props.traceSlug} />
+          <TraceFooter
+            rootEventResults={rootEventResults}
+            organization={props.organization}
+            location={props.location}
+            traces={props.traceSplitResult}
+            traceEventView={props.traceEventView}
+          />
         </Layout.Main>
       </Layout.Body>
     </Fragment>
