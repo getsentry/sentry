@@ -150,48 +150,34 @@ def project_key_performance_issues(ctx, project):
 
         # Fine grained query for 3 most frequent events happend during last week
         query = Query(
-            match=Entity("transactions"),
+            match=Entity("search_issues"),
             select=[
-                Column("group_ids"),
+                Column("group_id"),
                 Function("count", []),
             ],
             where=[
-                Condition(Column("finish_ts"), Op.GTE, ctx.start),
-                Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
-                # transactions.group_ids is a list of group_ids that the transaction was associated with.
-                # We want to find the transactions associated with group_id_to_group.keys()
-                # That means group_ids must intersect with group_id_to_group.keys() in order for the transaction to be counted.
-                Condition(
-                    Function(
-                        "notEmpty",
-                        [
-                            Function(
-                                "arrayIntersect",
-                                [Column("group_ids"), list(group_id_to_group.keys())],
-                            )
-                        ],
-                    ),
-                    Op.EQ,
-                    1,
-                ),
+                Condition(Column("timestamp"), Op.GTE, ctx.start),
+                Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
                 Condition(Column("project_id"), Op.EQ, project.id),
             ],
-            groupby=[Column("group_ids")],
+            groupby=[Column("group_id")],
             orderby=[OrderBy(Function("count", []), Direction.DESC)],
             limit=Limit(3),
         )
-        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+        request = Request(
+            dataset=Dataset.IssuePlatform.value,
+            app_id="reports",
+            query=query,
+        )
         query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
 
         key_performance_issues = []
-        for d in query_result:
-            count = d["count()"]
-            group_ids = d["group_ids"]
-            for group_id in group_ids:
-                group = group_id_to_group.get(group_id)
-                if group:
-                    key_performance_issues.append((group, count))
-                    break
+        for result in query_result:
+            count = result["count()"]
+            group_id = result["group_id"]
+            group = group_id_to_group.get(group_id)
+            if group:
+                key_performance_issues.append((group, count))
 
         return key_performance_issues
 
