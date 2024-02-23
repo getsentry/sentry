@@ -1,9 +1,12 @@
+import dataclasses
 import re
 from itertools import islice
 from re import Match
 from typing import Any
 
+from sentry import analytics
 from sentry.eventstore.models import Event
+from sentry.features.rollout import in_rollout_group
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -14,10 +17,9 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
-_parameterization_regex = re.compile(
-    # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
-    # so we can use newlines and indentation for better legibility.
-    r"""(?x)
+# The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
+# so we can use newlines and indentation for better legibility.
+_parameterization_regex_str = r"""(?x)
     (?P<email>
         [a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*
     ) |
@@ -135,10 +137,6 @@ _parameterization_regex = re.compile(
         ='([^']+)' |
         ="([^"]+)"
     ) |
-    (?P<json_str_val>
-        :\s?'([^']+)' |
-        :\s?"([^"]+)"
-    ) |
     (?P<bool>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all instances of the words 'true' and 'false'.
@@ -147,20 +145,54 @@ _parameterization_regex = re.compile(
         =False |
         =false
     )
-    |
-    (?P<uniq_id>
-        \b
-        (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
-        (?=\w*?[0-9]\w*?\b) # At least one digit
-        (?=\w*?[a-zA-Z]\w*?\b) # At least one letter
-        [\w_]+?
-        \b
-    )
 """
-)
+
+_parameterization_regex = re.compile(_parameterization_regex_str)
 
 
-def normalize_message_for_grouping(message: str) -> str:
+@dataclasses.dataclass()
+class ParameterizationExperiment:
+    name: str
+    regex: Any  # re.compile(...)
+    counter: int = 0
+
+
+# Note that experiments are run AFTER the initial replacements. Which means they MUST not catch replacements made
+# in the primary parameterization regex. E.g. "md5" might be caught by the "uniq_id" experiment, so it is explicitly excluded
+_parameterization_regex_experiments = [
+    ParameterizationExperiment(
+        name="uniq_id",
+        regex=re.compile(
+            _parameterization_regex_str
+            + r"""|
+                (?P<uniq_id>
+                    \b
+                    (?!(md5|sha1)) # TODO: remove this line after experiment is done
+                    (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
+                    (?=\w*?[0-9]\w*?\b) # At least one digit
+                    (?=\w*?[a-zA-Z]\w*?\b) # At least one letter
+                    [\w_]+?
+                    \b
+                )
+            """
+        ),
+    ),
+    ParameterizationExperiment(
+        name="json_str_val",
+        regex=re.compile(
+            _parameterization_regex_str
+            + r"""|
+                (?P<json_str_val>
+                    :\s?'([^']+)' |
+                    :\s?"([^"]+)"
+                )
+            """
+        ),
+    ),
+]
+
+
+def normalize_message_for_grouping(message: str, event: Event) -> str:
     """Replace values from a group's message with placeholders (to hide P.I.I. and
     improve grouping when no stacktrace is available) and trim to at most 2 lines.
     """
@@ -194,7 +226,26 @@ def normalize_message_for_grouping(message: str) -> str:
                     return f"<{key}>"
         return ""
 
-    return _parameterization_regex.sub(_handle_match, trimmed)
+    normalized = _parameterization_regex.sub(_handle_match, trimmed)
+    for experiment in _parameterization_regex_experiments:
+        if in_rollout_group(
+            f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+        ):
+            experiment_output = experiment.regex.sub(_handle_match, normalized)
+            if experiment_output != normalized:
+                # Register 100 analytics events per experiment per instance restart
+                # This generates samples for review consistently but creates a hard cap on
+                # analytics event volume
+                experiment.counter += 1
+                if experiment.counter < 100:
+                    analytics.record(
+                        "grouping.experiments.parameterization",
+                        experiment_name=experiment.name,
+                        project_id=event.project_id,
+                        event_id=event.event_id,
+                    )
+                normalized = experiment_output
+    return normalized
 
 
 @strategy(ids=["message:v1"], interface=Message, score=0)
@@ -204,7 +255,7 @@ def message_v1(
 ) -> ReturnedVariants:
     if context["normalize_message"]:
         raw = interface.message or interface.formatted or ""
-        normalized = normalize_message_for_grouping(raw)
+        normalized = normalize_message_for_grouping(raw, event)
         hint = "stripped event-specific values" if raw != normalized else None
         return {
             context["variant"]: GroupingComponent(

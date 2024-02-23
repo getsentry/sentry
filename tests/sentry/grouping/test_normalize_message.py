@@ -1,6 +1,17 @@
+from unittest.mock import Mock
+
 import pytest
 
+from sentry.eventstore.models import Event
 from sentry.grouping.strategies.message import normalize_message_for_grouping
+from sentry.testutils.helpers.options import override_options
+
+
+@pytest.fixture
+def record_analytics(monkeypatch):
+    mock = Mock()
+    monkeypatch.setattr("sentry.analytics.record", mock)
+    return mock
 
 
 @pytest.mark.parametrize(
@@ -115,5 +126,12 @@ from sentry.grouping.strategies.message import normalize_message_for_grouping
         # ("Quoted str w/ints", '''fbtrace_id Ox_pfOzllbaBby_cYvWgYBn blah''', '''fbtrace_id <uniq_id> blah'''),
     ],
 )
-def test_normalize_message(name, input, expected):
-    assert expected == normalize_message_for_grouping(input), f"Case {name} Failed"
+def test_normalize_message(name, input, expected, record_analytics):
+    event = Event(project_id=1, event_id="something")
+    with override_options(
+        {
+            "grouping.experiments.parameterization.uniq_id": 100,
+            "grouping.experiments.parameterization.json_str_val": 100,
+        }
+    ):
+        assert expected == normalize_message_for_grouping(input, event), f"Case {name} Failed"
