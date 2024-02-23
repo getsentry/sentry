@@ -99,7 +99,7 @@ class BundleStatSerializer(serializers.Serializer):
     css_size = serializers.IntegerField(required=True)
     images_size = serializers.IntegerField(required=True)
     fonts_size = serializers.IntegerField(required=True)
-    bundle_name = serializers.RegexField(r"[^\w\d_:/@\.{}\[\]$-]+ ", required=True)
+    bundle_name = serializers.RegexField(r"[\w\d_:/@\.{}\[\]$-]+", required=True)
     environment = serializers.CharField(required=True)
 
 

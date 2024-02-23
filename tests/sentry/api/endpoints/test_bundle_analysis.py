@@ -16,7 +16,7 @@ data = {
             "css_size": 20,
             "fonts_size": 20,
             "images_size": 40,
-            "bundle_name": "bundle_1",
+            "bundle_name": "bundle_one",
             "environment": "test",
         }
     ]
