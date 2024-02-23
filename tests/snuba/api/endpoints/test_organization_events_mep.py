@@ -3255,6 +3255,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def test_on_demand_count_unique(self):
         field = "count_unique(user)"
         query = "transaction.duration:>0"
+        params = {"field": [field], "query": query}
         # We do not really have to create the metrics for both specs since
         # the first API call will not query any on-demand metric
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
@@ -3267,38 +3268,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             self.store_on_demand_metric(1, spec=spec, timestamp=self.min_ago)
             self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
 
-        # First, make a call without the next spec flag
-        response = self._make_on_demand_request({"field": [field], "query": query})
-        assert response.data == {
-            # The count is 0 because we have not made calls to self.store_event()
-            "data": [{"count_unique(user)": 0}],
-            "meta": {
-                "fields": {"count_unique(user)": "integer"},
-                "units": {"count_unique(user)": None},
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {"query": None, "columns": None},
-                "datasetReason": "Column transaction.duration was not found in metrics indexer",
-                "dataset": "metricsEnhanced",
-            },
-        }
-        # Second, make a call with the next spec flag
-        # Because of the flag, it will query the 2nd spec version
+        # The first call will not be on-demand
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=False)
+
+        # This second call will be on-demand
         response = self._make_on_demand_request(
-            {"field": [field], "query": query}, extra_features={SPEC_VERSION_TWO_FLAG: True}
+            params, extra_features={SPEC_VERSION_TWO_FLAG: True}
         )
-        assert response.data == {
-            "data": [{"count_unique(user)": 2}],
-            "meta": {
-                "fields": {"count_unique(user)": "integer"},
-                "units": {"count_unique(user)": None},
-                "isMetricsData": True,
-                "isMetricsExtractedData": True,
-                "tips": {},
-                "datasetReason": "unchanged",
-                "dataset": "metricsEnhanced",
-            },
-        }
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data["data"] == [{"count_unique(user)": 2}]
 
 
 @region_silo_test
