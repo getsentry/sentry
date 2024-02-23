@@ -392,7 +392,7 @@ class OrganizationEndpoint(Endpoint):
 
             active_superuser = user and is_active_superuser(request)
             # Superuser should fetch all projects.
-            # Also check if explicitly requesting all projects with include_all_accessible
+            # Also fetch all accessible projects if requesting $all
             if active_superuser or include_all_accessible:
                 span.set_tag("mode", "has_project_access")
                 proj_filter = request.access.has_project_access

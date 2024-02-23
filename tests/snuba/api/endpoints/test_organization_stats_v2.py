@@ -472,7 +472,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_staff_org_single_category(self):
+    def test_staff_org_individual_category(self):
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)
 
