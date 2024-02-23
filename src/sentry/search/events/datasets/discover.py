@@ -1002,45 +1002,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: Function(
-                        "arrayElement",
-                        [
-                            Function(
-                                "groupArraySample(1, 1)",  # TODO: paginate via the seed
-                                [
-                                    Function(
-                                        "tuple",
-                                        [Column("timestamp"), Column("span_id")],
-                                    ),
-                                ],
-                            ),
-                            1,
-                        ],
-                        alias,
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
+                        ["timestamp", "span_id"], alias
                     ),
                     private=True,
                 ),
                 SnQLFunction(
                     "rounded_timestamp",
                     required_args=[IntervalDefault("interval", 1, None)],
-                    snql_column=lambda args, alias: Function(
-                        "toUInt32",
-                        [
-                            Function(
-                                "multiply",
-                                [
-                                    Function(
-                                        "intDiv",
-                                        [
-                                            Function("toUInt32", [Column("timestamp")]),
-                                            args["interval"],
-                                        ],
-                                    ),
-                                    args["interval"],
-                                ],
-                            ),
-                        ],
-                        alias,
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias
                     ),
                     private=True,
                 ),

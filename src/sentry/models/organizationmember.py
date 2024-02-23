@@ -524,12 +524,9 @@ class OrganizationMember(ReplicatedRegionModel):
 
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership
-        all_org_roles = self.get_all_org_roles()
-        scopes = set()
+        role = organization_roles.get(self.role)
+        scopes = self.organization.get_scopes(role)
 
-        for role in all_org_roles:
-            role_obj = organization_roles.get(role)
-            scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
     def get_org_roles_from_teams(self) -> set[str]:
@@ -545,11 +542,6 @@ class OrganizationMember(ReplicatedRegionModel):
             self.__org_roles_from_teams = team_roles
         return self.__org_roles_from_teams
 
-    def get_all_org_roles(self) -> list[str]:
-        all_org_roles = self.get_org_roles_from_teams()
-        all_org_roles.add(self.role)
-        return list(all_org_roles)
-
     def get_org_roles_from_teams_by_source(self) -> list[tuple[str, OrganizationRole]]:
         org_roles = [
             (slug, organization_roles.get(role))
@@ -560,9 +552,6 @@ class OrganizationMember(ReplicatedRegionModel):
         ]
 
         return sorted(org_roles, key=lambda r: r[1].priority, reverse=True)
-
-    def get_all_org_roles_sorted(self) -> list[OrganizationRole]:
-        return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -580,11 +569,9 @@ class OrganizationMember(ReplicatedRegionModel):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        all_org_roles = self.get_all_org_roles()
-        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
-            highest_role = organization_roles.get_sorted_roles(all_org_roles)[0].id
+        if not {self.role} & {r.id for r in allowed_roles}:
             raise UnableToAcceptMemberInvitationException(
-                f"You do not have permission to approve a member invitation with the role {highest_role}."
+                f"You do not have permission to approve a member invitation with the role {self.role}."
             )
         return True
 
@@ -651,19 +638,24 @@ class OrganizationMember(ReplicatedRegionModel):
 
         self.delete()
 
-    def get_allowed_org_roles_to_invite(self, log_scopes: bool = False) -> list[OrganizationRole]:
+    def get_allowed_org_roles_to_invite(self) -> list[OrganizationRole]:
         """
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
         member_scopes = self.get_scopes()
-        if log_scopes:
-            logger.info("member.scopes", extra={"member_id": self.id, "scopes": member_scopes})
 
-        return [r for r in organization_roles.get_all() if r.scopes.issubset(member_scopes)]
+        # NOTE: We must fetch scopes using self.organization.get_scopes(role) instead of r.scopes
+        # because this accounts for the org option that allows/restricts members from having the
+        # 'alerts:write' scope, which is given by default to the member role in the SENTRY_ROLES config.
+        return [
+            r
+            for r in organization_roles.get_all()
+            if self.organization.get_scopes(r).issubset(member_scopes)
+        ]
 
     def is_only_owner(self) -> bool:
-        if organization_roles.get_top_dog().id not in self.get_all_org_roles():
+        if organization_roles.get_top_dog().id != self.role:
             return False
 
         # check if any other member has the owner role, including through a team

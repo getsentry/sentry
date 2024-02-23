@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0650_create_sentryshot"),
+        ("sentry", "0652_alert_rule_activation_condition"),
     ]
 
     operations = [
