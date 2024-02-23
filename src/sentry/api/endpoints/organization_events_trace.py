@@ -329,7 +329,8 @@ class TraceEvent:
             result["timestamp"] = datetime.fromisoformat(self.event["timestamp"]).timestamp()
             result["start_timestamp"] = (
                 datetime.fromisoformat(self.event["timestamp"]).timestamp()
-                - self.event["transaction.duration"]
+                # duration is in ms, timestamp is in seconds
+                - self.event["transaction.duration"] / 1000
             )
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
