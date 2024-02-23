@@ -353,7 +353,7 @@ export class TraceTree {
       // of the txn as a child of the parenting span.
       if (childTxn) {
         const clonedChildTxn =
-          childTxn.deepClone() as unknown as TraceTreeNode<TraceTree.Span>;
+          childTxn.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
         node.spanChildren.push(clonedChildTxn);
         clonedChildTxn.parent = node;
       }
@@ -742,7 +742,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
   }
 
-  deepClone(): TraceTreeNode<T> {
+  cloneDeep(): TraceTreeNode<T> {
     const node = new TraceTreeNode(this.parent, this.value, this.metadata);
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
@@ -751,7 +751,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     node.metadata = this.metadata;
 
     for (const child of this.children) {
-      const childClone = child.deepClone() as TraceTreeNode<TraceTree.Span>;
+      const childClone = child.cloneDeep() as TraceTreeNode<TraceTree.Span>;
       node.children.push(childClone);
       childClone.parent = node;
     }
