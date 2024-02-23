@@ -16,10 +16,9 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 
 type AdditionalQueryProps = {
-  detailed?: boolean;
   eventId?: string;
   limit?: number;
-  useSpans?: boolean;
+  type?: 'detailed' | 'spans';
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
@@ -37,18 +36,17 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
   };
 
 function getTraceFullRequestPayload({
-  detailed = false,
-  useSpans = false,
+  type,
   eventId,
   limit,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
 
-  if (useSpans) {
-    additionalApiPayload.useSpans = useSpans ? '1' : '0';
+  if (type === 'spans') {
+    additionalApiPayload.useSpans = '1';
   } else {
-    additionalApiPayload.detailed = detailed ? '1' : '0';
+    additionalApiPayload.detailed = '1';
   }
 
   if (eventId) {
@@ -114,15 +112,11 @@ function GenericTraceFullQuery<T>({
 export function TraceFullQuery(
   props: Omit<QueryProps<TraceSplitResults<TraceFull>>, 'detailed'>
 ) {
-  return (
-    <GenericTraceFullQuery<TraceSplitResults<TraceFull>> {...props} detailed={false} />
-  );
+  return <GenericTraceFullQuery<TraceSplitResults<TraceFull>> {...props} />;
 }
 
 export function TraceFullDetailedQuery(
-  props: Omit<QueryProps<TraceSplitResults<TraceFullDetailed>>, 'detailed'>
+  props: QueryProps<TraceSplitResults<TraceFullDetailed>>
 ) {
-  return (
-    <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} useSpans />
-  );
+  return <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} />;
 }
