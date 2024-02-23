@@ -136,7 +136,7 @@ export const SummaryTable = memo(function SummaryTable({
     });
 
   return (
-    <SummaryTableWrapper>
+    <SummaryTableWrapper hasActions={hasActions}>
       <TableHeaderWrapper hasActions={hasActions}>
         <HeaderCell disabled />
         <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
@@ -154,11 +154,7 @@ export const SummaryTable = memo(function SummaryTable({
         <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
           {t('Sum')}
         </SortableHeaderCell>
-        {hasActions && (
-          <HeaderCell disabled right>
-            {t('Actions')}
-          </HeaderCell>
-        )}
+        {hasActions && <HeaderCell disabled right />}
       </TableHeaderWrapper>
       <TableBodyWrapper
         hasActions={hasActions}
@@ -243,8 +239,12 @@ export const SummaryTable = memo(function SummaryTable({
                       {transaction && (
                         <div>
                           <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton to={transactionTo(transaction)} size="xs">
-                              <IconLightning size="xs" />
+                            <LinkButton
+                              to={transactionTo(transaction)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconLightning size="sm" />
                             </LinkButton>
                           </Tooltip>
                         </div>
@@ -253,8 +253,8 @@ export const SummaryTable = memo(function SummaryTable({
                       {release && (
                         <div>
                           <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="xs">
-                              <IconReleases size="xs" />
+                            <LinkButton to={releaseTo(release)} size="zero" borderless>
+                              <IconReleases size="sm" />
                             </LinkButton>
                           </Tooltip>
                         </div>
@@ -319,14 +319,26 @@ function SortableHeaderCell({
       ''
     );
 
+  if (right) {
+    return (
+      <HeaderCell
+        onClick={() => {
+          onClick(name);
+        }}
+        right
+      >
+        {sortIcon} {children}
+      </HeaderCell>
+    );
+  }
+
   return (
     <HeaderCell
       onClick={() => {
         onClick(name);
       }}
-      right={right}
     >
-      {sortIcon} {children}
+      {children} {sortIcon}
     </HeaderCell>
   );
 }
@@ -354,30 +366,39 @@ function getValues(seriesData: Series['data']) {
   return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
-const SummaryTableWrapper = styled(`div`)`
+const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
+  display: grid;
+
+  grid-template-areas:
+    'header'
+    'body';
+
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
-  display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 80px)' : '24px 8fr repeat(4, 80px)'};
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  max-height: 170px;
-  padding: ${space(0.25)} 0;
-`;
-
 const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: header;
+  position: sticky;
+  top: 0;
   display: grid;
   grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 80px)' : '24px 8fr repeat(4, 80px)'};
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+    p.hasActions ? `${space(3)} 8fr repeat(5, 1fr)` : `${space(3)} 8fr repeat(4, 1fr)`};
+
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: body;
+  display: grid;
+  grid-template-columns: ${p =>
+    p.hasActions ? `${space(3)} 8fr repeat(5, 1fr)` : `${space(3)} 8fr repeat(4, 1fr)`};
+
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  max-height: 170px;
 `;
 
 const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
@@ -387,7 +408,8 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   text-transform: uppercase;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
-  line-height: 1;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-family: ${p => p.theme.text.family};
   display: flex;
   flex-direction: row;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
@@ -404,7 +426,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${space(0.25)} 0;
   align-items: center;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
   white-space: nowrap;
