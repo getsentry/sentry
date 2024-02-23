@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -36,6 +37,10 @@ from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
+
+SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
+# Certain functions will only be supported with certain feature flags
+OPS_REQUIRE_FEAT_FLAG: dict[str, str] = {}
 
 
 # This helps us control the different spec versions
@@ -73,7 +78,7 @@ class OnDemandMetricSpecVersioning:
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:on-demand-metrics-query-spec-version-two", org):
+        if features.has(SPEC_VERSION_TWO_FLAG, org):
             return cls.spec_versions[1]
         return cls.spec_versions[0]
 
@@ -563,6 +568,34 @@ class SupportedBy:
         )
 
 
+def should_use_on_demand_metrics_for_querying(organization: Organization, **kwargs) -> bool:
+    """Helper function to check if an organization can query an specific on-demand function"""
+    components = _extract_aggregate_components(kwargs["aggregate"])
+    if components is None:
+        return False
+    function, _ = components
+
+    # This helps us control which functions are allowed to use the new spec version.
+    if function in OPS_REQUIRE_FEAT_FLAG:
+        if not organization:
+            # We need to let devs writting tests that if they intend to use a function that requires a feature flag
+            # that the organization needs to be included in the test.
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                logger.error("Pass the organization to create the spec for this function.")
+            sentry_sdk.capture_message(
+                f"Organization is required for {function} on-demand metrics."
+            )
+            return False
+        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
+        if not features.has(feat_flag, organization):
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                # This will show up in the logs and help the developer understand why the test is failing
+                logger.error("Add the feature flag to create the spec for this function.")
+            return False
+
+    return should_use_on_demand_metrics(**kwargs)
+
+
 def should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
@@ -586,6 +619,7 @@ def should_use_on_demand_metrics(
         return False
 
     function, args = components
+
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         # For now, we do not support MRIs in on demand metrics.
@@ -688,6 +722,9 @@ def _get_args_support(fields: Sequence[str], used_in_function: str | None = None
     if used_in_function == "apdex":
         # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
+
+    if used_in_function in ["epm", "eps"]:
+        return SupportedBy.both()
 
     arg = fields[0]
     return _get_field_support(arg)
@@ -1063,12 +1100,10 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
 
 
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator | None] = {
+_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
-    "on_demand_epm": None,
-    "on_demand_eps": None,
     "on_demand_count_web_vitals": count_web_vitals_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }

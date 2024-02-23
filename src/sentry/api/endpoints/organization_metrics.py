@@ -242,7 +242,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 organization=organization,
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                referrer=Referrer.API_DDM_METRICS_DATA.value,
+                referrer=Referrer.API_ORGANIZATION_METRICS_DATA.value,
                 # Optional parameters.
                 query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
@@ -410,7 +410,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 organization=organization,
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                referrer=Referrer.API_DDM_METRICS_QUERY.value,
+                referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})

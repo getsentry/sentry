@@ -285,6 +285,11 @@ register(
 
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
+register(
+    "beacon.record_cpu_ram_usage",
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
+)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -2106,4 +2111,11 @@ register(
     type=Float,
     default=100_000.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sample rate for double writing to experimental dsn
+register(
+    "store.experimental-dsn-double-write.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
