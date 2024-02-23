@@ -14,7 +14,10 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
+from sentry.replays.consumers.recording_buffered import (
+    RecordingBufferedStrategyFactory,
+    cast_payload_from_bytes,
+)
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
@@ -118,7 +121,9 @@ class RecordingTestCase(TransactionTestCase):
                 "project_id": self.project.id,
                 "received": int(time.time()),
                 "retention_days": 30,
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
+                "payload": cast_payload_from_bytes(
+                    f'{{"segment_id":{segment_id}}}\n'.encode() + message
+                ),
             }
         ]
 

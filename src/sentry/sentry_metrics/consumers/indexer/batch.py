@@ -440,7 +440,7 @@ class IndexerBatch:
                     value = old_payload_value["value"]
                     assert isinstance(value, (int, float, list))
                     new_payload_v1: Metric = {
-                        "tags": new_tags,
+                        "tags": cast(dict[str, int], new_tags),
                         # XXX: relay actually sends this value unconditionally
                         "retention_days": old_payload_value.get("retention_days", 90),
                         "mapping_meta": output_message_meta,
@@ -470,7 +470,9 @@ class IndexerBatch:
                         "timestamp": old_payload_value["timestamp"],
                         "project_id": old_payload_value["project_id"],
                         "type": old_payload_value["type"],
-                        "value": old_payload_value["value"],
+                        # XXX: The payload in ingest-metrics is "any"-typed,
+                        # but the payload in generic-metrics is string-typed
+                        "value": cast(Any, old_payload_value["value"]),
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
                     if aggregation_option := get_aggregation_option(old_payload_value["name"]):
