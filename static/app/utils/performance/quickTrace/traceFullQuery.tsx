@@ -120,9 +120,7 @@ export function TraceFullQuery(
 }
 
 export function TraceFullDetailedQuery(
-  props: Omit<QueryProps<TraceSplitResults<TraceFullDetailed>>, 'detailed'>
+  props: QueryProps<TraceSplitResults<TraceFullDetailed>>
 ) {
-  return (
-    <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} useSpans />
-  );
+  return <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} />;
 }

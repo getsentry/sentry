@@ -81,6 +81,7 @@ export function TraceView() {
       <Layout.Page>
         <NoProjectMessage organization={organization}>
           <TraceFullDetailedQuery
+            useSpans
             location={location}
             orgSlug={organization.slug}
             traceId={traceSlug}
