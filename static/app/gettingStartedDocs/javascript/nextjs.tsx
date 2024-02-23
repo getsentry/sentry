@@ -12,7 +12,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
