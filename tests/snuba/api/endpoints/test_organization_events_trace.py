@@ -1533,6 +1533,10 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
     def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        mock_builder = mock.Mock()
+        mock_builder.resolve_column_name.return_value = "span_id"
+        mock_builder.run_query.return_value = {}
+        mock_query_builder.return_value = mock_builder
         # Add a few more projects to the org
         self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)
