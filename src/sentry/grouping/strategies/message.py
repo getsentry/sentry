@@ -66,8 +66,7 @@ _parameterization_regex_str = r"""(?x)
         \b[0-9a-fA-F]{32}\b
     ) |
     (?P<date>
-
-        \b
+        # No word boundaries required around dates. Should there be?
         # RFC822, RFC1123, RFC1123Z
         ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
         |
@@ -115,7 +114,6 @@ _parameterization_regex_str = r"""(?x)
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         ) |
         (datetime.datetime\(.*?\))
-        \b
     ) |
     (?P<duration>
         \b\d+ms\b
