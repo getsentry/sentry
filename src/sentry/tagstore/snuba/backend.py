@@ -1402,7 +1402,15 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), limit=1000, offset=0, tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key,
+        callbacks=(),
+        orderby="-first_seen",
+        limit=1000,
+        offset=0,
+        tenant_ids=None,
     ):
         filters = {
             "project_id": get_project_list(group.project_id),
@@ -1422,7 +1430,7 @@ class SnubaTagStorage(TagStorage):
                 ["min", "timestamp", "first_seen"],
                 ["max", "timestamp", "last_seen"],
             ],
-            orderby="-last_seen",
+            orderby=orderby,
             limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
@@ -1453,7 +1461,7 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         group_tag_values = self.get_group_tag_value_iter(
-            group, environment_ids, key, tenant_ids=tenant_ids
+            group, environment_ids, key, orderby="-last_seen", tenant_ids=tenant_ids
         )
 
         desc = order_by.startswith("-")
