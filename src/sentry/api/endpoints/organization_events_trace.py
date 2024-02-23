@@ -592,12 +592,14 @@ def augment_transactions_with_spans(
     )
     # Building the condition manually, a performance optimization since we might put thousands of span ids
     # and this way we skip both parsimonious and the builder
-    parents_query.where.append(
-        Condition(
-            Column(parents_query.resolve_column_name("id")),
-            Op.IN,
-            Function("tuple", list(query_spans)),
-        )
+    parents_query.add_conditions(
+        [
+            Condition(
+                Column(parents_query.resolve_column_name("id")),
+                Op.IN,
+                Function("tuple", list(query_spans)),
+            )
+        ]
     )
     parents_results = parents_query.run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
 
