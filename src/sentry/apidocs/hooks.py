@@ -1,3 +1,4 @@
+import inspect
 import json  # noqa: S003
 import os
 import re
@@ -10,6 +11,7 @@ from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
+from sentry.apidocs.api_pagination_allowlist_dont_modify import API_PAGINATION_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.api_publish_status_allowlist_dont_modify import (
     API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY,
 )
@@ -149,6 +151,35 @@ class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
 
+def find_method_and_check_paginate(content, class_name):
+    with open(content) as file:
+        file_content = file.read()
+
+    # Pattern to find the class body, either the class body is followed by another class or it's the end of the file
+    class_pattern = (
+        r"(class {class_name}.*:(.*?)(?=^class\s.*))|(class {class_name}.*:\s(.*?)(?=\Z))"
+    )
+    class_match = re.search(class_pattern, file_content, re.DOTALL | re.MULTILINE)
+
+    if class_match:
+        class_body = class_match.group(0)
+
+        # Pattern to find the 'get' method within the class body, up to the next method or the end of the class
+        get_method_pattern = r"(def get.*:(.*?)(?=def\s))|(def get.*:(.*?)(?=\Z))"
+        get_method_match = re.search(get_method_pattern, class_body, re.DOTALL | re.MULTILINE)
+
+        if get_method_match:
+            # Checking for the presence of "self.paginate()" within the 'get' method
+            if "self.paginate" in get_method_match.group(0):
+                return True, "self.paginate() found in the 'get' method."
+            else:
+                return False, "self.paginate() not found in the 'get' method."
+        else:
+            return False, "'get' method not found."
+    else:
+        return False, f"Class '{class_name}' not found."
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -161,6 +192,21 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
             }
+
+        # Fail if endpoint doesn't implement pagination correctly
+        if method == "GET":
+            if path in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
+                continue
+
+            endsWithObject = re.search(r"/([^/{}]+)s/$", path)
+            if endsWithObject is not None:
+                class_name = callback.view_class.__name__
+                file_path = inspect.getfile(callback.view_class)
+                result, _ = find_method_and_check_paginate(file_path, class_name)
+                if not result:
+                    raise SentryApiBuildError(
+                        f"Pagination not enforced for {class_name}. Please ensure that self.paginate() is called in the 'get' method."
+                    )
 
         # Fail if endpoint is unowned
         if owner_team == ApiOwner.UNOWNED:
