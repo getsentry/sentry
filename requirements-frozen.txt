@@ -76,6 +76,7 @@ mmh3==4.0.0
 msgpack==1.0.7
 oauthlib==3.1.0
 openai==1.3.5
+outcome==1.3.0.post0
 packaging==21.3
 parsimonious==0.10.0
 petname==2.6
@@ -96,6 +97,7 @@ pydantic==1.10.9
 pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
+pysocks==1.7.1
 python-dateutil==2.8.2
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
@@ -118,6 +120,7 @@ rfc3986-validator==0.1.1
 rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
+selenium==4.16.0
 sentry-arroyo==2.16.0
 sentry-kafka-schemas==0.1.56
 sentry-ophio==0.1.5
@@ -129,6 +132,7 @@ simplejson==3.17.6
 six==1.16.0
 sniffio==1.3.0
 snuba-sdk==2.0.28
+sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
 statsd==3.3.0
@@ -137,6 +141,8 @@ structlog==22.1.0
 symbolic==12.8.0
 toronado==0.1.0
 tqdm==4.64.1
+trio==0.23.2
+trio-websocket==0.11.1
 typing-extensions==4.9.0
 tzdata==2023.3
 ua-parser==0.10.0
@@ -145,6 +151,7 @@ uritemplate==4.1.1
 urllib3==2.0.7
 vine==5.1.0
 wcwidth==0.2.10
+wsproto==1.2.0
 xmlsec==1.3.13
 zstandard==0.18.0
 
