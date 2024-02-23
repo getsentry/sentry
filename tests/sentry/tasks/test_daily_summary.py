@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 
 from sentry.constants import DataCategory
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -79,14 +80,21 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
     def test_prepare_summary_data(self):
         group1 = self.store_event_and_outcomes(
             self.project.id,
-            self.two_hours_ago,
+            self.three_days_ago,
             fingerprint="group-1",
             category=DataCategory.ERROR,
             num_times=2,
         )
         self.store_event_and_outcomes(
             self.project.id,
-            self.three_days_ago,
+            self.two_days_ago,
+            fingerprint="group-1",
+            category=DataCategory.ERROR,
+            num_times=4,
+        )
+        self.store_event_and_outcomes(
+            self.project.id,
+            self.two_hours_ago,
             fingerprint="group-1",
             category=DataCategory.ERROR,
             num_times=2,
@@ -95,7 +103,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         group2 = self.store_event_and_outcomes(
             self.project.id,
             self.now,
-            fingerprint="group-5",
+            fingerprint="group-2",
             category=DataCategory.ERROR,
             num_times=2,
             release=self.release.version,
@@ -105,7 +113,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             "event_id": "a" * 32,
             "timestamp": iso_format(self.now),
             "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-            "fingerprint": ["group-5"],
+            "fingerprint": ["group-2"],
             "release": self.release.version,
         }
         event = self.store_event(
@@ -135,36 +143,55 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
                 "version": self.release.version,
             },
         )
-
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.two_days_ago,
-            fingerprint="group-1",
-            category=DataCategory.ERROR,
-            num_times=4,
+        # create and issue and set it to escalating
+        data = {
+            "event_id": "a" * 32,
+            "timestamp": iso_format(self.now),
+            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            "fingerprint": ["group-3"],
+            "release": self.release.version,
+        }
+        event = self.store_event(
+            data=data,
+            project_id=self.project.id,
         )
-        group3 = self.store_event_and_outcomes(
-            self.project.id,
-            self.three_days_ago,
-            fingerprint="group-2",
-            category=DataCategory.TRANSACTION,
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": self.now,
+                "key_id": 1,
+            },
             num_times=10,
-            resolve=False,
         )
+        group3 = event.group
+        group3.status = GroupStatus.UNRESOLVED
+        group3.substatus = GroupSubStatus.ESCALATING
+        group3.save()
+        Activity.objects.create_group_activity(
+            group3,
+            ActivityType.SET_ESCALATING,
+            data={
+                "event_id": event.event_id,
+                "version": self.release.version,
+            },
+        )
+
+        # store an event in another project to be sure they're in separate buckets
         self.store_event_and_outcomes(
             self.project2.id,
             self.two_hours_ago,
-            fingerprint="group-3",
+            fingerprint="group-4",
             category=DataCategory.ERROR,
             num_times=2,
         )
-        self.store_event_and_outcomes(
-            self.project2.id,
-            self.three_days_ago,
-            fingerprint="group-4",
-            category=DataCategory.TRANSACTION,
-            num_times=10,
-            resolve=False,
+        perf_event = self.create_performance_issue(
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group4"
+        )
+        perf_event2 = self.create_performance_issue(
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group5"
         )
 
         timestamp = to_timestamp(self.now)
@@ -172,17 +199,20 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         summary = prepare_summary_data(ctx)
         project_id = self.project.id
 
-        assert summary.projects_context_map[project_id].total_today == 5
+        assert summary.projects_context_map[project_id].total_today == 15
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert summary.projects_context_map[project_id].key_errors == [
             (group1, None, 3),
-            (group2, None, 2),
+            (group3, None, 1),
+            (group2, None, 1),
         ]
-        # TODO: test performance issues
         assert summary.projects_context_map[project_id].key_performance_issues == [
-            (group3, None, 10)
+            (perf_event2.group, None, 1),
+            (perf_event.group, None, 1),
         ]
-        # TODO: test an issue that has escalated
-        assert summary.projects_context_map[project_id].escalated_today == []
+        assert summary.projects_context_map[project_id].escalated_today == [group3]
         assert summary.projects_context_map[project_id].regressed_today == [group2]
-        assert summary.projects_context_map[project_id].new_in_release[self.release.id] == [group2]
+        assert summary.projects_context_map[project_id].new_in_release[self.release.id] == [
+            group2,
+            group3,
+        ]
