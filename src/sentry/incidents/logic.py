@@ -20,6 +20,8 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivationCondition,
+    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -922,9 +924,36 @@ class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
 
+class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
+    pass
+
+
 class ProjectsNotAssociatedWithAlertRuleError(Exception):
     def __init__(self, project_slugs):
         self.project_slugs = project_slugs
+
+
+def create_alert_rule_activation_condition(
+    alert_rule: AlertRule,
+    label: str,
+    condition_type: AlertRuleActivationConditionType,
+):
+    """
+    Creates a new AlertRuleActivationCondition
+    :param alert_rule: The alert rule to create the condition for
+    :param label: A description of the condition
+    :param condition_type: The type of condition being created (so far, only deploy/release creation)
+    :return: The created AlertRuleActivationCondition
+    """
+    if AlertRuleActivationCondition.objects.filter(alert_rule=alert_rule, label=label).exists():
+        raise AlertRuleActivationConditionLabelAlreadyUsedError()
+
+    with transaction.atomic(router.db_for_write(AlertRuleActivationCondition)):
+        condition = AlertRuleActivationCondition.objects.create(
+            alert_rule=alert_rule, label=label, condition_type=condition_type.value
+        )
+
+    return condition
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):

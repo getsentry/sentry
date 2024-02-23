@@ -30,11 +30,13 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
+    create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
 from sentry.incidents.models import (
+    AlertRuleActivationConditionType,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -1516,6 +1518,18 @@ class Factories:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation_condition(
+        alert_rule,
+        label=None,
+        condition_type=AlertRuleActivationConditionType.RELEASE_CREATION,
+    ):
+        if not label:
+            label = petname.generate(2, " ", letters=10).title()
+
+        return create_alert_rule_activation_condition(alert_rule, label, condition_type)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

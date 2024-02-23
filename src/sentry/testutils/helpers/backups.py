@@ -464,6 +464,7 @@ class BackupTestCase(TransactionTestCase):
             projects=[project],
             monitor_type=AlertRuleMonitorType.ACTIVATED,
         )
+        self.create_alert_rule_activation_condition(alert_rule=activated_alert)
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 

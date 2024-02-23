@@ -214,6 +214,7 @@
   "sentry.alertruleprojects",
   "sentry.alertruleexcludedprojects",
   "sentry.alertruleactivity",
+  "sentry.alertruleactivationcondition",
   "sentry.timeseriessnapshot",
   "sentry.servicehook",
   "sentry.sentryappinstallationtoken",
