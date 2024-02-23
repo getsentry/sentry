@@ -56,11 +56,11 @@ describe('TraceFullQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data on mount with detailed param', async function () {
+  it('fetches data on mount with useSpans param', async function () {
     const getMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
-      match: [MockApiClient.matchQuery({detailed: '1'})],
+      match: [MockApiClient.matchQuery({useSpans: '1'})],
     });
     render(
       <TraceFullDetailedQuery
