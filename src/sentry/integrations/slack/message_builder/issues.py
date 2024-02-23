@@ -214,7 +214,13 @@ def get_tags(
     ):
         default_tags = set()
 
-    tags = tags | default_tags
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+    # improved block kit only uses alert rule tags
+    if not use_improved_block_kit:
+        tags = tags | default_tags
+
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -336,16 +342,13 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    if features.has("organizations:streamline-targeting-context", project.organization):
-        try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
-            suggested_assignees.extend(suspect_commit_users)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            logger.info("Skipping suspect committers because release does not exist.")
-        except Exception:
-            logger.exception("Could not get suspect committers. Continuing execution.")
+    try:
+        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suggested_assignees.extend(suspect_commit_users)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -672,7 +675,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
             if text:
-                blocks.append(self.get_rich_text_preformatted_block(text))
+                blocks.append(self.get_markdown_quote_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:

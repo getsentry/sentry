@@ -54,11 +54,18 @@
     "sentry.team",
     "sentry.user"
   ],
+  "sentry.alertruleactivationcondition": [
+    "sentry.alertrule"
+  ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
   ],
   "sentry.alertruleexcludedprojects": [
+    "sentry.alertrule",
+    "sentry.project"
+  ],
+  "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
   ],
@@ -472,6 +479,11 @@
     "sentry.notificationaction",
     "sentry.project"
   ],
+  "sentry.notificationmessage": [
+    "sentry.alertruletriggeraction",
+    "sentry.incident",
+    "sentry.rulefirehistory"
+  ],
   "sentry.notificationsettingoption": [
     "sentry.team",
     "sentry.user"
@@ -774,6 +786,9 @@
     "sentry.sentryappinstallation"
   ],
   "sentry.sentryfunction": [
+    "sentry.organization"
+  ],
+  "sentry.sentryshot": [
     "sentry.organization"
   ],
   "sentry.servicehook": [

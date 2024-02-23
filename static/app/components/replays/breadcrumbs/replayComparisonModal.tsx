@@ -206,7 +206,7 @@ function ReplaySide({expectedTime, selector, onLoad}) {
             })
           );
         }
-      }, 0);
+      }, 50);
     }
   }, [currentTime, expectedTime, selector, onLoad]);
   return <ReplayPlayer isPreview />;

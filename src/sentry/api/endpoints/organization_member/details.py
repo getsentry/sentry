@@ -35,7 +35,7 @@ from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
-from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
+from . import get_allowed_org_roles, save_team_assignments
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -132,7 +132,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         operation_id="Retrieve an Organization Member",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.member_id("The ID of the member to delete."),
+            GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
@@ -262,11 +262,20 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_org_role = result.get("orgRole") or result.get("role")
 
-        if (
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-            or member.get_teams()
-        ):
+        # Set the team-role before org-role. If the org-role has elevated permissions
+        # on the teams, the team-roles can be overwritten later
+        team_roles = teams = None
+        if "teamRoles" in result:
+            # If orgs do not have the flag, we'll set their team-roles to None
+            team_roles = (
+                result.get("teamRoles")
+                if features.has("organizations:team-roles", organization)
+                else [(team, None) for team, _ in result.get("teamRoles", [])]
+            )
+        elif "teams" in result:
+            teams = result.get("teams")
+
+        if teams or team_roles or (teams is None and team_roles is None and member.get_teams()):
             new_role = assigned_org_role if assigned_org_role else member.role
             if not organization_roles.get(new_role).is_team_roles_allowed:
                 return Response(
@@ -276,22 +285,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=400,
                 )
 
-        # Set the team-role before org-role. If the org-role has elevated permissions
-        # on the teams, the team-roles can be overwritten later
-        if "teamRoles" in result or "teams" in result:
-            try:
-                if "teamRoles" in result:
-                    # If orgs do not have the flag, we'll set their team-roles to None
-                    team_roles = (
-                        result.get("teamRoles")
-                        if features.has("organizations:team-roles", organization)
-                        else [(team, None) for team, _ in result.get("teamRoles", [])]
-                    )
-                    save_team_assignments(member, None, team_roles)
-                elif "teams" in result:
-                    save_team_assignments(member, result.get("teams"))
-            except InvalidTeam:
-                return Response({"teams": "Invalid team"}, status=400)
+        if team_roles:
+            save_team_assignments(member, None, team_roles)
+        else:
+            save_team_assignments(member, teams)
 
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
@@ -412,12 +409,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
-                        can_manage = False
-                        # check org roles through teams
-                        for role in acting_member.get_all_org_roles():
-                            if roles.can_manage(role, member.role):
-                                can_manage = True
-                                break
+                        can_manage = roles.can_manage(acting_member.role, member.role)
 
                         if not can_manage:
                             return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)

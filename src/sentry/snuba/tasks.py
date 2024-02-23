@@ -215,6 +215,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
+        # TODO: pull query_extra from subscription and add to query builder
         snql_query = build_query_builder(
             entity_subscription,
             snuba_query.query,
@@ -275,28 +276,23 @@ def subscription_checker(**kwargs):
     Checks for subscriptions stuck in a transition status and attempts to repair them
     """
     count = 0
-    with sentry_sdk.start_transaction(
-        op="subscription_checker",
-        name="subscription_checker",
-        sampled=False,
+    for subscription in QuerySubscription.objects.filter(
+        status__in=(
+            QuerySubscription.Status.CREATING.value,
+            QuerySubscription.Status.UPDATING.value,
+            QuerySubscription.Status.DELETING.value,
+        ),
+        date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
     ):
-        for subscription in QuerySubscription.objects.filter(
-            status__in=(
-                QuerySubscription.Status.CREATING.value,
-                QuerySubscription.Status.UPDATING.value,
-                QuerySubscription.Status.DELETING.value,
-            ),
-            date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
-        ):
-            with sentry_sdk.start_span(op="repair_subscription") as span:
-                span.set_data("subscription_id", subscription.id)
-                span.set_data("status", subscription.status)
-                count += 1
-                if subscription.status == QuerySubscription.Status.CREATING.value:
-                    create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
-                elif subscription.status == QuerySubscription.Status.UPDATING.value:
-                    update_subscription_in_snuba.delay(query_subscription_id=subscription.id)
-                elif subscription.status == QuerySubscription.Status.DELETING.value:
-                    delete_subscription_from_snuba.delay(query_subscription_id=subscription.id)
+        with sentry_sdk.start_span(op="repair_subscription") as span:
+            span.set_data("subscription_id", subscription.id)
+            span.set_data("status", subscription.status)
+            count += 1
+            if subscription.status == QuerySubscription.Status.CREATING.value:
+                create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
+            elif subscription.status == QuerySubscription.Status.UPDATING.value:
+                update_subscription_in_snuba.delay(query_subscription_id=subscription.id)
+            elif subscription.status == QuerySubscription.Status.DELETING.value:
+                delete_subscription_from_snuba.delay(query_subscription_id=subscription.id)
 
     metrics.incr("snuba.subscriptions.repair", amount=count)

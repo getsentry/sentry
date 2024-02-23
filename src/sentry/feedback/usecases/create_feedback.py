@@ -33,6 +33,27 @@ class FeedbackCreationSource(Enum):
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
 
+    @classmethod
+    def new_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.NEW_FEEDBACK_ENVELOPE,
+                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
+            ]
+        }
+
+    @classmethod
+    def old_feedback_category_values(cls) -> set[str]:
+        return {
+            c.value
+            for c in [
+                cls.CRASH_REPORT_EMBED_FORM,
+                cls.USER_REPORT_ENVELOPE,
+                cls.USER_REPORT_DJANGO_ENDPOINT,
+            ]
+        }
+
 
 def make_evidence(feedback, source: FeedbackCreationSource):
     evidence_data = {}
@@ -119,22 +140,38 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
     # signifying there is no feedback. Let's go ahead and filter these.
+
+    if (
+        event.get("contexts") is None
+        or event["contexts"].get("feedback") is None
+        or event["contexts"]["feedback"].get("message") is None
+    ):
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "missing_context"},
+        )
+        return True
+
     if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr("feedback.filtered", tags={"reason": "unreal.unattended"}, sample_rate=1.0)
+        metrics.incr(
+            "feedback.create_feedback_issue.filtered",
+            tags={"reason": "unreal.unattended"},
+        )
         return True
 
     if event["contexts"]["feedback"]["message"].strip() == "":
-        metrics.incr("feedback.filtered", tags={"reason": "empty"}, sample_rate=1.0)
+        metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
         return True
 
     return False
 
 
 def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+    metrics.incr("feedback.create_feedback_issue.entered")
+
     if should_filter_feedback(event, project_id, source):
         return
 
-    metrics.incr("feedback.created", tags={"referrer": source.value}, sample_rate=1.0)
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
@@ -188,7 +225,11 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
     )
-
+    metrics.incr(
+        "feedback.create_feedback_issue.produced_occurrence",
+        tags={"referrer": source.value},
+        sample_rate=1.0,
+    )
     track_outcome(
         org_id=project.organization_id,
         project_id=project_id,
@@ -210,7 +251,11 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        try:
+            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+        except jsonschema.exceptions.ValidationError:
+            metrics.incr("feedback.create_feedback_issue.invalid_schema")
+            raise
 
 
 class UserReportShimDict(TypedDict):

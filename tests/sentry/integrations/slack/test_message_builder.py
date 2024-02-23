@@ -22,6 +22,7 @@ from sentry.integrations.slack.message_builder.issues import (
     get_context,
     get_option_groups,
     get_option_groups_block_kit,
+    get_tags,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -97,16 +98,8 @@ def build_test_message_blocks(
     if text:
         new_text = text.lstrip(" ")
         if new_text:
-            text_section = {
-                "type": "rich_text",
-                "elements": [
-                    {
-                        "type": "rich_text_preformatted",
-                        "elements": [{"type": "text", "text": new_text}],
-                        "border": 0,
-                    }
-                ],
-            }
+            markdown_text = "```" + new_text + "```"
+            text_section = {"type": "section", "text": {"type": "mrkdwn", "text": markdown_text}}
             blocks.append(text_section)
 
     tags_text = ""
@@ -611,6 +604,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @patch(
@@ -682,10 +676,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:streamline-targeting-context")
     def test_issue_alert_with_suggested_assignees(self):
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
@@ -903,10 +897,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             if section["type"] == "text":
                 assert occurrence.issue_title in section["text"]["text"]
 
-        assert (
-            occurrence.evidence_display[0].value
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
-        )
+        assert occurrence.evidence_display[0].value in blocks["blocks"][1]["text"]["text"]
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     @with_feature("organizations:slack-block-kit")
@@ -974,15 +965,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+            in blocks["blocks"][1]["text"]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
     @with_feature("organizations:slack-block-kit")
     def test_block_kit_truncates_long_query(self):
         text = "a" * 5000
-        block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
-        assert block["elements"][0]["elements"][0]["text"] == "a" * 997 + "..."
+        block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
+        assert "a" * 253 + "..." in block["text"]["text"]
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
@@ -1012,10 +1003,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert (
-            "&lt;https://example.com/|*Click Here*&gt;"
-            in ret["blocks"][1]["elements"][0]["elements"][0]["text"]
-        )
+        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][1]["text"]["text"]
 
 
 @region_silo_test
@@ -1654,3 +1642,11 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
 
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_tags(self):
+        # don't use default tags. if we don't pass in tags to get_tags, we don't return any
+        tags = get_tags(
+            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
+        )
+        assert not tags

@@ -244,9 +244,11 @@ def handle_owner_assignment(job):
                         cache.set(
                             assignee_key,
                             assignees_exists,
-                            ASSIGNEE_EXISTS_DURATION
-                            if assignees_exists
-                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                            (
+                                ASSIGNEE_EXISTS_DURATION
+                                if assignees_exists
+                                else ASSIGNEE_DOES_NOT_EXIST_DURATION
+                            ),
                         )
 
                     if assignees_exists:
@@ -290,13 +292,7 @@ def handle_owner_assignment(job):
                             },
                         ):
                             # see ProjectOwnership.get_issue_owners
-                            issue_owners: Sequence[
-                                tuple[
-                                    Rule,
-                                    Sequence[Team | RpcUser],
-                                    str,
-                                ]
-                            ] = []
+                            issue_owners: Sequence[tuple[Rule, Sequence[Team | RpcUser], str]] = []
                         else:
                             issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
@@ -1213,7 +1209,18 @@ def handle_auto_assignment(job: PostProcessJob) -> None:
     event = job["event"]
     try:
         with metrics.timer("post_process.handle_auto_assignment.duration"):
-            ProjectOwnership.handle_auto_assignment(event.project.id, event)
+            ProjectOwnership.handle_auto_assignment(
+                project_id=event.project_id,
+                organization_id=event.project.organization_id,
+                event=event,
+                logging_extra={
+                    "event_id": event.event_id,
+                    "group_id": str(event.group_id),
+                    "project_id": str(event.project_id),
+                    "organization_id": event.project.organization_id,
+                    "source": "post_process",
+                },
+            )
     except Exception:
         logger.exception("Failed to set auto-assignment")
 
@@ -1357,16 +1364,25 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 
     event = job["event"]
+
+    if not hasattr(event, "occurrence") or event.occurrence is None:
+        return False
+
+    feedback_source = event.occurrence.evidence_data.get("source")
+
+    if feedback_source in FeedbackCreationSource.new_feedback_category_values():
+        return True
+
+    should_notify_on_old_feedbacks = job["event"].project.get_option(
+        "sentry:replay_rage_click_issues"
+    )
+
     if (
-        hasattr(event, "occurrence")
-        and event.occurrence is not None
-        and event.occurrence.evidence_data.get("source")
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
-        ]
+        feedback_source in FeedbackCreationSource.old_feedback_category_values()
+        and should_notify_on_old_feedbacks
     ):
         return True
+
     return False
 
 
