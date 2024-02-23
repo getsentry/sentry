@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -202,6 +203,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             query="",
             aggregate="count()",
             time_window=1,
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,

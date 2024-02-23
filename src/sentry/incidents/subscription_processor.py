@@ -444,9 +444,8 @@ class SubscriptionProcessor:
             # TODO: Delete subscription here.
             return
 
-        # TODO:
-        # if AlertRule.monitor_type === ACTIVATED and AlertRule.is_expired():
-        #       delete query in snuba
+        # Update each alert_rule based on the subscription update
+        self.alert_rule.process_hooks(self.subscription)
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")

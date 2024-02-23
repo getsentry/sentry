@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from datetime import timedelta
 from enum import Enum
 from typing import Any, ClassVar, Self
 from uuid import uuid4
@@ -491,6 +492,13 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._processor_hooks = []
+
+        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+            self.add_hook(self.clean_activated_alert)
+
     def _validate_actor(self):
         # TODO: Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
@@ -499,6 +507,21 @@ class AlertRule(Model):
     def save(self, **kwargs: Any) -> None:
         self._validate_actor()
         return super().save(**kwargs)
+
+    def add_hook(self, hook):
+        self._processor_hooks.append(hook)
+
+    def process_hooks(self, subscription):
+        return [func(subscription) for func in self._processor_hooks]
+
+    def clean_activated_alert(self, subscription):
+        now = timezone.now()
+        time_window = subscription.date_added + timedelta(subscription.snuba_query.time_window)
+
+        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value and now > time_window:
+            subscription.remove()
+
+        return True
 
     @property
     def created_by_id(self):
