@@ -9,9 +9,6 @@ from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
 FALLBACK_SLIDING_WINDOW_SIZE = 24
-# Sentinel value used to mark that an error happened when computing the sliding window sample rate for a specific
-# project.
-SLIDING_WINDOW_CALCULATION_ERROR = "sliding_window_error"
 # We want to keep the entry for 1 hour, so that in case an org is not considered for 1 hour, the system will fall back
 # to the blended sample rate.
 # Important: this TTL should be a factor of the cron schedule for dynamic-sampling-sliding-window/-org located in
