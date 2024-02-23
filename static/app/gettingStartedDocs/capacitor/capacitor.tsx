@@ -12,7 +12,10 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+import {
+  crashReportCallout,
+  tracePropagationMessage,
+} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -448,6 +451,9 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
         params,
         showExtraStep: false,
         showDescription: false,
+      }),
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
       }),
     },
   ],

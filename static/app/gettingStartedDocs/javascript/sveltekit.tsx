@@ -16,7 +16,10 @@ import {
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+import {
+  crashReportCallout,
+  tracePropagationMessage,
+} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -167,6 +170,9 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],

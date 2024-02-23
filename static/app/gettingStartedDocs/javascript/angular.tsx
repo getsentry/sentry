@@ -13,7 +13,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+import {
+  crashReportCallout,
+  tracePropagationMessage,
+} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularVersion {
@@ -334,6 +337,9 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],
