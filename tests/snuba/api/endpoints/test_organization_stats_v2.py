@@ -704,7 +704,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_minute_interval(self):
+    def test_minute_interval_sum_quantity(self):
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
@@ -733,6 +733,40 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "by": {},
                     "totals": {"sum(quantity)": 6},
                     "series": {"sum(quantity)": [6, 0, 0, 0, 0]},
+                }
+            ],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_minute_interval_sum_times_seen(self):
+        make_request = functools.partial(
+            self.client.get,
+            reverse("sentry-api-0-organization-stats-v2", args=[self.org.slug]),
+        )
+        response = make_request(
+            {
+                "statsPeriod": "1h",
+                "interval": "15m",
+                "field": ["sum(times_seen)"],
+                "category": "error",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "start": "2021-03-14T11:15:00Z",
+            "end": "2021-03-14T12:30:00Z",
+            "intervals": [
+                "2021-03-14T11:15:00Z",
+                "2021-03-14T11:30:00Z",
+                "2021-03-14T11:45:00Z",
+                "2021-03-14T12:00:00Z",
+                "2021-03-14T12:15:00Z",
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "totals": {"sum(times_seen)": 6},
+                    "series": {"sum(times_seen)": [6, 0, 0, 0, 0]},
                 }
             ],
         }
