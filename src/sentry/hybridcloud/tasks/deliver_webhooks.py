@@ -272,7 +272,7 @@ def perform_request(payload: WebhookPayload) -> None:
         # Other ApiErrors should be retried
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "discard", "destination_region": region.name},
+            tags={"reason": "api_error", "destination_region": region.name},
         )
         logger.warning(
             "hybridcloud.deliver_webhooks.api_error",
