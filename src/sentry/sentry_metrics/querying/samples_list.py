@@ -5,10 +5,20 @@ from typing import Any
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.builder import (
+    MetricsSummariesQueryBuilder,
+    QueryBuilder,
+    SpansIndexedQueryBuilder,
+)
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI, is_measurement, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    SpanMRI,
+    TransactionMRI,
+    is_custom_metric,
+    is_measurement,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 
 
@@ -33,7 +43,7 @@ class SamplesListExecutor(ABC):
 
     @classmethod
     @abstractmethod
-    def supports(cls, metric_mri: str) -> bool:
+    def supports(cls, mri: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -243,10 +253,54 @@ class SpansSamplesListExecutor(SamplesListExecutor):
         ]
 
 
+class CustomSamplesListExecutor(SamplesListExecutor):
+    @classmethod
+    def supports(cls, mri: str) -> bool:
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is not None and is_custom_metric(parsed_mri):
+            return True
+        return False
+
+    def execute(self, offset, limit):
+        span_keys = self.get_span_keys(offset, limit)
+        return self.get_spans_by_key(span_keys)
+
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+
+        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
+
+        builder = MetricsSummariesQueryBuilder(
+            Dataset.MetricsSummaries,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=query,
+            selected_columns=[rounded_timestamp, "example()"],
+            limit=limit,
+            offset=offset,
+            # This table has a poor SAMPLE BY so DO NOT use it for now
+            # sample_rate=options.get("metrics.sample-list.sample-rate"),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+        )
+
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [
+            (
+                row["example"][0],  # group
+                row["example"][1],  # timestamp
+                row["example"][2],  # span_id
+            )
+            for row in result["data"]
+        ]
+
+
 SAMPLE_LIST_EXECUTORS = [
     SpansSamplesListExecutor,
     TransactionDurationSamplesListExecutor,
     MeasurementsSamplesListExecutor,
+    CustomSamplesListExecutor,
 ]
 
 

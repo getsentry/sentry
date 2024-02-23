@@ -2724,7 +2724,8 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    def test_not_ran_if_crash_report(self):
+    def test_not_ran_if_crash_report_option_disabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", False)
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2749,6 +2750,33 @@ class PostProcessGroupFeedbackTest(
         # assert mock_process_rules is not called
         assert mock_process_func.call_count == 0
 
+    def test_not_ran_if_crash_report_project_option_enabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", True)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},
@@ -2771,7 +2799,6 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 1
 
     @pytest.mark.skip(

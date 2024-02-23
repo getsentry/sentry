@@ -21,9 +21,14 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
+    log_skipped_job,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
+)
 from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -67,6 +72,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
+@dynamic_sampling_task
 def recalibrate_orgs_batch(orgs: Sequence[tuple[int, int, int]]) -> None:
     for org_id, total, indexed in orgs:
         try:
@@ -84,6 +90,11 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
         # In case an org is not found, it might be that it has been deleted in the time between
         # the query triggering this job and the actual execution of the job.
         organization = None
+
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        log_skipped_job(org_id, "recalibrate_orgs")
+        return
 
     # By default, we use the blended sample rate.
     target_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)

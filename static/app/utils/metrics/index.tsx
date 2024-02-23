@@ -261,6 +261,16 @@ export function getMetricsSeriesName(
   return formattedGrouping;
 }
 
+export function getMetricsSeriesId(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>
+) {
+  if (Object.keys(groupBy ?? {}).length === 0) {
+    return `${query.name}`;
+  }
+  return `${query.name}-${JSON.stringify(groupBy)}`;
+}
+
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   const uniqueOperations = [
     ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
