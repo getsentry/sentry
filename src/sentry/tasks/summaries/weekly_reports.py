@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Mapping
 from functools import partial, reduce
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import F
@@ -71,9 +71,11 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send an email.
     """
-    return all(
-        check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects_context_map.values()
-    )
+    project_ctxs = [
+        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
+    ]
+
+    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
 
 
 # The entry point. This task is scheduled to run every week.
@@ -148,7 +150,7 @@ def prepare_organization_report(
             # Project no longer in organization, but events still exist
             if project_id not in ctx.projects_context_map:
                 continue
-            project_ctx = ctx.projects_context_map[project_id]
+            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
             total = data["total"]
             timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
             if data["category"] == DataCategory.TRANSACTION:
@@ -184,10 +186,9 @@ def prepare_organization_report(
             key_errors = project_key_errors(
                 ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
             )
+            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
             if key_errors:
-                ctx.projects_context_map[project.id].key_errors = [
-                    (e["group_id"], e["count()"]) for e in key_errors
-                ]
+                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
@@ -195,7 +196,7 @@ def prepare_organization_report(
                     )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
-                ctx.projects_context_map[project.id].key_transactions = [
+                project_ctx.key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     for i in key_transactions_this_week
                 ]
@@ -207,7 +208,7 @@ def prepare_organization_report(
                     i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
                 }
 
-                ctx.projects_context_map[project.id].key_transactions = [
+                project_ctx.key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     + last_week_data.get(i["transaction_name"], (0, 0))
                     for i in key_transactions_this_week

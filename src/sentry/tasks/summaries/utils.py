@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import Count
@@ -44,7 +44,7 @@ class OrganizationReportContext:
             int, ProjectContext | DailySummaryProjectContext
         ] = {}  # { project_id: ProjectContext }
 
-        self.project_ownership = {}  # { user_id: set<project_id> }
+        self.project_ownership: dict[str, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
         for project in organization.project_set.all():
             if self.daily:
@@ -104,11 +104,11 @@ class DailySummaryProjectContext:
     total_today = 0
     comparison_period_total = 0
     comparison_period_avg = 0
-    key_errors = []
-    key_performance_issues = []
-    escalated_today = []
-    regressed_today = []
-    new_in_release = {}
+    key_errors: list[tuple[Group, int]] = []
+    key_performance_issues: list[tuple[Group, int]] = []
+    escalated_today: list[Group] = []
+    regressed_today: list[Group] = []
+    new_in_release: dict[str, list[Group]] = {}
 
     def __init__(self, project: Project):
         self.project = project
@@ -401,12 +401,13 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         .annotate(total=Count("substatus"))
     )
     for item in substatus_counts:
+        project_ctx = cast(ProjectContext, ctx.projects_context_map[item["project_id"]])
         if item["substatus"] == GroupSubStatus.NEW:
-            ctx.projects_context_map[item["project_id"]].new_substatus_count = item["total"]
+            project_ctx.new_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.ESCALATING:
-            ctx.projects_context_map[item["project_id"]].escalating_substatus_count = item["total"]
+            project_ctx.escalating_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.ONGOING:
-            ctx.projects_context_map[item["project_id"]].ongoing_substatus_count = item["total"]
+            project_ctx.ongoing_substatus_count = item["total"]
         if item["substatus"] == GroupSubStatus.REGRESSED:
-            ctx.projects_context_map[item["project_id"]].regression_substatus_count = item["total"]
-        ctx.projects_context_map[item["project_id"]].total_substatus_count += item["total"]
+            project_ctx.regression_substatus_count = item["total"]
+        project_ctx.total_substatus_count += item["total"]
