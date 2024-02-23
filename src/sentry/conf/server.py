@@ -1549,6 +1549,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable the Event Tags Tree UI feature
+    "organizations:event-tags-tree-ui": False,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected

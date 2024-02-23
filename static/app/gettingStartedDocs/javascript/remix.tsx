@@ -10,6 +10,8 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -19,23 +21,25 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getConfigStep = () => [
+  {
+    description: tct(
+      'Configure your app automatically with the [wizardLink:Sentry wizard].',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+        ),
+      }
+    ),
+    language: 'bash',
+    code: `npx @sentry/wizard@latest -i remix`,
+  },
+];
+
 const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
-    configurations: [
-      {
-        description: tct(
-          'Configure your app automatically with the [wizardLink:Sentry wizard].',
-          {
-            wizardLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
-            ),
-          }
-        ),
-        language: 'bash',
-        code: `npx @sentry/wizard@latest -i remix`,
-      },
-    ],
+    configurations: getConfigStep(),
   },
 ];
 
@@ -170,8 +174,49 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/remix]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getConfigStep(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/remix";`,
+                dsn: params.dsn,
+              }),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
