@@ -22,7 +22,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaSelection} from 'sentry/views/ddm/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/ddm/utils/useStructuralSharing';
 

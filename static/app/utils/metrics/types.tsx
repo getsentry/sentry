@@ -116,10 +116,3 @@ export type MetricCorrelation = {
     spanOp: string;
   }[];
 };
-
-export interface SelectionRange {
-  end?: DateString;
-  max?: number;
-  min?: number;
-  start?: DateString;
-}

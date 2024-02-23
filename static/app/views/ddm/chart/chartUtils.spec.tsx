@@ -1,4 +1,4 @@
-import {fitToValueRect} from 'sentry/views/ddm/chartUtils';
+import {fitToValueRect} from 'sentry/views/ddm/chart/chartUtils';
 
 describe('fitToValueRect', () => {
   it('should return original x and y if rect is undefined', () => {
