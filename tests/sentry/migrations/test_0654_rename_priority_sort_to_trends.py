@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class RenamePrioritySortToTrendsTest(TestMigrations):
-    migrate_from = "0651_enable_activated_alert_rules"
-    migrate_to = "0652_rename_priority_sort_to_trends"
+    migrate_from = "0653_apitoken_add_token_type"
+    migrate_to = "0654_rename_priority_sort_to_trends"
 
     def setup_before_migration(self, apps):
         self.priority_searches = []

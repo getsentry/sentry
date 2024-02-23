@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = True
     dependencies = [
-        ("sentry", "0651_enable_activated_alert_rules"),
+        ("sentry", "0653_apitoken_add_token_type"),
     ]
 
     operations = [
