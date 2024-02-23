@@ -33,7 +33,6 @@ const formGroups: JsonFormObject[] = [
               ),
             }
           ),
-        // help: 'Get notified on Crash Reports and User Report API submissions. Feedback widget notifications are not affected by this setting and are on by default.',
         getData: data => ({options: data}),
       },
     ],
