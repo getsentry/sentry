@@ -17,7 +17,6 @@ from sentry.relay.config.metric_extraction import (
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    SPEC_VERSION_TWO_FLAG,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
@@ -1135,8 +1134,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
-    # You can only query this function if you have the feature flag for the org
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True, SPEC_VERSION_TWO_FLAG: True}):
+    # User misery is extracted, querying is behind the version 2 feature flag
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
@@ -1148,6 +1147,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         assert config
         assert config["metrics"] == [
             {
+                # Spec version 1
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
@@ -1164,6 +1164,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 ],
             },
             {
+                # Spec version 2
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users

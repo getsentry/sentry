@@ -2863,28 +2863,28 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
         # You can only query this function if you have the feature flag for the org
-        with Feature(SPEC_VERSION_TWO_FLAG):
-            spec_type = MetricSpecType.SIMPLE_QUERY
-            spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
+        spec_type = MetricSpecType.SIMPLE_QUERY
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
 
-            for hour in range(0, 2):
-                for name, frustrated in user_to_frustration:
-                    tags = (
-                        {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
-                        if frustrated
-                        else {"query_hash": spec.query_hash}
-                    )
-                    self.store_transaction_metric(
-                        value=name,
-                        metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                        # It's a set on demand because of using the users field
-                        internal_metric=TransactionMRI.SET_ON_DEMAND.value,
-                        entity=EntityKey.MetricsSets.value,
-                        tags=tags,
-                        timestamp=self.start + datetime.timedelta(hours=hour),
-                    )
+        for hour in range(0, 2):
+            for name, frustrated in user_to_frustration:
+                tags = (
+                    {"query_hash": spec.query_hash, "satisfaction": "frustrated"}
+                    if frustrated
+                    else {"query_hash": spec.query_hash}
+                )
+                self.store_transaction_metric(
+                    value=name,
+                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
+                    # It's a set on demand because of using the users field
+                    internal_metric=TransactionMRI.SET_ON_DEMAND.value,
+                    entity=EntityKey.MetricsSets.value,
+                    tags=tags,
+                    timestamp=self.start + datetime.timedelta(hours=hour),
+                )
 
-            query = TimeseriesMetricQueryBuilder(
+        def create_query_builder():
+            return TimeseriesMetricQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
                 interval=3600,
@@ -2894,6 +2894,14 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     on_demand_metrics_enabled=True, on_demand_metrics_type=spec_type
                 ),
             )
+
+        with Feature({SPEC_VERSION_TWO_FLAG: False}):
+            # user_misery was added in spec version 2, querying without it results in fallback.
+            with pytest.raises(IncompatibleMetricsQuery):
+                create_query_builder()
+
+        with Feature(SPEC_VERSION_TWO_FLAG):
+            query = create_query_builder()
             assert query._on_demand_metric_spec_map
             selected_spec = query._on_demand_metric_spec_map[field]
             metrics_query = query._get_metrics_query_from_on_demand_spec(
@@ -2908,28 +2916,28 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             assert metrics_query.where[0].rhs == "f9a20ff3"
             assert metrics_query.where[0].rhs == spec.query_hash
 
-            result = query.run_query("test_query")
-            assert result["data"][:3] == [
-                {
-                    "time": self.start.isoformat(),
-                    "user_misery_300": expected_user_misery,
-                },
-                {
-                    "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
-                    "user_misery_300": expected_user_misery,
-                },
-                {
-                    "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
-                    "user_misery_300": 0,
-                },
-            ]
-            self.assertCountEqual(
-                result["meta"],
-                [
-                    {"name": "time", "type": "DateTime('Universal')"},
-                    {"name": "user_misery_300", "type": "Float64"},
-                ],
-            )
+        result = query.run_query("test_query")
+        assert result["data"][:3] == [
+            {
+                "time": self.start.isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=1)).isoformat(),
+                "user_misery_300": expected_user_misery,
+            },
+            {
+                "time": (self.start + datetime.timedelta(hours=2)).isoformat(),
+                "user_misery_300": 0,
+            },
+        ]
+        self.assertCountEqual(
+            result["meta"],
+            [
+                {"name": "time", "type": "DateTime('Universal')"},
+                {"name": "user_misery_300", "type": "Float64"},
+            ],
+        )
 
     def test_run_query_with_on_demand_user_misery(self) -> None:
         self._test_user_misery(
