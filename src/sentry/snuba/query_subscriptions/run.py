@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Mapping
 from functools import partial
-from random import random
 
 import sentry_sdk
 from arroyo import Topic, configure_metrics
@@ -18,6 +17,7 @@ from arroyo.processing.strategies import (
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 
+from sentry.features.rollout import in_random_rollout
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
@@ -72,14 +72,13 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def process_message(
     dataset: Dataset, topic: str, logical_topic: str, message: Message[KafkaPayload]
 ) -> None:
-    from sentry import options
     from sentry.snuba.query_subscriptions.consumer import handle_message
     from sentry.utils import metrics
 
     with sentry_sdk.start_transaction(
         op="handle_message",
         name="query_subscription_consumer_process_message",
-        sampled=random() <= options.get("subscriptions-query.sample-rate"),
+        sampled=in_random_rollout("subscriptions-query.sample-rate"),
     ), metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}):
         value = message.value
         assert isinstance(value, BrokerValue)

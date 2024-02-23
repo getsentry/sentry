@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import random
 import time
 from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -11,8 +10,8 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -163,8 +162,7 @@ def maybe_run_background_grouping(project: Project, job: Job) -> None:
     impact.
     """
     try:
-        sample_rate = options.get("store.background-grouping-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
+        if in_random_rollout("store.background-grouping-sample-rate"):
             config = BackgroundGroupingConfigLoader().get_config_dict(project)
             if config["id"]:
                 copied_event = copy.deepcopy(job["event"])

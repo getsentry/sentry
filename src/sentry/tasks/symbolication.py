@@ -1,5 +1,4 @@
 import logging
-import random
 from collections.abc import Callable
 from time import time
 from typing import Any
@@ -10,6 +9,7 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
+from sentry.features.rollout import in_random_rollout
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
@@ -200,12 +200,16 @@ def _do_symbolicate_event(
         """
         symbolication_duration = time() - symbolication_start_time
 
-        submission_ratio = options.get("symbolicate-event.low-priority.metrics.submission-rate")
         # we throw the dice on each record operation, otherwise an unlucky extremely slow event would never count
         # towards the budget.
-        submit_realtime_metrics = random.random() < submission_ratio
+        submit_realtime_metrics = in_random_rollout(
+            "symbolicate-event.low-priority.metrics.submission-rate"
+        )
         if submit_realtime_metrics:
             with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
+                submission_ratio = options.get(
+                    "symbolicate-event.low-priority.metrics.submission-rate"
+                )
                 try:
                     # we adjust the duration according to the `submission_ratio` so that the budgeting works
                     # the same even considering sampling of metrics.

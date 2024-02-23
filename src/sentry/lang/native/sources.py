@@ -269,6 +269,7 @@ def get_internal_artifact_lookup_source_url(project: Project):
 def get_bundle_index_urls(
     project: Project, release: str | None, dist: str | None
 ) -> tuple[str | None, str | None]:
+    # Note: this random rollout is reversed because it is an early return
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
         return None, None
 
