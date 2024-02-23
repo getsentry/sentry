@@ -1,4 +1,5 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import {tct} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/user-feedback/';
@@ -23,7 +24,16 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
 
         label: 'Enable Crash Report Notifications',
-        help: 'Get notified on Crash Reports and User Report API submissions. Feedback widget notifications are not affected by this setting and are on by default.',
+        help: () =>
+          tct(
+            'Get notified on [crashReportModalDocsLink: Crash Report Modal and User Report API submissions]. Feedback widget notifications are not affected by this setting and are on by default.',
+            {
+              crashReportModalDocsLink: (
+                <a href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
+              ),
+            }
+          ),
+        // help: 'Get notified on Crash Reports and User Report API submissions. Feedback widget notifications are not affected by this setting and are on by default.',
         getData: data => ({options: data}),
       },
     ],
