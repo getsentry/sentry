@@ -1674,14 +1674,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        # Cast in lieu of a non-null assertion operator, which Python doesn't have
-        #
-        # TODO: The typing and necessity of casting here is gross, but might be able to be improved
-        # once hierarchical grouping is gone
-        cast(GroupingConfig, primary.config),
-        cast(CalculatedHashes, primary.hashes),
-        secondary.config,
-        secondary.hashes,
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
