@@ -6,12 +6,16 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+import {
+  crashReportCallout,
+  tracePropagationMessage,
+} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -72,6 +76,14 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
           ${
             params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
           }})`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "light",
+}),`
       : ''
   }${
     params.isReplaySelected
@@ -427,9 +439,32 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => getInstallStep(params),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/',
+      }),
+      configurations: getSetupConfiguration({
+        params,
+        showExtraStep: false,
+        showDescription: false,
+      }),
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
 };
 
