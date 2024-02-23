@@ -156,6 +156,7 @@ def project_key_performance_issues(ctx, project):
                 Function("count", []),
             ],
             where=[
+                Condition(Column("group_id"), Op.IN, list(group_id_to_group.keys())),
                 Condition(Column("timestamp"), Op.GTE, ctx.start),
                 Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
                 Condition(Column("project_id"), Op.EQ, project.id),
