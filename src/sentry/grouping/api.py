@@ -68,6 +68,11 @@ class GroupHashInfo:
     existing_grouphash: GroupHash | None
 
 
+NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
+NULL_HASHES = CalculatedHashes(hashes=[], hierarchical_hashes=[], tree_labels=[])
+NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
+
+
 class GroupingConfigNotFound(LookupError):
     pass
 

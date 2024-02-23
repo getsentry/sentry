@@ -45,7 +45,12 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupHashInfo, GroupingConfig, get_grouping_config_dict_for_project
+from sentry.grouping.api import (
+    NULL_GROUPHASH_INFO,
+    GroupHashInfo,
+    GroupingConfig,
+    get_grouping_config_dict_for_project,
+)
 from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -1634,7 +1639,7 @@ def _save_aggregate_new(
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
-    secondary = GroupHashInfo(None, None, [], None)
+    secondary = NULL_GROUPHASH_INFO
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
