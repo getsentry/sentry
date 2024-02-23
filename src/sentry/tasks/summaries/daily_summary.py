@@ -19,6 +19,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
+    DailySummaryProjectContext,
     OrganizationReportContext,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
@@ -114,7 +115,7 @@ def prepare_summary_data(
             if project_id not in ctx.projects_context_map:
                 continue
 
-            project_ctx = ctx.projects_context_map[project_id]
+            project_ctx: DailySummaryProjectContext = ctx.projects_context_map[project_id]
             total = data["total"]
             if data["category"] == DataCategory.ERROR:
                 if data["outcome"] == Outcome.ACCEPTED:

@@ -40,7 +40,9 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects_context_map: dict[int, ProjectContext] = {}  # { project_id: ProjectContext }
+        self.projects_context_map: dict[
+            int, ProjectContext | DailySummaryProjectContext
+        ] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
@@ -53,8 +55,8 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    # def __repr__(self):
-    #     return self.projects_context_map.__repr__()
+    def __repr__(self):
+        return self.projects_context_map.__repr__()
 
 
 class ProjectContext:
@@ -109,7 +111,7 @@ class DailySummaryProjectContext:
     key_performance_issues = []
     escalated_today = []
     regressed_today = []
-    new_in_release = []
+    new_in_release = {}
 
     def __init__(self, project: Project):
         self.project = project
@@ -117,7 +119,7 @@ class DailySummaryProjectContext:
         self.key_performance_issues = []
         self.escalated_today = []
         self.regressed_today = []
-        self.new_in_release = []
+        self.new_in_release = {}
 
 
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
