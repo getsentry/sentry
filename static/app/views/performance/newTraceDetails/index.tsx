@@ -30,10 +30,10 @@ import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from '../breadcrumb';
 
 import Trace from './trace';
+import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
 import {TraceTree} from './traceTree';
 import TraceWarnings from './traceWarnings';
-import {TraceFooter} from './traceFooter';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
 
