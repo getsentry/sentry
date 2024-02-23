@@ -52,7 +52,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         # only published or owned apps are allowed to be installed
         app = SentryApp.objects.filter(slug=slug).first()
         if app is None or (
-            app.status != SentryAppStatus.PUBLISHED and app.owner_id != organization.id
+            app.status != SentryAppStatus.PUBLISHED
+            and app.owner_id != organization.id
+            and not request.user.is_superuser
         ):
             return Response(status=404)
 
