@@ -1,7 +1,6 @@
 from unittest import mock
 
 from django.conf import settings
-from packaging.version import Version
 
 from sentry.loader.browsersdkversion import (
     get_all_browser_sdk_version_versions,
