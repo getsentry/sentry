@@ -13,7 +13,10 @@ from django.conf import settings
 from sentry import features
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
+from sentry.replays.usecases.ingest.issue_creation import (
+    report_rage_click_issue,
+    report_rage_click_issue_with_replay_event,
+)
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -382,9 +385,20 @@ def _handle_breadcrumb(
                 if is_rage:
                     metrics.incr("replay.rage_click_detected")
                     if _should_report_rage_click_issue(project_id):
-                        report_rage_click_issue.delay(
-                            project_id, replay_id, cast(SentryEvent, event)
-                        )
+                        if replay_event is not None:
+                            report_rage_click_issue_with_replay_event(
+                                project_id,
+                                replay_id,
+                                payload["timestamp"],
+                                payload["message"],
+                                payload["data"]["url"],
+                                payload["data"]["node"],
+                                replay_event,
+                            )
+                        else:
+                            report_rage_click_issue.delay(
+                                project_id, replay_id, cast(SentryEvent, event)
+                            )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id
