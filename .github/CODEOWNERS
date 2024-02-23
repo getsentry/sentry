@@ -5,7 +5,7 @@
 
 
 ## Legal
-/LICENSE                                                 @getsentry/owners-legal
+/LICENSE.md                                              @getsentry/owners-legal
 
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
