@@ -22,7 +22,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaSelection} from 'sentry/views/ddm/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/ddm/utils/useStructuralSharing';
 
@@ -78,15 +78,13 @@ export function useDDMContext() {
   return useContext(DDMContext);
 }
 
-const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyMetricsQueryWidget];
-
 export function useMetricWidgets() {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
     useMemo<MetricWidgetQueryParams[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets) ?? DEFAULT_WIDGETS_STATE,
+      () => parseMetricWidgetsQueryParam(urlWidgets),
       [urlWidgets]
     )
   );

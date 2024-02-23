@@ -1,6 +1,7 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -44,6 +45,15 @@ export default function InitializationModule() {
     }
   }, [location, appStartType]);
 
+  const handleProjectChange = useCallback(() => {
+    browserHistory.replace({
+      ...location,
+      query: {
+        ...omit(location.query, ['primaryRelease', 'secondaryRelease']),
+      },
+    });
+  }, [location]);
+
   return (
     <Feature features="starfish-mobile-appstart" organization={organization}>
       <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
@@ -61,7 +71,7 @@ export default function InitializationModule() {
                 <PageFiltersContainer>
                   <Container>
                     <PageFilterBar condensed>
-                      <ProjectPageFilter />
+                      <ProjectPageFilter onChange={handleProjectChange} />
                       <EnvironmentPageFilter />
                       <DatePageFilter />
                     </PageFilterBar>

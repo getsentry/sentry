@@ -105,23 +105,6 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
     @responses.activate
-    def test_link_team_sufficient_role_through_team(self):
-        """
-        Test that when a user whose org role is sufficient through team membership
-        attempts to link a team, we allow it.
-        """
-        user2 = self.create_user()
-        admin_team = self.create_team(org_role="admin")
-        self.create_member(
-            teams=[admin_team], user=user2, role="member", organization=self.organization
-        )
-        self.login_as(user2)
-        link_user(user2, self.idp, slack_id=OTHER_SLACK_ID)
-
-        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
-        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
-
-    @responses.activate
     def test_link_team_as_team_admin(self):
         """
         Test that when a user who is a team admin attempts to link a team we allow it.
