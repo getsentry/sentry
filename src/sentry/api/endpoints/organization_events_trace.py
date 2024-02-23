@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
 
 import sentry_sdk
@@ -352,6 +352,25 @@ class TraceEvent:
         return result
 
 
+def find_timestamp_params(transactions: Sequence[SnubaTransaction]) -> dict[str, datetime | None]:
+    min_timestamp = None
+    max_timestamp = None
+    if transactions:
+        first_timestamp = datetime.fromisoformat(transactions[0]["timestamp"])
+        min_timestamp = first_timestamp
+        max_timestamp = first_timestamp
+        for transaction in transactions[1:]:
+            timestamp = datetime.fromisoformat(transaction["timestamp"])
+            if timestamp < min_timestamp:
+                min_timestamp = timestamp
+            elif timestamp > max_timestamp:
+                max_timestamp = timestamp
+    return {
+        "min": min_timestamp,
+        "max": max_timestamp,
+    }
+
+
 def find_event(
     items: Iterable[_T | None],
     function: Callable[[_T | None], Any],
@@ -491,9 +510,14 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-    projects = set()
+    projects = {e["project.id"] for e in errors if e["trace.span"]}
+    ts_params = find_timestamp_params(transactions)
+    if ts_params["min"]:
+        params["start"] = ts_params["min"] - timedelta(hours=1)
+    if ts_params["max"]:
+        params["end"] = ts_params["max"] + timedelta(hours=1)
 
-    for transaction in transactions:
+    for index, transaction in enumerate(transactions):
         transaction["occurrence_spans"] = []
         transaction["issue_occurrences"] = []
 
@@ -504,7 +528,8 @@ def augment_transactions_with_spans(
         transaction_problem_map[transaction["id"]] = transaction
         if project not in problem_project_map:
             problem_project_map[project] = []
-        problem_project_map[project].append(transaction["occurrence_id"])
+        if transaction["occurrence_id"] is not None:
+            problem_project_map[project].append(transaction["occurrence_id"])
 
         # Need to strip the leading "0"s to match our query to the spans table
         # This is cause spans are stored as UInt64, so a span like 0011

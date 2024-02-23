@@ -2,12 +2,23 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
-from snuba_sdk import And, Condition, Op, Or
+from snuba_sdk import And, Column, Condition, Function, Op, Or
 
-from sentry.search.events.builder import SpansIndexedQueryBuilder
-from sentry.search.events.types import SnubaParams
+from sentry import options
+from sentry.search.events.builder import (
+    MetricsSummariesQueryBuilder,
+    QueryBuilder,
+    SpansIndexedQueryBuilder,
+)
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
+from sentry.snuba.metrics.naming_layer.mri import (
+    SpanMRI,
+    TransactionMRI,
+    is_custom_metric,
+    is_measurement,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 
 
@@ -32,7 +43,7 @@ class SamplesListExecutor(ABC):
 
     @classmethod
     @abstractmethod
-    def supports(cls, metric_mri: str) -> bool:
+    def supports(cls, mri: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -52,13 +63,12 @@ class SamplesListExecutor(ABC):
             offset=0,
         )
 
-        # Using `IN` sometimes does not use the bloomfilter index
-        # on the table. So we're explicitly writing the condition
-        # using `OR`s.
+        # This are the additional conditions to better take advantage of the ORDER BY
+        # on the spans table. This creates a list of conditions to be `OR`ed together
+        # that can will be used by ClickHouse to narrow down the granules.
         #
-        # May not be necessary because it's also filtering on the
-        # `span.group` as well which allows Clickhouse to filter
-        # via the primary key but this is a precaution.
+        # The span ids are not in this condition because they are more effective when
+        # specified within the `PREWHERE` clause. So, it's in a separate condition.
         conditions = [
             And(
                 [
@@ -66,38 +76,144 @@ class SamplesListExecutor(ABC):
                     Condition(
                         builder.column("timestamp"), Op.EQ, datetime.fromisoformat(timestamp)
                     ),
-                    Condition(builder.column("id"), Op.EQ, span_id),
                 ]
             )
-            for (group, timestamp, span_id) in span_ids
+            for (group, timestamp, _) in span_ids
         ]
 
         if len(conditions) == 1:
-            span_condition = conditions[0]
+            order_by_condition = conditions[0]
         else:
-            span_condition = Or(conditions)
+            order_by_condition = Or(conditions)
 
-        builder.add_conditions([span_condition])
+        # Using `IN` combined with putting the list in a SnQL "tuple" triggers an optimizer
+        # in snuba where it
+        # 1. moves the condition into the `PREWHERE` clause
+        # 2. maps the ids to the underlying UInt64 and uses the bloom filter index
+        #
+        # NOTE: the "tuple" here is critical as without it, snuba will not correctly
+        # rewrite the condition and keep it in the WHERE and as a hexidecimal.
+        span_id_condition = Condition(
+            builder.column("id"),
+            Op.IN,
+            Function("tuple", [span_id for _, _, span_id in span_ids]),
+        )
+
+        builder.add_conditions([order_by_condition, span_id_condition])
 
         query_results = builder.run_query(self.referrer.value)
         return builder.process_results(query_results)
 
 
-class SpansSamplesListExecutor(SamplesListExecutor):
+class SegmentsSamplesListExecutor(SamplesListExecutor):
+    @classmethod
+    @abstractmethod
+    def mri_to_column(cls, mri) -> str | None:
+        raise NotImplementedError
+
     @classmethod
     def supports(cls, mri: str) -> bool:
-        return mri in {SpanMRI.SELF_TIME.value, SpanMRI.DURATION.value}
+        return cls.mri_to_column(mri) is not None
 
     def execute(self, offset, limit):
-        builder = self.get_query_builder(offset, limit)
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-        span_keys = [
-            (row["example"][0], row["example"][1], row["example"][2]) for row in result["data"]
-        ]
+        span_keys = self.get_span_keys(offset, limit)
         return self.get_spans_by_key(span_keys)
 
-    def get_query_builder(self, offset: int, limit: int) -> SpansIndexedQueryBuilder:
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+
+        """
+        When getting examples for a segment, it's actually much faster to read it
+        from the transactions dataset compared to the spans dataset as it's a much
+        smaller dataset.
+
+        One consideration here is that there is an one to one mapping between a
+        transaction to a segment today. If this relationship changes, we'll have to
+        rethink how to fetch segment samples a little as the transactions dataset
+        may not contain all the necessary data.
+        """
+        builder = QueryBuilder(
+            Dataset.Transactions,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=self.query,
+            selected_columns=[rounded_timestamp, "example()"],
+            limit=limit,
+            offset=offset,
+            sample_rate=options.get("metrics.sample-list.sample-rate"),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+        )
+
+        builder.add_conditions(self.get_additional_conditions())
+
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [
+            (
+                "00",  # all segments have a group of `00` currently
+                row["example"][0],  # timestamp
+                row["example"][1],  # span_id
+            )
+            for row in result["data"]
+        ]
+
+    @abstractmethod
+    def get_additional_conditions(self) -> list[Condition]:
+        raise NotImplementedError
+
+
+class TransactionDurationSamplesListExecutor(SegmentsSamplesListExecutor):
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        if mri == TransactionMRI.DURATION.value:
+            return "duration"
+        return None
+
+    def get_additional_conditions(self) -> list[Condition]:
+        return []
+
+
+class MeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        name = cls.measurement_name(mri)
+        if name is not None:
+            return f"measurements[{name}]"
+
+        return None
+
+    @classmethod
+    def measurement_name(cls, mri) -> str | None:
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is not None and is_measurement(parsed_mri):
+            return parsed_mri.name[len("measurements:") :]
+        return None
+
+    def get_additional_conditions(self) -> list[Condition]:
+        name = self.measurement_name(self.mri)
+        return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
+
+
+class SpansSamplesListExecutor(SamplesListExecutor):
+    MRI_MAPPING = {
+        SpanMRI.DURATION.value: "span.duration",
+        SpanMRI.SELF_TIME.value: "span.self_time",
+    }
+
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        return cls.MRI_MAPPING.get(mri)
+
+    @classmethod
+    def supports(cls, mri: str) -> bool:
+        return cls.mri_to_column(mri) is not None
+
+    def execute(self, offset, limit):
+        span_keys = self.get_span_keys(offset, limit)
+        return self.get_spans_by_key(span_keys)
+
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
         builder = SpansIndexedQueryBuilder(
@@ -108,6 +224,8 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
+            sample_rate=options.get("metrics.sample-list.sample-rate"),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
         builder.add_conditions(
@@ -122,11 +240,72 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             ]
         )
 
-        return builder
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [
+            (
+                row["example"][0],  # group
+                row["example"][1],  # timestamp
+                row["example"][2],  # span_id
+            )
+            for row in result["data"]
+        ]
+
+
+class CustomSamplesListExecutor(SamplesListExecutor):
+    @classmethod
+    def supports(cls, mri: str) -> bool:
+        parsed_mri = parse_mri(mri)
+        if parsed_mri is not None and is_custom_metric(parsed_mri):
+            return True
+        return False
+
+    def execute(self, offset, limit):
+        span_keys = self.get_span_keys(offset, limit)
+        return self.get_spans_by_key(span_keys)
+
+    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+
+        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
+
+        builder = MetricsSummariesQueryBuilder(
+            Dataset.MetricsSummaries,
+            self.params,
+            snuba_params=self.snuba_params,
+            query=query,
+            selected_columns=[rounded_timestamp, "example()"],
+            limit=limit,
+            offset=offset,
+            # This table has a poor SAMPLE BY so DO NOT use it for now
+            # sample_rate=options.get("metrics.sample-list.sample-rate"),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+        )
+
+        query_results = builder.run_query(self.referrer.value)
+        result = builder.process_results(query_results)
+
+        return [
+            (
+                row["example"][0],  # group
+                row["example"][1],  # timestamp
+                row["example"][2],  # span_id
+            )
+            for row in result["data"]
+        ]
+
+
+SAMPLE_LIST_EXECUTORS = [
+    SpansSamplesListExecutor,
+    TransactionDurationSamplesListExecutor,
+    MeasurementsSamplesListExecutor,
+    CustomSamplesListExecutor,
+]
 
 
 def get_sample_list_executor_cls(mri) -> type[SamplesListExecutor] | None:
-    for executor_cls in [SpansSamplesListExecutor]:
+    for executor_cls in SAMPLE_LIST_EXECUTORS:
         if executor_cls.supports(mri):
             return executor_cls
     return None

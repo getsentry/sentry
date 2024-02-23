@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import random
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -22,6 +21,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
+from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.openai_sdk_integration import OpenAiIntegration
@@ -65,8 +65,8 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
@@ -238,6 +238,12 @@ def before_send_transaction(event, _):
     return event
 
 
+def before_send(event, _):
+    if event.get("tags") and settings.SILO_MODE:
+        event["tags"]["silo_mode"] = settings.SILO_MODE
+    return event
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -263,6 +269,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["before_send"] = before_send
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
@@ -347,9 +354,8 @@ def configure_sdk():
         def _capture_anything(self, method_name, *args, **kwargs):
             # Experimental events will be sent to the experimental transport.
             if experimental_transport:
-                rate = options.get("store.use-experimental-dsn-sample-rate")
                 if is_current_event_experimental():
-                    if rate and random.random() < rate:
+                    if in_random_rollout("store.use-experimental-dsn-sample-rate"):
                         getattr(experimental_transport, method_name)(*args, **kwargs)
                     # Experimental events should not be sent to other transports even if they are not sampled.
                     return
@@ -373,11 +379,11 @@ def configure_sdk():
                     envelope = args_list[0]
                     # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     # unless we allow them via a separate sample rate.
-                    ddm_sample_rate = options.get("store.allow-s4s-ddm-sample-rate")
                     safe_items = [
                         x
                         for x in envelope.items
-                        if x.data_category != "statsd" or random.random() < ddm_sample_rate
+                        if x.data_category != "statsd"
+                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
                     ]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)

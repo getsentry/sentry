@@ -60,7 +60,9 @@ class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         environments = get_environments(request, organization)
 
         if environments:
-            check_ins = check_ins.filter(monitor_environment__environment__in=environments)
+            check_ins = check_ins.filter(
+                monitor_environment__environment_id__in=[e.id for e in environments]
+            )
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(

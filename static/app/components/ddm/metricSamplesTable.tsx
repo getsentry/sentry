@@ -1,27 +1,25 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
 import type {MRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime} from 'sentry/utils/discover/styles';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {isSupportedMRI, useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
@@ -32,8 +30,6 @@ interface MetricSamplesTableProps {
 
 export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
   const location = useLocation();
-
-  const [offset, setOffset] = useState(0);
 
   const emptyMessage = useMemo(() => {
     if (defined(mri)) {
@@ -47,16 +43,9 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
     );
   }, [mri]);
 
-  const previousMri = usePrevious(mri);
-  useEffect(() => {
-    if (mri !== previousMri) {
-      setOffset(0);
-    }
-  }, [previousMri, mri]);
+  const enabled = defined(mri) && isSupportedMRI(mri);
 
-  // TODO: this is just a temporary solution for the spans.exlusive_time MRI
-  // long term, we should use an unified endpoint
-  const result = useMetricSamples({
+  const result = useMetricsSamples({
     fields: [
       'project',
       'id',
@@ -69,25 +58,18 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
       'transaction.id',
       'profile_id',
     ],
-    query: [query, 'has:profile_id'].filter(Boolean).join(' '),
-    sort: {field: 'timestamp', kind: 'desc'},
-    // TODO: support other MRIs later
-    enabled: mri === 'd:spans/exclusive_time@millisecond',
-    limit: 100,
+    mri,
+    query,
     referrer: 'foo',
+    enabled,
+    limit: 10,
   });
-
-  const data = useMemo(() => {
-    // This is just some POC code, so not going to fix this type error
-    // @ts-ignore
-    return (result.data?.data ?? []).slice(offset, offset + 10);
-  }, [result.data, offset]);
 
   return (
     <GridEditable
-      isLoading={result.isLoading}
-      error={result.isError}
-      data={data}
+      isLoading={enabled && result.isLoading}
+      error={enabled && result.isError}
+      data={result.data?.data ?? []}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
       grid={{renderBodyCell}}
@@ -95,53 +77,6 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
       emptyMessage={emptyMessage}
     />
   );
-}
-
-interface UseMetricSamplesOptions<F extends string> {
-  fields: F[];
-  referrer: string;
-  sort: {field: F; kind: 'asc' | 'desc'};
-  cursor?: string;
-  enabled?: boolean;
-  limit?: number;
-  query?: string;
-}
-
-function useMetricSamples<F extends string>({
-  cursor,
-  enabled,
-  fields,
-  referrer,
-  limit,
-  query,
-  sort,
-}: UseMetricSamplesOptions<F>) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const path = `/organizations/${organization.slug}/events/`;
-
-  const endpointOptions = {
-    query: {
-      dataset: DiscoverDatasets.SPANS_INDEXED,
-      referrer,
-      project: selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
-      field: fields,
-      per_page: limit,
-      query,
-      sort: sort.kind === 'asc' ? sort.field : `-${sort.field}`,
-      cursor,
-    },
-  };
-
-  return useApiQuery([path, endpointOptions], {
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    retry: false,
-    enabled,
-  });
 }
 
 const COLUMN_ORDER = [
@@ -191,7 +126,7 @@ function renderBodyCell(col, dataRow) {
     return (
       <ProfileId
         projectSlug={dataRow.project}
-        profileId={dataRow.profile_id.replace('-', '')}
+        profileId={dataRow.profile_id?.replace('-', '')}
       />
     );
   }
@@ -298,14 +233,24 @@ function TraceId({traceId}) {
 
 function ProfileId({projectSlug, profileId}) {
   const organization = useOrganization();
+
+  if (!defined(profileId)) {
+    return <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+  }
+
   const target = generateProfileFlamechartRoute({
     orgSlug: organization.slug,
     projectSlug,
     profileId,
   });
+
   return (
     <Container>
       <Link to={target}>{getShortEventId(profileId)}</Link>
     </Container>
   );
 }
+
+const EmptyValueContainer = styled('span')`
+  color: ${p => p.theme.gray300};
+`;

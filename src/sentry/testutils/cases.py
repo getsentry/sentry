@@ -1098,6 +1098,9 @@ class CliTestCase(TestCase):
 
 
 @pytest.mark.usefixtures("browser")
+# Assume acceptance tests are not using self-hosted, since most devs are developing for SaaS and
+# generally self-hosted specific pages should not appear during acceptance tests
+@override_settings(SENTRY_SELF_HOSTED=False)
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
@@ -1517,6 +1520,7 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        group: str = "00",
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1532,7 +1536,11 @@ class BaseSpansTestCase(SnubaTestCase):
             "is_segment": False,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "sentry_tags": {
+                "transaction": transaction or "/hello",
+                "op": op or "http",
+                "group": group,
+            },
             "retention_days": 90,
         }
 
@@ -2041,14 +2049,16 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, str] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
-        with self.feature(self.features if features is None else features):
+        with self.feature(features or self.features):
             return self.client.get(self.url, data=data, format="json")
 
     def _index_metric_strings(self):
@@ -2112,12 +2122,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: int | float,
+        value: int | float | str,
         spec: OnDemandMetricSpec,
         additional_tags: dict[str, str] | None = None,
         timestamp: datetime | None = None,
     ) -> None:
-        """Convert on-demand metric and store it"""
+        """Convert on-demand metric and store it.
+
+        For sets, value needs to be a unique identifier while for counters it is a count."""
         relay_metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
@@ -2627,8 +2639,7 @@ class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
 
-    Note that when running these tests locally you will need to set the `--migrations`
-    environmental variable for these to pass.
+    Note that when running these tests locally you will need to use the `--migrations` flag
     """
 
     @property
@@ -2659,10 +2670,6 @@ class TestMigrations(TransactionTestCase):
 
         executor = MigrationExecutor(connection)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
-        if not matching_migrations:
-            raise AssertionError(
-                "no migrations detected!\n\ntry running this test with `pytest --migrations ...`"
-            )
         self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(migrate_from).apps
 
@@ -2855,8 +2862,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
         assert (
-            blocks[2]["elements"][0]["elements"][0]["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            blocks[2]["text"]["text"]
+            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
             blocks[3]["text"]["text"]
@@ -2901,8 +2908,8 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f":exclamation: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
         assert (
-            blocks[2]["elements"][0]["elements"][0]["text"]
-            == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+            blocks[2]["text"]["text"]
+            == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
         assert (
             blocks[5]["elements"][0]["text"]
@@ -3059,7 +3066,7 @@ class MonitorTestCase(APITestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment, **monitorenvironment_defaults
+            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
     def _create_issue_alert_rule(self, monitor):

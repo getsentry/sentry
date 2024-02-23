@@ -552,7 +552,9 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         environment = Environment.get_or_create(project=project, name=environment_name)
 
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
+            monitor=monitor,
+            environment_id=environment.id,
+            defaults={"status": MonitorStatus.ACTIVE},
         )
 
         # recompute per-project monitor check-in rate limit quota
@@ -567,7 +569,7 @@ class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     monitor = FlexibleForeignKey("sentry.Monitor")
-    environment = FlexibleForeignKey("sentry.Environment")
+    environment_id = BoundedBigIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     status = BoundedPositiveIntegerField(
@@ -614,15 +616,22 @@ class MonitorEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        unique_together = (("monitor", "environment"),)
+        unique_together = (("monitor", "environment_id"),)
         indexes = [
             models.Index(fields=["status", "next_checkin_latest"]),
         ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
+    def get_environment(self) -> Environment:
+        return Environment.objects.get_from_cache(id=self.environment_id)
+
     def get_audit_log_data(self):
-        return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
+        return {
+            "name": self.get_environment().name,
+            "status": self.status,
+            "monitor": self.monitor.name,
+        }
 
     def get_last_successful_checkin(self):
         return (
@@ -653,7 +662,7 @@ class MonitorEnvironment(Model):
             [
                 "monitor",
                 str(self.monitor.guid),
-                self.environment.name,
+                self.get_environment().name,
                 str(self.last_state_change),
             ]
         )

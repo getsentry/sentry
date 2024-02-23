@@ -17,6 +17,8 @@ class UseCaseID(Enum):
     SESSIONS = "sessions"
     ESCALATING_ISSUES = "escalating_issues"
     CUSTOM = "custom"
+    PROFILES = "profiles"
+    BUNDLE_ANALYSIS = "bundle_analysis"
 
 
 # UseCaseKey will be renamed to MetricPathKey
@@ -26,6 +28,8 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
+    UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
+    UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
 }
 
 # TODO: Remove this as soon as the entire indexer system is use case aware

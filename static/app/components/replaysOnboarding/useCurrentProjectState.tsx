@@ -13,7 +13,9 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
-  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const isActive =
+    currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING ||
+    currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
 
   // Projects where we have the onboarding instructions ready:
   const projectsWithOnboarding = useMemo(
