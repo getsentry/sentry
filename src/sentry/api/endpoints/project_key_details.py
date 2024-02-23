@@ -25,7 +25,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
 @extend_schema(tags=["Projects"])
@@ -56,12 +56,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Return a client key bound to a project.
         """
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
-            key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F("roles").bitor(ProjectKey.roles.store),
-                **({} if request.user.is_superuser else {"use_case": UseCase.USER.value}),
+            key = objects.user().get(
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -111,12 +109,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Update various settings for a client key.
         """
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
-            key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F("roles").bitor(ProjectKey.roles.store),
-                **({} if request.user.is_superuser else {"use_case": UseCase.USER.value}),
+            key = objects.get(
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -192,12 +188,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Delete a client key for a given project.
         """
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
-            key = ProjectKey.objects.get(
-                project=project,
-                public_key=key_id,
-                roles=F("roles").bitor(ProjectKey.roles.store),
-                **({} if request.user.is_superuser else {"use_case": UseCase.USER.value}),
+            key = objects.get(
+                project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist

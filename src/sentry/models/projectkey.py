@@ -52,6 +52,10 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
+    def user(self):
+        """Return objects for the default use case"""
+        return self.get_queryset().filter(use_case=UseCase.USER.value)
+
 
 class UseCase(enum.Enum):
     # A user-visible project key.
@@ -99,13 +103,16 @@ class ProjectKey(Model):
 
     objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
+        # store projectkeys in memcached for longer than other models,
+        # specifically to make the relay_projectconfig endpoint faster.
+        cache_ttl=60 * 30,
     )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     use_case = models.CharField(
         max_length=32,
-        choices={v.value: v.value for v in UseCase},
+        choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
     )
 

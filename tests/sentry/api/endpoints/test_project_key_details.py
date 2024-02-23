@@ -8,6 +8,10 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class UpdateProjectKeyTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=False)
+
     def test_simple(self):
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]
@@ -288,9 +292,13 @@ class UpdateProjectKeyTest(APITestCase):
 
 @region_silo_test
 class DeleteProjectKeyTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user(is_superuser=False)
+
     def test_simple(self):
         project = self.create_project()
-        self.login_as(user=self.user, superuser=False)
+        self.login_as(user=self.user)
         key = ProjectKey.objects.get_or_create(project=project)[0]
         url = reverse(
             "sentry-api-0-project-key-details",
