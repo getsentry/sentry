@@ -40,7 +40,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
-logger = logging.getLogger("sentry.events")
+logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
@@ -253,6 +253,25 @@ def run_primary_grouping(
             grouping_config = get_grouping_config_dict_for_event_data(
                 job["event"].data.data, project
             )
+
+            # TODO: For new (non-reprocessed) events, we read the grouping config off the event
+            # rather than from the project. But that grouping config is put there by Relay after
+            # looking it up on the project. Are these ever not the same? If we don't ever see this
+            # log, after some period of time we could probably just decide to always follow the
+            # behavior from the reprocessing branch above. If we do that, we should decide if we
+            # also want to stop adding the config in Relay.
+            # See https://github.com/getsentry/sentry/pull/65116.
+            config_from_relay = grouping_config["id"]
+            config_from_project = project.get_option("sentry:grouping_config")
+            if config_from_relay != config_from_project:
+                logger.info(
+                    "Event grouping config different from project grouping config",
+                    extra={
+                        "project": project.id,
+                        "relay_config": config_from_relay,
+                        "project_config": config_from_project,
+                    },
+                )
 
     with (
         sentry_sdk.start_span(
