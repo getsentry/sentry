@@ -61,6 +61,7 @@ export function useFocusArea({
 }: UseFocusAreaProps) {
   const hasFocusArea = selection && selection.widgetIndex === widgetIndex;
   const chartRef = useRef<ReactEchartsRef>(null);
+  const chartElement = chartRef.current?.ele;
   const isDrawingRef = useRef(false);
 
   const theme = useTheme();
@@ -81,7 +82,6 @@ export function useFocusArea({
   }, [chartRef, hasFocusArea, isDisabled, onDraw]);
 
   useEffect(() => {
-    const chartElement = chartRef.current?.ele;
     const handleMouseDown = () => {
       isDrawingRef.current = true;
       startBrush();
@@ -92,7 +92,6 @@ export function useFocusArea({
     const handleMouseUp = () => {
       isDrawingRef.current = false;
     };
-
     chartElement?.addEventListener('mousedown', handleMouseDown, {capture: true});
     window.addEventListener('mouseup', handleMouseUp);
 
@@ -100,7 +99,7 @@ export function useFocusArea({
       chartElement?.removeEventListener('mousedown', handleMouseDown, {capture: true});
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [chartRef, startBrush]);
+  }, [chartElement, startBrush]);
 
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {

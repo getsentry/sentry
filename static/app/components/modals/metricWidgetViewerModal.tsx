@@ -167,6 +167,7 @@ function MetricWidgetViewerModal({
             queries={metricWidgetQueries}
             displayType={toMetricDisplayType(widget.displayType)}
             filters={selection}
+            focusAreaProps={{}}
             onChange={(_, data) => {
               handleChange(data as MetricQueryWidgetParams, 0);
             }}
