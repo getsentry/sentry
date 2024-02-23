@@ -595,7 +595,10 @@ def should_use_on_demand_metrics(
     # This helps us control which functions are allowed to use the new spec version.
     if function in OPS_REQUIRE_FEAT_FLAG:
         if not organization:
-            raise ValueError(f"Organization is required for function {function}")
+            sentry_sdk.capture_message(
+                f"Organization is required for {function} on-demand metrics."
+            )
+            return False
         feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
         if not features.has(feat_flag, organization):
             return False
