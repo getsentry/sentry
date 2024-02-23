@@ -2911,7 +2911,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             assert len(metrics_query.select) == 1
             assert metrics_query.select[0].op == "on_demand_user_misery"
             assert metrics_query.where
-            assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
+            assert metrics_query.where[0].lhs.name == "query_hash"
             # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
             assert metrics_query.where[0].rhs == "f9a20ff3"
             assert metrics_query.where[0].rhs == spec.query_hash
