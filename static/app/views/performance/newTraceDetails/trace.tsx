@@ -280,6 +280,7 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow Autogrouped"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -356,6 +357,7 @@ function RenderRow(props: {
   if (isTransactionNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -436,6 +438,7 @@ function RenderRow(props: {
   if (isSpanNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -521,6 +524,7 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -579,6 +583,7 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -648,6 +653,7 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -992,8 +998,7 @@ function TraceBar(props: TraceBarProps) {
 const TraceStylingWrapper = styled('div')`
   overflow: hidden;
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0;
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
 
   @keyframes show {
