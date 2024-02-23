@@ -2984,22 +2984,22 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-"@spotlightjs/overlay@1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.6.0.tgz#b6be228c22e5159b7a0b9c8bfb6ae2b0443743a3"
-  integrity sha512-8QfE8LnpWtsQHGXutuJev8kpfw7tovtkEiLWurT9sMK6t78G00erAc+h3XfI9VIV1tMJxx+FaiG+n5jQs7wVHw==
+"@spotlightjs/overlay@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.7.0.tgz#5d242815fe135153b2255d5266b4823832d1e141"
+  integrity sha512-WkJAByFCOzFRXcd4Z1YVTIhm0CVb9rjr1xwpQWZXFjCwyTHGqPa4wBIRQTgi49AiTf3lPr2TbXEltO36O4Um5w==
 
 "@spotlightjs/sidecar@1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.4.0.tgz#8cbd7b620e718723a9507c5b7975d7d379685cdd"
   integrity sha512-onj/phrNtDI8a79zc8jfxJ5BITQk5klO4xSoQXxiYeQWTZcegVeO8VftOVfWPBnMY/axnh+ltxJm/cHaV5SP6Q==
 
-"@spotlightjs/spotlight@^1.2.12":
-  version "1.2.12"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.2.12.tgz#88a24a592c06a36fe82c87f28f6fb45deed1d686"
-  integrity sha512-FHXsKLOatoyG7fKwsxMYPspkS9h/wEIli02GiA98Hg0UqHWZ5UV7xFzlUqaBmr6hbPLnQoc7fcFIN0ATgVJ9ng==
+"@spotlightjs/spotlight@^1.2.13":
+  version "1.2.13"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.2.13.tgz#b63cf4bcc6f41931322d072eaba92263d06702d5"
+  integrity sha512-gxz4Y9EVTdtpV+P/gDmj3MoJQyGcWNXPEN5ouvtUTTyzBSh29Km9Geh6rnsdSuy84yPhs2SOBfiBAhbXLZf9xQ==
   dependencies:
-    "@spotlightjs/overlay" "1.6.0"
+    "@spotlightjs/overlay" "1.7.0"
     "@spotlightjs/sidecar" "1.4.0"
 
 "@styled/typescript-styled-plugin@^1.0.1":
