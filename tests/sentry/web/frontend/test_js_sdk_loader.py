@@ -127,7 +127,10 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/7.37.0/bundle.tracing.replay.min.js" in resp.content
 
-    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.1.0", "7.1.0", "7.0.1", "6.1.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file",
+        return_value=["8.1.0", "7.1.0", "7.0.1", "6.1.0"],
+    )
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
     )
@@ -140,7 +143,10 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/7.1.0/bundle.tracing.replay.min.js" in resp.content
 
-    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["9.1.0", "8.1.0", "6.1.0", "5.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file",
+        return_value=["9.1.0", "8.1.0", "6.1.0", "5.0.0"],
+    )
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
     )
@@ -153,7 +159,10 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/6.1.0/bundle.min.js" in resp.content
 
-    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.1.0", "8.0.0", "8", "8.0.0-alpha.0", "7.100.0", "6.1.0", "5.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file",
+        return_value=["8.1.0", "8.0.0", "8", "8.0.0-alpha.0", "7.100.0", "6.1.0", "5.0.0"],
+    )
     @mock.patch(
         "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
     )
