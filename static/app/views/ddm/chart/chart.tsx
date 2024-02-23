@@ -9,9 +9,13 @@ import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
+import {
+  defaultFormatAxisLabel,
+  getFormatter,
+} from 'sentry/components/charts/components/tooltip';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {type DateTimeObject, isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -23,12 +27,6 @@ import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/type
 import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
-
-import {
-  defaultFormatAxisLabel,
-  getFormatter,
-} from '../../../components/charts/components/tooltip';
-import {isChartHovered} from '../../../components/charts/utils';
 
 export const MAIN_X_AXIS_ID = 'xAxis';
 export const MAIN_Y_AXIS_ID = 'yAxis';
