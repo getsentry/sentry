@@ -7,6 +7,7 @@ import {generateQueryWithTag} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const MAX_TREE_DEPTH = 4;
 interface TagTree {
   [key: string]: TagTreeContent;
 }
@@ -24,13 +25,19 @@ function addToTagTree(
   meta: Record<any, any>,
   originalTag: EventTag
 ): TagTree {
-  const splitIndex = tag.key.indexOf('.');
-  // No need to split this key
-  if (splitIndex === -1) {
+  const branchMatches = tag.key.match(/\./g) ?? [];
+
+  const hasInvalidBranchCount =
+    branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
+  const hasInvalidBranchSequence = (tag.key.match(/\.{2,}/g) ?? []).length > 0;
+
+  // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
+  if (hasInvalidBranchCount || hasInvalidBranchSequence) {
     tree[tag.key] = {value: tag.value, subtree: {}, meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
+  const splitIndex = tag.key.indexOf('.'); // 6
   const trunk = tag.key.slice(0, splitIndex); // 'device'
   const branch = tag.key.slice(splitIndex + 1); // 'model.version'
 
