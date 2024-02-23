@@ -6,6 +6,8 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
@@ -286,9 +288,50 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/vue]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/vue";`,
+                dsn: params.dsn,
+              }),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
