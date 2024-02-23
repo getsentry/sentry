@@ -17,7 +17,7 @@ import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/ddm/widget';
+import type {Series} from 'sentry/views/ddm/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
