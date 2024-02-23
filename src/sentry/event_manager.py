@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import OperationalError, connection, router, transaction
-from django.db.models import Func
+from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
@@ -1889,6 +1889,62 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
         short_id=short_id,
         **group_creation_kwargs,
     )
+
+
+def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
+    """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
+
+    error_message = err.args[0]
+
+    if not error_message.startswith("UniqueViolation"):
+        return False
+
+    for substring in [
+        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+    ]:
+        if substring in error_message:
+            return True
+
+    return False
+
+
+def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:
+    """
+    Sometimes, for reasons unknown, a project's `Counter` value falls behind its latest group `short_id` value.
+    When that happens, that incorrect counter value leads us to try to create groups with `short_id`s which
+    are already taken.
+
+    This handles that case by updating the counter's value to the latest group `short_id`, and then returns
+    the new value.
+    """
+    new_short_id = current_short_id
+
+    # Ordinarily running max on this many rows would be prohibitively expensive, but a) this is
+    # a very rare case (< 20 ever that we know of), and b) project and short id are indexed
+    # together in order to enforce the unique constraint which got us here in the first place,
+    # so it's faster than it otherwise might be. We can time it just in case, though.
+    with metrics.timer("stuck_project.max_short_id_query"):
+        max_short_id_for_project = Group.objects.filter(project_id=project.id).aggregate(
+            Max("short_id")
+        )["short_id__max"]
+
+    # Add 1 because we're trying to mimic a value which would already have been incremented
+    correct_value = max_short_id_for_project + 1
+
+    if current_short_id < correct_value:
+        difference = correct_value - current_short_id
+        # `_get_next_short_id` corrects the `Counter` value before it returns the new short_id
+        new_short_id = _get_next_short_id(project, delta=difference)
+
+        logger.info(
+            "Fixed stuck counter value.", extra={"project": project.id, "difference": difference}
+        )
+        metrics.incr(
+            "stuck_project.fixed_counter", tags={"difference": difference}, sample_rate=1.0
+        )
+
+    return new_short_id
 
 
 def _get_next_short_id(project: Project, delta: int = 1) -> int:
