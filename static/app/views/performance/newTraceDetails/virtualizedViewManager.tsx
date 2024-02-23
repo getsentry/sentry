@@ -326,8 +326,6 @@ export class VirtualizedViewManager {
           : innerMostNode;
     }
 
-    // Scroll to half row so as to indicate other child/parent links
-
     if (innerMostNode) {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -431,6 +429,8 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
+    // Keep parent reference as we traverse the tree so that we can only
+    // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
     const scrollToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
@@ -442,6 +442,7 @@ export class VirtualizedViewManager {
         return null;
       }
 
+      // Reassing the parent to the current node
       parent = current;
 
       if (isTransactionNode(current)) {
@@ -464,6 +465,8 @@ export class VirtualizedViewManager {
         return scrollToRow();
       }
 
+      // We are at the last path segment (the node that the user clicked on)
+      // and we should scroll the view to this node.
       const index = tree.list.findIndex(node => node === current);
       if (index === -1) {
         throw new Error("Couldn't find node in list");

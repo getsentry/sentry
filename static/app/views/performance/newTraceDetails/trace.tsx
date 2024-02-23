@@ -57,6 +57,9 @@ function Trace({trace, trace_id}: TraceProps) {
   const location = useLocation();
   const viewManager = useRef<VirtualizedViewManager | null>(null);
 
+  const [clickedNode, setClickedNode] =
+    useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
+
   const [_rerender, setRender] = useState(0);
 
   const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
@@ -87,16 +90,16 @@ function Trace({trace, trace_id}: TraceProps) {
     ) {
       return;
     }
+
     viewManager.current
       .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
         api,
         organization,
       })
-      .then(node => {
+      .then(_maybeNode => {
+        setClickedNode(_maybeNode);
+        viewManager.current?.onScrollEndOutOfBoundsCheck();
         scrollQueue.current = null;
-        if (node && viewManager.current) {
-          viewManager.current.onScrollEndOutOfBoundsCheck();
-        }
       });
   }, [api, organization, trace, trace_id]);
 
@@ -212,6 +215,7 @@ function Trace({trace, trace_id}: TraceProps) {
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
                       viewManager={viewManager.current!}
+                      clickedNode={clickedNode}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
                       onRowClick={onRowClick}
@@ -252,6 +256,7 @@ const TraceDivider = styled('div')`
 `;
 
 function RenderRow(props: {
+  clickedNode: TraceTreeNode<TraceTree.NodeValue> | null;
   index: number;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;

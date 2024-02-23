@@ -1011,7 +1011,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return children;
   }
 
-  // Returns the path required to reach the node from the root.
+  // Returns the min path required to reach the node from the root.
+  // @TODO: skip nodes that do not require fetching
   get path(): TraceTree.NodePath[] {
     const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [this];
     let current: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
