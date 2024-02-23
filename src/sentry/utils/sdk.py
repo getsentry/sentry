@@ -392,7 +392,9 @@ def configure_sdk():
 
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
-            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if (sentry_saas_transport or experimental_transport) and options.get(
+                "store.use-relay-dsn-sample-rate"
+            ) == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -401,15 +403,21 @@ def configure_sdk():
                     relay_envelope.items = envelope.items.copy()
                     args = (relay_envelope, *args_list[1:])
 
-                if is_current_event_safe():
-                    metrics.incr("internal.captured.events.relay")
-                    getattr(sentry_saas_transport, method_name)(*args, **kwargs)
-                else:
-                    metrics.incr(
-                        "internal.uncaptured.events.relay",
-                        skip_internal=False,
-                        tags={"reason": "unsafe"},
-                    )
+                if sentry_saas_transport:
+                    if is_current_event_safe():
+                        metrics.incr("internal.captured.events.relay")
+                        getattr(sentry_saas_transport, method_name)(*args, **kwargs)
+                    else:
+                        metrics.incr(
+                            "internal.uncaptured.events.relay",
+                            skip_internal=False,
+                            tags={"reason": "unsafe"},
+                        )
+
+                if experimental_transport:
+                    if is_current_event_safe():
+                        if in_random_rollout("store.experimental-dsn-double-write.sample-rate"):
+                            getattr(experimental_transport, method_name)(*args, **kwargs)
 
         def record_lost_event(self, *args, **kwargs):
             # pass through client report recording to sentry_saas_transport
