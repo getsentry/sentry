@@ -186,7 +186,7 @@ def prepare_organization_report(
             key_errors = project_key_errors(
                 ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
             )
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
+            project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
             if key_errors:
                 project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
                 if ctx.organization.slug == "sentry":

@@ -1096,9 +1096,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-daily-organization-reports": {
         "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
         "schedule": crontab(
-            day_of_week="mon-fri",
             minute=0,
             hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1503,7 +1503,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable daily summary
-    "organizations:daily-summary": True,
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards

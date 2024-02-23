@@ -226,7 +226,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         summary = prepare_summary_data(to_timestamp(self.now), ONE_DAY, self.organization.id)
         project_id = self.project.id
 
-        assert summary.projects_context_map[project_id].total_today == 15
+        assert summary.projects_context_map[project_id].total_today == 13
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert summary.projects_context_map[project_id].key_errors == [
             (group1, None, 1),

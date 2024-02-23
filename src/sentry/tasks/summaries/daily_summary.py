@@ -41,7 +41,7 @@ HOUR_TO_SEND_REPORT = 16
 
 # The entry point. This task is scheduled to run every day at 4pm PST.
 @instrumented_task(
-    name="sentry.tasks.daily_summary.schedule_organizations",
+    name="sentry.tasks.summaries.daily_summary.schedule_organizations",
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
@@ -94,11 +94,11 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
 
             if any(time_to_send_timezones):
                 # Create a celery task per timezone
-                prepare_summary_data(timestamp, duration, organization.id)
+                prepare_summary_data.delay(timestamp, duration, organization.id)
 
 
 @instrumented_task(
-    name="sentry.tasks.daily_summary.prepare_summary_data",
+    name="sentry.tasks.summaries.daily_summary.prepare_summary_data",
     queue="reports.prepare",
     max_retries=5,
     acks_late=True,
