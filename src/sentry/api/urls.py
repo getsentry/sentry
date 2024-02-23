@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.bundle_analysis import BundleAnalysisEndpoint
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.group_similar_issues_embeddings import (
     GroupSimilarIssuesEmbeddingsEndpoint,
@@ -2078,6 +2079,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
         ProjectDetailsEndpoint.as_view(),
         name="sentry-api-0-project-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/bundle-stats/",
+        BundleAnalysisEndpoint.as_view(),
+        name="sentry-api-0-organization-bundle-size",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
