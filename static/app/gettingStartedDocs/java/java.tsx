@@ -12,7 +12,7 @@ import type {
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
