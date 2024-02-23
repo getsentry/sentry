@@ -1878,7 +1878,10 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
-        priority = _get_priority_for_group(severity, kwargs)
+        priority = kwargs.get("priority", None)
+        if not priority:
+            priority = _get_priority_for_group(severity, kwargs)
+
         kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 
