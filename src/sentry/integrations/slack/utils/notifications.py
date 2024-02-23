@@ -42,14 +42,15 @@ def send_incident_alert_notification(
 
     organization = incident.organization
     chart_url = None
-    try:
-        chart_url = build_metric_alert_chart(
-            organization=organization,
-            alert_rule=incident.alert_rule,
-            selected_incident=incident,
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=organization,
+                alert_rule=incident.alert_rule,
+                selected_incident=incident,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
@@ -67,8 +68,6 @@ def send_incident_alert_notification(
         "unfurl_links": False,
         "unfurl_media": False,
     }
-
-    client = SlackClient(integration_id=integration.id)
 
     repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     parent_notification_message = None
@@ -100,6 +99,7 @@ def send_incident_alert_notification(
             # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
             payload["thread_ts"] = parent_notification_message.message_identifier
 
+    client = SlackClient(integration_id=integration.id)
     success = False
     try:
         response = client.post("/chat.postMessage", data=payload, timeout=5)
