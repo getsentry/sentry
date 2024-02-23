@@ -51,7 +51,7 @@ def query_replays_collection(
     search_filters: Sequence[SearchFilter],
     organization: Organization | None = None,
     actor: Any | None = None,
-) -> dict:
+):
     """Query aggregated replay collection."""
     paginators = make_pagination_values(limit, offset)
 
