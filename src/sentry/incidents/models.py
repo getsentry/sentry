@@ -704,6 +704,11 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
+class AlertRuleTriggerActionStatus(Enum):
+    ACTIVE = 0
+    SCHEDULED_FOR_DELETION = 1
+
+
 @region_silo_only_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -740,6 +745,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
+    status = models.SmallIntegerField(default=AlertRuleTriggerActionStatus.ACTIVE.value)
 
     class Meta:
         app_label = "sentry"
