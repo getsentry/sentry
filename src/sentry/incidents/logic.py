@@ -903,7 +903,6 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
@@ -911,6 +910,8 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+
+        alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
