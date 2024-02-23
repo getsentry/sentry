@@ -192,6 +192,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           options={mriOptions}
           value={metricsQuery.mri}
           onChange={handleMRIChange}
+          shouldUseVirtualFocus
         />
         <FlexBlock>
           <OpSelect

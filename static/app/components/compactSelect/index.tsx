@@ -68,6 +68,7 @@ function CompactSelect<Value extends React.Key>({
   disabled,
   emptyMessage,
   size = 'md',
+  shouldUseVirtualFocus = false,
   closeOnSelect,
   triggerProps,
   ...controlProps
@@ -78,10 +79,34 @@ function CompactSelect<Value extends React.Key>({
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
   const listProps = useMemo(() => {
     if (multiple) {
-      return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
+      return {
+        multiple,
+        value,
+        defaultValue,
+        onChange,
+        closeOnSelect,
+        grid,
+        shouldUseVirtualFocus,
+      };
     }
-    return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
-  }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
+    return {
+      multiple,
+      value,
+      defaultValue,
+      onChange,
+      closeOnSelect,
+      grid,
+      shouldUseVirtualFocus,
+    };
+  }, [
+    multiple,
+    value,
+    defaultValue,
+    onChange,
+    closeOnSelect,
+    grid,
+    shouldUseVirtualFocus,
+  ]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
