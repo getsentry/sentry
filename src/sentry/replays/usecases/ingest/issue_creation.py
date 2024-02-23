@@ -98,8 +98,8 @@ def report_rage_click_issue_with_replay_event(
     metrics.incr("replay.rage_click_issue_creation_with_replay_event")
 
     # Seconds since epoch is UTC.
-    timestamp = datetime.datetime.fromtimestamp(timestamp)
-    timestamp = timestamp.replace(tzinfo=datetime.UTC)
+    date = datetime.datetime.fromtimestamp(timestamp)
+    timestamp_utc = date.replace(tzinfo=datetime.UTC)
 
     selector = selector
     clicked_element = selector.split(" > ")[-1]
@@ -113,7 +113,7 @@ def report_rage_click_issue_with_replay_event(
         platform="javascript",
         project_id=project_id,
         subtitle=selector,
-        timestamp=timestamp,
+        timestamp=timestamp_utc,
         title=RAGE_CLICK_TITLE,
         evidence_data={
             # RRWeb node data of clicked element.
