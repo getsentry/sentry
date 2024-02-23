@@ -45,9 +45,6 @@ class OrganizationReportContext:
         ] = {}  # { project_id: ProjectContext }
 
         self.project_ownership = {}  # { user_id: set<project_id> }
-        for project in organization.project_set.all():
-            self.projects_context_map[project.id] = ProjectContext(project)
-
         self.daily = daily
         for project in organization.project_set.all():
             if self.daily:
