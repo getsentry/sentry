@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
@@ -17,7 +17,6 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   formatMetricsFormula,
   getDefaultMetricDisplayType,
@@ -51,6 +50,7 @@ import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSample
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
 import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
@@ -292,18 +292,14 @@ const MetricWidgetBody = memo(
       intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 
-    const chartRef = useRef<ReactEchartsRef>(null);
+    const {chartRef, setHoveredSeries} = useSeriesHover();
 
-    const setHoveredSeries = useCallback((seriesId: string) => {
-      if (!chartRef.current) {
-        return;
-      }
-      const echartsInstance = chartRef.current.getEchartsInstance();
-      echartsInstance.dispatchAction({
-        type: 'highlight',
-        seriesId: [seriesId, getIngestionSeriesId(seriesId)],
-      });
-    }, []);
+    const handleHoverSeries = useCallback(
+      (seriesId: string) => {
+        setHoveredSeries([seriesId, getIngestionSeriesId(seriesId)]);
+      },
+      [setHoveredSeries]
+    );
 
     const chartSeries = useMemo(() => {
       return timeseriesData
@@ -422,7 +418,7 @@ const MetricWidgetBody = memo(
           sort={tableSort}
           onRowClick={setSeriesVisibility}
           onColorDotClick={toggleSeriesVisibility}
-          setHoveredSeries={setHoveredSeries}
+          onRowHover={handleHoverSeries}
         />
       </StyledMetricWidgetBody>
     );
