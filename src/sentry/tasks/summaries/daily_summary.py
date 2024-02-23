@@ -17,7 +17,7 @@ from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
-from sentry.tasks.summaries.weekly_reports import (
+from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     fetch_key_error_groups,
