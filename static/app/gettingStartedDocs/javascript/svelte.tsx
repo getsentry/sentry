@@ -5,12 +5,16 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+import {
+  crashReportCallout,
+  tracePropagationMessage,
+} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -27,6 +31,14 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
         Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "light",
+}),`
       : ''
   }${
     params.isReplaySelected
@@ -207,8 +219,49 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/svelte]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };

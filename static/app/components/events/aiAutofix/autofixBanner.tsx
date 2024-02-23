@@ -5,8 +5,9 @@ import bannerBackground from 'sentry-images/spot/ai-suggestion-banner-background
 import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import {AutofixContextModal} from 'sentry/components/events/aiAutofix/autofixContextModal';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -14,13 +15,14 @@ import {space} from 'sentry/styles/space';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 type Props = {
-  additionalContext: string;
-  onButtonClick: () => void;
-  setAdditionalContext: (value: string) => void;
+  triggerAutofix: (value: string) => void;
 };
 
-export function Banner({onButtonClick, additionalContext, setAdditionalContext}: Props) {
+export function AutofixBanner({triggerAutofix}: Props) {
   const isSentryEmployee = useIsSentryEmployee();
+  const onClickAdditionalContext = () => {
+    openModal(deps => <AutofixContextModal {...deps} triggerAutofix={triggerAutofix} />);
+  };
 
   return (
     <Wrapper>
@@ -35,21 +37,12 @@ export function Banner({onButtonClick, additionalContext, setAdditionalContext}:
           <SubTitle>{t('You might get lucky, but then again, maybe not...')}</SubTitle>
         </div>
         <ContextArea>
-          <Button onClick={onButtonClick} size="sm">
+          <Button onClick={() => triggerAutofix('')} size="sm">
             {t('Gimme Fix')}
           </Button>
-          <Input
-            aria-label={t('Provide additional context (optional)')}
-            value={additionalContext}
-            placeholder={t('Add context (optional)...')}
-            onChange={e => setAdditionalContext(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                onButtonClick();
-              }
-            }}
-            size="sm"
-          />
+          <Button onClick={onClickAdditionalContext} size="sm">
+            {t('Start With Some Context')}
+          </Button>
         </ContextArea>
         {isSentryEmployee && (
           <Fragment>
@@ -94,9 +87,8 @@ const SubTitle = styled('p')`
 `;
 
 const ContextArea = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(1)};
-  grid-template-columns: auto 1fr;
   margin-top: ${space(1)};
 `;
 

@@ -268,11 +268,13 @@ class CustomSamplesListExecutor(SamplesListExecutor):
     def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
+        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
+
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
-            query=self.query,
+            query=query,
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
@@ -280,8 +282,6 @@ class CustomSamplesListExecutor(SamplesListExecutor):
             # sample_rate=options.get("metrics.sample-list.sample-rate"),
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
-
-        builder.add_conditions([Condition(builder.column("metric"), Op.EQ, self.mri)])
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
