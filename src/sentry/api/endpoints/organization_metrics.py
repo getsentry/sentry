@@ -1,3 +1,8 @@
+from collections.abc import Sequence
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,9 +20,12 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
@@ -25,7 +33,9 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
+    TooManyCodeLocationsRequestedError,
 )
+from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
@@ -44,6 +54,15 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import get_rollup_from_request, parse_stats_period
+
+
+class MetricMetaType(Enum):
+    CODE_LOCATIONS = "codeLocations"
+
+
+METRIC_META_TYPE_SERIALIZER = {
+    MetricMetaType.CODE_LOCATIONS.value: MetricCodeLocationsSerializer(),
+}
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -492,3 +511,67 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
                 standard_meta=True,
             ),
         )
+
+
+@region_silo_endpoint
+class OrganizationMetricsMetadataEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """
+    Get metadata of a metric for a given set of projects in a time interval.
+    The current metadata supported for metrics is:
+    - Code locations -> these are the code location in which the metric was emitted.
+    """
+
+    def _extract_metric_meta_types(self, request: Request) -> Sequence[MetricMetaType]:
+        meta_types = []
+
+        for meta_type in MetricMetaType:
+            if request.GET.get(meta_type.value) == "true":
+                meta_types.append(meta_type)
+
+        return meta_types
+
+    def _get_metric_code_locations(
+        self,
+        request: Request,
+        organization: Organization,
+        projects: Sequence[Project],
+        start: datetime,
+        end: datetime,
+    ) -> Sequence[MetricCodeLocations]:
+        return get_metric_code_locations(
+            metric_mris=[request.GET["metric"]],
+            start=start,
+            end=end,
+            organization=organization,
+            projects=projects,
+        )
+
+    def get(self, request: Request, organization) -> Response:
+        response = {}
+
+        start, end = get_date_range_from_params(request.GET)
+        projects = self.get_projects(request, organization)
+
+        for meta_type in self._extract_metric_meta_types(request):
+            data: Any = {}
+
+            try:
+                if meta_type == MetricMetaType.CODE_LOCATIONS:
+                    data = self._get_metric_code_locations(
+                        request, organization, projects, start, end
+                    )
+            except LatestReleaseNotFoundError as e:
+                return Response(status=404, data={"detail": str(e)})
+            except TooManyCodeLocationsRequestedError as e:
+                return Response(status=400, data={"detail": str(e)})
+
+            response[meta_type.value] = serialize(
+                data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]
+            )
+
+        return Response(response, status=200)
