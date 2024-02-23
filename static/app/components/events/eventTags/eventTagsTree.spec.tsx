@@ -1,4 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('EventTagsTree', function () {
   const {organization, project, router} = initializeOrg();
-  const defaultTags = [
+  const tags = [
     {key: 'tree', value: 'maple'},
     {key: 'tree.branch', value: 'jagged'},
     {key: 'tree.branch.leaf', value: 'red'},
@@ -17,6 +18,7 @@ describe('EventTagsTree', function () {
     {key: 'magic.is', value: 'real'},
     {key: 'magic.is.probably.not', value: 'spells'},
     {key: 'double..dot', value: 'works'},
+    {key: 'im.a.bit.too.nested.to.display', value: 'bird'},
   ];
   const pillOnlyTags = [
     'tree.branch',
@@ -27,7 +29,7 @@ describe('EventTagsTree', function () {
     'magic.is',
     'magic.is.probably.not',
   ];
-  const treeTrunks = [
+  const treeBranchTags = [
     'tree',
     'branch',
     'leaf',
@@ -39,10 +41,10 @@ describe('EventTagsTree', function () {
     'is',
     'probably',
     'not',
-    'double',
-    'dot',
+    'double..dot',
+    'im.a.bit.too.nested.to.display',
   ];
-  const event = EventFixture({tags: defaultTags});
+  const event = EventFixture({tags});
 
   it('avoids tag tree without query param', function () {
     render(
@@ -54,7 +56,7 @@ describe('EventTagsTree', function () {
       />,
       {organization}
     );
-    defaultTags.forEach(({key: fullTagKey, value}) => {
+    tags.forEach(({key: fullTagKey, value}) => {
       expect(screen.getByText(fullTagKey)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
     });
@@ -71,7 +73,7 @@ describe('EventTagsTree', function () {
       {organization}
     );
 
-    defaultTags.forEach(({value}) => {
+    tags.forEach(({value}) => {
       expect(screen.getByText(value)).toBeInTheDocument();
     });
 
@@ -79,7 +81,32 @@ describe('EventTagsTree', function () {
       expect(screen.queryByText(tag)).not.toBeInTheDocument();
     });
 
-    treeTrunks.forEach(tag => {
+    treeBranchTags.forEach(tag => {
+      expect(screen.getByText(tag)).toBeInTheDocument();
+    });
+  });
+
+  it("renders tag tree with the 'event-tags-tree-ui' feature", function () {
+    const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
+    render(
+      <EventTags
+        organization={featuredOrganization}
+        projectSlug={project.slug}
+        location={router.location}
+        event={event}
+      />,
+      {organization: featuredOrganization}
+    );
+
+    tags.forEach(({value}) => {
+      expect(screen.getByText(value)).toBeInTheDocument();
+    });
+
+    pillOnlyTags.forEach(tag => {
+      expect(screen.queryByText(tag)).not.toBeInTheDocument();
+    });
+
+    treeBranchTags.forEach(tag => {
       expect(screen.getByText(tag)).toBeInTheDocument();
     });
   });

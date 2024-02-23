@@ -33,6 +33,9 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
     ? event.tags?.filter(tag => tag.key !== 'device.class')
     : event.tags;
 
+  const shouldDisplayTagTree =
+    location.query.tagsTree || organization.features.includes('event-tags-tree-ui');
+
   useEffect(() => {
     if (
       organization.features.includes('device-classification') &&
@@ -98,7 +101,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   const streamPath = `/organizations/${orgSlug}/issues/`;
   return (
     <StyledClippedBox clipHeight={150}>
-      {location.query.tagsTree ? (
+      {shouldDisplayTagTree ? (
         <EventTagsTree
           tags={tags}
           meta={meta}
