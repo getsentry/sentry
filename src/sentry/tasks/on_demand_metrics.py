@@ -12,7 +12,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
-    DashboardWidgetTypes,
+    TransactionWidgetType,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -127,7 +127,7 @@ def schedule_on_demand_check() -> None:
 
     for (widget_query_id,) in RangeQuerySetWrapper(
         DashboardWidgetQuery.objects.filter(
-            widget__widget_type=DashboardWidgetTypes.DISCOVER
+            widget__widget_type__in=TransactionWidgetType
         ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):

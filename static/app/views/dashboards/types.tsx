@@ -26,6 +26,8 @@ export enum WidgetType {
   ISSUE = 'issue',
   RELEASE = 'metrics', // TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
   METRICS = 'custom-metrics',
+  ERROR_EVENTS = 'errors',
+  TRANSACTIONS_MULTI = 'transactions', // Targets 'transaction' data, not limited to events, maps to either 'Transactions' or 'PerformanceMetrics'.
 }
 
 // These only pertain to on-demand warnings at this point in time

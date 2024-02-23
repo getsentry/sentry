@@ -19,7 +19,7 @@ from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
-    DashboardWidgetTypes,
+    TransactionWidgetType,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -208,7 +208,7 @@ def _get_widget_metric_specs(
     widget_queries = (
         DashboardWidgetQuery.objects.filter(
             widget__dashboard__organization=project.organization,
-            widget__widget_type=DashboardWidgetTypes.DISCOVER,
+            widget__widget_type__in=TransactionWidgetType,
         )
         .prefetch_related("dashboardwidgetqueryondemand_set", "widget")
         .order_by("-widget__dashboard__last_visited", "widget__order")

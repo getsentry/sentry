@@ -20,6 +20,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
+    DiscoverFullFallbackWidgetType,
 )
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder import UnresolvedQuery
@@ -326,7 +327,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     has_query_error = True
                 elif (
                     "widget_type" not in data
-                    or data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    or data.get("widget_type") in DiscoverFullFallbackWidgetType
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True

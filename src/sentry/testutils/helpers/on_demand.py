@@ -31,7 +31,7 @@ def create_widget(
     widget = widget or DashboardWidget.objects.create(
         dashboard=dashboard,
         order=order,
-        widget_type=DashboardWidgetTypes.DISCOVER,
+        widget_type=DashboardWidgetTypes.TRANSACTION_MULTI,
         display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         discover_widget_split=discover_widget_split,
     )
