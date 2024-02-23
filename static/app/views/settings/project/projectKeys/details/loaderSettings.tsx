@@ -41,8 +41,8 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     ? optimisticState
     : {
         browserSdkVersion:
-          // "latest" was an option that we do not users to select anymore. It will be phased out when version v8 of
-          // the SDK is released, meaning we want to map the backends response to v7 when it responds with "latest".
+          // "latest" was an option that we don't let users select anymore. It will be phased out when version v8 of
+          // the SDK is released, meaning we want to map the backend's response to v7 when it responds with "latest".
           // "7.x" was the "latest" version when "latest" was phased out.
           data.browserSdkVersion === 'latest' ? '7.x' : data.browserSdkVersion,
         hasDebug: data.dynamicSdkLoaderOptions.hasDebug,
