@@ -13,7 +13,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import OperationalError, connection, router, transaction
+from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
@@ -1873,11 +1873,42 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
 
     group_creation_kwargs["data"] = group_data
 
-    return Group.objects.create(
-        project=project,
-        short_id=short_id,
-        **group_creation_kwargs,
-    )
+    try:
+        with transaction.atomic(router.db_for_write(Group)):
+            # This is the 99.999% path. The rest of the function is all to handle a very rare and
+            # very confounding bug which keeps projects from creating new groups.
+            group = Group.objects.create(
+                project=project,
+                short_id=short_id,
+                **group_creation_kwargs,
+            )
+
+    # Attempt to handle The Mysterious Case of the Stuck Project Counter
+    except IntegrityError as err:
+        if not _is_stuck_counter_error(err, project, short_id):
+            raise
+
+        # Note: There is a potential race condition here, if two events simultaneously try to fix
+        # the counter. Our hunch is that the only effect of that would be to over-increment, which
+        # shouldn't cause any problems. Nonetheless, if we run into trouble with this workaround,
+        # that's one thing to further investigate.
+        new_short_id = _handle_stuck_project_counter(project, short_id)
+
+        # Now that we've theoretically unstuck the counter, try again to create the group
+        try:
+            with transaction.atomic(router.db_for_write(Group)):
+                group = Group.objects.create(
+                    project=project,
+                    short_id=new_short_id,
+                    **group_creation_kwargs,
+                )
+
+        except Exception:
+            # Maybe the stuck counter was hiding some other error
+            logger.exception("Error after unsticking project counter")
+            raise
+
+    return group
 
 
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
