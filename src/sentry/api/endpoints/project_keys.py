@@ -51,7 +51,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         """
         Return a list of client keys bound to a project.
         """
-        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.user_objects
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         queryset = objects.filter(project=project, roles=F("roles").bitor(ProjectKey.roles.store))
         status = request.GET.get("status")
         if status == "active":

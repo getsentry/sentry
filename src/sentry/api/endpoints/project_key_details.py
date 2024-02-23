@@ -56,9 +56,9 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Return a client key bound to a project.
         """
-        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.user_objects
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
-            key = objects.get(
+            key = objects.user().get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
@@ -109,7 +109,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Update various settings for a client key.
         """
-        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.user_objects
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
             key = objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
@@ -188,7 +188,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         """
         Delete a client key for a given project.
         """
-        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.user_objects
+        objects = ProjectKey.objects if request.user.is_superuser else ProjectKey.objects.user()
         try:
             key = objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
