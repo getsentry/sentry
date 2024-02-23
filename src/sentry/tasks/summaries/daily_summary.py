@@ -72,11 +72,13 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
                 filter=dict(user_ids=user_ids, key="timezone")
             )
             # if a user has not set a timezone, default to UTC
-            users_without_tz = set(user_ids) - {uo.user_id for uo in users_with_tz}
+            users_without_tz = set(user_ids) - {
+                user_option.user_id for user_option in users_with_tz
+            }
             if users_with_tz:
                 users_by_tz["UTC"] = list(users_without_tz)
-            for uo in users_with_tz:
-                users_by_tz[uo.value].append(uo.user_id)
+            for user_option in users_with_tz:
+                users_by_tz[user_option.value].append(user_option.user_id)
             for tz in users_by_tz.keys():
                 # Create a celery task per timezone
                 prepare_summary_data(timestamp, duration, organization.id)
