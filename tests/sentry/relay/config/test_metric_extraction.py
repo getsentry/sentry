@@ -1848,26 +1848,26 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
         config = get_metric_extraction_config(default_project)
         assert config
 
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            config = get_metric_extraction_config(default_project)
-            process_widget_specs([widget_query.id])
-            assert config
-            assert [
-                next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
-                for spec in config["metrics"]
-            ] == [
-                "4b08d58c",
-                "da718f56",
-                "470072b4",
-                "6bc4f99b",
-                "e50094f0",
-                "0a272be4",
-            ]
+        config = get_metric_extraction_config(default_project)
+        process_widget_specs([widget_query.id])
+        assert config
+        assert [
+            next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
+            for spec in config["metrics"]
+        ] == [
+            "4b08d58c",
+            "da718f56",
+            "470072b4",
+            "6bc4f99b",
+            "e50094f0",
+            "0a272be4",
+        ]
 
         on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 1] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",
@@ -1878,6 +1878,7 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 2] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",
