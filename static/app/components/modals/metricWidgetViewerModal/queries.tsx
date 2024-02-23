@@ -38,7 +38,7 @@ export function Queries({metricWidgetQueries, handleChange, addQuery, removeQuer
         />
       ))}
       <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
-        Add query
+        {t('Add query')}
       </Button>
     </QueriesWrapper>
   );

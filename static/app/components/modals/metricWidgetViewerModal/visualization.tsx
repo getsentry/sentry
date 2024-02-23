@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -75,15 +73,14 @@ function useFocusedSeries({timeseriesData, queries, onChange}) {
     [focusedSeries, onChange]
   );
 
-  const clearFocusedSeries = useCallback(() => {
+  useEffect(() => {
     setFocusedSeries([]);
-  }, []);
+  }, [queries]);
 
   return {
     toggleSeriesVisibility,
     setSeriesVisibility,
     chartSeries,
-    clear: clearFocusedSeries,
   };
 }
 
@@ -127,16 +124,11 @@ export function MetricVisualization({queries, displayType}) {
 
   const {chartRef, setHoveredSeries, resetHoveredSeries} = useHoverSeries();
 
-  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility, clear} =
-    useFocusedSeries({
-      timeseriesData,
-      queries,
-      onChange: resetHoveredSeries,
-    });
-
-  useEffect(() => {
-    clear();
-  }, [queries, clear]);
+  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
+    timeseriesData,
+    queries,
+    onChange: resetHoveredSeries,
+  });
 
   if (!chartSeries || !timeseriesData || isError) {
     return (
@@ -148,16 +140,6 @@ export function MetricVisualization({queries, displayType}) {
           </Alert>
         )}
       </StyledMetricChartContainer>
-    );
-  }
-
-  if (timeseriesData?.data.length === 0) {
-    return (
-      <EmptyMessage
-        icon={<IconSearch size="xxl" />}
-        title={t('No results')}
-        description={t('No results found for the given query')}
-      />
     );
   }
 
