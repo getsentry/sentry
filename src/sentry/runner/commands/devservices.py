@@ -19,6 +19,8 @@ import click
 if TYPE_CHECKING:
     import docker
 
+CI = os.environ.get("CI") is not None
+
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
@@ -185,6 +187,10 @@ def devservices() -> None:
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    if CI:
+        click.echo("Assuming docker (CI).")
+        return
 
     if USE_DOCKER_DESKTOP:
         click.echo("Using docker desktop.")
