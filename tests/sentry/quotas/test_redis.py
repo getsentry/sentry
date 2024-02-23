@@ -86,7 +86,7 @@ class RedisQuotaTest(TestCase):
 
         # A negative quota means reject-all.
         self.organization.update_option("project-abuse-quota.error-limit", -1)
-        quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id is None
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -101,7 +101,7 @@ class RedisQuotaTest(TestCase):
         assert quotas[0].reason_code == "disabled"
 
         self.organization.update_option("project-abuse-quota.error-limit", 42)
-        quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -125,7 +125,7 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("global-abuse-quota.spans-metric-bucket-limit", 607)
         self.organization.update_option("global-abuse-quota.custom-metric-bucket-limit", 608)
         with self.feature("organizations:transaction-metrics-extraction"):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[1].id == "pati"
         assert quotas[1].scope == QuotaScope.PROJECT
@@ -207,7 +207,7 @@ class RedisQuotaTest(TestCase):
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.
         with self.options({"project-abuse-quota.error-limit": 3}):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].limit == 420
@@ -217,7 +217,7 @@ class RedisQuotaTest(TestCase):
         # The global option should kick in.
         self.organization.update_option("project-abuse-quota.error-limit", 0)
         with self.options({"project-abuse-quota.error-limit": 3}):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].limit == 30
@@ -228,7 +228,7 @@ class RedisQuotaTest(TestCase):
         # Let's update the deprecated global setting.
         # It should take precedence over both the new global option and its org override.
         with self.options({"getsentry.rate-limit.project-errors": 1}):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -246,7 +246,7 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("sentry:project-error-limit", 2)
         # Also, let's change the global abuse window.
         with self.options({"project-abuse-quota.window": 20}):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pae"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -269,7 +269,7 @@ class RedisQuotaTest(TestCase):
 
         self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         with self.feature({"organizations:transaction-metrics-extraction": False}):
-            quotas = self.quota.get_quotas(self.project)
+            quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "pati"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -304,7 +304,7 @@ class RedisQuotaTest(TestCase):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
         self.get_monitor_quota.return_value = (15, 60)
-        quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_project_quotas(self.project)
 
         assert quotas[0].id == "p"
         assert quotas[0].scope == QuotaScope.PROJECT
@@ -402,7 +402,7 @@ class RedisQuotaTest(TestCase):
         for _ in range(n):
             self.quota.is_rate_limited(self.project, timestamp=timestamp)
 
-        quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_project_quotas(self.project)
         all_quotas = quotas + [
             QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
             QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
@@ -529,7 +529,7 @@ class RedisQuotaTest(TestCase):
 
         self.quota.refund(self.project, timestamp=timestamp)
 
-        quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_project_quotas(self.project)
         all_quotas = quotas + [
             QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
             QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),

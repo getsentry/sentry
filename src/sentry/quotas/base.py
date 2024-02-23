@@ -27,6 +27,19 @@ class QuotaScope(IntEnum):
     def api_name(self):
         return self.name.lower()
 
+    # XXX: These reason codes are hardcoded in getsentry:
+    #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
+    #      Don't change it here. If it's changed in getsentry, it needs to be synced here.
+    def reason_code(self):
+        if self == QuotaScope.ORGANIZATION:
+            return "org_abuse_limit"
+        elif self == QuotaScope.PROJECT:
+            return "project_abuse_limit"
+        elif self == QuotaScope.GLOBAL:
+            return "global_abuse_limit"
+        else:
+            raise ValueError(f"Unsupported QuotaScope: {self}")
+
 
 @dataclass
 class AbuseQuota:
@@ -272,7 +285,7 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
-    def get_quotas(self, project, key=None, keys=None):
+    def get_project_quotas(self, project, key=None, keys=None):
         """
         Returns a quotas for the given project and its organization.
 
@@ -380,133 +393,59 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_abuse_quotas(self, org):
+    def get_project_abuse_quota(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
-        global_abuse_window = options.get("project-abuse-quota.window")
+        abuse_window = options.get("project-abuse-quota.window")
 
-        abuse_quotas = [
-            AbuseQuota(
-                id="pae",
-                option="project-abuse-quota.error-limit",
-                compat_option_org="sentry:project-error-limit",
-                compat_option_sentry="getsentry.rate-limit.project-errors",
-                categories=DataCategory.error_categories(),
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="paa",
-                option="project-abuse-quota.attachment-limit",
-                categories=[DataCategory.ATTACHMENT],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="pas",
-                option="project-abuse-quota.session-limit",
-                categories=[DataCategory.SESSION],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="oam",
-                option="organization-abuse-quota.metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.ORGANIZATION,
-            ),
-            AbuseQuota(
-                id="gam",
-                option="global-abuse-quota.metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-            ),
-            AbuseQuota(
-                id="gams",
-                option="global-abuse-quota.sessions-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="sessions",
-            ),
-            AbuseQuota(
-                id="gamt",
-                option="global-abuse-quota.transactions-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="transactions",
-            ),
-            AbuseQuota(
-                id="gamp",
-                option="global-abuse-quota.spans-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="spans",
-            ),
-            AbuseQuota(
-                id="gamc",
-                option="global-abuse-quota.custom-metric-bucket-limit",
-                categories=[DataCategory.METRIC_BUCKET],
-                scope=QuotaScope.GLOBAL,
-                namespace="custom",
-            ),
-        ]
+        quota = AbuseQuota(
+            id="pati",
+            option="project-abuse-quota.transaction-limit",
+            compat_option_org="sentry:project-transaction-limit",
+            compat_option_sentry="getsentry.rate-limit.project-transactions",
+            categories=[index_data_category("transaction", org)],
+            scope=QuotaScope.PROJECT,
+        )
 
-        # XXX: These reason codes are hardcoded in getsentry:
-        #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
-        #      Don't change it here. If it's changed in getsentry, it needs to be synced here.
-        reason_codes = {
-            QuotaScope.ORGANIZATION: "org_abuse_limit",
-            QuotaScope.PROJECT: "project_abuse_limit",
-            QuotaScope.GLOBAL: "global_abuse_limit",
-        }
+        limit: int | None = 0
+        # compat options were previously present in getsentry
+        # for errors and transactions. The first one is the org
+        # option for overriding the second one (global option).
+        # For now, these deprecated ones take precedence over the new
+        # to preserve existing behavior.
+        if quota.compat_option_org:
+            limit = org.get_option(quota.compat_option_org)
+        if not limit and quota.compat_option_sentry:
+            limit = options.get(quota.compat_option_sentry)
 
-        for quota in abuse_quotas:
-            limit: int | None = 0
-            abuse_window = global_abuse_window
+        if not limit:
+            limit = org.get_option(quota.option)
+        if not limit:
+            limit = options.get(quota.option)
 
-            # compat options were previously present in getsentry
-            # for errors and transactions. The first one is the org
-            # option for overriding the second one (global option).
-            # For now, these deprecated ones take precedence over the new
-            # to preserve existing behavior.
-            if quota.compat_option_org:
-                limit = org.get_option(quota.compat_option_org)
-            if not limit and quota.compat_option_sentry:
-                limit = options.get(quota.compat_option_sentry)
+        limit = _limit_from_settings(limit)
+        if limit is None:
+            # Unlimited.
+            return None
 
-            if not limit:
-                limit = org.get_option(quota.option)
-            if not limit:
-                limit = options.get(quota.option)
+        # Negative limits in config mean a reject-all quota.
+        if limit < 0:
+            yield QuotaConfig(
+                scope=quota.scope,
+                categories=quota.categories,
+                limit=0,
+                reason_code="disabled",
+            )
 
-            limit = _limit_from_settings(limit)
-            if limit is None:
-                # Unlimited.
-                continue
-
-            # Negative limits in config mean a reject-all quota.
-            if limit < 0:
-                yield QuotaConfig(
-                    scope=quota.scope,
-                    categories=quota.categories,
-                    limit=0,
-                    reason_code="disabled",
-                )
-
-            else:
-                yield QuotaConfig(
-                    id=quota.id,
-                    limit=limit * abuse_window,
-                    scope=quota.scope,
-                    categories=quota.categories,
-                    window=abuse_window,
-                    reason_code=reason_codes[quota.scope],
-                    namespace=quota.namespace,
-                )
+        else:
+            yield QuotaConfig(
+                id=quota.id,
+                limit=limit * abuse_window,
+                scope=quota.scope,
+                categories=quota.categories,
+                window=abuse_window,
+                reason_code=QuotaScope.PROJECT.reason_code(),
+                namespace=quota.namespace,
+            )
 
     def get_monitor_quota(self, project):
         from sentry.monitors.rate_limit import get_project_monitor_quota
@@ -637,3 +576,100 @@ class Quota(Service):
         """
         Updates a monitor seat assignment's slug.
         """
+
+
+def get_global_abuse_quotas():
+    global_abuse_window = options.get("project-abuse-quota.window")
+
+    abuse_quotas = [
+        AbuseQuota(
+            id="pae",
+            option="project-abuse-quota.error-limit",
+            compat_option_org="sentry:project-error-limit",
+            compat_option_sentry="getsentry.rate-limit.project-errors",
+            categories=DataCategory.error_categories(),
+            scope=QuotaScope.PROJECT,
+        ),
+        AbuseQuota(
+            id="paa",
+            option="project-abuse-quota.attachment-limit",
+            categories=[DataCategory.ATTACHMENT],
+            scope=QuotaScope.PROJECT,
+        ),
+        AbuseQuota(
+            id="pas",
+            option="project-abuse-quota.session-limit",
+            categories=[DataCategory.SESSION],
+            scope=QuotaScope.PROJECT,
+        ),
+        AbuseQuota(
+            id="oam",
+            option="organization-abuse-quota.metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.ORGANIZATION,
+        ),
+        AbuseQuota(
+            id="gam",
+            option="global-abuse-quota.metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.GLOBAL,
+        ),
+        AbuseQuota(
+            id="gams",
+            option="global-abuse-quota.sessions-metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.GLOBAL,
+            namespace="sessions",
+        ),
+        AbuseQuota(
+            id="gamt",
+            option="global-abuse-quota.transactions-metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.GLOBAL,
+            namespace="transactions",
+        ),
+        AbuseQuota(
+            id="gamp",
+            option="global-abuse-quota.spans-metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.GLOBAL,
+            namespace="spans",
+        ),
+        AbuseQuota(
+            id="gamc",
+            option="global-abuse-quota.custom-metric-bucket-limit",
+            categories=[DataCategory.METRIC_BUCKET],
+            scope=QuotaScope.GLOBAL,
+            namespace="custom",
+        ),
+    ]
+
+    for quota in abuse_quotas:
+        abuse_window = global_abuse_window
+
+        limit = options.get(quota.option)
+        limit = _limit_from_settings(limit)
+
+        if limit is None:
+            # Unlimited.
+            continue
+
+        # Negative limits in config mean a reject-all quota.
+        if limit < 0:
+            yield QuotaConfig(
+                scope=quota.scope,
+                categories=quota.categories,
+                limit=0,
+                reason_code="disabled",
+            )
+
+        else:
+            yield QuotaConfig(
+                id=quota.id,
+                limit=limit * abuse_window,
+                scope=quota.scope,
+                categories=quota.categories,
+                window=abuse_window,
+                reason_code=quota.scope.reason_code(),
+                namespace=quota.namespace,
+            )

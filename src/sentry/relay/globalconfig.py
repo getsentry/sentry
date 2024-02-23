@@ -1,6 +1,7 @@
 from typing import Any, TypedDict
 
 import sentry.options
+from sentry.quotas.base import get_global_abuse_quotas
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
@@ -27,6 +28,7 @@ def get_global_config():
 
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
+        "quotas": get_global_abuse_quotas(),
     }
 
     options = dict()

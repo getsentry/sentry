@@ -7,7 +7,14 @@ from rediscluster import RedisCluster
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.quotas.base import (
+    NotRateLimited,
+    Quota,
+    QuotaConfig,
+    QuotaScope,
+    RateLimited,
+    get_global_abuse_quotas,
+)
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
@@ -59,13 +66,17 @@ class RedisQuota(Quota):
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
-    def get_quotas(
+    def get_global_quotas(self):
+        results = [*self.get_global_abuse_quotas()]
+        return results
+
+    def get_project_quotas(
         self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
     ) -> list[QuotaConfig]:
         if key:
             key.project = project
 
-        results = [*self.get_abuse_quotas(project.organization)]
+        results = [*self.get_project_abuse_quota(project.organization)]
 
         with sentry_sdk.start_span(op="redis.get_quotas.get_project_quota") as span:
             span.set_tag("project.id", project.id)
@@ -201,7 +212,7 @@ class RedisQuota(Quota):
         # but such quotas are invalid with counters.
         quotas = [
             quota
-            for quota in self.get_quotas(project, key=key)
+            for quota in self.get_project_quotas(project, key=key) + get_global_abuse_quotas()
             if quota.should_track and category in quota.categories
         ]
 
@@ -245,7 +256,7 @@ class RedisQuota(Quota):
         # affects all data, and (2) quotas that specify `error` events.
         quotas = [
             q
-            for q in self.get_quotas(project, key=key)
+            for q in self.get_project_quotas(project, key=key) + get_global_abuse_quotas()
             if not q.categories or DataCategory.ERROR in q.categories
         ]
 
