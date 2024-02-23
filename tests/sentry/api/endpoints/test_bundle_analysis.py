@@ -9,13 +9,17 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 data = {
-    "total_size": 210,
-    "javascript_size": 130,
-    "css_size": 20,
-    "fonts_size": 20,
-    "images_size": 40,
-    "bundle_name": "bundle_1",
-    "environment": "test",
+    "stats": [
+        {
+            "total_size": 210,
+            "javascript_size": 130,
+            "css_size": 20,
+            "fonts_size": 20,
+            "images_size": 40,
+            "bundle_name": "bundle_1",
+            "environment": "test",
+        }
+    ]
 }
 
 
@@ -41,7 +45,11 @@ class BundleAnalysisEndpoint(APITestCase):
         self.login_as(user=self.user1)
 
     def test_raises_permission_denied_if_missing_feature(self):
-        response = self.client.post(self.url, data)
+        response = self.client.post(
+            self.url,
+            data,
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
         assert response.status_code == 403
 
     def test_adds_metrics(self):

@@ -38,27 +38,29 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project) -> Response:
         self._assert_has_feature(request, project.organization)
-        serializer = BundleStatsSerializer(data=request.data)
+        serializer = ListBundleStatsSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
 
-        bundle_name = result["bundle_name"]
-
-        self._add_bundle_size_metric(
-            project, ResourceSizeType.TOTAL, result["total_size"], bundle_name
-        )
-        self._add_bundle_size_metric(
-            project, ResourceSizeType.JAVASCRIPT, result["javascript_size"], bundle_name
-        )
-        self._add_bundle_size_metric(project, ResourceSizeType.CSS, result["css_size"], bundle_name)
-        self._add_bundle_size_metric(
-            project, ResourceSizeType.FONTS, result["fonts_size"], bundle_name
-        )
-        self._add_bundle_size_metric(
-            project, ResourceSizeType.IMAGES, result["images_size"], bundle_name
-        )
+        for stats in result["stats"]:
+            bundle_name = stats["bundle_name"]
+            self._add_bundle_size_metric(
+                project, ResourceSizeType.TOTAL, stats["total_size"], bundle_name
+            )
+            self._add_bundle_size_metric(
+                project, ResourceSizeType.JAVASCRIPT, stats["javascript_size"], bundle_name
+            )
+            self._add_bundle_size_metric(
+                project, ResourceSizeType.CSS, stats["css_size"], bundle_name
+            )
+            self._add_bundle_size_metric(
+                project, ResourceSizeType.FONTS, stats["fonts_size"], bundle_name
+            )
+            self._add_bundle_size_metric(
+                project, ResourceSizeType.IMAGES, stats["images_size"], bundle_name
+            )
 
         return Response({"data": "Bundle size metric added"}, status=200)
 
@@ -91,7 +93,7 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
         )
 
 
-class BundleStatsSerializer(serializers.Serializer):
+class BundleStatSerializer(serializers.Serializer):
     total_size = serializers.IntegerField(required=True)
     javascript_size = serializers.IntegerField(required=True)
     css_size = serializers.IntegerField(required=True)
@@ -99,3 +101,7 @@ class BundleStatsSerializer(serializers.Serializer):
     fonts_size = serializers.IntegerField(required=True)
     bundle_name = serializers.CharField(required=True)
     environment = serializers.CharField(required=True)
+
+
+class ListBundleStatsSerializer(serializers.Serializer):
+    stats = BundleStatSerializer(many=True, required=True)
