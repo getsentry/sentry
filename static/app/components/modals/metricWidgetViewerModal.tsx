@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {getDdmUrl, getWidgetTitle} from 'sentry/utils/metrics';
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -21,8 +22,6 @@ import {
 } from 'sentry/views/dashboards/metrics/utils';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-import {convertToDashboardWidget} from '../../utils/metrics/dashboard';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;
