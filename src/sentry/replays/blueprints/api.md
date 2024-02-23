@@ -503,8 +503,6 @@ Retrieve a collection of replay videos.
 | segment_id | number | -           |
 | url        | string | -           |
 
-Without download query argument
-
 - Response 200
 
   ```json
