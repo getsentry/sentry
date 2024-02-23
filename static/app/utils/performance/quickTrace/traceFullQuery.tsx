@@ -16,9 +16,9 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 
 type AdditionalQueryProps = {
-  type?: 'detailed' | 'spans';
   eventId?: string;
   limit?: number;
+  type?: 'detailed' | 'spans';
 };
 
 type TraceFullQueryChildrenProps<T> = BaseTraceChildrenProps &
