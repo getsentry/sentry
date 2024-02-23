@@ -132,7 +132,15 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     ];
 
     if (releaseMeta.deployCount > 0) {
-      endpoints.push(['deploys', `${basePath}deploys/`]);
+      endpoints.push([
+        'deploys',
+        `${basePath}deploys/`,
+        {
+          query: {
+            project: location.query.project,
+          },
+        },
+      ]);
     }
 
     // Used to figure out if the release has any health data
