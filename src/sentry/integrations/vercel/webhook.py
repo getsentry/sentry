@@ -153,7 +153,6 @@ class VercelWebhookEndpoint(Endpoint):
         return external_id
 
     def post(self, request: Request) -> Response | None:
-
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
