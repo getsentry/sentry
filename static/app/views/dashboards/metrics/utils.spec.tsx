@@ -1,8 +1,9 @@
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {MetricQueryType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {getMetricQueries} from './utils';
+import {getMetricQueries, toMetricDisplayType} from './utils';
 
 describe('getMetricQueries function', () => {
   it('should return metricQueries with correct parameters without dashboardFilters', () => {
@@ -98,5 +99,21 @@ describe('getMetricQueries function', () => {
         type: MetricQueryType.QUERY,
       },
     ]);
+  });
+});
+
+describe('toMetricDisplayType', () => {
+  it('should return the displayType if it is a valid MetricDisplayType', () => {
+    expect(MetricDisplayType.BAR).toEqual(toMetricDisplayType(DisplayType.BAR));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.LINE));
+    expect(MetricDisplayType.AREA).toEqual(toMetricDisplayType(DisplayType.AREA));
+  });
+
+  it('should return MetricDisplayType.LINE if the displayType is invalid or unsupported', () => {
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.BIG_NUMBER));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.TABLE));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.TOP_N));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(undefined));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(''));
   });
 });
