@@ -207,6 +207,7 @@ export interface Config {
   relocationConfig?: {
     selectableRegions: string[];
   };
+  shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
     id: string;

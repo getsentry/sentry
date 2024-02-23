@@ -1098,6 +1098,9 @@ class CliTestCase(TestCase):
 
 
 @pytest.mark.usefixtures("browser")
+# Assume acceptance tests are not using self-hosted, since most devs are developing for SaaS and
+# generally self-hosted specific pages should not appear during acceptance tests
+@override_settings(SENTRY_SELF_HOSTED=False)
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
