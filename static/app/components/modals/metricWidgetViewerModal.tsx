@@ -10,6 +10,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input from 'sentry/components/input';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconAdd,
   IconCheckmark,
@@ -24,6 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {getDdmUrl, getWidgetTitle, isCustomMetric} from 'sentry/utils/metrics';
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricQueryWidgetParams, MetricsQuery} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,12 +38,9 @@ import {
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {Query} from 'sentry/views/ddm/queries';
+import {MetricWidget} from 'sentry/views/ddm/widget';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-import {convertToDashboardWidget} from '../../utils/metrics/dashboard';
-import {MetricWidget} from '../../views/ddm/widget';
-import {Tooltip} from '../tooltip';
 
 interface Props extends ModalRenderProps, WidgetViewerModalOptions {
   organization: Organization;

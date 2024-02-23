@@ -25,6 +25,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -83,8 +84,6 @@ import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
