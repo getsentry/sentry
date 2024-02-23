@@ -3230,17 +3230,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         user_misery_field = "user_misery(300)"
         query = "transaction.duration:>=100"
 
-        spec = OnDemandMetricSpec(
-            field=user_misery_field,
-            query=query,
-            spec_type=MetricSpecType.DYNAMIC_QUERY,
-            # We only allow querying the function in the latest spec version,
-            # otherwise, the data returned by the endpoint would be 0.05
-            spec_version=OnDemandMetricSpecVersioning.spec_versions[-1],
-        )
-        tags = {"satisfaction": "miserable"}
-        self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
-        self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
+        # We store data for both specs, however, when the query builders try to query
+        # for the data it will not query on-demand data
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            spec = OnDemandMetricSpec(
+                field=user_misery_field,
+                query=query,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+                # We only allow querying the function in the latest spec version,
+                # otherwise, the data returned by the endpoint would be 0.05
+                spec_version=spec_version,
+            )
+            tags = {"satisfaction": "miserable"}
+            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
+            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
 
         params = {"field": [user_misery_field], "project": self.project.id, "query": query}
         self._create_specs(params)
