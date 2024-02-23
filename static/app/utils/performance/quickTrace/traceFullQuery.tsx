@@ -17,6 +17,7 @@ import {
 
 type AdditionalQueryProps = {
   detailed?: boolean;
+  useSpans?: boolean;
   eventId?: string;
   limit?: number;
 };
@@ -36,13 +37,20 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
   };
 
 function getTraceFullRequestPayload({
-  detailed,
+  detailed = false,
+  useSpans = false,
   eventId,
   limit,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
-  additionalApiPayload.detailed = detailed ? '1' : '0';
+
+  if (useSpans) {
+    additionalApiPayload.useSpans = useSpans ? '1' : '0';
+  } else {
+    additionalApiPayload.detailed = detailed ? '1' : '0';
+  }
+
   if (eventId) {
     additionalApiPayload.event_id = eventId;
   }
@@ -115,6 +123,6 @@ export function TraceFullDetailedQuery(
   props: Omit<QueryProps<TraceSplitResults<TraceFullDetailed>>, 'detailed'>
 ) {
   return (
-    <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} detailed />
+    <GenericTraceFullQuery<TraceSplitResults<TraceFullDetailed>> {...props} useSpans />
   );
 }
