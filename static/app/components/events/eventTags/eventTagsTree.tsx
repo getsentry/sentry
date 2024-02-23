@@ -29,7 +29,7 @@ function addToTagTree(
 
   const hasInvalidBranchCount =
     branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = (tag.key.match(/\.{2,}/g) ?? []).length > 0;
+  const hasInvalidBranchSequence = /\.{2,}/g.test(tag.key)
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
