@@ -18,10 +18,13 @@ import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {
   getMetricQueries,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
@@ -30,10 +33,6 @@ import {MetricChart} from 'sentry/views/ddm/chart/chart';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
-
-import {DASHBOARD_CHART_GROUP} from '../dashboard';
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType} from '../types';
 
 type Props = {
   isEditingDashboard: boolean;
