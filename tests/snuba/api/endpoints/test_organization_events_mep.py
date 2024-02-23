@@ -51,8 +51,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
@@ -3191,13 +3189,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             specs.append(spec)
         return specs
 
-    def _make_on_demand_request(self, params: dict[str, Any]) -> Response:
+    def _make_on_demand_request(
+        self, params: dict[str, Any], extra_features: dict[str, bool] | None = None
+    ) -> Response:
         """Ensures that the required parameters for an on-demand request are included."""
         # Expected parameters for this helper function
         params["dataset"] = "metricsEnhanced"
         params["useOnDemandMetrics"] = "true"
         params["onDemandType"] = "dynamic_query"
-        return self.do_request(params)
+        _features = {**self.features, **(extra_features or {})}
+        return self.do_request(params, features=_features)
 
     def _assert_on_demand_response(
         self,
