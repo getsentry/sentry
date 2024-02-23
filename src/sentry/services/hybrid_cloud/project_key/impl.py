@@ -13,7 +13,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> RpcProjectKey | None:
         from sentry.models.projectkey import ProjectKey
 
-        project_keys = ProjectKey.user_objects.filter(
+        project_keys = ProjectKey.objects.user().filter(
             project=project_id, roles=F("roles").bitor(role.as_orm_role())
         )
 
@@ -54,9 +54,13 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         role: ProjectKeyRole,
     ) -> list[RpcProjectKey]:
         # TODO: This query is unbounded and will need to be addressed in the future.
-        project_keys = ProjectKey.user_objects.filter(
-            project__in=project_ids,
-            roles=F("roles").bitor(role.as_orm_role()),
-            status=ProjectKeyStatus.ACTIVE,
-        ).order_by("-date_added")
+        project_keys = (
+            ProjectKey.objects.user()
+            .filter(
+                project__in=project_ids,
+                roles=F("roles").bitor(role.as_orm_role()),
+                status=ProjectKeyStatus.ACTIVE,
+            )
+            .order_by("-date_added")
+        )
         return [serialize_project_key(pk) for pk in project_keys]
