@@ -52,3 +52,11 @@ def create_existing_group(project, monkeypatch, message):
         assert group.short_id == counter.value
 
         return group
+
+
+@django_db_all
+def test_group_creation_simple(default_project, monkeypatch):
+    group = create_existing_group(default_project, monkeypatch, "Dogs are great!")
+
+    # See `create_existing_group` for more assertions
+    assert group
