@@ -173,3 +173,14 @@ colorScheme: "light",
 }),
     ],
   });`;
+
+export const getCrashReportApiIntroduction = () =>
+  t(
+    'When a user experiences an error, Sentry provides the ability to collect additional feedback. The user feedback API allows you to collect user feedback while utilizing your own UI. You can use the same programming language you have in your app to send user feedback.'
+  );
+
+export const getCrashReportInstallDescription = () =>
+  tct(
+    'Sentry pairs the feedback with the original event, giving you additional insight into issues. Sentry needs the [codeEvent:eventId] to be able to associate the user feedback to the corresponding event. To get the [codeEvent:eventId], you can use [codeBefore:beforeSend] or the return value of the method capturing an event.',
+    {codeEvent: <code />, codeBefore: <code />}
+  );

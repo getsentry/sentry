@@ -1,3 +1,4 @@
+import {crashReportCallout} from 'sentry/components/feedback/feedbackOnboarding/utils';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -11,10 +12,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {
-  crashReportCallout,
-  tracePropagationMessage,
-} from 'sentry/components/replaysOnboarding/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;

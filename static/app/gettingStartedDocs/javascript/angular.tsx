@@ -1,3 +1,4 @@
+import {crashReportCallout} from 'sentry/components/feedback/feedbackOnboarding/utils';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -13,10 +14,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {
-  crashReportCallout,
-  tracePropagationMessage,
-} from 'sentry/components/replaysOnboarding/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularVersion {

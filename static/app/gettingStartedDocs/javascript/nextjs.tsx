@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {crashReportCallout} from 'sentry/components/feedback/feedbackOnboarding/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
@@ -17,10 +18,7 @@ import {
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {
-  crashReportCallout,
-  tracePropagationMessage,
-} from 'sentry/components/replaysOnboarding/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

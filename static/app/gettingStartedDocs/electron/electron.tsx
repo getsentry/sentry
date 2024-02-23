@@ -1,3 +1,4 @@
+import {crashReportCallout} from 'sentry/components/feedback/feedbackOnboarding/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -12,10 +13,7 @@ import {
   getReplaySDKSetupSnippet,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  crashReportCallout,
-  tracePropagationMessage,
-} from 'sentry/components/replaysOnboarding/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;

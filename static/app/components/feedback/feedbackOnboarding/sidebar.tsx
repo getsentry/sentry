@@ -8,12 +8,12 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
+import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
-import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -23,6 +23,7 @@ import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
+  replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -167,8 +168,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     currentProject.platform &&
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
-  const backendPlatforms =
+  const webBackendPlatform =
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
+
+  const backendPlatform =
+    currentProject.platform && !replayPlatforms.includes(currentProject.platform);
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
@@ -179,7 +183,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     dsn,
     cdn,
     isProjKeysLoading,
-  } = useLoadOnboardingDoc({
+  } = useLoadFeedbackOnboardingDoc({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
@@ -190,7 +194,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadOnboardingDoc({
+  const {docs: jsFrameworkDocs} = useLoadFeedbackOnboardingDoc({
     platform:
       replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
       replayJsFrameworkOptions[0],
@@ -206,7 +210,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           choices={[
             [
               'npm',
-              backendPlatforms ? (
+              webBackendPlatform ? (
                 <PlatformSelect key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
@@ -241,7 +245,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        newDocs?.platformOptions && (
+        newDocs?.platformOptions &&
+        !backendPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -299,11 +304,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectId={currentProject.id}
           projectSlug={currentProject.slug}
           configType={
-            setupMode() === 'npm' || // switched to NPM option
-            (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
-            npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
-              ? 'feedbackOnboardingNpm'
-              : 'replayOnboardingJsLoader'
+            backendPlatform
+              ? 'feedbackOnboardingCrashApi'
+              : setupMode() === 'npm' || // switched to NPM option
+                  (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+                  npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+                ? 'feedbackOnboardingNpm'
+                : 'replayOnboardingJsLoader'
           }
         />
       )}
