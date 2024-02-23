@@ -49,7 +49,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1620,6 +1620,7 @@ class ActionsTest(TestCase):
 
 @region_silo_test
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
+    @freeze_time("2024-02-23")
     def setUp(self):
         self.one_hour_ago = timezone.now() - timedelta(hours=1)
         self.endpoint_regression_issue = self.create_group(
@@ -1631,17 +1632,41 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )
 
+    @freeze_time("2024-02-23")
     @with_feature("organizations:slack-block-kit-improvements")
     def test_get_context(self):
-        # endpoint regression should use Regressed Date
+        # endpoint regression should use Approx Start Time
         context = get_context(self.endpoint_regression_issue)
-        assert "Regressed Date: *1\xa0hour ago*" in context
+        assert f"Approx. Start Time: *{self.one_hour_ago.strftime('%Y-%m-%d %H:%M:%S')}*" in context
 
         # crons don't have context
         assert get_context(self.cron_issue) == ""
 
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_context_error_user_count(self):
+        event = self.store_event(
+            data={},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        context_without_error_user_count = get_context(group)
+        assert (
+            context_without_error_user_count
+            == f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+        group.times_seen = 3
+        group.save()
+
+        context_with_error_user_count = get_context(group)
+        assert (
+            context_with_error_user_count
+            == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
 
     @with_feature("organizations:slack-block-kit-improvements")
     def test_get_tags(self):
