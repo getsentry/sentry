@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from snuba_sdk import MetricsQuery, Timeseries
@@ -24,13 +23,13 @@ class IntermediateQuery:
 
 class PreparationStep(ABC):
     @abstractmethod
-    def run(self, intermediate_queries: Sequence[IntermediateQuery]) -> Sequence[IntermediateQuery]:
+    def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
         raise NotImplementedError
 
 
 def run_preparation_steps(
-    intermediate_queries: Sequence[IntermediateQuery], *steps
-) -> Sequence[IntermediateQuery]:
+    intermediate_queries: list[IntermediateQuery], *steps
+) -> list[IntermediateQuery]:
     for step in steps:
         if isinstance(step, PreparationStep):
             intermediate_queries = step.run(intermediate_queries=intermediate_queries)
@@ -50,7 +49,7 @@ class UnitNormalizationStep(PreparationStep):
 
         return None
 
-    def run(self, intermediate_queries: Sequence[IntermediateQuery]) -> Sequence[IntermediateQuery]:
+    def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
         normalized_intermediate_queries = []
 
         for intermediate_query in intermediate_queries:

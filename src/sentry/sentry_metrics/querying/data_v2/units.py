@@ -49,6 +49,10 @@ class UnitFamily(Enum):
 
 @dataclass(frozen=True)
 class Unit:
+    """
+    A unit of measurement that has a scaling factor towards one reference unit.
+    """
+
     name: MeasurementUnit
     scaling_factor: float
 
@@ -68,6 +72,10 @@ class Unit:
 
 @dataclass(frozen=True)
 class UnitsSpec:
+    """
+    The specification of multiple units which has a common reference unit.
+    """
+
     reference_unit: MeasurementUnit
     units: Sequence[Unit]
 

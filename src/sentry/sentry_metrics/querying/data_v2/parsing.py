@@ -69,5 +69,4 @@ class QueryParser:
                     )
                 ).get()
             )
-            # TODO: check if we want to use a better data structure for returning queries.
             yield query_expression, formula_definition.order, formula_definition.limit
