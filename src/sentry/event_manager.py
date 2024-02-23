@@ -1711,9 +1711,6 @@ def create_and_seek_grouphashes(
     """
     project = job["event"].project
 
-    grouphashes = []
-    existing_grouphash = None
-
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
@@ -1725,7 +1722,9 @@ def create_and_seek_grouphashes(
 
         existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+    else:
+        return NULL_GROUPHASH_INFO
 
 
 def handle_existing_grouphash(
