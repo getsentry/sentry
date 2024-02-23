@@ -64,7 +64,7 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullDetailedQuery
-        detailed
+        type="detailed"
         traceId={traceId}
         eventId={eventId}
         location={location}
@@ -87,7 +87,7 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullDetailedQuery
-        useSpans
+        type="spans"
         traceId={traceId}
         eventId={eventId}
         location={location}

@@ -147,7 +147,7 @@ class TraceSummary extends Component<Props> {
 
     return (
       <TraceFullDetailedQuery
-        detailed
+        type="detailed"
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
