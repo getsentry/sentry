@@ -242,22 +242,31 @@ def perform_request(payload: WebhookPayload) -> None:
         raise DeliveryFailed() from err
     except ApiError as err:
         err_cause = err.__cause__
+        response_code = -1
         if isinstance(err_cause, HTTPError):
             orig_response: Response | None = err_cause.response
+            if orig_response is not None:
+                response_code = orig_response.status_code
+
             # We need to retry on region 500s
-            if (
-                orig_response is not None
-                and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
-            ):
+            if status.HTTP_500_INTERNAL_SERVER_ERROR <= response_code < 600:
                 raise DeliveryFailed() from err
 
-            # We don't retry 404s as they will fail again.
-            if orig_response is not None and orig_response.status_code == 404:
+            # We don't retry 404 or 400 as they will fail again.
+            if response_code in {404, 400, 401}:
+                reason = "not_found"
+                if response_code == 400:
+                    reason = "bad_request"
+                elif response_code == 401:
+                    reason = "unauthorized"
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.failure",
-                    tags={"reason": "not_found", "destination_region": region.name},
+                    tags={"reason": reason, "destination_region": region.name},
                 )
-                logger.info("hybridcloud.deliver_webhooks.not_found", extra={**logging_context})
+                logger.info(
+                    "hybridcloud.deliver_webhooks.40x_error",
+                    extra={"reason": reason, **logging_context},
+                )
                 return
 
         # Other ApiErrors should be retried
@@ -266,6 +275,7 @@ def perform_request(payload: WebhookPayload) -> None:
             tags={"reason": "discard", "destination_region": region.name},
         )
         logger.warning(
-            "hybridcloud.deliver_webhooks.api_error", extra={"error": str(err), **logging_context}
+            "hybridcloud.deliver_webhooks.api_error",
+            extra={"error": str(err), "response_code": response_code, **logging_context},
         )
         raise DeliveryFailed() from err
