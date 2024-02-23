@@ -524,7 +524,8 @@ describe('TraceTree', () => {
   it('builds from spans and copies txn nodes', () => {
     // transaction                transaction
     //  - child transaction  ->    - span
-    //                             - child-transaction
+    //                             - span
+    //                               - child-transaction
     //                             - span
     const root = new TraceTreeNode(
       null,
@@ -559,7 +560,8 @@ describe('TraceTree', () => {
       {sdk: undefined}
     );
 
-    assertTransactionNode(node.children[1]);
+    assertSpanNode(node.children[1]);
+    assertTransactionNode(node.children[1].children[0]);
   });
 
   it('builds from spans and copies txn nodes to nested children', () => {
@@ -606,8 +608,9 @@ describe('TraceTree', () => {
       {sdk: undefined}
     );
 
-    assertTransactionNode(node.children[1]);
+    assertSpanNode(node.children[1]);
     assertTransactionNode(node.children[1].children[0]);
+    assertTransactionNode(node.children[1].children[0].children[0]);
   });
 
   it('injects missing spans', () => {
