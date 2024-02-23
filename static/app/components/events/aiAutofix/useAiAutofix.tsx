@@ -12,9 +12,9 @@ const POLL_INTERVAL = 2500;
 export const useAiAutofix = (group: GroupWithAutofix) => {
   const api = useApi();
 
-  const [additionalContext, setAdditionalContext] = useState('');
-  const [overwriteData, setOverwriteData] = useState<AutofixData | null>(null);
-  const autofixData = overwriteData ?? group.metadata?.autofix ?? null;
+  const [overwriteData, setOverwriteData] = useState<AutofixData | 'reset' | null>(null);
+  const autofixData =
+    (overwriteData === 'reset' ? null : overwriteData ?? group.metadata?.autofix) ?? null;
   const isPolling = autofixData?.status === 'PROCESSING';
 
   const {
@@ -35,46 +35,52 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
   });
 
   useEffect(() => {
-    if (apiData?.autofix) {
+    if (overwriteData !== 'reset' && apiData?.autofix) {
       setOverwriteData(apiData.autofix);
     }
-  }, [apiData?.autofix]);
+  }, [apiData?.autofix, overwriteData]);
 
-  const triggerAutofix = useCallback(async () => {
-    setOverwriteData({
-      status: 'PROCESSING',
-      steps: [
-        {
-          id: '1',
-          index: 0,
-          status: 'PROCESSING',
-          title: 'Starting Autofix...',
-        },
-      ],
-      created_at: new Date().toISOString(),
-    });
-
-    try {
-      await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
-        method: 'POST',
-        data: {
-          additional_context: additionalContext,
-        },
+  const triggerAutofix = useCallback(
+    async (additionalContext: string) => {
+      setOverwriteData({
+        status: 'PROCESSING',
+        steps: [
+          {
+            id: '1',
+            index: 0,
+            status: 'PROCESSING',
+            title: 'Starting Autofix...',
+          },
+        ],
+        created_at: new Date().toISOString(),
       });
-    } catch (e) {
-      // Don't need to do anything, error should be in the metadata
-    }
 
-    dataRefetch();
-  }, [api, group.id, dataRefetch, additionalContext]);
+      try {
+        await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
+          method: 'POST',
+          data: {
+            additional_context: additionalContext,
+          },
+        });
+      } catch (e) {
+        // Don't need to do anything, error should be in the metadata
+      }
+
+      dataRefetch();
+    },
+    [api, group.id, dataRefetch]
+  );
+
+  const reset = useCallback(() => {
+    setOverwriteData('reset');
+  }, []);
 
   return {
-    additionalContext,
     autofixData,
     error,
     isError,
     isPolling,
-    setAdditionalContext,
     triggerAutofix,
+    reset,
   };
 };
