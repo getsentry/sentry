@@ -268,12 +268,6 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             }
         )
 
-        # For now we only publish replay-events if they were part of the video payload.
-        # Otherwise we would double publish.  In the future this can be removed once the
-        # recording consumer is responsible for publishing all replay-events to snuba.
-        if replay_event := decoded_message.get("replay_event"):
-            buffer.replay_events.append(replay_event)
-
     # Initial segment events are recorded in the state machine.
     if headers["segment_id"] == 0:
         buffer.initial_segment_events.append(

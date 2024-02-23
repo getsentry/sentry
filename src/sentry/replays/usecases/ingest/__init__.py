@@ -12,7 +12,6 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import storage_kv
 from sentry.replays.lib.storage.legacy import (
     RecordingSegmentStorageMeta,
@@ -122,13 +121,6 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             ),
             message.replay_video,
         )
-
-        # For now we only publish replay-events if they were part of the video payload.
-        # Otherwise we would double publish.  In the future this can be removed once the
-        # recording consumer is responsible for publishing all replay-events to snuba.
-        if message.replay_event:
-            publisher = initialize_replays_publisher(is_async=False)
-            publisher.publish("ingest-replay-events", message.replay_event)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
