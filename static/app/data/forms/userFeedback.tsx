@@ -23,7 +23,7 @@ const formGroups: JsonFormObject[] = [
         name: 'sentry:feedback_user_report_notifications',
         type: 'boolean',
 
-        label: 'Enable Crash Report Notifications',
+        label: t('Enable Crash Report Notifications'),
         help: () =>
           tct(
             'Get notified on [crashReportModalDocsLink: Crash Report Modal and User Report API submissions]. Feedback widget notifications are not affected by this setting and are on by default.',
