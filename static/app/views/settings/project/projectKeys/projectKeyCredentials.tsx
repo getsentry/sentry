@@ -193,15 +193,15 @@ function ProjectKeyCredentials({
         </FieldGroup>
       )}
 
-      {data.use_case !== 'user' && (
+      {data.useCase && (
         <FieldGroup
           label={t('Use Case')}
-          help={t('Special DSN for internal submissions.')}
+          help={t('Whether the DSN is for the user or for internal data submissions.')}
           inline
           flexibleControlStateSize
         >
           <StyledField label={null} inline={false} flexibleControlStateSize>
-            {data.use_case}
+            {data.useCase}
           </StyledField>
         </FieldGroup>
       )}
