@@ -45,7 +45,7 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
+from sentry.grouping.api import GroupHashInfo, GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -144,14 +144,6 @@ class GroupInfo:
     is_regression: bool
     group_release: GroupRelease | None = None
     is_new_group_environment: bool = False
-
-
-@dataclass
-class GroupHashInfo:
-    config: GroupingConfig | None
-    hashes: CalculatedHashes | None
-    grouphashes: list[GroupHash]
-    existing_grouphash: GroupHash | None
 
 
 def pop_tag(data: dict[str, Any], key: str) -> None:
