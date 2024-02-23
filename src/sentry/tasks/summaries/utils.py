@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
@@ -52,8 +53,8 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    def __repr__(self):
-        return self.projects_context_map.__repr__()
+    # def __repr__(self):
+    #     return self.projects_context_map.__repr__()
 
 
 class ProjectContext:
@@ -135,7 +136,14 @@ def project_key_errors(
     if not project.first_event:
         return None
     # Take the 3 most frequently occuring events
-    with sentry_sdk.start_span(op="weekly_reports.project_key_errors"):
+    prefix = (
+        "daily_summary"
+        if referrer == Referrer.DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES.value
+        else "weekly_reports"
+    )
+    op = f"{prefix}.project_key_errors"
+
+    with sentry_sdk.start_span(op=op):
         query = Query(
             match=Entity("events"),
             select=[Column("group_id"), Function("count", [])],
@@ -164,8 +172,15 @@ def project_key_errors(
 def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
     if not project.first_event:
         return
-    # TODO: CEO agh I should pass in some variable to generate the op to differentiate
-    with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):
+
+    prefix = (
+        "daily_summary"
+        if referrer == Referrer.DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES.value
+        else "weekly_reports"
+    )
+    op = f"{prefix}.project_key_performance_issues"
+
+    with sentry_sdk.start_span(op=op):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.

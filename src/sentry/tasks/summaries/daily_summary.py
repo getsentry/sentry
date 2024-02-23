@@ -4,12 +4,14 @@ from datetime import datetime
 
 import sentry_sdk
 from django.utils import timezone
+from sentry_sdk import set_tag
 
 from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release, ReleaseProject
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
@@ -55,25 +57,27 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
         organizations, step=10000, result_value_getter=lambda item: item.id
     ):
         if features.has("organizations:daily-summary", organization):
-            ctx = OrganizationReportContext(timestamp, duration, organization, daily=True)
-            with sentry_sdk.start_span(op="daily_summary.user_project_ownership"):
-                user_project_ownership(ctx)
+            user_ids = {
+                user_id
+                for user_id in OrganizationMember.objects.filter(
+                    organization_id=organization.id, teams__projectteam__project__isnull=False
+                ).values_list("user_id", flat=True)
+            }
+
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
             users_with_tz = user_option_service.get_many(
-                filter=dict(user_ids=list(ctx.project_ownership.keys()), key="timezone")
+                filter=dict(user_ids=user_ids, key="timezone")
             )
             # if a user has not set a timezone, default to UTC
-            users_without_tz = set(ctx.project_ownership.keys()) - {
-                uo.user_id for uo in users_with_tz
-            }
+            users_without_tz = set(user_ids) - {uo.user_id for uo in users_with_tz}
             if users_with_tz:
-                users_by_tz["UTC"] = users_without_tz
+                users_by_tz["UTC"] = list(users_without_tz)
             for uo in users_with_tz:
                 users_by_tz[uo.value].append(uo.user_id)
             for tz in users_by_tz.keys():
                 # Create a celery task per timezone
-                prepare_summary_data.delay(ctx=ctx)
+                prepare_summary_data(timestamp, duration, organization.id)
 
 
 @instrumented_task(
@@ -85,11 +89,20 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
 )
 @retry
 def prepare_summary_data(
-    ctx: OrganizationReportContext,
+    timestamp: float,
+    duration: int,
+    organization_id: int,
 ):
     # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
     COMPARISON_PERIOD = 14
     comparison_offset = ONE_DAY * COMPARISON_PERIOD + 1
+    organization = Organization.objects.get(id=organization_id)
+    set_tag("org.slug", organization.slug)
+    set_tag("org.id", organization_id)
+    ctx = OrganizationReportContext(timestamp, duration, organization, daily=True)
+    with sentry_sdk.start_span(op="daily_summary.user_project_ownership"):
+        user_project_ownership(ctx)
+
     start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
