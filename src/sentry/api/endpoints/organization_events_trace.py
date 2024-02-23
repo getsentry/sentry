@@ -581,7 +581,8 @@ def augment_transactions_with_spans(
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         spans_params,
-        # This is a hack so the later span_id condition is put into the PREWHERE which speeds the query up
+        # This is a hack so the later span_id condition is put into the PREWHERE instead of the trace_id
+        # we do this because from experimentation we know that span ids in the PREWHERE is about 3x faster
         query=f"(trace:{trace_id} or trace:{trace_id})",
         selected_columns=[
             "transaction.id",
@@ -598,6 +599,8 @@ def augment_transactions_with_spans(
             Condition(
                 Column(parents_query.resolve_column_name("id")),
                 Op.IN,
+                # Another performance improvement, using a tuple instead of an array will cause clickhouse to use
+                # the bloom filter index
                 Function("tuple", list(query_spans)),
             )
         ]
