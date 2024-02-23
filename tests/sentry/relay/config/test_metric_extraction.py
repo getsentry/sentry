@@ -1249,7 +1249,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
             f"transaction.duration:>={duration}",
             default_project,
             "Dashboard",
-            columns=["user.id", "release"],
+            columns=["user.id", "user", "release"],
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1262,8 +1262,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "d9f30df7"},
-                    {"key": "user.id", "field": "event.sentry_user"},
+                    {"key": "query_hash", "value": "cfdef6f8"},
+                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
@@ -1274,8 +1275,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "52427c0a"},
-                    {"key": "user.id", "field": "event.sentry_user"},
+                    {"key": "query_hash", "value": "2916fc7c"},
+                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
