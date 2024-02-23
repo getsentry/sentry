@@ -30,6 +30,7 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -159,7 +160,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
         groupby_columns = self._get_group_bys()
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
+        if not should_use_on_demand_metrics(
+            self.dataset,
+            field,
+            self.query,
+            groupby_columns,
+            organization=Organization.objects.get_from_cache(id=self.organization_id),
+        ):
             return None
 
         try:
