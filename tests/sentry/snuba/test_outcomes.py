@@ -98,7 +98,7 @@ class OutcomesQueryDefinitionTests(TestCase):
             {"organization_id": 1},
             True,
         )
-        assert Function("count()", [Column("times_seen")], "times_seen") in query.select_params
+        assert Function("count", [], "times_seen") in query.select_params
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",

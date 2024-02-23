@@ -107,7 +107,7 @@ class TimesSeenField(Field):
             return Function("sum", [Column("times_seen")], "times_seen")
         else:
             # RawOutcomes doesnt have times_seen, do a count instead
-            return Function("count()", [Column("times_seen")], "times_seen")
+            return Function("count", [], "times_seen")
 
 
 class Dimension(SimpleGroupBy, ABC, Generic[T]):
