@@ -47,6 +47,7 @@ function MetricWidgetViewerModal({
     [metricWidgetQueries]
   );
 
+  const [displayType, setDisplayType] = useState(toMetricDisplayType(widget.displayType));
   const [editedTitle, setEditedTitle] = useState<string>(widget.title);
   // If user renamed the widget, dislay that title, otherwise display the MQL
   const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
@@ -89,15 +90,14 @@ function MetricWidgetViewerModal({
       metricWidgetQueries.map(query => ({
         ...query,
         ...selection,
-      })),
-      toMetricDisplayType(widget.displayType)
+      }))
     );
 
     const updatedWidget = {
       ...widget,
       title: titleToDisplay,
       queries: convertedWidget.queries,
-      displayType: convertedWidget.displayType,
+      displayType: displayType,
     };
 
     onMetricWidgetEdit?.(updatedWidget);
@@ -110,6 +110,7 @@ function MetricWidgetViewerModal({
     closeModal,
     widget,
     selection,
+    displayType,
   ]);
 
   return (
@@ -133,7 +134,8 @@ function MetricWidgetViewerModal({
           />
           <MetricVisualization
             queries={metricWidgetQueries}
-            displayType={toMetricDisplayType(widget.displayType)}
+            displayType={displayType}
+            onDisplayTypeChange={setDisplayType}
           />
           <MetricDetails
             mri={metricWidgetQueries[0].mri}

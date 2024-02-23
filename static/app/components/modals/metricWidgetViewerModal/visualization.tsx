@@ -3,15 +3,20 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {getWidgetTitle} from 'sentry/utils/metrics';
+import {
+  DEFAULT_SORT_STATE,
+  metricDisplayTypeOptions,
+} from 'sentry/utils/metrics/constants';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
@@ -109,7 +114,7 @@ function useHoverSeries() {
   };
 }
 
-export function MetricVisualization({queries, displayType}) {
+export function MetricVisualization({queries, displayType, onDisplayTypeChange}) {
   const {selection} = usePageFilters();
   const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
 
@@ -130,6 +135,8 @@ export function MetricVisualization({queries, displayType}) {
     onChange: resetHoveredSeries,
   });
 
+  const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
+
   if (!chartSeries || !timeseriesData || isError) {
     return (
       <StyledMetricChartContainer>
@@ -144,36 +151,80 @@ export function MetricVisualization({queries, displayType}) {
   }
 
   return (
-    <StyledMetricChartContainer>
-      <TransparentLoadingMask visible={isLoading} />
-      <MetricChart
-        ref={chartRef}
-        series={chartSeries}
-        displayType={toMetricDisplayType(displayType)}
-        widgetIndex={0}
-        group={DASHBOARD_CHART_GROUP}
-        height={200}
-      />
-      <SummaryTable
-        series={chartSeries}
-        onSortChange={setTableSort}
-        sort={tableSort}
-        onRowClick={setSeriesVisibility}
-        onColorDotClick={toggleSeriesVisibility}
-        setHoveredSeries={setHoveredSeries}
-      />
-    </StyledMetricChartContainer>
+    <StyledOuterContainer>
+      <ViualizationHeader>
+        <WidgetTitle>
+          <StyledTooltip
+            title={widgetMQL}
+            showOnlyOnOverflow
+            delay={500}
+            overlayStyle={{maxWidth: '90vw'}}
+          >
+            {widgetMQL}
+          </StyledTooltip>
+        </WidgetTitle>
+        <CompactSelect
+          size="xs"
+          triggerProps={{prefix: t('Visualization')}}
+          value={displayType}
+          options={metricDisplayTypeOptions}
+          onChange={({value}) => onDisplayTypeChange(value) as DisplayType}
+        />
+      </ViualizationHeader>
+      <StyledMetricChartContainer>
+        <TransparentLoadingMask visible={isLoading} />
+        <MetricChart
+          ref={chartRef}
+          series={chartSeries}
+          displayType={displayType}
+          widgetIndex={0}
+          group={DASHBOARD_CHART_GROUP}
+          height={200}
+        />
+        <SummaryTable
+          series={chartSeries}
+          onSortChange={setTableSort}
+          sort={tableSort}
+          onRowClick={setSeriesVisibility}
+          onColorDotClick={toggleSeriesVisibility}
+          setHoveredSeries={setHoveredSeries}
+        />
+      </StyledMetricChartContainer>
+    </StyledOuterContainer>
   );
 }
 
+const StyledOuterContainer = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
 const StyledMetricChartContainer = styled('div')`
-  padding: ${space(3)};
-  padding-bottom: ${space(1)};
+  padding: ${space(2)};
   gap: ${space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
   height: 100%;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const ViualizationHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  padding-right: ${space(2)};
+`;
+
+const WidgetTitle = styled('div')`
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  display: inline-grid;
+  grid-auto-flow: column;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis};
 `;
