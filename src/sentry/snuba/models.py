@@ -122,6 +122,14 @@ class QuerySubscription(Model):
         app_label = "sentry"
         db_table = "sentry_querysubscription"
 
+    def remove(self):
+        # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
+        # source module in such a way that this is no longer an issue.
+        from sentry.snuba.subscriptions import delete_snuba_subscription
+
+        delete_snuba_subscription(self)
+        self.delete()
+
     # We want the `QuerySubscription` to get properly created in Snuba, so we'll run it through the
     # purpose-built logic for that operation rather than copying the data verbatim. This will result
     # in an identical duplicate of the `QuerySubscription` model with a unique `subscription_id`.
