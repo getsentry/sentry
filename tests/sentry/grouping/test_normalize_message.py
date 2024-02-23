@@ -31,6 +31,11 @@ def record_analytics(monkeypatch):
             """blah <uuid> had a problem""",
         ),
         (
+            "UUID",
+            """blah bea691f2-2e25-4bec-6838-e0c44b03d60a/7c1811ed-e98f-4c9c-a9f9-58c757ff494f had a problem""",
+            """blah <uuid>/<uuid> had a problem""",
+        ),
+        (
             "SHA1",
             """blah 5fc35719b9cf96ec602dbc748ff31c587a46961d had a problem""",
             """blah <sha1> had a problem""",
@@ -80,7 +85,7 @@ def record_analytics(monkeypatch):
             """blah 2006-01-02T15:04:05.999999999Z07:00 had a problem""",
             """blah <date> had a problem""",
         ),
-        ("Date plain", """blah 2006-01-02 had a problem""", """blah <date> had a problem"""),
+        ("Date - plain", """blah 2006-01-02 had a problem""", """blah <date> had a problem"""),
         ("Date - long", """blah Jan 18, 2019 had a problem""", """blah <date> had a problem"""),
         (
             "Date - Datetime",
@@ -89,6 +94,21 @@ def record_analytics(monkeypatch):
         ),
         ("Date - Kitchen", """blah 3:04PM had a problem""", """blah <date> had a problem"""),
         ("Date - Time", """blah 15:04:05 had a problem""", """blah <date> had a problem"""),
+        (
+            "Date - basic",
+            """blah Mon Jan 02, 1999 had a problem""",
+            """blah <date> had a problem""",
+        ),
+        (
+            "Datetime - compressed",
+            """blah 20240220 11:55:33.546593 had a problem""",
+            """blah <date> had a problem""",
+        ),
+        (
+            "Datetime - datestamp",
+            """blah 2024-02-23 02:13:53.418 had a problem""",
+            """blah <date> had a problem""",
+        ),
         ("hex", """blah 0x9af8c3b had a problem""", """blah <hex> had a problem"""),
         ("float", """blah 0.23 had a problem""", """blah <float> had a problem"""),
         ("int", """blah 23 had a problem""", """blah <int> had a problem"""),
@@ -105,10 +125,20 @@ def record_analytics(monkeypatch):
             '''SQL: RELEASE SAVEPOINT "<uniq_id>"''',
         ),
         (
-            "Quoted str w/ints",
+            "Quoted str w/ints - api gateway",
             """API gateway VdLchF7iDo8sVkg= blah""",
             """API gateway <uniq_id>= blah""",
         ),
+        (
+            "Quoted str w/ints - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
+            """fbtrace_id Aba64NMEPMmBwi_cPLaGeeK AugPfq0jxGbto4u3kxn8u6p blah""",
+            """fbtrace_id <uniq_id> <uniq_id> blah""",
+        ),
+        # (
+        #     "Quoted str w/ints - cloudflare trace",
+        #     """cloudflare trace 230b030023ae2822-SJC 819cc532aex26akb-SNP blah""",
+        #     """cloudflare trace <uniq_id> <uniq_id> blah""",
+        # ),
         # JSON string values
         (
             "JSON object quoted strings",
@@ -118,12 +148,8 @@ def record_analytics(monkeypatch):
         # New cases to handle better
         # ('''blah tcp://user:pass@email.com:10 had a problem''', '''blah <url> had a problem'''),
         # ('''blah 0.0.0.0:10 had a problem''', '''blah <ip> had a problem'''),
-        # ('''blah Mon Jan 02, 1999 had a problem''', '''blah <date> had a problem'''),
-        # ('''20240220 11:55:33.546593 had a problem''', '''blah <date> had a problem'''),
         # JWT. TODO: Handle truncated JWTs?
         # ("JWT", '''blah eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c''', '''blah <jwt>'''),
-        # It is possible to have fbtrace_ids without integers.
-        # ("Quoted str w/ints", '''fbtrace_id Ox_pfOzllbaBby_cYvWgYBn blah''', '''fbtrace_id <uniq_id> blah'''),
     ],
 )
 def test_normalize_message(name, input, expected, record_analytics):
