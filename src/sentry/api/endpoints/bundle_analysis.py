@@ -31,7 +31,7 @@ class ResourceSizeType(Enum):
 @region_silo_endpoint
 class BundleAnalysisEndpoint(ProjectEndpoint):
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner: ApiOwner = ApiOwner.PERFORMANCE
     permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
