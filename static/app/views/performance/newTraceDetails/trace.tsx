@@ -78,10 +78,12 @@ function Trace({trace, trace_id}: TraceProps) {
     (trace.root.space[0] !== viewManager.current.trace_space[0] ||
       trace.root.space[1] !== viewManager.current.trace_space[1])
   ) {
-    viewManager.current.initializeTraceSpace([trace.root.space[0],
+    viewManager.current.initializeTraceSpace([
+      trace.root.space[0],
       0,
       trace.root.space[1],
-      1,]);
+      1,
+    ]);
     scrollQueue.current = decodeScrollQueue(location.query.node);
   }
 
