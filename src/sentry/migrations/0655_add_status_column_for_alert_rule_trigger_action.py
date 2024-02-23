@@ -23,9 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="alertruletriggeraction",
-            name="status",
-            field=models.SmallIntegerField(default=0),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_alertruletriggeraction" ADD COLUMN "status" integer NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                        ALTER TABLE "sentry_alertruletriggeraction" DROP COLUMN "status";
+                        """,
+                    hints={"tables": ["sentry_alertruletriggeraction"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="alertruletriggeraction",
+                    name="status",
+                    field=models.SmallIntegerField(default=0),
+                ),
+            ],
+        )
     ]
