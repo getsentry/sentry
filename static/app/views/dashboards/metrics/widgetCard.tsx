@@ -26,7 +26,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
-import {MetricChart} from 'sentry/views/ddm/chart';
+import {MetricChart} from 'sentry/views/ddm/chart/chart';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
