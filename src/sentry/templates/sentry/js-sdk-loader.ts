@@ -159,14 +159,26 @@ declare const __LOADER__IS_LAZY__: any;
 
     // Add necessary integrations based on config
     if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
-      integrations.push(new SDK.BrowserTracing());
+      if (SDK.BrowserTracing) {
+        // Pre v8 version of the BrowserTracing integration
+        integrations.push(new SDK.BrowserTracing());
+      } else if (SDK.browserTracingIntegration) {
+        // (Post-)v8 version of the BrowserTracing integration
+        integrations.push(SDK.browserTracingIntegration());
+      }
     }
 
     if (
       (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
       integrationNames.indexOf('Replay') === -1
     ) {
-      integrations.push(new SDK.Replay());
+      if (SDK.Replay) {
+        // Pre v8 version of the Replay integration
+        integrations.push(new SDK.Replay());
+      } else if (SDK.replayIntegration) {
+        // (Post-)v8 version of the Replay integration
+        integrations.push(SDK.replayIntegration());
+      }
     }
 
     config.integrations = integrations;
