@@ -4,11 +4,9 @@ import logging
 from collections.abc import Collection
 
 from django.db import router, transaction
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
@@ -20,12 +18,6 @@ from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.org_roles")
-
-
-class InvalidTeam(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid_team"
-    message = "The team slug does not match a team in the organization"
 
 
 def save_team_assignments(
