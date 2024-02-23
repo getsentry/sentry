@@ -71,6 +71,8 @@ def test_equality_of_specs(default_project) -> None:
         ("count()", "event.type:default transaction.duration:>0", False),
         # error.handled is an error search term
         ("count()", "error.handled:true transaction.duration:>0", False),
+        ("user_misery(300)", "", True),
+        ("user_misery(300)", "transaction.duration:>0", True),
     ],
 )
 def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:

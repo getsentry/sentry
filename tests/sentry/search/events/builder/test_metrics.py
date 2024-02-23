@@ -28,7 +28,6 @@ from sentry.snuba.metrics.extraction import (
     SPEC_VERSION_TWO_FLAG,
     MetricSpecType,
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
 )
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -2865,13 +2864,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         query_s = "transaction.duration:>=10"
         # You can only query this function if you have the feature flag for the org
         with Feature(SPEC_VERSION_TWO_FLAG):
-            spec = OnDemandMetricSpec(
-                field=field,
-                query=query_s,
-                spec_type=MetricSpecType.SIMPLE_QUERY,
-                # Only the latest spec version allows the user_misery function to be on-demand
-                spec_version=OnDemandMetricSpecVersioning.spec_versions[-1],
-            )
+            spec_type = MetricSpecType.SIMPLE_QUERY
+            spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
 
             for hour in range(0, 2):
                 for name, frustrated in user_to_frustration:
@@ -2897,8 +2891,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 query=query_s,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    on_demand_metrics_enabled=True,
-                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                    on_demand_metrics_enabled=True, on_demand_metrics_type=spec_type
                 ),
             )
             assert query._on_demand_metric_spec_map
