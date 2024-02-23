@@ -22,36 +22,8 @@ import {getChartTimeseries} from 'sentry/views/ddm/widget';
 import {DASHBOARD_CHART_GROUP} from '../../../views/dashboards/dashboard';
 import {DisplayType} from '../../../views/dashboards/types';
 
-export function MetricVisualization({queries, displayType}) {
-  const {selection} = usePageFilters();
+function useFocusedSeries({timeseriesData, queries, onChange}) {
   const [focusedSeries, setFocusedSeries] = useState<FocusedMetricsSeries[]>([]);
-  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
-
-  useEffect(() => {
-    setFocusedSeries([]);
-  }, [queries]);
-
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(queries, selection, {
-    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
-  });
-
-  const chartRef = useRef<ReactEchartsRef>(null);
-
-  const setHoveredSeries = useCallback((seriesId: string) => {
-    if (!chartRef.current) {
-      return;
-    }
-    const echartsInstance = chartRef.current.getEchartsInstance();
-    echartsInstance.dispatchAction({
-      type: 'highlight',
-      seriesId: [seriesId, getIngestionSeriesId(seriesId)],
-    });
-  }, []);
 
   const chartSeries = useMemo(() => {
     return timeseriesData
@@ -64,7 +36,7 @@ export function MetricVisualization({queries, displayType}) {
 
   const toggleSeriesVisibility = useCallback(
     (series: FocusedMetricsSeries) => {
-      setHoveredSeries('');
+      onChange?.();
 
       // The focused series array is not populated yet, so we can add all series except the one that was de-selected
       if (!focusedSeries || focusedSeries.length === 0) {
@@ -88,20 +60,83 @@ export function MetricVisualization({queries, displayType}) {
 
       setFocusedSeries(filteredSeries);
     },
-    [chartSeries, focusedSeries, setHoveredSeries]
+    [chartSeries, focusedSeries, onChange]
   );
 
   const setSeriesVisibility = useCallback(
     (series: FocusedMetricsSeries) => {
-      setHoveredSeries('');
+      onChange?.();
       if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
         setFocusedSeries([]);
         return;
       }
       setFocusedSeries([series]);
     },
-    [focusedSeries, setHoveredSeries]
+    [focusedSeries, onChange]
   );
+
+  const clearFocusedSeries = useCallback(() => {
+    setFocusedSeries([]);
+  }, []);
+
+  return {
+    toggleSeriesVisibility,
+    setSeriesVisibility,
+    chartSeries,
+    clear: clearFocusedSeries,
+  };
+}
+
+function useHoverSeries() {
+  const chartRef = useRef<ReactEchartsRef>(null);
+
+  const setHoveredSeries = useCallback((seriesId: string) => {
+    if (!chartRef.current) {
+      return;
+    }
+    const echartsInstance = chartRef.current.getEchartsInstance();
+    echartsInstance.dispatchAction({
+      type: 'highlight',
+      seriesId: [seriesId, getIngestionSeriesId(seriesId)],
+    });
+  }, []);
+
+  const resetHoveredSeries = useCallback(() => {
+    setHoveredSeries('');
+  }, [setHoveredSeries]);
+
+  return {
+    chartRef,
+    setHoveredSeries,
+    resetHoveredSeries,
+  };
+}
+
+export function MetricVisualization({queries, displayType}) {
+  const {selection} = usePageFilters();
+  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
+
+  const {
+    data: timeseriesData,
+    isLoading,
+    isError,
+    error,
+  } = useMetricsQuery(queries, selection, {
+    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
+  });
+
+  const {chartRef, setHoveredSeries, resetHoveredSeries} = useHoverSeries();
+
+  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility, clear} =
+    useFocusedSeries({
+      timeseriesData,
+      queries,
+      onChange: resetHoveredSeries,
+    });
+
+  useEffect(() => {
+    clear();
+  }, [queries, clear]);
 
   if (!chartSeries || !timeseriesData || isError) {
     return (
