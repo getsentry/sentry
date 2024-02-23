@@ -163,17 +163,6 @@ def make_recording_filename(
     )
 
 
-def make_video_filename(
-    retention_days: int | None,
-    project_id: int,
-    replay_id: str,
-    segment_id: int,
-) -> str:
-    """Return a recording segment video filename."""
-    filename = make_recording_filename(retention_days, project_id, replay_id, segment_id)
-    return filename + ".video"
-
-
 # Filestore interface. Legacy interface which supports slow-to-update self-hosted users.
 # Can only read and delete! No new writes.
 filestore = FilestoreBlob()

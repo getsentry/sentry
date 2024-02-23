@@ -27,7 +27,7 @@ from snuba_sdk import (
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
-from sentry.replays.lib.storage import filestore, storage
+from sentry.replays.lib.storage import filestore, make_video_filename, storage, storage_kv
 from sentry.replays.lib.storage.legacy import RecordingSegmentStorageMeta
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
@@ -244,6 +244,31 @@ def segment_row_to_storage_meta(
 
 
 # BLOB DOWNLOAD BEHAVIOR.
+
+
+def download_videos(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        yield b"["
+
+        for i, result in enumerate(pool.map(download_video, segments)):
+            yield result
+
+            if i < len(segments) - 1:
+                yield b","
+
+        yield b"]"
+
+
+def download_video(segment: RecordingSegmentStorageMeta) -> bytes:
+    video = storage_kv.get(
+        make_video_filename(
+            segment.retention_days,
+            segment.project_id,
+            segment.replay_id,
+            segment.segment_id,
+        )
+    )
+    return zlib.decompress(video, zlib.MAX_WBITS | 32) if video else b""
 
 
 def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
