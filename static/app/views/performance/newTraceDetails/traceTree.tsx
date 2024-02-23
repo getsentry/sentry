@@ -130,7 +130,7 @@ export declare namespace TraceTree {
     | ChildrenAutogroup
     | null;
 
-  type NodePath = `${'txn' | 'span'}:${string}`;
+  type NodePath = `${'txn' | 'span' | 'ag'}:${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -448,10 +448,6 @@ export class TraceTree {
     return parent;
   }
 
-  get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
-    return this._list;
-  }
-
   static AutogroupDirectChildrenSpanNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): void {
@@ -746,6 +742,10 @@ export class TraceTree {
     return list;
   }
 
+  get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
+    return this._list;
+  }
+
   /**
    * Prints the tree in a human readable format, useful for debugging and testing
    */
@@ -1011,25 +1011,45 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return children;
   }
 
+  // Returns the path required to reach the node from the root.
   get path(): TraceTree.NodePath[] {
-    const paths: TraceTree.NodePath[] = [];
-    let start: TraceTreeNode<TraceTree.NodeValue> | null = this;
+    const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [this];
+    let current: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
 
-    while (start?.parent) {
-      if (isTransactionNode(start)) {
-        paths.push(`txn:${start.value.event_id}`);
-      } else if (isSpanNode(start)) {
-        paths.push(`span:${start.value.span_id}`);
-
-        while (start.parent && isSpanNode(start.parent)) {
-          start = start.parent;
-        }
+    if (isSpanNode(this) || isAutogroupedNode(this)) {
+      while (
+        current &&
+        (isSpanNode(current) || (isAutogroupedNode(current) && !current.expanded))
+      ) {
+        current = current.parent;
       }
-
-      start = start?.parent;
     }
 
-    return paths;
+    while (current) {
+      if (isTransactionNode(current)) {
+        nodes.push(current);
+      }
+      if (isSpanNode(current)) {
+        nodes.push(current);
+
+        while (current.parent) {
+          if (isTransactionNode(current.parent)) {
+            break;
+          }
+          if (isAutogroupedNode(current.parent) && current.parent.expanded) {
+            break;
+          }
+          current = current.parent;
+        }
+      }
+      if (isAutogroupedNode(current)) {
+        nodes.push(current);
+      }
+
+      current = current.parent;
+    }
+
+    return nodes.map(nodeToId);
   }
 
   print() {
@@ -1086,6 +1106,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   ) {
     super(parent, node, metadata);
 
+    this.expanded = false;
     this.head = head;
     this.tail = tail;
   }
@@ -1107,6 +1128,7 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     metadata: TraceTree.Metadata
   ) {
     super(parent, node, metadata);
+    this.expanded = false;
   }
 }
 
@@ -1182,6 +1204,28 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   return tree;
 }
+
+function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
+  if (isTransactionNode(n)) {
+    return `txn:${n.value.event_id}`;
+  }
+  if (isSpanNode(n)) {
+    return `span:${n.value.span_id}`;
+  }
+  if (isAutogroupedNode(n)) {
+    if (isParentAutogroupedNode(n)) {
+      return `ag:${n.head.value.span_id}`;
+    }
+    if (isSiblingAutogroupedNode(n)) {
+      const child = n.children[0];
+      if (isSpanNode(child)) {
+        return `ag:${child.value.span_id}`;
+      }
+    }
+  }
+  throw new Error('Not implemented');
+}
+
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
   const padding = '  '.repeat(t.depth + offset);
@@ -1197,10 +1241,10 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
     return padding + 'autogroup';
   }
   if (isSpanNode(t)) {
-    return padding + t.value?.op ?? 'unknown span op';
+    return padding + (t.value.op || t.value.span_id || 'unknown span');
   }
   if (isTransactionNode(t)) {
-    return padding + t.value.transaction ?? 'unknown transaction';
+    return padding + (t.value.transaction || 'unknown transaction');
   }
   if (isMissingInstrumentationNode(t)) {
     return padding + 'missing_instrumentation';
@@ -1212,5 +1256,5 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
     return padding + 'Trace';
   }
 
-  throw new Error('Not implemented');
+  return 'unknown node';
 }

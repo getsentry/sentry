@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -28,7 +28,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {ParentAutogroupNode, type TraceTree,type TraceTreeNode} from './traceTree';
+import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -78,16 +78,26 @@ function Trace({trace, trace_id}: TraceProps) {
     scrollQueue.current = decodeScrollQueue(location.query.node);
   }
 
-  if (trace.type !== 'loading' && scrollQueue.current !== null) {
+  useEffect(() => {
+    if (
+      trace.type === 'loading' ||
+      scrollQueue.current === null ||
+      !viewManager.current
+    ) {
+      return;
+    }
     viewManager.current
       .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
         api,
         organization,
       })
-      .then(_v => {
+      .then(node => {
         scrollQueue.current = null;
+        if (node && viewManager.current) {
+          viewManager.current.onScrollEndOutOfBoundsCheck();
+        }
       });
-  }
+  }, [api, organization, trace, trace_id]);
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -125,7 +135,7 @@ function Trace({trace, trace_id}: TraceProps) {
         },
       });
     },
-    [location.query]
+    [location.query, location.pathname]
   );
 
   const projectLookup = useMemo(() => {

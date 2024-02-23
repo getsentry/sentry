@@ -1,9 +1,13 @@
 import type {List} from 'react-virtualized';
+import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import clamp from 'sentry/utils/number/clamp';
 import {
+  isAutogroupedNode,
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
@@ -323,33 +327,35 @@ export class VirtualizedViewManager {
     }
 
     // Scroll to half row so as to indicate other child/parent links
-    const VISUAL_OFFSET = 24 / 2;
 
     if (innerMostNode) {
       if (translation + max < 0) {
-        const target = Math.min(-innerMostNode.depth * 24 + VISUAL_OFFSET, 0);
-        this.animateScrollColumnTo(target);
+        this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
         translation + innerMostNode.depth * 24 >
         this.columns.list.width * this.width
       ) {
-        const target = Math.min(-innerMostNode.depth * 24 + VISUAL_OFFSET, 0);
-        this.animateScrollColumnTo(target);
+        this.scrollRowIntoViewHorizontally(innerMostNode);
       }
     }
   }
 
+  scrollRowIntoViewHorizontally(node: TraceTreeNode<any>, duration: number = 600) {
+    const VISUAL_OFFSET = 24 / 2;
+    const target = Math.min(-node.depth * 24 + VISUAL_OFFSET, 0);
+    this.animateScrollColumnTo(target, duration);
+  }
+
   bringRowIntoViewAnimation: number | null = null;
-  animateScrollColumnTo(x: number) {
+  animateScrollColumnTo(x: number, duration: number) {
     const start = performance.now();
 
-    const duration = 600;
     const startPosition = this.columns.list.translate[0];
     const distance = x - startPosition;
 
     const animate = (now: number) => {
       const elapsed = now - start;
-      const progress = elapsed / duration;
+      const progress = duration > 0 ? elapsed / duration : 1;
       const eased = easeOutQuad(progress);
 
       const pos = startPosition + distance * eased;
@@ -412,28 +418,50 @@ export class VirtualizedViewManager {
     this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
   }
 
-  async scrollToPath(
+  scrollToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
     {api, organization}: {api: Client; organization: Organization}
-  ) {
+  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
+    const segments = [...scrollQueue];
     const virtualizedList = this.virtualizedList;
-    if (!this || !this.virtualizedList) {
-      return;
+
+    if (!virtualizedList) {
+      return Promise.resolve(null);
     }
 
-    async function scrollToRow(): Promise<boolean> {
-      if (!virtualizedList) {
-        return false;
-      }
+    let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-      const path = scrollQueue.pop();
-      const current = findInTreeFromSegment(tree.root, path!);
+    const scrollToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+      const path = segments.pop();
+      const current = findInTreeFromSegment(parent, path!);
 
       if (!current) {
-        console.log(`Failed to find ${path} node in tree, can't scroll to row`);
-        return false;
+        Sentry.captureMessage('Failed to scroll to node in trace tree');
+        return null;
+      }
+
+      parent = current;
+
+      if (isTransactionNode(current)) {
+        const nextSegment = segments[segments.length - 1];
+        if (nextSegment?.startsWith('span:') || nextSegment?.startsWith('ag:')) {
+          await tree.zoomIn(current, true, {
+            api,
+            organization,
+          });
+          return scrollToRow();
+        }
+      }
+
+      if (isAutogroupedNode(current) && segments.length > 0) {
+        tree.expand(current, true);
+        return scrollToRow();
+      }
+
+      if (segments.length > 0) {
+        return scrollToRow();
       }
 
       const index = tree.list.findIndex(node => node === current);
@@ -441,32 +469,12 @@ export class VirtualizedViewManager {
         throw new Error("Couldn't find node in list");
       }
 
+      rerender();
       virtualizedList.scrollToRow(index);
+      return current;
+    };
 
-      if (isTransactionNode(current)) {
-        const nextSegment = scrollQueue[scrollQueue.length - 1];
-        if (nextSegment?.startsWith('span:')) {
-          console.log('Current is transaction and next segment is a span, zoom in');
-          return tree
-            .zoomIn(current, true, {
-              api,
-              organization,
-            })
-            .then(rerender)
-            .then(() => {
-              return scrollToRow();
-            });
-        }
-      }
-
-      if (scrollQueue.length > 0) {
-        return scrollToRow();
-      }
-
-      return true;
-    }
-
-    await scrollToRow();
+    return scrollToRow();
   }
 
   computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
@@ -612,6 +620,18 @@ function findInTreeFromSegment(
 
     if (type === 'span' && isSpanNode(node)) {
       return node.value.span_id === id;
+    }
+
+    if (type === 'ag' && isAutogroupedNode(node)) {
+      if (isParentAutogroupedNode(node)) {
+        return node.head.value.span_id === id || node.tail.value.span_id === id;
+      }
+      if (isSiblingAutogroupedNode(node)) {
+        const child = node.children[0];
+        if (isSpanNode(child)) {
+          return child.value.span_id === id;
+        }
+      }
     }
 
     return false;
