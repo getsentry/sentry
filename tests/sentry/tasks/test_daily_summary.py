@@ -8,7 +8,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.tasks.summaries.daily_summary import prepare_summary_data, schedule_organizations
-from sentry.tasks.summaries.weekly_reports import ONE_DAY, OrganizationReportContext
+from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
