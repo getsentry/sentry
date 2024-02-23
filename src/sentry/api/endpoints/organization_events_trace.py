@@ -581,7 +581,8 @@ def augment_transactions_with_spans(
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         spans_params,
-        query=f"trace:{trace_id}",
+        # This is a hack so the later span_id condition is put into the PREWHERE which speeds the query up
+        query=f"(trace:{trace_id} or trace:{trace_id})",
         selected_columns=[
             "transaction.id",
             "span_id",
