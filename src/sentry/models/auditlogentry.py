@@ -101,6 +101,7 @@ class AuditLogEntry(Model):
                     extra={
                         "event": self.event,
                     },
+                    stack_info=True,
                 )
                 # Fallback to IP address if user or actor label not available
                 self.actor_label = self.ip_address
