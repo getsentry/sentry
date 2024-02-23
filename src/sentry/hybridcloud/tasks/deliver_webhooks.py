@@ -166,6 +166,7 @@ def deliver_message(payload: WebhookPayload) -> None:
 def perform_request(payload: WebhookPayload) -> None:
     logging_context: dict[str, str | int] = {
         "payload_id": payload.id,
+        "mailbox_name": payload.mailbox_name,
         "attempt": payload.attempts,
     }
     region = get_region_by_name(name=payload.region_name)
@@ -241,20 +242,25 @@ def perform_request(payload: WebhookPayload) -> None:
         raise DeliveryFailed() from err
     except ApiError as err:
         err_cause = err.__cause__
-        if err_cause is not None and isinstance(err_cause, HTTPError):
+        if isinstance(err_cause, HTTPError):
             orig_response: Response | None = err_cause.response
+            # We need to retry on region 500s
             if (
                 orig_response is not None
                 and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
             ):
                 raise DeliveryFailed() from err
 
-        # For some integrations, we make use of outboxes to handle asynchronous webhook requests.
-        # There is an edge case where webhook requests eventually become invalid and
-        # the 3rd-party destination (integration provider) will reject them.
-        # JWT expirations is one example of causing this issue. Issues like these are no longer salvageable, and we must
-        # discard these associated webhook outbox messages. If we do not discard them, then these outbox messages
-        # will be re-processed causing a backlog on the ControlOutbox table.
+            # We don't retry 404s as they will fail again.
+            if orig_response is not None and orig_response.status_code == 404:
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.failure",
+                    tags={"reason": "not_found", "destination_region": region.name},
+                )
+                logger.info("hybridcloud.deliver_webhooks.not_found", extra={**logging_context})
+                return
+
+        # Other ApiErrors should be retried
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
             tags={"reason": "discard", "destination_region": region.name},

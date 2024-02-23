@@ -320,6 +320,27 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    def test_drain_not_found(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/plugins/github/organizations/123/webhook/",
+            status=404,
+            body="<html><title>lol nope</title></html>",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="plugins:123",
+            region_name="us",
+            request_path="/plugins/github/organizations/123/webhook/",
+        )
+        drain_mailbox(webhook_one.id)
+
+        # We don't retry if the region 404s
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        assert hook is None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @override_regions(region_config)
     def test_drain_timeout(self):
         responses.add(
             responses.POST, "http://us.testserver/extensions/github/webhook/", body=ReadTimeout()
