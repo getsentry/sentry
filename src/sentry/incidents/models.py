@@ -14,8 +14,10 @@ from django.utils import timezone
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
@@ -704,11 +706,6 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
-class AlertRuleTriggerActionStatus(Enum):
-    ACTIVE = 0
-    SCHEDULED_FOR_DELETION = 1
-
-
 @region_silo_only_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -745,7 +742,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
-    status = models.SmallIntegerField(default=AlertRuleTriggerActionStatus.ACTIVE.value)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
+    )
 
     class Meta:
         app_label = "sentry"
