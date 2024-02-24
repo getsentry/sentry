@@ -98,6 +98,7 @@ export enum IssueType {
 }
 
 export enum IssueTitle {
+  // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
@@ -110,6 +111,54 @@ export enum IssueTitle {
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
+  PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
+
+  // Profile
+  PROFILE_FILE_IO_MAIN_THREAD = 'File I/O on Main Thread',
+  PROFILE_IMAGE_DECODE_MAIN_THREAD = 'Image Decoding on Main Thread',
+  PROFILE_JSON_DECODE_MAIN_THREAD = 'JSON Decoding on Main Thread',
+  PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
+  PROFILE_FRAME_DROP = 'Frame Drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'Frame Drop',
+  PROFILE_FUNCTION_REGRESSION = 'Function Regression',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'Rage Click Detected',
+}
+
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
+  performance_consecutive_db_queries: 'Consecutive DB Queries',
+  performance_consecutive_http: 'Consecutive HTTP',
+  performance_file_io_main_thread: 'File IO on Main Thread',
+  performance_db_main_thread: 'DB on Main Thread',
+  performance_n_plus_one_api_calls: 'N+1 API Call',
+  performance_n_plus_one_db_queries: 'N+1 Query',
+  performance_slow_db_query: 'Slow DB Query',
+  performance_render_blocking_asset_span: 'Large Render Blocking Asset',
+  performance_uncompressed_assets: 'Uncompressed Asset',
+  performance_large_http_payload: 'Large HTTP payload',
+  performance_http_overhead: 'HTTP/1.1 Overhead',
+  performance_duration_regression: 'Duration Regression',
+  performance_p95_endpoint_regression: 'Endpoint Regression',
+
+  profile_file_io_main_thread: 'File I/O on Main Thread',
+  profile_image_decode_main_thread: 'Image Decoding on Main Thread',
+  profile_json_decode_main_thread: 'JSON Decoding on Main Thread',
+  profile_regex_main_thread: 'Regex on Main Thread',
+  profile_frame_drop: 'Frame Drop',
+  profile_frame_drop_experimental: 'Frame Drop',
+  profile_function_regression: 'Function Regression',
+  profile_function_regression_exp: 'Function Duration Regression (Experimental)',
+
+  replay_click_rage: 'Rage Click Detected',
+};
+
+export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
+  if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
+    return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
+  }
+  return undefined;
 }
 
 const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
