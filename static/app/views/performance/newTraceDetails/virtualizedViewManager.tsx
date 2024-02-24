@@ -579,7 +579,11 @@ export class VirtualizedViewManager {
   recomputeSpanToPxMatrix() {
     const traceViewToSpace = this.trace_space.between(this.trace_view);
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-    this.span_to_px = mat3.multiply(this.span_to_px, traceViewToSpace, tracePhysicalToView);
+    this.span_to_px = mat3.multiply(
+      this.span_to_px,
+      traceViewToSpace,
+      tracePhysicalToView
+    );
   }
 
   computeSpanCSSMatrixTransform(
