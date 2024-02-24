@@ -121,8 +121,10 @@ export class VirtualizedViewManager {
   container_physical_space: View = View.Empty();
 
   measurer: RowMeasurer = new RowMeasurer();
-  resizeObserver: ResizeObserver | null = null;
-  virtualizedList: List | null = null;
+  text_measurer: TextMeasurer = new TextMeasurer();
+
+  resize_observer: ResizeObserver | null = null;
+  list: List | null = null;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -242,8 +244,8 @@ export class VirtualizedViewManager {
     });
   }
 
-  registerVirtualizedList(list: List | null) {
-    this.virtualizedList = list;
+  registerList(list: List | null) {
+    this.list = list;
   }
 
   registerDividerRef(ref: HTMLElement | null) {
@@ -485,7 +487,7 @@ export class VirtualizedViewManager {
     let max = Number.NEGATIVE_INFINITY;
     let innerMostNode: TraceTreeNode<any> | undefined;
 
-    const offset = this.virtualizedList?.Grid?.props.overscanRowCount ?? 0;
+    const offset = this.list?.Grid?.props.overscanRowCount ?? 0;
     const renderCount = this.columns.span_list.column_refs.length;
 
     for (let i = offset + 1; i < renderCount - offset; i++) {
@@ -554,7 +556,7 @@ export class VirtualizedViewManager {
   }
 
   initialize(container: HTMLElement) {
-    if (this.container !== container && this.resizeObserver !== null) {
+    if (this.container !== container && this.resize_observer !== null) {
       this.teardown();
     }
 
@@ -563,7 +565,7 @@ export class VirtualizedViewManager {
       passive: false,
     });
 
-    this.resizeObserver = new ResizeObserver(entries => {
+    this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry) {
         throw new Error('ResizeObserver entry is undefined');
@@ -573,7 +575,7 @@ export class VirtualizedViewManager {
       this.draw();
     });
 
-    this.resizeObserver.observe(container);
+    this.resize_observer.observe(container);
   }
 
   recomputeSpanToPxMatrix() {
@@ -609,9 +611,9 @@ export class VirtualizedViewManager {
     {api, organization}: {api: Client; organization: Organization}
   ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
     const segments = [...scrollQueue];
-    const virtualizedList = this.virtualizedList;
+    const list = this.list;
 
-    if (!virtualizedList) {
+    if (!list) {
       return Promise.resolve(null);
     }
 
@@ -659,7 +661,7 @@ export class VirtualizedViewManager {
       }
 
       rerender();
-      virtualizedList.scrollToRow(index);
+      list.scrollToRow(index);
       return current;
     };
 
@@ -741,17 +743,19 @@ export class VirtualizedViewManager {
     if (this.container) {
       this.container.removeEventListener('wheel', onPreventBackForwardNavigation);
     }
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
+    if (this.resize_observer) {
+      this.resize_observer.disconnect();
     }
   }
 }
 
+// The backing cache should be a proper LRU cache,
+// so we dont end up storing an infinite amount of elements
 class RowMeasurer {
   cache: Map<TraceTreeNode<any>, number> = new Map();
   elements: HTMLElement[] = [];
 
-  measureQueue: [TraceTreeNode<any>, HTMLElement][] = [];
+  queue: [TraceTreeNode<any>, HTMLElement][] = [];
   drainRaf: number | null = null;
   max: number = 0;
 
@@ -764,7 +768,7 @@ class RowMeasurer {
       return;
     }
 
-    this.measureQueue.push([node, element]);
+    this.queue.push([node, element]);
 
     if (this.drainRaf !== null) {
       window.cancelAnimationFrame(this.drainRaf);
@@ -773,7 +777,7 @@ class RowMeasurer {
   }
 
   drain() {
-    for (const [node, element] of this.measureQueue) {
+    for (const [node, element] of this.queue) {
       this.measure(node, element);
     }
   }
@@ -790,6 +794,59 @@ class RowMeasurer {
     }
     this.cache.set(node, width);
     return width;
+  }
+}
+
+// The backing cache should be a proper LRU cache,
+// so we dont end up storing an infinite amount of elements
+class TextMeasurer {
+  queue: string[] = [];
+  drainRaf: number | null = null;
+  cache: Map<string, TextMetrics> = new Map();
+
+  ctx: CanvasRenderingContext2D;
+
+  constructor() {
+    this.drain = this.drain.bind(this);
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if(!ctx){
+      throw new Error('Canvas 2d context is not available');
+    }
+
+    this.ctx = ctx;
+  }
+
+  enqueueMeasure(string: string) {
+    if (this.cache.has(string)) {
+      return;
+    }
+
+    this.queue.push(string);
+
+    if (this.drainRaf !== null) {
+      window.cancelAnimationFrame(this.drainRaf);
+    }
+    this.drainRaf = window.requestAnimationFrame(this.drain);
+  }
+
+  drain() {
+    for (const string of this.queue) {
+      this.measure(string);
+    }
+  }
+
+  measure(string: string): TextMetrics {
+    const cache = this.cache.get(string);
+    if (cache !== undefined) {
+      return cache;
+    }
+
+    const text = this.ctx.measureText(string);
+    this.cache.set(string, text);
+    return text;
   }
 }
 

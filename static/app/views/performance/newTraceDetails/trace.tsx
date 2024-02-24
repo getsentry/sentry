@@ -185,7 +185,7 @@ function Trace({trace, trace_id}: TraceProps) {
                   })
                 : null}
               <List
-                ref={r => viewManager.current?.registerVirtualizedList(r)}
+                ref={r => viewManager.current?.registerList(r)}
                 rowHeight={24}
                 height={height}
                 width={width}

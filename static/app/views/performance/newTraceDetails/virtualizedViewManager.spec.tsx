@@ -322,23 +322,34 @@ describe('VirtualizedViewManger', () => {
     const organization = OrganizationFixture();
     const api = new MockApiClient();
 
-    const manager = new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
+  const manager = new VirtualizedViewManager({
+    list: {width: 0.5},
+    span_list: {width: 0.5},
+  });
+
+  it('scrolls to transaction', async () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction(),
+          makeTransaction({
+            event_id: 'event_id',
+            children: [],
+          }),
+        ],
+      })
+    );
+
+    manager.list = makeList();
+
+    const result = await manager.scrollToPath(tree, ['txn:event_id'], () => void 0, {
+      api: api,
+      organization,
     });
 
-    it('scrolls to transaction', async () => {
-      const tree = TraceTree.FromTrace(
-        makeTrace({
-          transactions: [
-            makeTransaction(),
-            makeTransaction({
-              event_id: 'event_id',
-              children: [],
-            }),
-          ],
-        })
-      );
+    expect(result).toBe(tree.list[2]);
+    expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+  });
 
       manager.virtualizedList = makeList();
 
@@ -616,7 +627,7 @@ describe('VirtualizedViewManger', () => {
           })
         );
 
-        manager.virtualizedList = makeList();
+    manager.list = makeList();
 
         expect(tree.list[tree.list.length - 1].path).toEqual([
           'txn:event_id',
@@ -633,24 +644,102 @@ describe('VirtualizedViewManger', () => {
           }
         );
 
-        expect(result).toBe(tree.list[tree.list.length - 1]);
-        expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(3);
-      });
+    expect(result).toBe(tree.list[tree.list.length - 1]);
+    expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+  });
 
-      it('scrolls to spans of expanded transaction', async () => {
-        manager.virtualizedList = makeList();
+  it('scrolls to spans of expanded transaction', async () => {
+    manager.list = makeList();
 
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            event_id: 'event_id',
+            project_slug: 'project_slug',
+            children: [],
+          }),
+        ],
+      })
+    );
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/project_slug:event_id/',
+      method: 'GET',
+      body: makeEvent(undefined, [makeSpan({span_id: 'span_id'})]),
+    });
+
+    const result = await manager.scrollToPath(
+      tree,
+      ['span:span_id', 'txn:event_id'],
+      () => void 0,
+      {
+        api: api,
+        organization,
+      }
+    );
+
+    expect(tree.list[1].zoomedIn).toBe(true);
+    expect(result).toBeTruthy();
+    expect(result).toBe(tree.list[2]);
+    expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+  });
+
+  it('scrolls to span -> transaction -> span -> transaction', async () => {
+    manager.list = makeList();
+
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            event_id: 'event_id',
+            project_slug: 'project_slug',
+            children: [
               makeTransaction({
                 event_id: 'event_id',
                 project_slug: 'project_slug',
                 children: [],
               }),
             ],
-          })
-        );
+          }),
+        ],
+      })
+    );
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/project_slug:event_id/',
+      method: 'GET',
+      body: makeEvent(undefined, [
+        makeSpan({span_id: 'other_child_span'}),
+        makeSpan({span_id: 'child_span'}),
+      ]),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/project_slug:child_event_id/',
+      method: 'GET',
+      body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
+    });
+
+    const result = await manager.scrollToPath(
+      tree,
+      ['span:other_child_span', 'txn:child_event_id', 'txn:event_id'],
+      () => void 0,
+      {
+        api: api,
+        organization,
+      }
+    );
+
+    expect(result).toBeTruthy();
+    expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
+  });
+
+  describe('scrolls to directly autogrouped node', () => {
+    for (const headOrTailId of ['head_span', 'tail_span']) {
+      it('scrolls to directly autogrouped node head', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/project_slug:event_id/',
@@ -721,118 +810,12 @@ describe('VirtualizedViewManger', () => {
         );
 
         expect(result).toBeTruthy();
-        expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(3);
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
       });
 
-      describe('scrolls to directly autogrouped node', () => {
-        for (const headOrTailId of ['head_span', 'tail_span']) {
-          it('scrolls to directly autogrouped node head', async () => {
-            manager.virtualizedList = makeList();
-            const tree = makeSingleTransactionTree();
-
-            MockApiClient.addMockResponse({
-              url: '/organizations/org-slug/events/project:event_id/',
-              method: 'GET',
-              body: makeEvent({}, makeParentAutogroupSpans()),
-            });
-
-            const result = await manager.scrollToPath(
-              tree,
-              [`ag:${headOrTailId}`, 'txn:event_id'],
-              () => void 0,
-              {
-                api: api,
-                organization,
-              }
-            );
-
-            expect(result).toBeTruthy();
-            expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
-          });
-        }
-
-        for (const headOrTailId of ['head_span', 'tail_span']) {
-          it('scrolls to child of autogrouped node head or tail', async () => {
-            manager.virtualizedList = makeList();
-            const tree = makeSingleTransactionTree();
-
-            MockApiClient.addMockResponse({
-              url: '/organizations/org-slug/events/project:event_id/',
-              method: 'GET',
-              body: makeEvent({}, makeParentAutogroupSpans()),
-            });
-
-            const result = await manager.scrollToPath(
-              tree,
-              ['span:middle_span', `ag:${headOrTailId}`, 'txn:event_id'],
-              () => void 0,
-              {
-                api: api,
-                organization,
-              }
-            );
-
-            expect(result).toBeTruthy();
-            expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
-          });
-        }
-      });
-
-      describe('sibling autogrouping', () => {
-        it('scrolls to sibling autogrouped node', async () => {
-          manager.virtualizedList = makeList();
-          const tree = makeSingleTransactionTree();
-
-          MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
-            method: 'GET',
-            body: makeEvent({}, makeSiblingAutogroupedSpans()),
-          });
-
-          const result = await manager.scrollToPath(
-            tree,
-            [`ag:first_span`, 'txn:event_id'],
-            () => void 0,
-            {
-              api: api,
-              organization,
-            }
-          );
-
-          expect(result).toBeTruthy();
-          expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
-        });
-
-        it('scrolls to child span of sibling autogrouped node', async () => {
-          manager.virtualizedList = makeList();
-          const tree = makeSingleTransactionTree();
-
-          MockApiClient.addMockResponse({
-            url: '/organizations/org-slug/events/project:event_id/',
-            method: 'GET',
-            body: makeEvent({}, makeSiblingAutogroupedSpans()),
-          });
-
-          const result = await manager.scrollToPath(
-            tree,
-            ['span:middle_span', `ag:first_span`, 'txn:event_id'],
-            () => void 0,
-            {
-              api: api,
-              organization,
-            }
-          );
-
-          expect(result).toBeTruthy();
-          expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
-        });
-
-        it.todo('scrolls to orphan transactions');
-        it.todo('scrolls to orphan transactions child span');
-      });
-
-      it('scrolls to child span of sibling autogrouped node', async () => {
-        manager.virtualizedList = makeList();
+    for (const headOrTailId of ['head_span', 'tail_span']) {
+      it('scrolls to child of autogrouped node head or tail', async () => {
+        manager.list = makeList();
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
@@ -852,11 +835,65 @@ describe('VirtualizedViewManger', () => {
         );
 
         expect(result).toBeTruthy();
-        expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
       });
 
       it.todo('scrolls to orphan transactions');
       it.todo('scrolls to orphan transactions child span');
     });
   });
+
+  describe('sibling autogrouping', () => {
+    it('scrolls to sibling autogrouped node', async () => {
+      manager.list = makeList();
+      const tree = makeSingleTransactionTree();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/project:event_id/',
+        method: 'GET',
+        body: makeEvent({}, makeSiblingAutogroupedSpans()),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        [`ag:first_span`, 'txn:event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(result).toBeTruthy();
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+    });
+
+    it('scrolls to child span of sibling autogrouped node', async () => {
+      manager.list = makeList();
+      const tree = makeSingleTransactionTree();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/project:event_id/',
+        method: 'GET',
+        body: makeEvent({}, makeSiblingAutogroupedSpans()),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        ['span:middle_span', `ag:first_span`, 'txn:event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(result).toBeTruthy();
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
+    });
+
+    it.todo('scrolls to orphan transactions');
+    it.todo('scrolls to orphan transactions child span');
+  })
+});
 });
