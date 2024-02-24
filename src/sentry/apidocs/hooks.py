@@ -157,7 +157,7 @@ def find_method_and_check_paginate(content, class_name):
 
     # Pattern to find the class body, either the class body is followed by another class or it's the end of the file
     class_pattern = (
-        r"(class {class_name}.*:(.*?)(?=^class\s.*))|(class {class_name}.*:\s(.*?)(?=\Z))"
+        rf"(class {class_name}.*:(.*?)(?=^class\s.*))|(class {class_name}.*:\s(.*?)(?=\Z))"
     )
     class_match = re.search(class_pattern, file_content, re.DOTALL | re.MULTILINE)
 
@@ -197,7 +197,6 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if method == "GET":
             if path in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
                 continue
-
             endsWithObject = re.search(r"/([^/{}]+)s/$", path)
             if endsWithObject is not None:
                 class_name = callback.view_class.__name__
