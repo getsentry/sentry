@@ -384,7 +384,8 @@ const MetricWidgetBody = memo(
           {isLoading && <LoadingIndicator />}
           {isError && (
             <Alert type="error">
-              {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+              {(error?.responseJSON?.detail as string) ||
+                t('Error while fetching metrics data')}
             </Alert>
           )}
         </StyledMetricWidgetBody>
