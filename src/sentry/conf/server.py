@@ -3871,7 +3871,7 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
-MAX_MONITORS_PER_ORG = 10000
+MAX_MONITORS_PER_ORG = 1500
 MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
 # Raise schema validation errors and make the indexer crash (only useful in
