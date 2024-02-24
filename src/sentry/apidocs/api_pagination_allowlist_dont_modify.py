@@ -1,6 +1,6 @@
 """
     This list is tracking old api endpoints that don't correctly implement pagination.
-    The goal is to eventually find owners for all and shrink this list.
+    The goal is to eventually add pagination for all and shrink this list.
     DO NOT ADD ANY NEW APIS
 """
 API_PAGINATION_ALLOWLIST_DONT_MODIFY = [
