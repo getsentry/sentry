@@ -21,7 +21,6 @@ from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
-@freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
 class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     def store_event_and_outcomes(
         self, project_id, timestamp, fingerprint, category, num_times, release=None, resolve=True
@@ -61,6 +60,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             group.save()
         return group
 
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def setUp(self):
         super().setUp()
         self.now = datetime.now().replace(tzinfo=timezone.utc)
@@ -79,6 +79,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         self.release = self.create_release(project=self.project, date_added=self.now)
 
     @with_feature("organizations:daily-summary")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
     def test_schedule_organizations(self, mock_prepare_summary_data):
         user2 = self.create_user()
@@ -102,10 +103,11 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             schedule_organizations(timestamp=to_timestamp(self.now))
 
         # user2's local timezone is UTC and therefore it isn't sent now
-        assert mock_prepare_summary_data.call_count == 1
-        for call_args in mock_prepare_summary_data.call_args_list:
+        assert mock_prepare_summary_data.delay.call_count == 1
+        for call_args in mock_prepare_summary_data.delay.call_args_list:
             assert call_args.args == (to_timestamp(self.now), ONE_DAY, self.organization.id)
 
+    @freeze_time(before_now(days=2).replace(hour=12, minute=0, second=0, microsecond=0))
     def test_prepare_summary_data(self):
         group1 = self.store_event_and_outcomes(
             self.project.id,
@@ -211,7 +213,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         # store an event in another project to be sure they're in separate buckets
         group4 = self.store_event_and_outcomes(
             self.project2.id,
-            self.two_hours_ago,
+            self.now,
             fingerprint="group-4",
             category=DataCategory.ERROR,
             num_times=2,
@@ -222,7 +224,6 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         perf_event2 = self.create_performance_issue(
             fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group5"
         )
-
         summary = prepare_summary_data(to_timestamp(self.now), ONE_DAY, self.organization.id)
         project_id = self.project.id
 

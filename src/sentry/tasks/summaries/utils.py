@@ -191,6 +191,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
             type__gte=1000,
             type__lt=2000,
         ).order_by("-times_seen")[:50]
+
         # Django doesn't have a .limit function, and this will actually do its magic to use the LIMIT statement.
         groups = list(groups)
         group_id_to_group = {group.id: group for group in groups}
