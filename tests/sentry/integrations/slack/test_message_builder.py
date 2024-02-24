@@ -1653,6 +1653,8 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
             assert_no_errors=False,
         )
         group = event.group
+        assert group
+
         context_without_error_user_count = get_context(group)
         assert (
             context_without_error_user_count
