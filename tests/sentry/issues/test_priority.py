@@ -56,9 +56,12 @@ class TestUpdatesPriority(TestCase):
         )
         auto_update_priority(self.group, PriorityChangeReason.ESCALATING)
         assert self.group.priority == PriorityLevel.HIGH
-        self.assert_activity_grouphistory_set(
-            self.group, PriorityLevel.HIGH, PriorityChangeReason.ESCALATING
-        )
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIORITY.value
+        ).exists()
+        assert not GroupHistory.objects.filter(
+            group=self.group, status=GroupHistoryStatus.PRIORITY_HIGH
+        ).exists()
 
     def test_skips_if_priority_locked(self) -> None:
         self.group = self.create_group(
@@ -115,8 +118,14 @@ class TestUpdatesPriority(TestCase):
         )
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         assert self.group.priority == PriorityLevel.HIGH
-        self.assert_activity_grouphistory_set(
-            self.group, PriorityLevel.HIGH, PriorityChangeReason.ONGOING
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIORITY.value
+        ).exists()
+        assert (
+            GroupHistory.objects.filter(
+                group=self.group, status=GroupHistoryStatus.PRIORITY_HIGH
+            ).count()
+            == 1
         )
 
     def test_updates_priority_ongoing_no_history(self) -> None:
