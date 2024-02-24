@@ -116,7 +116,10 @@ _parameterization_regex_str = r"""(?x)
         (datetime.datetime\(.*?\))
     ) |
     (?P<duration>
-        \b\d+ms\b
+        \b
+        (\d+ms) |
+        (\d(\.\d+)?s)
+        \b
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b

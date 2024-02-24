@@ -116,8 +116,8 @@ def record_analytics(monkeypatch):
         ("bool", """blah a=true had a problem""", """blah a=<bool> had a problem"""),
         (
             "Duration - ms",
-            """blah connection failed after 12345ms""",
-            """blah connection failed after <duration>""",
+            """blah connection failed after 12345ms 1.899s 3s""",
+            """blah connection failed after <duration> <duration> <duration>""",
         ),
         (
             "Quoted str w/ints",
