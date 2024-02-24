@@ -77,6 +77,7 @@ export interface OnboardingConfig<
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
@@ -86,6 +87,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
 export type ConfigType =
   | 'onboarding'
   | 'feedbackOnboardingNpm'
+  | 'feedbackOnboardingCrashApi'
   | 'replayOnboardingNpm'
   | 'replayOnboardingJsLoader'
   | 'customMetricsOnboarding';

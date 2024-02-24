@@ -7,6 +7,7 @@ import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
@@ -23,7 +24,7 @@ export function FeedbackOnboardingLayout({
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-  const {steps} = useMemo(() => {
+  const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
@@ -72,6 +73,7 @@ export function FeedbackOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
+        {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
           {steps.map(step => (
             <Step key={step.title ?? step.type} {...step} />
@@ -100,4 +102,10 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: ${space(4)};
 `;
