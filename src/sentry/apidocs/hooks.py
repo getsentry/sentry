@@ -195,14 +195,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
         # Fail if endpoint doesn't implement pagination correctly
         if method == "GET":
-            if path in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
-                continue
             endsWithObject = re.search(r"/([^/{}]+)s/$", path)
             if endsWithObject is not None:
                 class_name = callback.view_class.__name__
                 file_path = inspect.getfile(callback.view_class)
                 result = find_method_and_check_paginate(file_path, class_name)
-                if not result:
+                if not result and path not in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
                     raise SentryApiBuildError(
                         f"Endpoint {class_name} has a list API that is not using pagination. Please add self.paginate() to your get method to ensure the product doesn't break with more adoption. If you have any questions, reach out to #discuss-api."
                     )
