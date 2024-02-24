@@ -20,6 +20,7 @@ import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
+  feedbackOnboardingPlatforms,
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
@@ -268,8 +269,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  // No platform or no docs
-  if (!currentPlatform || !newDocs) {
+  // No platform or not supported or no docs
+  if (
+    !currentPlatform ||
+    !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
+    !newDocs
+  ) {
     return (
       <Fragment>
         <div>

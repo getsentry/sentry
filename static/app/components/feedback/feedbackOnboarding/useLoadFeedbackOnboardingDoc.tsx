@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {feedbackOnboardingPlatforms} from 'sentry/data/platformCategories';
 import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -39,6 +40,10 @@ function useLoadFeedbackOnboardingDoc({
 
   useEffect(() => {
     async function getGettingStartedDoc() {
+      if (!feedbackOnboardingPlatforms.includes(platform.id)) {
+        setModule('none');
+        return;
+      }
       try {
         const mod = await import(
           /* webpackExclude: /.spec/ */
