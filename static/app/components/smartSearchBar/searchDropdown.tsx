@@ -13,7 +13,7 @@ import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
+import {getIssueTitleFromType, type TagCollection} from 'sentry/types';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
@@ -371,6 +371,23 @@ function DropdownItem({
       <RecommendedItem>
         <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
       </RecommendedItem>
+    );
+  } else if (item.type === ItemType.TAG_VALUE) {
+    const issueTitle = getIssueTitleFromType(item.desc!);
+    children = (
+      <Fragment>
+        <ItemTitle item={item} isChild={isChild} searchSubstring={searchSubstring} />
+        {item.desc && <Value hasDocs={!!issueTitle}>{item.desc}</Value>}
+        <DropdownDocumentation
+          documentation={issueTitle}
+          searchSubstring={searchSubstring}
+        />
+        <TagWrapper>
+          {item.kind && !isChild && (
+            <KindTag kind={item.kind} deprecated={item.deprecated} />
+          )}
+        </TagWrapper>
+      </Fragment>
     );
   } else {
     children = (
