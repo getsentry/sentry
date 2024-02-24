@@ -4,6 +4,7 @@
     DO NOT ADD ANY NEW APIS
 """
 API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
+    "/api/0/projects/{organization_slug}/{project_slug}/alert-rules/{alert_rule_id}/",
     "/api/0/organizations/{organization_slug}/relay_usage/",
     "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/owners/",
     "/api/0/organizations/{organization_slug}/data-export/{data_export_id}/",
