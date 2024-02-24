@@ -130,8 +130,13 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
     def execute(self, offset, limit):
         span_keys, summaries = self.get_span_keys(offset, limit)
-        result = self.get_spans_by_key(span_keys)
+        result = self.get_spans_by_key(
+            span_keys,
+            # force `id` to be one of the fields
+            additional_fields=["id"],
+        )
 
+        # if `id` wasn't initially there, we should remove it
         should_pop_id = "id" not in self.fields
 
         for row in result["data"]:
@@ -264,12 +269,14 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         span_keys = self.get_span_keys(offset, limit)
 
         column = self.mri_to_column(self.mri)
-        assert column is not None
+        assert column is not None  # should always resolve to a column here
 
         result = self.get_spans_by_key(span_keys, additional_fields=[column])
 
+        should_pop_column = column not in self.fields
+
         for row in result["data"]:
-            value = row.pop(column)
+            value = row.pop(column) if should_pop_column else row[column]
             row["summary"] = {
                 "min": value,
                 "max": value,
