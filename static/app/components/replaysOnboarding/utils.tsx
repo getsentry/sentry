@@ -1,10 +1,7 @@
 import partition from 'lodash/partition';
 
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {replayFrontendPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {tct} from 'sentry/locale';
 import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
@@ -32,28 +29,4 @@ export function splitProjectsByReplaySupport(projects: Project[]) {
 
 export const replayJsFrameworkOptions: PlatformIntegration[] = platforms.filter(p =>
   replayFrontendPlatforms.includes(p.id)
-);
-
-export const tracePropagationMessage = (
-  <Alert type="info" showIcon>
-    {tct(
-      `To see replays for backend errors, ensure that you have set up trace propagation. To learn more, [link:read the docs].`,
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#replays-for-backend-errors/" />
-        ),
-      }
-    )}
-  </Alert>
-);
-
-export const crashReportCallout = ({link}: {link: string}) => (
-  <Alert type="info" showIcon>
-    {tct(
-      `Interested in receiving feedback only when an error happens? [link:Read the docs] to learn how to set up our crash-report modal.`,
-      {
-        link: <ExternalLink href={link} />,
-      }
-    )}
-  </Alert>
 );
