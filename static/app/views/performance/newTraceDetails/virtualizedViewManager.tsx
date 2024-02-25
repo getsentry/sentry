@@ -134,7 +134,7 @@ export class VirtualizedViewManager {
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
-  span_text: ({ref: HTMLElement; text: string; space: [number, number]} | undefined)[] =
+  span_text: ({ref: HTMLElement; space: [number, number], text: string;} | undefined)[] =
     [];
 
   // Holds the span to px matrix so we dont keep recalculating it
