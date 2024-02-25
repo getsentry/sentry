@@ -971,7 +971,7 @@ function TraceBar(props: TraceBarProps) {
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
         }}
-       />
+      />
       <div
         ref={r =>
           props.viewManager.registerSpanBarTextRef(
