@@ -1,10 +1,11 @@
-import type {List} from 'react-virtualized';
+import type { List } from 'react-virtualized';
 import * as Sentry from '@sentry/react';
-import {mat3, vec2} from 'gl-matrix';
+import { mat3, vec2 } from 'gl-matrix';
 
-import type {Client} from 'sentry/api';
-import type {Organization} from 'sentry/types';
+import type { Client } from 'sentry/api';
+import type { Organization } from 'sentry/types';
 import clamp from 'sentry/utils/number/clamp';
+import { lightTheme as theme } from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
   isParentAutogroupedNode,
@@ -130,9 +131,10 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
-  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
+  indicators: ({ indicator: TraceTree['indicators'][0]; ref: HTMLElement } | undefined)[] =
     [];
-  span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  span_bars: ({ ref: HTMLElement; space: [number, number] } | undefined)[] = [];
+  span_text: ({ ref: HTMLElement; text: string, space: [number, number] } | undefined)[] = [];
 
   // Holds the span to px matrix so we dont keep recalculating it
   span_to_px: mat3 = mat3.create();
@@ -148,7 +150,7 @@ export class VirtualizedViewManager {
     span_list: Pick<ViewColumn, 'width'>;
   }) {
     this.columns = {
-      list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
+      list: { ...columns.list, column_nodes: [], column_refs: [], translate: [0, 0] },
       span_list: {
         ...columns.span_list,
         column_nodes: [],
@@ -202,7 +204,7 @@ export class VirtualizedViewManager {
     this.dividerStartVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
-    this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
+    this.container.addEventListener('mouseup', this.onDividerMouseUp, { passive: true });
     this.container.addEventListener('mousemove', this.onDividerMouseMove, {
       passive: true,
     });
@@ -259,11 +261,15 @@ export class VirtualizedViewManager {
 
     this.divider = ref;
     this.divider.style.width = `${DIVIDER_WIDTH}px`;
-    ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
+    ref.addEventListener('mousedown', this.onDividerMouseDown, { passive: true });
   }
 
   registerSpanBarRef(ref: HTMLElement | null, space: [number, number], index: number) {
-    this.span_bars[index] = ref ? {ref, space} : undefined;
+    this.span_bars[index] = ref ? { ref, space } : undefined;
+  }
+
+  registerSpanBarTextRef(ref: HTMLElement | null, text: string, space: [number, number], index: number) {
+    this.span_text[index] = ref ? { ref, text, space } : undefined;
   }
 
   registerColumnRef(
@@ -288,7 +294,7 @@ export class VirtualizedViewManager {
         const scrollableElement = ref.children[0];
         if (scrollableElement) {
           this.measurer.measure(node, scrollableElement as HTMLElement);
-          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
+          ref.addEventListener('wheel', this.onSyncedScrollbarScroll, { passive: true });
         }
       }
     }
@@ -298,7 +304,7 @@ export class VirtualizedViewManager {
       if (ref === undefined && element) {
         element.removeEventListener('wheel', this.onWheelZoom);
       } else if (ref) {
-        ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+        ref.addEventListener('wheel', this.onWheelZoom, { passive: false });
       }
     }
 
@@ -314,7 +320,7 @@ export class VirtualizedViewManager {
     if (!ref) {
       this.indicators[index] = undefined;
     } else {
-      this.indicators[index] = {ref, indicator};
+      this.indicators[index] = { ref, indicator };
     }
 
     if (ref) {
@@ -325,7 +331,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
+  getConfigSpaceCursor(cursor: { x: number; y: number }): [number, number] {
     const left_percentage = cursor.x / this.trace_physical_space.width;
     const left_view = left_percentage * this.trace_view.width;
 
@@ -414,7 +420,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  setTraceView(view: {width?: number; x?: number}) {
+  setTraceView(view: { width?: number; x?: number }) {
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
@@ -599,7 +605,7 @@ export class VirtualizedViewManager {
       0,
       1,
       (space[0] - this.to_origin) / this.span_to_px[0] -
-        this.trace_view.x / this.span_to_px[0],
+      this.trace_view.x / this.span_to_px[0],
       0,
     ];
   }
@@ -608,7 +614,7 @@ export class VirtualizedViewManager {
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
-    {api, organization}: {api: Client; organization: Organization}
+    { api, organization }: { api: Client; organization: Organization }
   ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
     const segments = [...scrollQueue];
     const list = this.list;
@@ -669,37 +675,66 @@ export class VirtualizedViewManager {
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {
-    return (timestamp - this.to_origin) / this.span_to_px[0];
+    return ((timestamp - this.to_origin) - this.trace_view.x) / this.span_to_px[0];
   }
 
   computeSpanTextPlacement(
-    span_space: [number, number]
-  ): 'left' | 'right' | 'inside left' {
-    const span_left = span_space[0];
-    // const view_left = this.trace_view.x;
+    span_space: [number, number],
+    text: string
+  ): number | null {
+    const TEXT_PADDING = 2;
+    const span_left = span_space[0] - this.to_origin;
+    const span_right = span_left + span_space[1];
 
-    const span_right = span_space[0] + span_space[1];
-    // const view_right = this.trace_view.x + this.trace_view.width;
-    const view_middle = this.trace_view.x + this.trace_view.width / 2;
-
-    if (span_right < view_middle) {
-      return 'right';
-    }
-    if (span_left > view_middle) {
-      return 'left';
+    if (span_right < this.trace_view.x) {
+      return this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING
     }
 
-    return 'right';
+    if (span_left > this.trace_view.right) {
+      return this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING
+    }
+
+    const view_left = this.trace_view.x;
+    const view_right = view_left + this.trace_view.width;
+
+    const width = this.text_measurer.measure(text);
+    const space_right = view_right - span_right;
+
+
+    // If we have space to the right, we will try and place the text there
+    if (space_right > 0) {
+      const space_right_px = space_right / this.span_to_px[0]
+
+      if (space_right_px > width) {
+        return this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING
+      }
+    }
+
+    if (space_right < 0) {
+      const full_span_px_width = span_space[1] / this.span_to_px[0]
+
+      if (full_span_px_width > width) {
+        const difference = span_right - this.trace_view.right
+        const visible_width = (span_space[1] - difference) / this.span_to_px[0];
+
+        if (visible_width > width) {
+          return (this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left + this.trace_view.width) - width - TEXT_PADDING)
+        }
+
+        return (this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING)
+      }
+    }
+
+    return null
   }
 
-  draw(options: {list?: number; span_list?: number} = {}) {
+  draw(options: { list?: number; span_list?: number } = {}) {
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
     if (this.divider) {
-      this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2
-      }px)`;
+      this.divider.style.transform = `translateX(${list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2
+        }px)`;
     }
 
     const listWidth = list_width * 100 + '%';
@@ -716,14 +751,16 @@ export class VirtualizedViewManager {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
 
-        const duration = span_bar.ref.children[0];
-        if (duration) {
-          const text_placement = this.computeSpanTextPlacement(span_bar.space);
+      }
+      const span_text = this.span_text[i]
+      if (span_text) {
+        const text_transform = this.computeSpanTextPlacement(span_text.space, span_text.text);
 
-          (duration as HTMLElement).style.transform = `scaleX(${
-            1 / span_transform[0]
-          }) translate(${text_placement === 'left' ? 'calc(-100% - 4px)' : '4px'}, 0)`;
+        if (text_transform === null) {
+          continue
         }
+
+        span_text.ref.style.transform = `translateX(${text_transform}px)`
       }
     }
 
@@ -802,9 +839,13 @@ class RowMeasurer {
 class TextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;
-  cache: Map<string, TextMetrics> = new Map();
+  cache: Map<string, number> = new Map();
 
   ctx: CanvasRenderingContext2D;
+
+  number: number = 0;
+  dot: number = 0;
+  duration: Record<string, number> = {};
 
   constructor() {
     this.drain = this.drain.bind(this);
@@ -812,24 +853,25 @@ class TextMeasurer {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    if(!ctx){
+    if (!ctx) {
       throw new Error('Canvas 2d context is not available');
     }
 
+    canvas.width = 50 * window.devicePixelRatio ?? 1;
+    canvas.height = 50 * window.devicePixelRatio ?? 1;
     this.ctx = ctx;
-  }
 
-  enqueueMeasure(string: string) {
-    if (this.cache.has(string)) {
-      return;
+    ctx.font = '11px' + theme.text.family;
+
+    this.dot = this.ctx.measureText('.').width;
+    for (let i = 0; i < 10; i++) {
+      const measurement = this.ctx.measureText(i.toString());
+      this.number = Math.max(this.number, measurement.width);
     }
 
-    this.queue.push(string);
-
-    if (this.drainRaf !== null) {
-      window.cancelAnimationFrame(this.drainRaf);
+    for (const duration of ['ns', 'ms', 's', 'm', 'h', 'd']) {
+      this.duration[duration] = this.ctx.measureText(duration).width;
     }
-    this.drainRaf = window.requestAnimationFrame(this.drain);
   }
 
   drain() {
@@ -838,15 +880,46 @@ class TextMeasurer {
     }
   }
 
-  measure(string: string): TextMetrics {
-    const cache = this.cache.get(string);
-    if (cache !== undefined) {
-      return cache;
+  computeStringLength(string: string): number {
+    let width = 0;
+    for (let i = 0; i < string.length; i++) {
+      switch (string[i]) {
+        case ".":
+          width += this.dot;
+          break;
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+        case "9":
+          width += this.number;
+          break;
+        default:
+          const remaining = string.slice(i);
+          if (this.duration[remaining]) {
+            width += this.duration[remaining];
+            return width;
+          }
+      }
+    }
+    return width;
+  }
+
+  measure(string: string): number {
+    const cached_width = this.cache.get(string);
+    if (cached_width !== undefined) {
+      return cached_width;
     }
 
-    const text = this.ctx.measureText(string);
-    this.cache.set(string, text);
-    return text;
+
+    const width = this.computeStringLength(string)
+    this.cache.set(string, width);
+    return width;
   }
 }
 
