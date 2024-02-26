@@ -262,7 +262,9 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
       <div>
         <div>
           <BulkFilter>
-            <FieldLabel>{t('Filter out legacy browsers')}:</FieldLabel>
+            <FieldLabel disabled={disabled}>
+              {t('Filter out legacy browsers')}:
+            </FieldLabel>
             <ButtonBar gap={1}>
               <Button
                 priority="link"
