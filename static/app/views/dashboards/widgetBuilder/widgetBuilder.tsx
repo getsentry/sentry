@@ -97,6 +97,8 @@ import {WidgetLibrary} from './widgetLibrary';
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
+  [WidgetType.ERROR_EVENTS]: DataSet.EVENTS,
+  [WidgetType.TRANSACTIONS_MULTI]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.RELEASE]: DataSet.RELEASES,
   [WidgetType.METRICS]: DataSet.METRICS,

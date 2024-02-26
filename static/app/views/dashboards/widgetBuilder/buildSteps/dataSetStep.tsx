@@ -39,7 +39,8 @@ export function DataSetStep({
   }
 
   const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ERROR_EVENTS, t('Errors'));
+  datasetChoices.set(DataSet.TRANSACTION_LIKE, t('Transactions'));
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   if (hasReleaseHealthFeature) {
