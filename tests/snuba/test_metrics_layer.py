@@ -11,6 +11,7 @@ from snuba_sdk import (
     Condition,
     Direction,
     Formula,
+    Limit,
     Metric,
     MetricsQuery,
     MetricsScope,
@@ -784,3 +785,60 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
                 ).isoformat()
             )
+
+    def test_resolve_all_mris(self) -> None:
+        for mri in [
+            "d:custom/sentry.event_manager.save@second",
+            "d:custom/sentry.event_manager.save_generic_events@second",
+        ]:
+            self.store_metric(
+                self.org_id,
+                self.project.id,
+                "distribution",
+                mri,
+                {
+                    "transaction": "transaction_1",
+                    "status_code": "200",
+                    "device": "BlackBerry",
+                },
+                self.ts(self.hour_ago + timedelta(minutes=5)),
+                1,
+                UseCaseID.CUSTOM,
+            )
+
+        query = MetricsQuery(
+            query=Formula(
+                function_name="plus",
+                parameters=[
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                    Timeseries(
+                        metric=Metric(
+                            mri="d:custom/sentry.event_manager.save_generic_events@second",
+                        ),
+                        aggregate="avg",
+                    ),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=None, totals=True, orderby=None, granularity=10),
+            scope=MetricsScope(
+                org_ids=[self.org_id], project_ids=[self.project.id], use_case_id="custom"
+            ),
+            limit=Limit(20),
+            offset=None,
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 1
