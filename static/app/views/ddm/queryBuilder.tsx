@@ -1,5 +1,6 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -75,9 +76,16 @@ export const QueryBuilder = memo(function QueryBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = [], isLoading: tagsIsLoading} = useMetricsTags(metricsQuery.mri, {
-    projects,
-  });
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
+    metricsQuery.mri,
+    {
+      projects,
+    }
+  );
+
+  const tags = useMemo(() => {
+    return uniqBy(tagsData, 'key');
+  }, [tagsData]);
 
   const displayedMetrics = useMemo(() => {
     if (mriMode) {
