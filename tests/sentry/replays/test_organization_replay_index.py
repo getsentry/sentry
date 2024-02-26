@@ -475,6 +475,56 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 0
 
+    def test_get_replays_pagination_missing_segment(self):
+        """Test replays can be paginated.
+
+        This test presents an interesting case where the first page is blank but the
+        second page contains data. This is not a bug. In normal operation there will
+        be 50 rows with possibly one missing. The hope is no one will notice the missing
+        row and the pagination buttons will work correctly.
+
+        To properly fix this bug, the scalar optimized query must filter by segment-id
+        0. However, doing this will significantly decrease the performance of large
+        customers. Until a solution is found for this problem this weird pagination
+        behavior should be left in place.
+        """
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
+        replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        replay2_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=2)
+
+        self.store_replays(mock_replay(replay1_timestamp0, project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(replay1_timestamp1, project.id, replay1_id, segment_id=1))
+        # Missing segment 0
+        self.store_replays(mock_replay(replay2_timestamp1, project.id, replay2_id, segment_id=1))
+
+        with self.feature(REPLAYS_FEATURES):
+            # The first replay found does not have a starting segment. So it is removed from
+            # the response output. But the response still contains the next_page headers.
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 0),
+                per_page=1,
+            )
+            response_data = response.json()
+            assert "data" in response_data
+            assert len(response_data["data"]) == 0
+            assert 'rel="next"; results="true"; cursor="0:1:0"' in response.headers["Link"]
+
+            # The next page has a replay with a starting segment so it is returned.
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 1),
+                per_page=1,
+            )
+            response_data = response.json()
+            assert "data" in response_data
+            assert response_data["data"][0]["id"] == replay1_id
+            assert len(response_data["data"]) == 1
+
     def test_get_replays_user_filters(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
@@ -1321,7 +1371,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Invalid field-names error regardless of ordering.
             with mock.patch(
-                "sentry.replays.endpoints.organization_replay_index.query_replays_collection",
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_raw",
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
