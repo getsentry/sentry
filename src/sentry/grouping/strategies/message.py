@@ -15,7 +15,7 @@ from sentry.interfaces.message import Message
 from sentry.utils import metrics
 
 _parameterization_regex = re.compile(
-    # The `(?x)` tells the regex compiler to ingore comments and unescaped whitespace,
+    # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
     # so we can use newlines and indentation for better legibility.
     r"""(?x)
     (?P<email>
@@ -64,6 +64,32 @@ _parameterization_regex = re.compile(
         \b[0-9a-fA-F]{32}\b
     ) |
     (?P<date>
+        # No word boundaries required around dates. Should there be?
+        # RFC822, RFC1123, RFC1123Z
+        ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat),\s\d{1,2}\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2,4}\s\d{1,2}:\d{1,2}(:\d{1,2})?\s([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z])))
+        |
+        # RFC850
+        ((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s\d{2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
+        |
+        # RFC3339, RFC3339Nano
+        (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?([+-]?\d{2}:\d{2})?)
+        |
+        # LongDate
+        ((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+[0-3]\d,\s+\d{4})
+        |
+        # Datetime
+        (\d{4}-[01]\d-[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)
+        |
+        # Kitchen
+        (\d{1,2}:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+        |
+        # Date
+        (\d{4}-[01]\d-[0-3]\d)
+        |
+        # Time
+        ([0-2]\d:[0-5]\d:[0-5]\d)
+        |
+        # Old Date Formats, TODO: possibly safe to remove?
         (
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
             (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
@@ -86,6 +112,9 @@ _parameterization_regex = re.compile(
             ([-\+][\d]{2}[0-5][\d]|(?:UT|GMT|(?:E|C|M|P)(?:ST|DT)|[A-IK-Z]))
         ) |
         (datetime.datetime\(.*?\))
+    ) |
+    (?P<duration>
+        \b\d+ms\b
     ) |
     (?P<hex>
         \b0[xX][0-9a-fA-F]+\b
@@ -142,7 +171,12 @@ def normalize_message_for_grouping(message: str) -> str:
                 # For `quoted_str` and `bool` we want to preserve the `=` symbol, which we include in
                 # the match in order not to replace random quoted strings and the words 'true' and 'false'
                 # in contexts other than key-value pairs
-                return f"=<{key}>" if key in ["quoted_str", "bool"] else f"<{key}>"
+                if key in ["quoted_str", "bool"]:
+                    return f"=<{key}>"
+                elif key == "json_str_val":
+                    return f": <{key}>"
+                else:
+                    return f"<{key}>"
         return ""
 
     return _parameterization_regex.sub(_handle_match, trimmed)
