@@ -163,8 +163,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 6.0, 4.0]
-        assert data[0][0]["totals"] == 10.0
+        assert data[0][0]["series"] == [None, self.to_reference_unit(6.0), self.to_reference_unit(4.0)]
+        assert data[0][0]["totals"] == self.to_reference_unit(10.0)
 
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "release:latest")
