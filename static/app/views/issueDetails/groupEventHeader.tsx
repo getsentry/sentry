@@ -18,19 +18,27 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const organization = useOrganization();
 
   return (
-    <DataSection>
+    <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
       <TraceTimeline event={event} />
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}
       />
-    </DataSection>
+    </StyledDataSection>
   );
 }
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   margin: ${space(0.5)} 0;
+`;
+
+const StyledDataSection = styled(DataSection)`
+  padding: ${space(1)} ${space(2)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1.5)} ${space(4)} 0;
+  }
 `;
 
 export default GroupEventHeader;
