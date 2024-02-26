@@ -575,7 +575,7 @@ class AlertRuleTest(TestCase):
         assert alert_rule._processor_hooks[0].call_count == 1
         assert alert_rule._processor_hooks[0].call_args == mock.call(subscription)
 
-    def test_clean_activated_alert_active(self):
+    def test_clean_expired_alert(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
         subscription = alert_rule.snuba_query.subscriptions.get()
         subscription.remove = Mock()

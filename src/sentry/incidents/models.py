@@ -514,13 +514,13 @@ class AlertRule(Model):
     def process_hooks(self, subscription):
         return [func(subscription) for func in self._processor_hooks]
 
-    def clean_activated_alert(self, subscription):
+    def clean_expired_alert(self, subscription):
         now = timezone.now()
-        time_window = subscription.date_added + timedelta(
+        subscription_end = subscription.date_added + timedelta(
             seconds=subscription.snuba_query.time_window
         )
 
-        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value and now > time_window:
+        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value and now > subscription_end:
             subscription.remove()
 
         return True
