@@ -70,7 +70,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
 
     # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
     # any issues.
-    sample_rate = get_boost_low_volume_projects_sample_rate(
+    sample_rate, _ = get_boost_low_volume_projects_sample_rate(
         org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
     )
 

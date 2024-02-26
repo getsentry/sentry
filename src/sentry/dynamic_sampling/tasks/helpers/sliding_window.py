@@ -1,8 +1,6 @@
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime, timezone
 
-import sentry_sdk
-
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
@@ -40,18 +38,15 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_org_sample_rate(
-    org_id: int, default_sample_rate: float | None = None, notify_missing: bool = False
-) -> float | None:
+    org_id: int, default_sample_rate: float | None
+) -> tuple[float | None, bool]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)
 
     try:
-        return float(redis_client.get(cache_key))
+        return float(redis_client.get(cache_key)), True
     except (TypeError, ValueError):
-        if notify_missing:
-            sentry_sdk.capture_message("Missing or invalid sliding window org sample rate in cache")
-
-        return default_sample_rate
+        return default_sample_rate, False
 
 
 def get_sliding_window_size() -> int | None:

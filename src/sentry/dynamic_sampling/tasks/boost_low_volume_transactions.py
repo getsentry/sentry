@@ -23,7 +23,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -171,13 +170,14 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         log_skipped_job(org_id, "boost_low_volume_transactions")
         return
 
-    # By default, we use the blended sample rate.
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_boost_low_volume_projects_sample_rate(
-            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
-        )
+    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+    # resort to the blended sample rate of the org.
+    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+        org_id=org_id,
+        project_id=project_id,
+        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
         log_sample_rate_source(
             org_id,
             project_id,
