@@ -296,7 +296,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
-const feedbackOnboardingCrashApi: OnboardingConfig = {
+export const feedbackOnboardingCrashApiJava: OnboardingConfig = {
   introduction: () => getCrashReportApiIntroduction(),
   install: () => [
     {
@@ -348,7 +348,7 @@ Sentry.captureUserFeedback(userFeedback)`,
 
 const docs: Docs<PlatformOptions> = {
   platformOptions,
-  feedbackOnboardingCrashApi,
+  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   onboarding,
 };
 

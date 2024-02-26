@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.test.client import RequestFactory
 from django.urls import reverse
@@ -27,12 +27,16 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(self.project1)
 
         release2 = Release.objects.create(
-            organization_id=org2.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org2.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(self.project2)
 
