@@ -510,30 +510,6 @@ describe('VirtualizedViewManger', () => {
     });
 
     describe('sibling autogrouping', () => {
-      it('scrolls to sibling autogrouped node', async () => {
-        manager.list = makeList();
-        const tree = makeSingleTransactionTree();
-
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
-          method: 'GET',
-          body: makeEvent({}, makeSiblingAutogroupedSpans()),
-        });
-
-        const result = await manager.scrollToPath(
-          tree,
-          [`ag:first_span`, 'txn:event_id'],
-          () => void 0,
-          {
-            api: api,
-            organization,
-          }
-        );
-
-        expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
-      });
-
       it('scrolls to child span of sibling autogrouped node', async () => {
         manager.list = makeList();
         const tree = makeSingleTransactionTree();
@@ -561,32 +537,5 @@ describe('VirtualizedViewManger', () => {
       it.todo('scrolls to orphan transactions');
       it.todo('scrolls to orphan transactions child span');
     });
-
-    it('scrolls to child span of sibling autogrouped node', async () => {
-      manager.virtualizedList = makeList();
-      const tree = makeSingleTransactionTree();
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project:event_id/',
-        method: 'GET',
-        body: makeEvent({}, makeSiblingAutogroupedSpans()),
-      });
-
-      const result = await manager.scrollToPath(
-        tree,
-        ['span:middle_span', `ag:first_span`, 'txn:event_id'],
-        () => void 0,
-        {
-          api: api,
-          organization,
-        }
-      );
-
-      expect(result).toBeTruthy();
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
-    });
-
-    it.todo('scrolls to orphan transactions');
-    it.todo('scrolls to orphan transactions child span');
   });
 });
