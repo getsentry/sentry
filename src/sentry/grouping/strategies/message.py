@@ -232,7 +232,7 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 
     normalized = _parameterization_regex.sub(_handle_match, trimmed)
     for experiment in _parameterization_regex_experiments:
-        if in_rollout_group(
+        if event.project_id and in_rollout_group(
             f"grouping.experiments.parameterization.{experiment.name}", event.project_id
         ):
             experiment_output = experiment.regex.sub(_handle_match, normalized)
