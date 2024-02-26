@@ -1371,7 +1371,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Invalid field-names error regardless of ordering.
             with mock.patch(
-                "sentry.replays.endpoints.organization_replay_index.query_replays_collection",
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_raw",
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
