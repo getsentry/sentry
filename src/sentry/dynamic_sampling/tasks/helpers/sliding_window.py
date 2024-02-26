@@ -1,8 +1,6 @@
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime, timezone
 
-import sentry_sdk
-
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 
