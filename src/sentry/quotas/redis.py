@@ -66,9 +66,10 @@ class RedisQuota(Quota):
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
-    def get_global_quotas(self):
-        results = [*self.get_global_abuse_quotas()]
-        return results
+    def get_quotas(
+        self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
+    ) -> list[QuotaConfig]:
+        self.get_project_abuse_quotas(project, key, keys=keys) + get_global_abuse_quotas()
 
     def get_project_quotas(
         self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
@@ -212,7 +213,7 @@ class RedisQuota(Quota):
         # but such quotas are invalid with counters.
         quotas = [
             quota
-            for quota in self.get_project_quotas(project, key=key) + get_global_abuse_quotas()
+            for quota in self.get_quotas(project, key=key)
             if quota.should_track and category in quota.categories
         ]
 
@@ -256,7 +257,7 @@ class RedisQuota(Quota):
         # affects all data, and (2) quotas that specify `error` events.
         quotas = [
             q
-            for q in self.get_project_quotas(project, key=key) + get_global_abuse_quotas()
+            for q in self.get_quotas(project, key=key)
             if not q.categories or DataCategory.ERROR in q.categories
         ]
 
