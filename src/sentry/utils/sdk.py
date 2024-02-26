@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import random
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
@@ -22,6 +21,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
+from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.openai_sdk_integration import OpenAiIntegration
@@ -79,7 +79,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
@@ -354,9 +353,8 @@ def configure_sdk():
         def _capture_anything(self, method_name, *args, **kwargs):
             # Experimental events will be sent to the experimental transport.
             if experimental_transport:
-                rate = options.get("store.use-experimental-dsn-sample-rate")
                 if is_current_event_experimental():
-                    if rate and random.random() < rate:
+                    if in_random_rollout("store.use-experimental-dsn-sample-rate"):
                         getattr(experimental_transport, method_name)(*args, **kwargs)
                     # Experimental events should not be sent to other transports even if they are not sampled.
                     return
@@ -380,11 +378,11 @@ def configure_sdk():
                     envelope = args_list[0]
                     # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                     # unless we allow them via a separate sample rate.
-                    ddm_sample_rate = options.get("store.allow-s4s-ddm-sample-rate")
                     safe_items = [
                         x
                         for x in envelope.items
-                        if x.data_category != "statsd" or random.random() < ddm_sample_rate
+                        if x.data_category != "statsd"
+                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
                     ]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
