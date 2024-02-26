@@ -48,6 +48,15 @@ class ControlAccessService(AccessService):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
+        # get member role
+        try:
+            member_role = OrganizationMemberMapping.objects.get(id=member.id).role
+        except OrganizationMemberMapping.DoesNotExist:
+            return False
+
+        if member_role != roles.get_top_dog().id:
+            return False
+
         user_ids = (
             OrganizationMemberMapping.objects.filter(
                 role=roles.get_top_dog().id,
@@ -82,6 +91,9 @@ class RegionAccessService(AccessService):
     def can_override_sso_as_owner(
         self, auth_provider: RpcAuthProvider, member: RpcOrganizationMemberSummary
     ) -> bool:
+        if member.role != roles.get_top_dog().id:
+            return False
+
         user_ids = (
             OrganizationMember.objects.filter(
                 role=roles.get_top_dog().id,
