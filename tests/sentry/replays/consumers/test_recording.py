@@ -19,7 +19,7 @@ from sentry.replays.consumers.recording_buffered import (
     cast_payload_from_bytes,
 )
 from sentry.replays.lib.storage import storage_kv
-from sentry.replays.lib.storage.legacy import make_recording_filename, make_video_filename
+from sentry.replays.lib.storage.legacy import _make_recording_filename, make_video_filename
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
 
@@ -68,7 +68,7 @@ class RecordingTestCase(TransactionTestCase):
 
     def get_recording_data(self, segment_id):
         return storage_kv.get(
-            make_recording_filename(
+            _make_recording_filename(
                 project_id=self.project.id,
                 replay_id=self.replay_id,
                 segment_id=segment_id,

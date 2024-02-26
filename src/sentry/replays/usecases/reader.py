@@ -27,8 +27,7 @@ from snuba_sdk import (
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
-from sentry.replays.lib.storage import filestore, storage
-from sentry.replays.lib.storage.legacy import RecordingSegmentStorageMeta
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
 
