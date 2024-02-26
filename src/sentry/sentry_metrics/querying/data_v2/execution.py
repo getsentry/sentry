@@ -443,9 +443,6 @@ class QueryExecutor:
         self._projects = projects
         self._referrer = referrer
 
-        # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
-        # to avoid an infinite recursion.
-        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
         self._scheduled_queries: list[ScheduledQuery] = []
         # Tracks the number of queries that have been executed (for measuring purposes).
