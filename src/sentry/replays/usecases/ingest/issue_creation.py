@@ -2,6 +2,7 @@ import datetime
 import logging
 from typing import Any
 
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.project import Project
@@ -50,9 +51,8 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
 
     selector = payload["message"]
     clicked_element = selector.split(" > ")[-1]
-
     new_issue_occurrence(
-        culprit=payload["data"]["url"],
+        culprit=payload["data"]["url"][:MAX_CULPRIT_LENGTH],
         environment=replay_info["agg_environment"],
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
@@ -105,7 +105,7 @@ def report_rage_click_issue_with_replay_event(
     clicked_element = selector.split(" > ")[-1]
 
     new_issue_occurrence(
-        culprit=url,
+        culprit=url[:MAX_CULPRIT_LENGTH],
         environment=replay_event["environment"],
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
