@@ -27,7 +27,9 @@ function useLoadFeedbackOnboardingDoc({
     platform?.type === 'framework'
       ? platform?.id === 'capacitor'
         ? `capacitor/capacitor`
-        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+        : platform?.id === 'dart'
+          ? `dart/dart`
+          : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
       : `${platform?.language}/${platform?.id}`;
 
   const {
