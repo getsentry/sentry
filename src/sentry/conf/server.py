@@ -3458,16 +3458,16 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
+# Mapping of default Kafka topic name to custom names
+KAFKA_TOPIC_MAP: Mapping[str, str] = {}
+
+
+# Mapping of default Kafka topic name to broker config
+KAFKA_BROKER_CONFIG: Mapping[str, Mapping[str, TopicDefinition | None]] = {}
 
 
 # Cluster configuration for each Kafka topic by name.
+# Deprecated
 KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
