@@ -10,20 +10,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {getWidgetTitle} from 'sentry/utils/metrics';
-import {
-  DEFAULT_SORT_STATE,
-  metricDisplayTypeOptions,
-} from 'sentry/utils/metrics/constants';
+import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {getTableSeries, MetricTable} from 'sentry/views/dashboards/metrics/table';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
-
-import {DASHBOARD_CHART_GROUP} from '../../../views/dashboards/dashboard';
-import {DisplayType} from '../../../views/dashboards/types';
 
 function useFocusedSeries({timeseriesData, queries, onChange}) {
   const [focusedSeries, setFocusedSeries] = useState<FocusedMetricsSeries[]>([]);
@@ -114,9 +112,17 @@ function useHoverSeries() {
   };
 }
 
+const supportedDisplayTypes = Object.keys(displayTypes)
+  .filter(d => d !== DisplayType.BIG_NUMBER)
+  .map(value => ({
+    label: displayTypes[value],
+    value,
+  }));
+
 export function MetricVisualization({queries, displayType, onDisplayTypeChange}) {
   const {selection} = usePageFilters();
-  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
+
+  const isTable = displayType === DisplayType.TABLE;
 
   const {
     data: timeseriesData,
@@ -127,17 +133,9 @@ export function MetricVisualization({queries, displayType, onDisplayTypeChange})
     intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
   });
 
-  const {chartRef, setHoveredSeries, resetHoveredSeries} = useHoverSeries();
-
-  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
-    timeseriesData,
-    queries,
-    onChange: resetHoveredSeries,
-  });
-
   const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
 
-  if (!chartSeries || !timeseriesData || isError) {
+  if (!timeseriesData || isError) {
     return (
       <StyledMetricChartContainer>
         {isLoading && <LoadingIndicator />}
@@ -167,29 +165,70 @@ export function MetricVisualization({queries, displayType, onDisplayTypeChange})
           size="xs"
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
-          options={metricDisplayTypeOptions}
-          onChange={({value}) => onDisplayTypeChange(value) as DisplayType}
+          options={supportedDisplayTypes}
+          onChange={({value}) => onDisplayTypeChange(value)}
         />
       </ViualizationHeader>
-      <StyledMetricChartContainer>
-        <TransparentLoadingMask visible={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
+      {!isTable ? (
+        <MetricChartVisualization
+          isLoading={isLoading}
+          timeseriesData={timeseriesData}
+          queries={queries}
           displayType={displayType}
-          group={DASHBOARD_CHART_GROUP}
-          height={200}
         />
-        <SummaryTable
-          series={chartSeries}
-          onSortChange={setTableSort}
-          sort={tableSort}
-          onRowClick={setSeriesVisibility}
-          onColorDotClick={toggleSeriesVisibility}
-          setHoveredSeries={setHoveredSeries}
+      ) : (
+        <MetricTableVisualization
+          isLoading={isLoading}
+          timeseriesData={timeseriesData}
+          queries={queries}
         />
-      </StyledMetricChartContainer>
+      )}
     </StyledOuterContainer>
+  );
+}
+
+function MetricChartVisualization({timeseriesData, queries, displayType, isLoading}) {
+  const {chartRef, setHoveredSeries, resetHoveredSeries} = useHoverSeries();
+
+  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
+    timeseriesData,
+    queries,
+    onChange: resetHoveredSeries,
+  });
+  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
+
+  return (
+    <StyledMetricChartContainer>
+      <TransparentLoadingMask visible={isLoading} />
+      <MetricChart
+        ref={chartRef}
+        series={chartSeries}
+        displayType={displayType}
+        group={DASHBOARD_CHART_GROUP}
+        height={200}
+      />
+      <SummaryTable
+        series={chartSeries}
+        onSortChange={setTableSort}
+        sort={tableSort}
+        onRowClick={setSeriesVisibility}
+        onColorDotClick={toggleSeriesVisibility}
+        setHoveredSeries={setHoveredSeries}
+      />
+    </StyledMetricChartContainer>
+  );
+}
+
+function MetricTableVisualization({timeseriesData, queries, isLoading}) {
+  const tableSeries = useMemo(() => {
+    return timeseriesData ? getTableSeries(timeseriesData, queries) : [];
+  }, [timeseriesData, queries]);
+
+  return (
+    <StyledMetricChartContainer>
+      <TransparentLoadingMask visible={isLoading} />
+      <MetricTable isLoading={isLoading} data={tableSeries} />{' '}
+    </StyledMetricChartContainer>
   );
 }
 
