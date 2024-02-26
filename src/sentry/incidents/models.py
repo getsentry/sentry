@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
 from typing import Any, ClassVar, Self
@@ -497,7 +498,7 @@ class AlertRule(Model):
         self._processor_hooks = []
 
         if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
-            self.add_processor_hook(self.clean_activated_alert)
+            self.add_processor_hook(self.clean_expired_alerts)
 
     def _validate_actor(self):
         # TODO: Remove once owner is fully removed.
@@ -508,13 +509,13 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    def add_processor_hook(self, hook):
+    def add_processor_hook(self, hook: Callable[[QuerySubscription], bool]) -> None:
         self._processor_hooks.append(hook)
 
-    def process_hooks(self, subscription):
+    def process_hooks(self, subscription: QuerySubscription) -> list[bool]:
         return [func(subscription) for func in self._processor_hooks]
 
-    def clean_expired_alert(self, subscription):
+    def clean_expired_alerts(self, subscription: QuerySubscription) -> bool:
         now = timezone.now()
         subscription_end = subscription.date_added + timedelta(
             seconds=subscription.snuba_query.time_window
