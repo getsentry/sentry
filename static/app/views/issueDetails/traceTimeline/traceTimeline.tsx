@@ -50,7 +50,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     traceEvents.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: 38}} data-test-id="trace-timeline-empty" />;
+    return <div style={{height: 36}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
@@ -89,7 +89,7 @@ const TimelineWrapper = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: ${space(2)};
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const QuestionTooltipWrapper = styled('div')`
