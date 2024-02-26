@@ -137,28 +137,29 @@ export const SummaryTable = memo(function SummaryTable({
 
   return (
     <SummaryTableWrapper hasActions={hasActions}>
-      <HeaderCell disabled />
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
-        {t('Name')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
-        {t('Avg')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
-        {t('Min')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
-        {t('Max')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
-        {t('Sum')}
-      </SortableHeaderCell>
-      {hasActions && (
-        <HeaderCell disabled right>
-          {t('Actions')}
-        </HeaderCell>
-      )}
+      <TableHeaderWrapper hasActions={hasActions}>
+        <HeaderCell disabled />
+        <HeaderCell disabled />
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
+          {t('Name')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
+          {t('Avg')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
+          {t('Min')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
+          {t('Max')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
+          {t('Sum')}
+        </SortableHeaderCell>
+        {hasActions && <HeaderCell disabled right />}
+        <HeaderCell disabled />
+      </TableHeaderWrapper>
       <TableBodyWrapper
+        hasActions={hasActions}
         onMouseLeave={() => {
           if (hasMultipleSeries) {
             setHoveredSeries?.('');
@@ -183,7 +184,7 @@ export const SummaryTable = memo(function SummaryTable({
           }) => {
             return (
               <Fragment key={id}>
-                <CellWrapper
+                <Row
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
@@ -198,6 +199,7 @@ export const SummaryTable = memo(function SummaryTable({
                     }
                   }}
                 >
+                  <PaddingCell />
                   <Cell
                     onClick={event => {
                       event.stopPropagation();
@@ -229,36 +231,50 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-                </CellWrapper>
-                {hasActions && (
-                  <Cell right>
-                    <ButtonBar gap={0.5}>
-                      {transaction && (
-                        <div>
-                          <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton to={transactionTo(transaction)} size="xs">
-                              <IconLightning size="xs" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
+                  </RightCell>
 
-                      {release && (
-                        <div>
-                          <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="xs">
-                              <IconReleases size="xs" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ButtonBar>
-                  </Cell>
-                )}
+                  {hasActions && (
+                    <CenterCell>
+                      <ButtonBar gap={0.5}>
+                        {transaction && (
+                          <div>
+                            <Tooltip title={t('Open Transaction Summary')}>
+                              <LinkButton
+                                to={transactionTo(transaction)}
+                                size="zero"
+                                borderless
+                              >
+                                <IconLightning size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+
+                        {release && (
+                          <div>
+                            <Tooltip title={t('Open Release Details')}>
+                              <LinkButton to={releaseTo(release)} size="zero" borderless>
+                                <IconReleases size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ButtonBar>
+                    </CenterCell>
+                  )}
+                  <PaddingCell />
+                </Row>
               </Fragment>
             );
           }
@@ -316,14 +332,26 @@ function SortableHeaderCell({
       ''
     );
 
+  if (right) {
+    return (
+      <HeaderCell
+        onClick={() => {
+          onClick(name);
+        }}
+        right
+      >
+        {sortIcon} {children}
+      </HeaderCell>
+    );
+  }
+
   return (
     <HeaderCell
       onClick={() => {
         onClick(name);
       }}
-      right={right}
     >
-      {sortIcon} {children}
+      {children} {sortIcon}
     </HeaderCell>
   );
 }
@@ -351,44 +379,87 @@ function getValues(seriesData: Series['data']) {
   return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
-// TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
-// so we're using a custom styled component instead. Figure out what we want to do here
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
-  max-height: 200px;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+
+  grid-template-areas:
+    'header'
+    'body';
+
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-// TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
-const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  text-transform: uppercase;
+const gridColumns = ({hasActions}: {hasActions: boolean}) =>
+  // padding | color dot | name | avg | min | max | sum | actions | padding
+  hasActions
+    ? `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) 50px ${space(0.75)}`
+    : `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) ${space(0.75)}`;
+
+const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: ${p => gridColumns(p)};
+
+  background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  line-height: 1;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: body;
+  display: grid;
+  grid-template-columns: ${p => gridColumns(p)};
+
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  max-height: 180px;
+`;
+
+const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
+  font-weight: 600;
+  color: ${p => p.theme.subText};
+  text-transform: uppercase;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-family: ${p => p.theme.text.family};
   display: flex;
   flex-direction: row;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   gap: ${space(0.5)};
   user-select: none;
+  align-items: center;
 
-  :hover {
-    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
-    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
-  }
+  ${p =>
+    !p.disabled &&
+    `
+  &:hover {
+    cursor: pointer;
+    border-left: 1px solid ${p.theme.border};
+    border-right: 1px solid ${p.theme.border};
+    `};
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   align-items: center;
-  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
   white-space: nowrap;
+`;
+
+const RightCell = styled(Cell)`
+  justify-content: flex-end;
+`;
+
+const CenterCell = styled(Cell)`
+  justify-content: center;
 `;
 
 const TextOverflowCell = styled(Cell)`
@@ -402,15 +473,15 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   height: ${space(1)};
 `;
 
-const TableBodyWrapper = styled('div')`
-  display: contents;
+const PaddingCell = styled(Cell)`
+  padding: 0;
 `;
 
-const CellWrapper = styled('div')`
+const Row = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell}, ${TextOverflowCell} {
+    ${Cell}, ${RightCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }
