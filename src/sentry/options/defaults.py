@@ -1646,6 +1646,7 @@ register(
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
