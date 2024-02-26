@@ -477,6 +477,7 @@ class Release(Model):
                         organization_id=project.organization_id, version=version
                     )
 
+                # NOTE: `add_project` creates a ReleaseProject instance
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True

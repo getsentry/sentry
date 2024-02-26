@@ -33,8 +33,45 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
+    def _subscribe_project_to_alert_rule(project, trigger):
+        from sentry.incidents.logic import subscribe_projects_to_alert_rule
+        from sentry.incidents.models import (
+            AlertRule,
+            AlertRuleActivationConditionType,
+            AlertRuleMonitorType,
+        )
+
+        try:
+            project_alert_rules = AlertRule.filter(project=project)
+            if project_alert_rules.exists():
+                # If we have an AlertRule for the project
+                for par in project_alert_rules:
+                    if (
+                        par.monitor_type == AlertRuleMonitorType.ACTIVATED
+                        and par.activation_conditions
+                        == AlertRuleActivationConditionType.RELEASE_CREATION
+                    ):
+                        logger.info(
+                            "Attempt subscribe project to activated alert rule",
+                            extra={
+                                "trigger": trigger,
+                            },
+                        )
+                        subscribe_projects_to_alert_rule(alert_rule=par, projects=[project])
+        except Exception as e:
+            logger.exception(
+                "Failed to subscribe project to activated alert rule",
+                extra={
+                    "trigger": trigger,
+                    "exception": e,
+                },
+            )
+
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
+        self._subscribe_project_to_alert_rule(
+            project=instance.project, trigger="releaseproject.post_save"
+        )
 
     def post_delete(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
