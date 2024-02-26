@@ -1,7 +1,7 @@
 from typing import Any, TypedDict
 
 import sentry.options
-from sentry.quotas.base import get_global_abuse_quotas
+from sentry.quotas.base import QuotaConfig, get_global_abuse_quotas
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
@@ -19,6 +19,7 @@ RELAY_OPTIONS: list[str] = [
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
+    quotas: list[QuotaConfig]
     options: dict[str, Any]
 
 
