@@ -564,7 +564,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=options.get("hybrid_cloud.rpc.retries"),
+                total=options.get("hybridcloud.rpc.retries"),
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],

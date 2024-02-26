@@ -59,15 +59,11 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
         if video is None:
             return self.respond(status=404)
 
-        filename = make_video_filename(
-            segment.retention_days, segment.project_id, segment.replay_id, segment.segment_id
-        )
         video_io = BytesIO(video)
-
         response = StreamingHttpResponse(
             iter(lambda: video_io.read(4096), b""),
             content_type="application/json",
         )
         response["Content-Length"] = len(video)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Disposition"] = f'attachment; filename="{make_video_filename(segment)}"'
         return response

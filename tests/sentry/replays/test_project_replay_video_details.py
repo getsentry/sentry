@@ -3,11 +3,12 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.lib.storage.legacy import (
-    FilestoreBlob,
+from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     StorageBlob,
-    make_filename,
+    _make_video_filename,
+    make_recording_filename,
+    storage_kv,
 )
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.abstract import Abstract
@@ -76,8 +77,8 @@ class EnvironmentBase(APITestCase):
 class ReplayVideoDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
     def save_video_file(self, segment_id: int, data: bytes) -> None:
         # Push the file to blob storage.
-        filename = make_video_filename(30, self.project.id, self.replay_id, segment_id)
-        storage_kv.set(key=filename, value=zlib.compress(data))
+        filename = _make_video_filename(30, self.project.id, self.replay_id, segment_id)
+        storage_kv.set(key=filename, value=data)
 
     def save_video(self, segment_id: int, data: bytes, **metadata) -> None:
         self.save_video_file(segment_id, data)
@@ -102,7 +103,7 @@ class ReplayVideoDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
             retention_days=30,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
 
         self.store_replays(
             mock_replay(

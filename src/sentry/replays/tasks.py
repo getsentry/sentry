@@ -5,7 +5,7 @@ import uuid
 from typing import Any
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage.legacy import FilestoreBlob, StorageBlob
+from sentry.replays.lib.storage import FilestoreBlob, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo import SiloMode

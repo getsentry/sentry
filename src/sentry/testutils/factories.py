@@ -1841,14 +1841,13 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
-        kwargs.update(
-            {
-                "request_method": "POST",
-                "request_path": "/extensions/github/webhook/",
-                "request_headers": '{"Content-Type": "application/json"}',
-                "request_body": "{}",
-            }
-        )
+        payload_kwargs = {
+            "request_method": "POST",
+            "request_path": "/extensions/github/webhook/",
+            "request_headers": '{"Content-Type": "application/json"}',
+            "request_body": "{}",
+            **kwargs,
+        }
         return WebhookPayload.objects.create(
-            mailbox_name=mailbox_name, region_name=region_name, **kwargs
+            mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
         )

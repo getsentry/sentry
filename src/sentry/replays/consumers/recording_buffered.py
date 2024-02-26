@@ -42,7 +42,7 @@ import logging
 import time
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -56,8 +56,12 @@ from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import storage_kv
-from sentry.replays.lib.storage.legacy import make_recording_filename, make_video_filename
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    make_video_filename,
+    storage_kv,
+)
 from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
@@ -241,31 +245,23 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         )
         return None
 
+    recording_segment = RecordingSegmentStorageMeta(
+        project_id=decoded_message["project_id"],
+        replay_id=decoded_message["replay_id"],
+        retention_days=decoded_message["retention_days"],
+        segment_id=headers["segment_id"],
+    )
+
     # Append an upload event to the state object for later processing.
     buffer.upload_events.append(
-        {
-            "key": make_recording_filename(
-                project_id=decoded_message["project_id"],
-                replay_id=decoded_message["replay_id"],
-                retention_days=decoded_message["retention_days"],
-                segment_id=headers["segment_id"],
-            ),
-            "value": recording_data,
-        }
+        {"key": make_recording_filename(recording_segment), "value": recording_data}
     )
 
     if replay_video := decoded_message.get("replay_video"):
+        replay_video = cast(bytes, replay_video)
         assert isinstance(replay_video, bytes)
         buffer.upload_events.append(
-            {
-                "key": make_video_filename(
-                    project_id=decoded_message["project_id"],
-                    replay_id=decoded_message["replay_id"],
-                    retention_days=decoded_message["retention_days"],
-                    segment_id=headers["segment_id"],
-                ),
-                "value": replay_video,
-            }
+            {"key": make_video_filename(recording_segment), "value": replay_video}
         )
 
     # Initial segment events are recorded in the state machine.
