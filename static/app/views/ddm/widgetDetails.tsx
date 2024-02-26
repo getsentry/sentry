@@ -127,7 +127,11 @@ export function MetricDetails({
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
               {organization.features.includes('metrics-samples-list') ? (
-                <MetricSamplesTable mri={mri} query={queryWithFocusedSeries} />
+                <MetricSamplesTable
+                  focusArea={focusArea?.selection?.range}
+                  mri={mri}
+                  query={queryWithFocusedSeries}
+                />
               ) : (
                 <SampleTable
                   mri={mri}
