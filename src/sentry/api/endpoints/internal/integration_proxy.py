@@ -196,6 +196,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
+        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
+        if response.status_code != 200 and self.integration.provider == "slack":
+            logger.info(
+                "slack.response",
+                extra={
+                    **self.log_extra,
+                    "integration_id": self.integration.id,
+                    "status_code": response.status_code,
+                    "response_text": response.content.decode("utf8"),
+                },
+            )
+
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
             tags={"status": response.status_code},

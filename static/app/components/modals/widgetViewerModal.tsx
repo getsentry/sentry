@@ -41,8 +41,10 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
-import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
+import {
+  createOnDemandFilterWarning,
+  shouldDisplayOnDemandWidgetWarning,
+} from 'sentry/utils/onDemandMetrics';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -394,7 +396,8 @@ function WidgetViewerModal(props: Props) {
     )
   );
 
-  const queryOptions = sortedQueries.map(({name, conditions}, index) => {
+  const queryOptions = sortedQueries.map((query, index) => {
+    const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
@@ -403,7 +406,11 @@ function WidgetViewerModal(props: Props) {
             conditions +
               (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
             {
-              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+              getFilterTokenWarning: shouldDisplayOnDemandWidgetWarning(
+                query,
+                widget.widgetType ?? WidgetType.DISCOVER,
+                organization
+              )
                 ? getOnDemandFilterWarning
                 : undefined,
             }

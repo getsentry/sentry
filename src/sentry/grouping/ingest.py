@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import random
 import time
 from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -11,9 +10,11 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
+    NULL_GROUPING_CONFIG,
+    NULL_HASHES,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     GroupingConfigNotFound,
@@ -41,7 +42,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
 
-logger = logging.getLogger("sentry.events")
+logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
@@ -163,8 +164,7 @@ def maybe_run_background_grouping(project: Project, job: Job) -> None:
     impact.
     """
     try:
-        sample_rate = options.get("store.background-grouping-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
+        if in_random_rollout("store.background-grouping-sample-rate"):
             config = BackgroundGroupingConfigLoader().get_config_dict(project)
             if config["id"]:
                 copied_event = copy.deepcopy(job["event"])
@@ -194,13 +194,14 @@ def _should_run_secondary_grouping(project: Project) -> bool:
 
 def maybe_run_secondary_grouping(
     project: Project, job: Job, metric_tags: MutableTags
-) -> tuple[GroupingConfig | None, CalculatedHashes | None]:
+) -> tuple[GroupingConfig, CalculatedHashes]:
     """
     If the projct is in a grouping config transition phase, calculate a set of secondary hashes for
     the job's event.
     """
 
-    secondary_grouping_config = secondary_hashes = None
+    secondary_grouping_config = NULL_GROUPING_CONFIG
+    secondary_hashes = NULL_HASHES
 
     if _should_run_secondary_grouping(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
@@ -212,13 +213,13 @@ def maybe_run_secondary_grouping(
 
 def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> CalculatedHashes | None:
+) -> CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
     This causes extra load in save_event processing.
     """
-    secondary_hashes = None
+    secondary_hashes = NULL_HASHES
     try:
         with sentry_sdk.start_span(
             op="event_manager",
@@ -255,6 +256,25 @@ def run_primary_grouping(
             grouping_config = get_grouping_config_dict_for_event_data(
                 job["event"].data.data, project
             )
+
+            # TODO: For new (non-reprocessed) events, we read the grouping config off the event
+            # rather than from the project. But that grouping config is put there by Relay after
+            # looking it up on the project. Are these ever not the same? If we don't ever see this
+            # log, after some period of time we could probably just decide to always follow the
+            # behavior from the reprocessing branch above. If we do that, we should decide if we
+            # also want to stop adding the config in Relay.
+            # See https://github.com/getsentry/sentry/pull/65116.
+            config_from_relay = grouping_config["id"]
+            config_from_project = project.get_option("sentry:grouping_config")
+            if config_from_relay != config_from_project:
+                logger.info(
+                    "Event grouping config different from project grouping config",
+                    extra={
+                        "project": project.id,
+                        "relay_config": config_from_relay,
+                        "project_config": config_from_project,
+                    },
+                )
 
     with (
         sentry_sdk.start_span(
@@ -420,10 +440,10 @@ def get_hash_values(
 def record_hash_calculation_metrics(
     primary_config: GroupingConfig,
     primary_hashes: CalculatedHashes,
-    secondary_config: GroupingConfig | None,
-    secondary_hashes: CalculatedHashes | None,
+    secondary_config: GroupingConfig,
+    secondary_hashes: CalculatedHashes,
 ):
-    if secondary_config and secondary_hashes:
+    if extract_hashes(secondary_hashes):
         tags = {
             "primary_config": primary_config["id"],
             "secondary_config": secondary_config["id"],
@@ -445,7 +465,7 @@ def record_hash_calculation_metrics(
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+    metrics.incr("grouping.hashes_calculated", amount=2 if extract_hashes(secondary_hashes) else 1)
 
 
 def record_new_group_metrics(event: Event):

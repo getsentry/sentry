@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -567,13 +568,40 @@ class SupportedBy:
         )
 
 
+def should_use_on_demand_metrics_for_querying(organization: Organization, **kwargs) -> bool:
+    """Helper function to check if an organization can query an specific on-demand function"""
+    components = _extract_aggregate_components(kwargs["aggregate"])
+    if components is None:
+        return False
+    function, _ = components
+
+    # This helps us control which functions are allowed to use the new spec version.
+    if function in OPS_REQUIRE_FEAT_FLAG:
+        if not organization:
+            # We need to let devs writting tests that if they intend to use a function that requires a feature flag
+            # that the organization needs to be included in the test.
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                logger.error("Pass the organization to create the spec for this function.")
+            sentry_sdk.capture_message(
+                f"Organization is required for {function} on-demand metrics."
+            )
+            return False
+        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
+        if not features.has(feat_flag, organization):
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                # This will show up in the logs and help the developer understand why the test is failing
+                logger.error("Add the feature flag to create the spec for this function.")
+            return False
+
+    return should_use_on_demand_metrics(**kwargs)
+
+
 def should_use_on_demand_metrics(
     dataset: str | Dataset | None,
     aggregate: str,
     query: str | None,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-    organization: Organization | None = None,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
     groupbys = groupbys or []
@@ -591,17 +619,6 @@ def should_use_on_demand_metrics(
         return False
 
     function, args = components
-
-    # This helps us control which functions are allowed to use the new spec version.
-    if function in OPS_REQUIRE_FEAT_FLAG:
-        if not organization:
-            sentry_sdk.capture_message(
-                f"Organization is required for {function} on-demand metrics."
-            )
-            return False
-        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
-        if not features.has(feat_flag, organization):
-            return False
 
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:

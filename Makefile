@@ -26,12 +26,8 @@ install-py-dev :
 build-platform-assets \
 direnv-help \
 upgrade-pip \
-prerequisites \
 setup-git-config :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
-
-setup-pyenv:
-	@./scripts/pyenv_setup.sh
 
 build-js-po: node-version-check
 	mkdir -p build
