@@ -109,7 +109,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             client = SlackClient(integration_id=integration.id)
             try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
+                client.post(
+                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                )
             except ApiError as e:
                 log_params = {
                     "error": str(e),
