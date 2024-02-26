@@ -18,7 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
-from sentry.replays.query import query_replays_collection, replay_url_parser_config
+from sentry.replays.query import query_replays_collection_raw, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
@@ -86,7 +86,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
-            return query_replays_collection(
+            return query_replays_collection_raw(
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
                 end=filter_params["end"],
