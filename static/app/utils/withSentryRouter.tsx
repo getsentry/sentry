@@ -24,7 +24,6 @@ function withSentryRouter<P extends WithRouterProps>(
 
     return <WrappedComponent {...props} />;
   }
-
   return withRouter(WithSentryRouterWrapper);
 }
 
