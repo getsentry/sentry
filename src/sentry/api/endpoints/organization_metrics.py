@@ -516,7 +516,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 @region_silo_endpoint
 class OrganizationMetricsMetadataEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
