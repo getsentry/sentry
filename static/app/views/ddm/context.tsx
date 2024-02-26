@@ -36,6 +36,7 @@ export type FocusAreaProps = {
 interface DDMContextValue {
   addWidget: (type?: MetricQueryType) => void;
   duplicateWidget: (index: number) => void;
+  focusArea: FocusAreaProps;
   hasMetrics: boolean;
   isDefaultQuery: boolean;
   isMultiChartMode: boolean;
@@ -51,14 +52,13 @@ interface DDMContextValue {
     data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
   ) => void;
   widgets: MetricWidgetQueryParams[];
-  focusArea?: FocusAreaProps;
   highlightedSampleId?: string;
 }
 
 export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
-  focusArea: undefined,
+  focusArea: {},
   hasMetrics: false,
   highlightedSampleId: undefined,
   isDefaultQuery: false,
