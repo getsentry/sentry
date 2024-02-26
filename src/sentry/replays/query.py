@@ -295,6 +295,30 @@ replay_url_parser_config = SearchConfig(
 )
 
 
+# Pagination.
+
+
+def make_pagination_values(limit: Any, offset: Any) -> Paginators:
+    """Return a tuple of limit, offset values."""
+    limit = _coerce_to_integer_default(limit, DEFAULT_PAGE_SIZE)
+    if limit > MAX_PAGE_SIZE or limit < 0:
+        limit = DEFAULT_PAGE_SIZE
+
+    offset = _coerce_to_integer_default(offset, DEFAULT_OFFSET)
+    return Paginators(limit, offset)
+
+
+def _coerce_to_integer_default(value: str | None, default: int) -> int:
+    """Return an integer or default."""
+    if value is None:
+        return default
+
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def _strip_uuid_dashes(
     input_name: str,
     input_value: Expression,
