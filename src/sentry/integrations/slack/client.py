@@ -138,6 +138,8 @@ class SlackClient(IntegrationProxyClient):
         )
         if not raw_response and not response.json.get("ok"):
             if kwargs.get("log_response_with_error", False):
-                self.logger.info("rule.fail.slack_post.log_response", extra={"response": response})
+                self.logger.info(
+                    "rule.fail.slack_post.log_response", extra={"response": response.__dict__}
+                )
             raise ApiError(response.get("error", ""))
         return response
