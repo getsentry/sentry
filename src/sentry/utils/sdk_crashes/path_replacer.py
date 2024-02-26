@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class PathReplacer(ABC):
@@ -8,7 +9,7 @@ class PathReplacer(ABC):
     """
 
     @abstractmethod
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
         pass
 
 
@@ -19,7 +20,7 @@ class FixedPathReplacer(PathReplacer):
     ):
         self.path = path
 
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
         return self.path
 
 
@@ -41,9 +42,19 @@ class KeepAfterPatternMatchPathReplacer(PathReplacer):
         self.patterns = {re.compile(element, re.IGNORECASE) for element in patterns}
         self.fallback_path = fallback_path
 
-    def replace_path(self, path: str) -> str:
+    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
         for pattern in self.patterns:
-            match = pattern.search(path)
+            match = pattern.search(path_value)
             if match:
-                return path[match.start() :]
+                return path_value[match.start() :]
         return self.fallback_path
+
+
+class KeepFieldPathReplacer(PathReplacer):
+    def __init__(self, fields: set[str]):
+        self.fields = fields
+
+    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
+        if path_field in self.fields:
+            return path_value
+        return None
