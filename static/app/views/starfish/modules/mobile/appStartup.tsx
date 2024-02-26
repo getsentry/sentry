@@ -17,6 +17,8 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
@@ -28,6 +30,7 @@ import {
 
 export default function InitializationModule() {
   const organization = useOrganization();
+  const onboardingProject = useOnboardingProject();
   const location = useLocation();
 
   const appStartType =
@@ -80,7 +83,10 @@ export default function InitializationModule() {
                   </Container>
                 </PageFiltersContainer>
                 <ErrorBoundary mini>
-                  <AppStartup chartHeight={200} />
+                  {onboardingProject && (
+                    <Onboarding organization={organization} project={onboardingProject} />
+                  )}
+                  {!onboardingProject && <AppStartup chartHeight={200} />}
                 </ErrorBoundary>
               </Layout.Main>
             </Layout.Body>
