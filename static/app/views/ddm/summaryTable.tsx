@@ -431,7 +431,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${space(0.25)} ${space(0.75)};
   gap: ${space(0.5)};
   user-select: none;
   align-items: center;
