@@ -684,61 +684,75 @@ export class VirtualizedViewManager {
     return (timestamp - this.to_origin - this.trace_view.x) / this.span_to_px[0];
   }
 
-  computeSpanTextPlacement(span_space: [number, number], text: string): number | null {
+  computeSpanTextPlacement(span_space: [number, number], text: string): [number, number] {
     const TEXT_PADDING = 2;
     const span_left = span_space[0] - this.to_origin;
     const span_right = span_left + span_space[1];
 
     if (span_right < this.trace_view.x) {
-      return (
-        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING
-      );
+      return [
+        0,
+        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
+      ];
     }
 
     if (span_left > this.trace_view.right) {
-      return this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+      return [0, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
+    }
+
+    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
+      const width = this.text_measurer.measure(text);
+      return [
+        1,
+        this.computeTransformXFromTimestamp(
+          this.to_origin + this.trace_view.left + this.trace_view.width
+        ) -
+          width -
+          TEXT_PADDING,
+      ];
     }
 
     const view_left = this.trace_view.x;
     const view_right = view_left + this.trace_view.width;
-
-    const width = this.text_measurer.measure(text);
     const space_right = view_right - span_right;
 
-    // If we have space to the right, we will try and place the text there
+    // If we have space to the right, place the text there
     if (space_right > 0) {
-      const space_right_px = space_right / this.span_to_px[0];
-
-      if (space_right_px > width) {
-        return (
-          this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
-          TEXT_PADDING
-        );
-      }
+      return [
+        0,
+        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
+      ];
     }
 
+    // if we have no space to the right, see if we can place it inside the span
     if (space_right < 0) {
+      const width = this.text_measurer.measure(text);
       const full_span_px_width = span_space[1] / this.span_to_px[0];
 
       if (full_span_px_width > width) {
         const difference = span_right - this.trace_view.right;
-        const visible_width = (span_space[1] - difference) / this.span_to_px[0];
+        const visible_width =
+          (span_space[1] - difference) / this.span_to_px[0] - TEXT_PADDING;
 
-        if (visible_width > width) {
-          return (
+        if (visible_width >= width) {
+          return [
+            1,
             this.computeTransformXFromTimestamp(
               this.to_origin + this.trace_view.left + this.trace_view.width
             ) -
-            width -
-            TEXT_PADDING
-          );
+              width -
+              TEXT_PADDING,
+          ];
         }
 
-        return this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+        return [1, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
       }
     }
 
-    return null;
+    return [
+      0,
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
+    ];
   }
 
   draw(options: {list?: number; span_list?: number} = {}) {
@@ -767,7 +781,7 @@ export class VirtualizedViewManager {
       }
       const span_text = this.span_text[i];
       if (span_text) {
-        const text_transform = this.computeSpanTextPlacement(
+        const [inside, text_transform] = this.computeSpanTextPlacement(
           span_text.space,
           span_text.text
         );
@@ -776,6 +790,7 @@ export class VirtualizedViewManager {
           continue;
         }
 
+        span_text.ref.style.color = inside ? 'white' : '';
         span_text.ref.style.transform = `translateX(${text_transform}px)`;
       }
     }

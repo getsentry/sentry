@@ -951,7 +951,7 @@ function TraceBar(props: TraceBarProps) {
 
   const duration = getDuration(props.node_space[1] / 1000, 2, true);
   const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(props.node_space);
-  const textTransform = props.viewManager.computeSpanTextPlacement(
+  const [inside, textTransform] = props.viewManager.computeSpanTextPlacement(
     props.node_space,
     duration
   );
@@ -983,6 +983,7 @@ function TraceBar(props: TraceBarProps) {
         }
         className="TraceBarDuration"
         style={{
+          color: inside ? 'white' : '',
           transform: `translate(${textTransform ?? 0}px, 0)`,
         }}
       >
@@ -1069,6 +1070,12 @@ const TraceStylingWrapper = styled('div')`
     transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    &:nth-of-type(odd) {
+      .TraceRightColumn {
+        background-color: ${p => p.theme.backgroundSecondary};
+      }
+    }
+
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
     }
@@ -1132,7 +1139,7 @@ const TraceStylingWrapper = styled('div')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
-    mix-blend-mode: plus-lighter;
+    transition: color 0.1s ease-in-out;
   }
 
   .TraceChildrenCount {

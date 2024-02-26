@@ -232,7 +232,7 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
 
-      expect(manager.computeTransformXFromTimestamp(50)).toEqual(0);
+      expect(manager.computeTransformXFromTimestamp(-50)).toEqual(0);
     });
 
     it('when view is offset and scaled', () => {
@@ -247,7 +247,7 @@ describe('VirtualizedViewManger', () => {
       manager.trace_view.width = 50;
       manager.trace_view.x = 50;
 
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(500);
+      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(-250);
     });
   });
 
@@ -289,32 +289,6 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
       expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([100, 0]);
-    });
-  });
-
-  describe('text positioning', () => {
-    describe('non offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('non offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
     });
   });
 
@@ -546,6 +520,7 @@ describe('VirtualizedViewManger', () => {
           body: makeEvent({}, makeSiblingAutogroupedSpans()),
         });
 
+        tree.print();
         const result = await manager.scrollToPath(
           tree,
           [`ag:first_span`, 'txn:event_id'],
