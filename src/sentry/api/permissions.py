@@ -75,11 +75,29 @@ class StaffPermissionMixin:
     https://www.python.org/download/releases/2.3/mro/ to learn more.
     """
 
-    def has_permission(self, request, *args, **kwargs):
-        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+    def has_permission(self, request, *args, **kwargs) -> bool:
+        # This is structured to always check for staff before raising any exception
+        try:
+            if super().has_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            active_staff = is_active_staff(request)
+            if not active_staff:
+                raise
+            return active_staff
+        return is_active_staff(request)
 
-    def has_object_permission(self, request, *args, **kwargs):
-        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+    def has_object_permission(self, request, *args, **kwargs) -> bool:
+        # This is structured to always check for staff before raising any exception
+        try:
+            if super().has_object_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            active_staff = is_active_staff(request)
+            if not active_staff:
+                raise
+            return active_staff
+        return is_active_staff(request)
 
     def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
         return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
