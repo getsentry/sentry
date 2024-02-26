@@ -1002,8 +1002,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "example",
+                    required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["timestamp", "span_id"], alias
+                        ["timestamp", "span_id", args["column"].name], alias
                     ),
                     private=True,
                 ),
