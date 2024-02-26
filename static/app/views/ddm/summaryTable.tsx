@@ -139,6 +139,7 @@ export const SummaryTable = memo(function SummaryTable({
     <SummaryTableWrapper hasActions={hasActions}>
       <TableHeaderWrapper hasActions={hasActions}>
         <HeaderCell disabled />
+        <HeaderCell disabled />
         <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
           {t('Name')}
         </SortableHeaderCell>
@@ -155,6 +156,7 @@ export const SummaryTable = memo(function SummaryTable({
           {t('Sum')}
         </SortableHeaderCell>
         {hasActions && <HeaderCell disabled right />}
+        <HeaderCell disabled />
       </TableHeaderWrapper>
       <TableBodyWrapper
         hasActions={hasActions}
@@ -182,7 +184,7 @@ export const SummaryTable = memo(function SummaryTable({
           }) => {
             return (
               <Fragment key={id}>
-                <CellWrapper
+                <Row
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
@@ -197,6 +199,7 @@ export const SummaryTable = memo(function SummaryTable({
                     }
                   }}
                 >
+                  <PaddingCell />
                   <Cell
                     onClick={event => {
                       event.stopPropagation();
@@ -228,40 +231,50 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-                </CellWrapper>
-                {hasActions && (
-                  <Cell right>
-                    <ButtonBar gap={0.5}>
-                      {transaction && (
-                        <div>
-                          <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton
-                              to={transactionTo(transaction)}
-                              size="zero"
-                              borderless
-                            >
-                              <IconLightning size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
+                  </RightCell>
 
-                      {release && (
-                        <div>
-                          <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="zero" borderless>
-                              <IconReleases size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ButtonBar>
-                  </Cell>
-                )}
+                  {hasActions && (
+                    <CenterCell>
+                      <ButtonBar gap={0.5}>
+                        {transaction && (
+                          <div>
+                            <Tooltip title={t('Open Transaction Summary')}>
+                              <LinkButton
+                                to={transactionTo(transaction)}
+                                size="zero"
+                                borderless
+                              >
+                                <IconLightning size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+
+                        {release && (
+                          <div>
+                            <Tooltip title={t('Open Release Details')}>
+                              <LinkButton to={releaseTo(release)} size="zero" borderless>
+                                <IconReleases size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ButtonBar>
+                    </CenterCell>
+                  )}
+                  <PaddingCell />
+                </Row>
               </Fragment>
             );
           }
@@ -375,15 +388,22 @@ const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
 
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
+
+const gridColumns = ({hasActions}: {hasActions: boolean}) =>
+  // padding | color dot | name | avg | min | max | sum | actions | padding
+  hasActions
+    ? `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) 50px ${space(0.75)}`
+    : `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) ${space(0.75)}`;
 
 const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
   grid-area: header;
   position: sticky;
   top: 0;
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? `${space(3)} 8fr repeat(5, 1fr)` : `${space(3)} 8fr repeat(4, 1fr)`};
+  grid-template-columns: ${p => gridColumns(p)};
 
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
@@ -393,18 +413,16 @@ const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
 const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
   grid-area: body;
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? `${space(3)} 8fr repeat(5, 1fr)` : `${space(3)} 8fr repeat(4, 1fr)`};
+  grid-template-columns: ${p => gridColumns(p)};
 
   overflow-y: auto;
   scrollbar-gutter: stable;
-  max-height: 170px;
+  max-height: 180px;
 `;
 
 const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -413,23 +431,35 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.5)} ${space(0.75)};
   gap: ${space(0.5)};
   user-select: none;
+  align-items: center;
 
-  :hover {
-    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
-    border-left: 1px solid ${p => p.theme.border};
-    border-right: 1px solid ${p => p.theme.border};
-  }
+  ${p =>
+    !p.disabled &&
+    `
+  &:hover {
+    cursor: pointer;
+    border-left: 1px solid ${p.theme.border};
+    border-right: 1px solid ${p.theme.border};
+    `};
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${space(0.25)} 0;
+  padding: ${space(0.25)} ${space(0.75)};
   align-items: center;
-  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
   white-space: nowrap;
+`;
+
+const RightCell = styled(Cell)`
+  justify-content: flex-end;
+`;
+
+const CenterCell = styled(Cell)`
+  justify-content: center;
 `;
 
 const TextOverflowCell = styled(Cell)`
@@ -443,11 +473,15 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   height: ${space(1)};
 `;
 
-const CellWrapper = styled('div')`
+const PaddingCell = styled(Cell)`
+  padding: 0;
+`;
+
+const Row = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell}, ${TextOverflowCell} {
+    ${Cell}, ${RightCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }
