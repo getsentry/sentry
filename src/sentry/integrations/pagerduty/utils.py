@@ -160,7 +160,10 @@ def send_incident_alert_notification(
 
     integration_key = service["integration_key"]
     # TODO(hybridcloud) This should use the integration.installation client workflow instead.
-    client = PagerDutyClient(integration_key=integration_key)
+    client = PagerDutyClient(
+        integration_id=integration_id,
+        integration_key=integration_key,
+    )
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid
     )

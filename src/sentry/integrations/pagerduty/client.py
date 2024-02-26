@@ -23,10 +23,11 @@ class PagerDutyClient(ApiClient):
 
     def __init__(
         self,
+        integration_id: int,
         integration_key: str,
     ) -> None:
         self.integration_key = integration_key
-        super().__init__()
+        super().__init__(integration_id=integration_id)
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         headers = kwargs.pop("headers", None)

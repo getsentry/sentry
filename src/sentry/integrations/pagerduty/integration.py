@@ -78,7 +78,9 @@ class PagerDutyIntegration(IntegrationInstallation):
         if not integration_key:
             raise ValueError("Cannot get client without an an integration_key.")
 
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyClient(
+            integration_id=org_integration.integration_id, integration_key=integration_key
+        )
 
     def get_client(self):
         raise NotImplementedError("Use get_keyring_client instead.")
