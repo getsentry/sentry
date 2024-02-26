@@ -2111,3 +2111,10 @@ register(
     default=100_000.0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Sample rate for double writing to experimental dsn
+register(
+    "store.experimental-dsn-double-write.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

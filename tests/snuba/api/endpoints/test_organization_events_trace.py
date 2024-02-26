@@ -793,9 +793,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
-        assert result["event_id"] == event_data.event_id, message
-        # assert result["timestamp"] == event_data.data["timestamp"], message
-        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        assert result["event_id"] == pytest.approx(event_data.event_id), message
+        assert result["start_timestamp"] == pytest.approx(
+            event_data.data["start_timestamp"]
+        ), message
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -1533,6 +1534,10 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
     def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        mock_builder = mock.Mock()
+        mock_builder.resolve_column_name.return_value = "span_id"
+        mock_builder.run_query.return_value = {}
+        mock_query_builder.return_value = mock_builder
         # Add a few more projects to the org
         self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)
