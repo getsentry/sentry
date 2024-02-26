@@ -39,9 +39,12 @@ def run_preparation_steps(
 
 
 class UnitNormalizationStep(PreparationStep):
+
+    EXCLUDED_AGGREGATES = {"count", "count_unique"}
+
     def _extract_unit(self, timeseries: Timeseries) -> str | None:
-        # If the aggregate is a count, we don't want to perform any unit normalization.
-        if timeseries.aggregate == "count":
+        # If the aggregate doesn't support unit normalization, we will skip it.
+        if timeseries.aggregate in self.EXCLUDED_AGGREGATES:
             return None
 
         parsed_mri = parse_mri(timeseries.metric.mri)
@@ -54,6 +57,7 @@ class UnitNormalizationStep(PreparationStep):
         normalized_intermediate_queries = []
 
         for intermediate_query in intermediate_queries:
+            normalized_intermediate_query = intermediate_query
             metrics_query = intermediate_query.metrics_query
             # For now, we want to perform units coercion only if the query is a timeseries.
             if isinstance(metrics_query.query, Timeseries):
@@ -66,16 +70,16 @@ class UnitNormalizationStep(PreparationStep):
                             reference_unit,
                             unit,
                         ) = unit_family_and_unit
-                        normalized_intermediate_queries.append(
-                            replace(
-                                intermediate_query,
-                                metrics_query=metrics_query.set_query(
-                                    unit.apply_on_timeseries(metrics_query.query)
-                                ),
-                                unit_family=unit_family,
-                                unit=reference_unit,
-                                scaling_factor=unit.scaling_factor
-                            )
+                        normalized_intermediate_query = replace(
+                            intermediate_query,
+                            metrics_query=metrics_query.set_query(
+                                unit.apply_on_timeseries(metrics_query.query)
+                            ),
+                            unit_family=unit_family,
+                            unit=reference_unit,
+                            scaling_factor=unit.scaling_factor,
                         )
+
+            normalized_intermediate_queries.append(normalized_intermediate_query)
 
         return normalized_intermediate_queries

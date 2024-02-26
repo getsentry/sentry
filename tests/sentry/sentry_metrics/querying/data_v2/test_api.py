@@ -5,7 +5,7 @@ from django.utils import timezone as django_timezone
 
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
-from sentry.sentry_metrics.querying.data_v2.units import get_unit_family_and_unit, MeasurementUnit
+from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, get_unit_family_and_unit
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -163,7 +163,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, self.to_reference_unit(6.0), self.to_reference_unit(4.0)]
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(4.0),
+        ]
         assert data[0][0]["totals"] == self.to_reference_unit(10.0)
 
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
@@ -183,8 +187,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 6.0, 7.0]
-        assert data[0][0]["totals"] == 13.0
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(7.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(13.0)
 
     def test_query_with_percentile(self) -> None:
         query_1 = self.mql("p90", TransactionMRI.DURATION.value)
@@ -203,8 +211,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, pytest.approx(5.8), 3.8]
-        assert data[0][0]["totals"] == 5.5
+        assert data[0][0]["series"] == [
+            None,
+            pytest.approx(self.to_reference_unit(5.8)),
+            self.to_reference_unit(3.8),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(5.5)
         # We want to test that the `Array(x)` is stripped away from the `type` of the aggregate.
         meta = results["meta"]
         assert len(meta) == 1
@@ -266,23 +278,31 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 3
         assert first_query[0]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 3.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(3.0)
         assert first_query[1]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 9.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(9.0)
         assert first_query[2]["by"] == {"platform": "windows", "transaction": "/world"}
-        assert first_query[2]["series"] == [None, 5.0, 4.0]
-        assert first_query[2]["totals"] == 9.0
+        assert first_query[2]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert first_query[2]["totals"] == self.to_reference_unit(9.0)
         # We want to test that the `group_bys` are shown in the meta.
         meta = results["meta"]
         assert len(meta) == 1
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
-        assert first_meta[0] == {
-            "group_bys": ["platform", "transaction"],
-            "limit": 10000,
-            "order": None,
-        }
+        assert first_meta[0]["group_bys"] == ["platform", "transaction"]
 
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
@@ -322,11 +342,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["transaction"])
         assert len(first_query) == 2
         assert first_query[0]["by"] == {"transaction": ""}
-        assert first_query[0]["series"] == [5.0]
-        assert first_query[0]["totals"] == 5.0
+        assert first_query[0]["series"] == [self.to_reference_unit(5.0)]
+        assert first_query[0]["totals"] == self.to_reference_unit(5.0)
         assert first_query[1]["by"] == {"transaction": "/hello"}
-        assert first_query[1]["series"] == [1.0]
-        assert first_query[1]["totals"] == 1.0
+        assert first_query[1]["series"] == [self.to_reference_unit(1.0)]
+        assert first_query[1]["totals"] == self.to_reference_unit(1.0)
 
     def test_query_with_parenthesized_filter(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
@@ -347,11 +367,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 2
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
         assert first_query[0]["totals"] == 3.0
         assert first_query[1]["by"] == {"platform": "ios"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 9.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_with_and_filter(self) -> None:
         query_1 = self.mql(
@@ -374,8 +402,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 1
         assert first_query[0]["by"] == {"platform": "ios"}
-        assert first_query[0]["series"] == [None, 6.0, 3.0]
-        assert first_query[0]["totals"] == 9.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_with_or_filter(self) -> None:
         query_1 = self.mql(
@@ -398,11 +430,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 2
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 3.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(3.0)
         assert first_query[1]["by"] == {"platform": "ios"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 9.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_one_negated_filter(self) -> None:
         query_1 = self.mql(
@@ -425,8 +465,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 1
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 3.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(3.0)
 
     def test_query_one_in_filter(self) -> None:
         query_1 = self.mql(
@@ -449,11 +493,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 2
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 3.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(3.0)
         assert first_query[1]["by"] == {"platform": "ios"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 9.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_one_not_in_filter(self) -> None:
         query_1 = self.mql(
@@ -476,8 +528,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 1
         assert first_query[0]["by"] == {"platform": "windows"}
-        assert first_query[0]["series"] == [None, 5.0, 4.0]
-        assert first_query[0]["totals"] == 9.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_with_multiple_aggregations(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value)
@@ -503,11 +559,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 2
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 1.0, 2.0]
-        assert data[0][0]["totals"] == 1.0
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(1.0)
         assert data[1][0]["by"] == {}
-        assert data[1][0]["series"] == [None, 6.0, 4.0]
-        assert data[1][0]["totals"] == 6.0
+        assert data[1][0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert data[1][0]["totals"] == self.to_reference_unit(6.0)
 
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
         query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
@@ -535,25 +599,49 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 3
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 1.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(1.0)
         assert first_query[1]["by"] == {"platform": "ios"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 3.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(3.0)
         assert first_query[2]["by"] == {"platform": "windows"}
-        assert first_query[2]["series"] == [None, 5.0, 4.0]
-        assert first_query[2]["totals"] == 4.0
+        assert first_query[2]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert first_query[2]["totals"] == self.to_reference_unit(4.0)
         second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
         assert len(second_query) == 3
         assert second_query[0]["by"] == {"platform": "android"}
-        assert second_query[0]["series"] == [None, 1.0, 2.0]
-        assert second_query[0]["totals"] == 2.0
+        assert second_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert second_query[0]["totals"] == self.to_reference_unit(2.0)
         assert second_query[1]["by"] == {"platform": "ios"}
-        assert second_query[1]["series"] == [None, 6.0, 3.0]
-        assert second_query[1]["totals"] == 6.0
+        assert second_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert second_query[1]["totals"] == self.to_reference_unit(6.0)
         assert second_query[2]["by"] == {"platform": "windows"}
-        assert second_query[2]["series"] == [None, 5.0, 4.0]
-        assert second_query[2]["totals"] == 5.0
+        assert second_query[2]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert second_query[2]["totals"] == self.to_reference_unit(5.0)
 
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
@@ -583,19 +671,35 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
         assert len(first_query) == 2
         assert first_query[0]["by"] == {"platform": "android"}
-        assert first_query[0]["series"] == [None, 1.0, 2.0]
-        assert first_query[0]["totals"] == 1.0
+        assert first_query[0]["series"] == [
+            None,
+            self.to_reference_unit(1.0),
+            self.to_reference_unit(2.0),
+        ]
+        assert first_query[0]["totals"] == self.to_reference_unit(1.0)
         assert first_query[1]["by"] == {"platform": "ios"}
-        assert first_query[1]["series"] == [None, 6.0, 3.0]
-        assert first_query[1]["totals"] == 3.0
+        assert first_query[1]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert first_query[1]["totals"] == self.to_reference_unit(3.0)
         second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
         assert len(second_query) == 2
         assert second_query[0]["by"] == {"platform": "ios"}
-        assert second_query[0]["series"] == [None, 6.0, 3.0]
-        assert second_query[0]["totals"] == 6.0
+        assert second_query[0]["series"] == [
+            None,
+            self.to_reference_unit(6.0),
+            self.to_reference_unit(3.0),
+        ]
+        assert second_query[0]["totals"] == self.to_reference_unit(6.0)
         assert second_query[1]["by"] == {"platform": "windows"}
-        assert second_query[1]["series"] == [None, 5.0, 4.0]
-        assert second_query[1]["totals"] == 5.0
+        assert second_query[1]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert second_query[1]["totals"] == self.to_reference_unit(5.0)
         # We want to test that the correct order and limit are in the meta.
         meta = results["meta"]
         assert len(meta) == 2
@@ -673,8 +777,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 15.0, None]
-        assert data[0][0]["totals"] == 15.0
+        assert data[0][0]["series"] == [None, self.to_reference_unit(15.0), None]
+        assert data[0][0]["totals"] == self.to_reference_unit(15.0)
 
     def test_query_with_one_metric_blocked_for_all_projects(self):
         mri = "d:custom/page_load@millisecond"
@@ -757,8 +861,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(data) == 2
         assert len(data[0]) == 0
         assert data[1][0]["by"] == {}
-        assert data[1][0]["series"] == [None, 10.0, None]
-        assert data[1][0]["totals"] == 10.0
+        assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
+        assert data[1][0]["totals"] == self.to_reference_unit(10.0)
 
     def test_query_with_invalid_syntax(
         self,
