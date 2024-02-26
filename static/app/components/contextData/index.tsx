@@ -1,24 +1,71 @@
-import {isValidElement} from 'react';
+import {Fragment, isValidElement} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import isNumber from 'lodash/isNumber';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 
 import Toggle from './toggle';
-import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
+import {
+  looksLikeBooleanValue,
+  looksLikeMultiLineString,
+  looksLikeNullValue,
+  looksLikeNumberValue,
+  looksLikeStringValue,
+  looksLikeStrippedValue,
+  naturalCaseInsensitiveSort,
+  printBooleanValue,
+  printMultilineString,
+  printNullValue,
+  printStringValue,
+} from './utils';
 
 type Props = React.HTMLAttributes<HTMLPreElement> & {
   data?: React.ReactNode;
-  jsonConsts?: boolean;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
   preserveQuotes?: boolean;
+  syntax?: PlatformKey;
   withAnnotatedText?: boolean;
 };
+
+interface WalkProps
+  extends Required<
+    Pick<Props, 'withAnnotatedText' | 'preserveQuotes' | 'maxDefaultDepth'>
+  > {
+  depth: number;
+  meta: Record<any, any> | undefined;
+  syntax: PlatformKey | undefined;
+  value?: React.ReactNode;
+}
+
+function ContextValue({
+  value,
+  withAnnotatedText,
+  meta,
+}: Pick<WalkProps, 'value' | 'withAnnotatedText' | 'meta'>) {
+  if (!withAnnotatedText || !meta) {
+    return <Fragment>{value}</Fragment>;
+  }
+
+  return <AnnotatedText value={value} meta={meta?.[''] ?? meta} />;
+}
+
+function LinkHint({value}: {value: string}) {
+  if (!isUrl(value)) {
+    return null;
+  }
+
+  return (
+    <ExternalLink href={value} className="external-icon">
+      <StyledIconOpen size="xs" aria-label={t('Open link')} />
+    </ExternalLink>
+  );
+}
 
 function walk({
   depth,
@@ -26,104 +73,148 @@ function walk({
   maxDefaultDepth: maxDepth = 2,
   preserveQuotes,
   withAnnotatedText,
-  jsonConsts,
   meta,
-}: {
-  depth: number;
-  value?: React.ReactNode;
-} & Pick<
-  Props,
-  'withAnnotatedText' | 'preserveQuotes' | 'jsonConsts' | 'meta' | 'maxDefaultDepth'
->) {
+  syntax,
+}: WalkProps) {
   let i = 0;
 
   const children: React.ReactNode[] = [];
 
-  if (value === null) {
+  if (value === null || looksLikeNullValue(value, syntax)) {
     return (
-      <span className="val-null">
-        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta?.[''] ?? meta} />
-      </span>
+      <ValueNull>
+        <ContextValue
+          withAnnotatedText={withAnnotatedText}
+          value={printNullValue(syntax)}
+          meta={meta}
+        />
+      </ValueNull>
     );
   }
 
-  if (value === true || value === false) {
+  if (typeof value === 'boolean' || looksLikeBooleanValue(value, syntax)) {
     return (
-      <span className="val-bool">
-        <AnnotatedText
-          value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
-          meta={meta?.[''] ?? meta}
+      <ValueBoolean>
+        <ContextValue
+          withAnnotatedText={withAnnotatedText}
+          value={printBooleanValue(value, syntax)}
+          meta={meta}
         />
-      </span>
+      </ValueBoolean>
     );
   }
 
   if (typeof value === 'string') {
-    const valueInfo = analyzeStringForRepr(value);
-
-    const valueToBeReturned = withAnnotatedText ? (
-      <AnnotatedText value={valueInfo.repr} meta={meta?.[''] ?? meta} />
-    ) : (
-      valueInfo.repr
-    );
-
-    const out = [
-      <span
-        key="value"
-        className={
-          (valueInfo.isString ? 'val-string' : '') +
-          (valueInfo.isStripped ? ' val-stripped' : '') +
-          (valueInfo.isMultiLine ? ' val-string-multiline' : '')
-        }
-      >
-        {preserveQuotes ? `"${valueToBeReturned}"` : valueToBeReturned}
-      </span>,
-    ];
-
-    if (valueInfo.isString && isUrl(value)) {
-      out.push(
-        <ExternalLink key="external" href={value} className="external-icon">
-          <StyledIconOpen size="xs" aria-label={t('Open link')} />
-        </ExternalLink>
+    if (looksLikeStrippedValue(value)) {
+      return (
+        <ValueStrippedString>
+          <ContextValue withAnnotatedText={withAnnotatedText} meta={meta} value={value} />
+        </ValueStrippedString>
       );
     }
 
-    return out;
+    if (preserveQuotes) {
+      return (
+        <ValueString>
+          <ContextValue
+            withAnnotatedText={withAnnotatedText}
+            meta={meta}
+            value={`"${value}"`}
+          />
+          <LinkHint value={value} />
+        </ValueString>
+      );
+    }
+
+    if (looksLikeMultiLineString(value, syntax)) {
+      return (
+        <ValueMultiLineString>
+          <ContextValue
+            withAnnotatedText={withAnnotatedText}
+            value={printMultilineString(value, syntax)}
+            meta={meta}
+          />
+        </ValueMultiLineString>
+      );
+    }
+
+    if (looksLikeNumberValue(value, syntax)) {
+      return (
+        <ValueNumber>
+          <ContextValue withAnnotatedText={withAnnotatedText} value={value} meta={meta} />
+        </ValueNumber>
+      );
+    }
+
+    if (looksLikeStringValue(value, syntax)) {
+      return (
+        <Fragment>
+          <ValueString>
+            <ContextValue
+              withAnnotatedText={withAnnotatedText}
+              value={printStringValue(value, syntax)}
+              meta={meta}
+            />
+          </ValueString>
+          <LinkHint value={value} />
+        </Fragment>
+      );
+    }
+
+    return (
+      <span>
+        <ContextValue
+          withAnnotatedText={withAnnotatedText}
+          meta={meta}
+          value={preserveQuotes ? `${value}` : value}
+        />
+        <LinkHint value={value} />
+      </span>
+    );
   }
 
-  if (isNumber(value)) {
-    const valueToBeReturned =
-      withAnnotatedText && meta ? (
-        <AnnotatedText value={value} meta={meta?.[''] ?? meta} />
-      ) : (
-        value
-      );
-    return <span>{valueToBeReturned}</span>;
+  if (typeof value === 'number') {
+    return (
+      <ValueNumber>
+        <ContextValue withAnnotatedText={withAnnotatedText} value={value} meta={meta} />
+      </ValueNumber>
+    );
   }
 
   if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
       children.push(
-        <span className="val-array-item" key={i}>
+        <div key={i}>
           {walk({
             value: value[i],
             depth: depth + 1,
             preserveQuotes,
             withAnnotatedText,
-            jsonConsts,
-            meta: meta?.[i]?.[''] ?? meta?.[i] ?? meta?.[''] ?? meta,
+            syntax,
+            meta: meta?.[i],
+            maxDefaultDepth: maxDepth,
           })}
-          {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
-        </span>
+          {i < value.length - 1 ? <span>{', '}</span> : null}
+        </div>
       );
     }
     return (
-      <span className="val-array">
-        <span className="val-array-marker">{'['}</span>
-        <Toggle highUp={depth <= maxDepth} wrapClassName="val-array-items">
-          {children}
-        </Toggle>
-        <span className="val-array-marker">{']'}</span>
+      <span>
+        <span>{'['}</span>
+        <ClassNames>
+          {({css}) => (
+            <Toggle
+              highUp={depth <= maxDepth}
+              wrapClassName={css`
+                display: block;
+                padding: 0 0 0 15px;
+              `}
+            >
+              {children}
+            </Toggle>
+          )}
+        </ClassNames>
+        <span>{']'}</span>
       </span>
     );
   }
@@ -140,33 +231,42 @@ function walk({
     const key = keys[i];
 
     children.push(
-      <span className="val-dict-pair" key={key}>
-        <span className="val-dict-key">
-          <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
-        </span>
-        <span className="val-dict-col">{': '}</span>
-        <span className="val-dict-value">
+      <div key={key}>
+        <ValueObjectKey>{preserveQuotes ? `"${key}"` : key}</ValueObjectKey>
+        <span>{': '}</span>
+        <span>
           {walk({
             value: value[key],
             depth: depth + 1,
             preserveQuotes,
             withAnnotatedText,
-            jsonConsts,
-            meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta?.[''] ?? meta,
+            meta: meta?.[key],
+            syntax,
+            maxDefaultDepth: maxDepth,
           })}
-          {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
+          {i < keys.length - 1 ? <span>{', '}</span> : null}
         </span>
-      </span>
+      </div>
     );
   }
 
   return (
-    <span className="val-dict">
-      <span className="val-dict-marker">{'{'}</span>
-      <Toggle highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
-        {children}
-      </Toggle>
-      <span className="val-dict-marker">{'}'}</span>
+    <span>
+      <span>{'{'}</span>
+      <ClassNames>
+        {({css}) => (
+          <Toggle
+            highUp={depth <= maxDepth - 1}
+            wrapClassName={css`
+              display: block;
+              padding: 0 0 0 15px;
+            `}
+          >
+            {children}
+          </Toggle>
+        )}
+      </ClassNames>
+      <span>{'}'}</span>
     </span>
   );
 }
@@ -174,11 +274,11 @@ function walk({
 function ContextData({
   children,
   meta,
-  jsonConsts,
-  maxDefaultDepth,
+  maxDefaultDepth = 2,
   data = null,
   preserveQuotes = false,
   withAnnotatedText = false,
+  syntax,
   ...props
 }: Props) {
   return (
@@ -188,9 +288,9 @@ function ContextData({
         depth: 0,
         maxDefaultDepth,
         meta,
-        jsonConsts,
         withAnnotatedText,
         preserveQuotes,
+        syntax,
       })}
       {children}
     </pre>
@@ -202,4 +302,40 @@ export default ContextData;
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
+`;
+
+const ValueNull = styled('span')`
+  font-weight: bold;
+  color: var(--prism-property);
+`;
+
+const ValueBoolean = styled('span')`
+  font-weight: bold;
+  color: var(--prism-property);
+`;
+
+const ValueString = styled('span')`
+  color: var(--prism-selector);
+`;
+
+const ValueMultiLineString = styled('span')`
+  color: var(--prism-selector);
+  display: block;
+  white-space: pre-wrap;
+  overflow: auto;
+  border-radius: 4px;
+  padding: 2px 4px;
+`;
+
+const ValueStrippedString = styled('span')`
+  font-weight: bold;
+  color: var(--prism-keyword);
+`;
+
+const ValueNumber = styled('span')`
+  color: var(--prism-property);
+`;
+
+const ValueObjectKey = styled('span')`
+  color: var(--prism-keyword);
 `;

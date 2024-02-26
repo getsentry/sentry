@@ -54,7 +54,6 @@ export default function JsonViewer(props: ViewerProps) {
         maxDefaultDepth={4}
         preserveQuotes
         style={{width: '100%'}}
-        jsonConsts
       />
     </PreviewPanelItem>
   );

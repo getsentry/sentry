@@ -424,6 +424,7 @@ function NativeFrame({
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}
+          platform={platform}
         />
       )}
     </StackTraceFrame>
