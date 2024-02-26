@@ -320,8 +320,7 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
             event_payload_data["requestBodySize"],
             unit="byte",
         )
-    elif "request" in event_payload_data:
-        request = event_payload_data["request"]
+    elif request := event_payload_data.get("request"):
         if isinstance(request, dict) and "size" in request:
             metrics.distribution(
                 "replays.usecases.ingest.request_body_size",
@@ -335,8 +334,7 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
             event_payload_data["responseBodySize"],
             unit="byte",
         )
-    elif "response" in event_payload_data:
-        response = event_payload_data["response"]
+    elif response := event_payload_data.get("response"):
         if isinstance(response, dict) and "size" in response:
             metrics.distribution(
                 "replays.usecases.ingest.response_body_size",
