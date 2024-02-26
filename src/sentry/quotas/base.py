@@ -267,7 +267,7 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_abuse_quotas",
+        "get_project_abuse_quotas",
         "get_project_quota",
         "get_organization_quota",
         "is_rate_limited",
@@ -393,7 +393,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quota(self, org):
+    def get_project_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         abuse_window = options.get("project-abuse-quota.window")
 
