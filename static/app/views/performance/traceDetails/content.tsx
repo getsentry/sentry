@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -434,6 +434,12 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
     ? withPerformanceOnboarding.has(currentPlatform)
     : false;
 
+  useEffect(() => {
+    if (hasPerformanceOnboarding && location.hash === '#performance-sidequest') {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
+    }
+  }, [hasPerformanceOnboarding]);
+
   const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
     key: LOCAL_STORAGE_KEY,
     expirationDays: 7,
@@ -477,6 +483,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
               priority="primary"
               onClick={event => {
                 event.preventDefault();
+                window.location.hash = 'performance-sidequest';
                 SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
               }}
             >
