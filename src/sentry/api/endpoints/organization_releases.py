@@ -502,14 +502,14 @@ class OrganizationReleasesEndpoint(
                     release.status = new_status
                     release.save()
 
-                new_projects = []
+                new_releaseprojects = []
                 for project in projects:
-                    created = release.add_project(project)
-                    if created:
-                        new_projects.append(project)
+                    obj, releaseproject_created = release.add_project(project)
+                    if releaseproject_created:
+                        new_releaseprojects.append(project)
 
                 if release.date_released:
-                    for project in new_projects:
+                    for project in new_releaseprojects:
                         Activity.objects.create(
                             type=ActivityType.RELEASE.value,
                             project=project,
@@ -555,7 +555,7 @@ class OrganizationReleasesEndpoint(
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [str(e)]}, status=400)
 
-                if not created and not new_projects:
+                if not releaseproject_created and not new_releaseprojects:
                     # This is the closest status code that makes sense, and we want
                     # a unique 2xx response code so people can understand when
                     # behavior differs.
