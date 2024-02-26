@@ -901,6 +901,35 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "field,query_hash",
+    [("user", "899e9132"), ("geo.city", "a85d58a1"), ("non-existent-field", "f2d80826")],
+)
+def test_get_metric_extraction_config_with_count_unique(
+    default_project: Project, field: str, query_hash: str
+) -> None:
+    duration = 1000
+    query = f"transaction.duration:>={duration}"
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        widget_query, _, _ = create_widget([f"count_unique({field})"], query, default_project)
+        assert widget_query.aggregates == [f"count_unique({field})"]
+        assert widget_query.conditions == query
+        assert widget_query.columns == []
+
+        config = get_metric_extraction_config(default_project)
+        assert config
+        # Let's only assert the current version of the spec
+        spec = config["metrics"][0]
+        assert spec["mri"] == "s:transactions/on_demand@none"  # A set rather than a counter
+        assert spec["condition"] == {"name": "event.duration", "op": "gte", "value": duration}
+        assert spec["field"] == field  # We are extracting the specified field
+        assert spec["tags"] == [
+            {"key": "query_hash", "value": query_hash},
+            {"field": "event.environment", "key": "environment"},
+        ]
+
+
+@django_db_all
 @pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
 def test_get_metric_extraction_config_with_count_web_vitals(
@@ -1822,25 +1851,26 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
         config = get_metric_extraction_config(default_project)
         assert config
 
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            config = get_metric_extraction_config(default_project)
-            process_widget_specs([widget_query.id])
-            assert config
-            assert [
-                next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
-                for spec in config["metrics"]
-            ] == [
-                "4b08d58c",
-                "470072b4",
-                "6bc4f99b",
-                "e50094f0",
-                "0a272be4",
-            ]
+        config = get_metric_extraction_config(default_project)
+        process_widget_specs([widget_query.id])
+        assert config
+        assert [
+            next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
+            for spec in config["metrics"]
+        ] == [
+            "4b08d58c",
+            "da718f56",
+            "470072b4",
+            "6bc4f99b",
+            "e50094f0",
+            "0a272be4",
+        ]
 
         on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 1] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",
@@ -1851,6 +1881,7 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
         assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 2] == [
             [
                 "4b08d58c",
+                "da718f56",
                 "470072b4",
                 "6bc4f99b",
                 "e50094f0",

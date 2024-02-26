@@ -90,6 +90,7 @@ MetricOperationType = Literal[
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 ]
@@ -364,6 +365,7 @@ DERIVED_OPERATIONS = (
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 )

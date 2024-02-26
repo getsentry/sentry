@@ -973,6 +973,12 @@ def on_demand_apdex_snql_factory(
     )
 
 
+def on_demand_count_unique_snql_factory(
+    aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str | None = None
+) -> Function:
+    return Function("uniq", [Column("value")], alias=alias)
+
+
 def on_demand_count_web_vitals_snql_factory(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str | None = None
 ) -> Function:

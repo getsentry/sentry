@@ -3257,6 +3257,33 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
 
+    def test_on_demand_count_unique(self):
+        field = "count_unique(user)"
+        query = "transaction.duration:>0"
+        params = {"field": [field], "query": query}
+        # We do not really have to create the metrics for both specs since
+        # the first API call will not query any on-demand metric
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            spec = OnDemandMetricSpec(
+                field=field,
+                query=query,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+                spec_version=spec_version,
+            )
+            self.store_on_demand_metric(1, spec=spec, timestamp=self.min_ago)
+            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
+
+        # The first call will not be on-demand
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=False)
+
+        # This second call will be on-demand
+        response = self._make_on_demand_request(
+            params, extra_features={SPEC_VERSION_TWO_FLAG: True}
+        )
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data["data"] == [{"count_unique(user)": 2}]
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(

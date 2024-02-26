@@ -34,8 +34,8 @@ def test_equality_of_specs(default_project) -> None:
     [
         ("count()", "release:a", False),  # supported by standard metrics
         ("failure_rate()", "release:a", False),  # supported by standard metrics
-        # geo.city not supported by standard metrics, but also not by on demand
-        ("count_unique(geo.city)", "release:a", False),
+        # geo.city not supported by standard metrics
+        ("count_unique(geo.city)", "release:a", True),
         # transaction.duration not supported by standard metrics
         ("count()", "transaction.duration:>1", True),
         ("epm()", "transaction.duration:>1", True),
@@ -150,8 +150,6 @@ class TestCreatesOndemandMetricSpec:
         "aggregate, query",
         [
             ("count()", "release:a"),  # supported by standard metrics
-            # count_unique not supported by on demand
-            ("count_unique(user)", "transaction.duration:>0"),
             ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
             ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
             ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
