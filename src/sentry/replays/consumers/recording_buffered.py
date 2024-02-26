@@ -42,7 +42,7 @@ import logging
 import time
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -258,10 +258,8 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     )
 
     if replay_video := decoded_message.get("replay_video"):
-        replay_video = cast(bytes, replay_video)
-        assert isinstance(replay_video, bytes)
         buffer.upload_events.append(
-            {"key": make_video_filename(recording_segment), "value": replay_video}
+            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore
         )
 
     # Initial segment events are recorded in the state machine.
