@@ -1,5 +1,6 @@
 import type {List} from 'react-virtualized';
 import * as Sentry from '@sentry/react';
+import {mat3, vec2} from 'gl-matrix';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
@@ -18,6 +19,16 @@ import {
 
 const DIVIDER_WIDTH = 6;
 
+function easeOutQuad(x: number): number {
+  return 1 - (1 - x) * (1 - x);
+}
+
+function onPreventBackForwardNavigation(event: WheelEvent) {
+  if (event.deltaX !== 0) {
+    event.preventDefault();
+  }
+}
+
 type ViewColumn = {
   column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
   column_refs: (HTMLElement | undefined)[];
@@ -25,39 +36,107 @@ type ViewColumn = {
   width: number;
 };
 
-type Matrix2D = [number, number, number, number, number, number];
+class View {
+  public x: number;
+  public y: number;
+  public width: number;
+  public height: number;
+
+  constructor(x: number, y: number, width: number, height: number) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+
+  static From(view: View): View {
+    return new View(view.x, view.y, view.width, view.height);
+  }
+  static Empty(): View {
+    return new View(0, 0, 1000, 1);
+  }
+
+  serialize() {
+    return [this.x, this.y, this.width, this.height];
+  }
+
+  between(to: View): mat3 {
+    return mat3.fromValues(
+      to.width / this.width,
+      0,
+      0,
+      to.height / this.height,
+      0,
+      0,
+      to.x - this.x * (to.width / this.width),
+      to.y - this.y * (to.height / this.height),
+      1
+    );
+  }
+
+  transform(mat: mat3): [number, number, number, number] {
+    const x = this.x * mat[0] + this.y * mat[3] + mat[6];
+    const y = this.x * mat[1] + this.y * mat[4] + mat[7];
+    const width = this.width * mat[0] + this.height * mat[3];
+    const height = this.width * mat[1] + this.height * mat[4];
+    return [x, y, width, height];
+  }
+
+  get center() {
+    return this.x + this.width / 2;
+  }
+
+  get left() {
+    return this.x;
+  }
+  get right() {
+    return this.x + this.width;
+  }
+  get top() {
+    return this.y;
+  }
+  get bottom() {
+    return this.y + this.height;
+  }
+}
 
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
- * Children components should call `registerColumnRef` and `registerDividerRef` to register
- * their respective refs.
+ * Children components should call the appropriate register*Ref methods to register their
+ * HTML elements.
  */
 export class VirtualizedViewManager {
-  width: number = 0;
+  // Represents the space of the entire trace, for example
+  // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
+  to_origin: number = 0;
+  trace_space: View = View.Empty();
+  // The view defines what the user is currently looking at, it is a subset
+  // of the trace space. For example, if the user is currently looking at the
+  // trace from 500 to 1000, the view would be represented by [x, width] = [500, 500]
+  trace_view: View = View.Empty();
+  // Represents the pixel space of the entire trace - this is the container
+  // that we render to. For example, if the container is 1000px wide, the
+  // pixel space would be [0, 1000]
+  trace_physical_space: View = View.Empty();
+  container_physical_space: View = View.Empty();
+
+  measurer: RowMeasurer = new RowMeasurer();
+  resizeObserver: ResizeObserver | null = null;
   virtualizedList: List | null = null;
 
-  container: HTMLElement | null = null;
+  // HTML refs that we need to keep track of such
+  // that rendering can be done programmatically
   divider: HTMLElement | null = null;
-  resizeObserver: ResizeObserver | null = null;
+  container: HTMLElement | null = null;
+  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
+    [];
+  span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
-  dividerStartVec: [number, number] | null = null;
-  measurer: RowMeasurer = new RowMeasurer();
-
-  spanDrawMatrix: Matrix2D = [1, 0, 0, 1, 0, 0];
-  spanScalingFactor: number = 1;
-  minSpanScalingFactor: number = 0.02;
-
-  spanSpace: [number, number] = [0, 1000];
-  spanView: [number, number] = [0, 1000];
-
+  // Column configuration
   columns: {
     list: ViewColumn;
     span_list: ViewColumn;
   };
-
-  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
-    [];
-  span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
   constructor(columns: {
     list: Pick<ViewColumn, 'width'>;
@@ -73,10 +152,28 @@ export class VirtualizedViewManager {
       },
     };
 
-    this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
     this.onDividerMouseDown = this.onDividerMouseDown.bind(this);
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
+    this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
+    this.onWheelZoom = this.onWheelZoom.bind(this);
+  }
+
+  initializeTraceSpace(space: [x: number, y: number, width: number, height: number]) {
+    this.to_origin = space[0];
+
+    this.trace_space = new View(0, 0, space[2], space[3]);
+    this.trace_view = new View(0, 0, space[2], space[3]);
+  }
+
+  initializePhysicalSpace(width: number, height: number) {
+    this.container_physical_space = new View(0, 0, width, height);
+    this.trace_physical_space = new View(
+      0,
+      0,
+      width * this.columns.span_list.width,
+      height
+    );
   }
 
   onContainerRef(container: HTMLElement | null) {
@@ -87,6 +184,7 @@ export class VirtualizedViewManager {
     }
   }
 
+  dividerStartVec: [number, number] | null = null;
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -107,7 +205,7 @@ export class VirtualizedViewManager {
     }
 
     const distance = event.clientX - this.dividerStartVec[0];
-    const distancePercentage = distance / this.width;
+    const distancePercentage = distance / this.container_physical_space.width;
 
     this.columns.list.width = this.columns.list.width + distancePercentage;
     this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
@@ -125,47 +223,16 @@ export class VirtualizedViewManager {
     }
 
     const distance = event.clientX - this.dividerStartVec[0];
-    const distancePercentage = distance / this.width;
+    const distancePercentage = distance / this.container_physical_space.width;
 
-    this.computeSpanDrawMatrix(
-      this.width,
-      this.columns.span_list.width - distancePercentage
-    );
+    this.trace_physical_space.width =
+      (this.columns.span_list.width - distancePercentage) *
+      this.container_physical_space.width;
 
-    this.divider.style.transform = `translateX(${
-      this.width * (this.columns.list.width + distancePercentage) - DIVIDER_WIDTH / 2
-    }px)`;
-
-    const listWidth = this.columns.list.width * 100 + distancePercentage * 100 + '%';
-    const spanWidth = this.columns.span_list.width * 100 - distancePercentage * 100 + '%';
-
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
-      const list = this.columns.list.column_refs[i];
-      if (list) {
-        list.style.width = listWidth;
-      }
-      const span = this.columns.span_list.column_refs[i];
-      if (span) {
-        span.style.width = spanWidth;
-      }
-      const span_bar = this.span_bars[i];
-      if (span_bar) {
-        span_bar.ref.style.transform = `matrix(${this.computeSpanMatrixTransform(
-          span_bar.space
-        ).join(',')}`;
-      }
-    }
-
-    for (let i = 0; i < this.indicators.length; i++) {
-      const entry = this.indicators[i];
-      if (!entry) {
-        continue;
-      }
-      entry.ref.style.left = listWidth;
-      entry.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
-        entry.indicator.start
-      )}px)`;
-    }
+    this.draw({
+      list: this.columns.list.width + distancePercentage,
+      span_list: this.columns.span_list.width - distancePercentage,
+    });
   }
 
   registerVirtualizedList(list: List | null) {
@@ -183,10 +250,6 @@ export class VirtualizedViewManager {
 
     this.divider = ref;
     this.divider.style.width = `${DIVIDER_WIDTH}px`;
-    this.divider.style.transform = `translateX(${
-      this.width * (this.columns.list.width - (2 * DIVIDER_WIDTH) / this.width)
-    }px)`;
-
     ref.addEventListener('mousedown', this.onDividerMouseDown, {passive: true});
   }
 
@@ -221,6 +284,15 @@ export class VirtualizedViewManager {
       }
     }
 
+    if (column === 'span_list') {
+      const element = this.columns[column].column_refs[index];
+      if (ref === undefined && element) {
+        element.removeEventListener('wheel', this.onWheelZoom);
+      } else if (ref) {
+        ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
+      }
+    }
+
     this.columns[column].column_refs[index] = ref ?? undefined;
     this.columns[column].column_nodes[index] = node ?? undefined;
   }
@@ -244,6 +316,104 @@ export class VirtualizedViewManager {
     }
   }
 
+  getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
+    const left_percentage = cursor.x / this.trace_physical_space.width;
+    const left_view = left_percentage * this.trace_view.width;
+
+    return [this.trace_view.x + left_view, 0];
+  }
+
+  onWheelZoom(event: WheelEvent) {
+    if (event.metaKey) {
+      event.preventDefault();
+
+      if (!this.onWheelEndRaf) {
+        this.onWheelStart();
+        this.enqueueOnWheelEndRaf();
+        return;
+      }
+
+      const scale = 1 - event.deltaY * 0.01 * -1; // -1 to invert scale
+
+      const configSpaceCursor = this.getConfigSpaceCursor({
+        x: event.offsetX,
+        y: event.offsetY,
+      });
+
+      const center = vec2.fromValues(configSpaceCursor[0], 0);
+      const centerScaleMatrix = mat3.create();
+
+      mat3.fromTranslation(centerScaleMatrix, center);
+      mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
+      mat3.translate(
+        centerScaleMatrix,
+        centerScaleMatrix,
+        vec2.fromValues(-center[0], 0)
+      );
+
+      const newView = this.trace_view.transform(centerScaleMatrix);
+      this.setTraceView({
+        x: newView[0],
+        width: newView[2],
+      });
+      this.draw();
+    } else {
+      const physical_delta_pct = event.deltaX / this.trace_physical_space.width;
+      const view_delta = physical_delta_pct * this.trace_view.width;
+      this.setTraceView({
+        x: this.trace_view.x + view_delta,
+      });
+      this.draw();
+    }
+  }
+
+  onWheelEndRaf: number | null = null;
+  enqueueOnWheelEndRaf() {
+    if (this.onWheelEndRaf !== null) {
+      window.cancelAnimationFrame(this.onWheelEndRaf);
+    }
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      if (elapsed > 100) {
+        this.onWheelEnd();
+      } else {
+        this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+      }
+    };
+
+    this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
+  }
+
+  onWheelStart() {
+    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+      const span_list = this.columns.span_list.column_refs[i];
+      if (span_list?.children?.[0]) {
+        (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
+      }
+    }
+  }
+
+  onWheelEnd() {
+    this.onWheelEndRaf = null;
+
+    for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
+      const span_list = this.columns.span_list.column_refs[i];
+      if (span_list?.children?.[0]) {
+        (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
+      }
+    }
+  }
+
+  setTraceView(view: {width?: number; x?: number}) {
+    const x = view.x ?? this.trace_view.x;
+    const width = view.width ?? this.trace_view.width;
+
+    this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
+    this.trace_view.width = clamp(width, 0, this.trace_space.width);
+  }
+
   scrollSyncRaf: number | null = null;
   onSyncedScrollbarScroll(event: WheelEvent) {
     if (this.bringRowIntoViewAnimation !== null) {
@@ -252,7 +422,7 @@ export class VirtualizedViewManager {
     }
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
-    const columnWidth = this.columns.list.width * this.width;
+    const columnWidth = this.columns.list.width * this.container_physical_space.width;
 
     this.columns.list.translate[0] = clamp(
       this.columns.list.translate[0] - event.deltaX,
@@ -331,7 +501,7 @@ export class VirtualizedViewManager {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
         translation + innerMostNode.depth * 24 >
-        this.columns.list.width * this.width
+        this.columns.list.width * this.container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       }
@@ -377,10 +547,12 @@ export class VirtualizedViewManager {
   }
 
   initialize(container: HTMLElement) {
-    this.teardown();
+    if (this.container !== container && this.resizeObserver !== null) {
+      this.teardown();
+    }
 
     this.container = container;
-    this.container.addEventListener('wheel', this.onPreventBackForwardNavigation, {
+    this.container.addEventListener('wheel', onPreventBackForwardNavigation, {
       passive: false,
     });
 
@@ -390,30 +562,30 @@ export class VirtualizedViewManager {
         throw new Error('ResizeObserver entry is undefined');
       }
 
-      this.width = entry.contentRect.width;
-      this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
-
-      if (this.divider) {
-        this.divider.style.transform = `translateX(${
-          this.width * this.columns.list.width - DIVIDER_WIDTH / 2
-        }px)`;
-      }
+      this.initializePhysicalSpace(entry.contentRect.width, entry.contentRect.height);
+      this.draw();
     });
 
     this.resizeObserver.observe(container);
   }
 
-  onPreventBackForwardNavigation(event: WheelEvent) {
-    if (event.deltaX !== 0) {
-      event.preventDefault();
-    }
-  }
+  computeSpanCSSMatrixTransform(
+    space: [number, number]
+  ): [number, number, number, number, number, number] {
+    const scale = space[1] / this.trace_view.width;
 
-  initializeSpanSpace(spanSpace: [number, number], spanView?: [number, number]) {
-    this.spanSpace = [...spanSpace];
-    this.spanView = spanView ?? [...spanSpace];
+    const traceViewToSpace = this.trace_space.between(this.trace_view);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
 
-    this.computeSpanDrawMatrix(this.width, this.columns.span_list.width);
+    return [
+      Math.max(scale, (1 * to_px[0]) / this.trace_view.width),
+      0,
+      0,
+      1,
+      (space[0] - this.to_origin) / to_px[0] - this.trace_view.x / to_px[0],
+      0,
+    ];
   }
 
   scrollToPath(
@@ -480,31 +652,12 @@ export class VirtualizedViewManager {
     return scrollToRow();
   }
 
-  computeSpanDrawMatrix(width: number, span_column_width: number): Matrix2D {
-    // https://developer.mozilla.org/en-US/docs/Web/CSS/transform-function/matrix
-    const mat3: Matrix2D = [1, 0, 0, 1, 0, 0];
-
-    if (this.spanSpace[1] === 0 || this.spanView[1] === 0) {
-      return mat3;
-    }
-
-    const spanColumnWidth = width * span_column_width;
-    const viewToSpace = this.spanSpace[1] / this.spanView[1];
-    const physicalToView = spanColumnWidth / this.spanView[1];
-
-    // Set X scaling factor to the ratio of the span space to the span view
-    mat3[0] = viewToSpace * physicalToView;
-
-    this.spanScalingFactor = viewToSpace;
-    this.minSpanScalingFactor = window.devicePixelRatio / this.width;
-    this.spanDrawMatrix = mat3;
-    return mat3;
-  }
-
   computeTransformXFromTimestamp(timestamp: number): number {
-    const x = timestamp - this.spanView[0];
-    const translateInPixels = x * this.spanDrawMatrix[0];
-    return translateInPixels;
+    const traceViewToSpace = this.trace_space.between(this.trace_view);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
+
+    return (timestamp - this.to_origin) / to_px[0];
   }
 
   computeSpanTextPlacement(
@@ -516,8 +669,12 @@ export class VirtualizedViewManager {
     //  |  <-------->   |
     //  |       |       |
     //  |       |       |
-    const half = (this.columns.span_list.width * this.width) / 2;
-    const spanWidth = span_space[1] * this.spanDrawMatrix[0];
+    const traceViewToSpace = this.trace_space.between(this.trace_view);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
+
+    const half = this.trace_physical_space.width / 2;
+    const spanWidth = span_space[1] / to_px[0];
 
     if (translateX > half) {
       return 'left';
@@ -530,34 +687,64 @@ export class VirtualizedViewManager {
     return 'right';
   }
 
-  inverseSpanScaling(span_space: [number, number]): number {
-    return 1 / this.computeSpanMatrixTransform(span_space)[0];
-  }
+  draw(options: {list?: number; span_list?: number} = {}) {
+    const list_width = options.list ?? this.columns.list.width;
+    const span_list_width = options.span_list ?? this.columns.span_list.width;
 
-  computeSpanMatrixTransform(span_space: [number, number]): Matrix2D {
-    const scale = Math.max(
-      this.minSpanScalingFactor,
-      (span_space[1] / this.spanView[1]) * this.spanScalingFactor
-    );
+    if (this.divider) {
+      this.divider.style.transform = `translateX(${
+        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2
+      }px)`;
+    }
 
-    const x = span_space[0] - this.spanView[0];
-    const translateInPixels = x * this.spanDrawMatrix[0];
+    const listWidth = list_width * 100 + '%';
+    const spanWidth = span_list_width * 100 + '%';
 
-    return [scale, 0, 0, 1, translateInPixels, 0];
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      const list = this.columns.list.column_refs[i];
+      if (list) list.style.width = listWidth;
+      const span = this.columns.span_list.column_refs[i];
+      if (span) span.style.width = spanWidth;
+
+      const span_bar = this.span_bars[i];
+      if (span_bar) {
+        const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
+        span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+
+        const duration = span_bar.ref.children[0];
+        if (duration) {
+          const text_placement = this.computeSpanTextPlacement(
+            span_transform[4],
+            span_bar.space
+          );
+
+          (duration as HTMLElement).style.transform = `scaleX(${
+            1 / span_transform[0]
+          }) translate(${text_placement === 'left' ? 'calc(-100% - 4px)' : '4px'}, 0)`;
+        }
+      }
+    }
+
+    for (let i = 0; i < this.indicators.length; i++) {
+      const entry = this.indicators[i];
+      if (!entry) {
+        continue;
+      }
+      entry.ref.style.left = listWidth;
+      entry.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
+        entry.indicator.start
+      )}px)`;
+    }
   }
 
   teardown() {
     if (this.container) {
-      this.container.removeEventListener('wheel', this.onPreventBackForwardNavigation);
+      this.container.removeEventListener('wheel', onPreventBackForwardNavigation);
     }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
   }
-}
-
-function easeOutQuad(x: number): number {
-  return 1 - (1 - x) * (1 - x);
 }
 
 class RowMeasurer {
