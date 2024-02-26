@@ -186,7 +186,7 @@ export function MetricVisualization({queries, displayType, onDisplayTypeChange})
           sort={tableSort}
           onRowClick={setSeriesVisibility}
           onColorDotClick={toggleSeriesVisibility}
-          setHoveredSeries={setHoveredSeries}
+          onRowHover={setHoveredSeries}
         />
       </StyledMetricChartContainer>
     </StyledOuterContainer>

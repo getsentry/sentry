@@ -26,13 +26,13 @@ export const SummaryTable = memo(function SummaryTable({
   onColorDotClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
-  setHoveredSeries,
+  onRowHover,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  setHoveredSeries?: (seriesName: string) => void;
+  onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
@@ -162,7 +162,7 @@ export const SummaryTable = memo(function SummaryTable({
         hasActions={hasActions}
         onMouseLeave={() => {
           if (hasMultipleSeries) {
-            setHoveredSeries?.('');
+            onRowHover?.('');
           }
         }}
       >
@@ -195,7 +195,7 @@ export const SummaryTable = memo(function SummaryTable({
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(id);
+                      onRowHover?.(id);
                     }
                   }}
                 >
