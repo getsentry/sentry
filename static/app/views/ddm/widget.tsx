@@ -475,6 +475,8 @@ export function getChartTimeseries(
 
   const series = data.data.flatMap((group, index) => {
     const query = filteredQueries[index];
+    const metaUnit = data.meta[index]?.[1]?.unit;
+
     const isMultiQuery = filteredQueries.length > 1;
 
     let unit = '';
@@ -486,7 +488,11 @@ export function getChartTimeseries(
     } else {
       // Treat formulas as if they were a single query with none as the unit and count as the operation
       unit = 'none';
-      operation = 'count';
+    }
+
+    // TODO(arthur): fully switch to using the meta unit once it's available
+    if (metaUnit) {
+      unit = metaUnit;
     }
 
     // We normalize metric units to make related units

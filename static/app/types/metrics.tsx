@@ -64,7 +64,14 @@ export interface MetricsQueryApiResponse {
   intervals: string[];
   meta: [
     {name: string; type: string},
-    {group_bys: string[]; limit: number | null; order: string | null},
+    {
+      group_bys: string[];
+      limit: number | null;
+      order: string | null;
+      scaling_factor?: number | null;
+      unit?: string | null;
+      unit_family?: 'duration' | 'information' | null;
+    },
   ][];
   start: string;
 }
