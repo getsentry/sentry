@@ -132,6 +132,9 @@ export class VirtualizedViewManager {
     [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
 
+  // Holds the span to px matrix so we dont keep recalculating it
+  span_to_px: mat3 = mat3.create();
+
   // Column configuration
   columns: {
     list: ViewColumn;
@@ -164,6 +167,8 @@ export class VirtualizedViewManager {
 
     this.trace_space = new View(0, 0, space[2], space[3]);
     this.trace_view = new View(0, 0, space[2], space[3]);
+
+    this.recomputeSpanToPxMatrix();
   }
 
   initializePhysicalSpace(width: number, height: number) {
@@ -174,6 +179,8 @@ export class VirtualizedViewManager {
       width * this.columns.span_list.width,
       height
     );
+
+    this.recomputeSpanToPxMatrix();
   }
 
   onContainerRef(container: HTMLElement | null) {
@@ -333,8 +340,7 @@ export class VirtualizedViewManager {
         return;
       }
 
-      const scale = 1 - event.deltaY * 0.01 * -1; // -1 to invert scale
-
+      const scale = 1 - event.deltaY * 0.01 * -1;
       const configSpaceCursor = this.getConfigSpaceCursor({
         x: event.offsetX,
         y: event.offsetY,
@@ -412,6 +418,7 @@ export class VirtualizedViewManager {
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
     this.trace_view.width = clamp(width, 0, this.trace_space.width);
+    this.recomputeSpanToPxMatrix();
   }
 
   scrollSyncRaf: number | null = null;
@@ -569,21 +576,28 @@ export class VirtualizedViewManager {
     this.resizeObserver.observe(container);
   }
 
+  recomputeSpanToPxMatrix() {
+    const traceViewToSpace = this.trace_space.between(this.trace_view);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+    this.span_to_px = mat3.multiply(
+      this.span_to_px,
+      traceViewToSpace,
+      tracePhysicalToView
+    );
+  }
+
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const scale = space[1] / this.trace_view.width;
 
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
-
     return [
-      Math.max(scale, (1 * to_px[0]) / this.trace_view.width),
+      Math.max(scale, (1 * this.span_to_px[0]) / this.trace_view.width),
       0,
       0,
       1,
-      (space[0] - this.to_origin) / to_px[0] - this.trace_view.x / to_px[0],
+      (space[0] - this.to_origin) / this.span_to_px[0] -
+        this.trace_view.x / this.span_to_px[0],
       0,
     ];
   }
@@ -653,35 +667,24 @@ export class VirtualizedViewManager {
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
-
-    return (timestamp - this.to_origin) / to_px[0];
+    return (timestamp - this.to_origin) / this.span_to_px[0];
   }
 
   computeSpanTextPlacement(
-    translateX: number,
     span_space: [number, number]
   ): 'left' | 'right' | 'inside left' {
-    //  | <-->  |       |
-    //  |       | <-->  |
-    //  |  <-------->   |
-    //  |       |       |
-    //  |       |       |
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-    const to_px = mat3.multiply(mat3.create(), traceViewToSpace, tracePhysicalToView);
+    const span_left = span_space[0];
+    // const view_left = this.trace_view.x;
 
-    const half = this.trace_physical_space.width / 2;
-    const spanWidth = span_space[1] / to_px[0];
+    const span_right = span_space[0] + span_space[1];
+    // const view_right = this.trace_view.x + this.trace_view.width;
+    const view_middle = this.trace_view.x + this.trace_view.width / 2;
 
-    if (translateX > half) {
-      return 'left';
+    if (span_right < view_middle) {
+      return 'right';
     }
-
-    if (spanWidth > half) {
-      return 'inside left';
+    if (span_left > view_middle) {
+      return 'left';
     }
 
     return 'right';
@@ -713,10 +716,7 @@ export class VirtualizedViewManager {
 
         const duration = span_bar.ref.children[0];
         if (duration) {
-          const text_placement = this.computeSpanTextPlacement(
-            span_transform[4],
-            span_bar.space
-          );
+          const text_placement = this.computeSpanTextPlacement(span_bar.space);
 
           (duration as HTMLElement).style.transform = `scaleX(${
             1 / span_transform[0]
