@@ -7,7 +7,7 @@ import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function getPlatformPath(platform: PlatformIntegration) {
-  if (platform?.type === 'framework') {
+  if (platform.type === 'framework') {
     switch (platform.id) {
       case 'capacitor':
         return `capacitor/capacitor`;
@@ -16,10 +16,10 @@ function getPlatformPath(platform: PlatformIntegration) {
       case 'android':
         return `android/android`;
       default:
-        return platform?.id.replace(`${platform.language}-`, `${platform.language}/`);
+        return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }
   }
-  return `${platform?.language}/${platform?.id}`;
+  return `${platform.language}/${platform.id}`;
 }
 
 function useLoadFeedbackOnboardingDoc({
