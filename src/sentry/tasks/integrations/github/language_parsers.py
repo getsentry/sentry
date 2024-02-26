@@ -216,9 +216,15 @@ class JavascriptParser(LanguageParser):
         )
 
 
-PATCH_PARSERS: dict[str, Any] = {"py": PythonParser}
+PATCH_PARSERS: dict[str, Any] = {
+    "py": PythonParser,
+    "js": JavascriptParser,
+    "jsx": JavascriptParser,
+    "ts": JavascriptParser,
+    "tsx": JavascriptParser,
+}
 
-# for testing the Javascript parser, feature flagged
+# for testing new parsers
 BETA_PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
