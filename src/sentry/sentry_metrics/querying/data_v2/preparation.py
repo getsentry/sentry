@@ -18,7 +18,8 @@ class IntermediateQuery:
     order: QueryOrder | None = None
     limit: int | None = None
     unit_family: UnitFamily | None = None
-    reference_unit: MeasurementUnit | None = None
+    unit: MeasurementUnit | None = None
+    scaling_factor: float | None = None
 
 
 class PreparationStep(ABC):
@@ -72,7 +73,8 @@ class UnitNormalizationStep(PreparationStep):
                                     unit.apply_on_timeseries(metrics_query.query)
                                 ),
                                 unit_family=unit_family,
-                                reference_unit=reference_unit,
+                                unit=reference_unit,
+                                scaling_factor=unit.scaling_factor
                             )
                         )
 

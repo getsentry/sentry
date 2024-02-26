@@ -175,7 +175,8 @@ class QueryTransformer:
                     unit_family=query_result.unit_family.value
                     if query_result.unit_family
                     else None,
-                    referece_unit=query_result.reference_unit,
+                    unit=query_result.unit,
+                    scaling_factor=query_result.scaling_factor
                 )
             )
 

@@ -5,6 +5,7 @@ from django.utils import timezone as django_timezone
 
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
+from sentry.sentry_metrics.querying.data_v2.units import get_unit_family_and_unit, MeasurementUnit
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -83,6 +84,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
         return query
 
+    def to_reference_unit(
+        self, value: float | int, measurement_unit: MeasurementUnit = "millisecond"
+    ):
+        _, _, unit = get_unit_family_and_unit(measurement_unit)
+        return unit.convert(value)
+
     def test_query_with_empty_results(self) -> None:
         for aggregate, expected_identity in (
             ("count", 0.0),
@@ -126,8 +133,18 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 12.0, 9.0]
-        assert data[0][0]["totals"] == 21.0
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(12.0),
+            self.to_reference_unit(9.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)
+        # We also want to test the meta.
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] is not None
+        assert meta[0][1]["unit"] is not None
+        assert meta[0][1]["scaling_factor"] is not None
 
     def test_query_with_one_aggregation_and_environment(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)

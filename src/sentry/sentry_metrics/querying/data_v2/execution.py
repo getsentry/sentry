@@ -148,7 +148,8 @@ class ScheduledQuery:
     order: QueryOrder | None = None
     limit: int | None = None
     unit_family: UnitFamily | None = None
-    reference_unit: MeasurementUnit | None = None
+    unit: MeasurementUnit | None = None
+    scaling_factor: float | None = None
 
     def initialize(
         self,
@@ -296,7 +297,8 @@ class QueryResult:
             "modified_end": query_result["modified_end"],
             # We add unit metadata as if it was returned by Snuba to make the code more linear.
             "unit_family": scheduled_query.unit_family,
-            "reference_unit": scheduled_query.reference_unit,
+            "unit": scheduled_query.unit,
+            "scaling_factor": scheduled_query.scaling_factor
         }
 
         if scheduled_query.type == ScheduledQueryType.SERIES:
@@ -364,8 +366,12 @@ class QueryResult:
         return self.result.get("unit_family")
 
     @property
-    def reference_unit(self) -> MeasurementUnit | None:
-        return self.result.get("reference_unit")
+    def unit(self) -> MeasurementUnit | None:
+        return self.result.get("unit")
+
+    @property
+    def scaling_factor(self) -> float | None:
+        return self.result.get("scaling_factor")
 
     @property
     def groups(self) -> GroupsCollection:
@@ -626,7 +632,8 @@ class QueryExecutor:
             order=intermediate_query.order,
             limit=intermediate_query.limit,
             unit_family=intermediate_query.unit_family,
-            reference_unit=intermediate_query.reference_unit,
+            unit=intermediate_query.unit,
+            scaling_factor=intermediate_query.scaling_factor
         )
         totals_query = replace(series_query, type=ScheduledQueryType.TOTALS, next=series_query)
 
