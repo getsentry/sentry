@@ -115,7 +115,6 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
                 target_sample_rate,
             )
         else:
-            # TODO: log error.
             log_sample_rate_source(
                 org_id,
                 None,
