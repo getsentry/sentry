@@ -572,7 +572,6 @@ const StyledMetricWidgetBody = styled('div')`
 
 const MetricWidgetBodyWrapper = styled('div')`
   padding: ${space(1)};
-  padding-bottom: 0;
 `;
 
 const MetricWidgetHeader = styled('div')`
