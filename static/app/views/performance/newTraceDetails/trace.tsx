@@ -314,6 +314,7 @@ function RenderRow(props: {
           }
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           {isParentAutogroupedNode(props.node) ? (
@@ -402,6 +403,7 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           <TraceBar
@@ -486,6 +488,7 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           <TraceBar
@@ -543,6 +546,7 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           <TraceBar
@@ -611,6 +615,7 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           {' '}
@@ -680,6 +685,7 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
           }}
         >
           {/* @TODO: figure out what to do with trace errors */}{' '}
@@ -751,6 +757,7 @@ function RenderPlaceholderRow(props: {
         className="TraceRightColumn"
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
+          backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
         }}
       >
         {isTraceNode(props.node) ? null : (
@@ -1051,12 +1058,6 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
-
-    &:nth-of-type(odd) {
-      .TraceRightColumn {
-        background-color: ${p => p.theme.backgroundSecondary};
-      }
-    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
