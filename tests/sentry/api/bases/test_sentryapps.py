@@ -6,6 +6,7 @@ from django.http import Http404
 from django.test.utils import override_settings
 
 from sentry.api.bases.sentryapps import (
+    SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
@@ -21,11 +22,7 @@ from sentry.testutils.silo import control_silo_test
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-
-        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
-
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
         self.request = self.make_request(user=self.user, method="GET")
 
         self.superuser = self.create_user(is_superuser=True)
@@ -77,6 +74,33 @@ class SentryAppPermissionTest(TestCase):
         request.method = "POST"
 
         self.permission.has_object_permission(request, None, self.sentry_app)
+
+
+@control_silo_test
+class SentryAppAndStaffPermissionTest(TestCase):
+    def setUp(self):
+        self.permission = SentryAppAndStaffPermission()
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
+
+    def test_superuser_has_permission(self):
+        superuser = self.create_user(is_superuser=True)
+        request = self.make_request(user=superuser, method="GET", is_superuser=True)
+
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+        request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+    def test_staff_has_permission(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        request = self.make_request(user=staff_user, method="GET", is_staff=True)
+
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+        request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
 
 
 @control_silo_test

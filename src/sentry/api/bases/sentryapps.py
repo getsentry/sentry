@@ -13,7 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
@@ -230,6 +230,13 @@ class SentryAppPermission(SentryPermission):
             return self.published_scope_map
         else:
             return self.unpublished_scope_map
+
+
+class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
+    """Allows staff to access sentry app endpoints. Note that this is used for
+    endpoints acting on a single sentry app only."""
+
+    pass
 
 
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
