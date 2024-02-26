@@ -1,10 +1,21 @@
 import logging
 import time
 from collections.abc import MutableMapping
+from typing import Any
 
 import pytest
+from arroyo import Topic
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing.processor import StreamProcessor
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.admin import AdminClient
+from django.conf import settings
+
+from sentry.ingest.consumer.factory import IngestStrategyFactory
+from sentry.ingest.types import ConsumerType
+from sentry.utils import kafka_config
 
 _log = logging.getLogger(__name__)
 
@@ -115,6 +126,62 @@ def scope_consumers():
                 _log.warning("Failed to cleanup consumer %s", consumer_name)
 
 
+def get_config(
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    force_cluster: str | None,
+) -> MutableMapping[str, Any]:
+    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]  # type:ignore
+    return build_kafka_consumer_configuration(
+        kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+        ),
+        group_id=group_id,
+        auto_offset_reset=auto_offset_reset,
+        strict_offset_reset=strict_offset_reset,
+    )
+
+
+def get_ingest_consumer(
+    consumer_type: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    max_batch_size: int,
+    max_batch_time: int,
+    num_processes: int,
+    input_block_size: int | None,
+    output_block_size: int | None,
+    force_topic: str | None,
+    force_cluster: str | None,
+) -> StreamProcessor[KafkaPayload]:
+    topic = force_topic or ConsumerType.get_topic_name(consumer_type)
+    consumer_config = get_config(
+        topic,
+        group_id,
+        auto_offset_reset=auto_offset_reset,
+        strict_offset_reset=strict_offset_reset,
+        force_cluster=force_cluster,
+    )
+    consumer = KafkaConsumer(consumer_config)
+
+    return StreamProcessor(
+        consumer=consumer,
+        topic=Topic(topic),
+        processor_factory=IngestStrategyFactory(
+            consumer_type=consumer_type,
+            num_processes=num_processes,
+            max_batch_size=max_batch_size,
+            max_batch_time=max_batch_time,
+            input_block_size=input_block_size,
+            output_block_size=output_block_size,
+        ),
+        commit_policy=ONCE_PER_SECOND,
+    )
+
+
 @pytest.fixture(scope="function")
 def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
@@ -129,7 +196,6 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     """
 
     def ingest_consumer(settings):
-        from sentry.ingest.consumer.factory import get_ingest_consumer
         from sentry.ingest.types import ConsumerType
         from sentry.utils.batching_kafka_consumer import create_topics
 

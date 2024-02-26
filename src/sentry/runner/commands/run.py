@@ -8,7 +8,6 @@ from multiprocessing import cpu_count
 import click
 
 from sentry.bgtasks.api import managed_bgtasks
-from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
@@ -414,50 +413,6 @@ def query_subscription_consumer(**options):
         multi_proc=True,
     )
     run_processor_with_signals(subscriber)
-
-
-@run.command("ingest-consumer")
-@log_options()
-@click.option(
-    "consumer_type",
-    "--consumer-type",
-    required=True,
-    help="Specify which type of consumer to create",
-    type=click.Choice(ConsumerType.all()),
-)
-@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    "num_processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def ingest_consumer(consumer_type, **options):
-    """
-    Runs an "ingest consumer" task.
-
-    The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
-    process event celery tasks for them
-    """
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
-
-    from arroyo import configure_metrics
-
-    from sentry.ingest.consumer.factory import get_ingest_consumer
-    from sentry.utils import metrics
-    from sentry.utils.arroyo import MetricsWrapper
-
-    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
-
-    options["max_batch_time"] = options["max_batch_time"] / 1000
-    consumer = get_ingest_consumer(consumer_type, **options)
-    run_processor_with_signals(consumer)
 
 
 @run.command("consumer")
