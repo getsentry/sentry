@@ -321,8 +321,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if not token:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                atr = token = ApiTokenReplica.objects.filter(token=token_str).last()
-                if not atr:
+                try:
+                    atr = token = ApiTokenReplica.objects.get(token=token_str)
+                except ApiTokenReplica.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
                 user = user_service.get_user(user_id=atr.user_id)
                 application_is_inactive = not atr.application_is_active
