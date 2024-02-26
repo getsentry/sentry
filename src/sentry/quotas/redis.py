@@ -69,7 +69,7 @@ class RedisQuota(Quota):
     def get_quotas(
         self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
     ) -> list[QuotaConfig]:
-        self.get_project_abuse_quotas(project, key, keys=keys) + get_global_abuse_quotas()
+        return self.get_project_quotas(project, key, keys=keys) + get_global_abuse_quotas()
 
     def get_project_quotas(
         self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
