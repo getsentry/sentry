@@ -73,7 +73,7 @@ class IndexerBatchMetrics:
         self.total_value_len += value_len
         self.max_bytes = max(self.max_bytes, num_bytes)
         self.max_tags_len = max(self.max_tags_len, tags_len)
-        self.max_value_len = max(self.max_tags_len, tags_len)
+        self.max_value_len = max(self.max_value_len, value_len)
 
     def avg_bytes(self):
         return self.total_bytes / self.message_count
