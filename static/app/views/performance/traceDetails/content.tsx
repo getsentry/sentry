@@ -451,13 +451,8 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   if (!hasPerformanceOnboarding) {
     return (
       <Alert type="info" showIcon>
-        {tct(
-          "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-          {
-            tracingLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-            ),
-          }
+        {t(
+          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
         )}
       </Alert>
     );
@@ -470,10 +465,10 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
   return (
     <BannerWrapper>
       <ActionsWrapper>
-        <BannerTitle>{t('Connect with Dots')}</BannerTitle>
+        <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
           {t(
-            "Want to know why this string of errors happened? If you haven't already, update your SDK with this snippet to figure out what operations are running between your errors."
+            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -485,7 +480,7 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
                 SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
               }}
             >
-              {t('Update SDKs')}
+              {t('Configure')}
             </Button>
           </ActionButton>
           <ActionButton>
@@ -529,8 +524,8 @@ const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 26px;
-  margin: ${space(1)} 0;
+  padding: ${space(2)} ${space(3)};
+  margin-bottom: ${space(2)};
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,
