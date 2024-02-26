@@ -1,11 +1,9 @@
-import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import Color from 'color';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
@@ -15,18 +13,15 @@ import {
 } from 'sentry/components/charts/components/tooltip';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import {type DateTimeObject, isChartHovered} from 'sentry/components/charts/utils';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import useRouter from 'sentry/utils/useRouter';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
-import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
+import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
-import type {FocusAreaProps} from 'sentry/views/ddm/context';
 
 export const MAIN_X_AXIS_ID = 'xAxis';
 export const MAIN_Y_AXIS_ID = 'yAxis';
@@ -34,12 +29,10 @@ export const MAIN_Y_AXIS_ID = 'yAxis';
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
-  widgetIndex: number;
-  focusArea?: FocusAreaProps;
+  focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
   samples?: UseMetricSamplesResult;
-  samplesUnit?: string;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -74,38 +67,12 @@ function addSeriesPadding(data: Series['data']) {
 }
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  (
-    {series, displayType, widgetIndex, focusArea, height, samplesUnit, group, samples},
-    forwardedRef
-  ) => {
-    const router = useRouter();
+  ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
     const chartRef = useRef<ReactEchartsRef>(null);
-
-    const handleZoom = useCallback(
-      (range: DateTimeObject) => {
-        Sentry.metrics.increment('ddm.enhance.zoom');
-        updateDateTime(range, router, {save: true});
-      },
-      [router]
-    );
 
     const firstUnit = series.find(s => !s.hidden)?.unit || series[0]?.unit || 'none';
     const firstOperation =
       series.find(s => !s.hidden)?.operation || series[0]?.operation || '';
-    const hasCumulativeOp = series.some(s => isCumulativeOp(s.operation));
-
-    const focusAreaBrush = useFocusArea({
-      ...focusArea,
-      sampleUnit: samplesUnit,
-      chartUnit: firstUnit,
-      chartRef,
-      opts: {
-        widgetIndex,
-        isDisabled: !focusArea?.onAdd || !handleZoom,
-        useFullYAxis: hasCumulativeOp,
-      },
-      onZoom: handleZoom,
-    });
 
     useEffect(() => {
       if (!group) {
@@ -177,7 +144,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       let baseChartProps: CombinedMetricChartProps = {
         ...heightOptions,
-        ...focusAreaBrush.options,
         displayType,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
@@ -191,10 +157,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             // Only show the tooltip if the current chart is hovered
             // as chart groups trigger the tooltip for all charts in the group when one is hoverered
             if (!isChartHovered(chartRef?.current)) {
-              return '';
-            }
-
-            if (focusAreaBrush.isDrawingRef.current) {
               return '';
             }
 
@@ -284,6 +246,10 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       if (samples?.applyChartProps) {
         baseChartProps = samples.applyChartProps(baseChartProps);
       }
+      // Apply focus area props as last so it can disable tooltips
+      if (focusArea?.applyChartProps) {
+        baseChartProps = focusArea.applyChartProps(baseChartProps);
+      }
 
       return baseChartProps;
     }, [
@@ -291,18 +257,17 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       bucketSize,
       isSubMinuteBucket,
       height,
-      focusAreaBrush.options,
-      focusAreaBrush.isDrawingRef,
       displayType,
       forwardedRef,
       samples,
+      focusArea,
       firstUnit,
       firstOperation,
     ]);
 
     return (
       <ChartWrapper>
-        {focusAreaBrush.overlay}
+        {focusArea?.overlay}
         <CombinedChart {...chartProps} />
       </ChartWrapper>
     );

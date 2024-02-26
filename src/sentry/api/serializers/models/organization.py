@@ -568,7 +568,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
 
-        desired_sample_rate = get_sliding_window_org_sample_rate(
+        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
             org_id=obj.id, default_sample_rate=sample_rate
         )
         if desired_sample_rate is not None:

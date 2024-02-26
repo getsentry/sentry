@@ -144,7 +144,7 @@ class SegmentsSamplesListExecutor(SamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(self.get_additional_conditions())
+        builder.add_conditions(self.get_additional_conditions(builder))
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -159,7 +159,7 @@ class SegmentsSamplesListExecutor(SamplesListExecutor):
         ]
 
     @abstractmethod
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         raise NotImplementedError
 
 
@@ -170,11 +170,11 @@ class TransactionDurationSamplesListExecutor(SegmentsSamplesListExecutor):
             return "duration"
         return None
 
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         return []
 
 
-class MeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
+class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
     @classmethod
     def mri_to_column(cls, mri) -> str | None:
         name = cls.measurement_name(mri)
@@ -190,20 +190,16 @@ class MeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
             return parsed_mri.name[len("measurements:") :]
         return None
 
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         name = self.measurement_name(self.mri)
         return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
 
 
 class SpansSamplesListExecutor(SamplesListExecutor):
-    MRI_MAPPING = {
-        SpanMRI.DURATION.value: "span.duration",
-        SpanMRI.SELF_TIME.value: "span.self_time",
-    }
-
     @classmethod
+    @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
-        return cls.MRI_MAPPING.get(mri)
+        raise NotImplementedError
 
     @classmethod
     def supports(cls, mri: str) -> bool:
@@ -228,17 +224,7 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(
-            [
-                # The `00` group is used for spans not used within the
-                # new starfish experience. It's effectively the group
-                # for other. It is a massive group, so we've chosen
-                # to exclude it here.
-                #
-                # In the future, we will want to look into exposing them
-                Condition(builder.column("span.group"), Op.NEQ, "00")
-            ]
-        )
+        builder.add_conditions(self.get_additional_conditions(builder))
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -251,6 +237,70 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             )
             for row in result["data"]
         ]
+
+    @abstractmethod
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        raise NotImplementedError
+
+
+class SpansTimingsSamplesListExecutor(SpansSamplesListExecutor):
+    MRI_MAPPING = {
+        SpanMRI.DURATION.value: "span.duration",
+        SpanMRI.SELF_TIME.value: "span.self_time",
+    }
+
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        return cls.MRI_MAPPING.get(mri)
+
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        return [
+            # The `00` group is used for spans not used within the
+            # new starfish experience. It's effectively the group
+            # for other. It is a massive group, so we've chosen
+            # to exclude it here.
+            #
+            # In the future, we will want to look into exposing them
+            Condition(builder.column("span.group"), Op.NEQ, "00")
+        ]
+
+
+class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
+    # These are some hard coded metrics in the spans name space that can be
+    # queried in the measurements of the indexed spans dataset
+    MRI_MAPPING = {
+        SpanMRI.RESPONSE_CONTENT_LENGTH.value: "http.response_content_length",
+        SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: "http.decoded_response_content_length",
+        SpanMRI.RESPONSE_TRANSFER_SIZE.value: "http.response_transfer_size",
+    }
+
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        name = cls.measurement_name(mri)
+        if name is not None:
+            return f"measurements[{name}]"
+
+        return None
+
+    @classmethod
+    def measurement_name(cls, mri) -> str | None:
+        if name := cls.MRI_MAPPING.get(mri):
+            return name
+
+        # some web vitals exist on spans
+        parsed_mri = parse_mri(mri)
+        if (
+            parsed_mri is not None
+            and parsed_mri.namespace == "spans"
+            and parsed_mri.name.startswith("webvital.")
+        ):
+            return parsed_mri.name[len("webvital:") :]
+
+        return None
+
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        name = self.measurement_name(self.mri)
+        return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
 
 
 class CustomSamplesListExecutor(SamplesListExecutor):
@@ -268,11 +318,13 @@ class CustomSamplesListExecutor(SamplesListExecutor):
     def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
+        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
+
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
-            query=self.query,
+            query=query,
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
@@ -280,8 +332,6 @@ class CustomSamplesListExecutor(SamplesListExecutor):
             # sample_rate=options.get("metrics.sample-list.sample-rate"),
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
-
-        builder.add_conditions([Condition(builder.column("metric"), Op.EQ, self.mri)])
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -297,9 +347,10 @@ class CustomSamplesListExecutor(SamplesListExecutor):
 
 
 SAMPLE_LIST_EXECUTORS = [
-    SpansSamplesListExecutor,
     TransactionDurationSamplesListExecutor,
-    MeasurementsSamplesListExecutor,
+    TransactionMeasurementsSamplesListExecutor,
+    SpansTimingsSamplesListExecutor,
+    SpansMeasurementsSamplesListExecutor,
     CustomSamplesListExecutor,
 ]
 

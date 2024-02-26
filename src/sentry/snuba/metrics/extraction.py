@@ -42,6 +42,7 @@ SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
 # Certain functions will only be supported with certain feature flags
 OPS_REQUIRE_FEAT_FLAG = {
     "count_unique": SPEC_VERSION_TWO_FLAG,
+    "user_misery": SPEC_VERSION_TWO_FLAG,
 }
 
 
@@ -248,8 +249,7 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "count_unique": "on_demand_count_unique",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    # XXX: Remove support until we can fix the count_unique(users)
-    # "user_misery": "on_demand_user_misery",
+    "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -1209,7 +1209,7 @@ class OnDemandMetricSpec:
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("user.id")
+            return _map_field_name("user")
 
         if not self._arguments:
             return None
