@@ -41,7 +41,16 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "example",
                     snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["group", "end_timestamp", "span_id"], alias
+                        [
+                            "group",
+                            "end_timestamp",
+                            "span_id",
+                            "min",
+                            "max",
+                            "sum",
+                            "count",
+                        ],
+                        alias,
                     ),
                     private=True,
                 ),
