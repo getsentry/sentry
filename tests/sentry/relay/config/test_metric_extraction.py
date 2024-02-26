@@ -1130,11 +1130,11 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
+    # User misery is extracted, querying is behind the version 2 feature flag
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"user_misery({threshold})"],
@@ -1147,10 +1147,11 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         assert config
         assert config["metrics"] == [
             {
+                # Spec version 1
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1163,10 +1164,11 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 ],
             },
             {
+                # Spec version 2
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1181,7 +1183,6 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
-@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
@@ -1205,7 +1206,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1223,7 +1224,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "category": "transaction",
                 "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
                 # This is necessary for calculating unique users
-                "field": "event.user.id",
+                "field": "event.sentry_user",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
                     {
@@ -1249,7 +1250,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
             f"transaction.duration:>={duration}",
             default_project,
             "Dashboard",
-            columns=["user.id", "release"],
+            columns=["user.id", "user", "release"],
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1262,8 +1263,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "d9f30df7"},
+                    {"key": "query_hash", "value": "cfdef6f8"},
                     {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
@@ -1274,8 +1276,9 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "52427c0a"},
+                    {"key": "query_hash", "value": "2916fc7c"},
                     {"key": "user.id", "field": "event.user.id"},
+                    {"key": "user", "field": "event.sentry_user"},
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
