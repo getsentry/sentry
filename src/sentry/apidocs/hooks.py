@@ -16,6 +16,7 @@ from sentry.apidocs.api_publish_status_allowlist_dont_modify import (
     API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY,
 )
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.pagination_linter import find_method_and_check_paginate
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -149,35 +150,6 @@ class CustomEndpointEnumerator(EndpointEnumerator):
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
-
-
-def find_method_and_check_paginate(content, class_name) -> bool:
-    with open(content) as file:
-        file_content = file.read()
-
-    # Pattern to find the class body, either the class body is followed by another class or it's the end of the file
-    class_pattern = (
-        rf"(class {class_name}.*:(.*?)(?=^class\s.*))|(class {class_name}.*:\s(.*?)(?=\Z))"
-    )
-    class_match = re.search(class_pattern, file_content, re.DOTALL | re.MULTILINE)
-
-    if not class_match:
-        return False
-
-    class_body = class_match.group(0)
-
-    # Pattern to find the 'get' method within the class body, up to the next method or the end of the class
-    get_method_pattern = r"(def get.*:(.*?)(?=def\s))|(def get.*:(.*?)(?=\Z))"
-    get_method_match = re.search(get_method_pattern, class_body, re.DOTALL | re.MULTILINE)
-
-    if not get_method_match:
-        return False
-
-    # Checking for the presence of "self.paginate()" within the 'get' method
-    if "self.paginate" not in get_method_match.group(0):
-        return False
-
-    return True
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
