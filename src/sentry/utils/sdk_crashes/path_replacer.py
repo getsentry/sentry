@@ -9,7 +9,7 @@ class PathReplacer(ABC):
     """
 
     @abstractmethod
-    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         pass
 
 
@@ -20,7 +20,7 @@ class FixedPathReplacer(PathReplacer):
     ):
         self.path = path
 
-    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         return self.path
 
 
@@ -42,7 +42,7 @@ class KeepAfterPatternMatchPathReplacer(PathReplacer):
         self.patterns = {re.compile(element, re.IGNORECASE) for element in patterns}
         self.fallback_path = fallback_path
 
-    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         for pattern in self.patterns:
             match = pattern.search(path_value)
             if match:
@@ -54,7 +54,7 @@ class KeepFieldPathReplacer(PathReplacer):
     def __init__(self, fields: set[str]):
         self.fields = fields
 
-    def replace_path(self, path_field: str, path_value: str) -> Optional[str]:
+    def replace_path(self, path_field: str, path_value: str) -> str | None:
         if path_field in self.fields:
             return path_value
         return None
