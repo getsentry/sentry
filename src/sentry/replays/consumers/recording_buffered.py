@@ -312,9 +312,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
 
 
 def process_commit(
-    message: Message[
-        tuple[list[UploadEvent], list[InitialSegmentEvent], list[ReplayActionsEvent], list[bytes]]
-    ]
+    message: Message[tuple[list[UploadEvent], list[InitialSegmentEvent], list[ReplayActionsEvent]]]
 ) -> None:
     # High I/O section.
     with sentry_sdk.start_span(op="replays.consumer.recording.commit_buffer"):
