@@ -210,10 +210,10 @@ class DrainMailboxTest(TestCase):
             status=200,
             body="",
         )
-        records = self.create_payloads(51, "github:123")
+        records = self.create_payloads(101, "github:123")
         drain_mailbox(records[0].id)
 
-        # Drain removes up to 50 messages.
+        # Drain removes up to 101 messages.
         assert WebhookPayload.objects.count() == 1
 
     @responses.activate
