@@ -21,6 +21,7 @@ export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
   has_exception_group: boolean;
+  has_local_variables: boolean;
   has_next_event: boolean;
   has_previous_event: boolean;
   has_profile: boolean;
