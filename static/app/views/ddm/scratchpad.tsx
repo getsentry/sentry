@@ -155,7 +155,7 @@ export function MetricScratchpad() {
             hasSiblings={widgets.length > 1}
             onChange={handleChange}
             filters={selection}
-            focusArea={focusArea}
+            focusAreaProps={focusArea}
             showQuerySymbols={showQuerySymbols}
             onSampleClick={handleSampleClick}
             chartHeight={200}
@@ -178,7 +178,7 @@ export function MetricScratchpad() {
           hasSiblings={false}
           onChange={handleChange}
           filters={selection}
-          focusArea={focusArea}
+          focusAreaProps={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
           chartHeight={200}
