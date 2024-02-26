@@ -232,7 +232,7 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
 
-      expect(manager.computeTransformXFromTimestamp(-50)).toEqual(0);
+      expect(manager.computeTransformXFromTimestamp(-50)).toEqual(-150);
     });
 
     it('when view is offset and scaled', () => {
