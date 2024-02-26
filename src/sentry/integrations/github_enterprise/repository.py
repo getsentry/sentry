@@ -1,5 +1,5 @@
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models.integrations.integration import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
@@ -25,9 +25,11 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         return repo_data
 
     def build_repository_config(self, organization: RpcOrganization, data):
-        integration = Integration.objects.get(
-            id=data["integration_id"], provider=self.repo_provider
+        integration = integration_service.get_integration(
+            integration_id=data["integration_id"], provider=self.repo_provider
         )
+        if integration is None:
+            raise IntegrationError("Could not find the requested GitHub Enterprise integration")
 
         base_url = integration.metadata["domain_name"].split("/")[0]
         return {
