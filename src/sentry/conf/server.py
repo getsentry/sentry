@@ -3473,9 +3473,7 @@ DEFAULT_BROKER_CONFIG: Mapping[str, Any] = {
 }
 
 # Mapping of default Kafka topic name to broker config
-KAFKA_BROKER_CONFIG: Mapping[str, Mapping[str, TopicDefinition | None]] = {
-
-}
+KAFKA_BROKER_CONFIG: Mapping[str, Mapping[str, TopicDefinition | None]] = {}
 
 
 # Cluster configuration for each Kafka topic by name.
