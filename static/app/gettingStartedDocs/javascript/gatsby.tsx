@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -210,7 +210,7 @@ const replayOnboarding: OnboardingConfig = {
       configurations: [getConfigureStep(params)],
       additionalInfo: (
         <Fragment>
-          {tracePropagationMessage}
+          <TracePropagationMessage />
           {tct(
             'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
             {

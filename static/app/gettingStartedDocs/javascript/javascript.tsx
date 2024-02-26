@@ -1,5 +1,5 @@
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -188,7 +188,7 @@ const replayOnboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: () => [],

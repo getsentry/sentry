@@ -5,7 +5,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -176,7 +176,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
       additionalInfo: (
         <Fragment>
-          {tracePropagationMessage}
+          <TracePropagationMessage />
           {tct(
             'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
             {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}

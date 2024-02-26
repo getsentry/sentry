@@ -2,7 +2,7 @@ import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 
-export default function tracePropagationMessage() {
+export default function TracePropagationMessage() {
   return (
     <Alert type="info" showIcon>
       {tct(

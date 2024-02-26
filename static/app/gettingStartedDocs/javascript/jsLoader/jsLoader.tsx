@@ -3,7 +3,7 @@ import beautify from 'js-beautify';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -65,7 +65,7 @@ const replayOnboardingJsLoader: OnboardingConfig = {
         },
       ],
       isOptional: true,
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: () => [],
