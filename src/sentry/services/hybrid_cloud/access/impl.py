@@ -50,7 +50,9 @@ class ControlAccessService(AccessService):
         """
         # get member role
         try:
-            member_role = OrganizationMemberMapping.objects.get(id=member.id).role
+            member_role = OrganizationMemberMapping.objects.get(
+                organizationmember_id=member.id, organization_id=member.organization_id
+            ).role
         except OrganizationMemberMapping.DoesNotExist:
             return False
 
@@ -93,8 +95,10 @@ class RegionAccessService(AccessService):
     ) -> bool:
         # get member role
         try:
-            member_role = OrganizationMemberMapping.objects.get(id=member.id).role
-        except OrganizationMemberMapping.DoesNotExist:
+            member_role = OrganizationMember.objects.get(
+                id=member.id, organization_id=member.organization_id
+            ).role
+        except OrganizationMember.DoesNotExist:
             return False
 
         if member_role != roles.get_top_dog().id:
