@@ -100,6 +100,7 @@ describe('OrganizationContext', function () {
     static contextTypes = {
       organization: SentryPropTypeValidators.isOrganization,
     };
+    declare context: {organization: Organization | undefined};
 
     render() {
       return <div>{this.context.organization?.slug ?? 'no-org'}</div>;
