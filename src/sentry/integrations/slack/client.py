@@ -125,7 +125,7 @@ class SlackClient(IntegrationProxyClient):
         *args: Any,
         **kwargs: Any,
     ) -> BaseApiResponse:
-        log_response_with_error = kwargs.pop("log_error", False)
+        log_response_with_error = kwargs.pop("log_response_with_error", False)
 
         response = self._request(
             method,
