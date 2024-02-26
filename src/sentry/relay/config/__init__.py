@@ -175,7 +175,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
     try:
         computed_quotas = [
-            quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
+            quota.to_json() for quota in quotas.backend.get_project_quotas(project, keys=keys)
         ]
     except BaseException:
         metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
