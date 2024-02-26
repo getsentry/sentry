@@ -115,7 +115,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 class ReplayPaginator:
     """Defers all pagination decision making to the implementation."""
 
-    def __init__(self, data_fn: Callable[[int, int], tuple[dict, bool]]) -> None:
+    def __init__(self, data_fn: Callable[[int, int], tuple[list, bool]]) -> None:
         self.data_fn = data_fn
 
     def get_result(self, limit: int, cursor=None):
