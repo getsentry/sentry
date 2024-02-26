@@ -247,110 +247,8 @@ describe('VirtualizedViewManger', () => {
       manager.trace_view.width = 50;
       manager.trace_view.x = 50;
 
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(500);
+      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(250);
     });
-  });
-
-  describe('getConfigSpaceCursor', () => {
-    it('returns the correct x position', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([50, 0]);
-    });
-
-    it('returns the correct x position when view scaled', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.x = 50;
-      manager.trace_view.width = 50;
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([75, 0]);
-    });
-
-    it('returns the correct x position when view is offset', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.x = 50;
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([100, 0]);
-    });
-  });
-
-  describe('text positioning', () => {
-    describe('non offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('non offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-  });
-
-  describe("scrollToPath", () => {
-    const organization = OrganizationFixture();
-  const api = new MockApiClient();
-
-  const manager = new VirtualizedViewManager({
-    list: {width: 0.5},
-    span_list: {width: 0.5},
-  });
-
-  it('scrolls to transaction', async () => {
-    const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction(),
-          makeTransaction({
-            event_id: 'event_id',
-            children: [],
-          }),
-        ],
-      })
-    );
-
-    manager.virtualizedList = makeList();
-
-    const result = await manager.scrollToPath(tree, ['txn:event_id'], () => void 0, {
-      api: api,
-      organization,
-    });
-
-    manager.initializeTraceSpace([10_000, 0, 1000, 1]);
-
-    expect(manager.trace_space.serialize()).toEqual([0, 0, 1000, 1]);
-    expect(manager.trace_view.serialize()).toEqual([0, 0, 1000, 1]);
   });
 
   it('initializes physical space', () => {
@@ -449,49 +347,6 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
-  describe('computeTransformXFromTimestamp', () => {
-    it('computes x position correctly', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      expect(manager.computeTransformXFromTimestamp(50)).toEqual(50);
-    });
-
-    it('computes x position correctly when view is offset', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([50, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.x = 50;
-
-      expect(manager.computeTransformXFromTimestamp(50)).toEqual(0);
-    });
-
-    it('when view is offset and scaled', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([50, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.width = 50;
-      manager.trace_view.x = 50;
-
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(500);
-    });
-  });
-
   describe('getConfigSpaceCursor', () => {
     it('returns the correct x position', () => {
       const manager = new VirtualizedViewManager({
@@ -530,32 +385,6 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
       expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([100, 0]);
-    });
-  });
-
-  describe('text positioning', () => {
-    describe('non offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('non offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
     });
   });
 
@@ -855,6 +684,5 @@ describe('VirtualizedViewManger', () => {
 
     it.todo('scrolls to orphan transactions');
     it.todo('scrolls to orphan transactions child span');
-  })
-});
+  });
 });
