@@ -187,15 +187,6 @@ class ReplayExamples:
         )
     ]
 
-    GET_REPLAY_VIDEOS = [
-        OpenApiExample(
-            "Retrieve a collection of replay videos",
-            value=b"hello, world!",
-            status_codes=[200],
-            response_only=True,
-        )
-    ]
-
     GET_REPLAY_VIDEO = [
         OpenApiExample(
             "Retrieve a replay video",
