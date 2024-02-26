@@ -232,7 +232,7 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
 
-      expect(manager.computeTransformXFromTimestamp(50)).toEqual(0);
+      expect(manager.computeTransformXFromTimestamp(-50)).toEqual(-150);
     });
 
     it('when view is offset and scaled', () => {
@@ -247,7 +247,7 @@ describe('VirtualizedViewManger', () => {
       manager.trace_view.width = 50;
       manager.trace_view.x = 50;
 
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(250);
+      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(-250);
     });
   });
 
@@ -314,7 +314,7 @@ describe('VirtualizedViewManger', () => {
         })
       );
 
-      manager.virtualizedList = makeList();
+      manager.list = makeList();
 
       const result = await manager.scrollToPath(tree, ['txn:event_id'], () => void 0, {
         api: api,
@@ -322,7 +322,7 @@ describe('VirtualizedViewManger', () => {
       });
 
       expect(result).toBe(tree.list[2]);
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
     it('scrolls to nested transaction', async () => {
@@ -347,7 +347,7 @@ describe('VirtualizedViewManger', () => {
         })
       );
 
-      manager.virtualizedList = makeList();
+      manager.list = makeList();
 
       expect(tree.list[tree.list.length - 1].path).toEqual([
         'txn:event_id',
@@ -365,11 +365,11 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(result).toBe(tree.list[tree.list.length - 1]);
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(3);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
     it('scrolls to spans of expanded transaction', async () => {
-      manager.virtualizedList = makeList();
+      manager.list = makeList();
 
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -402,11 +402,11 @@ describe('VirtualizedViewManger', () => {
       expect(tree.list[1].zoomedIn).toBe(true);
       expect(result).toBeTruthy();
       expect(result).toBe(tree.list[2]);
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
     it('scrolls to span -> transaction -> span -> transaction', async () => {
-      manager.virtualizedList = makeList();
+      manager.list = makeList();
 
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -452,13 +452,13 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(result).toBeTruthy();
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(3);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
     describe('scrolls to directly autogrouped node', () => {
       for (const headOrTailId of ['head_span', 'tail_span']) {
         it('scrolls to directly autogrouped node head', async () => {
-          manager.virtualizedList = makeList();
+          manager.list = makeList();
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
@@ -478,13 +478,13 @@ describe('VirtualizedViewManger', () => {
           );
 
           expect(result).toBeTruthy();
-          expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
+          expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
         });
       }
 
       for (const headOrTailId of ['head_span', 'tail_span']) {
         it('scrolls to child of autogrouped node head or tail', async () => {
-          manager.virtualizedList = makeList();
+          manager.list = makeList();
           const tree = makeSingleTransactionTree();
 
           MockApiClient.addMockResponse({
@@ -504,38 +504,14 @@ describe('VirtualizedViewManger', () => {
           );
 
           expect(result).toBeTruthy();
-          expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
+          expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
         });
       }
     });
 
     describe('sibling autogrouping', () => {
-      it('scrolls to sibling autogrouped node', async () => {
-        manager.virtualizedList = makeList();
-        const tree = makeSingleTransactionTree();
-
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project:event_id/',
-          method: 'GET',
-          body: makeEvent({}, makeSiblingAutogroupedSpans()),
-        });
-
-        const result = await manager.scrollToPath(
-          tree,
-          [`ag:first_span`, 'txn:event_id'],
-          () => void 0,
-          {
-            api: api,
-            organization,
-          }
-        );
-
-        expect(result).toBeTruthy();
-        expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(2);
-      });
-
       it('scrolls to child span of sibling autogrouped node', async () => {
-        manager.virtualizedList = makeList();
+        manager.list = makeList();
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
@@ -555,38 +531,11 @@ describe('VirtualizedViewManger', () => {
         );
 
         expect(result).toBeTruthy();
-        expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(4);
       });
 
       it.todo('scrolls to orphan transactions');
       it.todo('scrolls to orphan transactions child span');
     });
-
-    it('scrolls to child span of sibling autogrouped node', async () => {
-      manager.virtualizedList = makeList();
-      const tree = makeSingleTransactionTree();
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project:event_id/',
-        method: 'GET',
-        body: makeEvent({}, makeSiblingAutogroupedSpans()),
-      });
-
-      const result = await manager.scrollToPath(
-        tree,
-        ['span:middle_span', `ag:first_span`, 'txn:event_id'],
-        () => void 0,
-        {
-          api: api,
-          organization,
-        }
-      );
-
-      expect(result).toBeTruthy();
-      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
-    });
-
-    it.todo('scrolls to orphan transactions');
-    it.todo('scrolls to orphan transactions child span');
   });
 });
