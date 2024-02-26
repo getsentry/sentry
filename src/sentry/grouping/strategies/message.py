@@ -170,8 +170,11 @@ _parameterization_regex_experiments = [
                     \b
                     (?!(md5|sha1)) # TODO: remove this line after experiment is done
                     (?!\w*?[\.:\-]\w*?\b) # No colons, dots, or dashes
-                    (?=\w*?[0-9]\w*?\b) # At least one digit
-                    (?=\w*?[a-zA-Z]\w*?\b) # At least one letter
+                    # Interleaved numbers and letters
+                    (?=
+                        (\w*?[0-9]\w*?[a-zA-Z]\w*?[0-9]\b)
+                        | (\w*?[a-zA-Z]\w*?[0-9]\w*?[a-zA-Z]\b)
+                    )
                     [\w_]+?
                     \b
                 )

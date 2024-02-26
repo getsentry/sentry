@@ -120,19 +120,24 @@ def record_analytics(monkeypatch):
             """blah connection failed after <duration> <duration> <duration>""",
         ),
         (
-            "Quoted str w/ints",
+            "Uniq ID - sql savepoint",
             '''SQL: RELEASE SAVEPOINT "s140177518376768_x2"''',
             '''SQL: RELEASE SAVEPOINT "<uniq_id>"''',
         ),
         (
-            "Quoted str w/ints - api gateway",
+            "Uniq ID - api gateway",
             """API gateway VdLchF7iDo8sVkg= blah""",
             """API gateway <uniq_id>= blah""",
         ),
         (
-            "Quoted str w/ints - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
+            "Uniq ID - fb trace",  # TODO: It is possible to have fbtrace_ids without integers.
             """fbtrace_id Aba64NMEPMmBwi_cPLaGeeK AugPfq0jxGbto4u3kxn8u6p blah""",
             """fbtrace_id <uniq_id> <uniq_id> blah""",
+        ),
+        (
+            "Uniq ID - word with numerical pre/suffix",  # TODO: It is possible to have fbtrace_ids without integers.
+            """1password python3 abc123 123abc""",
+            """1password python3 abc123 123abc""",
         ),
         # (
         #     "Quoted str w/ints - cloudflare trace",
