@@ -531,7 +531,7 @@ describe('VirtualizedViewManger', () => {
         );
 
         expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2)
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
       });
 
       it('scrolls to child span of sibling autogrouped node', async () => {
