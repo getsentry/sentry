@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping, Sequence
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
 from sentry.models.environment import Environment
+from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
@@ -195,9 +195,9 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
-    project_ids: Sequence[int],
+    project_ids: list[int],
     environment: Environment | None,
-    params: MutableMapping[str, Any] | None = None,
+    params: ParamsType | None = None,
 ) -> QueryBuilder:
     return entity_subscription.build_query_builder(query, project_ids, environment, params)
 
