@@ -249,6 +249,9 @@ export class TraceTree {
           if (!value.measurements?.[measurement]) {
             continue;
           }
+          if (value.measurements[measurement].value === 0) {
+            continue;
+          }
 
           const timestamp = measurementToTimestamp(
             value.start_timestamp,
@@ -262,7 +265,7 @@ export class TraceTree {
           }
 
           tree.indicators.push({
-            start: timestamp,
+            start: timestamp * node.multiplier,
             duration: 0,
             node,
             type: measurement as Indicator['type'],
@@ -311,8 +314,15 @@ export class TraceTree {
       visit(traceNode, trace_error);
     }
 
-    traceNode.space = [traceStart, traceEnd - traceStart];
-    tree.root.space = [traceStart, traceEnd - traceStart];
+    traceNode.space = [
+      traceStart * traceNode.multiplier,
+      (traceEnd - traceStart) * traceNode.multiplier,
+    ];
+
+    tree.root.space = [
+      traceStart * traceNode.multiplier,
+      (traceEnd - traceStart) * traceNode.multiplier,
+    ];
 
     return tree.build();
   }
@@ -504,8 +514,8 @@ export class TraceTree {
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
       autoGroupedNode.space = [
-        head.value.start_timestamp,
-        tail.value.timestamp - head.value.start_timestamp,
+        head.value.start_timestamp * autoGroupedNode.multiplier,
+        (tail.value.timestamp - head.value.start_timestamp) * autoGroupedNode.multiplier,
       ];
 
       for (const c of tail.children) {
@@ -777,6 +787,9 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
   space: [number, number] | null = null;
 
+  multiplier: number;
+  private unit: 'milliseconds' = 'milliseconds';
+
   private _depth: number | undefined;
   private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _spanChildren: TraceTreeNode<
@@ -792,9 +805,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     this.parent = parent ?? null;
     this.value = value;
     this.metadata = metadata;
+    this.multiplier = this.unit === 'milliseconds' ? 1e3 : 1;
 
     if (value && 'timestamp' in value && 'start_timestamp' in value) {
-      this.space = [value.start_timestamp, value.timestamp - value.start_timestamp];
+      this.space = [
+        value.start_timestamp * this.multiplier,
+        (value.timestamp - value.start_timestamp) * this.multiplier,
+      ];
     }
 
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
