@@ -42,7 +42,7 @@ import logging
 import time
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -67,6 +67,30 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+
+
+def cast_payload_bytes(x: Any) -> bytes:
+    """
+    Coerces a type from Any to bytes
+
+    sentry-kafka-schemas does not support the typing of bytes for replay's
+    payloads, and so sometimes we have to cast values around to work around the
+    schema.
+
+    Use this helper function to explicitly annotate that. At a later point when
+    sentry-kafka-schemas is fixed, we can replace all usages of this function
+    with the proper solution.
+    """
+    return x
+
+
+def cast_payload_from_bytes(x: bytes) -> Any:
+    """
+    Coerces a type from bytes to Any.
+
+    See cast_payload_bytes
+    """
+    return x
 
 
 class BufferCommitFailed(Exception):
@@ -199,7 +223,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             return None
 
     try:
-        headers, recording_data = process_headers(decoded_message["payload"])
+        headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
     except Exception:
         # TODO: DLQ
         logger.exception(
@@ -237,7 +261,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
             parsed_recording_data = json.loads(decompressed_segment)
             parsed_replay_event = (
-                json.loads(decoded_message["replay_event"])
+                json.loads(cast_payload_bytes(decoded_message["replay_event"]))
                 if decoded_message.get("replay_event")
                 else None
             )

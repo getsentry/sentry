@@ -1098,6 +1098,9 @@ class CliTestCase(TestCase):
 
 
 @pytest.mark.usefixtures("browser")
+# Assume acceptance tests are not using self-hosted, since most devs are developing for SaaS and
+# generally self-hosted specific pages should not appear during acceptance tests
+@override_settings(SENTRY_SELF_HOSTED=False)
 class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
@@ -1514,6 +1517,7 @@ class BaseSpansTestCase(SnubaTestCase):
         op: str | None = None,
         duration: int = 10,
         tags: Mapping[str, Any] | None = None,
+        measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
@@ -1543,6 +1547,10 @@ class BaseSpansTestCase(SnubaTestCase):
 
         if tags:
             payload["tags"] = tags
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
         if transaction_id:
             payload["event_id"] = transaction_id
         if profile_id:
@@ -2046,14 +2054,16 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, str] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
-        with self.feature(self.features if features is None else features):
+        with self.feature(features or self.features):
             return self.client.get(self.url, data=data, format="json")
 
     def _index_metric_strings(self):
@@ -2117,12 +2127,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: int | float,
+        value: int | float | str,
         spec: OnDemandMetricSpec,
         additional_tags: dict[str, str] | None = None,
         timestamp: datetime | None = None,
     ) -> None:
-        """Convert on-demand metric and store it"""
+        """Convert on-demand metric and store it.
+
+        For sets, value needs to be a unique identifier while for counters it is a count."""
         relay_metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}

@@ -379,6 +379,11 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  'java',
+  ...replayPlatforms,
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet',

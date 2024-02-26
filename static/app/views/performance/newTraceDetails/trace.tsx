@@ -1,9 +1,9 @@
 import type React from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Omit} from 'framer-motion/types/types';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -30,6 +31,18 @@ import {
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
+function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+  if (Array.isArray(maybePath)) {
+    return maybePath;
+  }
+
+  if (typeof maybePath === 'string') {
+    return [maybePath as TraceTree.NodePath];
+  }
+
+  return null;
+}
+
 interface TraceProps {
   trace: TraceTree;
   trace_id: string;
@@ -40,9 +53,17 @@ function Trace({trace, trace_id}: TraceProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
   const viewManager = useRef<VirtualizedViewManager | null>(null);
 
+  const [clickedNode, setClickedNode] =
+    useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
+
   const [_rerender, setRender] = useState(0);
+
+  const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
+  const treeRef = useRef<TraceTree>(trace);
+  treeRef.current = trace;
 
   if (!viewManager.current) {
     viewManager.current = new VirtualizedViewManager({
@@ -53,14 +74,38 @@ function Trace({trace, trace_id}: TraceProps) {
 
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
-      trace.root.space[1] !== viewManager.current.spanSpace[1])
+    (trace.root.space[0] !== viewManager.current.trace_space[0] ||
+      trace.root.space[1] !== viewManager.current.trace_space[1])
   ) {
-    viewManager.current.initializeSpanSpace(trace.root.space);
+    viewManager.current.initializeTraceSpace([
+      trace.root.space[0],
+      0,
+      trace.root.space[1],
+      1,
+    ]);
+    scrollQueue.current = decodeScrollQueue(location.query.node);
   }
 
-  const treeRef = useRef<TraceTree>(trace);
-  treeRef.current = trace;
+  useEffect(() => {
+    if (
+      trace.type === 'loading' ||
+      scrollQueue.current === null ||
+      !viewManager.current
+    ) {
+      return;
+    }
+
+    viewManager.current
+      .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
+        api,
+        organization,
+      })
+      .then(_maybeNode => {
+        setClickedNode(_maybeNode);
+        viewManager.current?.onScrollEndOutOfBoundsCheck();
+        scrollQueue.current = null;
+      });
+  }, [api, organization, trace, trace_id]);
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -86,6 +131,19 @@ function Trace({trace, trace_id}: TraceProps) {
       setRender(a => (a + 1) % 2);
     },
     []
+  );
+
+  const onRowClick = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          node: node.path,
+        },
+      });
+    },
+    [location.query, location.pathname]
   );
 
   const projectLookup = useMemo(() => {
@@ -161,8 +219,10 @@ function Trace({trace, trace_id}: TraceProps) {
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
                       viewManager={viewManager.current!}
+                      clickedNode={clickedNode}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
+                      onRowClick={onRowClick}
                     />
                   );
                 }}
@@ -200,10 +260,12 @@ const TraceDivider = styled('div')`
 `;
 
 function RenderRow(props: {
+  clickedNode: TraceTreeNode<TraceTree.NodeValue> | null;
   index: number;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
+  onRowClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
   style: React.CSSProperties;
@@ -219,7 +281,9 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow Autogrouped"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -294,7 +358,9 @@ function RenderRow(props: {
   if (isTransactionNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -373,7 +439,9 @@ function RenderRow(props: {
   if (isSpanNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -457,7 +525,9 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -514,7 +584,9 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -582,7 +654,9 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
+        onClick={() => props.onRowClick(props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -883,8 +957,8 @@ function TraceBar(props: TraceBarProps) {
     return null;
   }
 
-  const spanTransform = props.viewManager.computeSpanMatrixTransform(props.node_space);
-  const inverseTransform = props.viewManager.inverseSpanScaling(props.node_space);
+  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(props.node_space);
+  const inverseTransform = 1 / spanTransform[0];
   const textPosition = props.viewManager.computeSpanTextPlacement(
     spanTransform[4],
     props.node_space
@@ -905,16 +979,12 @@ function TraceBar(props: TraceBarProps) {
         className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
         style={{
           left: textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
-          transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
+          transform: `scaleX(${inverseTransform}) translate(${
             textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
           }, 0)`,
         }}
       >
-        {/* Use node space to calculate duration if the duration prop is not provided. */}
-        <PerformanceDuration
-          seconds={props.duration ?? props.node_space[1]}
-          abbreviation
-        />
+        <PerformanceDuration milliseconds={props.node_space[1]} abbreviation />
       </div>
     </div>
   );
@@ -927,9 +997,9 @@ function TraceBar(props: TraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
+  overflow: hidden;
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0;
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
 
   @keyframes show {
@@ -1036,6 +1106,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceRightColumn {
     height: 100%;
+    overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;

@@ -49,15 +49,9 @@ def has_role_in_organization(role: str, organization: Organization, user_id: int
         user_is_active=True,
         user_id=user_id,
         organization_id=organization.id,
+        role=role,
     )
-    teams_with_org_role = organization.get_teams_with_org_roles([role])
-    return bool(
-        query.filter(role=role).exists()
-        or OrganizationMemberTeam.objects.filter(
-            team__in=teams_with_org_role,
-            organizationmember_id__in=list(query.values_list("id", flat=True)),
-        ).exists()
-    )
+    return query.exists()
 
 
 class Access(abc.ABC):

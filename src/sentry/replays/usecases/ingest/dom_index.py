@@ -13,7 +13,10 @@ from django.conf import settings
 from sentry import features
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
+from sentry.replays.usecases.ingest.issue_creation import (
+    report_rage_click_issue,
+    report_rage_click_issue_with_replay_event,
+)
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -190,9 +193,12 @@ def get_user_actions(
         if tag == "options" and random.randint(0, 499) < 1:
             _handle_options_logging_event(project_id, replay_id, event)
         # log large dom mutation breadcrumb events 1/100 times
+
+        payload = event.get("data", {}).get("payload", {})
         if (
-            tag == "breadcrumb"
-            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            isinstance(payload, dict)
+            and tag == "breadcrumb"
+            and payload.get("category") == "replay.mutations"
             and random.randint(0, 99) < 1
         ):
             _handle_mutations_event(project_id, replay_id, event)
@@ -362,6 +368,9 @@ def _handle_breadcrumb(
     click = None
 
     payload = event["data"].get("payload", {})
+    if not isinstance(payload, dict):
+        return None
+
     category = payload.get("category")
     if category == "ui.slowClickDetected":
         is_timeout_reason = payload["data"].get("endReason") == "timeout"
@@ -382,9 +391,20 @@ def _handle_breadcrumb(
                 if is_rage:
                     metrics.incr("replay.rage_click_detected")
                     if _should_report_rage_click_issue(project_id):
-                        report_rage_click_issue.delay(
-                            project_id, replay_id, cast(SentryEvent, event)
-                        )
+                        if replay_event is not None:
+                            report_rage_click_issue_with_replay_event(
+                                project_id,
+                                replay_id,
+                                payload["timestamp"],
+                                payload["message"],
+                                payload["data"]["url"],
+                                payload["data"]["node"],
+                                replay_event,
+                            )
+                        else:
+                            report_rage_click_issue.delay(
+                                project_id, replay_id, cast(SentryEvent, event)
+                            )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
         log["project_id"] = project_id
