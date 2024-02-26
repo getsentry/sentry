@@ -10,6 +10,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -283,6 +284,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
+  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   platformOptions,
 };
 
