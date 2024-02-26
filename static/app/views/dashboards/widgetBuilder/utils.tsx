@@ -3,7 +3,12 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
+import type {
+  Organization,
+  OrganizationSummary,
+  SelectValue,
+  TagCollection,
+} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -405,3 +410,7 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 export function getIsTimeseriesChart(displayType: DisplayType) {
   return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }
+
+export const canSeeDiscoverSplit = (org: Organization) => {
+  return org.features.includes('on-demand-metrics-ui-widgets');
+};

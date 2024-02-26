@@ -1,21 +1,17 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import Alert from 'sentry/components/alert';
+import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {DataSet} from '../utils';
+import {canSeeDiscoverSplit, DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
-import useOrganization from 'sentry/utils/useOrganization';
-
-// const DATASET_CHOICES: [DataSet, string][] = [
-//   [DataSet.EVENTS, t('Errors and Transactions')],
-//   [DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)')],
-// ];
 
 interface Props {
   dataSet: DataSet;
@@ -32,8 +28,9 @@ export function DataSetStep({
 }: Props) {
   const org = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
-  const hasDiscoverDatasetSplitFeature = org.features.includes(
-    'on-demand-metrics-ui-widgets'
+  const showDiscoverSplitWarning = useMemo(
+    () => dataSet === DataSet.EVENTS && canSeeDiscoverSplit(org),
+    [org]
   );
 
   if (displayType !== DisplayType.TABLE) {
@@ -44,19 +41,9 @@ export function DataSetStep({
   }
 
   const datasetChoices = new Map<string, string>();
-  if (hasDiscoverDatasetSplitFeature) {
-    datasetChoices.set(DataSet.EVENTS, t('Errors & Transactions'));
+  if (canSeeDiscoverSplit(org)) {
     datasetChoices.set(DataSet.ERROR_EVENTS, t('Errors'));
     datasetChoices.set(DataSet.TRANSACTION_LIKE, t('Transactions'));
-    disabledChoices.push([
-      DataSet.EVENTS,
-      tct(
-        'This dataset is deprecated as it is being split into a separate dataset for both errors and transactions. [strong: All existing widgets still using this DataSet will be migrated May 1st, 2024]',
-        {
-          strong: <strong />,
-        }
-      ),
-    ]);
   } else {
     datasetChoices.set(DataSet.EVENTS, t('Errors & Transactions'));
   }
@@ -79,6 +66,13 @@ export function DataSetStep({
         }
       )}
     >
+      {showDiscoverSplitWarning ? (
+        <Alert showIcon type="warning">
+          {t(
+            'This dataset is deprecated as it is being split into a separate dataset for both errors and transactions. All existing widgets still using this dataset will be migrated May 1st, 2024'
+          )}
+        </Alert>
+      ) : null}
       <DataSetChoices
         label="dataSet"
         value={dataSet}
