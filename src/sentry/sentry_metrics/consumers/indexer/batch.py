@@ -16,7 +16,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -473,7 +473,7 @@ class IndexerBatch:
                         "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_options := get_aggregation_option(old_payload_value["name"]):
+                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
                         # TODO: This should eventually handle multiple aggregation options
                         option = aggregation_options.popitem()[0]
                         assert option is not None
