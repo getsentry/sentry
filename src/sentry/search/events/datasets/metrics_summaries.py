@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from snuba_sdk import Direction, OrderBy
+from snuba_sdk import And, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder, constants
@@ -23,6 +23,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+            "metric": self._metric_filter_converter,
         }
 
     @property
@@ -40,7 +41,16 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "example",
                     snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["group", "end_timestamp", "span_id"], alias
+                        [
+                            "group",
+                            "end_timestamp",
+                            "span_id",
+                            "min",
+                            "max",
+                            "sum",
+                            "count",
+                        ],
+                        alias,
                     ),
                     private=True,
                 ),
@@ -61,6 +71,23 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _metric_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        column = search_filter.key.name
+        value = search_filter.value.value
+        return And(
+            [
+                Condition(self.builder.column(column), Op.EQ, value),
+                # The metrics summaries table orders by the cityHash64 of the metric name.
+                # In order to take full advantage of the order by of the table, add an
+                # additional condition on the cityHash64 of the metric name.
+                Condition(
+                    Function("cityHash64", [self.builder.column(column)]),
+                    Op.EQ,
+                    Function("cityHash64", [value]),
+                ),
+            ]
+        )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)

@@ -192,7 +192,6 @@ export function MetricWidgetChartContainer({
           ref={chartRef}
           series={chartSeries}
           displayType={toMetricDisplayType(displayType)}
-          widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
           height={chartHeight}
         />
