@@ -140,9 +140,6 @@ export class VirtualizedViewManager {
   // Holds the span to px matrix so we dont keep recalculating it
   span_to_px: mat3 = mat3.create();
 
-  // Holds the span to px matrix so we dont keep recalculating it
-  span_to_px: mat3 = mat3.create();
-
   // Column configuration
   columns: {
     list: ViewColumn;
@@ -591,16 +588,6 @@ export class VirtualizedViewManager {
     });
 
     this.resize_observer.observe(container);
-  }
-
-  recomputeSpanToPxMatrix() {
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-    this.span_to_px = mat3.multiply(
-      this.span_to_px,
-      traceViewToSpace,
-      tracePhysicalToView
-    );
   }
 
   recomputeSpanToPxMatrix() {
