@@ -3036,23 +3036,23 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-"@spotlightjs/overlay@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.0.1.tgz#2761cbf1675e19e8fec2a9327ec69a9d11d7841b"
-  integrity sha512-uyL3MMSjPXDjDNw/6Waf98k5lvqccC6VR+vPuLTPf2QTQxr9EQ3y1p4Arbhid9NZ1BXqJfi2cqvXEwj0MvKVxQ==
+"@spotlightjs/overlay@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.7.0.tgz#5d242815fe135153b2255d5266b4823832d1e141"
+  integrity sha512-WkJAByFCOzFRXcd4Z1YVTIhm0CVb9rjr1xwpQWZXFjCwyTHGqPa4wBIRQTgi49AiTf3lPr2TbXEltO36O4Um5w==
 
-"@spotlightjs/sidecar@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.1.1.tgz#498d5742628a16e11c0a411e25a7c563eb5e4a52"
-  integrity sha512-fRWQJHwT7r3WlCzGdIyFb+dh88T7aleLd76d7mEUXLRRkqvSZPP2uO48OlBXFJJoATFfm+1XSIedehvlVjHqUw==
+"@spotlightjs/sidecar@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.4.0.tgz#8cbd7b620e718723a9507c5b7975d7d379685cdd"
+  integrity sha512-onj/phrNtDI8a79zc8jfxJ5BITQk5klO4xSoQXxiYeQWTZcegVeO8VftOVfWPBnMY/axnh+ltxJm/cHaV5SP6Q==
 
-"@spotlightjs/spotlight@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.1.1.tgz#01706182f406a8589e44b4e65ccfcab22999fc5c"
-  integrity sha512-MqGfh/pSa3S7KhnRx09lxKUbpWs02IU5tzYOlDAYd4PBtFVDQ2yDOLahxgxO0v12NE11Wh06aL1KfdNwY+zfdw==
+"@spotlightjs/spotlight@^1.2.13":
+  version "1.2.13"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.2.13.tgz#b63cf4bcc6f41931322d072eaba92263d06702d5"
+  integrity sha512-gxz4Y9EVTdtpV+P/gDmj3MoJQyGcWNXPEN5ouvtUTTyzBSh29Km9Geh6rnsdSuy84yPhs2SOBfiBAhbXLZf9xQ==
   dependencies:
-    "@spotlightjs/overlay" "1.0.1"
-    "@spotlightjs/sidecar" "1.1.1"
+    "@spotlightjs/overlay" "1.7.0"
+    "@spotlightjs/sidecar" "1.4.0"
 
 "@styled/typescript-styled-plugin@^1.0.1":
   version "1.0.1"
@@ -11774,11 +11774,6 @@ webpack-dev-server@^4.15.1:
     spdy "^4.0.2"
     webpack-dev-middleware "^5.3.1"
     ws "^8.13.0"
-
-webpack-hook-plugin@^1.0.7:
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/webpack-hook-plugin/-/webpack-hook-plugin-1.0.7.tgz#689c2a24e16df247be91d8649e9da048774308ec"
-  integrity sha512-8GJ+LiR+0rrShCSeeFMaKONX7xMMW3H9Hszmy5IsCereZUJ5AoLhJgn5BhySQChA4Q5lZ7/9KtidDypYHQDDmA==
 
 webpack-merge@^5.7.3:
   version "5.7.3"
