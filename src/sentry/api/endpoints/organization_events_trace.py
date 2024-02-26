@@ -718,23 +718,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        trace_view_load_more_enabled = features.has(
-            "organizations:trace-view-load-more",
-            organization,
-            actor=request.user,
-        )
-
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
-        limit: int = (
-            min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
-            if trace_view_load_more_enabled
-            else MAX_TRACE_SIZE
-        )
+        limit: int = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
         event_id: str | None = request.GET.get("event_id")
 
         # Only need to validate event_id as trace_id is validated in the URL
@@ -784,7 +774,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 event_id,
                 detailed,
                 tracing_without_performance_enabled,
-                trace_view_load_more_enabled,
                 use_spans,
             )
         )
@@ -861,7 +850,6 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
         allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
         use_spans: bool = False,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
@@ -1031,7 +1019,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
         allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
         use_spans: bool = False,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
@@ -1049,12 +1036,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 event_id,
                 detailed,
                 allow_orphan_errors,
-                allow_load_more,
             )
             return results
-        event_id_to_nodestore_event = (
-            self.nodestore_event_map(transactions) if allow_load_more else {}
-        )
+        event_id_to_nodestore_event = self.nodestore_event_map(transactions)
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: dict[str, TraceEvent] = {}
@@ -1110,16 +1094,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     to_check = deque()
 
                 spans: NodeSpans = []
-                if allow_load_more:
-                    previous_event_id = previous_event.event["id"]
-                    if previous_event_id in event_id_to_nodestore_event:
-                        previous_event.fetched_nodestore = True
-                        nodestore_event = event_id_to_nodestore_event[previous_event_id]
-                        previous_event._nodestore_event = nodestore_event
-                        spans = nodestore_event.data.get("spans", [])
-                else:
-                    if previous_event.nodestore_event:
-                        spans = previous_event.nodestore_event.data.get("spans", [])
+                previous_event_id = previous_event.event["id"]
+                if previous_event_id in event_id_to_nodestore_event:
+                    previous_event.fetched_nodestore = True
+                    nodestore_event = event_id_to_nodestore_event[previous_event_id]
+                    previous_event._nodestore_event = nodestore_event
+                    spans = nodestore_event.data.get("spans", [])
 
                 # Need to include the transaction as a span as well
                 #
@@ -1235,7 +1215,6 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
         allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
     ) -> Sequence[FullResponse]:
         root_traces: list[TraceEvent] = []
         orphans: list[TraceEvent] = []
