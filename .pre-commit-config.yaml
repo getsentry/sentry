@@ -132,8 +132,9 @@ repos:
         name: prettier (yaml, markdown, tsx, jsx, css)
         # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
         types_or: [yaml, markdown, tsx, jsx, css]
-        # https://pre-commit.com/#regular-expressions
+        # Override the default version of prettier since there isn't a tag with 3.2.5
         additional_dependencies: ['prettier@3.2.5']
+        # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^
             # prettier crashes on some of these, by intent:
