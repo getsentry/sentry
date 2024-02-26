@@ -2756,6 +2756,9 @@ SENTRY_USE_CUSTOMER_DOMAINS = False
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
+# This flag activates Spotlight Sidecar in the development environment
+SENTRY_USE_SPOTLIGHT = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3032,6 +3035,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"3000/tcp": 3000},
             "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
+        }
+    ),
+    "spotlight-sidecar": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/spotlight:latest",
+            "environment": {},
+            "ports": {"8969/tcp": 8969},
+            "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
 }
@@ -3869,7 +3880,7 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
 ADDITIONAL_BULK_QUERY_DELETES: list[tuple[str, str, str | None]] = []
 
 # Monitor limits to prevent abuse
-MAX_MONITORS_PER_ORG = 10000
+MAX_MONITORS_PER_ORG = 1500
 MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
 # Raise schema validation errors and make the indexer crash (only useful in
