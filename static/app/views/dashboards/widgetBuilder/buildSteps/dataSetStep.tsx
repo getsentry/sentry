@@ -10,6 +10,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 import {DataSet} from '../utils';
 
 import {BuildStep} from './buildStep';
+import useOrganization from 'sentry/utils/useOrganization';
 
 // const DATASET_CHOICES: [DataSet, string][] = [
 //   [DataSet.EVENTS, t('Errors and Transactions')],
@@ -29,7 +30,11 @@ export function DataSetStep({
   hasReleaseHealthFeature,
   displayType,
 }: Props) {
+  const org = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
+  const hasDiscoverDatasetSplitFeature = org.features.includes(
+    'on-demand-metrics-ui-widgets'
+  );
 
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
@@ -39,8 +44,23 @@ export function DataSetStep({
   }
 
   const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.ERROR_EVENTS, t('Errors'));
-  datasetChoices.set(DataSet.TRANSACTION_LIKE, t('Transactions'));
+  if (hasDiscoverDatasetSplitFeature) {
+    datasetChoices.set(DataSet.EVENTS, t('Errors & Transactions'));
+    datasetChoices.set(DataSet.ERROR_EVENTS, t('Errors'));
+    datasetChoices.set(DataSet.TRANSACTION_LIKE, t('Transactions'));
+    disabledChoices.push([
+      DataSet.EVENTS,
+      tct(
+        'This dataset is deprecated as it is being split into a separate dataset for both errors and transactions. [strong: All existing widgets still using this DataSet will be migrated May 1st, 2024]',
+        {
+          strong: <strong />,
+        }
+      ),
+    ]);
+  } else {
+    datasetChoices.set(DataSet.EVENTS, t('Errors & Transactions'));
+  }
+
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   if (hasReleaseHealthFeature) {
