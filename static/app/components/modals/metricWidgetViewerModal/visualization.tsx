@@ -177,7 +177,6 @@ export function MetricVisualization({queries, displayType, onDisplayTypeChange})
           ref={chartRef}
           series={chartSeries}
           displayType={displayType}
-          widgetIndex={0}
           group={DASHBOARD_CHART_GROUP}
           height={200}
         />
