@@ -25,9 +25,12 @@ class ListProjectKeysTest(APITestCase):
         assert response.data[0]["public"] == key.public_key
 
     def test_use_case(self):
+        """Regular user can access user DSNs but not internal DSNs"""
         project = self.create_project()
-        key1 = ProjectKey.objects.get_or_create(project=project)[0]
-        ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)
+        user_key = ProjectKey.objects.get_or_create(project=project)[0]
+        internal_key = ProjectKey.objects.get_or_create(
+            use_case=UseCase.PROFILING.value, project=project
+        )[0]
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-project-keys",
@@ -37,15 +40,17 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         response_data = response.data[0]
-        assert "use_case" not in response_data
-        assert response_data["public"] == key1.public_key
+        assert "useCase" not in response_data
+        assert response_data["public"] == user_key.public_key
+        assert response_data["public"] != internal_key.public_key
 
     def test_use_case_superuser(self):
+        """Superuser can access both user DSNs and internal DSNs"""
         project = self.create_project()
-        key1 = ProjectKey.objects.get_or_create(project=project)[0]
-        key2 = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[
-            0
-        ]
+        user_key = ProjectKey.objects.get_or_create(project=project)[0]
+        internal_key = ProjectKey.objects.get_or_create(
+            use_case=UseCase.PROFILING.value, project=project
+        )[0]
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)
         url = reverse(
@@ -60,11 +65,11 @@ class ListProjectKeysTest(APITestCase):
 
         response_data = response.data[0]
         assert response_data["useCase"] == "profiling"
-        assert response_data["public"] == key2.public_key
+        assert response_data["public"] == internal_key.public_key
 
         response_data = response.data[1]
         assert response_data["useCase"] == "user"
-        assert response_data["public"] == key1.public_key
+        assert response_data["public"] == user_key.public_key
 
 
 @region_silo_test
