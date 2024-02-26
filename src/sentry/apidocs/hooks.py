@@ -167,8 +167,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
         # Fail if endpoint doesn't implement pagination correctly
         if method == "GET":
-            endsWithObject = re.search(r"/([^/{}]+)s/$", path)
-            if endsWithObject is not None:
+            ends_with_object = re.search(r"/([^/{}]+)s/$", path)
+            if ends_with_object is not None:
                 class_name = callback.view_class.__name__
                 file_path = inspect.getfile(callback.view_class)
                 result = find_method_and_check_paginate(file_path, class_name)
