@@ -229,8 +229,8 @@ export function useMetricChartSamples({
             if (params.seriesType === 'scatter') {
               return getFormatter(formatterOptions)(params, asyncTicket);
             }
-            const baseFormatter = baseProps.tooltip?.formatter;
 
+            const baseFormatter = baseProps.tooltip?.formatter;
             if (typeof baseFormatter === 'string') {
               return baseFormatter;
             }

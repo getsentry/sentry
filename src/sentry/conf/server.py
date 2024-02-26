@@ -1598,10 +1598,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
-    # Enable comments of related issues on open PRs
-    "organizations:integrations-open-pr-comment": False,
-    # Enable comments of related issues on open PRs for Javascript
-    "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
@@ -2758,6 +2754,9 @@ SENTRY_USE_CUSTOMER_DOMAINS = False
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
+# This flag activates Spotlight Sidecar in the development environment
+SENTRY_USE_SPOTLIGHT = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3034,6 +3033,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"3000/tcp": 3000},
             "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
+        }
+    ),
+    "spotlight-sidecar": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/spotlight:latest",
+            "environment": {},
+            "ports": {"8969/tcp": 8969},
+            "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
 }
