@@ -28,7 +28,7 @@ class OpsgenieClient(ApiClient):
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.integration_key = integration_key
-        super().__init__()
+        super().__init__(integration_id=self.integration.id)
 
     @property
     def metadata(self):
