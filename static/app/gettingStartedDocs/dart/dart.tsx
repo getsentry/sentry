@@ -158,7 +158,7 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
-export const feedbackOnboardingCrashApi: OnboardingConfig = {
+export const feedbackOnboardingCrashApiDart: OnboardingConfig = {
   introduction: () => getCrashReportApiIntroduction(),
   install: () => [
     {
@@ -196,7 +196,7 @@ Sentry.captureUserFeedback(userFeedback);`,
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi,
+  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
 };
 
 export default docs;
