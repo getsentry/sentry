@@ -208,11 +208,7 @@ type StatusColorProps = {
 const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
   isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
 
-const AlertBadgeWrapper = styled('div')<
-  {
-    icon: typeof IconCheckmark | typeof IconFire | typeof IconExclamation;
-  } & StatusColorProps
->`
+const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;
   align-items: center;
   justify-content: center;

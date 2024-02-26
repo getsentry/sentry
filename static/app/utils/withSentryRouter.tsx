@@ -25,8 +25,7 @@ function withSentryRouter<P extends WithRouterProps>(
     return <WrappedComponent {...props} />;
   }
 
-  type Props = Omit<P, keyof WithRouterProps>;
-  return withRouter(WithSentryRouterWrapper) as React.ComponentType<Props>;
+  return withRouter(WithSentryRouterWrapper);
 }
 
 export default withSentryRouter;

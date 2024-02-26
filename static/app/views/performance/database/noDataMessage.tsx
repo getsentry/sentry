@@ -12,11 +12,11 @@ import {useDenylistedProjects} from 'sentry/views/performance/database/useDenyli
 import {useOutdatedSDKProjects} from 'sentry/views/performance/database/useOutdatedSDKProjects';
 
 interface Props {
-  Wrapper?: React.ComponentType<React.PropsWithChildren>;
+  Wrapper?: React.ComponentType;
   isDataAvailable?: boolean;
 }
 
-function DivWrapper(props: React.PropsWithChildren<{}>) {
+function DivWrapper(props) {
   return <div {...props} />;
 }
 

@@ -66,6 +66,7 @@ export default abstract class FormField<
     }
   }
 
+  declare context: React.ContextType<typeof FormContext>;
   static contextType = FormContext;
 
   getValue(props: Props, context: FormContextData) {
@@ -103,7 +104,7 @@ export default abstract class FormField<
   };
 
   setValue = (value: Value) => {
-    const form = this.context.form;
+    const form = this.context?.form;
     this.setState(
       {
         value,

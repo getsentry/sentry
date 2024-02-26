@@ -9,7 +9,6 @@ import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
 type FormProps = {
-  children: React.ReactNode;
   cancelLabel?: string;
   className?: string;
   errorMessage?: React.ReactNode;
@@ -149,8 +148,7 @@ class Form<
                   </p>
                   <ul>
                     {nonFieldErrors.map((e, i) => (
-                      // TODO(TS): Object is not renderable? nonFieldErrors type is weird
-                      <li key={i}>{e as any}</li>
+                      <li key={i}>{e}</li>
                     ))}
                   </ul>
                 </div>
