@@ -10,7 +10,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
 from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery
 from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, UnitFamily
@@ -298,7 +298,7 @@ class QueryResult:
             # We add unit metadata as if it was returned by Snuba to make the code more linear.
             "unit_family": scheduled_query.unit_family,
             "unit": scheduled_query.unit,
-            "scaling_factor": scheduled_query.scaling_factor
+            "scaling_factor": scheduled_query.scaling_factor,
         }
 
         if scheduled_query.type == ScheduledQueryType.SERIES:
@@ -456,9 +456,6 @@ class QueryExecutor:
         self._projects = projects
         self._referrer = referrer
 
-        # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
-        # to avoid an infinite recursion.
-        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
         self._scheduled_queries: list[ScheduledQuery] = []
         # Tracks the number of queries that have been executed (for measuring purposes).
@@ -633,7 +630,7 @@ class QueryExecutor:
             limit=intermediate_query.limit,
             unit_family=intermediate_query.unit_family,
             unit=intermediate_query.unit,
-            scaling_factor=intermediate_query.scaling_factor
+            scaling_factor=intermediate_query.scaling_factor,
         )
         totals_query = replace(series_query, type=ScheduledQueryType.TOTALS, next=series_query)
 
