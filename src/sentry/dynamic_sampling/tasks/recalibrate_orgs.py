@@ -102,18 +102,27 @@ def recalibrate_org(org_id: int, total: int, indexed: int) -> None:
     # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case
     # of issues.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        target_sample_rate = get_sliding_window_org_sample_rate(
+        target_sample_rate, success = get_sliding_window_org_sample_rate(
             org_id=org_id,
             default_sample_rate=target_sample_rate,
-            notify_missing=True,
         )
-        log_sample_rate_source(
-            org_id,
-            None,
-            "recalibrate_orgs",
-            "sliding_window_org",
-            target_sample_rate,
-        )
+        if success:
+            log_sample_rate_source(
+                org_id,
+                None,
+                "recalibrate_orgs",
+                "sliding_window_org",
+                target_sample_rate,
+            )
+        else:
+            # TODO: log error.
+            log_sample_rate_source(
+                org_id,
+                None,
+                "recalibrate_orgs",
+                "blended_sample_rate",
+                target_sample_rate,
+            )
     else:
         log_sample_rate_source(
             org_id,

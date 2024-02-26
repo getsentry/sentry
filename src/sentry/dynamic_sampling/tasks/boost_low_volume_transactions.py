@@ -171,13 +171,14 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         log_skipped_job(org_id, "boost_low_volume_transactions")
         return
 
-    # By default, we use the blended sample rate.
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_boost_low_volume_projects_sample_rate(
-            org_id=org_id, project_id=project_id, error_sample_rate_fallback=sample_rate
-        )
+    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+    # resort to the blended sample rate of the org.
+    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+        org_id=org_id,
+        project_id=project_id,
+        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
         log_sample_rate_source(
             org_id,
             project_id,
