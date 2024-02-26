@@ -55,7 +55,6 @@ from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
     make_recording_filename,
@@ -160,7 +159,6 @@ class RecordingBuffer:
         self.upload_events: list[UploadEvent] = []
         self.initial_segment_events: list[InitialSegmentEvent] = []
         self.replay_action_events: list[ReplayActionsEvent] = []
-        self.replay_events: list[bytes] = []
 
         self.max_buffer_message_count = max_buffer_message_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
@@ -172,18 +170,8 @@ class RecordingBuffer:
     @property
     def buffer(
         self,
-    ) -> tuple[
-        list[UploadEvent],
-        list[InitialSegmentEvent],
-        list[ReplayActionsEvent],
-        list[bytes],
-    ]:
-        return (
-            self.upload_events,
-            self.initial_segment_events,
-            self.replay_action_events,
-            self.replay_events,
-        )
+    ) -> tuple[list[UploadEvent], list[InitialSegmentEvent], list[ReplayActionsEvent]]:
+        return (self.upload_events, self.initial_segment_events, self.replay_action_events)
 
     @property
     def is_empty(self) -> bool:
@@ -330,11 +318,10 @@ def process_commit(
 ) -> None:
     # High I/O section.
     with sentry_sdk.start_span(op="replays.consumer.recording.commit_buffer"):
-        upload_events, initial_segment_events, replay_action_events, replay_events = message.payload
+        upload_events, initial_segment_events, replay_action_events = message.payload
         commit_uploads(upload_events)
         commit_initial_segments(initial_segment_events)
         commit_replay_actions(replay_action_events)
-        commit_replay_events(replay_events)
 
 
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
@@ -376,18 +363,6 @@ def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -
 def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> None:
     for actions in replay_action_events:
         emit_replay_actions(actions)
-
-
-def commit_replay_events(replay_events: list[bytes]) -> None:
-    # Initialize the publisher singleton.
-    publisher = initialize_replays_publisher(is_async=True)
-
-    # Push everything into the client queue.
-    for event in replay_events:
-        publisher.publish("ingest-replay-events", event)
-
-    # Flush the client queue to Kafka.
-    publisher.flush()
 
 
 def _do_upload(upload_event: UploadEvent) -> None:
