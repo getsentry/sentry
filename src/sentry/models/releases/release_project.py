@@ -33,7 +33,12 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
-    def _subscribe_project_to_alert_rule(project, trigger):
+    def _subscribe_project_to_alert_rule(project, release, trigger):
+        """
+        TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
+        """
+        from django.utils import timezone
+
         from sentry.incidents.logic import subscribe_projects_to_alert_rule
         from sentry.incidents.models import (
             AlertRule,
@@ -51,13 +56,19 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
                         and par.activation_conditions
                         == AlertRuleActivationConditionType.RELEASE_CREATION
                     ):
+                        query_extra = (
+                            f"release:{release.version} AND event.timestamp:>{timezone.now()}"
+                        )
                         logger.info(
                             "Attempt subscribe project to activated alert rule",
                             extra={
                                 "trigger": trigger,
+                                "query_extra": query_extra,
                             },
                         )
-                        subscribe_projects_to_alert_rule(alert_rule=par, projects=[project])
+                        subscribe_projects_to_alert_rule(
+                            alert_rule=par, projects=[project], query_extra=query_extra
+                        )
         except Exception as e:
             logger.exception(
                 "Failed to subscribe project to activated alert rule",
@@ -70,7 +81,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
         self._subscribe_project_to_alert_rule(
-            project=instance.project, trigger="releaseproject.post_save"
+            project=instance.project, release=instance.release, trigger="releaseproject.post_save"
         )
 
     def post_delete(self, instance, **kwargs):

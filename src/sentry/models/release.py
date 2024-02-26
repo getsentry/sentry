@@ -66,6 +66,11 @@ class SemverVersion(
     pass
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 2e104ea88bb (pass query_extra from post_save down to query builder)
 class ReleaseStatus:
     OPEN = 0
     ARCHIVED = 1
