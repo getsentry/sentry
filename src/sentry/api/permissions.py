@@ -75,11 +75,17 @@ class StaffPermissionMixin:
     https://www.python.org/download/releases/2.3/mro/ to learn more.
     """
 
+    staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
+
     def has_permission(self, request, *args, **kwargs):
-        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+        if request.method in self.staff_allowed_methods and is_active_staff(request):
+            return True
+        return super().has_permission(request, *args, **kwargs)
 
     def has_object_permission(self, request, *args, **kwargs):
-        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+        if request.method in self.staff_allowed_methods and is_active_staff(request):
+            return True
+        return super().has_object_permission(request, *args, **kwargs)
 
     def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
         return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(

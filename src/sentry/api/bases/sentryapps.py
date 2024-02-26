@@ -99,7 +99,9 @@ class SentryAppsPermission(SentryPermission):
 
 
 class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
-    pass
+    """Allows staff to access the GET method of sentry apps endpoints."""
+
+    staff_allowed_methods = {"GET"}
 
 
 class IntegrationPlatformEndpoint(Endpoint):
