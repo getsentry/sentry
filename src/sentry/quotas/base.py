@@ -274,7 +274,7 @@ class Quota(Service):
         "validate",
         "refund",
         "get_event_retention",
-        "get_quotas",
+        "get_project_quotas",
         "get_blended_sample_rate",
         "get_transaction_sampling_tier_for_volume",
         "assign_monitor_seat",
