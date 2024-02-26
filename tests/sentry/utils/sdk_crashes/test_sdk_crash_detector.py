@@ -1,6 +1,5 @@
 import pytest
 
-from fixtures.sdk_crash_detection.crash_detection_config import empty_cocoa_config
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
