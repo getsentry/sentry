@@ -3459,21 +3459,12 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
 # Mapping of default Kafka topic name to custom names
-KAFKA_TOPIC_MAP: Mapping[str, str] = {}
-
-DEFAULT_BROKER_CONFIG: Mapping[str, Any] = {
-    "bootstrap.servers": os.environ.get("DEFAULT_BROKERS", "127.0.0.1:9092"),
-    "security.protocol": os.environ.get("KAFKA_SECURITY_PROTOCOL", "plaintext"),
-    "ssl.ca.location": os.environ.get("KAFKA_SSL_CA_PATH", ""),
-    "ssl.certificate.location": os.environ.get("KAFKA_SSL_CERT_PATH", ""),
-    "ssl.key.location": os.environ.get("KAFKA_SSL_KEY_PATH", ""),
-    "sasl.mechanism": os.environ.get("KAFKA_SASL_MECHANISM", None),
-    "sasl.username": os.environ.get("KAFKA_SASL_USERNAME", None),
-    "sasl.password": os.environ.get("KAFKA_SASL_PASSWORD", None),
-}
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 # Mapping of default Kafka topic name to broker config
-KAFKA_BROKER_CONFIG: Mapping[str, Mapping[str, TopicDefinition | None]] = {}
+KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, TopicDefinition | None]] = {
+    {"cluster": "default"}
+}
 
 
 # Cluster configuration for each Kafka topic by name.
