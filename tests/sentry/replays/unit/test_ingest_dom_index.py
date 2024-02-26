@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import traceback as tb
 import uuid
 from typing import Any
 from unittest import mock
@@ -132,6 +133,89 @@ def test_get_user_actions_missing_node():
 
     user_actions = get_user_actions(1, uuid.uuid4().hex, events, None)
     assert len(user_actions) == 0
+
+
+def test_get_user_actions_performance_spans():
+    """Test that "get_user_actions" doesn't error when collecting rsrc metrics, on various formats of performanceSpan"""
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674298825,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    # not a realistic example (missing fields)
+                    "op": "resource.fetch",
+                    "data": "someString",
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298826,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    # not a realistic example (missing fields)
+                    "op": "resource.fetch",
+                    "data": {
+                        "requestBodySize": 40,
+                        "request": {"body": "Hello" * 8},
+                        "responseBodySize": 34,
+                        "response": {"body": "G" * 34},
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298827,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    # not a realistic example (missing fields)
+                    "op": "resource.fetch",
+                    "data": {
+                        "request": {"body": "Hello", "size": 5},
+                        "response": {},  # intentionally empty,
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298828,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    # not a realistic example (missing fields)
+                    "op": "resource.fetch",
+                    "data": {
+                        "request": "some string",
+                        "response": "goodbye world",
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298829,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    # not a realistic example (missing fields)
+                    "op": "resource.fetch",
+                    "data": {},
+                },
+            },
+        },
+    ]
+
+    try:
+        get_user_actions(1, uuid.uuid4().hex, events, None)
+    except Exception as e:
+        tb.print_exception(e)
+        assert False
 
 
 def test_parse_replay_actions():
