@@ -130,17 +130,8 @@ def drain_mailbox(payload_id: int) -> None:
     for record in query[:MAX_MAILBOX_DRAIN]:
         try:
             deliver_message(record)
-        except DeliveryFailed as err:
+        except DeliveryFailed:
             metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-            logger.info(
-                "deliver_webhook.delivery_failed",
-                extra={
-                    "error": str(err),
-                    "payload_id": payload.id,
-                    "attempts": payload.attempts,
-                    "mailbox_name": payload.mailbox_name,
-                },
-            )
             return
 
 
@@ -191,7 +182,7 @@ def perform_request(payload: WebhookPayload) -> None:
                 json=False,
             )
         logger.info(
-            "webhook_proxy.complete",
+            "deliver_webhooks.success",
             extra={
                 "status": getattr(
                     response, "status_code", 204
@@ -222,14 +213,15 @@ def perform_request(payload: WebhookPayload) -> None:
                 raise DeliveryFailed()
 
             sentry_sdk.capture_exception(err)
-            raise DeliveryFailed() from err
+        logger.warning("deliver_webhooks.host_error", extra={"error": str(err), **logging_context})
+        raise DeliveryFailed() from err
     except ApiConflictError as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
             tags={"reason": "conflict", "destination_region": region.name},
         )
         logger.warning(
-            "hybridcloud.deliver_webhooks.conflict_occurred",
+            "deliver_webhooks.conflict_occurred",
             extra={"conflict_text": err.text, **logging_context},
         )
         # We don't retry conflicts as those are explicit failure code to drop webhook.
@@ -238,7 +230,7 @@ def perform_request(payload: WebhookPayload) -> None:
             "hybridcloud.deliver_webhooks.failure",
             tags={"reason": "timeout_reset", "destination_region": region.name},
         )
-        logger.warning("hybridcloud.deliver_webhooks.timeout_error", extra=logging_context)
+        logger.warning("deliver_webhooks.timeout_error", extra=logging_context)
         raise DeliveryFailed() from err
     except ApiError as err:
         err_cause = err.__cause__
@@ -264,7 +256,7 @@ def perform_request(payload: WebhookPayload) -> None:
                     tags={"reason": reason, "destination_region": region.name},
                 )
                 logger.info(
-                    "hybridcloud.deliver_webhooks.40x_error",
+                    "deliver_webhooks.40x_error",
                     extra={"reason": reason, **logging_context},
                 )
                 return
@@ -275,7 +267,7 @@ def perform_request(payload: WebhookPayload) -> None:
             tags={"reason": "api_error", "destination_region": region.name},
         )
         logger.warning(
-            "hybridcloud.deliver_webhooks.api_error",
+            "deliver_webhooks.api_error",
             extra={"error": str(err), "response_code": response_code, **logging_context},
         )
         raise DeliveryFailed() from err
