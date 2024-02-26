@@ -36,7 +36,6 @@ from sentry.db.models.manager import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
@@ -181,22 +180,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             )
         )
 
-        # may be empty
-        team_members = set(
-            OrganizationMemberTeam.objects.filter(
-                team_id__org_role=role,
-                organizationmember__user_id__in=[u.id for u in users_by_email],
-            ).values_list("organizationmember_id", flat=True)
-        )
-
-        org_members = set(
-            self.filter(role=role, user_id__in=[u.id for u in users_by_email]).values_list(
-                "id", flat=True
-            )
-        )
-
-        # use union of sets because a subset may be empty
-        return self.filter(id__in=org_members.union(team_members))
+        return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
 @region_silo_only_model
@@ -263,9 +247,6 @@ class OrganizationMember(ReplicatedRegionModel):
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
-    # Used to reduce redundant queries
-    __org_roles_from_teams = None
-
     def save(self, *args, **kwargs):
         assert (self.user_id is None and self.email) or (
             self.user_id and self.email is None
@@ -275,11 +256,9 @@ class OrganizationMember(ReplicatedRegionModel):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
-            self.__org_roles_from_teams = None
 
     def refresh_from_db(self, *args, **kwargs):
         super().refresh_from_db(*args, **kwargs)
-        self.__org_roles_from_teams = None
 
     def set_user(self, user_id: int):
         self.user_id = user_id
@@ -528,30 +507,6 @@ class OrganizationMember(ReplicatedRegionModel):
         scopes = self.organization.get_scopes(role)
 
         return frozenset(scopes)
-
-    def get_org_roles_from_teams(self) -> set[str]:
-        if self.__org_roles_from_teams is None:
-            # Store team_roles so that we don't repeat this query when possible.
-            team_roles = {
-                item
-                for item in self.teams.all()
-                .exclude(org_role=None)
-                .values_list("org_role", flat=True)
-                if item is not None
-            }
-            self.__org_roles_from_teams = team_roles
-        return self.__org_roles_from_teams
-
-    def get_org_roles_from_teams_by_source(self) -> list[tuple[str, OrganizationRole]]:
-        org_roles = [
-            (slug, organization_roles.get(role))
-            for slug, role in self.teams.all()
-            .exclude(org_role=None)
-            .values_list("slug", "org_role")
-            if role is not None
-        ]
-
-        return sorted(org_roles, key=lambda r: r[1].priority, reverse=True)
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """

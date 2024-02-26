@@ -84,14 +84,6 @@ class FetchCommitsTest(TestCase):
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
 
-    def test_simple_owner_from_team(self):
-        user = self.create_user()
-        self.login_as(user=user)
-        org = self.create_organization(name="baz")
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        self._test_simple_action(user=user, org=org)
-
     def test_release_locked(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")

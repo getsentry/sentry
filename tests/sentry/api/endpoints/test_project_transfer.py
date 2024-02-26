@@ -43,29 +43,6 @@ class ProjectTransferTest(APITestCase):
             assert len(mail.outbox) == 1
             assert "http://testserver/accept-transfer/?" in mail.outbox[0].body
 
-    def test_transfer_project_owner_from_team(self):
-        project = self.create_project()
-        organization = project.organization
-
-        new_user = self.create_user("b@example.com")
-        org = self.create_organization(name="New Org")
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=new_user, teams=[owner_team])
-
-        self.login_as(user=self.user)
-
-        url = reverse(
-            "sentry-api-0-project-transfer",
-            kwargs={"organization_slug": organization.slug, "project_slug": project.slug},
-        )
-
-        with self.tasks():
-            response = self.client.post(url, {"email": new_user.email})
-
-            assert response.status_code == 204
-            assert len(mail.outbox) == 1
-            assert organization.absolute_url("/accept-transfer/?") in mail.outbox[0].body
-
     def test_transfer_project_to_invalid_user(self):
         project = self.create_project()
         # new user is not an owner of anything
