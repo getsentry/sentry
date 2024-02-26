@@ -154,7 +154,7 @@ class IntegrationProxyClient(ApiClient):
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
                 max_retries=Retry(
-                    total=options.get("hybrid_cloud.integrationproxy.retries"),
+                    total=options.get("hybridcloud.integrationproxy.retries"),
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
