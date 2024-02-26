@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
@@ -49,7 +50,7 @@ describe('Dashboards > ViewEditDashboard', function () {
         routes={[]}
         routeParams={{}}
       >
-        {() => undefined}
+        <Fragment />
       </ViewEditDashboard>
     );
 
