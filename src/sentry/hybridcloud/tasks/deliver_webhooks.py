@@ -25,7 +25,7 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_MAILBOX_DRAIN = 50
+MAX_MAILBOX_DRAIN = 100
 """
 The maximum number of records that will be delivered in a scheduled delivery
 
