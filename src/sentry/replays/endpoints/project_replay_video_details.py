@@ -42,7 +42,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ReplayExamples.GET_REPLAY_VIDEOS,
+        examples=ReplayExamples.GET_REPLAY_VIDEO,
     )
     def get(self, request: Request, project, replay_id, segment_id) -> HttpResponseBase:
         """Return a replay video."""
@@ -57,7 +57,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
 
         video = download_video(segment)
         if video is None:
-            return self.respond(status=404)
+            return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
         video_io = BytesIO(video)
         response = StreamingHttpResponse(
