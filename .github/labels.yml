@@ -242,6 +242,8 @@
   color: '8D5494'
 - name: 'Product Area: APIs'
   color: '8D5494'
+- name: 'Product Area: Ingestion and Filtering'
+  color: '8D5494'
 - name: 'Product Area: Org Relocation'
   color: '8D5494'
 - name: 'Product Area: Other'
