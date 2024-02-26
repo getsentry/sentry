@@ -1879,7 +1879,7 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
 
     if features.has("projects:issue-priority", project, actor=None):
         priority = group_creation_kwargs.get("priority", None)
-        if not priority:
+        if priority is not None:
             priority = _get_priority_for_group(severity, group_creation_kwargs)
 
         group_creation_kwargs["priority"] = priority
