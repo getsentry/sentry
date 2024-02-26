@@ -26,6 +26,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     cardinality_limiter_factory,
@@ -47,7 +48,7 @@ BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
 
 @pytest.fixture(autouse=True)
-def update_sentry_settings(settings: Any):
+def update_sentry_settings(settings: Any) -> None:
     settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
 
 
@@ -293,7 +294,7 @@ set_payloads: list[dict[str, Any]] = [
 
 
 def __translated_payload(
-    payload: dict[str, Any], indexer=None
+    payload: dict[str, Any], indexer: StringIndexer | None = None
 ) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
@@ -480,7 +481,7 @@ def test_process_messages_invalid_messages(
         ),
         Message(
             BrokerValue(
-                KafkaPayload(None, formatted_payload, []),
+                KafkaPayload(None, formatted_payload, []),  # type: ignore
                 Partition(Topic("topic"), 0),
                 1,
                 BROKER_TIMESTAMP,
@@ -600,10 +601,13 @@ def test_process_messages_cardinality_limited(
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
 
     # set any limit at all to ensure we actually use the underlying rate limiter
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
+    with (
+        set_sentry_option(
+            "sentry-metrics.cardinality-limiter.limits.performance.per-org",
+            [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+        ),
+        set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0),
+    ):
 
         class MockCardinalityLimiter(CardinalityLimiter):
             def check_within_quotas(self, requested_quotas):
