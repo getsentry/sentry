@@ -146,7 +146,7 @@ def query_using_optimized_search(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
-    pagination: Paginators | None,
+    pagination: Paginators,
     organization: Organization | None,
     project_ids: list[int],
     period_start: datetime,
@@ -184,9 +184,8 @@ def query_using_optimized_search(
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
 
-    if pagination:
-        query = query.set_limit(pagination.limit)
-        query = query.set_offset(pagination.offset)
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
 
     subquery_response = execute_query(query, tenant_id, referrer)
 

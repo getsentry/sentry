@@ -46,14 +46,14 @@ def query_replays_collection(
     environment: list[str],
     fields: list[str],
     sort: str | None,
-    limit: str | None,
-    offset: str | None,
+    limit: int,
+    offset: int,
     search_filters: Sequence[SearchFilter],
     organization: Organization | None = None,
     actor: Any | None = None,
 ):
     """Query aggregated replay collection."""
-    paginators = make_pagination_values(limit, offset)
+    paginators = Paginators(limit, offset)
 
     return query_using_optimized_search(
         fields=fields,
@@ -293,30 +293,6 @@ replay_url_parser_config = SearchConfig(
         "count_infos",
     },
 )
-
-
-# Pagination.
-
-
-def make_pagination_values(limit: Any, offset: Any) -> Paginators:
-    """Return a tuple of limit, offset values."""
-    limit = _coerce_to_integer_default(limit, DEFAULT_PAGE_SIZE)
-    if limit > MAX_PAGE_SIZE or limit < 0:
-        limit = DEFAULT_PAGE_SIZE
-
-    offset = _coerce_to_integer_default(offset, DEFAULT_OFFSET)
-    return Paginators(limit, offset)
-
-
-def _coerce_to_integer_default(value: str | None, default: int) -> int:
-    """Return an integer or default."""
-    if value is None:
-        return default
-
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return default
 
 
 def _strip_uuid_dashes(
