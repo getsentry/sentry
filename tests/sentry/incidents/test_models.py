@@ -575,15 +575,15 @@ class AlertRuleTest(TestCase):
         assert alert_rule._processor_hooks[0].call_count == 1
         assert alert_rule._processor_hooks[0].call_args == mock.call(subscription)
 
-    def test_clean_expired_alert(self):
+    def test_clean_expired_alerts_active(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
         subscription = alert_rule.snuba_query.subscriptions.get()
         subscription.remove = Mock()
 
-        alert_rule.clean_activated_alert(subscription)
+        alert_rule.clean_expired_alerts(subscription)
         assert subscription.remove.call_count == 0
 
-    def test_clean_activated_alert_deactive(self):
+    def test_clean_expired_alerts_deactive(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
         subscription = alert_rule.snuba_query.subscriptions.get()
 
@@ -591,7 +591,7 @@ class AlertRuleTest(TestCase):
         subscription.date_added = timezone.now() - timedelta(days=21)
         subscription.remove = Mock()
 
-        result = alert_rule.clean_activated_alert(subscription)
+        result = alert_rule.clean_expired_alerts(subscription)
 
         assert subscription.remove.call_count == 1
         assert result is True
