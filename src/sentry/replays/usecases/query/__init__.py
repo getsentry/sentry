@@ -12,9 +12,9 @@ external source, makes decisions around what to query and when, and is responsib
 intelligible output for the "post_process" module.  More information on its implementation can be
 found in the function.
 """
+
 from __future__ import annotations
 
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -124,6 +124,8 @@ def search_filter_to_condition(
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
+import dataclasses
+
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -132,7 +134,11 @@ from sentry.replays.usecases.query.configs.scalar import (
     scalar_search_config,
 )
 
-Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+@dataclasses.dataclass
+class Paginators:
+    limit: int
+    offset: int
 
 
 def query_using_optimized_search(
@@ -140,7 +146,7 @@ def query_using_optimized_search(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
-    pagination: Paginators | None,
+    pagination: Paginators,
     organization: Organization | None,
     project_ids: list[int],
     period_start: datetime,
@@ -178,16 +184,21 @@ def query_using_optimized_search(
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
 
-    if pagination:
-        query = query.set_limit(pagination.limit)
-        query = query.set_offset(pagination.offset)
+    query = query.set_limit(pagination.limit)
+    query = query.set_offset(pagination.offset)
 
     subquery_response = execute_query(query, tenant_id, referrer)
+
+    # The query "has more rows" if the number of rows found matches the limit (which is
+    # the requested limit + 1).
+    has_more = len(subquery_response.get("data", [])) == pagination.limit
+    if has_more:
+        subquery_response["data"].pop()
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return []
+        return [], has_more
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -206,7 +217,7 @@ def query_using_optimized_search(
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results)
+    return _make_ordered(replay_ids, results), has_more
 
 
 def make_scalar_search_conditions_query(
