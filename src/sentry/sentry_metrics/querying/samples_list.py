@@ -37,6 +37,8 @@ class AbstractSamplesListExecutor(ABC):
         snuba_params: SnubaParams,
         fields: list[str],
         query: str | None,
+        min: float | None,
+        max: float | None,
         rollup: int,
         referrer: Referrer,
     ):
@@ -45,6 +47,8 @@ class AbstractSamplesListExecutor(ABC):
         self.snuba_params = snuba_params
         self.fields = fields
         self.query = query
+        self.min = min
+        self.max = max
         self.rollup = rollup
         self.referrer = referrer
 
@@ -160,14 +164,24 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         rethink how to fetch segment samples a little as the transactions dataset
         may not contain all the necessary data.
         """
+        column = self.mri_to_column(self.mri)
+
+        query_parts = []
+        if self.query:
+            query_parts.append(self.query)
+        if self.min is not None:
+            query_parts.append(f"{column}:>={self.min}")
+        if self.max is not None:
+            query_parts.append(f"{column}:<={self.max}")
+
         builder = QueryBuilder(
             Dataset.Transactions,
             self.params,
             snuba_params=self.snuba_params,
-            query=self.query,
+            query=" ".join(query_parts),
             selected_columns=[
                 f"rounded_timestamp({self.rollup})",
-                f"example({self.mri_to_column(self.mri)}) AS example",
+                f"example({column}) AS example",
             ],
             limit=limit,
             offset=offset,
@@ -287,13 +301,23 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         return result
 
     def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        column = self.mri_to_column(self.mri)
+
+        query_parts = []
+        if self.query:
+            query_parts.append(self.query)
+        if self.min is not None:
+            query_parts.append(f"{column}:>={self.min}")
+        if self.max is not None:
+            query_parts.append(f"{column}:<={self.max}")
+
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,
             snuba_params=self.snuba_params,
-            query=self.query,
+            query=" ".join(query_parts),
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
@@ -405,15 +429,21 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         offset: int,
         limit: int,
     ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
-        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+        query_parts = [f"metric:{self.mri}"]
+        if self.query:
+            query_parts.append(self.query)
+        if self.min is not None:
+            query_parts.append(f"min_metric:>={self.min}")
+        if self.max is not None:
+            query_parts.append(f"max_metric:<={self.max}")
 
-        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
+        rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
-            query=query,
+            query=" ".join(query_parts),
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
