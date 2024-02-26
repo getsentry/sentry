@@ -84,7 +84,8 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
             segment_bytes = download_segment(
-                segment, span=child_span, current_hub=sentry_sdk.Hub.current
+                segment,
+                span=child_span,
             )
             if segment_bytes is None:
                 segment_bytes = b"[]"

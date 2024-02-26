@@ -9,5 +9,5 @@ feedback: 0004_index_together
 hybridcloud: 0011_add_hybridcloudapitoken_index
 nodestore: 0002_nodestore_no_dictfield
 replays: 0004_index_together
-sentry: 0652_alert_rule_activation_condition
+sentry: 0654_rename_priority_sort_to_trends
 social_auth: 0002_default_auto_field

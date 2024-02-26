@@ -75,7 +75,7 @@ function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQu
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
+    IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
