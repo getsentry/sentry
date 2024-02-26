@@ -159,7 +159,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     }
   );
   const coverageEnabled =
-    isQueryEnabled && organization.features.includes('codecov-integration');
+    isQueryEnabled &&
+    organization.codecovAccess &&
+    organization.features.includes('codecov-integration');
   const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
@@ -248,9 +250,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   }
 
   if (isLoading || !match) {
+    const placeholderWidth = coverageEnabled ? '40px' : '14px';
     return (
       <StacktraceLinkWrapper>
-        <Placeholder height="14px" width="40px" />
+        <Placeholder height="14px" width={placeholderWidth} />
       </StacktraceLinkWrapper>
     );
   }

@@ -189,6 +189,33 @@ describe('StacktraceLink', function () {
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
   });
 
+  it('skips codecov when the feature is disabled at org level', async function () {
+    const organization = {
+      ...org,
+      codecovAccess: false,
+      features: ['codecov-integration'],
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+      },
+    });
+    const stacktraceCoverageMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      organization,
+    });
+    expect(
+      await screen.findByRole('link', {name: 'Open this line in GitHub'})
+    ).toBeInTheDocument();
+    expect(stacktraceCoverageMock).not.toHaveBeenCalled();
+  });
+
   it('renders the link using a valid sourceLink for a .NET project', async function () {
     const dotnetFrame = {
       filename: 'path/to/file.py',
