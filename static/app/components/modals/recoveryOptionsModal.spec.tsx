@@ -42,14 +42,14 @@ describe('RecoveryOptionsModal', function () {
 
   it('can redirect to recovery codes if user skips backup phone setup', async function () {
     renderComponent();
-    await screen.findByText('Add a Phone Number');
+    const skipButton = await screen.findByRole('button', {name: 'Skip this step'});
 
     expect(
       screen.queryByRole('button', {name: 'Get Recovery Codes'})
     ).not.toBeInTheDocument();
 
     // skip backup phone setup
-    await userEvent.click(screen.getByRole('button', {name: 'Skip this step'}));
+    await userEvent.click(skipButton);
 
     const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
     expect(getCodesbutton).toBeInTheDocument();
