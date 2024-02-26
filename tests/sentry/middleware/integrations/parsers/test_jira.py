@@ -102,6 +102,30 @@ class JiraRequestParserTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
+    def test_get_response_routing_to_region_sync_retry_errors(self):
+        responses.add(
+            responses.POST,
+            region.to_url("/extensions/jira/issue/LR-123/"),
+            body="region response",
+            status=503,
+        )
+        request = self.factory.post(path=f"{self.path_base}/issue/LR-123/")
+        parser = JiraRequestParser(request, self.get_response)
+
+        with patch.object(parser, "get_integration_from_request") as method:
+            method.return_value = self.get_integration()
+            response = parser.get_response()
+
+        # There are 5 retries.
+        assert len(responses.calls) == 6
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 200
+        assert response.content == b"passthrough"
+        assert_no_webhook_outboxes()
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
     def test_get_response_routing_to_region_async(self):
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
