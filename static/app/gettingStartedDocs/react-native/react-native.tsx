@@ -9,6 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -285,8 +289,47 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'TypeScript',
+              value: 'typescript',
+              language: 'typescript',
+              code: `import * as Sentry from "@sentry/react-native";
+import { UserFeedback } from "@sentry/react-native";
+
+const sentryId = Sentry.captureMessage("My Message");
+// OR: const sentryId = Sentry.lastEventId();
+
+const userFeedback: UserFeedback = {
+  event_id: sentryId,
+  name: "John Doe",
+  email: "john@doe.com",
+  comments: "Hello World!",
+};
+
+Sentry.captureUserFeedback(userFeedback);`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi,
 };
 
 export default docs;

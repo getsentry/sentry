@@ -9,6 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -222,8 +226,48 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C++',
+              value: 'cpp',
+              language: 'cpp',
+              code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+
+USentryId* EventId = SentrySubsystem->CaptureMessage(TEXT("Message with feedback"));
+
+USentryUserFeedback* UserFeedback = NewObject<USentryUserFeedback>();
+User->Initialize(EventId);
+User->SetEmail("test@sentry.io");
+User->SetName("Name");
+User->SetComment("Some comment");
+
+SentrySubsystem->CaptureUserFeedback(UserFeedback);
+
+// OR
+
+SentrySubsystem->CaptureUserFeedbackWithParams(EventId, "test@sentry.io", "Some comment", "Name");`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi,
 };
 
 export default docs;

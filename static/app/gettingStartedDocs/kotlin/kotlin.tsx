@@ -9,6 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -271,8 +275,44 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   ],
 };
 
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.kotlin.multiplatform.Sentry
+import io.sentry.kotlin.multiplatform.protocol.UserFeedback
+
+val sentryId = Sentry.captureMessage("My message")
+
+val userFeedback = UserFeedback(sentryId).apply {
+  comments = "It broke."
+  email = "john.doe@example.com"
+  name = "John Doe"
+}
+Sentry.captureUserFeedback(userFeedback)`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   platformOptions,
+  feedbackOnboardingCrashApi,
   onboarding,
 };
 
