@@ -133,6 +133,7 @@ repos:
         # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
         types_or: [yaml, markdown, tsx, jsx, css]
         # https://pre-commit.com/#regular-expressions
+        additional_dependencies: ['prettier@3.2.5']
         exclude: |
           (?x)^($^
             # prettier crashes on some of these, by intent:
