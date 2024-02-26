@@ -137,6 +137,8 @@ def test_get_user_actions_missing_node():
 
 def test_get_user_actions_performance_spans():
     """Test that "get_user_actions" doesn't error when collecting rsrc metrics, on various formats of performanceSpan"""
+    # payloads are not realistic examples - only include the fields necessary for testing
+    # TODO: does not test if metrics.distribution() is called downstream, with correct param types.
     events = [
         {
             "type": 5,
@@ -144,7 +146,6 @@ def test_get_user_actions_performance_spans():
             "data": {
                 "tag": "performanceSpan",
                 "payload": {
-                    # not a realistic example (missing fields)
                     "op": "resource.fetch",
                     "data": "someString",
                 },
@@ -156,7 +157,6 @@ def test_get_user_actions_performance_spans():
             "data": {
                 "tag": "performanceSpan",
                 "payload": {
-                    # not a realistic example (missing fields)
                     "op": "resource.fetch",
                     "data": {
                         "requestBodySize": 40,
@@ -173,7 +173,6 @@ def test_get_user_actions_performance_spans():
             "data": {
                 "tag": "performanceSpan",
                 "payload": {
-                    # not a realistic example (missing fields)
                     "op": "resource.fetch",
                     "data": {
                         "request": {"body": "Hello", "size": 5},
@@ -188,11 +187,10 @@ def test_get_user_actions_performance_spans():
             "data": {
                 "tag": "performanceSpan",
                 "payload": {
-                    # not a realistic example (missing fields)
                     "op": "resource.fetch",
                     "data": {
                         "request": "some string",
-                        "response": "goodbye world",
+                        "response": 1234,
                     },
                 },
             },
@@ -203,7 +201,6 @@ def test_get_user_actions_performance_spans():
             "data": {
                 "tag": "performanceSpan",
                 "payload": {
-                    # not a realistic example (missing fields)
                     "op": "resource.fetch",
                     "data": {},
                 },
