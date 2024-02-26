@@ -462,8 +462,7 @@ class _RemoteSiloCall:
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
             rpc_destination_region=self.region.name if self.region else None,
-            rpc_service=self.service_name,
-            rpc_method=self.method_name,
+            rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
 
