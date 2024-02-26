@@ -75,10 +75,15 @@ function Trace({trace, trace_id}: TraceProps) {
 
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
-      trace.root.space[1] !== viewManager.current.spanSpace[1])
+    (trace.root.space[0] !== viewManager.current.trace_space[0] ||
+      trace.root.space[1] !== viewManager.current.trace_space[1])
   ) {
-    viewManager.current.initializeSpanSpace(trace.root.space);
+    viewManager.current.initializeTraceSpace([
+      trace.root.space[0],
+      0,
+      trace.root.space[1],
+      1,
+    ]);
     scrollQueue.current = decodeScrollQueue(location.query.node);
   }
 
@@ -277,6 +282,7 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow Autogrouped"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -353,6 +359,7 @@ function RenderRow(props: {
   if (isTransactionNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -433,6 +440,7 @@ function RenderRow(props: {
   if (isSpanNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -518,6 +526,7 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -576,6 +585,7 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -645,6 +655,7 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -947,8 +958,8 @@ function TraceBar(props: TraceBarProps) {
     return null;
   }
 
-  const spanTransform = props.viewManager.computeSpanMatrixTransform(props.node_space);
-  const inverseTransform = props.viewManager.inverseSpanScaling(props.node_space);
+  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(props.node_space);
+  const inverseTransform = 1 / spanTransform[0];
   const textPosition = props.viewManager.computeSpanTextPlacement(
     spanTransform[4],
     props.node_space
@@ -969,16 +980,12 @@ function TraceBar(props: TraceBarProps) {
         className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
         style={{
           left: textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
-          transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
+          transform: `scaleX(${inverseTransform}) translate(${
             textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
           }, 0)`,
         }}
       >
-        {/* Use node space to calculate duration if the duration prop is not provided. */}
-        <PerformanceDuration
-          seconds={props.duration ?? props.node_space[1]}
-          abbreviation
-        />
+        <PerformanceDuration milliseconds={props.node_space[1]} abbreviation />
       </div>
     </div>
   );
@@ -991,9 +998,9 @@ function TraceBar(props: TraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
+  overflow: hidden;
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0;
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
 
   @keyframes show {
@@ -1100,6 +1107,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceRightColumn {
     height: 100%;
+    overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;
