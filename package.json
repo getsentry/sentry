@@ -112,7 +112,7 @@
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
     "esbuild": "^0.20.0",
-    "focus-trap": "^7.3.1",
+    "focus-trap": "^7.5.4",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "framer-motion": "^6.5.1",
     "fuse.js": "^6.6.2",
