@@ -955,7 +955,7 @@ function TraceBar(props: TraceBarProps) {
     props.node_space,
     duration
   );
-
+        
   return (
     <Fragment>
       <div

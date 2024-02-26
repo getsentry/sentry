@@ -6,6 +6,22 @@ import {feedbackOnboardingPlatforms} from 'sentry/data/platformCategories';
 import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
+function getPlatformPath(platform: PlatformIntegration) {
+  if (platform.type === 'framework') {
+    switch (platform.id) {
+      case 'capacitor':
+        return `capacitor/capacitor`;
+      case 'dart':
+        return `dart/dart`;
+      case 'android':
+        return `android/android`;
+      default:
+        return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
+    }
+  }
+  return `${platform.language}/${platform.id}`;
+}
+
 function useLoadFeedbackOnboardingDoc({
   platform,
   organization,
@@ -23,14 +39,7 @@ function useLoadFeedbackOnboardingDoc({
     | 'none'
   >(null);
 
-  const platformPath =
-    platform?.type === 'framework'
-      ? platform?.id === 'capacitor'
-        ? `capacitor/capacitor`
-        : platform?.id === 'dart'
-          ? `dart/dart`
-          : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
-      : `${platform?.language}/${platform?.id}`;
+  const platformPath = getPlatformPath(platform);
 
   const {
     data: projectKeys,
