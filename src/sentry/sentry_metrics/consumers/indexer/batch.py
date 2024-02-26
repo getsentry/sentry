@@ -66,7 +66,7 @@ class IndexerBatchMetrics:
     max_tags_len: int = 0
     max_value_len: int = 0
 
-    def add_metric(self, num_bytes: int, tags_len: int, value_len: int):
+    def add_metric(self, num_bytes: int, tags_len: int, value_len: int) -> None:
         self.message_count += 1
         self.total_bytes += num_bytes
         self.total_tags_len += tags_len
@@ -75,13 +75,13 @@ class IndexerBatchMetrics:
         self.max_tags_len = max(self.max_tags_len, tags_len)
         self.max_value_len = max(self.max_tags_len, tags_len)
 
-    def avg_bytes(self):
+    def avg_bytes(self) -> float:
         return self.total_bytes / self.message_count
 
-    def avg_tags_len(self):
+    def avg_tags_len(self) -> float:
         return self.total_tags_len / self.message_count
 
-    def avg_value_len(self):
+    def avg_value_len(self) -> float:
         return self.total_value_len / self.message_count
 
 
@@ -491,7 +491,7 @@ class IndexerBatch:
                     }
                     if aggregation_options := get_aggregation_options(old_payload_value["name"]):
                         # TODO: This should eventually handle multiple aggregation options
-                        option = aggregation_options.popitem()[0]
+                        option = list(aggregation_options.items())[0][0]
                         assert option is not None
                         new_payload_v2["aggregation_option"] = option.value
 
