@@ -42,6 +42,7 @@ describe('RecoveryOptionsModal', function () {
 
   it('can redirect to recovery codes if user skips backup phone setup', async function () {
     renderComponent();
+    await screen.findByText('Add a Phone Number');
 
     expect(
       screen.queryByRole('button', {name: 'Get Recovery Codes'})
@@ -65,7 +66,10 @@ describe('RecoveryOptionsModal', function () {
   it('can redirect to backup phone setup', async function () {
     renderComponent();
 
-    const backupPhoneButton = screen.getByRole('button', {name: 'Add a Phone Number'});
+    const backupPhoneButton = await screen.findByRole('button', {
+      name: 'Add a Phone Number',
+    });
+
     expect(backupPhoneButton).toBeInTheDocument();
     expect(backupPhoneButton).toHaveAttribute(
       'href',
@@ -76,7 +80,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', function () {
+  it('skips backup phone setup if text message authenticator unavailable', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
@@ -86,7 +90,9 @@ describe('RecoveryOptionsModal', function () {
 
     renderComponent();
 
-    const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
+    const getCodesbutton = await screen.findByRole('button', {
+      name: 'Get Recovery Codes',
+    });
     expect(getCodesbutton).toBeInTheDocument();
 
     expect(getCodesbutton).toHaveAttribute(
