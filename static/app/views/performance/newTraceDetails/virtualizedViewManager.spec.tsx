@@ -247,7 +247,7 @@ describe('VirtualizedViewManger', () => {
       manager.trace_view.width = 50;
       manager.trace_view.x = 50;
 
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(500);
+      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(250);
     });
   });
 
@@ -289,32 +289,6 @@ describe('VirtualizedViewManger', () => {
 
       manager.trace_view.x = 50;
       expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([100, 0]);
-    });
-  });
-
-  describe('text positioning', () => {
-    describe('non offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('non offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
-    });
-
-    describe('offset zoomed in view', () => {
-      it.todo('span is left');
-      it.todo('span is right');
-      it.todo('span left and over center');
     });
   });
 
@@ -587,5 +561,32 @@ describe('VirtualizedViewManger', () => {
       it.todo('scrolls to orphan transactions');
       it.todo('scrolls to orphan transactions child span');
     });
+
+    it('scrolls to child span of sibling autogrouped node', async () => {
+      manager.virtualizedList = makeList();
+      const tree = makeSingleTransactionTree();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/project:event_id/',
+        method: 'GET',
+        body: makeEvent({}, makeSiblingAutogroupedSpans()),
+      });
+
+      const result = await manager.scrollToPath(
+        tree,
+        ['span:middle_span', `ag:first_span`, 'txn:event_id'],
+        () => void 0,
+        {
+          api: api,
+          organization,
+        }
+      );
+
+      expect(result).toBeTruthy();
+      expect(manager.virtualizedList.scrollToRow).toHaveBeenCalledWith(4);
+    });
+
+    it.todo('scrolls to orphan transactions');
+    it.todo('scrolls to orphan transactions child span');
   });
 });

@@ -74,7 +74,7 @@ function Trace({trace, trace_id}: TraceProps) {
 
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.trace_space[0] ||
+    (trace.root.space[0] !== viewManager.current.to_origin ||
       trace.root.space[1] !== viewManager.current.trace_space[1])
   ) {
     viewManager.current.initializeTraceSpace([
@@ -898,10 +898,12 @@ function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
   let start = isSpanNode(props.node.children[0])
     ? props.node.children[0].value.start_timestamp
     : Number.POSITIVE_INFINITY;
+
   let end = isSpanNode(props.node.children[0])
     ? props.node.children[0].value.timestamp
     : Number.NEGATIVE_INFINITY;
   let totalDuration = 0;
+
   for (let i = 0; i < props.node.children.length; i++) {
     const node = props.node.children[i];
     if (!isSpanNode(node)) {
@@ -959,10 +961,7 @@ function TraceBar(props: TraceBarProps) {
 
   const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(props.node_space);
   const inverseTransform = 1 / spanTransform[0];
-  const textPosition = props.viewManager.computeSpanTextPlacement(
-    spanTransform[4],
-    props.node_space
-  );
+  const textPosition = props.viewManager.computeSpanTextPlacement(props.node_space);
 
   return (
     <div
