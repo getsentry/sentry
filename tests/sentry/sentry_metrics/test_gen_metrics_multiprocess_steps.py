@@ -26,7 +26,6 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
     cardinality_limiter_factory,
@@ -294,7 +293,7 @@ set_payloads: list[dict[str, Any]] = [
 
 
 def __translated_payload(
-    payload: dict[str, Any], indexer: StringIndexer | None = None
+    payload: dict[str, Any], indexer=None
 ) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
