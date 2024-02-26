@@ -1,5 +1,5 @@
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -284,7 +284,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
       }),
       configurations: getSetupConfiguration(params),
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: () => [],
