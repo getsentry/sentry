@@ -515,12 +515,11 @@ describe('VirtualizedViewManger', () => {
         const tree = makeSingleTransactionTree();
 
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/project_slug:event_id/',
+          url: '/organizations/org-slug/events/project:event_id/',
           method: 'GET',
           body: makeEvent({}, makeSiblingAutogroupedSpans()),
         });
 
-        tree.print();
         const result = await manager.scrollToPath(
           tree,
           [`ag:first_span`, 'txn:event_id'],
@@ -532,7 +531,7 @@ describe('VirtualizedViewManger', () => {
         );
 
         expect(result).toBeTruthy();
-        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
+        expect(manager.list.scrollToRow).toHaveBeenCalledWith(2)
       });
 
       it('scrolls to child span of sibling autogrouped node', async () => {
