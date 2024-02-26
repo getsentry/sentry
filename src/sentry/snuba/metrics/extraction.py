@@ -40,7 +40,8 @@ logger = logging.getLogger(__name__)
 
 SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
 # Certain functions will only be supported with certain feature flags
-OPS_REQUIRE_FEAT_FLAG: dict[str, str] = {
+OPS_REQUIRE_FEAT_FLAG = {
+    "count_unique": SPEC_VERSION_TWO_FLAG,
     "user_misery": SPEC_VERSION_TWO_FLAG,
 }
 
@@ -245,6 +246,7 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
     "count_web_vitals": "on_demand_count_web_vitals",
+    "count_unique": "on_demand_count_unique",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
     "user_misery": "on_demand_user_misery",
@@ -266,6 +268,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
+    "count_unique": "s",
     "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
@@ -279,7 +282,12 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals", "on_demand_user_misery"]
+_MULTIPLE_ARGS_METRICS = [
+    "on_demand_apdex",
+    "on_demand_count_unique",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
+]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
