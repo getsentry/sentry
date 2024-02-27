@@ -769,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1089,6 +1090,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1492,6 +1502,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1557,8 +1569,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable grouping of ChunkLoadErrors
-    "organizations:group-chunk-load-errors": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1689,8 +1699,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
-    # Enable the setting of org roles for team
-    "organizations:org-roles-for-teams": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1872,6 +1880,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
+    # Send Slack notifications to threads
+    "organizations:slack-thread": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.

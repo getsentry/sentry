@@ -24,7 +24,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyProxyClient
+from .client import PagerDutyClient
 from .utils import PagerDutyServiceDict, add_service
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -67,7 +67,7 @@ metadata = IntegrationMetadata(
 
 
 class PagerDutyIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> PagerDutyProxyClient:
+    def get_keyring_client(self, keyid: str) -> PagerDutyClient:
         org_integration = self.org_integration
         assert org_integration, "Cannot get client without an organization integration"
 
@@ -75,12 +75,11 @@ class PagerDutyIntegration(IntegrationInstallation):
         for pds in org_integration.config.get("pagerduty_services", []):
             if str(pds["id"]) == str(keyid):
                 integration_key = pds["integration_key"]
-        assert integration_key, "Cannot get client without an an integration_key"
+        if not integration_key:
+            raise ValueError("Cannot get client without an an integration_key.")
 
-        return PagerDutyProxyClient(
-            org_integration_id=self.org_integration.id,
-            integration_key=integration_key,
-            keyid=keyid,
+        return PagerDutyClient(
+            integration_id=org_integration.integration_id, integration_key=integration_key
         )
 
     def get_client(self):

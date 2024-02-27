@@ -446,6 +446,8 @@ const appConfig: Configuration = {
       crypto: require.resolve('crypto-browserify'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
     modules: ['node_modules'],

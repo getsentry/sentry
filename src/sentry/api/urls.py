@@ -389,6 +389,7 @@ from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
     OrganizationMetricsDetailsEndpoint,
+    OrganizationMetricsMetadataEndpoint,
     OrganizationMetricsQueryEndpoint,
     OrganizationMetricsSamplesEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
@@ -617,6 +618,8 @@ from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
+
+from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -1966,6 +1969,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/metadata/$",
+        OrganizationMetricsMetadataEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-metadata",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
         OrganizationMetricsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-details",
@@ -2659,6 +2667,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/statistical-detector/$",
         ProjectStatisticalDetectors.as_view(),
         name="sentry-api-0-project-statistical-detector",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
+        ProjectMonitorDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-details",
     ),
 ]
 
