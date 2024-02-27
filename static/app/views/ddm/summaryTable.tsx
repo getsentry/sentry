@@ -137,27 +137,25 @@ export const SummaryTable = memo(function SummaryTable({
 
   return (
     <SummaryTableWrapper hasActions={hasActions}>
-      <TableHeaderWrapper hasActions={hasActions}>
-        <HeaderCell disabled />
-        <HeaderCell disabled />
-        <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
-          {t('Name')}
-        </SortableHeaderCell>
-        <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
-          {t('Avg')}
-        </SortableHeaderCell>
-        <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
-          {t('Min')}
-        </SortableHeaderCell>
-        <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
-          {t('Max')}
-        </SortableHeaderCell>
-        <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
-          {t('Sum')}
-        </SortableHeaderCell>
-        {hasActions && <HeaderCell disabled right />}
-        <HeaderCell disabled />
-      </TableHeaderWrapper>
+      <HeaderCell disabled />
+      <HeaderCell disabled />
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
+        {t('Name')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
+        {t('Avg')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
+        {t('Min')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
+        {t('Max')}
+      </SortableHeaderCell>
+      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
+        {t('Sum')}
+      </SortableHeaderCell>
+      <HeaderCell disabled right />
+      <HeaderCell disabled />
       <TableBodyWrapper
         hasActions={hasActions}
         onMouseLeave={() => {
@@ -231,48 +229,47 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <RightCell>
+                  <NumberCell>
                     {formatMetricsUsingUnitAndOp(avg, unit, operation)}
-                  </RightCell>
-                  <RightCell>
+                  </NumberCell>
+                  <NumberCell>
                     {formatMetricsUsingUnitAndOp(min, unit, operation)}
-                  </RightCell>
-                  <RightCell>
+                  </NumberCell>
+                  <NumberCell>
                     {formatMetricsUsingUnitAndOp(max, unit, operation)}
-                  </RightCell>
-                  <RightCell>
+                  </NumberCell>
+                  <NumberCell>
                     {formatMetricsUsingUnitAndOp(sum, unit, operation)}
-                  </RightCell>
+                  </NumberCell>
 
-                  {hasActions && (
-                    <CenterCell>
-                      <ButtonBar gap={0.5}>
-                        {transaction && (
-                          <div>
-                            <Tooltip title={t('Open Transaction Summary')}>
-                              <LinkButton
-                                to={transactionTo(transaction)}
-                                size="zero"
-                                borderless
-                              >
-                                <IconLightning size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
+                  <CenterCell>
+                    <ButtonBar gap={0.5}>
+                      {transaction && (
+                        <div>
+                          <Tooltip title={t('Open Transaction Summary')}>
+                            <LinkButton
+                              to={transactionTo(transaction)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconLightning size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-                        {release && (
-                          <div>
-                            <Tooltip title={t('Open Release Details')}>
-                              <LinkButton to={releaseTo(release)} size="zero" borderless>
-                                <IconReleases size="sm" />
-                              </LinkButton>
-                            </Tooltip>
-                          </div>
-                        )}
-                      </ButtonBar>
-                    </CenterCell>
-                  )}
+                      {release && (
+                        <div>
+                          <Tooltip title={t('Open Release Details')}>
+                            <LinkButton to={releaseTo(release)} size="zero" borderless>
+                              <IconReleases size="sm" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </ButtonBar>
+                  </CenterCell>
+
                   <PaddingCell />
                 </Row>
               </Fragment>
@@ -381,10 +378,14 @@ function getValues(seriesData: Series['data']) {
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
+  /* padding | color dot | name | avg | min | max | sum | actions | padding */
+  grid-template-columns: ${space(0.75)} ${space(3)} 8fr repeat(5, max-content) ${space(
+      0.75
+    )};
 
-  grid-template-areas:
-    'header'
-    'body';
+  max-height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -392,58 +393,31 @@ const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const gridColumns = ({hasActions}: {hasActions: boolean}) =>
-  // padding | color dot | name | avg | min | max | sum | actions | padding
-  hasActions
-    ? `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) 50px ${space(0.75)}`
-    : `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) ${space(0.75)}`;
-
-const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
-  grid-area: header;
-  position: sticky;
-  top: 0;
-  display: grid;
-  grid-template-columns: ${p => gridColumns(p)};
-
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
-  grid-area: body;
-  display: grid;
-  grid-template-columns: ${p => gridColumns(p)};
-
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  max-height: 180px;
+const TableBodyWrapper = styled(`div`)<{hasActions: boolean}>`
+  display: contents;
 `;
 
 const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
-  font-weight: 600;
-  color: ${p => p.theme.subText};
-  text-transform: uppercase;
-  border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  font-family: ${p => p.theme.text.family};
   display: flex;
   flex-direction: row;
+  text-transform: uppercase;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.25)} ${space(0.75)};
-  gap: ${space(0.5)};
-  user-select: none;
   align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.25)} ${space(0.75)};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-weight: 600;
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.subText};
+  user-select: none;
 
-  ${p =>
-    !p.disabled &&
-    `
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
+
   &:hover {
-    cursor: pointer;
-    border-left: 1px solid ${p.theme.border};
-    border-right: 1px solid ${p.theme.border};
-    `};
+    cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+  }
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
@@ -454,8 +428,9 @@ const Cell = styled('div')<{right?: boolean}>`
   white-space: nowrap;
 `;
 
-const RightCell = styled(Cell)`
+const NumberCell = styled(Cell)`
   justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
 `;
 
 const CenterCell = styled(Cell)`
@@ -481,7 +456,7 @@ const Row = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell}, ${RightCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
+    ${Cell}, ${NumberCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }
