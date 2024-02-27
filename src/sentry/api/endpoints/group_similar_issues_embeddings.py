@@ -141,9 +141,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             group_id=group.id,
             count_over_threshold=len(
                 [
-                    result["stacktrace_similarity"]  # type: ignore
+                    result["stacktrace_similarity"]
                     for result in results["responses"]
-                    if result["stacktrace_similarity"] > 0.99  # type: ignore
+                    if result and result["stacktrace_similarity"] > 0.99
                 ]
             )
             if results["responses"]
