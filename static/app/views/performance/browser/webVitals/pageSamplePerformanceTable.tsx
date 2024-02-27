@@ -44,6 +44,7 @@ import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webV
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -137,17 +138,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: dataset === Dataset.PAGELOADS,
   });
 
-  const {
-    data: interactionsTableData,
-    isLoading: isInteractionsLoading,
-    pageLinks: interactionsPageLinks,
-  } = useTransactionSamplesWebVitalsQuery({
-    limit,
-    transaction,
-    query: `${INP_SEARCH_FILTER} ${search ?? ''}`,
-    withProfiles: true,
-    enabled: dataset === Dataset.INTERACTIONS,
-  });
+  const interactionsPageLinks = null;
+
+  const {data: interactionsTableData, isFetching: isInteractionsLoading} =
+    useIndexedSpans({'span.op': 'ui.interaction.click'});
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);

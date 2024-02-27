@@ -40,7 +40,7 @@ function InteractionsLandingPage() {
     <ModulePageProviders
       title={[t('Performance'), t('Interactions')].join(' — ')}
       baseURL="/performance/browser/interactions"
-      features="starfish-view "
+      features="starfish-view"
     >
       <Layout.Header>
         <Layout.HeaderContent>
