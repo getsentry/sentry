@@ -314,7 +314,8 @@ function RenderRow(props: {
           }
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {isParentAutogroupedNode(props.node) ? (
@@ -403,7 +404,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -488,7 +490,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -546,7 +549,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -615,7 +619,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {' '}
@@ -685,7 +690,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {/* @TODO: figure out what to do with trace errors */}{' '}
@@ -757,7 +763,8 @@ function RenderPlaceholderRow(props: {
         className="TraceRightColumn"
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
-          backgroundColor: props.index % 2 === 0 ? props.theme.backgroundSecondary : '',
+          backgroundColor:
+            props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
         }}
       >
         {isTraceNode(props.node) ? null : (
