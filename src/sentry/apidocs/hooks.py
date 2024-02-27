@@ -1,7 +1,7 @@
-import inspect
 import json  # noqa: S003
 import os
 import re
+import sys
 from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
@@ -170,7 +170,14 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             ends_with_object = re.search(r"/([^/{}]+)s/$", path)
             if ends_with_object is not None:
                 class_name = callback.view_class.__name__
-                file_path = inspect.getfile(callback.view_class)
+
+                module_name = callback.view_class.__module__
+                file_path = getattr(sys.modules[module_name], "__file__", None)
+                if file_path is None:
+                    raise SentryApiBuildError(
+                        f"Unable to find file path for {class_name}. Please reach out to #discuss-api for help."
+                    )
+
                 result = find_method_and_check_paginate(file_path, class_name)
                 if not result and path not in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
                     raise SentryApiBuildError(
