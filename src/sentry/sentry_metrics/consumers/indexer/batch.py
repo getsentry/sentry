@@ -486,7 +486,7 @@ class IndexerBatch:
                         "type": old_payload_value["type"],
                         # XXX: The payload in ingest-metrics is "any"-typed,
                         # but the payload in generic-metrics is string-typed
-                        "value": cast(Any, old_payload_value["value"]),
+                        "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
                     if aggregation_option := get_aggregation_option(old_payload_value["name"]):
