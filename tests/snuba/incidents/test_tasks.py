@@ -198,7 +198,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             consumer = get_stream_processor(
                 "metrics-subscription-results",
                 consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
-                topic=self.topic,
+                topic=None,
                 cluster=None,
                 group_id="hi",
                 strict_offset_reset=True,
