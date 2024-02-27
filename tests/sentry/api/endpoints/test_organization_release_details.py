@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -230,7 +230,7 @@ class ReleaseDetailsTest(APITestCase):
         Test that ensures that in the case we are trying to get prev and next release to a current
         release with exact same date then we fallback to id comparison
         """
-        date_now = datetime.utcnow()
+        date_now = datetime.now(UTC)
         release_1 = Release.objects.create(
             date_added=date_now, organization_id=self.organization.id, version="foobar@1.0.0"
         )
@@ -416,7 +416,7 @@ class ReleaseDetailsTest(APITestCase):
         )
         release_2.add_project(self.project1)
 
-        date_added_from_8d = datetime.utcnow() - timedelta(days=8)
+        date_added_from_8d = datetime.now(UTC) - timedelta(days=8)
         release_3 = Release.objects.create(
             organization_id=self.organization.id,
             version="foobar@3.0.0",
@@ -472,7 +472,7 @@ class ReleaseDetailsTest(APITestCase):
         retrieved correctly in the case when all releases have the same exact datetime and we
         need to fallback to comparison with id
         """
-        date_now = datetime.utcnow()
+        date_now = datetime.now(UTC)
         release_2 = self.create_release(
             project=self.project1, version="foobar@2.0.0", date_added=date_now
         )
@@ -606,7 +606,9 @@ class ReleaseDetailsTest(APITestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
         url = reverse(
@@ -984,7 +986,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": org.slug, "version": release.version},
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -1018,7 +1020,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": org.slug, "version": release.version},
         )
-        response = self.client.put(url, data={"dateReleased": datetime.utcnow().isoformat() + "Z"})
+        response = self.client.put(url, data={"dateReleased": datetime.now(UTC).isoformat()})
 
         assert response.status_code == 200, (response.status_code, response.content)
 
@@ -1267,7 +1269,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         result = serializer.validated_data
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs

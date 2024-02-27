@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Literal, TypedDict, cast
+from typing import Literal, TypedDict, cast
 
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
@@ -11,7 +11,7 @@ from sentry.search.events.builder import (
     QueryBuilder,
     SpansIndexedQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import (
     SpanMRI,
@@ -36,7 +36,7 @@ class AbstractSamplesListExecutor(ABC):
     def __init__(
         self,
         mri: str,
-        params: dict[str, Any],
+        params: ParamsType,
         snuba_params: SnubaParams,
         fields: list[str],
         query: str | None,
