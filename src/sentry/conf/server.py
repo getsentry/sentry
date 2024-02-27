@@ -1596,10 +1596,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
-    # Enable comments of related issues on open PRs
-    "organizations:integrations-open-pr-comment": False,
-    # Enable comments of related issues on open PRs for Javascript
-    "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
@@ -1874,6 +1870,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
+    # Send Slack notifications to threads
+    "organizations:slack-thread": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
