@@ -52,9 +52,15 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
-    def user(self):
-        """Return objects for the default use case"""
-        return self.get_queryset().filter(use_case=UseCase.USER.value)
+    def for_request(self, request):
+        """Return objects that the given request user is allowed to access"""
+        from sentry.auth.superuser import is_active_superuser
+
+        qs = self.get_queryset()
+        if not is_active_superuser(request):
+            qs = qs.filter(use_case=UseCase.USER.value)
+
+        return qs
 
 
 class UseCase(enum.Enum):
