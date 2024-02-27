@@ -89,7 +89,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             defaults={
                 "owner_id": request.user.id,
                 "until": data.get("until"),
-                "date_added": datetime.datetime.now(),
+                "date_added": datetime.datetime.now(datetime.UTC),
             },
             **kwargs,
         )
