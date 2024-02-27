@@ -7,6 +7,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,6 +21,7 @@ export default function FeedbackSetupPanel() {
     trackAnalytics('feedback.index-setup-viewed', {
       organization,
     });
+    SidebarPanelStore.hidePanel('feedback-sidequest');
   }, [organization]);
 
   return (

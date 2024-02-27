@@ -564,7 +564,10 @@ function Sidebar() {
           <FeedbackOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
-            hidePanel={hidePanel}
+            hidePanel={() => {
+              hidePanel();
+              window.location.hash = '';
+            }}
             {...sidebarItemProps}
           />
           <ReplaysOnboardingSidebar
