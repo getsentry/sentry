@@ -169,21 +169,27 @@ function Trace({trace, trace_id}: TraceProps) {
         <AutoSizer>
           {({width, height}) => (
             <Fragment>
-              {trace.indicators.length > 0
-                ? trace.indicators.map((indicator, i) => {
-                    return (
-                      <div
-                        key={i}
-                        ref={r =>
-                          viewManager.current?.registerIndicatorRef(r, i, indicator)
-                        }
-                        className="TraceIndicator"
-                      >
-                        <div className="TraceIndicatorLine" />
-                      </div>
-                    );
-                  })
-                : null}
+              <div
+                className="TraceIndicatorContainer"
+                ref={r => viewManager.current?.registerIndicatorContainerRef(r)}
+              >
+                {trace.indicators.length > 0
+                  ? trace.indicators.map((indicator, i) => {
+                      return (
+                        <div
+                          key={i}
+                          ref={r =>
+                            viewManager.current?.registerIndicatorRef(r, i, indicator)
+                          }
+                          className="TraceIndicator"
+                        >
+                          <div className="TraceIndicatorLabel">{indicator.label}</div>
+                          <div className="TraceIndicatorLine" />
+                        </div>
+                      );
+                    })
+                  : null}
+              </div>
               <List
                 ref={r => viewManager.current?.registerList(r)}
                 rowHeight={24}
@@ -1003,6 +1009,18 @@ const TraceStylingWrapper = styled('div')`
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
+  padding-top: 24px;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 22px;
+    background-color: ${p => p.theme.backgroundSecondary};
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 
   @keyframes show {
     0% {
@@ -1026,6 +1044,15 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  .TraceIndicatorContainer {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
   .TraceIndicator {
     z-index: 1;
     width: 3px;
@@ -1033,12 +1060,30 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     position: absolute;
 
+    .TraceIndicatorLabel {
+      min-width: 34px;
+      text-align: center;
+      position: absolute;
+      transform: translate(-50%, 0);
+      font-size: ${p => p.theme.fontSizeExtraSmall};
+      font-weight: bold;
+      color: ${p => p.theme.textColor};
+      background-color: ${p => p.theme.background};
+      border-radius: ${p => p.theme.borderRadius};
+      border: 1px solid ${p => p.theme.border};
+      padding: ${space(0.25)};
+      display: inline-block;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
     .TraceIndicatorLine {
       width: 1px;
       height: 100%;
+      top: 20px;
       position: absolute;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-2px);
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,

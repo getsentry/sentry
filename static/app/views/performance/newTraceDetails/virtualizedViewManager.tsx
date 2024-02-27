@@ -121,7 +121,10 @@ export class VirtualizedViewManager {
   trace_physical_space: View = View.Empty();
   container_physical_space: View = View.Empty();
 
-  measurer: RowMeasurer = new RowMeasurer();
+  row_measurer: DOMWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
+    new DOMWidthMeasurer();
+  indicator_label_measurer: DOMWidthMeasurer<TraceTree['indicators'][0]> =
+    new DOMWidthMeasurer();
   text_measurer: TextMeasurer = new TextMeasurer();
 
   resize_observer: ResizeObserver | null = null;
@@ -131,6 +134,8 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
+  indicator_container: HTMLElement | null = null;
+
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
@@ -251,6 +256,13 @@ export class VirtualizedViewManager {
     this.list = list;
   }
 
+  registerIndicatorContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = this.columns.span_list.width * 100 + '%';
+    }
+    this.indicator_container = ref;
+  }
+
   registerDividerRef(ref: HTMLElement | null) {
     if (!ref) {
       if (this.divider) {
@@ -299,7 +311,7 @@ export class VirtualizedViewManager {
       } else if (ref) {
         const scrollableElement = ref.children[0];
         if (scrollableElement) {
-          this.measurer.measure(node, scrollableElement as HTMLElement);
+          this.row_measurer.measure(node, scrollableElement as HTMLElement);
           ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
         }
       }
@@ -324,13 +336,22 @@ export class VirtualizedViewManager {
     indicator: TraceTree['indicators'][0]
   ) {
     if (!ref) {
+      const element = this.indicators[index]?.ref;
+      if (element) {
+        element.removeEventListener('wheel', this.onWheelZoom);
+      }
       this.indicators[index] = undefined;
     } else {
       this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
-      ref.style.left = this.columns.list.width * 100 + '%';
+      const label = ref.children[0] as HTMLElement | undefined;
+      if (label) {
+        this.indicator_label_measurer.measure(indicator, label);
+      }
+
+      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
       ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
         indicator.start
       )}px)`;
@@ -413,6 +434,13 @@ export class VirtualizedViewManager {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
       }
     }
+
+    for (let i = 0; i < this.indicators.length; i++) {
+      const indicator = this.indicators[i];
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'none';
+      }
+    }
   }
 
   onWheelEnd() {
@@ -422,6 +450,12 @@ export class VirtualizedViewManager {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
+      }
+    }
+    for (let i = 0; i < this.indicators.length; i++) {
+      const indicator = this.indicators[i];
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'auto';
       }
     }
   }
@@ -447,7 +481,7 @@ export class VirtualizedViewManager {
 
     this.columns.list.translate[0] = clamp(
       this.columns.list.translate[0] - event.deltaX,
-      -(this.measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
+      -(this.row_measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
       0
     );
 
@@ -503,7 +537,7 @@ export class VirtualizedViewManager {
     const renderCount = this.columns.span_list.column_refs.length;
 
     for (let i = offset + 1; i < renderCount - offset; i++) {
-      const width = this.measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -761,8 +795,11 @@ export class VirtualizedViewManager {
 
     if (this.divider) {
       this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2
+        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
       }px)`;
+    }
+    if (this.indicator_container) {
+      this.indicator_container.style.width = span_list_width * 100 + '%';
     }
 
     const listWidth = list_width * 100 + '%';
@@ -800,10 +837,51 @@ export class VirtualizedViewManager {
       if (!entry) {
         continue;
       }
-      entry.ref.style.left = listWidth;
-      entry.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
-        entry.indicator.start
-      )}px)`;
+
+      const transform = this.computeTransformXFromTimestamp(entry.indicator.start);
+      const label = entry.ref.children[0] as HTMLElement | undefined;
+
+      let indicator_max = Math.min(this.trace_physical_space.width + 1, transform);
+      let indicator_min = Math.max(-1, transform);
+
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
+
+      if (label_width === undefined) {
+        entry.ref.style.transform = `translate(${clamp(transform, indicator_min, indicator_max)}px, 0)`;
+        continue;
+      }
+
+      if (label) {
+        const label_max = Math.min(
+          this.trace_physical_space.width - label_width,
+          transform
+        );
+
+        if (entry.indicator.label === 'CLS') {
+          // console.log(transform, label_width);
+        }
+
+        if (transform - label_width / 2 <= 0) {
+          const distance = label_width / 2 - transform;
+          if (entry.indicator.label === 'CLS') {
+            console.log(distance);
+          }
+          if (distance > 0) {
+            label.style.transform = `translate(${label_width / 2 + distance}px, 0)`;
+          }
+          // if (transform > label_width) {
+          //   label.style.transform = `translate(0px, 0)`;
+          // } else {
+          // const distance = label_width / 2 - transform;
+          // }
+        } else if (transform > label_max) {
+          // label.style.transform = `translate(${label_max}px, 0)`;
+        } else {
+          // label.style.transform = `translate(-${label_width / 2}px, 0)`;
+        }
+      }
+
+      entry.ref.style.transform = `translate(${clamp(transform, -1, indicator_max)}px, 0)`;
     }
   }
 
@@ -819,11 +897,11 @@ export class VirtualizedViewManager {
 
 // The backing cache should be a proper LRU cache,
 // so we dont end up storing an infinite amount of elements
-class RowMeasurer {
-  cache: Map<TraceTreeNode<any>, number> = new Map();
+class DOMWidthMeasurer<T> {
+  cache: Map<T, number> = new Map();
   elements: HTMLElement[] = [];
 
-  queue: [TraceTreeNode<any>, HTMLElement][] = [];
+  queue: [T, HTMLElement][] = [];
   drainRaf: number | null = null;
   max: number = 0;
 
@@ -831,7 +909,7 @@ class RowMeasurer {
     this.drain = this.drain.bind(this);
   }
 
-  enqueueMeasure(node: TraceTreeNode<any>, element: HTMLElement) {
+  enqueueMeasure(node: T, element: HTMLElement) {
     if (this.cache.has(node)) {
       return;
     }
@@ -850,7 +928,7 @@ class RowMeasurer {
     }
   }
 
-  measure(node: TraceTreeNode<any>, element: HTMLElement): number {
+  measure(node: T, element: HTMLElement): number {
     const cache = this.cache.get(node);
     if (cache !== undefined) {
       return cache;
