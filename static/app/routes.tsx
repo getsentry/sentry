@@ -1683,6 +1683,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path="http/">
+        <IndexRoute
+          component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
+        />
+      </Route>
       <Route path="browser/">
         <Route path="interactions/">
           <IndexRoute

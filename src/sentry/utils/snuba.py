@@ -147,6 +147,21 @@ SPAN_COLUMN_MAP = {
     "app_start_type": "sentry_tags[app_start_type]",
 }
 
+METRICS_SUMMARIES_COLUMN_MAP = {
+    "project": "project_id",
+    "id": "span_id",
+    "trace": "trace_id",
+    "metric": "metric_mri",
+    "timestamp": "end_timestamp",
+    "segment.id": "segment_id",
+    "span.duration": "duration",
+    "span.group": "group",
+    "min_metric": "min",
+    "max_metric": "max",
+    "sum_metric": "sum",
+    "count_metric": "count",
+}
+
 SPAN_COLUMN_MAP.update(
     {col.value.alias: col.value.spans_name for col in Columns if col.value.spans_name is not None}
 )
@@ -197,6 +212,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
@@ -213,6 +229,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
+    Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"

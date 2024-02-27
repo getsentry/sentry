@@ -39,7 +39,7 @@ MAX_RELEASEFILES_QUERY = 10
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 

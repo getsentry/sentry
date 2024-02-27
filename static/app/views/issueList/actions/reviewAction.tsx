@@ -2,9 +2,10 @@ import ActionLink from 'sentry/components/actions/actionLink';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 type Props = {
-  onUpdate: (data: {inbox: boolean}) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   disabled?: boolean;
   tooltip?: string;
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;

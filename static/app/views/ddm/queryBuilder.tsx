@@ -1,5 +1,6 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -21,7 +22,7 @@ import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import type {
   MetricDisplayType,
-  MetricsQuerySubject,
+  MetricsQuery,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
@@ -37,7 +38,7 @@ import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 type QueryBuilderProps = {
   displayType: MetricDisplayType;
   isEdit: boolean;
-  metricsQuery: MetricsQuerySubject;
+  metricsQuery: MetricsQuery;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   fixedWidth?: boolean;
@@ -75,9 +76,16 @@ export const QueryBuilder = memo(function QueryBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = [], isLoading: tagsIsLoading} = useMetricsTags(metricsQuery.mri, {
-    projects,
-  });
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
+    metricsQuery.mri,
+    {
+      projects,
+    }
+  );
+
+  const tags = useMemo(() => {
+    return uniqBy(tagsData, 'key');
+  }, [tagsData]);
 
   const displayedMetrics = useMemo(() => {
     if (mriMode) {
@@ -95,11 +103,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   }, [meta, metricsQuery.mri]);
 
   const incrementQueryMetric = useIncrementQueryMetric({
+    ...metricsQuery,
     displayType,
-    op: metricsQuery.op,
-    groupBy: metricsQuery.groupBy,
-    query: metricsQuery.query,
-    mri: metricsQuery.mri,
   });
 
   const handleMRIChange = useCallback(
@@ -191,10 +196,12 @@ export const QueryBuilder = memo(function QueryBuilder({
             breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
             /\.|-|_/
           )}
-          placeholder={t('Select a metric')}
+          // TODO(TS): Is this used anywhere?
+          aria-placeholder={t('Select a metric')}
           options={mriOptions}
           value={metricsQuery.mri}
           onChange={handleMRIChange}
+          shouldUseVirtualFocus
         />
         <FlexBlock>
           <OpSelect

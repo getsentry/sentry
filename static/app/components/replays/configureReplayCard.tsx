@@ -78,8 +78,8 @@ export default function ConfigureReplayCard() {
         <Hovercard
           body={<ResourceButtons />}
           bodyClassName={css`
-              padding: ${space(1)};
-            `}
+            padding: ${space(1)};
+          `}
           position="top-end"
         >
           <Button
