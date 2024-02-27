@@ -622,6 +622,7 @@ __all__ = ("urlpatterns",)
 from ..monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
+from ..monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
 from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
@@ -2680,6 +2681,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         ProjectMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
+        ProjectMonitorStatsEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-stats",
     ),
 ]
 
