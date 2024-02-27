@@ -503,7 +503,6 @@ module = [
     "sentry.testutils.performance_issues.store_transaction",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
-    "sentry.tsdb.redis",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
