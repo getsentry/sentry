@@ -34,19 +34,11 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
     if not replay_ids_mapping:
         return {}
 
-    replay_ids = list(replay_ids_mapping.keys())
-    """ Validate UUIDs. In clickhouse they are stored in their 128-bit int repr.
-     To validate, try converting to the text repr """
-    for int_id in replay_ids:
-        uuid.UUID(
-            int_id
-        )  # caller responsibility to except ValueError (e.g. organization_replay_count)
-
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
         start=snuba_params.start,
         end=snuba_params.end,
-        replay_ids=replay_ids,
+        replay_ids=list(replay_ids_mapping.keys()),
         tenant_ids={"organization_id": snuba_params.organization.id},
     )
 
@@ -59,13 +51,24 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 def _get_replay_id_mappings(
     query, snuba_params, data_source=Dataset.Discover
 ) -> dict[str, list[str]]:
-    select_column, value = _get_select_column(query)
+    """
+    Parses select_column ("identifier") from a query, then queries data_source to map replay_id -> [identifier].
+    If select_column is replay_id, return an identity map of replay_id -> [replay_id].
+    The keys of the returned dict are UUIDs, represented as 32 char hex strings (all '-'s stripped)
+    """
+    select_column, column_value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
-        # just return a mapping of replay_id:replay_id instead of hitting discover
-        # if we want to validate list of replay_ids existence
-        return {v: [v] for v in value}
+        # just return a mapping of replay_id:replay_id instead of hitting discover.
+        # parses, validates, and formats the user-provided UUID's in a query/request.
+        identity_map = {}
+        for replay_id in column_value:
+            replay_id = uuid.UUID(
+                hex=replay_id, version=4
+            ).hex  # raises ValueError if invalid. Strips '-'
+            identity_map[replay_id] = [replay_id]
+        return identity_map
 
     # The client may or may not have narrowed the request by project-id. We have a
     # defined set of issue-ids and can efficiently look-up their project-ids if the
@@ -79,7 +82,7 @@ def _get_replay_id_mappings(
     if select_column == "issue.id":
         groups = Group.objects.select_related("project").filter(
             project__organization_id=snuba_params.organization.id,
-            id__in=value,
+            id__in=column_value,
         )
         snuba_params = dataclasses.replace(
             snuba_params,
@@ -119,7 +122,9 @@ def _get_replay_id_mappings(
 def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
     ret: dict[str, int] = defaultdict(int)
     for row in replay_results["data"]:
-        identifiers = replay_ids_mapping[row["rid"]]
+        identifiers = replay_ids_mapping[
+            row["rid"]
+        ]  # use rid because replay_id results column might have dashes
         for identifier in identifiers:
             ret[identifier] = min(ret[identifier] + 1, MAX_REPLAY_COUNT)
     return ret
