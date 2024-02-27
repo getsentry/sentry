@@ -26,7 +26,7 @@ export enum SiblingOption {
 
 type PlatformOptionKey = 'siblingOption';
 
-export const platformOptionsCapacitor: Record<PlatformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
@@ -54,7 +54,7 @@ export const platformOptionsCapacitor: Record<PlatformOptionKey, PlatformOption>
   },
 };
 
-type PlatformOptions = typeof platformOptionsCapacitor;
+type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
@@ -227,7 +227,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: _ => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -461,7 +461,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  platformOptions: platformOptionsCapacitor,
+  platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
 };

@@ -27,7 +27,6 @@ import {
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
-import {platformOptionsCapacitor} from 'sentry/gettingStartedDocs/capacitor/capacitor';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
@@ -175,14 +174,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
     : otherPlatform;
 
-  const ionic = currentPlatform.id === 'ionic';
-
   const npmOnlyFramework =
-    (currentProject.platform &&
-      replayFrontendPlatforms
-        .filter(p => p !== 'javascript')
-        .includes(currentProject.platform)) ||
-    ionic;
+    currentProject.platform &&
+    replayFrontendPlatforms
+      .concat('ionic')
+      .filter(p => p !== 'javascript')
+      .includes(currentProject.platform);
 
   const {
     docs: newDocs,
@@ -251,16 +248,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        (newDocs?.platformOptions || ionic) &&
+        newDocs?.platformOptions &&
         !backendPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown
-                  platformOptions={
-                    ionic ? platformOptionsCapacitor : newDocs?.platformOptions
-                  }
-                />
+                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
               ),
             })}
           </PlatformSelect>
