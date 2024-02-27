@@ -567,12 +567,12 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     return on_demand_entry.extraction_enabled()
 
 
-def _get_widget_cardinality_query_ttl():
+def _get_widget_cardinality_query_ttl() -> int:
     # Add ttl + 25% jitter to query so queries aren't all made at once.
     return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
 
 
-def _get_widget_cardinality_softdeadline_ttl():
+def _get_widget_cardinality_softdeadline_ttl() -> int:
     # This is a much shorter deadline than the main cardinality TTL in the case softdeadline is hit
     # We want to query again soon, but still avoid thundering herd problems.
     return int(
@@ -583,7 +583,7 @@ def _get_widget_cardinality_softdeadline_ttl():
     )
 
 
-def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
+def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project) -> bool:
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group by clauses with high-cardinality tags are not added to the on_demand metric.
@@ -1438,7 +1438,7 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
-def get_current_widget_specs(organization):
+def get_current_widget_specs(organization: Organization) -> set[str]:
     current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
     widget_specs = DashboardWidgetQueryOnDemand.objects.filter(
         spec_version=current_version.version,
@@ -1451,7 +1451,11 @@ def get_current_widget_specs(organization):
     return current_widget_specs
 
 
-def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
+def widget_exceeds_max_specs(
+    new_specs: Sequence[tuple[str, MetricSpec, SpecVersion]],
+    current_widget_specs: set[str],
+    organization: Organization,
+) -> bool:
     current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
     new_widget_specs = {
         widget_hash for widget_hash, _, spec_version in new_specs if spec_version == current_version
