@@ -64,6 +64,7 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
             assert close_streaming_response(response) == self.segment_data
             assert response.get("Content-Disposition") == f'attachment; filename="{self.filename}"'
             assert response.get("Content-Length") == str(self.segment_data_size)
+            assert response.get("Content-Type") == "application/octet-stream"
 
     def test_get_replay_video_segment_not_found(self):
         self.login_as(user=self.user)

@@ -61,7 +61,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectEndpoint):
 
         video_io = BytesIO(video)
         response = StreamingHttpResponse(
-            iter(lambda: video_io.read(4096), b""), content_type="application/json"
+            iter(lambda: video_io.read(4096), b""), content_type="application/octet-stream"
         )
         response["Content-Length"] = len(video)
         response["Content-Disposition"] = f'attachment; filename="{make_video_filename(segment)}"'
