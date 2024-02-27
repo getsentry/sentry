@@ -14,7 +14,7 @@ from sentry.api.authentication import (
 )
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.bases.project import ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
@@ -106,6 +106,35 @@ class MonitorEndpoint(Endpoint):
         if checkin_id:
             checkin = try_checkin_lookup(monitor, checkin_id)
             kwargs["checkin"] = checkin
+
+        return args, kwargs
+
+
+class ProjectMonitorEndpoint(ProjectEndpoint):
+    """
+    Base endpoint class for monitors which will look up the monitor and
+    convert it to a Monitor object.
+
+    [!!]: This base endpoint is NOT used for legacy ingestion endpoints, see
+          MonitorIngestEndpoint for that.
+    """
+
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        monitor_slug: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["monitor"] = Monitor.objects.get(
+                project_id=kwargs["project"].id, slug=monitor_slug
+            )
+        except Monitor.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return args, kwargs
 
