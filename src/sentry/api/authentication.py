@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
@@ -298,6 +299,35 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken:
+        """
+        Find token by hash or update token's hash value if only found via plaintext.
+        1. Hash provided plaintext token.
+        2. Perform lookup based on hashed value.
+        3. If found, return the token.
+        4. If not found, search for the token based on its plaintext value.
+        5. If found, update the token's hashed value and return the token.
+        6. If not found via hash or plaintext value, raise AuthenticationFailed
+        """
+
+        hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
+
+        try:
+            # Try to find the token by its hashed value first
+            return ApiToken.objects.get(hashed_token=hashed_token)
+        except ApiToken.DoesNotExist:
+            try:
+                # If we can't find it by hash, use the plaintext string
+                api_token = ApiToken.objects.get(token=token_str)
+            except ApiToken.DoesNotExist:
+                # If the token does not exist by plaintext either, return None
+                raise AuthenticationFailed("Invalid token")
+            else:
+                # Update it with the hashed value if found by plaintext
+                api_token.hashed_token = hashed_token
+                api_token.save(update_fields=["hashed_token"])
+                return api_token
+
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
             return False
@@ -389,9 +419,9 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:
-                token = OrgAuthToken.objects.filter(
+                token = OrgAuthToken.objects.get(
                     token_hashed=token_hashed, date_deactivated__isnull=True
-                ).get()
+                )
             except OrgAuthToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
 
