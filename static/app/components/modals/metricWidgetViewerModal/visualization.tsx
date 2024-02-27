@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -18,7 +18,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {getTableSeries, MetricTable} from 'sentry/views/dashboards/metrics/table';
+import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -160,7 +160,7 @@ export function MetricVisualization({
           </StyledTooltip>
         </WidgetTitle>
         <CompactSelect
-          size="xs"
+          size="sm"
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
           options={supportedDisplayTypes}
@@ -197,14 +197,14 @@ function MetricTableVisualization({
   isLoading,
 }: MetricTableVisualizationProps) {
   const tableSeries = useMemo(() => {
-    return timeseriesData ? getTableSeries(timeseriesData, queries) : [];
+    return getTableData(timeseriesData, queries);
   }, [timeseriesData, queries]);
 
   return (
-    <StyledMetricChartContainer>
+    <Fragment>
       <TransparentLoadingMask visible={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableSeries} />{' '}
-    </StyledMetricChartContainer>
+      <MetricTable isLoading={isLoading} data={tableSeries} />
+    </Fragment>
   );
 }
 
@@ -235,7 +235,7 @@ function MetricChartVisualization({
   const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
 
   return (
-    <StyledMetricChartContainer>
+    <Fragment>
       <TransparentLoadingMask visible={isLoading} />
       <MetricChart
         ref={chartRef}
@@ -252,17 +252,17 @@ function MetricChartVisualization({
         onColorDotClick={toggleSeriesVisibility}
         onRowHover={handleHoverSeries}
       />
-    </StyledMetricChartContainer>
+    </Fragment>
   );
 }
 
 const StyledOuterContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
 `;
 
 const StyledMetricChartContainer = styled('div')`
-  padding: ${space(2)};
   gap: ${space(3)};
   display: flex;
   flex-direction: column;
@@ -275,9 +275,6 @@ const ViualizationHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
-  padding-left: ${space(2)};
-  padding-top: ${space(1.5)};
-  padding-right: ${space(2)};
 `;
 
 const WidgetTitle = styled('div')`
