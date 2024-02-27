@@ -320,7 +320,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                 # If we can't find it by hash, use the plaintext string
                 api_token = ApiToken.objects.get(token=token_str)
             except ApiToken.DoesNotExist:
-                # If the token does not exist by plaintext either, return None
+                # If the token does not exist by plaintext either, it is not a valid token
                 raise AuthenticationFailed("Invalid token")
             else:
                 # Update it with the hashed value if found by plaintext
