@@ -86,6 +86,10 @@ export type IssueTypeConfig = {
    */
   tags: DisabledWithReasonConfig;
   /**
+   * Displays the trace timeline for this issue
+   */
+  traceTimeline: boolean;
+  /**
    * Is the User Feedback tab shown for this issue
    */
   userFeedback: DisabledWithReasonConfig;
