@@ -9,7 +9,21 @@ import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
 import {Tooltip} from '../../tooltip';
 
-export function WidgetTitle({value, displayValue, placeholder, description, onSubmit}) {
+type Props = {
+  displayValue: string;
+  placeholder: string;
+  value: string;
+  description?: string;
+  onSubmit?: (value: string) => void;
+};
+
+export function WidgetTitle({
+  value,
+  displayValue,
+  placeholder,
+  description,
+  onSubmit,
+}: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState<string>(value);
 
