@@ -369,15 +369,18 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             return Response(data=aggregated_tree)
 
-        conditions = [["transaction", "=", transaction]]
+        conditions: list[list[object]] = [["transaction", "=", transaction]]
         if http_method is not None:
             conditions.append(["http.method", "=", http_method])
 
         environments = params.get("environment", None)
-        if environments and len(environments) > 1:
-            conditions.append(["environment", "IN", environments])
-        elif environments and len(environments) == 1:
-            conditions.append(["environment", "=", environments[0]])
+        if environments:
+            if isinstance(environments, str):
+                conditions.append(["environment", "=", environments])
+            elif len(environments) == 1:
+                conditions.append(["environment", "=", environments[0]])
+            elif len(environments) > 1:
+                conditions.append(["environment", "IN", environments])
 
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(

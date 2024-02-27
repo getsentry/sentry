@@ -380,10 +380,14 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 ];
 
 export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  'android',
+  'dart',
+  'flutter',
   'java',
   'java-log4j2',
-  'dart',
-  'android',
+  'kotlin',
+  'react-native',
+  'unreal',
   ...replayPlatforms,
 ];
 
