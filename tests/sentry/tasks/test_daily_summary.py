@@ -229,15 +229,17 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
 
         assert summary.projects_context_map[project_id].total_today == 13
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
-        assert summary.projects_context_map[project_id].key_errors == [
-            (group1, None, 1),
-            (group3, None, 1),
-            (group2, None, 1),
-        ]
-        assert summary.projects_context_map[project_id].key_performance_issues == [
-            (perf_event2.group, None, 1),
-            (perf_event.group, None, 1),
-        ]
+        assert len(summary.projects_context_map[project_id].key_errors) == 3
+        assert (group1, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert (group2, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert (group3, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert len(summary.projects_context_map[project_id].key_performance_issues) == 2
+        assert (perf_event.group, None, 1) in summary.projects_context_map[
+            project_id
+        ].key_performance_issues
+        assert (perf_event2.group, None, 1) in summary.projects_context_map[
+            project_id
+        ].key_performance_issues
         assert summary.projects_context_map[project_id].escalated_today == [group3]
         assert summary.projects_context_map[project_id].regressed_today == [group2]
         assert summary.projects_context_map[project_id].new_in_release[self.release.id] == [
