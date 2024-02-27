@@ -412,8 +412,8 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     @pytest.mark.xfail(reason="fails only in CI, need to determine why")
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
-        print("ph", prev_hour)
-        print("tz", timezone.now())
+        print("ph", prev_hour)  # NOQA
+        print("tz", timezone.now())  # NOQA
         transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
         perf_issue = transaction.group

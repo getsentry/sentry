@@ -73,9 +73,9 @@ def preview(
     if end is None:
         end = timezone.now()
     start = end - PREVIEW_TIME_RANGE
-    print("s", start)
-    print("e", end)
-    print("ptr", PREVIEW_TIME_RANGE)
+    print("s", start)  # NOQA
+    print("e", end)  # NOQA
+    print("ptr", PREVIEW_TIME_RANGE)  # NOQA
     try:
         group_activity = get_issue_state_activity(project, issue_state_conditions, start, end)
         filter_objects, filter_func, event_columns = get_filters(project, filters, filter_match)
@@ -89,7 +89,7 @@ def preview(
         # if there is an event filter, retrieve event data
         if event_columns:
             event_map = get_events(project, group_activity, event_columns, start, end)
-        print(event_map)
+        print(event_map)  # NOQA
         if frequency_conditions:
             dataset_map = get_group_dataset(list(group_activity.keys()))
             has_issue_state_condition = bool(issue_state_conditions)
@@ -105,16 +105,16 @@ def preview(
                 dataset_map,
                 has_issue_state_condition,
             )
-        print("ga", group_activity)
+        print("ga", group_activity)  # NOQA
 
         frequency = timedelta(minutes=frequency_minutes)
         group_fires = get_fired_groups(
             group_activity, filter_objects, filter_func, start, frequency, event_map
         )
-        print("gf", group_fires)
+        print("gf", group_fires)  # NOQA
         return group_fires
     except PreviewException as e:
-        print(e)
+        print(e)  # NOQA
         return None
 
 
