@@ -15,15 +15,15 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.endpoints.base import MonitorEndpoint
+from sentry.monitors.endpoints.base import ProjectMonitorEnvironmentEndpoint
 from sentry.monitors.endpoints.monitor_environment_details import MonitorEnvironmentDetailsMixin
 from sentry.monitors.serializers import MonitorSerializer
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorEnvironmentDetailsEndpoint(
-    MonitorEndpoint, MonitorEnvironmentDetailsMixin
+class ProjectMonitorEnvironmentDetailsEndpoint(
+    ProjectMonitorEnvironmentEndpoint, MonitorEnvironmentDetailsMixin
 ):
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
@@ -32,9 +32,10 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
     owner = ApiOwner.CRONS
 
     @extend_schema(
-        operation_id="Update a Monitor Environment",
+        operation_id="Update a Monitor Environment for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
             MonitorParams.MONITOR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
@@ -46,18 +47,17 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(
-        self, request: Request, organization, project, monitor, monitor_environment
-    ) -> Response:
+    def put(self, request: Request, project, monitor, monitor_environment) -> Response:
         """
         Update a monitor environment.
         """
         return self.update_monitor_environment(request, project, monitor, monitor_environment)
 
     @extend_schema(
-        operation_id="Delete a Monitor Environments",
+        operation_id="Delete a Monitor Environment for a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
             MonitorParams.MONITOR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
@@ -68,7 +68,5 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(
-        self, request: Request, organization, project, monitor, monitor_environment
-    ) -> Response:
+    def delete(self, request: Request, project, monitor, monitor_environment) -> Response:
         return self.delete_monitor_environment(request, project, monitor, monitor_environment)

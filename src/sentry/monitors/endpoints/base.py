@@ -139,6 +139,36 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         return args, kwargs
 
 
+class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
+    """
+    Base endpoint class for monitor environment which will look up the monitor environment and
+    convert it to a MonitorEnvironment object.
+    """
+
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        environment: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        monitor = kwargs["monitor"]
+        try:
+            environment_object = Environment.objects.get(
+                organization_id=monitor.organization_id, name=environment
+            )
+            kwargs["monitor_environment"] = MonitorEnvironment.objects.get(
+                monitor_id=monitor.id, environment_id=environment_object.id
+            )
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
 class MonitorIngestEndpoint(Endpoint):
     """
     This type of endpoint explicitly only allows for DSN and Token / Key based authentication.
