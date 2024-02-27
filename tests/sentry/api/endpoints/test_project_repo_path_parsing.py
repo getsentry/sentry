@@ -1,7 +1,8 @@
 from django.urls import reverse
 
+from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
 from sentry.silo import SiloMode
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -23,6 +24,99 @@ class BaseStacktraceLinkTest(APITestCase):
         )
 
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
+
+
+class PathMappingSerializerTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration, self.oi = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="github",
+            name="getsentry",
+            external_id="1234",
+            metadata={"domain_name": "github.com/getsentry"},
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            url="https://github.com/getsentry/sentry",
+        )
+
+    def test_basic(self):
+        serializer = PathMappingSerializer(
+            context={"organization_id": self.organization.id},
+            data={
+                "source_url": "https://github.com/getsentry/sentry/blob/random.py",
+                "stack_path": "/random.py",
+            },
+        )
+
+        assert serializer.is_valid()
+        assert serializer.data["stack_path"] == "/random.py"
+        assert serializer.data["source_url"] == "https://github.com/getsentry/sentry/blob/random.py"
+
+    def test_window_stack_path(self):
+        serializer = PathMappingSerializer(
+            context={"organization_id": self.organization.id},
+            data={
+                "source_url": "https://github.com/getsentry/sentry/blob/duck.py",
+                "stack_path": "C:\\duck.py",
+            },
+        )
+        assert serializer.is_valid()
+        assert serializer.data["stack_path"] == "C:\\duck.py"
+        assert serializer.data["source_url"] == "https://github.com/getsentry/sentry/blob/duck.py"
+
+    def test_wrong_file(self):
+        serializer = PathMappingSerializer(
+            context={"organization_id": self.organization.id},
+            data={
+                "source_url": "https://github.com/getsentry/sentry/blob/random.py",
+                "stack_path": "/badfile.py",
+            },
+        )
+
+        assert not serializer.is_valid()
+        assert (
+            serializer.errors["sourceUrl"][0]
+            == "Source code URL points to a different file than the stack trace"
+        )
+
+    def test_no_integration(self):
+        new_org = self.create_organization()
+        serializer = PathMappingSerializer(
+            context={"organization_id": new_org.id},
+            data={
+                "source_url": "https://github.com/getsentry/sentry/blob/capybaras_and_chameleons.py",
+                "stack_path": "/capybaras_and_chameleons.py",
+            },
+        )
+
+        assert not serializer.is_valid()
+        assert serializer.errors["sourceUrl"][0] == "Could not find integration"
+
+    def test_no_repo(self):
+        new_org = self.create_organization()
+        self.integration, self.oi = self.create_provider_integration_for(
+            new_org,
+            self.user,
+            provider="github",
+            name="getsentry",
+            external_id="1235",
+            metadata={"domain_name": "github.com/getsentry"},
+        )
+        serializer = PathMappingSerializer(
+            context={"organization_id": new_org.id},
+            data={
+                "source_url": "https://github.com/getsentry/sentry/blob/capybaras_and_chameleons.py",
+                "stack_path": "/capybaras_and_chameleons.py",
+            },
+        )
+        assert not serializer.is_valid()
+        assert serializer.errors["sourceUrl"][0] == "Could not find repo"
 
 
 @region_silo_test
@@ -103,7 +197,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "",
+            "stackRoot": "./",
             "sourceRoot": "src/",
             "defaultBranch": "master",
         }
@@ -118,7 +212,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "sentry/",
-            "sourceRoot": "",
+            "sourceRoot": "/",
             "defaultBranch": "main",
         }
 
@@ -131,8 +225,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "stuff/hey/here",
-            "sourceRoot": "src",
+            "stackRoot": "stuff/hey/here/",
+            "sourceRoot": "src/",
             "defaultBranch": "master",
         }
 
@@ -143,6 +237,34 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         self.create_member(user=member, organization=self.org, role="member")
         resp = self.make_post(source_url, stack_path, user=member)
         assert resp.status_code == 200, resp.content
+
+    def test_backslash_short_path(self):
+        source_url = "https://github.com/getsentry/sentry/blob/main/project_stacktrace_link.py"
+        stack_path = "C:\\sentry\\project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "C:\\sentry\\",
+            "sourceRoot": "/",
+            "defaultBranch": "main",
+        }
+
+    def test_backslash_long_path(self):
+        source_url = "https://github.com/getsentry/sentry/blob/main/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "C:\\potatos\\and\\prs\\sentry\\api\\endpoints\\project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "C:\\potatos\\and\\prs\\",
+            "sourceRoot": "src/",
+            "defaultBranch": "main",
+        }
 
 
 @region_silo_test
@@ -178,7 +300,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "gitlab",
-            "stackRoot": "",
+            "stackRoot": "./",
             "sourceRoot": "src/",
             "defaultBranch": "master",
         }

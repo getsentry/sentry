@@ -50,11 +50,12 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
+    has_dynamic_sampling,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -252,17 +253,27 @@ def adjust_sample_rates_of_projects(
         # the query triggering this job and the actual execution of the job.
         organization = None
 
+    # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
+    if not has_dynamic_sampling(organization):
+        log_skipped_job(org_id, "boost_low_volume_projects")
+        return
+
     # By default, we use the blended sample rate.
     sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
 
     # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case of issues.
     if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate = get_sliding_window_org_sample_rate(
-            org_id=org_id, default_sample_rate=sample_rate, notify_missing=True
+        sample_rate, success = get_sliding_window_org_sample_rate(
+            org_id=org_id, default_sample_rate=sample_rate
         )
-        log_sample_rate_source(
-            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
-        )
+        if success:
+            log_sample_rate_source(
+                org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
+            )
+        else:
+            log_sample_rate_source(
+                org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
+            )
     else:
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate

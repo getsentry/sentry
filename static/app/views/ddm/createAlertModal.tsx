@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -139,7 +138,15 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, selection.datetime, alertPeriod]
   );
 
-  const alertChartQuery = pick(metricsQuery, 'mri', 'op', 'query');
+  const alertChartQuery = useMemo(
+    () => ({
+      mri: metricsQuery.mri,
+      op: metricsQuery.op,
+      query: metricsQuery.query,
+      name: 'query',
+    }),
+    [metricsQuery.mri, metricsQuery.op, metricsQuery.query]
+  );
 
   const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 

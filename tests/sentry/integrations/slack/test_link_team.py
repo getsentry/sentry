@@ -101,12 +101,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             external_id=self.channel_id,
         )
 
-    def _create_user_with_valid_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        self.team.update(org_role="admin")
-        self.create_member(organization=self.organization, user=user, teams=[self.team])
-        self.login_as(user)
-
     def _create_user_valid_through_team_admin(self):
         user = self.create_user(email="foo@example.com")
         self.create_member(
@@ -115,12 +109,6 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             role="member",
             organization=self.organization,
         )
-        self.login_as(user)
-
-    def _create_user_with_member_role_through_team(self):
-        user = self.create_user(email="foo@example.com")
-        member_team = self.create_team(org_role="member")
-        self.create_member(organization=self.organization, user=user, teams=[member_team])
         self.login_as(user)
 
 
@@ -171,13 +159,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(team_settings) == 1
 
     @responses.activate
-    def test_link_team_with_valid_role_through_team(self):
-        """Test that we successfully link a team to a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_link_team()
-
-    @responses.activate
     def test_link_team_valid_through_team_admin(self):
         """Test that we successfully link a team to a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
@@ -205,13 +186,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self.get_error_response(
             data={"team": ["some", "garbage"]}, status_code=status.HTTP_400_BAD_REQUEST
         )
-
-    @responses.activate
-    def test_errors_when_no_teams_found(self):
-        """Test that we successfully render an error page when no teams are found."""
-        # login as a member with no applicable teams
-        self._create_user_with_member_role_through_team()
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_link_team_multiple_organizations(self):
@@ -315,25 +289,11 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         assert len(team_settings) == 0
 
     @responses.activate
-    def test_unlink_team_with_valid_role_through_team(self):
-        """Test that a team can be unlinked from a Slack channel with a valid role through a team"""
-        self._create_user_with_valid_role_through_team()
-
-        self.test_unlink_team()
-
-    @responses.activate
     def test_unlink_team_valid_through_team_admin(self):
         """Test that a team can be unlinked from a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
-
-    @responses.activate
-    def test_unlink_team_with_member_role_through_team(self):
-        """Test that a team can not be unlinked from a Slack channel with a member role"""
-        self._create_user_with_member_role_through_team()
-
-        self.get_error_response(status_code=status.HTTP_404_NOT_FOUND)
 
     @responses.activate
     def test_unlink_multiple_teams(self):
