@@ -186,6 +186,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         if not self._should_operate(request):
             if self.integration.provider == "slack":
+                self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
                 logger.info(
                     "integration_proxy.slack.bad_request",
                     extra={
