@@ -80,6 +80,7 @@ default_manager.add("organizations:api-auth-provider", OrganizationFeature, Feat
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:crons-disable-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -161,7 +162,6 @@ default_manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFe
 default_manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)  # Only enabled in sentry.io to enable onboarding flows.
-default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:org-subdomains", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-calculate-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -309,6 +309,7 @@ default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeatur
 default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 
 # Project plugin features

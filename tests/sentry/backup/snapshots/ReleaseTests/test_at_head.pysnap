@@ -1441,6 +1441,7 @@ source: tests/sentry/backup/test_releases.py
     integration_id: null
     sentry_app_config: null
     sentry_app_id: null
+    status: 0
     target_display: null
     target_identifier: '3'
     target_type: 1
@@ -1453,6 +1454,7 @@ source: tests/sentry/backup/test_releases.py
     integration_id: null
     sentry_app_config: null
     sentry_app_id: null
+    status: 0
     target_display: null
     target_identifier: '3'
     target_type: 1

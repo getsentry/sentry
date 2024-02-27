@@ -769,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1089,6 +1090,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1492,6 +1502,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1687,8 +1699,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
-    # Enable the setting of org roles for team
-    "organizations:org-roles-for-teams": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1989,6 +1999,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
