@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 
-from django.db.models import F, Func, Sum
 from django.db.models.signals import pre_save
 
 from sentry.models.release import Release, ReleaseQuerySet
@@ -11,19 +9,6 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
 logger = logging.getLogger(__name__)
-
-
-def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
-    """Get artifact count grouped by IDs"""
-    from sentry.models.releasefile import ReleaseFile
-
-    qs = (
-        ReleaseFile.objects.filter(release_id__in=release_ids)
-        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
-        .values_list("release_id", "count")
-    )
-    qs.query.group_by = ["release_id"]
-    return dict(qs)
 
 
 def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
@@ -39,7 +24,8 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     Returns:
         Boolean that indicates if we should follow semantic version or not
     """
-    # ToDo(ahmed): Move this function else where to be easily accessible for re-use
+    # TODO(ahmed): Move this function else where to be easily accessible for re-use
+    # TODO: this method could be moved to the Release model manager
     cache_key = "follows_semver:1:%s" % hash_values([org_id, project_id])
     follows_semver = cache.get(cache_key)
 
@@ -55,7 +41,7 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
             cache.set(cache_key, False, 3600)
             return False
 
-        # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+        # TODO(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
         # A project is said to be following semver versioning schemes if it satisfies the following
         # conditions:-
         # 1: At least one semver compliant in the most recent 3 releases

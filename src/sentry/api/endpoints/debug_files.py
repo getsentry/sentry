@@ -36,9 +36,8 @@ from sentry.models.debugfile import (
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.release import Release
+from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
-from sentry.models.releases.util import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,

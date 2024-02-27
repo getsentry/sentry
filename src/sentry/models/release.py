@@ -4,7 +4,7 @@ import itertools
 import logging
 import re
 from collections import namedtuple
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from time import time
 from typing import ClassVar
@@ -49,7 +49,6 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import get_artifact_counts
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -396,6 +395,19 @@ class ReleaseModelManager(BaseManager["Release"]):
 
         # Convert the False back into a None.
         return release_version or None
+
+
+def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)
 
 
 @region_silo_only_model
