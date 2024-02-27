@@ -161,7 +161,8 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
-      const key = col.key === 'totalScore' ? 'measurements.score.total' : col.key;
+      const key =
+        col.key === 'measurements.score.inp' ? 'measurements.score.total' : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {
@@ -250,10 +251,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     row: TransactionSampleRowWithScore | InteractionSpanSampleRowWithScore
   ) {
     const {key} = col;
-    if (key === 'totalScore') {
+    if (key === 'measurements.score.inp') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row.totalScore} />
+          <PerformanceBadge
+            score={((row['measurements.score.inp'] ?? 0) * 100).toFixed(0)}
+          />
         </AlignCenter>
       );
     }
