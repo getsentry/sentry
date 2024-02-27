@@ -44,7 +44,11 @@ import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webV
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {
+  useIndexedSpans,
+  useIndexedSpansBetter,
+} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -69,7 +73,7 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   {key: 'measurements.inp', width: COL_WIDTH_UNDEFINED, name: 'INP'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'measurements.score.inp', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 const INP_SEARCH_FILTER = 'has:measurements.fid (has:profile.id OR has:replayId)';
@@ -141,7 +145,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const interactionsPageLinks = null;
 
   const {data: interactionsTableData, isFetching: isInteractionsLoading} =
-    useIndexedSpans({'span.op': 'ui.interaction.click'});
+    useIndexedSpansBetter({
+      filters: {'span.op': 'ui.interaction.click', 'measurements.inp': '>0'},
+      fields: [
+        'measurements.inp',
+        'measurements.score.inp',
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+      ],
+    });
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
