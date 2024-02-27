@@ -1,10 +1,13 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
 import moment from 'moment';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -15,38 +18,58 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import {
+  formatMetricsFormula,
   getDefaultMetricDisplayType,
-  getSeriesName,
-  stringifyMetricWidget,
+  getFormattedMQL,
+  getMetricsSeriesId,
+  getMetricsSeriesName,
+  isCumulativeOp,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  getMetricValueNormalizer,
+  getNormalizedMetricUnit,
+} from 'sentry/utils/metrics/normalizeMetricValue';
 import type {
+  FocusedMetricsSeries,
   MetricCorrelation,
   MetricWidgetQueryParams,
+  SortState,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
-import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
-import {MetricChart} from 'sentry/views/ddm/chart';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+  type MetricsQueryApiRequestQuery,
+  useMetricsQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
+import useRouter from 'sentry/utils/useRouter';
+import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
+import type {Series} from 'sentry/views/ddm/chart/types';
+import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
+import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
-import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
+import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
+import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
-import {MIN_WIDGET_WIDTH} from './constants';
+import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
+  context: 'ddm' | 'dashboard';
+  displayType: MetricDisplayType;
+  filters: PageFilters;
+  focusAreaProps: FocusAreaProps;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
-  projects: PageFilters['projects'];
-  widget: MetricWidgetQueryParams;
-  focusArea?: FocusAreaProps;
+  queries: MetricsQueryApiQueryParams[];
+  chartHeight?: number;
+  focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
   highlightedSampleId?: string;
@@ -54,7 +77,9 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
+  queryId?: number;
   showQuerySymbols?: boolean;
+  tableSort?: SortState;
 };
 
 export type Sample = {
@@ -64,18 +89,37 @@ export type Sample = {
   transactionSpanId: string;
 };
 
-const constructQueryString = (queryObject: Record<string, string>) => {
-  return Object.entries(queryObject)
-    .map(([key, value]) => `${key}:"${value}"`)
-    .join(' ');
-};
+function isNotQueryOnly(query: MetricsQueryApiQueryParams) {
+  return !('isQueryOnly' in query) || !query.isQueryOnly;
+}
+
+export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
+  const filteredQueries = queries.filter(isNotQueryOnly);
+
+  if (filteredQueries.length === 1) {
+    const firstQuery = filteredQueries[0];
+    if (isMetricFormula(firstQuery)) {
+      return formatMetricsFormula(firstQuery.formula);
+    }
+    return getFormattedMQL(firstQuery);
+  }
+
+  return filteredQueries
+    .map(q =>
+      isMetricFormula(q)
+        ? formatMetricsFormula(q.formula)
+        : formatMRIField(MRIToField(q.mri, q.op))
+    )
+    .join(', ');
+}
 
 export const MetricWidget = memo(
   ({
-    widget,
-    datetime,
-    projects,
-    environments,
+    queryId,
+    queries,
+    filters,
+    displayType,
+    tableSort,
     index = 0,
     isSelected = false,
     getChartPalette,
@@ -83,10 +127,17 @@ export const MetricWidget = memo(
     onChange,
     hasSiblings = false,
     showQuerySymbols,
-    focusArea,
+    focusAreaProps,
     onSampleClick,
     highlightedSampleId,
+    chartHeight = 300,
+    focusedSeries,
+    context = 'ddm',
   }: MetricWidgetProps) => {
+    const firstQuery = queries
+      .filter(isNotQueryOnly)
+      .find((query): query is MetricsQueryApiRequestQuery => !isMetricFormula(query));
+
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
@@ -94,58 +145,42 @@ export const MetricWidget = memo(
       [index, onChange]
     );
 
-    const metricsQuery = useMemo(
-      () => ({
-        mri: widget.mri,
-        query: widget.query,
-        op: widget.op,
-        groupBy: widget.groupBy,
-        projects,
-        datetime,
-        environments,
-        title: widget.title,
-      }),
-      [
-        widget.mri,
-        widget.query,
-        widget.op,
-        widget.groupBy,
-        widget.title,
-        projects,
-        datetime,
-        environments,
-      ]
-    );
-
-    const incrementQueryMetric = useIncrementQueryMetric({
-      displayType: widget.displayType,
-      op: metricsQuery.op,
-      groupBy: metricsQuery.groupBy,
-      query: metricsQuery.query,
-      mri: metricsQuery.mri,
-    });
-
     const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
-      incrementQueryMetric('ddm.widget.display', {displayType: value});
+      Sentry.metrics.increment('ddm.widget.display');
       onChange(index, {displayType: value});
     };
 
-    const samplesQuery = useMetricSamples(metricsQuery.mri, {
-      ...focusArea?.selection?.range,
-      query: widget?.focusedSeries?.groupBy
-        ? `${widget.query} ${constructQueryString(widget.focusedSeries.groupBy)}`.trim()
-        : widget?.query,
+    const queryWithFocusedSeries = useMemo(
+      () => getQueryWithFocusedSeries(firstQuery?.query ?? '', focusedSeries),
+      [firstQuery, focusedSeries]
+    );
+
+    const samplesQuery = useMetricSamples(firstQuery?.mri, {
+      ...focusAreaProps?.selection?.range,
+      query: queryWithFocusedSeries,
     });
 
     const samples = useMemo(() => {
       return {
         data: samplesQuery.data,
         onClick: onSampleClick,
+        unit: parseMRI(firstQuery?.mri)?.unit ?? '',
+        operation: firstQuery?.op ?? '',
         higlightedId: highlightedSampleId,
       };
-    }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
+    }, [
+      samplesQuery.data,
+      onSampleClick,
+      firstQuery?.mri,
+      firstQuery?.op,
+      highlightedSampleId,
+    ]);
 
-    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
+    const widgetTitle = getWidgetTitle(queries);
+
+    const queriesAreComplete = queries.every(q =>
+      isMetricFormula(q) ? !!q.formula : !!q.mri
+    );
 
     return (
       <MetricWidgetPanel
@@ -156,7 +191,9 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols && <QuerySymbol index={index} isSelected={isSelected} />}
+            {showQuerySymbols && queryId !== undefined && (
+              <QuerySymbol queryId={queryId} isSelected={isSelected} />
+            )}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
@@ -171,33 +208,36 @@ export const MetricWidget = memo(
               size="xs"
               triggerProps={{prefix: t('Display')}}
               value={
-                widget.displayType ??
-                getDefaultMetricDisplayType(metricsQuery.mri, metricsQuery.op)
+                displayType ??
+                getDefaultMetricDisplayType(firstQuery?.mri, firstQuery?.op)
               }
               options={metricDisplayTypeOptions}
               onChange={handleDisplayTypeChange}
             />
           </MetricWidgetHeader>
           <MetricWidgetBodyWrapper>
-            {widget.mri ? (
+            {queriesAreComplete ? (
               <MetricWidgetBody
                 widgetIndex={index}
-                datetime={datetime}
-                projects={projects}
                 getChartPalette={getChartPalette}
-                environments={environments}
                 onChange={handleChange}
-                focusArea={focusArea}
+                focusAreaProps={focusAreaProps}
                 samples={samples}
-                chartHeight={300}
-                {...widget}
+                chartHeight={chartHeight}
+                chartGroup={DDM_CHART_GROUP}
+                queries={queries}
+                filters={filters}
+                displayType={displayType}
+                tableSort={tableSort}
+                focusedSeries={focusedSeries}
+                context={context}
               />
             ) : (
               <StyledMetricWidgetBody>
                 <EmptyMessage
                   icon={<IconSearch size="xxl" />}
                   title={t('Nothing to show!')}
-                  description={t('Choose a metric to display data.')}
+                  description={t('Choose a metric and an operation to display data.')}
                 />
               </StyledMetricWidgetBody>
             )}
@@ -208,94 +248,155 @@ export const MetricWidget = memo(
   }
 );
 
-interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
+interface MetricWidgetBodyProps {
+  context: 'ddm' | 'dashboard';
+  displayType: MetricDisplayType;
+  filters: PageFilters;
+  focusAreaProps: FocusAreaProps;
+  queries: MetricsQueryApiQueryParams[];
   widgetIndex: number;
+  chartGroup?: string;
   chartHeight?: number;
-  focusArea?: FocusAreaProps;
+  focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   samples?: SamplesProps;
+  tableSort?: SortState;
 }
 
 export interface SamplesProps {
+  operation: string;
+  unit: string;
   data?: MetricCorrelation[];
   higlightedId?: string;
   onClick?: (sample: Sample) => void;
 }
 
-export const MetricWidgetBody = memo(
+const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
     focusedSeries,
-    sort,
+    tableSort,
     widgetIndex,
     getChartPalette = createChartPalette,
-    focusArea,
+    focusAreaProps,
     chartHeight,
+    chartGroup,
     samples,
-    ...metricsQuery
-  }: MetricWidgetBodyProps & PageFilters) => {
-    const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
-
+    filters,
+    queries,
+    context,
+  }: MetricWidgetBodyProps) => {
+    const router = useRouter();
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsDataZoom(
-      {
-        mri,
-        op,
-        query,
-        groupBy,
-        projects,
-        environments,
-        datetime,
+    } = useMetricsQuery(queries, filters, {
+      intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
+    });
+
+    const {chartRef, setHoveredSeries} = useSeriesHover();
+
+    const handleHoverSeries = useCallback(
+      (seriesId: string) => {
+        setHoveredSeries([seriesId, getIngestionSeriesId(seriesId)]);
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
-    );
-
-    const chartRef = useRef<ReactEchartsRef>(null);
-
-    const setHoveredSeries = useCallback((legend: string) => {
-      if (!chartRef.current) {
-        return;
-      }
-      const echartsInstance = chartRef.current.getEchartsInstance();
-      echartsInstance.dispatchAction({
-        type: 'highlight',
-        seriesName: legend,
-      });
-    }, []);
-
-    const toggleSeriesVisibility = useCallback(
-      (series: MetricWidgetQueryParams['focusedSeries']) => {
-        setHoveredSeries('');
-        onChange?.({
-          focusedSeries:
-            focusedSeries?.seriesName === series?.seriesName ? undefined : series,
-        });
-      },
-      [focusedSeries, onChange, setHoveredSeries]
+      [setHoveredSeries]
     );
 
     const chartSeries = useMemo(() => {
       return timeseriesData
-        ? getChartTimeseries(timeseriesData, {
+        ? getChartTimeseries(timeseriesData, queries, {
             getChartPalette,
-            mri,
-            focusedSeries: focusedSeries?.seriesName,
-            groupBy: metricsQuery.groupBy,
+            focusedSeries: focusedSeries && new Set(focusedSeries?.map(s => s.id)),
           })
         : [];
-    }, [
-      timeseriesData,
-      getChartPalette,
-      mri,
-      focusedSeries?.seriesName,
-      metricsQuery.groupBy,
-    ]);
+    }, [timeseriesData, queries, getChartPalette, focusedSeries]);
+
+    const samplesProp = useMetricChartSamples({
+      chartRef,
+      correlations: samples?.data,
+      unit: samples?.unit,
+      onClick: samples?.onClick,
+      highlightedSampleId: samples?.higlightedId,
+      operation: samples?.operation,
+      timeseries: chartSeries,
+    });
+
+    const handleZoom = useCallback(
+      (range: DateTimeObject) => {
+        Sentry.metrics.increment('ddm.enhance.zoom');
+        updateDateTime(range, router, {save: true});
+      },
+      [router]
+    );
+
+    const hasCumulativeOp = chartSeries.some(s => isCumulativeOp(s.operation));
+    const firstUnit =
+      chartSeries.find(s => !s.hidden)?.unit || chartSeries[0]?.unit || 'none';
+
+    const focusArea = useFocusArea({
+      ...focusAreaProps,
+      sampleUnit: samples?.unit,
+      chartUnit: firstUnit,
+      chartRef,
+      opts: {
+        widgetIndex,
+        isDisabled: !focusAreaProps.onAdd,
+        useFullYAxis: hasCumulativeOp,
+      },
+      onZoom: handleZoom,
+    });
+
+    const toggleSeriesVisibility = useCallback(
+      (series: FocusedMetricsSeries) => {
+        setHoveredSeries('');
+
+        // The focused series array is not populated yet, so we can add all series except the one that was de-selected
+        if (!focusedSeries || focusedSeries.length === 0) {
+          onChange?.({
+            focusedSeries: chartSeries
+              .filter(s => s.id !== series.id)
+              .map(s => ({
+                id: s.id,
+                groupBy: s.groupBy,
+              })),
+          });
+          return;
+        }
+
+        const filteredSeries = focusedSeries.filter(s => s.id !== series.id);
+
+        if (filteredSeries.length === focusedSeries.length) {
+          // The series was not focused before so we can add it
+          filteredSeries.push(series);
+        }
+
+        onChange?.({
+          focusedSeries: filteredSeries,
+        });
+      },
+      [chartSeries, focusedSeries, onChange, setHoveredSeries]
+    );
+
+    const setSeriesVisibility = useCallback(
+      (series: FocusedMetricsSeries) => {
+        setHoveredSeries('');
+        if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
+          onChange?.({
+            focusedSeries: [],
+          });
+          return;
+        }
+        onChange?.({
+          focusedSeries: [series],
+        });
+      },
+      [focusedSeries, onChange, setHoveredSeries]
+    );
 
     const handleSortChange = useCallback(
       newSort => {
@@ -310,14 +411,15 @@ export const MetricWidgetBody = memo(
           {isLoading && <LoadingIndicator />}
           {isError && (
             <Alert type="error">
-              {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+              {(error?.responseJSON?.detail as string) ||
+                t('Error while fetching metrics data')}
             </Alert>
           )}
         </StyledMetricWidgetBody>
       );
     }
 
-    if (timeseriesData.groups.length === 0) {
+    if (timeseriesData.data.length === 0) {
       return (
         <StyledMetricWidgetBody>
           <EmptyMessage
@@ -336,63 +438,87 @@ export const MetricWidgetBody = memo(
           ref={chartRef}
           series={chartSeries}
           displayType={displayType}
-          operation={metricsQuery.op}
-          widgetIndex={widgetIndex}
           height={chartHeight}
-          scatter={samples}
+          samples={samplesProp}
           focusArea={focusArea}
+          group={chartGroup}
         />
-        {metricsQuery.showSummaryTable && (
-          <SummaryTable
-            series={chartSeries}
-            onSortChange={handleSortChange}
-            sort={sort}
-            operation={metricsQuery.op}
-            onRowClick={toggleSeriesVisibility}
-            setHoveredSeries={focusedSeries ? undefined : setHoveredSeries}
-          />
-        )}
+        <SummaryTable
+          series={chartSeries}
+          onSortChange={handleSortChange}
+          sort={tableSort}
+          onRowClick={setSeriesVisibility}
+          onColorDotClick={toggleSeriesVisibility}
+          onRowHover={handleHoverSeries}
+        />
       </StyledMetricWidgetBody>
     );
   }
 );
 
 export function getChartTimeseries(
-  data: MetricsApiResponse,
+  data: MetricsQueryApiResponse,
+  queries: MetricsQueryApiQueryParams[],
   {
     getChartPalette,
-    mri,
     focusedSeries,
-    groupBy,
   }: {
     getChartPalette: (seriesNames: string[]) => Record<string, string>;
-    mri: MRI;
-    focusedSeries?: string;
-    groupBy?: string[];
+    focusedSeries?: Set<string>;
+    showQuerySymbol?: boolean;
   }
 ) {
-  // this assumes that all series have the same unit
-  const parsed = parseMRI(mri);
-  const unit = parsed?.unit ?? '';
+  const filteredQueries = queries.filter(isNotQueryOnly);
 
-  const series = data.groups.map(g => {
-    return {
-      values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, groupBy),
-      groupBy: g.by,
-      transaction: g.by.transaction,
-      release: g.by.release,
-    };
+  const series = data.data.flatMap((group, index) => {
+    const query = filteredQueries[index];
+    const metaUnit = data.meta[index]?.[1]?.unit;
+
+    const isMultiQuery = filteredQueries.length > 1;
+
+    let unit = '';
+    let operation = '';
+    if (!isMetricFormula(query)) {
+      const parsed = parseMRI(query.mri);
+      unit = parsed?.unit ?? '';
+      operation = query.op ?? '';
+    } else {
+      // Treat formulas as if they were a single query with none as the unit and count as the operation
+      unit = 'none';
+    }
+
+    // TODO(arthur): fully switch to using the meta unit once it's available
+    if (metaUnit) {
+      unit = metaUnit;
+    }
+
+    // We normalize metric units to make related units
+    // (e.g. seconds & milliseconds) render in the correct ratio
+    const normalizedUnit = getNormalizedMetricUnit(unit, operation);
+    const normalizeValue = getMetricValueNormalizer(unit, operation);
+
+    return group.map(entry => ({
+      unit: normalizedUnit,
+      operation: operation,
+      values: entry.series.map(normalizeValue),
+      name: getMetricsSeriesName(query, entry.by, isMultiQuery),
+      id: getMetricsSeriesId(query, entry.by),
+      groupBy: entry.by,
+      transaction: entry.by.transaction,
+      release: entry.by.release,
+    }));
   });
 
-  const chartPalette = getChartPalette(series.map(s => s.name));
+  const chartPalette = getChartPalette(series.map(s => s.id));
 
   return series.map(item => ({
+    id: item.id,
     seriesName: item.name,
     groupBy: item.groupBy,
-    unit,
-    color: chartPalette[item.name],
-    hidden: focusedSeries && focusedSeries !== item.name,
+    unit: item.unit,
+    operation: item.operation,
+    color: chartPalette[item.id],
+    hidden: focusedSeries && focusedSeries.size > 0 && !focusedSeries.has(item.id),
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
       value,
@@ -403,30 +529,6 @@ export function getChartTimeseries(
       focus: 'series',
     } as SeriesOption['emphasis'],
   })) as Series[];
-}
-
-export type Series = {
-  color: string;
-  data: {name: number; value: number}[];
-  seriesName: string;
-  unit: string;
-  groupBy?: Record<string, string>;
-  hidden?: boolean;
-  release?: string;
-  transaction?: string;
-};
-
-export interface ScatterSeries extends Series {
-  itemStyle: {
-    color: string;
-    opacity: number;
-  };
-  projectId: number;
-  spanId: string;
-  symbol: string;
-  symbolSize: number;
-  transactionId: string;
-  z: number;
 }
 
 const MetricWidgetPanel = styled(Panel)<{
@@ -467,7 +569,6 @@ const StyledMetricWidgetBody = styled('div')`
 
 const MetricWidgetBodyWrapper = styled('div')`
   padding: ${space(1)};
-  padding-bottom: 0;
 `;
 
 const MetricWidgetHeader = styled('div')`

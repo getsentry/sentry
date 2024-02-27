@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
@@ -184,7 +183,7 @@ class AllTeamsRow extends Component<Props, State> {
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
     const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = !!team.orgRole && (!canEditTeam || !isOrgOwner);
+    const isPermissionGroup = !canEditTeam || !isOrgOwner;
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
     const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
@@ -201,8 +200,7 @@ class AllTeamsRow extends Component<Props, State> {
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
 
-    const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
-    const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
+    const teamRoleName = this.getTeamRoleName();
     const isDisabled = isIdpProvisioned || isPermissionGroup;
 
     return (
@@ -216,8 +214,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <DisplayRole isHidden={isHidden}>{orgRoleFromTeam}</DisplayRole>
-        <DisplayRole isHidden={isHidden}>{this.getTeamRoleName()}</DisplayRole>
+        <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -270,7 +267,7 @@ class AllTeamsRow extends Component<Props, State> {
 const TeamLink = styled(Link)`
   display: inline-block;
 
-  &.focus-visible {
+  &:focus-visible {
     margin: -${space(1)};
     padding: ${space(1)};
     background: #f2eff5;

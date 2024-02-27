@@ -333,6 +333,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
+    @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -421,6 +422,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             {"spanDuration": 2, "spanOp": "rpc"},
         ]
 
+    @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans_with_environment(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -489,6 +491,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id_2
 
+    @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans_with_latest_release(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -563,6 +566,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             status_code=404,
         )
 
+    @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -1085,6 +1089,50 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metricSpans="true",
             min="0",
         )
+        metric_spans = response.data["metricSpans"]
+        # We expect to only have returned that span with that measurement, even if the value is 0.
+        assert len(metric_spans) == 1
+
+    def test_get_metric_span_self_time(self):
+        mri = "d:spans/exclusive_time@millisecond"
+
+        self.store_segment(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        # We expect to only have returned that span with that measurement, even if the value is 0.
+        assert len(metric_spans) == 1
+
+    def test_get_metric_span_duration(self):
+        mri = "d:spans/duration@millisecond"
+
+        self.store_segment(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
         metric_spans = response.data["metricSpans"]
         # We expect to only have returned that span with that measurement, even if the value is 0.
         assert len(metric_spans) == 1

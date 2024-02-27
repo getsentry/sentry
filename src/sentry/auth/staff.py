@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
@@ -43,7 +44,7 @@ STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 UNSET = object()
 
 
-def is_active_staff(request: Request) -> bool:
+def is_active_staff(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     staff = getattr(request, "staff", None) or Staff(request)
@@ -64,8 +65,8 @@ class Staff(ElevatedMode):
 
     @property
     def is_active(self) -> bool:
-        # We have a wsgi request with no user.
-        if not hasattr(self.request, "user"):
+        # We have a wsgi request with no user or user is None
+        if not hasattr(self.request, "user") or self.request.user is None:
             return False
         # if we've been logged out
         if not self.request.user.is_authenticated:
@@ -162,7 +163,7 @@ class Staff(ElevatedMode):
             current_datetime = django_timezone.now()
 
         try:
-            data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
+            data["idl"] = datetime.fromtimestamp(float(data["idl"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-idle-expiration",
@@ -179,7 +180,7 @@ class Staff(ElevatedMode):
             return
 
         try:
-            data["exp"] = datetime.utcfromtimestamp(float(data["exp"])).replace(tzinfo=timezone.utc)
+            data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "staff.invalid-expiration",

@@ -43,6 +43,7 @@ from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models import (
+    AlertRuleMonitorType,
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,
@@ -458,6 +459,14 @@ class BackupTestCase(TransactionTestCase):
         )
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        activated_alert = self.create_alert_rule(
+            organization=org,
+            projects=[project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+        )
+        self.create_alert_rule_activation_condition(alert_rule=activated_alert)
+        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])

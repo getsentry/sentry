@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -20,9 +20,13 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivationCondition,
+    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
+    AlertRuleMonitorType,
+    AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -382,7 +386,7 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     retention = quotas.get_event_retention(organization=incident.organization) or 90
     start = max(
         start.replace(tzinfo=timezone.utc),
-        datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(days=retention),
+        datetime.now(timezone.utc) - timedelta(days=retention),
     )
     end = max(start, end.replace(tzinfo=timezone.utc))
 
@@ -476,6 +480,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
+    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     **kwargs,
 ):
     """
@@ -525,14 +530,15 @@ def create_alert_rule(
         actor = owner
 
     with transaction.atomic(router.db_for_write(SnubaQuery)):
+        # NOTE: `create_snuba_query` constructs the postgres representation of the snuba query
         snuba_query = create_snuba_query(
-            query_type,
-            dataset,
-            query,
-            aggregate,
-            timedelta(minutes=time_window),
-            timedelta(minutes=resolution),
-            environment,
+            query_type=query_type,
+            dataset=dataset,
+            query=query,
+            aggregate=aggregate,
+            time_window=timedelta(minutes=time_window),
+            resolution=timedelta(minutes=resolution),
+            environment=environment,
             event_types=event_types,
         )
 
@@ -548,6 +554,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             user_id=actor.user_id if actor else None,
             team_id=actor.team_id if actor else None,
+            monitor_type=monitor_type.value,
         )
 
         if user:
@@ -561,6 +568,7 @@ def create_alert_rule(
             )
 
         if include_all_projects:
+            # NOTE: This feature is not currently utilized.
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
                 id__in=[p.id for p in excluded_projects]
@@ -570,9 +578,17 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
+        elif monitor_type == AlertRuleMonitorType.ACTIVATED and projects:
+            arps = [
+                AlertRuleProjects(alert_rule=alert_rule, project=project) for project in projects
+            ]
+            AlertRuleProjects.objects.bulk_create(arps)
 
+        # NOTE: This constructs the query in snuba
+        # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
+        # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
             user_id=user.id if user else None,
@@ -645,6 +661,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
+    monitor_type: AlertRuleMonitorType = None,
     **kwargs,
 ):
     """
@@ -702,6 +719,9 @@ def update_alert_rule(
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
+    if monitor_type is not None:
+        # TODO: determine how to convert activated alert into continuous alert and vice versa
+        pass
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -768,6 +788,7 @@ def update_alert_rule(
             get_excluded_projects_for_alert_rule(alert_rule).delete()
 
         if alert_rule.include_all_projects:
+            # NOTE: This feature is not currently utilized.
             if include_all_projects or excluded_projects is not None:
                 # If we're in `include_all_projects` mode, we want to just fetch
                 # projects that aren't already subscribed, and haven't been excluded so
@@ -826,10 +847,13 @@ def update_alert_rule(
     return alert_rule
 
 
-def subscribe_projects_to_alert_rule(alert_rule, projects):
+def subscribe_projects_to_alert_rule(alert_rule: AlertRule, projects: list[Project]):
     """
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
+
+    TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
+    TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
     """
     return bulk_create_snuba_subscriptions(
         projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
@@ -900,9 +924,36 @@ class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
 
+class AlertRuleActivationConditionLabelAlreadyUsedError(Exception):
+    pass
+
+
 class ProjectsNotAssociatedWithAlertRuleError(Exception):
     def __init__(self, project_slugs):
         self.project_slugs = project_slugs
+
+
+def create_alert_rule_activation_condition(
+    alert_rule: AlertRule,
+    label: str,
+    condition_type: AlertRuleActivationConditionType,
+):
+    """
+    Creates a new AlertRuleActivationCondition
+    :param alert_rule: The alert rule to create the condition for
+    :param label: A description of the condition
+    :param condition_type: The type of condition being created (so far, only deploy/release creation)
+    :return: The created AlertRuleActivationCondition
+    """
+    if AlertRuleActivationCondition.objects.filter(alert_rule=alert_rule, label=label).exists():
+        raise AlertRuleActivationConditionLabelAlreadyUsedError()
+
+    with transaction.atomic(router.db_for_write(AlertRuleActivationCondition)):
+        condition = AlertRuleActivationCondition.objects.create(
+            alert_rule=alert_rule, label=label, condition_type=condition_type.value
+        )
+
+    return condition
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
@@ -1400,26 +1451,25 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.client import OpsgenieClient
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
-    oi = integration_service.get_organization_integration(
-        integration_id=integration_id, organization_id=organization.id
+    integration, oi = integration_service.get_organization_context(
+        organization_id=organization.id, integration_id=integration_id
     )
+    if integration is None or oi is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    integration_key = team["integration_key"]
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        raise InvalidTriggerActionError("Opsgenie integration not found.")
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=oi.id,
-        keyid=team["id"],
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=organization.id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
+
     try:
         client.authorize_integration(type="sentry")
     except ApiError as e:
@@ -1662,11 +1712,15 @@ def get_filtered_actions(
 
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
+    """
+    If `should_use_on_demand`, then invalidate the project configs
+    """
     enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    if not projects or not (
-        "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
+    if (
+        not projects
+        or "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
     ):
         return
 

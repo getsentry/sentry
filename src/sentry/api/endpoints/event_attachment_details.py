@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.eventattachment import EventAttachment
@@ -24,7 +24,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         if not result:
             return result
 
-        if is_system_auth(request.auth) or is_active_superuser(request):
+        if is_system_auth(request.auth) or superuser_has_permission(request):
             return True
 
         if not request.user.is_authenticated:
@@ -41,9 +41,8 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             return False
 
         required_role = roles.get(required_role)
-        return any(
-            role.priority >= required_role.priority for role in om.get_all_org_roles_sorted()
-        )
+        om_role = roles.get(om.role)
+        return om_role.priority >= required_role.priority
 
 
 @region_silo_endpoint

@@ -5,12 +5,11 @@ from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, NotRequired
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Function, Op
-from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -344,15 +343,17 @@ def timeseries_query(
         for snql_query, result in zip(query_list, query_results):
             results.append(
                 {
-                    "data": zerofill(
-                        result["data"],
-                        snql_query.params.start,
-                        snql_query.params.end,
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"],
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
                     "meta": result["meta"],
                 }
             )
@@ -509,9 +510,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -553,9 +556,11 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                 },
                 params["start"],

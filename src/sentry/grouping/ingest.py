@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-import random
+import logging
 import time
 from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
@@ -10,9 +10,11 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import options
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_random_rollout
 from sentry.grouping.api import (
+    NULL_GROUPING_CONFIG,
+    NULL_HASHES,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     GroupingConfigNotFound,
@@ -25,7 +27,10 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.issues.grouptype import GroupCategory
+from sentry.killswitches import killswitch_matches_context
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -36,6 +41,8 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+
+logger = logging.getLogger("sentry.events.grouping")
 
 Job = MutableMapping[str, Any]
 
@@ -149,7 +156,7 @@ def _calculate_event_grouping(
         return hashes
 
 
-def _maybe_run_background_grouping(project: Project, job: Job) -> None:
+def maybe_run_background_grouping(project: Project, job: Job) -> None:
     """
     Optionally run a fraction of events with an experimental grouping config.
 
@@ -157,8 +164,7 @@ def _maybe_run_background_grouping(project: Project, job: Job) -> None:
     impact.
     """
     try:
-        sample_rate = options.get("store.background-grouping-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
+        if in_random_rollout("store.background-grouping-sample-rate"):
             config = BackgroundGroupingConfigLoader().get_config_dict(project)
             if config["id"]:
                 copied_event = copy.deepcopy(job["event"])
@@ -186,15 +192,34 @@ def _should_run_secondary_grouping(project: Project) -> bool:
     return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
+def maybe_run_secondary_grouping(
+    project: Project, job: Job, metric_tags: MutableTags
+) -> tuple[GroupingConfig, CalculatedHashes]:
+    """
+    If the projct is in a grouping config transition phase, calculate a set of secondary hashes for
+    the job's event.
+    """
+
+    secondary_grouping_config = NULL_GROUPING_CONFIG
+    secondary_hashes = NULL_HASHES
+
+    if _should_run_secondary_grouping(project):
+        with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+            secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
+            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+
+    return (secondary_grouping_config, secondary_hashes)
+
+
 def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> CalculatedHashes | None:
+) -> CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
     This causes extra load in save_event processing.
     """
-    secondary_hashes = None
+    secondary_hashes = NULL_HASHES
     try:
         with sentry_sdk.start_span(
             op="event_manager",
@@ -210,6 +235,57 @@ def _calculate_secondary_hash(
         sentry_sdk.capture_exception(err)
 
     return secondary_hashes
+
+
+def run_primary_grouping(
+    project: Project, job: Job, metric_tags: MutableTags
+) -> tuple[GroupingConfig, CalculatedHashes]:
+    """
+    Get the primary grouping config and primary hashes for the event.
+    """
+    with metrics.timer("event_manager.load_grouping_config"):
+        if is_reprocessed_event(job["data"]):
+            # The customer might have changed grouping enhancements since
+            # the event was ingested -> make sure we get the fresh one for reprocessing.
+            grouping_config = get_grouping_config_dict_for_project(project)
+            # Write back grouping config because it might have changed since the
+            # event was ingested.
+            # NOTE: We could do this unconditionally (regardless of `is_processed`).
+            job["data"]["grouping_config"] = grouping_config
+        else:
+            grouping_config = get_grouping_config_dict_for_event_data(
+                job["event"].data.data, project
+            )
+
+            # TODO: For new (non-reprocessed) events, we read the grouping config off the event
+            # rather than from the project. But that grouping config is put there by Relay after
+            # looking it up on the project. Are these ever not the same? If we don't ever see this
+            # log, after some period of time we could probably just decide to always follow the
+            # behavior from the reprocessing branch above. If we do that, we should decide if we
+            # also want to stop adding the config in Relay.
+            # See https://github.com/getsentry/sentry/pull/65116.
+            config_from_relay = grouping_config["id"]
+            config_from_project = project.get_option("sentry:grouping_config")
+            if config_from_relay != config_from_project:
+                logger.info(
+                    "Event grouping config different from project grouping config",
+                    extra={
+                        "project": project.id,
+                        "relay_config": config_from_relay,
+                        "project_config": config_from_project,
+                    },
+                )
+
+    with (
+        sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ),
+        metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags),
+    ):
+        hashes = _calculate_primary_hash(project, job, grouping_config)
+
+    return (grouping_config, hashes)
 
 
 def _calculate_primary_hash(
@@ -303,6 +379,27 @@ def find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
+def find_existing_grouphash_new(
+    grouphashes: Sequence[GroupHash],
+) -> GroupHash | None:
+    for group_hash in grouphashes:
+        if group_hash.group_id is not None:
+            return group_hash
+
+        # TODO: When refactoring for hierarchical grouping, we noticed that a
+        # tombstone may get ignored entirely if there is another hash *before*
+        # that happens to have a group_id. This bug may not have been noticed
+        # for a long time because most events only ever have 1-2 hashes.
+        if group_hash.group_tombstone_id is not None:
+            raise HashDiscarded(
+                "Matches group tombstone %s" % group_hash.group_tombstone_id,
+                reason="discard",
+                tombstone_id=group_hash.group_tombstone_id,
+            )
+
+    return None
+
+
 def get_hash_values(
     project: Project,
     job: Job,
@@ -311,41 +408,45 @@ def get_hash_values(
     # Background grouping is a way for us to get performance metrics for a new
     # config without having it actually affect on how events are grouped. It runs
     # either before or after the main grouping logic, depending on the option value.
-    _maybe_run_background_grouping(project, job)
+    maybe_run_background_grouping(project, job)
 
-    secondary_hashes = None
+    secondary_grouping_config, secondary_hashes = maybe_run_secondary_grouping(
+        project, job, metric_tags
+    )
 
-    if _should_run_secondary_grouping(project):
-        with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-            secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+    primary_grouping_config, primary_hashes = run_primary_grouping(project, job, metric_tags)
 
-    with metrics.timer("event_manager.load_grouping_config"):
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        if is_reprocessed_event(job["data"]):
-            # The customer might have changed grouping enhancements since
-            # the event was ingested -> make sure we get the fresh one for reprocessing.
-            grouping_config = get_grouping_config_dict_for_project(project)
-            # Write back grouping config because it might have changed since the
-            # event was ingested.
-            # NOTE: We could do this unconditionally (regardless of `is_processed`).
-            job["data"]["grouping_config"] = grouping_config
-        else:
-            grouping_config = get_grouping_config_dict_for_event_data(
-                job["event"].data.data, project
-            )
+    record_hash_calculation_metrics(
+        primary_grouping_config, primary_hashes, secondary_grouping_config, secondary_hashes
+    )
 
-    with sentry_sdk.start_span(
-        op="event_manager",
-        description="event_manager.save.calculate_event_grouping",
-    ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-        primary_hashes = _calculate_primary_hash(project, job, grouping_config)
+    all_hashes = CalculatedHashes(
+        hashes=extract_hashes(primary_hashes) + extract_hashes(secondary_hashes),
+        hierarchical_hashes=(
+            list(primary_hashes.hierarchical_hashes)
+            + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+        ),
+        tree_labels=(
+            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+        ),
+    )
 
-    if secondary_hashes:
+    if all_hashes.tree_labels:
+        job["finest_tree_label"] = all_hashes.finest_tree_label
+
+    return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def record_hash_calculation_metrics(
+    primary_config: GroupingConfig,
+    primary_hashes: CalculatedHashes,
+    secondary_config: GroupingConfig,
+    secondary_hashes: CalculatedHashes,
+):
+    if extract_hashes(secondary_hashes):
         tags = {
-            "primary_config": grouping_config["id"],
-            "secondary_config": secondary_grouping_config["id"],
+            "primary_config": primary_config["id"],
+            "secondary_config": secondary_config["id"],
         }
         current_values = primary_hashes.hashes
         secondary_values = secondary_hashes.hashes
@@ -364,21 +465,78 @@ def get_hash_values(
 
     # Track the total number of grouping calculations done overall, so we can divide by the
     # count to get an average number of calculations per event
-    metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+    metrics.incr("grouping.hashes_calculated", amount=2 if extract_hashes(secondary_hashes) else 1)
 
-    all_hashes = CalculatedHashes(
-        hashes=list(primary_hashes.hashes)
-        + list(secondary_hashes and secondary_hashes.hashes or []),
-        hierarchical_hashes=(
-            list(primary_hashes.hierarchical_hashes)
-            + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
-        ),
-        tree_labels=(
-            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-        ),
+
+def record_new_group_metrics(event: Event):
+    metrics.incr(
+        "group.created",
+        skip_internal=True,
+        tags={
+            "platform": event.platform or "unknown",
+            "sdk": normalized_sdk_tag_from_event(event),
+        },
     )
 
-    if all_hashes.tree_labels:
-        job["finest_tree_label"] = all_hashes.finest_tree_label
+    # This only applies to events with stacktraces
+    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+    if frame_mix:
+        metrics.incr(
+            "grouping.in_app_frame_mix",
+            sample_rate=1.0,
+            tags={
+                "platform": event.platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(event),
+                "frame_mix": frame_mix,
+            },
+        )
 
-    return (primary_hashes, secondary_hashes, all_hashes)
+
+def check_for_group_creation_load_shed(project: Project, event: Event):
+    """
+    Raise a `HashDiscarded` error if the load-shed killswitch is enabled
+    """
+    if killswitch_matches_context(
+        "store.load-shed-group-creation-projects",
+        {
+            "project_id": project.id,
+            "platform": event.platform,
+        },
+    ):
+        raise HashDiscarded("Load shedding group creation", reason="load_shed")
+
+
+def add_group_id_to_grouphashes(
+    group: Group,
+    grouphashes: list[GroupHash],
+) -> None:
+    """
+    Link the given group to any grouphash which doesn't yet have a group assigned.
+    """
+
+    new_grouphash_ids = [gh.id for gh in grouphashes if gh.group_id is None]
+
+    GroupHash.objects.filter(id__in=new_grouphash_ids).exclude(
+        state=GroupHash.State.LOCKED_IN_MIGRATION
+    ).update(group=group)
+
+
+def check_for_category_mismatch(group: Group) -> bool:
+    """
+    Make sure an error event hasn't hashed to a value assigned to a non-error-type group
+    """
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return True
+
+    return False
+
+
+def extract_hashes(calculated_hashes: CalculatedHashes | None) -> list[str]:
+    return [] if not calculated_hashes else list(calculated_hashes.hashes)

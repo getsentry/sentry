@@ -93,34 +93,33 @@ function SearchDropdown({
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
                 <Wrapper>
-                  {item.children &&
-                    item.children.map(child => (
-                      <DropdownItem
-                        key={getDropdownItemKey(child)}
-                        item={{
-                          ...child,
-                          ...mergeItemsWith?.[child.title!],
-                        }}
-                        searchSubstring={searchSubstring}
-                        onClick={onClick}
-                        onIconClick={onIconClick}
-                        additionalSearchConfig={{
-                          supportedTags,
-                          disallowWildcard,
-                          disallowedLogicalOperators,
-                          disallowFreeText,
-                          invalidMessages,
-                          booleanKeys,
-                          dateKeys,
-                          durationKeys,
-                          numericKeys,
-                          percentageKeys,
-                          sizeKeys,
-                          textOperatorKeys,
-                        }}
-                        customInvalidTagMessage={customInvalidTagMessage}
-                      />
-                    ))}
+                  {item.children?.map(child => (
+                    <DropdownItem
+                      key={getDropdownItemKey(child)}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
+                      searchSubstring={searchSubstring}
+                      onClick={onClick}
+                      onIconClick={onIconClick}
+                      additionalSearchConfig={{
+                        supportedTags,
+                        disallowWildcard,
+                        disallowedLogicalOperators,
+                        disallowFreeText,
+                        invalidMessages,
+                        booleanKeys,
+                        dateKeys,
+                        durationKeys,
+                        numericKeys,
+                        percentageKeys,
+                        sizeKeys,
+                        textOperatorKeys,
+                      }}
+                      customInvalidTagMessage={customInvalidTagMessage}
+                    />
+                  ))}
                 </Wrapper>
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>

@@ -81,11 +81,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_id_header = request.headers.get(PROXY_OI_HEADER)
-        if org_id_header is None or not org_id_header.isnumeric():
+        org_integration_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_integration_id_header is None or not org_integration_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
-        org_integration_id = int(org_id_header)
+        org_integration_id = int(org_integration_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (
@@ -195,6 +195,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         headers = clean_outbound_headers(request.headers)
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+
+        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
+        if response.status_code != 200 and self.integration.provider == "slack":
+            logger.info(
+                "slack.response",
+                extra={
+                    **self.log_extra,
+                    "integration_id": self.integration.id,
+                    "status_code": response.status_code,
+                    "response_text": response.content.decode("utf8"),
+                },
+            )
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",

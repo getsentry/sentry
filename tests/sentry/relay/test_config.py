@@ -342,7 +342,7 @@ def test_project_config_with_all_biases_enabled(
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
             return_value=0.1,
         ):
             project_cfg = get_project_config(default_project)
@@ -542,16 +542,6 @@ def test_project_config_satisfaction_thresholds(
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
-
-
-@django_db_all
-@region_silo_test
-def test_project_config_with_span_attributes(default_project, insta_snapshot):
-    # The span attributes config is not set with the flag turnd off
-    project_cfg = get_project_config(default_project, full_config=True)
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    insta_snapshot(cfg["config"]["spanAttributes"])
 
 
 @django_db_all

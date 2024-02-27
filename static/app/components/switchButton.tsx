@@ -84,7 +84,7 @@ const SwitchButton = styled('button')<StyleProps>`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
@@ -100,7 +100,8 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border)};
+  background: ${p =>
+    p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 

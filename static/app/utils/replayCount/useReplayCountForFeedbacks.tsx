@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,8 +16,11 @@ export default function useReplayCountForFeedbacks() {
     statsPeriod: '90d',
   });
 
-  return {
-    feedbackHasReplay: hasOne,
-    feedbacksHaveReplay: hasMany,
-  };
+  return useMemo(
+    () => ({
+      feedbackHasReplay: hasOne,
+      feedbacksHaveReplay: hasMany,
+    }),
+    [hasMany, hasOne]
+  );
 }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, IntEnum
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from sentry import features
@@ -10,22 +10,10 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-
-
-class PriorityLevel(IntEnum):
-    LOW = 25
-    MEDIUM = 50
-    HIGH = 75
-
-
-PRIORITY_LEVEL_TO_STR: dict[int, str] = {
-    PriorityLevel.LOW: "low",
-    PriorityLevel.MEDIUM: "medium",
-    PriorityLevel.HIGH: "high",
-}
 
 
 class PriorityChangeReason(Enum):
@@ -51,16 +39,13 @@ def update_priority(
     """
     Update the priority of a group and record the change in the activity and group history.
     """
-    if group.priority_locked_at is not None:
-        return
-
     group.update(priority=priority)
     Activity.objects.create_group_activity(
         group=group,
         type=ActivityType.SET_PRIORITY,
         user=actor,
         data={
-            "priority": PRIORITY_LEVEL_TO_STR[priority],
+            "priority": priority.to_str(),
             "reason": reason,
         },
     )
@@ -119,7 +104,10 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     """
     Update the priority of a group due to state changes.
     """
-    if not features.has("projects:issue-priority", group.project, actor=None):
+    if (
+        not features.has("projects:issue-priority", group.project, actor=None)
+        or group.priority_locked_at is not None
+    ):
         return None
 
     new_priority = None
@@ -128,5 +116,5 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     elif reason == PriorityChangeReason.ONGOING:
         new_priority = get_priority_for_ongoing_group(group)
 
-    if new_priority is not None:
+    if new_priority is not None and new_priority != group.priority:
         update_priority(group, new_priority, reason)

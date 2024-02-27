@@ -18,6 +18,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
 
+from sentry import options
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
@@ -461,8 +462,7 @@ class _RemoteSiloCall:
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
             rpc_destination_region=self.region.name if self.region else None,
-            rpc_service=self.service_name,
-            rpc_method=self.method_name,
+            rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
 
@@ -563,7 +563,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=5,
+                total=options.get("hybridcloud.rpc.retries"),
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],

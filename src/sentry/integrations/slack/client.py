@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from requests import PreparedRequest, Response
-from sentry_sdk.tracing import Span
 
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
@@ -82,39 +81,21 @@ class SlackClient(IntegrationProxyClient):
     def track_response_data(
         self,
         code: str | int,
-        span: Span | None = None,
         error: str | None = None,
         resp: Response | None = None,
         extra: Mapping[str, str] | None = None,
     ) -> None:
-        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
-        # span call in `if span`
-        span = span or Span()
-        try:
-            span.set_http_status(int(code))
-        except ValueError:
-            span.set_status(str(code))
-
         is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
         if resp:
             content_type = resp.headers["content-type"]
             if content_type == "text/html":
                 is_ok = str(resp.content) == "ok"
-                # If there is an error, Slack just makes the error the entire response.
-                error_option = resp.content
 
             else:
                 # The content-type should be "application/json" at this point but we don't check.
                 response = resp.json()
                 is_ok = response.get("ok")
-                error_option = response.get("error")
-
-            span.set_tag("ok", is_ok)
-
-            # when 'ok' is False, we can add the error we get back as a tag
-            if not is_ok:
-                span.set_tag("slack_error", error_option)
 
         metrics.incr(
             SLACK_DATADOG_METRIC,
@@ -144,6 +125,8 @@ class SlackClient(IntegrationProxyClient):
         *args: Any,
         **kwargs: Any,
     ) -> BaseApiResponse:
+        log_response_with_error = kwargs.pop("log_response_with_error", False)
+
         response = self._request(
             method,
             path,
@@ -156,5 +139,9 @@ class SlackClient(IntegrationProxyClient):
             **kwargs,
         )
         if not raw_response and not response.json.get("ok"):
+            if log_response_with_error:
+                self.logger.info(
+                    "rule.fail.slack_post.log_response", extra={"response": response.__dict__}
+                )
             raise ApiError(response.get("error", ""))
         return response

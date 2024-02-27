@@ -3,14 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from typing import Any, Final, TypedDict, cast
 
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
-from typing_extensions import TypedDict
 
 from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -89,7 +88,7 @@ def get_access_by_project(
     team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
 
     org_ids = {i.organization_id for i in projects}
-    all_org_roles = get_org_roles(org_ids, user)
+    org_roles = get_org_roles(org_ids, user)
     is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
@@ -99,13 +98,13 @@ def get_access_by_project(
         parent_teams = [t.id for t in project_team_map.get(project.id, [])]
         member_teams = [m for m in team_memberships if m.team_id in parent_teams]
         is_member = any(member_teams)
-        org_roles = all_org_roles.get(project.organization_id) or []
+        org_role = org_roles.get(project.organization_id)
 
         has_access = bool(
             is_member
             or is_superuser
             or project.organization.flags.allow_joinleave
-            or any(roles.get(org_role).is_global for org_role in org_roles)
+            or (org_role and roles.get(org_role).is_global)
         )
 
         team_scopes = set()
@@ -119,13 +118,11 @@ def get_access_by_project(
                 for member in member_teams:
                     team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
-                # User may have elevated team-roles from their org-role
-                top_org_role = org_roles[0] if org_roles else None
                 if is_superuser:
-                    top_org_role = organization_roles.get_top_dog().id
+                    org_role = organization_roles.get_top_dog().id
 
-                if top_org_role:
-                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                if org_role:
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
                     team_scopes = team_scopes.union(minimum_team_role.scopes)
 
         result[project] = {
@@ -210,6 +207,10 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
+        "sentry:feedback_user_report_notification": bool(
+            options.get("sentry:feedback_user_report_notification")
+        ),
+        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 

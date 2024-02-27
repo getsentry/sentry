@@ -52,13 +52,13 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:session-replay-combined-envelope-items",
     "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
-    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -364,7 +364,7 @@ def _get_project_config(
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
 
     with Hub.current.start_span(op="get_public_config"):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
             "slug": project.slug,
@@ -668,10 +668,70 @@ def _get_project_config(
                         "value": "Opera",
                     },
                 },
+                {
+                    "name": "Chrome INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "or",
+                        "inner": [
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Chrome",
+                            },
+                            {
+                                "op": "eq",
+                                "name": "event.contexts.browser.name",
+                                "value": "Google Chrome",
+                            },
+                        ],
+                    },
+                },
+                {
+                    "name": "Edge INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera INP",
+                    "scoreComponents": [
+                        {
+                            "measurement": "inp",
+                            "weight": 1.0,
+                            "p10": 200.0,
+                            "p50": 500.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
             ]
         }
 
-    config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings

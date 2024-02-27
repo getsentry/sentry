@@ -580,6 +580,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="replays/"
+        name={t('Replays')}
+        component={make(() => import('sentry/views/settings/project/projectReplays'))}
+      />
 
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1676,6 +1681,11 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/performance/database/databaseSpanSummaryPage')
           )}
+        />
+      </Route>
+      <Route path="http/">
+        <IndexRoute
+          component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
         />
       </Route>
       <Route path="browser/">

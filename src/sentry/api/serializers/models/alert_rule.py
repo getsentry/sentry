@@ -3,11 +3,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
@@ -17,6 +16,7 @@ from sentry.incidents.models import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
+    AlertRuleMonitorType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
@@ -80,6 +80,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     dateModified: datetime
     dateCreated: datetime
     createdBy: dict
+    monitorType: int
 
 
 @register(AlertRule)
@@ -243,6 +244,7 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
+            "monitorType": attrs.get("monitor_type", AlertRuleMonitorType.CONTINUOUS.value),
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

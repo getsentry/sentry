@@ -87,12 +87,17 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def superuser_has_permission(request: HttpRequest | Request) -> bool:
+def superuser_has_permission(
+    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
     Checks if superuser has permission for the request.
     Superuser read-only is restricted to GET and OPTIONS requests.
     These checks do not affect self-hosted.
+
+    The `permissions` arg is passed in and used when request.access is not populated,
+    e.g. in UserPermission
     """
     if not is_active_superuser(request):
         return False
@@ -104,8 +109,14 @@ def superuser_has_permission(request: HttpRequest | Request) -> bool:
     if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
         return True
 
+    # either request.access or permissions must exist
+    assert getattr(request, "access", None) or permissions is not None
+
     # superuser write can access all requests
-    if request.access.has_permission("superuser.write"):
+    if getattr(request, "access", None) and request.access.has_permission("superuser.write"):
+        return True
+
+    elif permissions is not None and "superuser.write" in permissions:
         return True
 
     # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
@@ -175,8 +186,8 @@ class Superuser(ElevatedMode):
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
-        # We have a wsgi request with no user.
-        if not hasattr(self.request, "user"):
+        # We have a wsgi request with no user or user is None.
+        if not hasattr(self.request, "user") or self.request.user is None:
             return False
         # if we've been logged out
         if not self.request.user.is_authenticated:

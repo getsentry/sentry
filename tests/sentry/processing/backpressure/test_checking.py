@@ -17,11 +17,33 @@ from sentry.utils import json
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
 def test_backpressure_unhealthy():
-    record_consumer_health({"celery": False})
+    record_consumer_health(
+        {
+            "celery": Exception("Couldn't check celery"),
+            "attachments-store": [],
+            "processing-store": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
+    with raises(MessageRejected):
+        process_one_message()
+
+
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": False,
+        "backpressure.status_ttl": 60,
+    }
+)
+def test_bad_config():
     with raises(MessageRejected):
         process_one_message()
 
@@ -31,17 +53,18 @@ def test_backpressure_unhealthy():
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
 def test_backpressure_healthy(process_profile_task):
     record_consumer_health(
         {
-            "celery": True,
-            "attachments-store": True,
-            "processing-store": True,
-            "processing-locks": True,
-            "post-process-locks": True,
+            "celery": [],
+            "attachments-store": [],
+            "processing-store": [],
+            "processing-locks": [],
+            "post-process-locks": [],
         }
     )
     process_one_message()

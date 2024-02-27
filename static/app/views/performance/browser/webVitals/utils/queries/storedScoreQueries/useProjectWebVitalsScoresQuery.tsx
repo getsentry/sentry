@@ -6,6 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   dataset?: DiscoverDatasets;
@@ -25,6 +26,7 @@ export const useProjectWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -48,7 +50,14 @@ export const useProjectWebVitalsScoresQuery = ({
         'count_scores(measurements.score.ttfb)',
         'count_scores(measurements.score.fid)',
         ...(weightWebVital !== 'total'
-          ? [`sum(measurements.score.weight.${weightWebVital})`]
+          ? [
+              // TODO: Remove this once we can query for INP.
+              `sum(measurements.score.weight.${
+                shouldReplaceFidWithInp && weightWebVital === 'inp'
+                  ? 'fid'
+                  : weightWebVital
+              })`,
+            ]
           : []),
       ],
       name: 'Web Vitals',

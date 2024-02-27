@@ -83,3 +83,16 @@ cf018ef83b999b5287d1fde7ea523d56d09a228d
 
 # build: Addition of typescript-eslint/consistent-type-imports rule (#63543)
 527914ee8dab6b8a7c1c8e3ed9f25dc633f43640
+
+# Revert "Revert "ref: enable pyupgrade --py311-plus (#64363)""  (#64380)
+eb55184602940adb1fc09a9c0e33515cac92c7d8
+# Revert "ref: enable pyupgrade --py311-plus (#64363)"
+6fc6ffc848f645a0abf1915a337dc67231548750
+# ref: enable pyupgrade --py311-plus (#64363)
+28f5037299c366879d6f1d0572e907919383d27f
+# ref: pep 604 pyupgrade --py311-plus changes (#64349)
+7a00c559245d9a7fc4cd944723753434aad53155
+# ref: pep 585 pyupgrade --py311-plus changes (#64275)
+c8a00d1cf64a349276060458ca51dab9e2538f3e
+# ref: perform non-typing --py311-plus pyupgrades (#64164)
+b5e15e8611ff64f8d4e2cde8365f92f7769c9c20

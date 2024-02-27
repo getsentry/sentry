@@ -1,6 +1,6 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType} from 'sentry/types';
+import type {IntegrationType, PriorityLevel} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -39,6 +39,11 @@ interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_type: IntegrationType;
 }
 
+interface SetPriorityParams extends CommonGroupAnalyticsData {
+  from_priority: PriorityLevel;
+  to_priority: PriorityLevel;
+}
+
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
   'device.classification.high.end.android.device': {
@@ -61,6 +66,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -82,6 +88,26 @@ export type IssueEventParameters = {
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.set_priority': SetPriorityParams;
+  'issue_details.similar_issues.diff_clicked': {
+    error_message?: string;
+    group_id?: string;
+    parent_error_message?: string;
+    parent_group_id?: string;
+    parent_stacktrace?: string;
+    parent_transaction?: string;
+    project_id?: string;
+    shouldBeGrouped?: string;
+    stacktrace?: string;
+    transaction?: string;
+  };
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
+    groupId: string;
+    parentGroupId: string;
+    value: string;
+    projectId?: string;
+    wouldGroup?: string;
+  };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
@@ -165,7 +191,7 @@ export type IssueEventParameters = {
   };
   'issues_stream.archived': {
     action_status_details?: string;
-    action_substatus?: string;
+    action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -195,6 +221,11 @@ export type IssueEventParameters = {
     query: string;
     sort: string;
     tab?: string;
+  };
+  'project_modal.created': {
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
+    project_id: string;
+    rule_id: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -243,6 +274,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.similar_issues.diff_clicked':
+    'Issue Details: Similar Issues: Diff Clicked',
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
+    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -271,6 +306,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
+  'project_modal.created': 'Project Modal: Created',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
@@ -304,6 +340,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':
@@ -316,4 +353,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
+  'issue_details.set_priority': 'Issue Details: Set Priority',
 };

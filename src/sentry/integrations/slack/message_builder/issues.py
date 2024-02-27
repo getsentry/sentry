@@ -27,14 +27,20 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import (
     CATEGORY_TO_EMOJI,
+    CATEGORY_TO_EMOJI_V2,
     LEVEL_TO_EMOJI,
+    LEVEL_TO_EMOJI_V2,
     SLACK_URL_FORMAT,
     SlackAttachment,
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -68,6 +74,20 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "bitbucket",
     "integrations:bitbucket",
 )
+# NOTE: if this starts getting large and functions get complicated,
+# pull things out into their own functions
+SUPPORTED_CONTEXT_DATA = {
+    "Events": lambda group: get_group_global_count(group),
+    "Users Affected": lambda group: group.count_users_seen(),
+    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+    "First Seen": lambda group: time_since(group.first_seen),
+    "Regressed Date": lambda group: time_since(group.active_at),
+}
+
+REGRESSION_PERFORMANCE_ISSUE_TYPES = [
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+]
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +184,7 @@ def format_release_tag(value: str, event: GroupEvent | Group):
 
 
 def get_tags(
+    group: Group,
     event_for_tags: Any,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
@@ -177,7 +198,29 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release", "handled", "environment"}
+    default_tags = {"level", "release", "handled", "environment"}
+    # for performance issues we want to have the default tags _except_ level
+    if (
+        group.issue_category == GroupCategory.PERFORMANCE
+        and group.issue_type not in REGRESSION_PERFORMANCE_ISSUE_TYPES
+    ):
+        default_tags.remove("level")
+
+    # XXX(CEO): in the short term we're not adding these to all issue types (e.g. crons, user feedback)
+    # but in the future we'll read some config from the grouptype
+    if group.issue_category not in [GroupCategory.ERROR, GroupCategory.PERFORMANCE] or (
+        group.issue_category == GroupCategory.PERFORMANCE
+        and group.issue_type in REGRESSION_PERFORMANCE_ISSUE_TYPES
+    ):
+        default_tags = set()
+
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+    # improved block kit only uses alert rule tags
+    if not use_improved_block_kit:
+        tags = tags | default_tags
+
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -194,6 +237,44 @@ def get_tags(
                 }
             )
     return fields
+
+
+def get_context(group: Group) -> str:
+    context_text = ""
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+
+    # original block kit
+    if not use_improved_block_kit:
+        context = {
+            "Events": get_group_global_count(group),
+            "Users Affected": group.count_users_seen(),
+            "State": SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
+            "First Seen": time_since(group.first_seen),
+        }
+        if group.issue_type in REGRESSION_PERFORMANCE_ISSUE_TYPES:
+            # another short term solution for non-error issues notification content
+            return context_text
+
+        if group.issue_category in [GroupCategory.ERROR, GroupCategory.PERFORMANCE]:
+            for k, v in context.items():
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
+
+        return context_text.rstrip()
+
+    # updated block kit
+    context = group.issue_type.notification_config.context
+    context_dict = {}
+    for c in context:
+        if c in SUPPORTED_CONTEXT_DATA:
+            context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
+
+    for k, v in context_dict.items():
+        if v:
+            context_text += f"{k}: *{v}*   "
+    return context_text.rstrip()
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
@@ -261,16 +342,13 @@ def get_suggested_assignees(
     ):  # we don't want every user in the project to be a suggested assignee
         resolved_owners = ActorTuple.resolve_many(issue_owners)
         suggested_assignees = RpcActor.many_from_object(resolved_owners)
-    if features.has("organizations:streamline-targeting-context", project.organization):
-        try:
-            suspect_commit_users = RpcActor.many_from_object(
-                get_suspect_commit_users(project, event)
-            )
-            suggested_assignees.extend(suspect_commit_users)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            logger.info("Skipping suspect committers because release does not exist.")
-        except Exception:
-            logger.exception("Could not get suspect committers. Continuing execution.")
+    try:
+        suspect_commit_users = RpcActor.many_from_object(get_suspect_commit_users(project, event))
+        suggested_assignees.extend(suspect_commit_users)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
     if suggested_assignees:
         suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
         assignee_texts = []
@@ -430,9 +508,11 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group)
-            if not use_block_kit
-            else get_option_groups_block_kit(group),
+            option_groups=(
+                get_option_groups(group)
+                if not use_block_kit
+                else get_option_groups_block_kit(group)
+            ),
         )
         return assign_button
 
@@ -503,7 +583,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 text = escape_slack_text(text)
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        text += build_attachment_replay_link(self.group, self.event) or ""
+        replay_link = build_attachment_replay_link(self.group, self.event)
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -544,6 +624,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(obj)
 
         if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            if replay_link:
+                text += f"\n\n{replay_link}"
             if action_text and self.identity:
                 text += "\n" + action_text
 
@@ -565,15 +647,24 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
+        use_improved_block_kit = features.has(
+            "organizations:slack-block-kit-improvements", self.group.project.organization
+        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            if use_improved_block_kit:
+                title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
+            else:
+                title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+            if use_improved_block_kit:
+                title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
+            else:
+                title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
@@ -582,7 +673,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up text block
         if text:
             text = text.lstrip(" ")
-            blocks.append(self.get_rich_text_preformatted_block(text))
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                blocks.append(self.get_markdown_quote_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -591,27 +684,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        if self.group.issue_category == GroupCategory.ERROR:
-            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
-            # since they don't make sense, but in the future we'll read some config from the grouptype
+        # build tags block
+        tags = get_tags(self.group, event_for_tags, self.tags)
+        if tags:
+            blocks.append(self.get_tags_block(tags))
 
-            # build tags block
-            tags = get_tags(event_for_tags, self.tags)
-            if tags:
-                blocks.append(self.get_tags_block(tags))
-
-            # add event count, user count, substate, first seen
-            context = {
-                "Events": get_group_global_count(self.group),
-                "Users Affected": self.group.count_users_seen(),
-                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-                "First Seen": time_since(self.group.first_seen),
-            }
-            context_text = ""
-            for k, v in context.items():
-                if k and v:
-                    context_text += f"{k}: *{v}*   "
-            blocks.append(self.get_context_block(context_text[:-3]))
+        # add event count, user count, substate, first seen
+        context = get_context(self.group)
+        if context:
+            blocks.append(self.get_context_block(context))
 
         # build actions
         actions = []
@@ -680,7 +761,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             for k, v in footer_data.items():
                 footer_text += f"{k}: {v}    "
 
-            footer_text = footer_text[:-4]  # chop off the empty space
+            if replay_link:
+                footer_text += replay_link
+            else:
+                footer_text = footer_text[:-4]  # chop off the empty space
             blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))

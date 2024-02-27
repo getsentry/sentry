@@ -57,9 +57,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
-    # TODO: These might be slow for many projects, since it will query for each
-    # individually. If we find this to be a problem then we can look into batching.
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        max_length=1,
+    )
     excluded_projects = serializers.ListField(
         child=ProjectField(scope="project:read"), required=False
     )
@@ -84,6 +86,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
+    monitor_type = serializers.IntegerField(required=False, min_value=0)
 
     class Meta:
         model = AlertRule
@@ -105,6 +108,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "excluded_projects",
             "triggers",
             "event_types",
+            "monitor_type",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
@@ -136,7 +140,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_aggregate(self, aggregate):
         allow_mri = features.has(
-            "organizations:ddm-experimental",
+            "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
         )
@@ -256,7 +260,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
-            "organizations:ddm-experimental",
+            "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
         ):

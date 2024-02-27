@@ -59,6 +59,7 @@ export const ALLOWED_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:billing',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
@@ -218,6 +219,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
+export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -238,7 +240,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,

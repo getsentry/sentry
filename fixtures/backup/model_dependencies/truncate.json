@@ -1,5 +1,6 @@
 [
   "hybridcloud_regioncacheversion",
+  "hybridcloud_webhookpayload",
   "nodestore_node",
   "sentry_broadcast",
   "sentry_controlfile",
@@ -44,6 +45,7 @@
   "sentry_reprocessingreport",
   "sentry_scheduleddeletion",
   "sentry_sentryfunction",
+  "sentry_sentryshot",
   "sentry_stringindexer",
   "sentry_team",
   "sentry_teamreplica",
@@ -209,8 +211,10 @@
   "sentry_incident",
   "sentry_dashboardwidgetquery",
   "sentry_alertruletrigger",
+  "sentry_alertruleprojects",
   "sentry_alertruleexcludedprojects",
   "sentry_alertruleactivity",
+  "sentry_alertruleactivationcondition",
   "sentry_timeseriessnapshot",
   "sentry_servicehook",
   "sentry_sentryappinstallationtoken",
@@ -225,5 +229,6 @@
   "sentry_dashboardwidgetqueryondemand",
   "sentry_alertruletriggerexclusion",
   "sentry_alertruletriggeraction",
-  "sentry_servicehookproject"
+  "sentry_servicehookproject",
+  "sentry_notificationmessage"
 ]

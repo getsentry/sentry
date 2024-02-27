@@ -9,8 +9,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -42,17 +40,14 @@ import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performanc
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import type {
-  TransactionSampleRowWithScore,
-  WebVitals,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {
   AlertContent,
   DismissButton,
   StyledAlert,
 } from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
 
@@ -70,19 +65,6 @@ const LANDING_DISPLAYS = [
     label: t('Aggregate Spans'),
     field: LandingDisplayField.SPANS,
   },
-];
-
-const SAMPLES_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 function getCurrentTabSelection(selectedTab) {
@@ -161,7 +143,11 @@ export default function PageOverview() {
   );
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <ModulePageProviders
+      title={[t('Performance'), t('Web Vitals')].join(' — ')}
+      baseURL="/performance/browser/pageloads"
+      features="starfish-browser-webvitals"
+    >
       <Tabs
         value={tab}
         onChange={value => {
@@ -284,7 +270,6 @@ export default function PageOverview() {
               <PageSamplePerformanceTableContainer>
                 <PageSamplePerformanceTable
                   transaction={transaction}
-                  columnOrder={SAMPLES_COLUMN_ORDER}
                   limit={15}
                   search={query}
                 />

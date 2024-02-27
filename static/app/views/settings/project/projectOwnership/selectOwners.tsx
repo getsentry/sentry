@@ -40,7 +40,7 @@ function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
 }
 
 const getSearchKeyForUser = (user: User) =>
-  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+  `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
 type Props = {
   api: Client;

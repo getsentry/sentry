@@ -68,6 +68,7 @@ function withReleaseRepos<P extends DependentProps>(
       }
     }
 
+    declare context: React.ContextType<typeof ReleaseContext>;
     static contextType = ReleaseContext;
 
     setActiveReleaseRepo(props: P & HoCsProps) {

@@ -96,6 +96,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -119,7 +120,7 @@ GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != model
 # 1. they are migrated as part of the processing pipeline (post-process/save-event)
 # 2. there are a lot of them per group. For remaining events, we need to chunk
 #    up those queries for them to not get too slow
-EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
+EVENT_MODELS_TO_MIGRATE = (EventAttachment, models.UserReport)
 
 # The amount of seconds after which we assume there was no progress during reprocessing,
 # and after which we just give up and mark the group as finished.
@@ -160,7 +161,7 @@ def backup_unprocessed_event(data):
 class ReprocessableEvent:
     event: Event
     data: dict[str, Any]
-    attachments: list[models.EventAttachment]
+    attachments: list[EventAttachment]
 
 
 def pull_event_data(project_id, event_id) -> ReprocessableEvent:
@@ -182,7 +183,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
     required_attachment_types = get_required_attachment_types(data)
     attachments = list(
-        models.EventAttachment.objects.filter(
+        EventAttachment.objects.filter(
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
         )
     )
@@ -217,11 +218,6 @@ def reprocess_event(project_id, event_id, start_time):
     # (we simply update group_id on the EventAttachment models in post_process)
     attachment_objects = []
 
-    files = {
-        f.id: f
-        for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments if ea.file_id])
-    }
-
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
             span.set_data("attachment_id", attachment.id)
@@ -229,7 +225,6 @@ def reprocess_event(project_id, event_id, start_time):
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
                     attachment=attachment,
-                    file=files[attachment.file_id] if attachment.file_id else None,
                     cache_key=cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
@@ -399,28 +394,29 @@ def buffered_delete_old_primary_hash(
         )
 
 
-def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout):
-    fp = file.getfile()
-    chunk_index = 0
-    size = 0
-    while True:
-        chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
-        if not chunk:
-            break
+def _copy_attachment_into_cache(
+    attachment_id, attachment: EventAttachment, cache_key, cache_timeout
+):
+    with attachment.getfile() as fp:
+        chunk_index = 0
+        size = 0
+        while True:
+            chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
+            if not chunk:
+                break
 
-        size += len(chunk)
+            size += len(chunk)
 
-        attachment_cache.set_chunk(
-            key=cache_key,
-            id=attachment_id,
-            chunk_index=chunk_index,
-            chunk_data=chunk,
-            timeout=cache_timeout,
-        )
-        chunk_index += 1
+            attachment_cache.set_chunk(
+                key=cache_key,
+                id=attachment_id,
+                chunk_index=chunk_index,
+                chunk_data=chunk,
+                timeout=cache_timeout,
+            )
+            chunk_index += 1
 
-    expected_size = attachment.size or file.size
-    assert size == expected_size
+    assert size == attachment.size
 
     return CachedAttachment(
         key=cache_key,

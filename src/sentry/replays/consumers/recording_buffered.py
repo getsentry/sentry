@@ -35,13 +35,14 @@ consumer throughput is high an error will force the reprocessing of a larger num
 than if throughput is low. The number of messages being operated on in parallel is material only
 insofar as it impacts the throughput of the consumer.
 """
+
 from __future__ import annotations
 
 import logging
 import time
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -51,15 +52,11 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
-from sentry.replays.usecases.ingest import (
-    MissingRecordingSegmentHeaders,
-    decompress,
-    process_headers,
-    track_initial_segment_event,
-)
+from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -70,6 +67,30 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+
+
+def cast_payload_bytes(x: Any) -> bytes:
+    """
+    Coerces a type from Any to bytes
+
+    sentry-kafka-schemas does not support the typing of bytes for replay's
+    payloads, and so sometimes we have to cast values around to work around the
+    schema.
+
+    Use this helper function to explicitly annotate that. At a later point when
+    sentry-kafka-schemas is fixed, we can replace all usages of this function
+    with the proper solution.
+    """
+    return x
+
+
+def cast_payload_from_bytes(x: bytes) -> Any:
+    """
+    Coerces a type from bytes to Any.
+
+    See cast_payload_bytes
+    """
+    return x
 
 
 class BufferCommitFailed(Exception):
@@ -194,12 +215,20 @@ class RecordingBuffer:
 
 def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.decode_kafka_message"):
-        decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        try:
+            decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        except ValidationError:
+            # TODO: DLQ
+            logger.exception("Could not decode recording message.")
+            return None
 
     try:
-        headers, recording_data = process_headers(decoded_message["payload"])
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", decoded_message["replay_id"])
+        headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
+    except Exception:
+        # TODO: DLQ
+        logger.exception(
+            "Recording headers could not be extracted %s", decoded_message["replay_id"]
+        )
         return None
 
     # Append an upload event to the state object for later processing.
@@ -231,12 +260,35 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
 
         with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
             parsed_recording_data = json.loads(decompressed_segment)
+            parsed_replay_event = (
+                json.loads(cast_payload_bytes(decoded_message["replay_event"]))
+                if decoded_message.get("replay_event")
+                else None
+            )
 
         replay_actions = parse_replay_actions(
             decoded_message["project_id"],
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
+            parsed_replay_event,
+        )
+
+        if replay_actions is not None:
+            buffer.replay_action_events.append(replay_actions)
+
+        # Useful for computing the average cost of a replay.
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed",
+            len(recording_data),
+            unit="byte",
+        )
+
+        # Useful for computing the compression ratio.
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed",
+            len(decompressed_segment),
+            unit="byte",
         )
     except Exception:
         logging.exception(
@@ -246,23 +298,6 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             decoded_message["replay_id"],
             headers["segment_id"],
         )
-
-    if replay_actions is not None:
-        buffer.replay_action_events.append(replay_actions)
-
-    # Useful for computing the average cost of a replay.
-    metrics.distribution(
-        "replays.usecases.ingest.size_compressed",
-        len(recording_data),
-        unit="byte",
-    )
-
-    # Useful for computing the compression ratio.
-    metrics.distribution(
-        "replays.usecases.ingest.size_uncompressed",
-        len(decompressed_segment),
-        unit="byte",
-    )
 
 
 # Commit.

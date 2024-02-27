@@ -5,12 +5,11 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.db.models import ValidateFunction, Value
@@ -239,6 +238,7 @@ class RpcOrganization(RpcOrganizationSummary):
 
     default_role: str = ""
     date_added: datetime = Field(default_factory=timezone.now)
+    _default_owner_id: int | None = None
 
     def get_audit_log_data(self):
         return {
@@ -264,6 +264,21 @@ class RpcOrganization(RpcOrganizationSummary):
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
         return user_service.get_many(filter={"user_ids": list(owners)})
+
+    @property
+    def default_owner_id(self):
+        """
+        Similar to get_default_owner but won't raise a key error
+        if there is no owner.
+
+        This mirrors the method on the Organization model.
+        """
+        if not hasattr(self, "_default_owner_id"):
+            owners = self.get_owners()
+            if len(owners) == 0:
+                return None
+            self._default_owner_id = owners[0].id
+        return self._default_owner_id
 
 
 class RpcUserOrganizationContext(RpcModel):

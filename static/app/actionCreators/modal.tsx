@@ -6,6 +6,7 @@ import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types'
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
 import type {
   Event,
@@ -19,6 +20,7 @@ import type {
   Team,
 } from 'sentry/types';
 import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -68,6 +70,7 @@ type OpenDiffModalOptions = {
   project: Project;
   targetIssueId: string;
   baseEventId?: Event['id'];
+  shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
@@ -331,7 +334,13 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const mod = await import('sentry/components/modals/widgetViewerModal');
+  const modalPromise =
+    options.widget.widgetType === WidgetType.METRICS
+      ? import('sentry/components/modals/metricWidgetViewerModal')
+      : import('sentry/components/modals/widgetViewerModal');
+
+  const mod = await modalPromise;
+
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
@@ -370,6 +379,13 @@ export async function openNavigateToExternalLinkModal(
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
+}
+
+export async function openProjectCreationModal(options: {defaultCategory: Category}) {
+  const mod = await import('sentry/components/modals/projectCreationModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {

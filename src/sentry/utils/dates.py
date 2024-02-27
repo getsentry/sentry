@@ -94,7 +94,7 @@ def parse_timestamp(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
-        return datetime.utcfromtimestamp(value).replace(tzinfo=timezone.utc)
+        return datetime.fromtimestamp(value, timezone.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
         return None
@@ -196,7 +196,7 @@ def outside_retention_with_modified_start(
 
     # Need to support timezone-aware and naive datetimes since
     # Snuba API only deals in naive UTC
-    now = datetime.utcnow().astimezone(timezone.utc) if start.tzinfo else datetime.utcnow()
+    now = datetime.now(timezone.utc) if start.tzinfo else datetime.utcnow()
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start

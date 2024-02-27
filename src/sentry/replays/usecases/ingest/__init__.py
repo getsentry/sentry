@@ -56,6 +56,7 @@ class RecordingIngestMessage:
     key_id: int | None
     received: int
     payload_with_headers: bytes
+    replay_event: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -74,6 +75,11 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
+                replay_event=(
+                    cast(bytes, message_dict["replay_event"])
+                    if "replay_event" in message_dict
+                    else None
+                ),
             )
             _ingest_recording(message, transaction)
 
@@ -85,8 +91,9 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", message.replay_id)
+    except Exception:
+        # TODO: DLQ
+        logger.exception("Recording headers could not be extracted %s", message.replay_id)
         return None
 
     # Normalize ingest data into a standardized ingest format.
@@ -101,7 +108,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     # within this scope.
     storage.set(segment_data, recording_segment)
 
-    recording_post_processor(message, headers, recording_segment, transaction)
+    recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -145,7 +152,7 @@ def track_initial_segment_event(
         key_id=key_id,
         outcome=Outcome.ACCEPTED,
         reason=None,
-        timestamp=datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc),
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
         event_id=replay_id,
         category=DataCategory.REPLAY,
         quantity=1,
@@ -154,12 +161,10 @@ def track_initial_segment_event(
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
 def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders, bytes]:
-    try:
-        recording_headers, recording_segment = bytes_with_headers.split(b"\n", 1)
-    except ValueError:
-        raise MissingRecordingSegmentHeaders
-    else:
-        return json.loads(recording_headers, use_rapid_json=True), recording_segment
+    recording_headers_json, recording_segment = bytes_with_headers.split(b"\n", 1)
+    recording_headers = json.loads(recording_headers_json)
+    assert isinstance(recording_headers.get("segment_id"), int)
+    return recording_headers, recording_segment
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
@@ -191,12 +196,14 @@ def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
+    replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
             parsed_segment_data = json.loads(decompressed_segment)
+            parsed_replay_event = json.loads(replay_event_bytes) if replay_event_bytes else None
             _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
@@ -209,6 +216,7 @@ def recording_post_processor(
                 project_id=message.project_id,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
+                replay_event=parsed_replay_event,
             )
 
         # Log canvas mutations to bigquery.

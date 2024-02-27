@@ -76,16 +76,24 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             status=CheckInStatus.OK,
         )
 
+        checkin3 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.OK,
+        )
+
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
             **{"statsPeriod": "1d"},
         )
-        assert len(resp.data) == 2
+        assert len(resp.data) == 3
 
         # Newest first
-        assert resp.data[0]["id"] == str(checkin2.guid)
-        assert resp.data[1]["id"] == str(checkin1.guid)
+        assert resp.data[0]["id"] == str(checkin3.guid)
+        assert resp.data[1]["id"] == str(checkin2.guid)
+        assert resp.data[2]["id"] == str(checkin1.guid)
 
     def test_statsperiod_constraints(self):
         monitor = self._create_monitor()
@@ -148,7 +156,9 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         )
         assert len(resp.data) == 1
         assert resp.data[0]["id"] == str(checkin1.guid)
-        assert resp.data[0]["environment"] == str(checkin1.monitor_environment.environment.name)
+        assert resp.data[0]["environment"] == str(
+            checkin1.monitor_environment.get_environment().name
+        )
 
     def test_bad_monitorenvironment(self):
         self.login_as(self.user)

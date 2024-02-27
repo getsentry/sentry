@@ -11,14 +11,14 @@ function TeamAvatar({team, tooltip: tooltipProp, ...props}: TeamAvatarProps) {
     return null;
   }
 
-  const slug = (team && team.slug) || '';
+  const slug = team?.slug || '';
   const title = explodeSlug(slug);
   const tooltip = tooltipProp ?? `#${title}`;
 
   return (
     <BaseAvatar
       {...props}
-      type={(team.avatar && team.avatar.avatarType) || 'letter_avatar'}
+      type={team.avatar?.avatarType || 'letter_avatar'}
       letterId={slug}
       tooltip={tooltip}
       title={title}

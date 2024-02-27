@@ -2,7 +2,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 11
+LATEST_EPOCH = 12
 
 # grouping related configs
 #
@@ -102,9 +102,6 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
-# Default span attributes config
-register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
-
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -133,6 +130,15 @@ register(
 register(
     key="sentry:performance_general_settings",
     default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
+)
+
+register(
+    key="sentry:replay_rage_click_issues",
+    default=True,
+)
+register(
+    key="sentry:feedback_user_report_notifications",
+    epoch_defaults={12: True},
 )
 
 

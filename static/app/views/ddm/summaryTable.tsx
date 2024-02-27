@@ -14,25 +14,25 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/ddm/widget';
+import type {Series} from 'sentry/views/ddm/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
   series,
-  operation,
   onRowClick,
+  onColorDotClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
-  setHoveredSeries,
+  onRowHover,
 }: {
-  onRowClick: (series: MetricWidgetQueryParams['focusedSeries']) => void;
+  onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
-  operation?: string;
-  setHoveredSeries?: (seriesName: string) => void;
+  onColorDotClick?: (series: FocusedMetricsSeries) => void;
+  onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
@@ -116,7 +116,6 @@ export const SummaryTable = memo(function SummaryTable({
       return {
         ...s,
         ...getValues(s.data),
-        name: s.seriesName,
       };
     })
     .sort((a, b) => {
@@ -127,8 +126,8 @@ export const SummaryTable = memo(function SummaryTable({
 
       if (name === 'name') {
         return order === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
+          ? a.seriesName.localeCompare(b.seriesName)
+          : b.seriesName.localeCompare(a.seriesName);
       }
       const aValue = a[name] ?? 0;
       const bValue = b[name] ?? 0;
@@ -138,42 +137,44 @@ export const SummaryTable = memo(function SummaryTable({
 
   return (
     <SummaryTableWrapper hasActions={hasActions}>
-      <HeaderCell disabled />
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
-        {t('Name')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
-        {t('Avg')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
-        {t('Min')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
-        {t('Max')}
-      </SortableHeaderCell>
-      <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
-        {t('Sum')}
-      </SortableHeaderCell>
-      {hasActions && (
-        <HeaderCell disabled right>
-          {t('Actions')}
-        </HeaderCell>
-      )}
+      <TableHeaderWrapper hasActions={hasActions}>
+        <HeaderCell disabled />
+        <HeaderCell disabled />
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
+          {t('Name')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="avg" right>
+          {t('Avg')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="min" right>
+          {t('Min')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="max" right>
+          {t('Max')}
+        </SortableHeaderCell>
+        <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
+          {t('Sum')}
+        </SortableHeaderCell>
+        {hasActions && <HeaderCell disabled right />}
+        <HeaderCell disabled />
+      </TableHeaderWrapper>
       <TableBodyWrapper
+        hasActions={hasActions}
         onMouseLeave={() => {
           if (hasMultipleSeries) {
-            setHoveredSeries?.('');
+            onRowHover?.('');
           }
         }}
       >
         {rows.map(
           ({
-            name,
             seriesName,
+            id,
             groupBy,
             color,
             hidden,
             unit,
+            operation,
             transaction,
             release,
             avg,
@@ -182,23 +183,34 @@ export const SummaryTable = memo(function SummaryTable({
             sum,
           }) => {
             return (
-              <Fragment key={seriesName}>
-                <CellWrapper
+              <Fragment key={id}>
+                <Row
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
-                        seriesName,
+                        id,
                         groupBy,
                       });
                     }
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(seriesName);
+                      onRowHover?.(id);
                     }
                   }}
                 >
-                  <Cell>
+                  <PaddingCell />
+                  <Cell
+                    onClick={event => {
+                      event.stopPropagation();
+                      if (hasMultipleSeries) {
+                        onColorDotClick?.({
+                          id,
+                          groupBy,
+                        });
+                      }
+                    }}
+                  >
                     <ColorDot
                       color={color}
                       isHidden={!!hidden}
@@ -211,45 +223,58 @@ export const SummaryTable = memo(function SummaryTable({
                   </Cell>
                   <TextOverflowCell>
                     <Tooltip
-                      title={name}
-                      showOnlyOnOverflow
+                      title={<FullSeriesName seriesName={seriesName} groupBy={groupBy} />}
                       delay={500}
                       overlayStyle={{maxWidth: '80vw'}}
                     >
-                      <TextOverflow>{name}</TextOverflow>
+                      <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-                </CellWrapper>
-                {hasActions && (
-                  <Cell right>
-                    <ButtonBar gap={0.5}>
-                      {transaction && (
-                        <div>
-                          <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton to={transactionTo(transaction)} size="xs">
-                              <IconLightning size="xs" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
+                  </RightCell>
+                  <RightCell>
+                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
+                  </RightCell>
 
-                      {release && (
-                        <div>
-                          <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="xs">
-                              <IconReleases size="xs" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ButtonBar>
-                  </Cell>
-                )}
+                  {hasActions && (
+                    <CenterCell>
+                      <ButtonBar gap={0.5}>
+                        {transaction && (
+                          <div>
+                            <Tooltip title={t('Open Transaction Summary')}>
+                              <LinkButton
+                                to={transactionTo(transaction)}
+                                size="zero"
+                                borderless
+                              >
+                                <IconLightning size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+
+                        {release && (
+                          <div>
+                            <Tooltip title={t('Open Release Details')}>
+                              <LinkButton to={releaseTo(release)} size="zero" borderless>
+                                <IconReleases size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ButtonBar>
+                    </CenterCell>
+                  )}
+                  <PaddingCell />
+                </Row>
               </Fragment>
             );
           }
@@ -258,6 +283,34 @@ export const SummaryTable = memo(function SummaryTable({
     </SummaryTableWrapper>
   );
 });
+
+function FullSeriesName({
+  seriesName,
+  groupBy,
+}: {
+  seriesName: string;
+  groupBy?: Record<string, string>;
+}) {
+  if (!groupBy || Object.keys(groupBy).length === 0) {
+    return <Fragment>{seriesName}</Fragment>;
+  }
+
+  const goupByEntries = Object.entries(groupBy);
+  return (
+    <Fragment>
+      {goupByEntries.map(([key, value], index) => {
+        const formattedValue = value || t('(none)');
+        return (
+          <span key={key}>
+            <strong>{`${key}:`}</strong>
+            &nbsp;
+            {index === goupByEntries.length - 1 ? formattedValue : `${formattedValue}, `}
+          </span>
+        );
+      })}
+    </Fragment>
+  );
+}
 
 function SortableHeaderCell({
   sortState,
@@ -279,14 +332,26 @@ function SortableHeaderCell({
       ''
     );
 
+  if (right) {
+    return (
+      <HeaderCell
+        onClick={() => {
+          onClick(name);
+        }}
+        right
+      >
+        {sortIcon} {children}
+      </HeaderCell>
+    );
+  }
+
   return (
     <HeaderCell
       onClick={() => {
         onClick(name);
       }}
-      right={right}
     >
-      {sortIcon} {children}
+      {children} {sortIcon}
     </HeaderCell>
   );
 }
@@ -314,44 +379,87 @@ function getValues(seriesData: Series['data']) {
   return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
-// TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
-// so we're using a custom styled component instead. Figure out what we want to do here
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
-  max-height: 200px;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+
+  grid-template-areas:
+    'header'
+    'body';
+
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-// TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
-const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  text-transform: uppercase;
+const gridColumns = ({hasActions}: {hasActions: boolean}) =>
+  // padding | color dot | name | avg | min | max | sum | actions | padding
+  hasActions
+    ? `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) 50px ${space(0.75)}`
+    : `${space(0.75)} ${space(3)} 8fr repeat(4, 70px) ${space(0.75)}`;
+
+const TableHeaderWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: ${p => gridColumns(p)};
+
+  background-color: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  line-height: 1;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const TableBodyWrapper = styled('div')<{hasActions: boolean}>`
+  grid-area: body;
+  display: grid;
+  grid-template-columns: ${p => gridColumns(p)};
+
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  max-height: 180px;
+`;
+
+const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
+  font-weight: 600;
+  color: ${p => p.theme.subText};
+  text-transform: uppercase;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-family: ${p => p.theme.text.family};
   display: flex;
   flex-direction: row;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   gap: ${space(0.5)};
   user-select: none;
+  align-items: center;
 
-  :hover {
-    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
-    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
-  }
+  ${p =>
+    !p.disabled &&
+    `
+  &:hover {
+    cursor: pointer;
+    border-left: 1px solid ${p.theme.border};
+    border-right: 1px solid ${p.theme.border};
+    `};
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   align-items: center;
-  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
   white-space: nowrap;
+`;
+
+const RightCell = styled(Cell)`
+  justify-content: flex-end;
+`;
+
+const CenterCell = styled(Cell)`
+  justify-content: center;
 `;
 
 const TextOverflowCell = styled(Cell)`
@@ -365,15 +473,15 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   height: ${space(1)};
 `;
 
-const TableBodyWrapper = styled('div')`
-  display: contents;
+const PaddingCell = styled(Cell)`
+  padding: 0;
 `;
 
-const CellWrapper = styled('div')`
+const Row = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell}, ${TextOverflowCell} {
+    ${Cell}, ${RightCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }

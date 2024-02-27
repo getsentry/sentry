@@ -1,5 +1,7 @@
 from functools import cached_property
+from unittest.mock import patch
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
@@ -8,9 +10,13 @@ from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
+from tests.sentry.api.endpoints.test_organization_member_index import (
+    mock_organization_roles_get_factory,
+)
 
 
 class OrganizationMemberTeamTestBase(APITestCase):
@@ -182,6 +188,20 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=target_owner
         ).exists()
 
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+        self.login_as(self.manager)
+        response = self.get_error_response(
+            self.org.slug, self.member.id, self.team.slug, status_code=403
+        )
+        assert (
+            response.data["detail"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )
+
 
 class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
     method = "post"
@@ -279,6 +299,7 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
+@region_silo_test
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
     def org(self):
@@ -377,9 +398,12 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         ).exists()
 
     def test_integration_token_needs_elevated_permissions(self):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.org, scopes=["org:read"]
+        )
         # Integration tokens with org:read should generate an access request when open membership is off
         integration_token = self.create_internal_integration_token(
-            user=self.user, org=self.org, scopes=["org:read"]
+            user=self.user, internal_integration=internal_integration
         )
 
         self.get_success_response(
@@ -544,6 +568,47 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             self.team.slug,
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=200,
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+    def test_superuser_can_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_success_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=200
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_error_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=400
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_write_can_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(superuser, superuser=True)
+
+        self.get_success_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=200
         )
 
         assert not OrganizationMemberTeam.objects.filter(
@@ -788,6 +853,46 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
         assert updated_omt.role == "admin"
 
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            resp = self.get_response(
+                self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+            )
+            assert resp.status_code == 200
+
+            updated_omt = OrganizationMemberTeam.objects.get(
+                team=self.team, organizationmember=self.member_on_team
+            )
+            assert updated_omt.role == "admin"
+
+    @with_feature({"organizations:team-roles": True, "auth:enterprise-superuser-read-write": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_read_cannot_promote_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature({"organizations:team-roles": True, "auth:enterprise-superuser-read-write": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_write_can_promote_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.add_user_permission(superuser, "superuser.write")
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
     @with_feature("organizations:team-roles")
     def test_admin_can_promote_member(self):
         self.login_as(self.admin_on_team)
@@ -816,24 +921,3 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=other_member
         )
         assert target_omt.role is None
-
-    @with_feature("organizations:team-roles")
-    def test_member_on_owner_team_can_promote_member(self):
-        owner_team = self.create_team(org_role="owner")
-        member = self.create_member(
-            organization=self.org,
-            user=self.create_user(),
-            role="member",
-            teams=[owner_team],
-        )
-
-        self.login_as(member)
-        resp = self.get_response(
-            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
-        )
-        assert resp.status_code == 200
-
-        updated_omt = OrganizationMemberTeam.objects.get(
-            team=self.team, organizationmember=self.member_on_team
-        )
-        assert updated_omt.role == "admin"

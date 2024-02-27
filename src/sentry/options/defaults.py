@@ -104,6 +104,10 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
+# See eventstore.processing.multiredis
+register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("eventstore.processing.readold", type=Bool, default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -281,6 +285,11 @@ register(
 
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
+register(
+    "beacon.record_cpu_ram_usage",
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
+)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -292,6 +301,14 @@ register(
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
+
+# Throttle filestore access in proguard processing. This is in response to
+# INC-635.
+register(
+    "filestore.proguard-throttle",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
 
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -561,6 +578,14 @@ register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MO
 # (``False``) and spawning a save_event task (``True``).
 register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
+# The fraction of prooguard events that will be routed to the
+# separate `store.process_event_proguard` queue
+register(
+    "store.separate-proguard-queue-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register(
@@ -773,6 +798,21 @@ register(
 )
 
 
+# Killswitch for issue priority
+register(
+    "issues.priority.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.similarity-embeddings.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -792,6 +832,14 @@ register(
 register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+register(
+    "store.load-shed-process-event-projects-gradual",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Applies load shedding per project gradually. 1.0 means full load shedding
+# 0.0 or no config means no load shedding.
 register(
     "store.load-shed-symbolicate-event-projects",
     type=Any,
@@ -872,6 +920,19 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
 # needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Sample rate for Cardinality Limiter Sentry errors.
+#
+# Rate needs to be between `0.0` and `1.0`.
+# If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
+register(
+    "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Controls the encoding used in Relay for encoding distributions and sets
+# when writing to Kafka.
+#
+# Key is the metric namespace (as used by Relay) and the value is the desired encoding.
+register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -986,6 +1047,42 @@ register(
 
 register(
     "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "global-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.sessions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.transactions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.spans-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1546,9 +1643,17 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# === Hybrid cloud subsystem options ===
+# UI rollout
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Retry controls
+register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1691,7 +1796,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "on_demand.max_widget_cardinality.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Overrides modified date and always updates the row. Can be removed if not needed later.
+register(
+    "on_demand.update_on_demand_modified",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1812,24 +1928,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# sample rate for using v2 of deobfuscation that
-# uses function params when line info is missing
-register(
-    "profiling.android.deobfuscation_v2_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# org IDs that will be using v2 of deobfuscation
-# regardless of the sample rate defined by:
-# "profiling.android.deobfuscation_v2_sample_rate"
-register(
-    "profiling.android.deobfuscation_v2_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # The flag disables the file io on main thread detector
 register(
     "performance_issues.file_io_main_thread.disabled",
@@ -1929,31 +2027,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to sentry org.
-# Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # org IDs for which we want to avoid using the unsampled profiles for function metrics.
 # This will let us selectively disable the behaviour for entire orgs that may have an
 # extremely high volume increase
 register(
     "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to specific projects of
-# the sentry org. Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_project_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2020,6 +2098,25 @@ register(
 # Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
 register(
     "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate to move from outbox based webhook delivery to webhookpayload.
+register(
+    "hybridcloud.webhookpayload.rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metrics.sample-list.sample-rate",
+    type=Float,
+    default=100_000.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sample rate for double writing to experimental dsn
+register(
+    "store.experimental-dsn-double-write.sample-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

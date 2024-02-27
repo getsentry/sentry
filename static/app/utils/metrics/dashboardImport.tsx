@@ -1,8 +1,9 @@
 import {Client} from 'sentry/api';
+import type {MetricMeta, MRI} from 'sentry/types';
+import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-
-import type {MetricMeta, MRI} from '../../types/metrics';
+import type {Widget} from 'sentry/views/dashboards/types';
 
 // import types
 export type ImportDashboard = {
@@ -44,16 +45,9 @@ type Formula = {
   alias?: string;
 };
 
-// result types
-type MetricWidget = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> & {
-  displayType: MetricDisplayType;
-  title: string;
-};
-
 type MetricWidgetReport = {
   errors: string[];
   id: number;
-  notes: string[];
   outcome: ImportOutcome;
   title: string;
 }[];
@@ -64,7 +58,7 @@ export type ParseResult = {
   description: string;
   report: MetricWidgetReport;
   title: string;
-  widgets: MetricWidget[];
+  widgets: Widget[];
 };
 
 export async function parseDashboard(
@@ -91,7 +85,7 @@ export async function parseDashboard(
   return {
     title: dashboard.title,
     description: dashboard.description,
-    widgets: results.flatMap(r => r.widgets),
+    widgets: results.map(r => r.widget).filter(Boolean) as Widget[],
     report: results.flatMap(r => r.report),
   };
 }
@@ -115,11 +109,13 @@ const METRIC_SUFFIX_TO_OP = {
 export class WidgetParser {
   private errors: string[] = [];
   private api = new Client();
+  private importedWidget: ImportWidget;
+  private availableMetrics: MetricMeta[];
 
-  constructor(
-    private importedWidget: ImportWidget,
-    private availableMetrics: MetricMeta[]
-  ) {}
+  constructor(importedWidget: ImportWidget, availableMetrics: MetricMeta[]) {
+    this.importedWidget = importedWidget;
+    this.availableMetrics = availableMetrics;
+  }
 
   // Parsing functions
   public async parse() {
@@ -132,28 +128,22 @@ export class WidgetParser {
       if (!SUPPORTED_WIDGET_TYPES.has(widgetType)) {
         throw new Error(`widget - unsupported type ${widgetType}`);
       }
-      const widgets = await this.parseWidget();
+      const widget = await this.parseWidget();
 
-      const notes: string[] = [];
-      if (!widgets.length) {
-        throw new Error('widget - no queries found');
-      }
-      if (widgets.length > 1) {
-        notes.push(`Exploded widget into ${widgets.length} widgets`);
+      if (!widget || !widget.queries.length) {
+        throw new Error('widget - no parseable queries found');
       }
 
-      const outcome: ImportOutcome =
-        this.errors.length || notes.length ? 'warning' : 'success';
+      const outcome: ImportOutcome = this.errors.length ? 'warning' : 'success';
 
       return {
         report: {
           id,
           title,
           errors: this.errors,
-          notes,
           outcome,
         },
-        widgets,
+        widget,
       };
     } catch (e) {
       return {
@@ -161,10 +151,9 @@ export class WidgetParser {
           id,
           title,
           errors: [e.message, ...this.errors],
-          notes: [],
           outcome: 'error' as const,
         },
-        widgets: [],
+        widget: null,
       };
     }
   }
@@ -172,24 +161,34 @@ export class WidgetParser {
   private async parseWidget() {
     this.parseLegendColumns();
 
-    const {requests = []} = this.importedWidget.definition as WidgetDefinition;
+    const {title, requests = []} = this.importedWidget.definition as WidgetDefinition;
 
-    const parsedWidgets = requests
+    const parsedQueries = requests
       .map(r => this.parseRequest(r))
       .flatMap(request => {
         const {displayType, queries} = request;
         return queries.map(query => ({
-          title: this.importedWidget.definition.title,
           displayType,
           ...query,
         }));
       });
 
-    const metricWidgets = await Promise.all(
-      parsedWidgets.map(widget => this.mapToMetricWidget(widget))
+    const metricsQueries = await Promise.all(
+      parsedQueries.map(async query => {
+        const mapped = await this.mapToMetricsQuery(query);
+        return {
+          ...mapped,
+          displayType: query.displayType,
+        };
+      })
     );
 
-    return metricWidgets.filter(Boolean) as MetricWidget[];
+    const nonEmptyQueries = metricsQueries.filter(query => query.mri) as MetricsQuery[];
+
+    if (!nonEmptyQueries.length) {
+      return null;
+    }
+    return convertToDashboardWidget(nonEmptyQueries, parsedQueries[0].displayType, title);
   }
 
   private parseLegendColumns() {
@@ -276,7 +275,7 @@ export class WidgetParser {
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
 
-    if (metric && metric.includes('.')) {
+    if (metric?.includes('.')) {
       const lastIndex = metric.lastIndexOf('.');
       const metricName = metric.slice(0, lastIndex);
       const operationSuffix = metric.slice(lastIndex + 1);
@@ -363,7 +362,7 @@ export class WidgetParser {
   }
 
   // Mapping functions
-  private async mapToMetricWidget(widget): Promise<MetricWidget | null> {
+  private async mapToMetricsQuery(widget): Promise<MetricsQuery | null> {
     const {metric, op, filters} = widget;
 
     // @ts-expect-error name is actually defined on MetricMeta
@@ -379,16 +378,12 @@ export class WidgetParser {
     const query = this.constructMetricQueryFilter(filters, availableTags);
     const groupBy = this.constructMetricGroupBy(widget.groupBy, availableTags);
 
-    const result = {
-      title: widget.title,
-      displayType: widget.displayType,
+    return {
       mri: metricMeta.mri,
       op,
       query,
       groupBy,
     };
-
-    return result;
   }
 
   private async fetchAvailableTags(mri: MRI) {

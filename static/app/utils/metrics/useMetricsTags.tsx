@@ -5,18 +5,35 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {getMetaDateTimeParams} from './index';
+
 export function useMetricsTags(
   mri: MRI | undefined,
-  projects: PageFilters['projects'],
+  pageFilters: Partial<PageFilters>,
   filterBlockedTags = true
 ) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
 
+  const queryParams = pageFilters.projects?.length
+    ? {
+        metric: mri,
+        useCase,
+        project: pageFilters.projects,
+        ...getMetaDateTimeParams(pageFilters.datetime),
+      }
+    : {
+        metric: mri,
+        useCase,
+        ...getMetaDateTimeParams(pageFilters.datetime),
+      };
+
   const tagsQuery = useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
-      {query: {metric: mri, useCase, project: projects}},
+      {
+        query: queryParams,
+      },
     ],
     {
       enabled: !!mri,
@@ -24,7 +41,7 @@ export function useMetricsTags(
     }
   );
 
-  const metricMeta = useMetricsMeta(projects, [useCase], false);
+  const metricMeta = useMetricsMeta(pageFilters, [useCase], false);
   const blockedTags =
     metricMeta.data
       ?.find(meta => meta.mri === mri)

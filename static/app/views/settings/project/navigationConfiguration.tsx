@@ -15,7 +15,7 @@ export default function getConfiguration({
   organization,
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
-  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
+  const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),
@@ -48,9 +48,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: organization?.features?.includes('streamline-targeting-context')
-            ? t('Ownership Rules')
-            : t('Issue Owners'),
+          title: t('Ownership Rules'),
           description: t('Manage ownership rules for a project'),
         },
         {
@@ -120,6 +118,11 @@ export default function getConfiguration({
               organization?.features?.includes('custom-metrics') &&
               organization?.features?.includes('ddm-ui')
             ),
+        },
+        {
+          path: `${pathPrefix}/replays/`,
+          title: t('Replays'),
+          show: () => !!organization?.features?.includes('session-replay-ui'),
         },
       ],
     },

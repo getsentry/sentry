@@ -90,7 +90,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     else:
         request = None
 
-    base_line = get_client_config(request)
+    base_line = dict(get_client_config(request))
 
     # Removing the region list as it varies based on silo mode.
     # See Region.to_url()
@@ -100,7 +100,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
     for silo_mode in SiloMode:
         with override_settings(SILO_MODE=silo_mode):
-            result = get_client_config(request)
+            result = dict(get_client_config(request))
             result.pop("regions")
             result["links"].pop("regionUrl")
             assert result == base_line
@@ -206,7 +206,6 @@ def test_client_config_links_regionurl():
 @multiregion_client_config_test
 @django_db_all
 def test_client_config_links_with_priority_org():
-    # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()
     request.user = user
 

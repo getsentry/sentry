@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection
 
 from django.db import router, transaction
-from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import roles
-from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -18,11 +17,7 @@ from sentry.models.team import Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy
 
-
-class InvalidTeam(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid_team"
-    message = "The team slug does not match a team in the organization"
+logger = logging.getLogger("sentry.org_roles")
 
 
 def save_team_assignments(
@@ -65,19 +60,19 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
     """
     User can set a team role:
 
-    * If they are an active superuser
+    * If they are an active superuser (with the feature flag, they must be superuser write)
     * If they are an org owner/manager/admin
     * If they are a team admin on the team
     """
-    if is_active_superuser(request):
+    if superuser_has_permission(request):
         return True
 
     access: Access = request.access
     if not can_admin_team(access, team):
         return False
 
-    org_roles = access.get_organization_roles()
-    if any(org_role.can_manage_team_role(new_role) for org_role in org_roles):
+    org_role = access.get_organization_role()
+    if org_role and org_role.can_manage_team_role(new_role):
         return True
 
     team_role = access.get_team_role(team)

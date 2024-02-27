@@ -15,12 +15,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 
-type Props = {};
-
-function ReplayTimeline({}: Props) {
-  const {replay, currentTime, timelineScale, startTimeOffsetMs, durationMs} =
-    useReplayContext();
+export default function ReplayTimeline() {
+  const {replay, currentTime, timelineScale} = useReplayContext();
+  const projectSlug = useProjectFromId({
+    project_id: replay?.getReplay().project_id,
+  })?.slug;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -35,12 +36,13 @@ function ReplayTimeline({}: Props) {
     return <Placeholder height="20px" />;
   }
 
-  const startTimestampMs = replay.getReplay().started_at.getTime() + startTimeOffsetMs;
+  const durationMs = replay.getDurationMs();
+  const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
-  const percentComplete = divide(currentTime - startTimeOffsetMs, durationMs);
+  const percentComplete = divide(currentTime, durationMs);
 
   const starting = percentComplete < initialTranslate;
   const ending = percentComplete + initialTranslate > 1;
@@ -52,10 +54,7 @@ function ReplayTimeline({}: Props) {
     if (ending) {
       return initialTranslate - (1 - initialTranslate);
     }
-    return (
-      initialTranslate -
-      (currentTime - startTimeOffsetMs > durationMs ? 1 : percentComplete)
-    );
+    return initialTranslate - (currentTime > durationMs ? 1 : percentComplete);
   };
 
   return (
@@ -74,9 +73,9 @@ function ReplayTimeline({}: Props) {
           <ReplayTimelineEvents
             durationMs={durationMs}
             frames={chapterFrames}
+            projectSlug={projectSlug}
             startTimestampMs={startTimestampMs}
             width={width}
-            startTimeOffsetMs={startTimeOffsetMs}
           />
         </TimelineEventsContainer>
       </Stacked>
@@ -95,5 +94,3 @@ const TimelineEventsContainer = styled('div')`
   padding-top: 10px;
   padding-bottom: 10px;
 `;
-
-export default ReplayTimeline;

@@ -9,10 +9,11 @@ from sentry import eventstore
 from sentry.eventstore.models import Event
 from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.utils.sdk import bind_organization_context, configure_sdk
 
@@ -21,7 +22,8 @@ pytestmark = [requires_kafka]
 
 @pytest.fixture(autouse=True)
 def setup_fixtures():
-    manage_default_super_admin_role()
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        manage_default_super_admin_role()
     create_default_projects()
 
 
@@ -128,29 +130,27 @@ def test_bind_organization_context(default_organization):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback(settings, default_organization):
+def test_bind_organization_context_with_callback(default_organization):
     create_default_projects()
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
         scope.set_tag("organization.test", "1")
 
-    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
-    bind_organization_context(default_organization)
-
-    assert Hub.current.scope._tags["organization.test"] == "1"
+    with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+        bind_organization_context(default_organization)
+        assert Hub.current.scope._tags["organization.test"] == "1"
 
 
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback_error(settings, default_organization):
+def test_bind_organization_context_with_callback_error(default_organization):
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
         1 / 0
 
-    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
-    bind_organization_context(default_organization)
-
-    assert Hub.current.scope._tags["organization"] == default_organization.id
+    with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
+        bind_organization_context(default_organization)
+        assert Hub.current.scope._tags["organization"] == default_organization.id
