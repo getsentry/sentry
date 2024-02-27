@@ -105,7 +105,11 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": occurrence.initial_issue_priority,
+        "priority": (
+            occurrence.initial_issue_priority
+            if occurrence.initial_issue_priority is not None
+            else occurrence.type.default_priority
+        ),
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
