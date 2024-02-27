@@ -392,8 +392,8 @@ export class VirtualizedViewManager {
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
 
-    let start_x = this.trace_view.x;
-    let start_width = this.trace_view.width;
+    const start_x = this.trace_view.x;
+    const start_width = this.trace_view.width;
 
     const start = performance.now();
     const rafCallback = (now: number) => {
