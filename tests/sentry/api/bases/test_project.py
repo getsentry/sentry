@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
@@ -416,7 +414,6 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("PUT", self.project, user=superuser, is_superuser=True)
         assert self.has_object_perm("DELETE", self.project, user=superuser, is_superuser=True)
 
-    @patch("sentry.api.permissions.is_active_staff")
     def test_staff(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
@@ -426,7 +423,6 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("PUT", self.project, user=staff_user, is_staff=True)
         assert self.has_object_perm("DELETE", self.project, user=staff_user, is_staff=True)
 
-    @patch("sentry.api.permissions.is_active_staff")
     def test_staff_passes_2FA(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
