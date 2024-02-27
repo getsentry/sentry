@@ -183,6 +183,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+            logger.info(
+                "integration_proxy.bad_request",
+                extra={
+                    **self.log_extra,
+                    "integration_id": self.integration.id,
+                },
+            )
             return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
