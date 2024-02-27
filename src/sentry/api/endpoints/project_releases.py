@@ -162,7 +162,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     release.status = new_status
                     release.save()
 
-                created = release.add_project(project)
+                _, releaseproject_created = release.add_project(project)
 
                 commit_list = result.get("commits")
                 if commit_list:
@@ -179,7 +179,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                         datetime=release.date_released,
                     )
 
-                if not created:
+                if not releaseproject_created:
                     # This is the closest status code that makes sense, and we want
                     # a unique 2xx response code so people can understand when
                     # behavior differs.
