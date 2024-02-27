@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import (
@@ -409,7 +408,6 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         result = preview(self.project, conditions, [], *MATCH_ARGS)
         assert result == {}
 
-    @pytest.mark.xfail(reason="fails only in CI, need to determine why")
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         transaction = self.create_performance_issue(tags=[["foo", "bar"]])
@@ -445,7 +443,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             {
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
                 "attribute": "message",
-                "match": "eq",
+                "match": "co",
                 "value": "N+1 Query",
             }
         ]
