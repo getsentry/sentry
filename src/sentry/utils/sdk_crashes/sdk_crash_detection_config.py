@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, unique
+from typing import TypedDict
 
 import sentry_sdk
-from typing_extensions import TypedDict
 
 from sentry import options
 from sentry.utils.sdk_crashes.path_replacer import (
@@ -17,7 +17,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 class SDKFrameConfig:
     function_patterns: set[str]
 
-    filename_patterns: set[str]
+    path_patterns: set[str]
 
     path_replacer: PathReplacer
 
@@ -92,7 +92,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     r"*(Sentry*)*",  # Objective-C class extension categories
                     r"SentryMX*",  # MetricKit Swift classes
                 },
-                filename_patterns={"Sentry**"},
+                path_patterns={"Sentry**"},
                 path_replacer=FixedPathReplacer(path="Sentry.framework"),
             ),
             # [SentrySDK crash] is a testing function causing a crash.
@@ -122,7 +122,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
-                filename_patterns={
+                path_patterns={
                     # Development path
                     r"**/sentry-react-native/dist/**",
                     # Production paths taken from https://github.com/getsentry/sentry-react-native/blob/037d5fa2f38b02eaf4ca92fda569e0acfd6c3ebe/package.json#L68-L77

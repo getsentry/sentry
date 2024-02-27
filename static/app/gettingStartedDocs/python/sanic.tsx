@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[sanic]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[sanic]'`;
 
 const getSdkSetupSnippet = (params: Params) => `from sanic import Sanic
 import sentry_sdk

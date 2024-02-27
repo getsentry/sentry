@@ -81,7 +81,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
           <span>{numComments}</span>
         </CommentsLink>
       )}
-      {showReplayCount && <IssueReplayCount groupId={id} />}
+      {showReplayCount && <IssueReplayCount group={data as Group} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink

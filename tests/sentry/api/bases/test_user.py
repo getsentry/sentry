@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 from django.test import override_settings
 
@@ -12,10 +10,9 @@ from sentry.api.bases.user import (
     UserPermission,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.auth.staff import is_active_staff
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import all_silo_test, control_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test, region_silo_test
 
 
 @all_silo_test
@@ -95,19 +92,16 @@ class UserPermissionTest(DRFPermissionTestCase):
 
 @all_silo_test
 class UserAndStaffPermissionTest(DRFPermissionTestCase):
-    @patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_allows_active_staff(self, mock_is_active_staff):
+    def test_allows_active_staff(self):
         # The user passed in and the user on the request must be different to
         # check staff.
         assert UserAndStaffPermission().has_object_permission(
             self.staff_request, None, self.create_user()
         )
-        # Ensure we failed the UserPermission check and check is_active_staff
-        assert mock_is_active_staff.call_count == 1
 
 
 class BaseUserEndpointTest(DRFPermissionTestCase):
-    endpoint: RegionSiloUserEndpoint | UserEndpoint = UserEndpoint()
+    endpoint: RegionSiloUserEndpoint | UserEndpoint = RegionSiloUserEndpoint()
 
     def test_retrieves_me_anonymous(self):
         with pytest.raises(ResourceDoesNotExist):
@@ -124,11 +118,17 @@ class BaseUserEndpointTest(DRFPermissionTestCase):
         assert kwargs["user"].id == user.id
 
 
-@control_silo_test
-class UserEndpointTest(BaseUserEndpointTest):
+@no_silo_test
+class MonolithUserEndpoint(BaseUserEndpointTest):
     endpoint = UserEndpoint()
 
 
+@control_silo_test
+class ControlUserEndpointTest(BaseUserEndpointTest):
+    endpoint = UserEndpoint()
+
+
+# TODO(HC): Delete this once region silo by default changes land
 @region_silo_test
 class RegionSiloUserEndpointTest(BaseUserEndpointTest):
     endpoint = RegionSiloUserEndpoint()

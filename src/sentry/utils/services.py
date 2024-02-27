@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import inspect
 import itertools
 import logging
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request
 
+from sentry import options
 from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
@@ -432,6 +434,9 @@ class ServiceDelegator(Delegator, Service):
     - A dotted import path string (``path.to.callable``) that will be
       imported at backend instantiation, or
     - A reference to a callable object.
+
+    If you're shifting a service from one backend storage system to another
+    consider using `make_writebehind_selector` to generate your selector function.
     """
 
     def __init__(
@@ -463,6 +468,67 @@ class ServiceDelegator(Delegator, Service):
     def setup(self) -> None:
         for backend, executor in self.backends.values():
             backend.setup()
+
+
+KeyFetch = Callable[[Context, str, Mapping[str, Any]], str | int]
+
+
+def make_writebehind_selector(
+    *, option_name: str, key_fetch: KeyFetch, move_to: str, move_from: str
+) -> Selector:
+    """
+    Generates a selector_func that will do write-behind delegation
+
+    The provided option_name is expected to have values between -1 and 1
+
+    -1.0 - 0.01 The move_from will be primary, while move_to will increasingly be added as a secondary.
+    At 0.0 - Only move_from will be used.
+    0.01 - 1.0 The move_to will increasingly be used as primary.
+
+    The `key_fetch` function gets the parameters expected by `Selector` and
+    is expected to return a consistent str|int that will be hashed for consistent
+    rollouts. If no consistent key exists you can use random number generation.
+
+    The `move_to` and `move_from` parameters should match the keys used to defined
+    the backends in the `ServiceDelegator` configuration.
+
+    Example:
+
+    selector = make_writebehind_selector(
+        option_name="feature.rollout",
+        move_to="new",
+        move_from="old",
+        key_fetch=lambda *args: "a-consistent-key",
+    )
+    """
+
+    def selector(context: Context, method: str, callargs: Mapping[str, Any]) -> list[str]:
+        rollout_rate = options.get(option_name)
+        if rollout_rate == 0.0:
+            return [move_from]
+
+        key = key_fetch(context, method, callargs)
+        if isinstance(key, str):
+            intkey = int(hashlib.md5(key.encode("utf8")).hexdigest(), base=16)
+        else:
+            intkey = key
+
+        if not isinstance(intkey, int):
+            logger.error("make_writebehind_selector.invalid", extra={"received_type": type(intkey)})
+            return [move_from]
+
+        if rollout_rate < 0:
+            if (intkey % 10000) / 10000 < rollout_rate * -1.0:
+                return [move_from, move_to]
+            return [move_from]
+        else:
+            # rollout > 0
+            if (intkey % 10000) / 10000 < rollout_rate:
+                return [move_to, move_from]
+
+        return [move_from, move_to]
+
+    return selector
 
 
 def get_invalid_timing_reason(timing: tuple[float | None, float | None]) -> str:

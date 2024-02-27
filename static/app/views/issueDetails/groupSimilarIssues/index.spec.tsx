@@ -11,12 +11,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => MockNavigate,
 }));
+jest.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
   let mock;
@@ -152,6 +154,43 @@ describe('Issues Similar View', function () {
     // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
+  it('shows empty message', async function () {
+    // Manually clear responses and add an empty response
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
+      body: [],
+    });
+
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(
+      screen.getByText("There don't seem to be any similar issues.")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This can occur when the issue has no stacktrace or in-app frames.'
+      )
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -293,5 +332,68 @@ describe('Issues Similar Embeddings View', function () {
     // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
+  it('sends issue similarity embeddings agree analytics', async function () {
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    await selectNthSimilarItem(0);
+    await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
+      expect.objectContaining({
+        projectId: project.id,
+        groupId: 'group-id',
+        value: 'Yes',
+        wouldGroup: similarEmbeddingsScores[0].shouldBeGrouped,
+      })
+    );
+  });
+
+  it('shows empty message', async function () {
+    // Manually clear responses and add an empty response
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      body: [],
+    });
+
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+      )
+    ).toBeInTheDocument();
   });
 });

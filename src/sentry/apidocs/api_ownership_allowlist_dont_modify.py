@@ -240,7 +240,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/projects/{organization_slug}/{project_slug}/{var}/",
     "/api/0/users/{user_id}/roles/",
     "/api/0/sentry-apps/{sentry_app_slug}/avatar/",
-    "/api/0/projects/{organization_slug}/{project_slug}/stacktrace-links/",
     "/api/0/organizations/{organization_slug}/config/repos/",
     "/api/0/organizations/{organization_slug}/api-keys/",
     "/api/0/organizations/{organization_slug}/releases/{version}/commits/",

@@ -32,8 +32,17 @@ module.exports = {
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
 
-    // TODO(@anonrig): Remove these rules from eslint-sentry-config.
-    'import/no-nodejs-modules': 'off',
+    // TODO(@anonrig): Remove this from eslint-sentry-config
+    'space-infix-ops': 'off',
+    'object-shorthand': 'off',
+    'object-curly-spacing': 'off',
+    'import/no-amd': 'off',
+    'no-danger-with-children': 'off',
+    'no-fallthrough': 'off',
+    'no-obj-calls': 'off',
+    'array-bracket-spacing': 'off',
+    'computed-property-spacing': 'off',
+    'react/no-danger-with-children': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -43,13 +52,18 @@ module.exports = {
       files: ['tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],
       rules: {
-        // TODO(@anonrig): Remove these rules from eslint-sentry-config.
-        'import/no-nodejs-modules': 'off',
+        // TODO(@anonrig): Remove this from eslint-sentry-config
+        'space-infix-ops': 'off',
+        'object-shorthand': 'off',
+        'object-curly-spacing': 'off',
+        'import/no-amd': 'off',
+        'no-danger-with-children': 'off',
+        'no-fallthrough': 'off',
+        'no-obj-calls': 'off',
+        'array-bracket-spacing': 'off',
+        'computed-property-spacing': 'off',
+        'react/no-danger-with-children': 'off',
       },
-    },
-    {
-      files: ['*.ts', '*.tsx'],
-      rules: {},
     },
     {
       // We specify rules explicitly for the sdk-loader here so we do not have

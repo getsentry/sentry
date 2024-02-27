@@ -80,41 +80,6 @@ class AcceptTransferProjectTest(APITestCase):
         assert self.from_organization.slug in org_slugs
         assert self.to_organization.slug in org_slugs
 
-    def test_returns_org_options_with_signed_link__owner_through_team(self):
-        user = self.create_user("bar@example.com")
-        owner_team_from = self.create_team(organization=self.from_organization, org_role="owner")
-        owner_team_to = self.create_team(organization=self.to_organization, org_role="owner")
-        from_member = self.create_member(
-            organization=self.from_organization,
-            user=user,
-            teams=[owner_team_from, self.from_team],
-            role="member",
-        )
-        self.create_member(
-            organization=self.to_organization,
-            user=user,
-            teams=[owner_team_to],
-            role="member",
-        )
-
-        self.login_as(user)
-        url_data = sign(
-            actor_id=from_member.user_id,
-            from_organization_id=self.from_organization.id,
-            project_id=self.project.id,
-            user_id=user.id,
-            transaction_id=self.transaction_id,
-        )
-
-        resp = self.client.get(self.path + "?" + urlencode({"data": url_data}))
-        assert resp.status_code == 200
-        assert resp.data["project"]["slug"] == self.project.slug
-        assert resp.data["project"]["id"] == self.project.id
-        assert len(resp.data["organizations"]) == 2
-        org_slugs = {o["slug"] for o in resp.data["organizations"]}
-        assert self.from_organization.slug in org_slugs
-        assert self.to_organization.slug in org_slugs
-
     def test_transfers_project_to_team_deprecated(self):
         self.login_as(self.owner)
         url_data = sign(
@@ -134,31 +99,6 @@ class AcceptTransferProjectTest(APITestCase):
     def test_non_owner_cannot_transfer_project(self):
         rando_user = self.create_user(email="blipp@bloop.com", is_superuser=False)
         rando_org = self.create_organization(name="supreme beans")
-
-        self.login_as(rando_user)
-        url_data = sign(
-            actor_id=self.member.user_id,
-            from_organization_id=rando_org.id,
-            project_id=self.project.id,
-            user_id=rando_user.id,
-            transaction_id=self.transaction_id,
-        )
-
-        resp = self.client.post(
-            self.path, data={"organization": self.to_organization.slug, "data": url_data}
-        )
-        assert resp.status_code == 400
-        p = Project.objects.get(id=self.project.id)
-        assert p.organization_id == self.from_organization.id
-        assert p.organization_id != rando_org.id
-
-    def test_non_owner_on_owner_team_can_transfer_project(self):
-        rando_user = self.create_user(email="blipp@bloop.com", is_superuser=False)
-        rando_org = self.create_organization(name="supreme beans")
-        owner_team = self.create_team(organization=rando_org, org_role="owner")
-        self.create_member(
-            organization=rando_org, user=rando_user, teams=[owner_team], role="member"
-        )
 
         self.login_as(rando_user)
         url_data = sign(

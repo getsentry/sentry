@@ -41,7 +41,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, Tag, TagCollection, User} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {getIssueTitleFromType, SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
@@ -1312,6 +1312,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         return {
           value: escapedValue,
           desc: escapedValue,
+          documentation: getIssueTitleFromType(escapedValue) ?? '',
           type: ItemType.TAG_VALUE,
           ignoreMaxSearchItems: tag.maxSuggestedValues
             ? i < tag.maxSuggestedValues
@@ -1387,7 +1388,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   fetchReleases = async (releaseVersion: string): Promise<any[]> => {
     const {api, location, organization} = this.props;
 
-    const project = location && location.query ? location.query.projectId : undefined;
+    const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
     const fetchQuery: {[key: string]: string | number} = {
@@ -1442,9 +1443,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     // with actual tag value results
     const filteredSearchGroups = !preparedQuery
       ? this.state.searchGroups
-      : this.state.searchGroups.filter(
-          item => item.value && item.value.includes(preparedQuery)
-        );
+      : this.state.searchGroups.filter(item => item.value?.includes(preparedQuery));
 
     this.setState({
       searchTerm: query,
@@ -1478,7 +1477,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       };
     }
 
-    if (excludedTags && excludedTags.includes(tagName)) {
+    if (excludedTags?.includes(tagName)) {
       return null;
     }
 
