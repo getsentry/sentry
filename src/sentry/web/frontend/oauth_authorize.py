@@ -12,6 +12,7 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.types.token import AuthTokenType
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
