@@ -239,6 +239,7 @@ class IntegrationService(RpcService):
         organization: RpcOrganizationSummary,
         new_status: int,
         incident_attachment_json: str,
+        organization_id: int | None = None,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:

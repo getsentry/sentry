@@ -119,6 +119,7 @@ const supportedDisplayTypes = Object.keys(displayTypes)
     value,
   }));
 
+// TODO: add types
 export function MetricVisualization({queries, displayType, onDisplayTypeChange}) {
   const {selection} = usePageFilters();
 
