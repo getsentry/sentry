@@ -839,9 +839,7 @@ class Release(Model):
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseProject)):
-                obj, created = ReleaseProject.objects.get_or_create(project=project, release=self)[
-                    1
-                ]
+                obj, created = ReleaseProject.objects.get_or_create(project=project, release=self)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
