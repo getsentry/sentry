@@ -134,8 +134,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
-            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
-            logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
@@ -185,15 +183,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
-            if self.integration.provider == "slack":
-                self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
-                logger.info(
-                    "integration_proxy.slack.bad_request",
-                    extra={
-                        **self.log_extra,
-                        "integration_id": self.integration.id,
-                    },
-                )
             return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
