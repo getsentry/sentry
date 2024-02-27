@@ -57,17 +57,23 @@ def build_tree(spans):
 
 
 def dfs(visited, flattened_spans, tree, span_id):
-    if span_id not in visited:
+    stack = []
+    stack.append(span_id)
+
+    while len(stack):
+        span_id = stack.pop()
+
         span = deepcopy(tree[span_id])
         children = span.pop("children")
 
-        visited.add(span_id)
-        flattened_spans.append(span)
+        if span_id not in visited:
+            flattened_spans.append(span)
+            tree.pop(span_id)
+            visited.add(span_id)
 
-        for child in sorted(children, key=lambda span: span["start_timestamp"]):
-            dfs(visited, flattened_spans, tree, child["span_id"])
-
-        tree.pop(span_id)
+        for child in sorted(children, key=lambda span: span["start_timestamp"], reverse=True):
+            if child["span_id"] not in visited:
+                stack.append(child["span_id"])
 
 
 def flatten_tree(tree, root_span_id):
@@ -80,7 +86,8 @@ def flatten_tree(tree, root_span_id):
     # Catch all for orphan spans
     remaining = sorted(tree.items(), key=lambda span: span[1]["start_timestamp"])
     for span_id, _ in remaining:
-        dfs(visited, flattened_spans, tree, span_id)
+        if span_id not in visited:
+            dfs(visited, flattened_spans, tree, span_id)
 
     return flattened_spans
 
