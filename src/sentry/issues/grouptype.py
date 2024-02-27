@@ -383,6 +383,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -395,7 +396,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(context=["Users Affected", "State", "Regressed Date"])
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 # experimental
@@ -495,6 +496,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -506,7 +508,7 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
-    notification_config = NotificationConfig(context=[])
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -559,6 +561,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
 
 
 @dataclass(frozen=True)
