@@ -413,6 +413,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
     def test_transactions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         print("ph", prev_hour)  # NOQA
+
         print("tz", timezone.now())  # NOQA
         transaction = self.create_performance_issue(tags=[["foo", "bar"]])
 
