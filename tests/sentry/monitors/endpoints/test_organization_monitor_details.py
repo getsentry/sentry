@@ -1,5 +1,5 @@
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.monitors.endpoints.test_monitor_details import (
+from tests.sentry.monitors.endpoints.test_base_monitor_details import (
     BaseDeleteMonitorTest,
     BaseMonitorDetailsTest,
     BaseUpdateMonitorTest,
