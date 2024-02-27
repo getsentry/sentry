@@ -32,8 +32,8 @@ export function DataSetStep({
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
   const doesSeeDiscoverSplit = canSeeDiscoverSplit(org);
   const showDiscoverSplitWarning = useMemo(
-    () => dataSet === DataSet.EVENTS && doesSeeDiscoverSplit,
-    [dataSet, doesSeeDiscoverSplit]
+    () => dataSet === DataSet.EVENTS && doesSeeDiscoverSplit && !discoverWidgetSplit,
+    [dataSet, doesSeeDiscoverSplit, discoverWidgetSplit]
   );
   // We derive the dataset from either the actual set dataset on the widget, or temporarily use discoverWidgetSplit if it's a discover widget and in the process of being split.
   const derivedDataSet =
