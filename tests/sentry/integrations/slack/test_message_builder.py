@@ -908,10 +908,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         group_event = event.for_group(event.groups[0])
+        text = "<bye> ```asdf```"
+        escaped_text = "<bye> `asdf`"
+
         occurrence = self.build_occurrence(
             level="info",
             evidence_display=[
-                {"name": "hi", "value": "<bye> `asdf`", "important": True},
+                {"name": "hi", "value": text, "important": True},
                 {"name": "what", "value": "where", "important": False},
             ],
         )
@@ -928,9 +931,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 assert occurrence.issue_title in section["text"]["text"]
 
         # no escaping
-        assert (
-            blocks["blocks"][1]["text"]["text"] == f"```{occurrence.evidence_display[0].value}```"
-        )
+        assert blocks["blocks"][1]["text"]["text"] == f"```{escaped_text}```"
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     @with_feature("organizations:slack-block-kit")

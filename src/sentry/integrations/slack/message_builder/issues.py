@@ -35,7 +35,7 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -590,6 +590,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+
+        if self.use_improved_block_kit:
+            text = escape_slack_markdown_text(text)
         if not self.use_improved_block_kit and self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
