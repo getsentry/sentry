@@ -77,13 +77,13 @@ class StaffPermissionMixin:
 
     staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
 
-    def has_permission(self, request, *args, **kwargs):
+    def has_permission(self, request, *args, **kwargs) -> bool:
         # Check for staff before calling super to avoid catching exceptions from super
         if request.method in self.staff_allowed_methods and is_active_staff(request):
             return True
         return super().has_permission(request, *args, **kwargs)
 
-    def has_object_permission(self, request, *args, **kwargs):
+    def has_object_permission(self, request, *args, **kwargs) -> bool:
         # Check for staff before calling super to avoid catching exceptions from super
         if request.method in self.staff_allowed_methods and is_active_staff(request):
             return True
