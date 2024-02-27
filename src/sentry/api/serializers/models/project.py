@@ -94,24 +94,22 @@ def get_access_by_project(
 
     result = {}
     has_team_roles_cache = {}
-    for project in projects:
-        parent_teams = [t.id for t in project_team_map.get(project.id, [])]
-        member_teams = [m for m in team_memberships if m.team_id in parent_teams]
-        is_member = any(member_teams)
-        org_role = org_roles.get(project.organization_id)
+    with sentry_sdk.start_span(op="project.check-access"):
+        for project in projects:
+            parent_teams = [t.id for t in project_team_map.get(project.id, [])]
+            member_teams = [m for m in team_memberships if m.team_id in parent_teams]
+            is_member = any(member_teams)
+            org_role = org_roles.get(project.organization_id)
 
-        has_access = bool(
-            is_member
-            or is_superuser
-            or project.organization.flags.allow_joinleave
-            or (org_role and roles.get(org_role).is_global)
-        )
+            has_access = bool(
+                is_member
+                or is_superuser
+                or project.organization.flags.allow_joinleave
+                or (org_role and roles.get(org_role).is_global)
+            )
 
-        team_scopes = set()
-        with sentry_sdk.start_span(
-            op="project.check-team-access", description=f"project={project.id}"
-        ) as span:
-            span.set_tag("project.member_count", len(member_teams))
+            team_scopes = set()
+
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
@@ -125,11 +123,11 @@ def get_access_by_project(
                     minimum_team_role = roles.get_minimum_team_role(org_role)
                     team_scopes = team_scopes.union(minimum_team_role.scopes)
 
-        result[project] = {
-            "is_member": is_member,
-            "has_access": has_access,
-            "access": team_scopes,
-        }
+            result[project] = {
+                "is_member": is_member,
+                "has_access": has_access,
+                "access": team_scopes,
+            }
     return result
 
 
