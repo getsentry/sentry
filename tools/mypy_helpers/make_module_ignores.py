@@ -57,6 +57,51 @@ def main() -> int:
     with open("pyproject.toml", "w") as f:
         f.write(before + begin + generated + end + rest)
 
+    # # begin possibly_undefined fixer
+    shutil.rmtree(".mypy_cache", ignore_errors=True)
+
+    codes = set()
+    filenames = set()
+    out = subprocess.run(
+        (
+            sys.executable,
+            "-m",
+            "tools.mypy_helpers.mypy_without_ignore_possibly_undefined",
+            *sys.argv[1:],
+        ),
+        capture_output=True,
+    )
+    for line in out.stdout.decode().splitlines():
+        filename, _, _ = line.partition(":")
+        if filename.endswith(".py"):
+            filenames.add(filename)
+        if match is not None:
+            codes.add(match[1])
+
+    os.makedirs(".artifacts", exist_ok=True)
+    with open(".artifacts/mypy-all", "wb") as f:
+        f.write(out.stdout)
+
+    mods = []
+    for filename in sorted(filenames):
+        # TODO: removeprefix / removesuffix python 3.9+
+        if filename.endswith(".py"):
+            filename = filename[: -len(".py")]
+        if filename.startswith("src/"):
+            filename = filename[len("src/") :]
+        if filename.endswith("/__init__"):
+            filename = filename[: -len("/__init__")]
+        mods.append(filename.replace("/", "."))
+    mods_s = "".join(f'    "{mod}",\n' for mod in mods)
+    generated = f"[[tool.mypy.overrides]]\n" f"module = [\n{mods_s}]\n"
+    with open("pyproject.toml") as f:
+        src = f.read()
+        msg = "sentry modules with possibly undefined variables"
+        before, begin, rest = src.partition(f"# begin: {msg}\n")
+        _, end, rest = rest.partition(f"# end: {msg}\n")
+    with open("pyproject.toml", "w") as f:
+        f.write(before + begin + generated + end + rest)
+
     return 0
 
 
