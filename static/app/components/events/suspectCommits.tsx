@@ -79,7 +79,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
-    <DataSection>
+    <StyledDataSection>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
@@ -109,9 +109,17 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
           />
         ))}
       </StyledPanel>
-    </DataSection>
+    </StyledDataSection>
   );
 }
+
+const StyledDataSection = styled(DataSection)`
+  padding: ${space(0.5)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(4)};
+  }
+`;
 
 export const StyledPanel = styled(Panel)`
   margin: 0;
