@@ -254,30 +254,33 @@ class ScheduledQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
-    series_executable_query: MetricsQuery | None
-    totals_executable_query: MetricsQuery | None
+    series_query: ScheduledQuery | None
+    totals_query: ScheduledQuery | None
     result: Mapping[str, Any]
 
     def __post_init__(self):
-        assert self.series_executable_query or self.totals_executable_query
+        if not self.series_query and not self.totals_query:
+            raise MetricsQueryExecutionError(
+                "A query result must contain at least one series or totals query"
+            )
 
     @classmethod
     def empty_from(cls, scheduled_query: ScheduledQuery) -> "QueryResult":
-        series_metrics_query = None
-        totals_metrics_query = None
+        series_query = None
+        totals_query = None
 
         if scheduled_query.next is not None:
-            totals_metrics_query = scheduled_query.metrics_query
-            series_metrics_query = scheduled_query.next.metrics_query
+            totals_query = scheduled_query
+            series_query = scheduled_query.next
         else:
             if scheduled_query.type == ScheduledQueryType.SERIES:
-                series_metrics_query = scheduled_query.metrics_query
+                series_query = scheduled_query
             elif scheduled_query.type == ScheduledQueryType.TOTALS:
-                totals_metrics_query = scheduled_query.metrics_query
+                totals_query = scheduled_query
 
         return QueryResult(
-            series_executable_query=series_metrics_query,
-            totals_executable_query=totals_metrics_query,
+            series_query=series_query,
+            totals_query=totals_query,
             result={
                 "series": {"data": {}, "meta": {}},
                 "totals": {"data": {}, "meta": {}},
@@ -295,24 +298,20 @@ class QueryResult:
         extended_result = {
             "modified_start": query_result["modified_start"],
             "modified_end": query_result["modified_end"],
-            # We add unit metadata as if it was returned by Snuba to make the code more linear.
-            "unit_family": scheduled_query.unit_family,
-            "unit": scheduled_query.unit,
-            "scaling_factor": scheduled_query.scaling_factor,
         }
 
         if scheduled_query.type == ScheduledQueryType.SERIES:
             extended_result["series"] = query_result
             return QueryResult(
-                series_executable_query=scheduled_query.metrics_query,
-                totals_executable_query=None,
+                series_query=scheduled_query,
+                totals_query=None,
                 result=extended_result,
             )
         elif scheduled_query.type == ScheduledQueryType.TOTALS:
             extended_result["totals"] = query_result
             return QueryResult(
-                series_executable_query=None,
-                totals_executable_query=scheduled_query.metrics_query,
+                series_query=None,
+                totals_query=scheduled_query,
                 result=extended_result,
             )
 
@@ -320,10 +319,13 @@ class QueryResult:
             f"Can't build query result from query type {scheduled_query.type}"
         )
 
+    def _any_query(self) -> ScheduledQuery:
+        return cast(ScheduledQuery, self.series_query or self.totals_query)
+
     def merge(self, other: "QueryResult") -> "QueryResult":
         return QueryResult(
-            series_executable_query=self.series_executable_query or other.series_executable_query,
-            totals_executable_query=self.totals_executable_query or other.totals_executable_query,
+            series_query=self.series_query or other.series_query,
+            totals_query=self.totals_query or other.totals_query,
             # We merge the dictionaries and in case of duplicated keys, the ones from `other` will be used, as per
             # Python semantics.
             result={**self.result, **other.result},
@@ -336,15 +338,6 @@ class QueryResult:
     @property
     def modified_end(self) -> datetime:
         return self.result["modified_end"]
-
-    @property
-    def interval(self) -> int:
-        if not self.series_executable_query:
-            raise MetricsQueryExecutionError(
-                "You have to run a timeseries query in order to use the interval"
-            )
-
-        return self.series_executable_query.rollup.interval
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
@@ -362,51 +355,46 @@ class QueryResult:
         return self.result[meta_source]["meta"]
 
     @property
-    def unit_family(self) -> UnitFamily | None:
-        return self.result.get("unit_family")
-
-    @property
-    def unit(self) -> MeasurementUnit | None:
-        return self.result.get("unit")
-
-    @property
-    def scaling_factor(self) -> float | None:
-        return self.result.get("scaling_factor")
-
-    @property
-    def groups(self) -> GroupsCollection:
-        # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
-        # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
-        return _extract_groups_from_seq(self.totals or self.series)
-
-    @property
     def group_bys(self) -> list[str]:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
         # that we can correctly render groups in case they are not returned from the db because of missing data.
         #
         # Sorting of the groups is done to maintain consistency across function calls.
-        if self.series_executable_query:
-            return sorted(UsedGroupBysVisitor().visit(self.series_executable_query.query))
+        return sorted(UsedGroupBysVisitor().visit(self._any_query().metrics_query.query))
 
-        if self.totals_executable_query:
-            return sorted(UsedGroupBysVisitor().visit(self.totals_executable_query.query))
+    @property
+    def interval(self) -> int | None:
+        if self.series_query:
+            return self.series_query.metrics_query.rollup.interval
 
-        return []
+        return None
 
     @property
     def order(self) -> Direction | None:
-        if self.totals_executable_query:
-            return self.totals_executable_query.rollup.orderby
+        if self.totals_query:
+            return self.totals_query.metrics_query.rollup.orderby
 
         return None
 
     @property
     def limit(self) -> int | None:
         # The totals limit is the only one that controls the number of groups that are returned.
-        if self.totals_executable_query:
-            return self.totals_executable_query.limit.limit
+        if self.totals_query:
+            return self.totals_query.metrics_query.limit.limit
 
         return None
+
+    @property
+    def unit_family(self) -> UnitFamily | None:
+        return self._any_query().unit_family
+
+    @property
+    def unit(self) -> MeasurementUnit | None:
+        return self._any_query().unit
+
+    @property
+    def scaling_factor(self) -> float | None:
+        return self._any_query().scaling_factor
 
     def align_series_to_totals(self) -> "QueryResult":
         """

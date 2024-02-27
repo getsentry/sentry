@@ -85,7 +85,7 @@ def _generate_full_series(
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
-        full_series[index] = value
+        full_series[index] = nan_to_none(value)
 
     return full_series
 
