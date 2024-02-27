@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
@@ -501,7 +501,7 @@ class SqlFormatEventSerializerTest(TestCase):
         release = Release.objects.create(
             version="internal@1.0.0",
             organization=self.organization,
-            date_released=datetime(2023, 1, 1),
+            date_released=datetime(2023, 1, 1, tzinfo=UTC),
         )
         release.add_project(self.project)
         release.set_commits(
