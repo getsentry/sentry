@@ -3461,7 +3461,7 @@ KAFKA_SNUBA_SPANS = "snuba-spans"
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
-# Mapping of default Kafka topic name to broker config
+# Mapping of default Kafka topic name to topic definition
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, TopicDefinition | None]] = {
     {"cluster": "default"}
 }
