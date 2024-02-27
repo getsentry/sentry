@@ -9,7 +9,7 @@ class FindPaginateInGetMethodVisitor(ast.NodeVisitor):
         self.visited = set()  # Prevent infinite recursion
         self.found = False
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
         if node.name == self.class_name:
             # Pre-process to map function names to their nodes
             for n in node.body:
@@ -17,7 +17,7 @@ class FindPaginateInGetMethodVisitor(ast.NodeVisitor):
                     self.function_defs[n.name] = n
             self.generic_visit(node)
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if node.name == "get":
             self.generic_visit(node)  # Visit to find all direct calls
             # Now recursively visit all functions called by 'get'
@@ -26,7 +26,7 @@ class FindPaginateInGetMethodVisitor(ast.NodeVisitor):
         elif node.name in self.function_defs:  # Prevent revisiting from the class level
             super().generic_visit(node)  # Normal traversal for other methods
 
-    def visit_Call(self, node):
+    def visit_Call(self, node: ast.Call) -> None:
         if (
             isinstance(node.func, ast.Attribute)
             and node.func.attr == "paginate"
@@ -40,7 +40,7 @@ class FindPaginateInGetMethodVisitor(ast.NodeVisitor):
                 self.called_by_get.append(node.func.id)
         self.generic_visit(node)
 
-    def visit_function_calls(self, func_name):
+    def visit_function_calls(self, func_name: str) -> None:
         if func_name in self.visited or self.found:  # Avoid infinite loops or stop if found
             return
         self.visited.add(func_name)
@@ -64,8 +64,8 @@ class FindPaginateInGetMethodVisitor(ast.NodeVisitor):
                     self.visit_function_calls(n.func.id)  # Recursively check this function
 
 
-def find_method_and_check_paginate(content, class_name) -> bool:
-    with open(content) as file:
+def find_method_and_check_paginate(file_name: str, class_name: str) -> bool:
+    with open(file_name) as file:
         file_content = file.read()
 
     tree = ast.parse(file_content)
