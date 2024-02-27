@@ -23,8 +23,10 @@ class PagerDutyClient(ApiClient):
 
     def __init__(
         self,
-        integration_id: int,
         integration_key: str,
+        integration_id: int | None = None,  # soon to be required, depending on getsentry changes
+        keyid: str | None = None,  # deprecated but still passed by getsentry
+        org_integration_id: int | None = None,  # deprecated but still passed by getsentry
     ) -> None:
         self.integration_key = integration_key
         super().__init__(integration_id=integration_id)
@@ -69,3 +71,9 @@ class PagerDutyClient(ApiClient):
             payload = data
 
         return self.post("/", data=payload)
+
+
+class PagerDutyProxyClient(PagerDutyClient):
+    """Backwards compatibility shim for getsentry"""
+
+    pass
