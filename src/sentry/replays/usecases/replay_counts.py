@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import uuid
 from collections import defaultdict
 from collections.abc import Generator, Sequence
 from typing import Any
@@ -33,11 +34,19 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
     if not replay_ids_mapping:
         return {}
 
+    replay_ids = list(replay_ids_mapping.keys())
+    """ Validate UUIDs. In clickhouse they are stored in their 128-bit int repr.
+     To validate, try converting to the text repr """
+    for int_id in replay_ids:
+        uuid.UUID(
+            int_id
+        )  # caller responsibility to except ValueError (e.g. organization_replay_count)
+
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
         start=snuba_params.start,
         end=snuba_params.end,
-        replay_ids=list(replay_ids_mapping.keys()),
+        replay_ids=replay_ids,
         tenant_ids={"organization_id": snuba_params.organization.id},
     )
 
