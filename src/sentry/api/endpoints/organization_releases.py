@@ -504,7 +504,7 @@ class OrganizationReleasesEndpoint(
 
                 new_releaseprojects = []
                 for project in projects:
-                    obj, releaseproject_created = release.add_project(project)
+                    _, releaseproject_created = release.add_project(project)
                     if releaseproject_created:
                         new_releaseprojects.append(project)
 

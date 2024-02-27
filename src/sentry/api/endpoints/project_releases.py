@@ -162,7 +162,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     release.status = new_status
                     release.save()
 
-                obj, releaseproject_created = release.add_project(project)
+                _, releaseproject_created = release.add_project(project)
 
                 commit_list = result.get("commits")
                 if commit_list:
