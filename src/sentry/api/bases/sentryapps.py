@@ -239,6 +239,13 @@ class SentryAppPermission(SentryPermission):
             return self.unpublished_scope_map
 
 
+class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
+    """Allows staff to access sentry app endpoints. Note that this is used for
+    endpoints acting on a single sentry app only."""
+
+    pass
+
+
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
