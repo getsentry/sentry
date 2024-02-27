@@ -1991,6 +1991,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
