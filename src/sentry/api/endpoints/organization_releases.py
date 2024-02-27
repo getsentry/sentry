@@ -478,6 +478,7 @@ class OrganizationReleasesEndpoint(
 
                 # release creation is idempotent to simplify user
                 # experiences
+                created = False
                 try:
                     release, created = Release.objects.get_or_create(
                         organization_id=organization.id,
@@ -555,7 +556,7 @@ class OrganizationReleasesEndpoint(
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [str(e)]}, status=400)
 
-                if not releaseproject_created and not new_releaseprojects:
+                if not created and not new_releaseprojects:
                     # This is the closest status code that makes sense, and we want
                     # a unique 2xx response code so people can understand when
                     # behavior differs.
