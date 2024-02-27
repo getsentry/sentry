@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
 
+class SentryAppDetailsEndpointPermission(SentryAppAndStaffPermission):
+    """Allows staff to access the GET and PUT methods which are used in _admin."""
+
+    staff_allowed_methods = {"GET", "PUT"}
+
+
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -38,7 +44,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (SentryAppAndStaffPermission,)
+    permission_classes = (SentryAppDetailsEndpointPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
         return Response(serialize(sentry_app, request.user, access=request.access))
