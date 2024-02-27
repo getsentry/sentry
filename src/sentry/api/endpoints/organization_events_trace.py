@@ -636,6 +636,21 @@ def augment_transactions_with_spans(
     return transactions
 
 
+def update_params_with_timestamp(request: HttpRequest, params: Mapping[str, str]) -> None:
+    # during the transition this is optional but it will become required
+    sentry_sdk.set_tag("trace_view.used_timestamp", "timestamp" in request.GET)
+    if "timestamp" in request.GET:
+        example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
+        # While possible, the majority of traces shouldn't take more than a week
+        # Starting with 3d for now, but potentially something we can increase if this becomes a problem
+        example_start = example_timestamp - timedelta(days=1, hours=12)
+        example_end = example_timestamp + timedelta(days=1, hours=12)
+        # If timestamp is being passed it should always overwrite the statsperiod or start & end
+        # the client should just not pass a timestamp if we need to overwrite this logic for any reason
+        params["start"] = max(params["start"], example_start)
+        params["end"] = min(params["end"], example_end)
+
+
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -722,19 +737,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
-        # during the transition this is optional but it will become required
-        if "timestamp" in request.GET:
-            example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
-            # While possible, the majority of traces shouldn't take more than a week
-            # Starting with 3d for now, but potentially something we can increase if this becomes a problem
-            example_start = example_timestamp - timedelta(days=1, hours=12)
-            example_end = example_timestamp + timedelta(days=1, hours=12)
-            # If timestamp is being passed it should always overwrite the statsperiod or start & end
-            # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-            params["start"] = max(params["start"], example_start)
-            params["end"] = min(params["end"], example_end)
-        else:
-            example_timestamp = None
+        update_params_with_timestamp(request, params)
+
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
@@ -1392,6 +1396,8 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(status=404)
+
+        update_params_with_timestamp(request, params)
 
         with handle_query_errors():
             result = discover.query(
