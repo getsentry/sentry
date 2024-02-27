@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.db.models import Value
@@ -286,8 +286,8 @@ def get_top_5_issues_by_count_for_file(
 
     group_ids = list(
         Group.objects.filter(
-            first_seen__gte=datetime.now() - timedelta(days=90),
-            last_seen__gte=datetime.now() - timedelta(days=14),
+            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
+            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
         )

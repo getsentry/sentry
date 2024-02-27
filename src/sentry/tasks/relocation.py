@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from string import Template
 from typing import Any
@@ -862,7 +862,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
             if relocation_validation_attempt.date_added is not None
             else datetime.fromtimestamp(0)
         )
-        timeout_limit = datetime.now(tz=timezone.utc) - DEFAULT_VALIDATION_TIMEOUT
+        timeout_limit = datetime.now(UTC) - DEFAULT_VALIDATION_TIMEOUT
 
         if build.status == Build.Status.SUCCESS:
             next_task = NextTask(
@@ -1186,7 +1186,7 @@ def notifying_users(uuid: str) -> None:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
-        relocation.latest_unclaimed_emails_sent_at = datetime.now()
+        relocation.latest_unclaimed_emails_sent_at = datetime.now(UTC)
         relocation.save()
 
     notifying_owner.apply_async(args=[uuid])
