@@ -355,23 +355,24 @@ class DatabaseBackedIntegrationService(IntegrationService):
         sentry_app_id: int,
         action_id: int,
         incident_id: int,
-        # deprecated
-        organization: RpcOrganizationSummary,
         new_status: int,
         incident_attachment_json: str,
+        organization: RpcOrganizationSummary | None = None,  # deprecated
         organization_id: int | None = None,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
-        if organization_id is None:
+        if organization_id is None and organization is not None:
             organization_id = organization.id
+        assert organization_id is not None, "organization or organization_id is required"
+
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 
         try:
             install = SentryAppInstallation.objects.get(
-                organization_id=organization.id,
+                organization_id=organization_id,
                 sentry_app=sentry_app,
                 status=SentryAppInstallationStatus.INSTALLED,
             )
