@@ -498,6 +498,37 @@ def query_trace_data(
     )
 
 
+def build_span_query(trace_id, spans_params, query_spans):
+    parents_query = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        spans_params,
+        # This is a hack so the later span_id condition is put into the PREWHERE instead of the trace_id
+        # we do this because from experimentation we know that span ids in the PREWHERE is about 3x faster
+        query=f"(trace:{trace_id} or trace:{trace_id})",
+        selected_columns=[
+            "transaction.id",
+            "span_id",
+            "timestamp",
+        ],
+        orderby=["timestamp", "id"],
+        limit=10000,
+    )
+    # Building the condition manually, a performance optimization since we might put thousands of span ids
+    # and this way we skip both parsimonious and the builder
+    parents_query.add_conditions(
+        [
+            Condition(
+                Column(parents_query.resolve_column_name("id")),
+                Op.IN,
+                # Another performance improvement, using a tuple instead of an array will cause clickhouse to use
+                # the bloom filter index
+                Function("tuple", list(query_spans)),
+            )
+        ]
+    )
+    return parents_query
+
+
 def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
@@ -579,34 +610,27 @@ def augment_transactions_with_spans(
         spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
         spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
 
-    parents_query = SpansIndexedQueryBuilder(
-        Dataset.SpansIndexed,
-        spans_params,
-        # This is a hack so the later span_id condition is put into the PREWHERE instead of the trace_id
-        # we do this because from experimentation we know that span ids in the PREWHERE is about 3x faster
-        query=f"(trace:{trace_id} or trace:{trace_id})",
-        selected_columns=[
-            "transaction.id",
-            "span_id",
-            "timestamp",
-        ],
-        orderby=["timestamp", "id"],
-        limit=10000,
-    )
-    # Building the condition manually, a performance optimization since we might put thousands of span ids
-    # and this way we skip both parsimonious and the builder
-    parents_query.add_conditions(
-        [
-            Condition(
-                Column(parents_query.resolve_column_name("id")),
-                Op.IN,
-                # Another performance improvement, using a tuple instead of an array will cause clickhouse to use
-                # the bloom filter index
-                Function("tuple", list(query_spans)),
-            )
+    # If we're querying over 100 span ids, lets split the query into 3
+    if len(query_spans) > 100:
+        list_spans = list(query_spans)
+        chunks = [
+            list_spans[: len(list_spans) // 3],
+            list_spans[len(list_spans) // 3 : len(list_spans) // 3 * 2],
+            list_spans[len(list_spans) // 3 * 2 :],
         ]
-    )
-    parents_results = parents_query.run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
+        queries = [build_span_query(trace_id, spans_params, chunk) for chunk in chunks]
+        results = bulk_snql_query(
+            [query.get_snql_query() for query in queries],
+            referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
+        )
+        parents_results = results[0]
+        for result in results[1:]:
+            parents_results["data"].extend(result["data"])
+    else:
+        parents_query = build_span_query(trace_id, spans_params, query_spans)
+        parents_results = parents_query.run_query(
+            referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value
+        )
 
     if "data" in parents_results:
         parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
