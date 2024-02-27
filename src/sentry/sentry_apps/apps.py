@@ -110,7 +110,11 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
-            if not user.is_superuser and self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            if (
+                not user.is_superuser
+                and not user.is_staff
+                and self.sentry_app.status == SentryAppStatus.PUBLISHED
+            ):
                 raise APIError("Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
@@ -129,7 +133,7 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
-            if user.is_superuser:
+            if user.is_superuser or user.is_staff:
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -227,7 +231,7 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
-            if user.is_superuser:
+            if user.is_superuser or user.is_staff:
                 self.sentry_app.popularity = self.popularity
 
     def _update_schema(self) -> set[str] | None:
