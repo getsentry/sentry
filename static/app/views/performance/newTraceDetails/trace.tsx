@@ -1210,7 +1210,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: rgb(224, 220, 229);
+      background-color: ${p => p.theme.border};
       border-radius: 50%;
       height: 6px;
       width: 6px;
