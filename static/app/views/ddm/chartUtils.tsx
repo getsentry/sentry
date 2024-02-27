@@ -3,14 +3,6 @@ import moment from 'moment';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 
-export function isInRect(x: number, y: number, rect: DOMRect | undefined) {
-  if (!rect) {
-    return false;
-  }
-
-  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-}
-
 export type ValueRect = {
   xMax: number;
   xMin: number;

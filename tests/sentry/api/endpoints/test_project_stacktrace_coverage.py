@@ -6,7 +6,7 @@ import responses
 
 from sentry import options
 from sentry.integrations.example.integration import ExampleIntegration
-from tests.sentry.api.endpoints.test_project_stacktrace_link import BaseProjectStacktraceLink
+from tests.sentry.issues.endpoints.test_project_stacktrace_link import BaseProjectStacktraceLink
 
 
 class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):

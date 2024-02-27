@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -216,8 +215,6 @@ function ProfilingDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
-  const organization = useOrganization();
-
   return (
     <TransactionsDeltaProvider event={event} project={project}>
       <Fragment>
@@ -230,20 +227,18 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
         </ErrorBoundary>
-        <Feature features="profiling-differential-flamegraph" organization={organization}>
-          <ErrorBoundary mini>
-            <DataSection>
-              <b>{t('Largest Changes in Call Stack Frequency')}</b>
-              <p>
-                {t(`See which functions changed the most before and after the regression. The
-                frame with the largest increase in call stack population likely
-                contributed to the cause for the duration regression.`)}
-              </p>
+        <ErrorBoundary mini>
+          <DataSection>
+            <b>{t('Largest Changes in Call Stack Frequency')}</b>
+            <p>
+              {t(`See which functions changed the most before and after the regression. The
+              frame with the largest increase in call stack population likely
+              contributed to the cause for the duration regression.`)}
+            </p>
 
-              <EventDifferentialFlamegraph event={event} />
-            </DataSection>
-          </ErrorBoundary>
-        </Feature>
+            <EventDifferentialFlamegraph event={event} />
+          </DataSection>
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>

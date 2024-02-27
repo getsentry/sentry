@@ -22,12 +22,7 @@ from snuba_sdk import (
 
 from sentry import quotas
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.tasks.constants import (
-    CHUNK_SIZE,
-    MAX_ORGS_PER_QUERY,
-    MAX_SECONDS,
-    RECALIBRATE_ORGS_QUERY_INTERVAL,
-)
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY, MAX_SECONDS
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
@@ -40,6 +35,8 @@ from sentry.utils.snuba import raw_snql_query
 
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
 ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
+
+ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
@@ -257,10 +254,10 @@ class GetActiveOrgs:
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                     ],
-                    granularity=self.granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                     ],
+                    granularity=self.granularity,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
@@ -362,7 +359,7 @@ class OrganizationDataVolume:
     # number of transactions indexed (i.e. stored)
     indexed: int | None
 
-    def is_valid_for_recalibration(self):
+    def is_valid_for_recalibration(self) -> bool:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 
@@ -375,7 +372,7 @@ class GetActiveOrgsVolumes:
     def __init__(
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
-        time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+        time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
         orgs: list[int] | None = None,
@@ -448,6 +445,7 @@ class GetActiveOrgsVolumes:
                         Column("org_id"),
                     ],
                     where=where,
+                    granularity=self.granularity,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
@@ -591,7 +589,7 @@ def fetch_orgs_with_total_root_transactions_count(
 
 def get_organization_volume(
     org_id: int,
-    time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
 ) -> OrganizationDataVolume | None:
     """
@@ -687,7 +685,7 @@ def compute_sliding_window_sample_rate(
 
     func_name = "get_transaction_sampling_tier_for_volume"
     with context.get_timer(func_name):
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
+        sampling_tier = quotas.backend.get_transaction_sampling_tier_for_volume(
             org_id, extrapolated_volume
         )
         state = context.get_function_state(func_name)

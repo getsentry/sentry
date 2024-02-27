@@ -1,10 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.priority import (
-    PRIORITY_LEVEL_TO_STR,
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
-    PriorityLevel,
     auto_update_priority,
 )
 from sentry.models.activity import Activity
@@ -14,6 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 
 
 @apply_feature_flag_on_cls("projects:issue-priority")
@@ -21,7 +20,7 @@ class TestUpdatesPriority(TestCase):
     def assert_activity_grouphistory_set(self, group, priority, reason) -> None:
         activity = Activity.objects.get(group=group, type=ActivityType.SET_PRIORITY.value)
         assert activity.data == {
-            "priority": PRIORITY_LEVEL_TO_STR[priority],
+            "priority": priority.to_str(),
             "reason": reason.value,
         }
 

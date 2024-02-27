@@ -1,3 +1,4 @@
+from dataclasses import replace
 from unittest.mock import patch
 
 from django.core import mail
@@ -10,12 +11,24 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.useremail import UserEmail
+from sentry.roles import organization_roles
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+
+
+def mock_organization_roles_get_factory(original_organization_roles_get):
+    def wrapped_method(role):
+        # emulate the 'member' role not having team-level permissions
+        role_obj = original_organization_roles_get(role)
+        if role == "member":
+            return replace(role_obj, is_team_roles_allowed=False)
+        return role_obj
+
+    return wrapped_method
 
 
 @region_silo_test
@@ -159,6 +172,17 @@ class OrganizationMemberListTestBase(APITestCase):
 @region_silo_test
 class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     def test_simple(self):
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+        assert not response.data[0]["pending"]
+        assert not response.data[0]["expired"]
+
+    def test_staff_simple(self):
+        staff_user = self.create_user("staff@localhost", is_staff=True)
+        self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(self.organization.slug)
 
         assert len(response.data) == 2
@@ -678,9 +702,12 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["member:write"]
+        )
         token = self.create_internal_integration_token(
-            user=self.user, org=self.organization, scopes=["member:write"]
+            user=self.user, internal_integration=internal_integration
         )
         err_message = (
             "Integration tokens are restricted to inviting new members with the member role only."
@@ -728,3 +755,25 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         data = {"email": "jane@gmail.com", "role": "member"}
         self.get_error_response(self.organization.slug, **data, status_code=429)
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        data = {
+            "email": "eric@localhost",
+            "orgRole": "member",
+            "teamRoles": [{"teamSlug": self.team.slug, "role": None}],
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert (
+            response.data["email"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )

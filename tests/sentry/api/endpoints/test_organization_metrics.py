@@ -1,13 +1,14 @@
 import copy
 from functools import partial
+from uuid import uuid4
 
 import pytest
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.silo import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -16,13 +17,11 @@ from sentry.snuba.metrics import (
     complement,
     division_float,
 )
-from sentry.testutils.cases import (
-    APITestCase,
-    MetricsAPIBaseTestCase,
-    OrganizationMetricsIntegrationTestCase,
-)
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -62,112 +61,251 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
-        ("sentry-api-0-organization-metrics-index",),
-        ("sentry-api-0-organization-metrics-details",),
-        ("sentry-api-0-organization-metric-details", "foo"),
-        ("sentry-api-0-organization-metrics-tags",),
-        ("sentry-api-0-organization-metrics-tag-details", "foo"),
-        ("sentry-api-0-organization-metrics-data",),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-details",
+        ),
+        ("get", "sentry-api-0-organization-metric-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-tags",
+        ),
+        ("get", "sentry-api-0-organization-metrics-tag-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-data",
+        ),
+        (
+            "post",
+            "sentry-api-0-organization-metrics-query",
+        ),
     )
 
-    def send_get_request(self, token, endpoint, *args):
+    def send_request(self, token, method, endpoint, *args):
         url = reverse(endpoint, args=(self.project.organization.slug,) + args)
-        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
+        return getattr(self.client, method)(
+            url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+        )
 
     def test_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code == 403
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code in (200, 400, 404)
 
 
 @region_silo_test
-class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
+    view = "sentry-api-0-organization-metrics-samples"
+    default_features = ["organizations:metrics-samples-list"]
 
-    endpoint = "sentry-api-0-organization-metrics-index"
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
 
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    def test_metrics_meta_sessions(self):
-        response = self.get_success_response(
-            self.organization.slug, project=[self.project.id], useCase=["sessions"]
-        )
-
-        assert isinstance(response.data, list)
-
-    def test_metrics_meta_transactions(self):
-        response = self.get_success_response(
-            self.organization.slug, project=[self.project.id], useCase=["transactions"]
-        )
-
-        assert isinstance(response.data, list)
-
-    def test_metrics_meta_invalid_use_case(self):
-        response = self.get_error_response(
-            self.organization.slug, project=[self.project.id], useCase=["not-a-use-case"]
-        )
-
-        assert response.status_code == 400
-
-    def test_metrics_meta_no_projects(self):
-        response = self.get_success_response(
-            self.organization.slug, project=[], useCase=["transactions"]
-        )
-
-        assert isinstance(response.data, list)
-
-    def test_metrics_meta_for_custom_metrics(self):
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric("s:custom/user@none", [project_1])
-        block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
-
-        metrics = (
-            ("s:custom/user@none", "set", project_1),
-            ("s:custom/user@none", "set", project_2),
-            ("c:custom/clicks@none", "counter", project_1),
-            ("d:custom/page_load@millisecond", "distribution", project_2),
-        )
-        for mri, entity, project in metrics:
-            self.store_metric(
-                project.organization.id,
-                project.id,
-                entity,  # type:ignore
-                mri,
-                {"transaction": "/hello"},
-                int(self.now.timestamp()),
-                10,
-                UseCaseID.CUSTOM,
+    def do_request(self, query, features=None, **kwargs):
+        if features is None:
+            features = self.default_features
+        with self.feature(features):
+            return self.client.get(
+                reverse(self.view, kwargs={"organization_slug": self.organization.slug}),
+                query,
+                format="json",
+                **kwargs,
             )
 
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase=["custom"]
-        )
-        assert len(response.data) == 3
+    def test_feature_flag(self):
+        query = {
+            "mri": "d:spans/exclusive_time@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+        }
 
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert data[0]["mri"] == "c:custom/clicks@none"
-        assert data[0]["projectIds"] == [project_1.id]
-        assert data[0]["blockingStatus"] == []
-        assert data[1]["mri"] == "d:custom/page_load@millisecond"
-        assert data[1]["projectIds"] == [project_2.id]
-        assert data[1]["blockingStatus"] == [
-            {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
-        ]
-        assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
-        assert data[2]["blockingStatus"] == [
-            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
-        ]
+        response = self.do_request(query, features=[])
+        assert response.status_code == 404, response.data
+
+        response = self.do_request(query, features=["organizations:metrics-samples-list"])
+        assert response.status_code == 200, response.data
+
+    def test_no_project(self):
+        query = {
+            "mri": "d:spans/exclusive_time@millisecond",
+            "field": ["id"],
+            "project": [],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 404, response.data
+
+    def test_bad_params(self):
+        query = {
+            "mri": "foo",
+            "field": [],
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "mri": [ErrorDetail(string="Invalid MRI: foo", code="invalid")],
+            "field": [ErrorDetail(string="This field is required.", code="required")],
+        }
+
+    def test_span_duration_samples(self):
+        span_ids = [uuid4().hex[:16] for _ in range(10)]
+        for i, span_id in enumerate(span_ids):
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                timestamp=before_now(days=i, minutes=10),
+                group=uuid4().hex[:16],  # we need a non 0 group
+            )
+
+        query = {
+            "mri": "d:spans/duration@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
+
+    def test_transaction_duration_samples(self):
+        span_ids = [uuid4().hex[:16] for _ in range(1)]
+        for i, span_id in enumerate(span_ids):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            data["contexts"]["trace"]["span_id"] = span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                timestamp=ts,
+            )
+
+        query = {
+            "mri": "d:transactions/duration@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
+
+    def test_measurement_samples(self):
+        good_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        bad_span_ids = [uuid4().hex[:16] for _ in range(1)]
+        for i, (good_span_id, bad_span_id) in enumerate(zip(good_span_ids, bad_span_ids)):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # bad span ids will not have the measurement
+            data["measurements"] = {}
+            data["contexts"]["trace"]["span_id"] = bad_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=bad_span_id,
+                timestamp=ts,
+            )
+
+            # first write to the transactions dataset
+            data = load_data("transaction", timestamp=ts)
+            # good span ids will have the measurement
+            data["measurements"] = {"lcp": {"value": 10}}
+            data["contexts"]["trace"]["span_id"] = good_span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=good_span_id,
+                timestamp=ts,
+            )
+
+        query = {
+            "mri": "d:transactions/measurements.lcp@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in good_span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected
+
+    def test_custom_samples(self):
+        mri = "d:custom/value@millisecond"
+        span_ids = [uuid4().hex[:16] for _ in range(10)]
+        for i, span_id in enumerate(span_ids):
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                timestamp=before_now(days=i, minutes=10),
+                group=uuid4().hex[:16],  # we need a non 0 group
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {},
+                        }
+                    ]
+                },
+            )
+
+        query = {
+            "mri": mri,
+            "field": ["id"],
+            "project": [self.project.id],
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        expected = {int(span_id, 16) for span_id in span_ids}
+        actual = {int(row["id"], 16) for row in response.data["data"]}
+        assert actual == expected

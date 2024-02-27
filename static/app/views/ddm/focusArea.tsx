@@ -12,9 +12,10 @@ import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import {getMetricConversionFunction} from 'sentry/utils/metrics/normalizeMetricValue';
 import type {SelectionRange} from 'sentry/utils/metrics/types';
 import type {ValueRect} from 'sentry/views/ddm/chartUtils';
-import {getValueRect, isInRect} from 'sentry/views/ddm/chartUtils';
+import {getValueRect} from 'sentry/views/ddm/chartUtils';
 import {CHART_HEIGHT} from 'sentry/views/ddm/constants';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 
@@ -41,7 +42,9 @@ export interface FocusAreaSelection {
 export interface UseFocusAreaProps extends FocusAreaProps {
   chartRef: RefObject<ReactEchartsRef>;
   opts: UseFocusAreaOptions;
+  chartUnit?: string;
   onZoom?: (range: DateTimeObject) => void;
+  sampleUnit?: string;
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
@@ -50,6 +53,8 @@ export function useFocusArea({
   chartRef,
   selection: selection,
   opts: {widgetIndex, isDisabled, useFullYAxis},
+  sampleUnit = 'none',
+  chartUnit = 'none',
   onAdd,
   onDraw,
   onRemove,
@@ -76,22 +81,27 @@ export function useFocusArea({
         brushType: 'rect',
       },
     });
-    isDrawingRef.current = true;
   }, [chartRef, hasFocusArea, isDisabled, onDraw]);
 
   useEffect(() => {
-    const handleMouseDown = event => {
-      const rect = chartRef.current?.ele.getBoundingClientRect();
-
-      if (isInRect(event.clientX, event.clientY, rect)) {
-        startBrush();
-      }
+    const chartElement = chartRef.current?.ele;
+    const handleMouseDown = () => {
+      isDrawingRef.current = true;
+      startBrush();
     };
 
-    window.addEventListener('mousedown', handleMouseDown, {capture: true});
+    // Handle mouse up is called after onBrushEnd
+    // We can use it for a final reliable cleanup as onBrushEnd is not always called (e.g. when simply clicking the chart)
+    const handleMouseUp = () => {
+      isDrawingRef.current = false;
+    };
+
+    chartElement?.addEventListener('mousedown', handleMouseDown, {capture: true});
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousedown', handleMouseDown, {capture: true});
+      chartElement?.removeEventListener('mousedown', handleMouseDown, {capture: true});
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [chartRef, startBrush]);
 
@@ -105,7 +115,14 @@ export function useFocusArea({
         return;
       }
 
-      const range = getSelectionRange(brushEnd, !!useFullYAxis, getValueRect(chartRef));
+      const valueConverter = getMetricConversionFunction(chartUnit, sampleUnit);
+
+      const range = getSelectionRange(
+        brushEnd,
+        !!useFullYAxis,
+        getValueRect(chartRef),
+        valueConverter
+      );
       onAdd?.({
         widgetIndex,
         range,
@@ -121,7 +138,7 @@ export function useFocusArea({
       });
       isDrawingRef.current = false;
     },
-    [chartRef, isDisabled, onAdd, widgetIndex, useFullYAxis]
+    [isDisabled, sampleUnit, chartUnit, useFullYAxis, chartRef, onAdd, widgetIndex]
   );
 
   const handleRemove = useCallback(() => {
@@ -170,6 +187,8 @@ export function useFocusArea({
           onZoom={handleZoomIn}
           chartRef={chartRef}
           useFullYAxis={!!useFullYAxis}
+          sampleUnit={sampleUnit}
+          chartUnit={chartUnit}
         />
       ),
       isDrawingRef,
@@ -186,9 +205,11 @@ export function useFocusArea({
 
 type BrushRectOverlayProps = {
   chartRef: RefObject<ReactEchartsRef>;
+  chartUnit: string;
   onRemove: () => void;
   onZoom: () => void;
   rect: FocusAreaSelection | null;
+  sampleUnit: string;
   useFullYAxis: boolean;
 };
 
@@ -198,6 +219,8 @@ function BrushRectOverlay({
   onRemove,
   useFullYAxis,
   chartRef,
+  sampleUnit,
+  chartUnit,
 }: BrushRectOverlayProps) {
   const [position, setPosition] = useState<AbsolutePosition | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -218,13 +241,17 @@ function BrushRectOverlay({
     }
     const finder = {xAxisId: 'xAxis', yAxisId: 'yAxis'};
 
+    const valueConverter = getMetricConversionFunction(sampleUnit, chartUnit);
+    const max = valueConverter(rect.range.max ?? null);
+    const min = valueConverter(rect.range.min ?? null);
+
     const topLeft = chartInstance.convertToPixel(finder, [
       getTimestamp(rect.range.start),
-      rect.range.max,
+      max,
     ] as number[]);
     const bottomRight = chartInstance.convertToPixel(finder, [
       getTimestamp(rect.range.end),
-      rect.range.min,
+      min,
     ] as number[]);
 
     if (!topLeft || !bottomRight) {
@@ -253,7 +280,7 @@ function BrushRectOverlay({
     if (!isEqual(newPosition, position)) {
       setPosition(newPosition);
     }
-  }, [chartRef, rect, useFullYAxis, position]);
+  }, [chartRef, rect, sampleUnit, chartUnit, useFullYAxis, position]);
 
   useEffect(() => {
     updatePosition();
@@ -291,7 +318,8 @@ const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 const getSelectionRange = (
   params: BrushEndResult,
   useFullYAxis: boolean,
-  boundingRect: ValueRect
+  boundingRect: ValueRect,
+  valueConverter: (value: number) => number
 ): SelectionRange => {
   const rect = params.areas[0];
 
@@ -301,8 +329,8 @@ const getSelectionRange = (
   const startDate = getDate(Math.max(startTimestamp, boundingRect.xMin));
   const endDate = getDate(Math.min(endTimestamp, boundingRect.xMax));
 
-  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
-  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);
+  const min = useFullYAxis ? NaN : valueConverter(Math.min(...rect.coordRange[1]));
+  const max = useFullYAxis ? NaN : valueConverter(Math.max(...rect.coordRange[1]));
 
   return {
     start: startDate,

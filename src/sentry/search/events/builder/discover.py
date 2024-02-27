@@ -52,6 +52,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
@@ -209,6 +210,7 @@ class BaseQueryBuilder:
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
         self.raw_equations = equations
+        self.raw_orderby = orderby
         self.query = query
         self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns
@@ -364,6 +366,8 @@ class BaseQueryBuilder:
             self.config = ProfileFunctionsDatasetConfig(self)
         elif self.dataset == Dataset.SpansIndexed:
             self.config = SpansIndexedDatasetConfig(self)
+        elif self.dataset == Dataset.MetricsSummaries:
+            self.config = MetricsSummariesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 

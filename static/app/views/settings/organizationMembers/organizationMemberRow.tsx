@@ -7,13 +7,13 @@ import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {OrgRoleInfo} from 'sentry/components/orgRole';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
   canAddMembers: boolean;
@@ -75,7 +75,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
   };
 
   renderMemberRole() {
-    const {member, organization} = this.props;
+    const {member} = this.props;
     const {roleName, pending, expired} = member;
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
@@ -88,7 +88,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </InvitedRole>
       );
     }
-    return <OrgRoleInfo member={member} organization={organization} />;
+    return <Fragment>{capitalize(member.orgRole)}</Fragment>;
   }
 
   render() {
@@ -116,7 +116,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
-    const has2fa = user && user.has2fa;
+    const has2fa = user?.has2fa;
     const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
     const isInviting = status === 'loading';

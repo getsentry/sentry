@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Flex} from 'sentry/components/profiling/flex';
+import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -95,7 +96,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
   if (fetchError) {
-    if (fetchError.statusText === 'Not Found') {
+    if (fetchError.status === 404) {
       return (
         <Page
           orgSlug={orgSlug}
@@ -146,9 +147,10 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   return (
     <ReplayContextProvider
       analyticsContext="replay_details"
-      isFetching={fetching}
-      replay={replay}
       initialTimeOffsetMs={initialTimeOffsetMs}
+      isFetching={fetching}
+      prefsStrategy={LocalStorageReplayPreferences}
+      replay={replay}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
         <Page

@@ -13,6 +13,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
@@ -22,7 +23,10 @@ import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {getFormatter} from '../../components/charts/components/tooltip';
+import {
+  defaultFormatAxisLabel,
+  getFormatter,
+} from '../../components/charts/components/tooltip';
 import {isChartHovered} from '../../components/charts/utils';
 
 import {useChartSamples} from './useChartSamples';
@@ -35,7 +39,6 @@ type ChartProps = {
   focusArea?: FocusAreaProps;
   group?: string;
   height?: number;
-  operation?: string;
   scatter?: SamplesProps;
 };
 
@@ -44,9 +47,35 @@ type ChartProps = {
 // But for now we keep it here to not invluence the bundle size of the main chunks.
 echarts.use(CanvasRenderer);
 
+function isNonZeroValue(value: number | null) {
+  return value !== null && value !== 0;
+}
+
+function addSeriesPadding(data: Series['data']) {
+  const hasNonZeroSibling = (index: number) => {
+    return (
+      isNonZeroValue(data[index - 1]?.value) || isNonZeroValue(data[index + 1]?.value)
+    );
+  };
+  const paddingIndices = new Set<number>();
+  return {
+    data: data.map(({name, value}, index) => {
+      const shouldAddPadding = value === null && hasNonZeroSibling(index);
+      if (shouldAddPadding) {
+        paddingIndices.add(index);
+      }
+      return {
+        name,
+        value: shouldAddPadding ? 0 : value,
+      };
+    }),
+    paddingIndices,
+  };
+}
+
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
-    {series, displayType, operation, widgetIndex, focusArea, height, scatter, group},
+    {series, displayType, widgetIndex, focusArea, height, scatter, group},
     forwardedRef
   ) => {
     const router = useRouter();
@@ -60,13 +89,18 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [router]
     );
 
+    const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
+    const hasCumulativeOp = series.some(s => isCumulativeOp(s.operation));
+
     const focusAreaBrush = useFocusArea({
       ...focusArea,
+      sampleUnit: scatter?.unit,
+      chartUnit: unit,
       chartRef,
       opts: {
         widgetIndex,
         isDisabled: !focusArea?.onAdd || !handleZoom,
-        useFullYAxis: isCumulativeOp(operation),
+        useFullYAxis: hasCumulativeOp,
       },
       onZoom: handleZoom,
     });
@@ -84,51 +118,57 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     // TODO(ddm): This assumes that all series have the same bucket size
     const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
-
-    const unit = series[0]?.unit;
-    const fogOfWarBuckets = getWidthFactor(bucketSize);
+    const lastBucketTimestamp = series[0]?.data?.[series[0]?.data?.length - 1]?.name;
+    const ingestionBuckets = useMemo(
+      () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
+      [bucketSize, lastBucketTimestamp]
+    );
 
     const seriesToShow = useMemo(
       () =>
         series
           .filter(s => !s.hidden)
+          .map(s => ({
+            ...s,
+            silent: true,
+            ...(displayType !== MetricDisplayType.BAR
+              ? addSeriesPadding(s.data)
+              : {data: s.data}),
+          }))
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
-          .flatMap(s => [
-            {
-              ...s,
-              silent: true,
-              data: s.data.slice(0, -fogOfWarBuckets),
-            },
-            displayType === MetricDisplayType.BAR
-              ? createFogOfWarBarSeries(s, fogOfWarBuckets)
-              : displayType === MetricDisplayType.LINE
-                ? createFogOfWarLineSeries(s, fogOfWarBuckets)
-                : createFogOfWarAreaSeries(s, fogOfWarBuckets),
-          ]),
-      [series, fogOfWarBuckets, displayType]
-    );
-
-    const valueFormatter = useCallback(
-      (value: number) => {
-        return formatMetricsUsingUnitAndOp(value, unit, operation);
-      },
-      [unit, operation]
+          .flatMap(s => createIngestionSeries(s, ingestionBuckets, displayType)),
+      [series, ingestionBuckets, displayType]
     );
 
     const samples = useChartSamples({
       chartRef,
       correlations: scatter?.data,
+      unit: scatter?.unit,
       onClick: scatter?.onClick,
       highlightedSampleId: scatter?.higlightedId,
-      operation,
+      operation: scatter?.operation,
       timeseries: series,
-      valueFormatter,
     });
 
     const chartProps = useMemo(() => {
+      const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
+      const seriesMeta = seriesToShow.reduce(
+        (acc, s) => {
+          acc[s.seriesName] = {
+            unit: s.unit,
+            operation: s.operation,
+          };
+          return acc;
+        },
+        {} as Record<string, {operation: string; unit: string}>
+      );
+
       const timeseriesFormatters = {
-        valueFormatter,
+        valueFormatter: (value: number, seriesName?: string) => {
+          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation: undefined};
+          return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
+        },
         isGroupedByDate: true,
         bucketSize,
         showTimeInTooltip: true,
@@ -146,7 +186,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ...focusAreaBrush.options,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
-        renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
+        devicePixelRatio: 2,
+        renderer: 'canvas' as const,
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
@@ -159,6 +200,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (!isChartHovered(chartRef?.current)) {
               return '';
             }
+
+            // Hovering a single correlated sample datapoint
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
@@ -169,12 +212,52 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (Array.isArray(params)) {
               const uniqueSeries = new Set<string>();
               const deDupedParams = params.filter(param => {
+                // Filter null values from tooltip
+                if (param.value[1] === null) {
+                  return false;
+                }
+
+                // scatter series (samples) have their own tooltip
+                if (param.seriesType === 'scatter') {
+                  return false;
+                }
+
+                // Filter padding datapoints from tooltip
+                if (param.value[1] === 0) {
+                  const currentSeries = seriesToShow[param.seriesIndex];
+                  const paddingIndices =
+                    'paddingIndices' in currentSeries
+                      ? currentSeries.paddingIndices
+                      : undefined;
+                  if (paddingIndices?.has(param.dataIndex)) {
+                    return false;
+                  }
+                }
+
                 if (uniqueSeries.has(param.seriesName)) {
                   return false;
                 }
                 uniqueSeries.add(param.seriesName);
                 return true;
               });
+
+              const date = defaultFormatAxisLabel(
+                params[0].value[0] as number,
+                timeseriesFormatters.isGroupedByDate,
+                false,
+                timeseriesFormatters.showTimeInTooltip,
+                timeseriesFormatters.addSecondsToTimeFormat,
+                timeseriesFormatters.bucketSize
+              );
+
+              if (deDupedParams.length === 0) {
+                return [
+                  '<div class="tooltip-series">',
+                  `<center>${t('No data available')}</center>`,
+                  '</div>',
+                  `<div class="tooltip-footer">${date}</div>`,
+                ].join('');
+              }
               return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
             }
             return getFormatter(timeseriesFormatters)(params, asyncTicket);
@@ -186,7 +269,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             id: 'yAxis',
             axisLabel: {
               formatter: (value: number) => {
-                return valueFormatter(value);
+                return formatMetricsUsingUnitAndOp(
+                  value,
+                  hasMultipleUnits ? 'none' : unit,
+                  scatter?.operation
+                );
               },
             },
           },
@@ -204,18 +291,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ],
       };
     }, [
+      seriesToShow,
       bucketSize,
+      isSubMinuteBucket,
+      height,
       focusAreaBrush.options,
       focusAreaBrush.isDrawingRef,
       forwardedRef,
-      isSubMinuteBucket,
-      seriesToShow,
-      height,
       samples.handleClick,
-      samples.xAxis,
       samples.yAxis,
+      samples.xAxis,
       samples.formatters,
-      valueFormatter,
+      unit,
+      scatter?.operation,
     ]);
 
     return (
@@ -296,55 +384,103 @@ function transformToScatterSeries({
   });
 }
 
-const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  data: series.data.map((data, index) => ({
-    ...data,
-    // W need to set a value for the non-fog of war buckets so that the stacking still works in echarts
-    value: index < series.data.length - fogBucketCnt ? 0 : data.value,
-  })),
-  itemStyle: {
-    opacity: 0.5,
-  },
-});
-
-const createFogOfWarLineSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  // We include the last non-fog of war bucket so that the line is connected
-  data: series.data.slice(-fogBucketCnt - 1),
-  lineStyle: {
-    type: 'dashed',
-  },
-});
-
-const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
-  ...series,
-  silent: true,
-  stack: 'fogOfWar',
-  // We include the last non-fog of war bucket so that the line is connected
-  data: series.data.slice(-fogBucketCnt - 1),
-  lineStyle: {
-    type: 'dashed',
-    color: Color(series.color).lighten(0.3).string(),
-  },
-});
-
-function getWidthFactor(bucketSize: number) {
-  // In general, fog of war should cover the last bucket
-  if (bucketSize > 30 * 60_000) {
-    return 1;
+function createIngestionSeries(
+  orignalSeries: Series,
+  ingestionBuckets: number,
+  displayType: MetricDisplayType
+) {
+  if (ingestionBuckets < 1) {
+    return [orignalSeries];
   }
 
-  // for 10s timeframe we want to show a fog of war that spans last 10 buckets
-  // because on average, we are missing last 90 seconds of data
-  if (bucketSize <= 10_000) {
-    return 10;
+  const series = [
+    {
+      ...orignalSeries,
+      data: orignalSeries.data.slice(0, -ingestionBuckets),
+    },
+  ];
+
+  if (displayType === MetricDisplayType.BAR) {
+    series.push(createIngestionBarSeries(orignalSeries, ingestionBuckets));
+  } else if (displayType === MetricDisplayType.AREA) {
+    series.push(createIngestionAreaSeries(orignalSeries, ingestionBuckets));
+  } else {
+    series.push(createIngestionLineSeries(orignalSeries, ingestionBuckets));
   }
 
-  // For smaller time frames we want to show a wider fog of war
-  return 2;
+  return series;
+}
+
+const EXTRAPOLATED_AREA_STRIPE_IMG =
+  'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
+
+export const getIngestionSeriesId = (seriesId: string) => `${seriesId}-ingestion`;
+
+function createIngestionBarSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    id: getIngestionSeriesId(series.id),
+    silent: true,
+    data: series.data.map((data, index) => ({
+      ...data,
+      // W need to set a value for the non-fog of war buckets so that the stacking still works in echarts
+      value: index < series.data.length - fogBucketCnt ? 0 : data.value,
+    })),
+    itemStyle: {
+      opacity: 1,
+      decal: {
+        symbol: EXTRAPOLATED_AREA_STRIPE_IMG,
+        dashArrayX: [6, 0],
+        dashArrayY: [6, 0],
+        rotation: Math.PI / 4,
+      },
+    },
+  };
+}
+
+function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    id: getIngestionSeriesId(series.id),
+    silent: true,
+    // We include the last non-fog of war bucket so that the line is connected
+    data: series.data.slice(-fogBucketCnt - 1),
+    lineStyle: {
+      type: 'dotted',
+    },
+  };
+}
+
+function createIngestionAreaSeries(series: Series, fogBucketCnt = 0) {
+  return {
+    ...series,
+    id: getIngestionSeriesId(series.id),
+    silent: true,
+    stack: 'fogOfWar',
+    // We include the last non-fog of war bucket so that the line is connected
+    data: series.data.slice(-fogBucketCnt - 1),
+    lineStyle: {
+      type: 'dotted',
+      color: Color(series.color).lighten(0.3).string(),
+    },
+  };
+}
+
+const AVERAGE_INGESTION_DELAY_MS = 90_000;
+/**
+ * Calculates the number of buckets, affected by ingestion delay.
+ * Based on the AVERAGE_INGESTION_DELAY_MS
+ * @param bucketSize in ms
+ * @param lastBucketTimestamp starting time of the last bucket in ms
+ */
+function getIngestionDelayBucketCount(bucketSize: number, lastBucketTimestamp: number) {
+  const timeSinceLastBucket = Date.now() - (lastBucketTimestamp + bucketSize);
+  const ingestionAffectedTime = Math.max(
+    0,
+    AVERAGE_INGESTION_DELAY_MS - timeSinceLastBucket
+  );
+
+  return Math.ceil(ingestionAffectedTime / bucketSize);
 }
 
 const ChartWrapper = styled('div')`

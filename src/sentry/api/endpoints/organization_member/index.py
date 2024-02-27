@@ -9,7 +9,8 @@ from sentry import audit_log, features, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organizationmember import MemberAndStaffPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
@@ -27,15 +28,6 @@ from sentry.utils import metrics
 from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-
-class MemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
-    }
 
 
 class MemberConflictValidationError(serializers.ValidationError):
@@ -129,7 +121,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (MemberPermission,)
+    permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization) -> Response:
@@ -248,11 +240,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
 
         allowed_roles = get_allowed_org_roles(request, organization)
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
             # Error if the assigned role is not a member
-            if request.data.get("role") != "member" and request.data.get("orgRole") != "member":
+            if assigned_org_role != "member":
                 raise serializers.ValidationError(
                     "Integration tokens are restricted to inviting new members with the member role only."
                 )
@@ -285,6 +278,17 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 sample_rate=1.0,
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
+
+        if (
+            ("teamRoles" in result and result["teamRoles"])
+            or ("teams" in result and result["teams"])
+        ) and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
+            return Response(
+                {
+                    "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."
+                },
+                status=400,
+            )
 
         with transaction.atomic(router.db_for_write(OrganizationMember)):
             # remove any invitation requests for this email before inviting
@@ -329,9 +333,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=om.id,
             data=om.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
         return Response(serialize(om), status=201)

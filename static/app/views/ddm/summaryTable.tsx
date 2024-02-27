@@ -14,7 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {Series} from 'sentry/views/ddm/widget';
@@ -22,16 +22,16 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 export const SummaryTable = memo(function SummaryTable({
   series,
-  operation,
   onRowClick,
+  onColorDotClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
   setHoveredSeries,
 }: {
-  onRowClick: (series: MetricWidgetQueryParams['focusedSeries']) => void;
+  onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
-  operation?: string;
+  onColorDotClick?: (series: FocusedMetricsSeries) => void;
   setHoveredSeries?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -116,7 +116,6 @@ export const SummaryTable = memo(function SummaryTable({
       return {
         ...s,
         ...getValues(s.data),
-        name: s.seriesName,
       };
     })
     .sort((a, b) => {
@@ -127,8 +126,8 @@ export const SummaryTable = memo(function SummaryTable({
 
       if (name === 'name') {
         return order === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
+          ? a.seriesName.localeCompare(b.seriesName)
+          : b.seriesName.localeCompare(a.seriesName);
       }
       const aValue = a[name] ?? 0;
       const bValue = b[name] ?? 0;
@@ -168,12 +167,13 @@ export const SummaryTable = memo(function SummaryTable({
       >
         {rows.map(
           ({
-            name,
             seriesName,
+            id,
             groupBy,
             color,
             hidden,
             unit,
+            operation,
             transaction,
             release,
             avg,
@@ -182,23 +182,33 @@ export const SummaryTable = memo(function SummaryTable({
             sum,
           }) => {
             return (
-              <Fragment key={seriesName}>
+              <Fragment key={id}>
                 <CellWrapper
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
-                        seriesName,
+                        id,
                         groupBy,
                       });
                     }
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(seriesName);
+                      setHoveredSeries?.(id);
                     }
                   }}
                 >
-                  <Cell>
+                  <Cell
+                    onClick={event => {
+                      event.stopPropagation();
+                      if (hasMultipleSeries) {
+                        onColorDotClick?.({
+                          id,
+                          groupBy,
+                        });
+                      }
+                    }}
+                  >
                     <ColorDot
                       color={color}
                       isHidden={!!hidden}
@@ -211,12 +221,11 @@ export const SummaryTable = memo(function SummaryTable({
                   </Cell>
                   <TextOverflowCell>
                     <Tooltip
-                      title={name}
-                      showOnlyOnOverflow
+                      title={<FullSeriesName seriesName={seriesName} groupBy={groupBy} />}
                       delay={500}
                       overlayStyle={{maxWidth: '80vw'}}
                     >
-                      <TextOverflow>{name}</TextOverflow>
+                      <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
@@ -258,6 +267,34 @@ export const SummaryTable = memo(function SummaryTable({
     </SummaryTableWrapper>
   );
 });
+
+function FullSeriesName({
+  seriesName,
+  groupBy,
+}: {
+  seriesName: string;
+  groupBy?: Record<string, string>;
+}) {
+  if (!groupBy || Object.keys(groupBy).length === 0) {
+    return <Fragment>{seriesName}</Fragment>;
+  }
+
+  const goupByEntries = Object.entries(groupBy);
+  return (
+    <Fragment>
+      {goupByEntries.map(([key, value], index) => {
+        const formattedValue = value || t('(none)');
+        return (
+          <span key={key}>
+            <strong>{`${key}:`}</strong>
+            &nbsp;
+            {index === goupByEntries.length - 1 ? formattedValue : `${formattedValue}, `}
+          </span>
+        );
+      })}
+    </Fragment>
+  );
+}
 
 function SortableHeaderCell({
   sortState,

@@ -1,5 +1,6 @@
 [
   "hybridcloud.regioncacheversion",
+  "hybridcloud.webhookpayload",
   "nodestore.node",
   "sentry.broadcast",
   "sentry.controlfile",
@@ -44,6 +45,7 @@
   "sentry.reprocessingreport",
   "sentry.scheduleddeletion",
   "sentry.sentryfunction",
+  "sentry.sentryshot",
   "sentry.stringindexer",
   "sentry.team",
   "sentry.teamreplica",
@@ -209,6 +211,7 @@
   "sentry.incident",
   "sentry.dashboardwidgetquery",
   "sentry.alertruletrigger",
+  "sentry.alertruleprojects",
   "sentry.alertruleexcludedprojects",
   "sentry.alertruleactivity",
   "sentry.timeseriessnapshot",
@@ -225,5 +228,6 @@
   "sentry.dashboardwidgetqueryondemand",
   "sentry.alertruletriggerexclusion",
   "sentry.alertruletriggeraction",
-  "sentry.servicehookproject"
+  "sentry.servicehookproject",
+  "sentry.notificationmessage"
 ]

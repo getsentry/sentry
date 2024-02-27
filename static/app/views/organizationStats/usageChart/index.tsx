@@ -384,6 +384,7 @@ export class UsageChart extends Component<UsageChartProps, State> {
   get chartLegendData() {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
+
     const legend: LegendComponentOption['data'] = [
       {
         name: SeriesTypes.ACCEPTED,

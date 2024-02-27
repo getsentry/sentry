@@ -1,20 +1,47 @@
-import {useCallback, useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {useGetCachedChartPalette} from 'sentry/views/ddm/metricsChartPalette';
+import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
 import type {Sample} from './widget';
 import {MetricWidget} from './widget';
+
+function widgetToQuery(
+  widget: MetricWidgetQueryParams,
+  queryLookup: Map<string, any>,
+  isQueryOnly = false
+): MetricsQueryApiQueryParams {
+  return widget.type === MetricQueryType.FORMULA
+    ? {
+        name: getQuerySymbol(widget.id),
+        // TODO(aknaus): Properly parse formulas to format identifiers
+        // This solution is limited to single character identifiers
+        formula: widget.formula
+          .split('')
+          .map(char => (queryLookup.has(char) ? `$${char}` : char))
+          .join(''),
+      }
+    : {
+        name: getQuerySymbol(widget.id),
+        mri: widget.mri,
+        op: widget.op,
+        groupBy: widget.groupBy,
+        query: widget.query,
+        isQueryOnly: isQueryOnly,
+      };
+}
 
 export function MetricScratchpad() {
   const {
@@ -25,6 +52,7 @@ export function MetricScratchpad() {
     showQuerySymbols,
     highlightedSampleId,
     focusArea,
+    isMultiChartMode,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -61,32 +89,103 @@ export function MetricScratchpad() {
     [projects, router, organization]
   );
 
+  const firstWidget = widgets[0];
+
   const Wrapper =
-    widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
+    !isMultiChartMode || widgets.length === 1
+      ? StyledSingleWidgetWrapper
+      : StyledMetricDashboard;
+
+  const queriesLookup = useMemo(() => {
+    const lookup = new Map<string, MetricWidgetQueryParams>();
+    widgets.forEach(widget => {
+      lookup.set(getQuerySymbol(widget.id), widget);
+    });
+    return lookup;
+  }, [widgets]);
+
+  const getFormulasQueryDependencies = useCallback(
+    (formula: string): MetricsQueryApiQueryParams[] => {
+      const children = formula
+        .split('')
+        .map(char => queriesLookup.get(char))
+        .filter((w): w is Exclude<typeof w, undefined> => !!w);
+
+      const dependencies: MetricsQueryApiQueryParams[] = [];
+
+      // ATM we recursively iterate over child formulas to find all dependencies
+      // TODO(aknaus): clarify API support for this
+      // TODO(aknaus): Memoize this
+      children.forEach(child => {
+        if (child.type === MetricQueryType.FORMULA) {
+          dependencies.push(widgetToQuery(child, queriesLookup, true));
+          dependencies.push(...getFormulasQueryDependencies(child.formula));
+        } else {
+          dependencies.push(widgetToQuery(child, queriesLookup, true));
+        }
+      });
+
+      return dependencies;
+    },
+    [queriesLookup]
+  );
 
   return (
     <Wrapper>
-      {widgets.map((widget, index) => (
+      {isMultiChartMode ? (
+        widgets.map((widget, index) => (
+          <MetricWidget
+            queryId={widget.id}
+            key={index}
+            index={index}
+            getChartPalette={getChartPalette}
+            onSelect={setSelectedWidgetIndex}
+            displayType={widget.displayType}
+            focusedSeries={widget.focusedSeries}
+            tableSort={widget.sort}
+            queries={[
+              widgetToQuery(widget, queriesLookup),
+              ...(widget.type === MetricQueryType.FORMULA
+                ? // TODO(aknaus): Properly parse formulas to extract identifiers
+                  // This solution is limited to single character identifiers
+                  getFormulasQueryDependencies(widget.formula)
+                : []),
+            ]}
+            isSelected={selectedWidgetIndex === index}
+            hasSiblings={widgets.length > 1}
+            onChange={handleChange}
+            filters={selection}
+            focusArea={focusArea}
+            showQuerySymbols={showQuerySymbols}
+            onSampleClick={handleSampleClick}
+            chartHeight={200}
+            highlightedSampleId={
+              selectedWidgetIndex === index ? highlightedSampleId : undefined
+            }
+            context="ddm"
+          />
+        ))
+      ) : (
         <MetricWidget
-          key={index}
-          index={index}
+          index={0}
           getChartPalette={getChartPalette}
           onSelect={setSelectedWidgetIndex}
-          isSelected={selectedWidgetIndex === index}
-          hasSiblings={widgets.length > 1}
+          displayType={firstWidget.displayType}
+          focusedSeries={firstWidget.focusedSeries}
+          tableSort={firstWidget.sort}
+          queries={widgets.map(w => widgetToQuery(w, queriesLookup))}
+          isSelected
+          hasSiblings={false}
           onChange={handleChange}
-          widget={widget}
-          datetime={selection.datetime}
-          projects={selection.projects}
-          environments={selection.environments}
+          filters={selection}
           focusArea={focusArea}
-          showQuerySymbols={showQuerySymbols}
+          showQuerySymbols={false}
           onSampleClick={handleSampleClick}
-          highlightedSampleId={
-            selectedWidgetIndex === index ? highlightedSampleId : undefined
-          }
+          chartHeight={200}
+          highlightedSampleId={highlightedSampleId}
+          context="ddm"
         />
-      ))}
+      )}
     </Wrapper>
   );
 }

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any
 from unittest import mock
 
@@ -3061,6 +3059,46 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_count_starts_returns_all_counts_when_no_arg_is_passed(self):
+        self.store_transaction_metric(
+            200,
+            metric="measurements.app_start_warm",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            100,
+            metric="measurements.app_start_warm",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            10,
+            metric="measurements.app_start_cold",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "count_total_starts()",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["count_total_starts()"] == 3
+
+        assert meta["isMetricsData"]
+
     def test_timestamp_groupby(self):
         self.store_transaction_metric(
             0.03,
@@ -3126,6 +3164,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert not meta["isMetricsData"]
 
 
+@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -3133,24 +3172,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
+        self.url = reverse(self.viewname, kwargs={"organization_slug": self.organization.slug})
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
-    def do_request(self, query: Any) -> Any:
-        self.login_as(user=self.user)
-        url = reverse(
-            self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
-        )
-        with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
-            return self.client.get(url, query, format="json")
-
-    def _on_demand_query_check(
-        self,
-        params: dict[str, Any],
-        groupbys: list[str] | None = None,
-        expected_on_demand_query: bool | None = True,
-        expected_dataset: str | None = "metricsEnhanced",
-    ) -> Response:
-        """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
+    def _create_specs(
+        self, params: dict[str, Any], groupbys: list[str] | None = None
+    ) -> list[OnDemandMetricSpec]:
+        """Creates all specs based on the parameters that would be passed to the endpoint."""
+        specs = []
         for field in params["field"]:
             spec = OnDemandMetricSpec(
                 field=field,
@@ -3159,43 +3188,56 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
                 groupbys=groupbys,
                 spec_type=MetricSpecType.DYNAMIC_QUERY,
             )
+            specs.append(spec)
+        return specs
+
+    def _make_on_demand_request(self, params: dict[str, Any]) -> Response:
+        """Ensures that the required parameters for an on-demand request are included."""
         # Expected parameters for this helper function
         params["dataset"] = "metricsEnhanced"
         params["useOnDemandMetrics"] = "true"
         params["onDemandType"] = "dynamic_query"
+        return self.do_request(params)
 
-        self.store_on_demand_metric(1, spec=spec)
-        response = self.do_request(params)
-
+    def _assert_on_demand_response(
+        self,
+        response: Response,
+        expected_on_demand_query: bool | None = True,
+        expected_dataset: str | None = "metricsEnhanced",
+    ) -> None:
+        """Basic assertions for an on-demand request."""
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
         assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
         assert meta["dataset"] == expected_dataset
 
-        return response
-
     def test_is_metrics_extracted_data_is_included(self) -> None:
-        self._on_demand_query_check(
-            {"field": ["count()"], "query": "transaction.duration:>=91", "yAxis": "count()"}
-        )
+        params = {"field": ["count()"], "query": "transaction.duration:>=91", "yAxis": "count()"}
+        specs = self._create_specs(params)
+        for spec in specs:
+            self.store_on_demand_metric(1, spec=spec)
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response)
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_transaction_user_misery(self) -> None:
-        resp = self._on_demand_query_check(
-            {
-                "field": ["user_misery(300)", "apdex(300)"],
-                "project": self.project.id,
-                "query": "",
-                "sort": "-user_misery(300)",
-                "per_page": "20",
-                "referrer": "api.dashboards.tablewidget",
-            },
-            groupbys=["transaction"],
-        )
-        assert resp.data == {
-            "data": [{"user_misery(300)": 0.0, "apdex(300)": 0.0}],
+        user_misery_field = "user_misery(300)"
+        apdex_field = "apdex(300)"
+        params = {
+            "field": [user_misery_field, apdex_field],
+            "project": self.project.id,
+            "query": "",
+        }
+        specs = self._create_specs(params, groupbys=["transaction"])
+        for spec in specs:
+            self.store_on_demand_metric(1, spec=spec)
+        response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data == {
+            "data": [{user_misery_field: 0.0, apdex_field: 0.0}],
             "meta": {
-                "fields": {"user_misery(300)": "number", "apdex(300)": "number"},
-                "units": {"user_misery(300)": None, "apdex(300)": None},
+                "fields": {user_misery_field: "number", apdex_field: "number"},
+                "units": {user_misery_field: None, apdex_field: None},
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},
@@ -3205,6 +3247,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         }
 
 
+@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -3280,6 +3323,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_starts(self):
         super().test_count_starts()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_starts_returns_all_counts_when_no_arg_is_passed(self):
+        super().test_count_starts_returns_all_counts_when_no_arg_is_passed()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_timestamp_groupby(self):

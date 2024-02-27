@@ -39,6 +39,7 @@ UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
+    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -64,8 +65,8 @@ SAMPLED_TASKS = {
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
@@ -220,12 +221,26 @@ def traces_sampler(sampling_context):
 
 
 def before_send_transaction(event, _):
+    # Discard generic redirects.
+    # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
+    if (
+        event.get("tags", {}).get("http.status_code") == "301"
+        and event.get("transaction_info", {}).get("source") == "url"
+    ):
+        return None
+
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = num_of_spans >= 1000
     if not event["measurements"]:
         event["measurements"] = {}
     event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    return event
+
+
+def before_send(event, _):
+    if event.get("tags") and settings.SILO_MODE:
+        event["tags"]["silo_mode"] = settings.SILO_MODE
     return event
 
 
@@ -254,6 +269,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["send_client_reports"] = True
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
+    sdk_options["before_send"] = before_send
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
@@ -473,7 +489,7 @@ def configure_sdk():
             ThreadingIntegration(propagate_hub=True),
             OpenAiIntegration(capture_prompts=True),
         ],
-        spotlight=settings.IS_DEV,
+        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 

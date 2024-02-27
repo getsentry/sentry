@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -78,7 +78,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(self.create_span(span))
+                        self.store_span(
+                            self.create_span(
+                                span, start_ts=datetime.fromtimestamp(span["start_timestamp"])
+                            )
+                        )
                 self.store_span(self.convert_event_data_to_span(event))
                 return event
 
@@ -100,6 +104,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
+                "timestamp": int(start_ts * 1000),
                 "received": start_ts,
                 "duration_ms": int(end_ts - start_ts),
             }
@@ -1497,6 +1502,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert len(gen1["children"]) == 0
 
 
+@region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
     def client_get(self, data, url=None):
         data["useSpans"] = 1

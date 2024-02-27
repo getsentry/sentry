@@ -28,14 +28,9 @@ from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.discover import user_misery_formula
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
-    return (miserable_users + constants.MISERY_ALPHA) / (
-        unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
-    )
 
 
 def _metric_percentile_definition(
@@ -2928,16 +2923,18 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("sad user", True)],
-            _user_misery_formula(1, 2),
+            user_misery_formula(1, 2),
         )
 
+    @pytest.mark.skip(reason="Re-enable when user misery is supported again.")
     def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("ok user", False)],
-            _user_misery_formula(0, 2),
+            user_misery_formula(0, 2),
         )
 
 

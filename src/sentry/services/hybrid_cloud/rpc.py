@@ -18,6 +18,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
 
+from sentry import options
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
@@ -563,7 +564,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=5,
+                total=options.get("hybrid_cloud.rpc.retries"),
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],

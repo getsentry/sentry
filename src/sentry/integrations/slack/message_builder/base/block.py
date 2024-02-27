@@ -10,6 +10,8 @@ from sentry.integrations.slack.message_builder.base.base import SlackMessageBuil
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.dates import to_timestamp
 
+MAX_BLOCK_TEXT_LENGTH = 256
+
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
@@ -39,17 +41,13 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_rich_text_preformatted_block(text: str) -> SlackBlock:
-        return {
-            "type": "rich_text",
-            "elements": [
-                {
-                    "type": "rich_text_preformatted",
-                    "elements": [{"type": "text", "text": text}],
-                    "border": 0,
-                }
-            ],
-        }
+    def get_markdown_quote_block(text: str) -> SlackBlock:
+        if len(text) > MAX_BLOCK_TEXT_LENGTH:
+            text = text[: MAX_BLOCK_TEXT_LENGTH - 3] + "..."
+
+        markdown_text = "```" + text + "```"
+
+        return {"type": "section", "text": {"type": "mrkdwn", "text": markdown_text}}
 
     @staticmethod
     def get_tags_block(tags) -> SlackBlock:

@@ -136,7 +136,7 @@ export function OwnershipRulesTable({
   };
 
   return (
-    <RulesTableWrapper>
+    <RulesTableWrapper data-test-id="ownership-rules-table">
       <SearchAndSelectorWrapper>
         <OwnershipOwnerFilter
           actors={allActors}

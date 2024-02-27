@@ -560,7 +560,12 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     /**
      * If the user was assigned via an integration
      */
-    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    integration?:
+      | 'projectOwnership'
+      | 'codeowners'
+      | 'slack'
+      | 'msteams'
+      | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
   };
@@ -729,6 +734,7 @@ export interface BaseGroup {
   pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
+  priority: PriorityLevel;
   project: Project;
   seenBy: User[];
   shareId: string;

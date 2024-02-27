@@ -166,7 +166,7 @@ def build_attachment_replay_link(
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 
-        return f"\n\n{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
+        return f"{url_format.format(text='View Replays', url=absolute_uri(replay_url))}"
 
     return None
 

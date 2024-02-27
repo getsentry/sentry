@@ -32,6 +32,7 @@ from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (django_timezone.now() - timedelta(days=1)).replace(
@@ -126,6 +127,26 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     def forecasted_volume_side_effect(*args, **kwargs):
         return kwargs["volume"]
 
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_projects.model_factory")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_boost_low_volume_projects_with_no_dynamic_sampling(
+        self, get_blended_sample_rate, model_factory
+    ):
+        get_blended_sample_rate.return_value = 0.25
+        test_org = self.create_old_organization(name="sample-org")
+
+        self.create_project_and_add_metrics("a", 9, test_org)
+        self.create_project_and_add_metrics("b", 7, test_org)
+        self.create_project_and_add_metrics("c", 3, test_org)
+        self.create_project_and_add_metrics("d", 1, test_org)
+
+        with self.tasks():
+            sliding_window_org()
+            boost_low_volume_projects()
+
+        model_factory.assert_not_called()
+
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_projects_simple(
         self,
@@ -161,16 +182,15 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_projects_simple_with_empty_project(
         self,
         get_blended_sample_rate,
     ):
         get_blended_sample_rate.return_value = 0.25
-        # Create a org
         test_org = self.create_old_organization(name="sample-org")
 
-        # Create 4 projects
         proj_a = self.create_project_and_add_metrics("a", 9, test_org)
         proj_b = self.create_project_and_add_metrics("b", 7, test_org)
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
@@ -198,6 +218,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
         assert generate_rules(proj_e)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window-org")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
@@ -210,19 +232,17 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
         get_blended_sample_rate.return_value = 0.8
-        # Create a org
+
         test_org = self.create_old_organization(name="sample-org")
 
-        # Create 4 projects
         proj_a = self.create_project_and_add_metrics("a", 9, test_org)
         proj_b = self.create_project_and_add_metrics("b", 7, test_org)
         proj_c = self.create_project_and_add_metrics("c", 3, test_org)
         proj_d = self.create_project_and_add_metrics("d", 1, test_org)
 
-        with self.feature("organizations:ds-sliding-window-org"):
-            with self.tasks():
-                sliding_window_org()
-                boost_low_volume_projects()
+        with self.tasks():
+            sliding_window_org()
+            boost_low_volume_projects()
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
@@ -240,6 +260,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window-org")
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
@@ -256,23 +278,23 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
         get_blended_sample_rate.return_value = 0.8
-        # Create a org
+
         test_org = self.create_old_organization(name="sample-org")
 
-        # Create 2 projects
         proj_a = self.create_project_and_add_metrics("a", 9, test_org)
         proj_b = self.create_project_and_add_metrics("b", 7, test_org)
 
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=0.1)
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=0.2)
 
-        with self.feature("organizations:ds-sliding-window-org"):
-            with self.tasks():
-                sliding_window_org()
-                boost_low_volume_projects()
+        with self.tasks():
+            sliding_window_org()
+            boost_low_volume_projects()
 
         assert schedule_invalidate_project_config.call_count == 2
 
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window-org")
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
@@ -288,20 +310,18 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     ):
         extrapolate_monthly_volume.side_effect = self.forecasted_volume_side_effect
         get_transaction_sampling_tier_for_volume.side_effect = self.sampling_tier_side_effect
-        get_blended_sample_rate.return_value = 0.8
-        # Create a org
+        get_blended_sample_rate.return_value = 1.0
+
         test_org = self.create_old_organization(name="sample-org")
 
-        # Create 2 projects
         proj_a = self.create_project_and_add_metrics("a", 9, test_org)
         proj_b = self.create_project_and_add_metrics("b", 7, test_org)
 
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_a.id, sample_rate=1.0)
         self.add_sample_rate_per_project(org_id=test_org.id, project_id=proj_b.id, sample_rate=1.0)
 
-        with self.feature("organizations:ds-sliding-window-org"):
-            with self.tasks():
-                boost_low_volume_projects()
+        with self.tasks():
+            boost_low_volume_projects()
 
         schedule_invalidate_project_config.assert_not_called()
 
@@ -414,6 +434,24 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             )
         )
 
+    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.model_factory")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_boost_low_volume_transactions_with_blended_sample_rate_and_no_dynamic_sampling(
+        self, get_blended_sample_rate, model_factory
+    ):
+        """
+        Create orgs projects & transactions and then check that the rebalancing model is not called because dynamic
+        sampling is disabled
+        """
+        BLENDED_RATE = 0.25
+        get_blended_sample_rate.return_value = BLENDED_RATE
+
+        with self.tasks():
+            boost_low_volume_transactions()
+
+        model_factory.assert_not_called()
+
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_blended_sample_rate(self, get_blended_sample_rate):
         """
@@ -439,6 +477,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     )  # check we have some rate calculated for each transaction
                 assert global_rate == BLENDED_RATE
 
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window(self, get_blended_sample_rate):
         """
@@ -454,9 +494,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             else:
                 self.set_sliding_window_sample_rate_for_all(used_sample_rate)
 
-            with self.feature("organizations:ds-sliding-window"):
-                with self.tasks():
-                    boost_low_volume_transactions()
+            with self.tasks():
+                boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -471,6 +510,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                         )  # check we have some rate calculated for each transaction
                     assert global_rate == used_sample_rate
 
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window-org")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window_org(self, get_blended_sample_rate):
         """
@@ -494,9 +535,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             elif sliding_window_step == 3:
                 self.set_boost_low_volume_projects_for_all(used_sample_rate)
 
-            with self.feature("organizations:ds-sliding-window-org"):
-                with self.tasks():
-                    boost_low_volume_transactions()
+            with self.tasks():
+                boost_low_volume_transactions()
 
             # now redis should contain rebalancing data for our projects
             for org in self.orgs_info:
@@ -520,6 +560,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
                         assert global_rate == used_sample_rate
 
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_partial(self, get_blended_sample_rate):
         """
@@ -633,17 +674,36 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             lambda org_id: self.set_sliding_window_org_sample_rate(org_id, sample_rate)
         )
 
+    @patch("sentry.dynamic_sampling.tasks.recalibrate_orgs.compute_adjusted_factor")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_rebalance_orgs(self, get_blended_sample_rate):
+    def test_rebalance_orgs_with_no_dynamic_sampling(
+        self, get_blended_sample_rate, computed_adjusted_factor
+    ):
         """
-        Test that the org are going to be rebalanced at 20%
+        Test that the recalibration of orgs doesn't happen if dynamic sampling is not enabled
+        """
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        with self.tasks():
+            recalibrate_orgs()
+
+        computed_adjusted_factor.assert_not_called()
+
+    @with_feature("organizations:dynamic-sampling")
+    @with_feature("organizations:ds-sliding-window-org")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_rebalance_orgs_with_sliding_window_org(self, get_blended_sample_rate):
+        """
+        Test that the org are going to be rebalanced at 20% and that the sample rate used is the one from the sliding
+        window org.
 
         The first org is 10%, so we should increase the sampling
         The second org is at 20%, so we are spot on
         The third is at 30%, so we should decrease the sampling
         """
-        BLENDED_RATE = 0.20
-        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
 
         redis_client = get_redis_client_for_ds()
 
@@ -685,14 +745,13 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # half it again to 0.25
                 assert float(val) == 0.25
 
-    def test_rules_generation_with_recalibrate_orgs(self):
+    @with_feature("organizations:dynamic-sampling")
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_rules_generation_with_recalibrate_orgs(self, get_blended_sample_rate):
         """
-        Test that we pass rebalancing values all the way to the rules
-
-        (An integration test)
+        Test that we pass rebalancing values all the way to the rules.
         """
-        BLENDED_RATE = 0.20
-        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+        get_blended_sample_rate.return_value = 0.20
 
         with self.tasks():
             recalibrate_orgs()

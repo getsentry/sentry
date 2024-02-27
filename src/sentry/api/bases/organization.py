@@ -92,11 +92,26 @@ class OrganizationPermission(SentryPermission):
 
 
 class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
+    """Allows staff to to access organization endpoints."""
+
     pass
 
 
 class OrganizationAuditPermission(OrganizationPermission):
     scope_map = {"GET": ["org:write"]}
+
+    def has_object_permission(
+        self,
+        request: Request,
+        view: object,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        if super().has_object_permission(request, view, organization):
+            return True
+
+        # the GET requires org:write, but we want both superuser read-only +
+        # write to be able to access this GET. read-only only has :read scopes
+        return is_active_superuser(request)
 
 
 class OrganizationEventPermission(OrganizationPermission):
@@ -198,6 +213,15 @@ class OrgAuthTokenPermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+
+class OrganizationMetricsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:admin"],
     }
 
 

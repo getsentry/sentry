@@ -49,16 +49,12 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
-  formatMetricAxisValue,
-  renderMetricField,
-} from 'sentry/views/dashboards/datasetConfig/metrics';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
+import {DisplayType} from '../types';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -230,13 +226,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const fieldRenderer = getFieldFormatter(field, tableMeta, false);
 
       const unit = tableMeta.units?.[field];
-      const rendered =
-        widget.widgetType === WidgetType.METRICS
-          ? renderMetricField(field, dataRow[field])
-          : fieldRenderer(
-              shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
-              {location, organization, unit}
-            );
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+        {location, organization, unit}
+      );
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
@@ -395,9 +388,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const bucketSize = getBucketSize(timeseriesResults);
 
     const valueFormatter = (value: number, seriesName?: string) => {
-      if (widget.widgetType === WidgetType.METRICS) {
-        return formatMetricAxisValue(axisField, value);
-      }
       const aggregateName = seriesName?.split(':').pop()?.trim();
       if (aggregateName) {
         return timeseriesResultsTypes
@@ -421,9 +411,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         formatter: (params, asyncTicket) => {
+          const {chartGroup} = this.props;
+          const isInGroup =
+            chartGroup && chartGroup === this.chartRef?.getEchartsInstance().group;
+
           // tooltip is triggered whenever any chart in the group is hovered,
           // so we need to check if the mouse is actually over this chart
-          if (!isChartHovered(this.chartRef)) {
+          if (isInGroup && !isChartHovered(this.chartRef)) {
             return '';
           }
 
@@ -440,9 +434,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) => {
-            if (widget.widgetType === WidgetType.METRICS) {
-              return formatMetricAxisValue(axisField, value);
-            }
             if (timeseriesResultsTypes) {
               return axisLabelFormatterUsingAggregateOutputType(
                 value,
@@ -484,7 +475,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
           const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
           const shouldColorOther = timeseriesResults?.some(
-            ({seriesName}) => seriesName && seriesName.match(otherRegex)
+            ({seriesName}) => seriesName?.match(otherRegex)
           );
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(

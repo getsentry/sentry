@@ -51,7 +51,7 @@ class GithubRateLimitInfo:
         self.used = info["used"]
 
     def next_window(self) -> str:
-        return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
+        return datetime.fromtimestamp(self.reset).strftime("%H:%M:%S")
 
     def __repr__(self) -> str:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
@@ -532,7 +532,6 @@ class GitHubClientMixin(GithubProxyClient):
             page_number = 1
             logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
-            logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
@@ -552,7 +551,6 @@ class GitHubClientMixin(GithubProxyClient):
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
                 resp = self.get(next_link)
-                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
@@ -639,71 +637,6 @@ class GitHubClientMixin(GithubProxyClient):
             else b64decode(contents["content"]).decode("utf-8")
         )
         return result
-
-    def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]]:
-        [owner, name] = repo.name.split("/")
-        query = f"""query {{
-            repository(name: "{name}", owner: "{owner}") {{
-                ref(qualifiedName: "{ref}") {{
-                    target {{
-                        ... on Commit {{
-                            blame(path: "{path}") {{
-                                ranges {{
-                                        commit {{
-                                            oid
-                                            author {{
-                                                name
-                                                email
-                                            }}
-                                            message
-                                            committedDate
-                                        }}
-                                    startingLine
-                                    endingLine
-                                    age
-                                }}
-                            }}
-                        }}
-                    }}
-                }}
-            }}
-        }}"""
-
-        try:
-            contents = self.post(
-                path="/graphql",
-                data={"query": query},
-                allow_text=False,
-            )
-        except ValueError as e:
-            sentry_sdk.capture_exception(e)
-            return []
-
-        errors = contents.get("errors", [])
-        if len(errors) > 0:
-            if any([error for error in errors if error.get("type") == "RATE_LIMITED"]):
-                raise ApiRateLimitedError("GitHub rate limit exceeded")
-
-            # When data is present, it means that the query was at least partially successful,
-            # usually a missing repo/branch/file which is expected with wrong configurations.
-            # If data is not present, the query may be formed incorrectly, so raise an error.
-            if not contents.get("data"):
-                err_message = ", ".join([error.get("message", "") for error in errors])
-                raise ApiError(err_message)
-
-        response_data = contents.get("data")
-        if not isinstance(response_data, dict):
-            raise ApiError("GitHub returned no data.", 404)
-        response_repo = response_data.get("repository")
-        if not isinstance(response_repo, dict):
-            raise ApiError("Repository does not exist in GitHub.", 404)
-        response_ref = response_repo.get("ref")
-        if not isinstance(response_ref, dict):
-            raise ApiError("Branch does not exist in GitHub.", 404)
-
-        return response_ref.get("target", {}).get("blame", {}).get("ranges", [])
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]

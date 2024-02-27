@@ -6,17 +6,14 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.models import AlertRule
-from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-    DashboardWidgetTypes,
-)
+from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.relay.config.metric_extraction import get_metric_extraction_config
+from sentry.relay.config.metric_extraction import (
+    get_current_widget_specs,
+    get_metric_extraction_config,
+)
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
@@ -24,6 +21,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
+    SpecVersion,
     TagSpec,
     _deep_sorted,
     fetch_on_demand_metric_spec,
@@ -31,6 +29,7 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.tasks.on_demand_metrics import process_widget_specs
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -66,34 +65,6 @@ def create_alert(
     )
 
     return alert_rule
-
-
-def create_widget(
-    aggregates: Sequence[str],
-    query: str,
-    project: Project,
-    title: str | None = "Dashboard",
-    columns: Sequence[str] | None = None,
-) -> DashboardWidgetQuery:
-    columns = columns or []
-    dashboard = Dashboard.objects.create(
-        organization=project.organization,
-        created_by_id=1,
-        title=title,
-    )
-
-    widget = DashboardWidget.objects.create(
-        dashboard=dashboard,
-        order=0,
-        widget_type=DashboardWidgetTypes.DISCOVER,
-        display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-    )
-
-    widget_query = DashboardWidgetQuery.objects.create(
-        aggregates=aggregates, conditions=query, columns=columns, order=0, widget=widget
-    )
-
-    return widget_query
 
 
 def create_project_threshold(
@@ -634,7 +605,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 1")
         create_widget(["count()"], "transaction.duration:>=1100", default_project, "Dashboard 2")
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["count()"], "transaction.duration:>=1200", default_project, "Dashboard 3"
         )
         create_widget(["count()"], "transaction.duration:>=1300", default_project, "Dashboard 4")
@@ -1159,6 +1130,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
             ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
@@ -1209,6 +1181,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
         ]
 
 
+@pytest.mark.skip(reason="Re-enable when user misery is supported again.")
 @django_db_all
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
@@ -1478,7 +1451,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
             "organizations:on-demand-metrics-query-spec-version-two": True,
         }
     ):
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
@@ -1591,15 +1564,26 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
 
 
 @django_db_all
-@pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
-def test_get_metric_extraction_config_with_no_tag_spec(
-    default_project: Project, metric: str
+@pytest.mark.parametrize(
+    "metric,query,query_hashes",
+    [
+        ("epm()", "transaction.duration:>=1000", ["8f8293cf", "5200e087"]),
+        ("eps()", "transaction.duration:>=1000", ["9ffdd8ac", "162178e9"]),
+        ("epm()", "", []),
+    ],
+)
+def test_get_metric_extraction_config_epm_eps(
+    default_project: Project, metric: str, query: str, query_hashes: list[str]
 ) -> None:
-    query_hashes = ["8f8293cf", "5200e087"] if metric == "epm()" else ["9ffdd8ac", "162178e9"]
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget([metric], "transaction.duration:>=1000", default_project)
+        create_widget([metric], query, default_project)
 
         config = get_metric_extraction_config(default_project)
+
+        # epm() and eps() are supported by standard metrics when there's no query
+        if query == "":
+            assert config is None
+            return None
 
         assert config
         assert config["metrics"] == [
@@ -1775,7 +1759,7 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
@@ -1831,7 +1815,7 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
     ]
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget_query = create_widget(aggrs, query, default_project, columns=columns)
+        widget_query, _, _ = create_widget(aggrs, query, default_project, columns=columns)
         config = get_metric_extraction_config(default_project)
         assert config
 
@@ -1880,7 +1864,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         assert config and config["metrics"] == [
@@ -1948,7 +1932,7 @@ def test_event_type(
     aggr = "count()"
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         if not config_assertion:
             assert config is None
@@ -1981,7 +1965,7 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
             "organizations:on-demand-metrics-query-spec-version-two": True,
         }
     ):
-        widget_query = create_widget(
+        widget_query, _, _ = create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
@@ -1996,3 +1980,59 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
             assert config and config["metrics"]
 
             assert capture_exception.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["current_version", "expected"],
+    [
+        pytest.param(SpecVersion(2), {"1234", "5678"}, id="test_returns_current_version"),
+        pytest.param(SpecVersion(1), {"abcd", "defg"}, id="test_returns_specified_version"),
+    ],
+)
+@django_db_all
+def test_get_current_widget_specs(
+    default_project: Project, current_version: SpecVersion, expected: set[str]
+) -> None:
+    for i, spec in enumerate(
+        [
+            {
+                "version": 1,
+                "hashes": ["abcd", "defg"],
+                "state": "enabled:manual",
+            },
+            {
+                "version": 2,
+                "hashes": ["1234", "5678"],
+                "state": "enabled:manual",
+            },
+            {
+                "version": 2,
+                "hashes": ["ab12", "cd78"],
+                "state": "disabled:high-cardinality",
+            },
+            {
+                "version": 2,
+                "hashes": ["1234"],
+                "state": "enabled:manual",
+            },
+        ]
+    ):
+        widget_query, _, _ = create_widget(
+            ["epm()"],
+            f"transaction.duration:>={i}",
+            default_project,
+            title=f"Dashboard {i}",
+            columns=["user.id", "release", "count()"],
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=widget_query,
+            spec_version=spec["version"],
+            spec_hashes=spec["hashes"],
+            extraction_state=spec["state"],
+        )
+    with mock.patch(
+        "sentry.snuba.metrics.extraction.OnDemandMetricSpecVersioning.get_query_spec_version",
+        return_value=current_version,
+    ):
+        specs = get_current_widget_specs(default_project.organization)
+    assert specs == expected
