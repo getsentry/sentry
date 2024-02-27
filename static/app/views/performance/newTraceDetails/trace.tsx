@@ -75,7 +75,7 @@ function Trace({trace, trace_id}: TraceProps) {
   if (
     trace.root.space &&
     (trace.root.space[0] !== viewManager.current.to_origin ||
-      trace.root.space[1] !== viewManager.current.trace_space[1])
+      trace.root.space[1] !== viewManager.current.trace_space.width)
   ) {
     viewManager.current.initializeTraceSpace([
       trace.root.space[0],
@@ -970,6 +970,7 @@ function TraceBar(props: TraceBarProps) {
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
         }}
+        onDoubleClick={() => props.viewManager.onZoomIntoSpace(props.node_space!)}
       />
       <div
         ref={r =>
