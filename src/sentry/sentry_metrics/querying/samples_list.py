@@ -5,6 +5,7 @@ from typing import Any, TypedDict, cast
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.events.builder import (
     MetricsSummariesQueryBuilder,
     QueryBuilder,
@@ -37,6 +38,8 @@ class AbstractSamplesListExecutor(ABC):
         snuba_params: SnubaParams,
         fields: list[str],
         query: str | None,
+        min: float | None,
+        max: float | None,
         rollup: int,
         referrer: Referrer,
     ):
@@ -45,6 +48,8 @@ class AbstractSamplesListExecutor(ABC):
         self.snuba_params = snuba_params
         self.fields = fields
         self.query = query
+        self.min = min
+        self.max = max
         self.rollup = rollup
         self.referrer = referrer
 
@@ -160,6 +165,9 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         rethink how to fetch segment samples a little as the transactions dataset
         may not contain all the necessary data.
         """
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
         builder = QueryBuilder(
             Dataset.Transactions,
             self.params,
@@ -167,7 +175,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             query=self.query,
             selected_columns=[
                 f"rounded_timestamp({self.rollup})",
-                f"example({self.mri_to_column(self.mri)}) AS example",
+                f"example({column}) AS example",
             ],
             limit=limit,
             offset=offset,
@@ -175,7 +183,14 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(self.get_additional_conditions(builder))
+        additional_conditions = self.get_additional_conditions(builder)
+
+        if self.min is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -301,7 +316,17 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(self.get_additional_conditions(builder))
+        additional_conditions = self.get_additional_conditions(builder)
+
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
+        if self.min is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -407,13 +432,11 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
 
-        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
-
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
-            query=query,
+            query=self.query,
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
@@ -421,6 +444,19 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             # sample_rate=options.get("metrics.sample-list.sample-rate"),
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
+
+        additional_conditions = [
+            builder.convert_search_filter_to_condition(
+                SearchFilter(SearchKey("metric"), "=", SearchValue(self.mri)),
+            )
+        ]
+
+        if self.min is not None:
+            additional_conditions.append(Condition(Column("min"), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(Column("max"), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
