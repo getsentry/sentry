@@ -18,7 +18,7 @@ import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 interface MetricTableContainerProps {
   isLoading: boolean;
   metricQueries: MetricsQueryApiRequestQuery[];
-  timeseriesData: MetricsQueryApiResponse;
+  timeseriesData?: MetricsQueryApiResponse;
 }
 
 export function MetricTableContainer({
@@ -26,18 +26,18 @@ export function MetricTableContainer({
   metricQueries,
   isLoading,
 }: MetricTableContainerProps) {
-  const tableSeries = useMemo(() => {
+  const tableData = useMemo(() => {
     return timeseriesData ? getTableData(timeseriesData, metricQueries) : undefined;
   }, [timeseriesData, metricQueries]);
 
-  if (!tableSeries) {
+  if (!tableData) {
     return null;
   }
 
   return (
     <MetricWidgetTableWrapper>
       <LoadingScreen loading={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableSeries} borderless />
+      <MetricTable isLoading={isLoading} data={tableData} borderless />
     </MetricWidgetTableWrapper>
   );
 }

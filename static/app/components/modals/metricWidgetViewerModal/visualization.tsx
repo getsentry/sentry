@@ -196,14 +196,14 @@ function MetricTableVisualization({
   queries,
   isLoading,
 }: MetricTableVisualizationProps) {
-  const tableSeries = useMemo(() => {
+  const tableData = useMemo(() => {
     return getTableData(timeseriesData, queries);
   }, [timeseriesData, queries]);
 
   return (
     <Fragment>
       <TransparentLoadingMask visible={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableSeries} />
+      <MetricTable isLoading={isLoading} data={tableData} />
     </Fragment>
   );
 }
