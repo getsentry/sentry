@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
@@ -46,7 +46,7 @@ function addToTagTree(
   const branch = tag.key.slice(splitIndex + 1); // 'model.version'
 
   if (tree[trunk] === undefined) {
-    tree[trunk] = {value: ' ', subtree: {}};
+    tree[trunk] = {value: '', subtree: {}};
   }
   // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
   const pseudoTag = {
@@ -57,63 +57,70 @@ function addToTagTree(
   return tree;
 }
 
-interface TagsTreeKeysProps {
+interface TagTreeRowProps {
   content: TagTreeContent;
-  tag: string;
-}
-
-function TagTreeKeys({content, tag}: TagsTreeKeysProps) {
-  const subtreeTags = Object.keys(content.subtree);
-  return (
-    <TreeKeyTrunk>
-      <TreeKey>{tag}</TreeKey>
-      {subtreeTags.map((t, i) => (
-        <TreeSubtreeWrapper key={`${tag}-${i}-key`} isLast={i === subtreeTags.length - 1}>
-          <TreeSpacer />
-          <TagTreeKeys tag={t} content={content.subtree[t]} />
-        </TreeSubtreeWrapper>
-      ))}
-    </TreeKeyTrunk>
-  );
-}
-interface TagsTreeValuesProps extends TagsTreeKeysProps {
   projectId: string;
   projectSlug: string;
   streamPath: string;
+  tagKey: string;
+  isLast?: boolean;
+  spacerCount?: number;
 }
 
-function TagTreeValues({content, tag, ...props}: TagsTreeValuesProps) {
+function TagTreeRow({
+  content,
+  tagKey,
+  spacerCount = 0,
+  isLast = false,
+  ...props
+}: TagTreeRowProps) {
   const subtreeTags = Object.keys(content.subtree);
   const organization = useOrganization();
   const location = useLocation();
   const originalTag = content.originalTag;
+
   return (
-    <TreeValueTrunk>
-      <TreeValue>
-        {originalTag ? (
-          <EventTagsContent
-            tag={originalTag}
-            organization={organization}
-            query={generateQueryWithTag(
-              {...location.query, referrer: 'event-tags-tree'},
-              originalTag
+    <Fragment>
+      <TreeRow>
+        <TreeKeyTrunk spacerCount={spacerCount}>
+          {spacerCount > 0 && (
+            <Fragment>
+              <TreeSpacer spacerCount={spacerCount} isLast={isLast} />
+              <TreeBranchIcon />
+            </Fragment>
+          )}
+          <TreeKey>{tagKey}</TreeKey>
+        </TreeKeyTrunk>
+        <TreeValueTrunk>
+          <TreeValue>
+            {originalTag ? (
+              <EventTagsContent
+                tag={originalTag}
+                organization={organization}
+                query={generateQueryWithTag(
+                  {...location.query, referrer: 'event-tags-tree'},
+                  originalTag
+                )}
+                meta={content?.meta ?? {}}
+                {...props}
+              />
+            ) : (
+              content.value
             )}
-            meta={content?.meta ?? {}}
-            {...props}
-          />
-        ) : (
-          content.value
-        )}
-      </TreeValue>
+          </TreeValue>
+        </TreeValueTrunk>
+      </TreeRow>
       {subtreeTags.map((t, i) => (
-        <TagTreeValues
-          key={`${tag}-${i}-value`}
-          tag={t}
+        <TagTreeRow
+          key={`${t}-${i}`}
+          tagKey={t}
           content={content.subtree[t]}
+          spacerCount={spacerCount + 1}
+          isLast={i === subtreeTags.length - 1}
           {...props}
         />
       ))}
-    </TreeValueTrunk>
+    </Fragment>
   );
 }
 
@@ -143,8 +150,12 @@ function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
       <TreeGarden>
         {tagTreeItemData.map(([tagKey, tagTreeContent]) => (
           <TreeItem key={tagKey}>
-            <TagTreeKeys tag={tagKey} content={tagTreeContent} />
-            <TagTreeValues tag={tagKey} content={tagTreeContent} {...props} />
+            <TagTreeRow
+              tagKey={tagKey}
+              content={tagTreeContent}
+              spacerCount={0}
+              {...props}
+            />
           </TreeItem>
         ))}
       </TreeGarden>
@@ -157,7 +168,7 @@ const TreeContainer = styled('div')``;
 const TreeGarden = styled('div')`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 200px 1fr;
 `;
 
 const TreeItem = styled('div')`
@@ -165,46 +176,52 @@ const TreeItem = styled('div')`
   grid-column: span 2;
   grid-template-columns: subgrid;
   background-color: ${p => p.theme.background};
+  padding: ${space(0.5)} ${space(0.75)};
   :nth-child(odd) {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} ${space(1)};
 `;
 
-const TreeKeyTrunk = styled('div')`
+const TreeRow = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  display: grid;
+  grid-column: span 2;
+  grid-template-columns: subgrid;
+`;
+
+const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
+  grid-column: span 1;
+  /* Allows TreeBranchIcons to appear connected vertically */
+  border-right: 1px solid ${p => (!p.isLast ? p.theme.gray200 : 'transparent')};
+  margin-right: -1px;
+`;
+
+const TreeBranchIcon = styled('div')`
+  border: 1px solid ${p => p.theme.gray200};
+  border-width: 0 0 1px 1px;
+  border-radius: 0 0 0 5px;
+  grid-column: span 1;
+  margin: 0 ${space(0.5)} 0.5rem 0;
+`;
+
+const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
   grid-column: 1 / 2;
+  display: grid;
+  grid-template-columns: ${p =>
+    p.spacerCount > 0 ? `${(p.spacerCount - 1) * 20 + 3}px 1rem 1fr` : '1fr'};
 `;
 
 const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
 `;
 
-const TreeSubtreeWrapper = styled('div')<{isLast: boolean}>`
-  display: flex;
-  margin-left: ${space(0.25)};
-  border-left: 1px solid ${p => (!p.isLast ? p.theme.gray200 : 'transparent')};
-  box-sizing: content-box;
-  align-items: start;
-`;
-
-const TreeSpacer = styled('div')`
-  flex: 0;
-  border: 1px solid ${p => p.theme.gray200};
-  border-width: 0 0 1px 1px;
-  border-radius: 0 0 0 5px;
-  padding: ${space(0.75)};
-  margin: -${space(0.25)} ${space(0.5)} ${space(0.75)} -1px;
-`;
-
 const TreeValue = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-
-  white-space: pre;
-  display: inline-block;
+  word-break: break-word;
 `;
 
 const TreeKey = styled(TreeValue)`
+  grid-column: span 1;
   color: ${p => p.theme.gray300};
 `;
 
