@@ -271,16 +271,15 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/components/dashboards/                                   @getsentry/discover-n-dashboards
 ## Endof Discover/Dashboards
 
-## Starfish
-/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/team-starfish
-/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/team-starfish
-/src/sentry/api/endpoints/organization_events_starfish.py                           @getsentry/team-starfish
-/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/team-starfish
+## Performance/Visibility
+/src/sentry/api/endpoints/organization_events_facets_stats_performance.py           @getsentry/visibility
+/src/sentry/api/endpoints/organization_spans_aggregation.py                         @getsentry/visibility
+/tests/snuba/api/endpoints/test_organization_events_facets_stats_performance.py     @getsentry/visibility
 
-/static/app/views/starfish/                                                         @getsentry/team-starfish
-/static/app/views/performance/database                                              @getsentry/team-starfish
-/static/app/views/performance/browser                                               @getsentry/team-starfish
-## Endof Starfish
+/static/app/views/starfish/                                                         @getsentry/visibility
+/static/app/views/performance/database                                              @getsentry/visibility
+/static/app/views/performance/browser                                               @getsentry/visibility
+## Endof Performance/Visibility
 
 
 ## Profiling
