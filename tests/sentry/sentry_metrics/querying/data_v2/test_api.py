@@ -86,8 +86,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def to_reference_unit(
         self, value: float | int, measurement_unit: MeasurementUnit = "millisecond"
-    ):
-        _, _, unit = get_unit_family_and_unit(measurement_unit)
+    ) -> float:
+        unit_family_and_unit = get_unit_family_and_unit(measurement_unit)
+        assert unit_family_and_unit is not None
+        _, _, unit = unit_family_and_unit
         return unit.convert(value)
 
     def test_query_with_empty_results(self) -> None:
