@@ -5,7 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
-import {validateWidget} from 'sentry/actionCreators/dashboards';
+import {overrideWidgetType, validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -98,7 +98,7 @@ import {WidgetLibrary} from './widgetLibrary';
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
   [WidgetType.ERROR_EVENTS]: DataSet.EVENTS,
-  [WidgetType.TRANSACTIONS_MULTI]: DataSet.EVENTS,
+  [WidgetType.TRANSACTION_LIKE]: DataSet.EVENTS,
   [WidgetType.ISSUE]: DataSet.ISSUES,
   [WidgetType.RELEASE]: DataSet.RELEASES,
   [WidgetType.METRICS]: DataSet.METRICS,
@@ -109,6 +109,8 @@ export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
   [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.TRANSACTION_LIKE]: WidgetType.TRANSACTION_LIKE,
+  [DataSet.ERROR_EVENTS]: WidgetType.ERROR_EVENTS,
 };
 
 interface RouteParams {
@@ -222,6 +224,10 @@ function WidgetBuilder({
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
+  );
+
+  const [discoverWidgetSplit, setDiscoverWidgetSplit] = useState<DataSet | undefined>(
+    undefined
   );
 
   const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
@@ -345,6 +351,7 @@ function WidgetBuilder({
         queryConditionsValid: true,
       });
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
+      setDiscoverWidgetSplit(widgetFromDashboard.discoverWidgetSplit);
       setWidgetToBeUpdated(widgetFromDashboard);
     }
     // This should only run once on mount
@@ -377,6 +384,7 @@ function WidgetBuilder({
     queries: state.queries,
     limit: state.limit,
     widgetType,
+    discoverWidgetSplit,
   };
 
   const isOnDemandWidget = isOnDemandMetricWidget(currentWidget);
@@ -537,7 +545,7 @@ function WidgetBuilder({
     }
   }
 
-  function handleDataSetChange(newDataSet: string) {
+  function handleDataSetChange(newDataSet: DataSet) {
     trackAnalytics('dashboards_views.widget_builder.change', {
       from: source,
       field: 'dataSet',
@@ -555,6 +563,9 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      if ([DataSet.ERROR_EVENTS, DataSet.TRANSACTION_LIKE].includes(newDataSet)) {
+        setDiscoverWidgetSplit(newDataSet);
+      }
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
       setDataSetConfig(config);
 
@@ -904,6 +915,7 @@ function WidgetBuilder({
       environment: pageFilters.environments,
       ...omit(pageFilters.datetime, 'period'),
       statsPeriod: pageFilters.datetime?.period,
+      widgetType: overrideWidgetType(widgetData.widgetType),
     };
 
     addSuccessMessage(t('Added widget.'));
@@ -1143,6 +1155,7 @@ function WidgetBuilder({
                                   />
                                   <DataSetStep
                                     dataSet={state.dataSet}
+                                    discoverWidgetSplit={discoverWidgetSplit}
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}

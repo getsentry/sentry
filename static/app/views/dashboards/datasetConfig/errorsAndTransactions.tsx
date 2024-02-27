@@ -70,6 +70,7 @@ import {
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
+import {DataSet} from '../widgetBuilder/utils';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -142,6 +143,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
       url,
       api,
       query,
+      widget,
       organization,
       pageFilters,
       limit,
@@ -471,6 +473,7 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
+  widget: Widget,
   _organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
@@ -487,6 +490,7 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
+    discoverWidgetSplit: widget.discoverWidgetSplit,
     ...getDashboardsMEPQueryParams(isMEPEnabled),
     ...queryExtras,
   };
@@ -495,14 +499,22 @@ function getEventsRequest(
     params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
   }
 
+  const requestData = {
+    ...eventView.generateQueryStringObject(),
+    ...params,
+  };
+
+  requestData.query = getSplitDiscoverModifiedQuery(
+    requestData.query,
+    queryExtras?.useOnDemandMetrics,
+    widget.discoverWidgetSplit
+  );
+
   // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
   return doDiscoverQuery<TableData | EventsTableData>(
     api,
     url,
-    {
-      ...eventView.generateQueryStringObject(),
-      ...params,
-    },
+    requestData,
     // Tries events request up to 3 times on rate limit
     {
       retry: {
@@ -545,6 +557,7 @@ function getEventsSeriesRequest(
       includePrevious: false,
       referrer,
       partial: true,
+      discoverWidgetSplit: widget.discoverWidgetSplit,
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
@@ -568,6 +581,7 @@ function getEventsSeriesRequest(
       includePrevious: false,
       referrer,
       partial: true,
+      discoverWidgetSplit: widget.discoverWidgetSplit,
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
     };
@@ -621,6 +635,7 @@ function getEventsSeriesRequest(
 
 async function doOnDemandMetricsRequest(
   api,
+  widget,
   requestData
 ): Promise<
   [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
@@ -633,6 +648,7 @@ async function doOnDemandMetricsRequest(
 
     const response = await doEventsRequest<false>(api, {
       ...requestData,
+      discoverWidgetSplit: widget.discoverWidgetSplit,
       queryExtras: {
         ...requestData.queryExtras,
         useOnDemandMetrics: true,

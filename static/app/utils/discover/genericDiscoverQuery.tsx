@@ -321,7 +321,7 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
 
 export type DiscoverQueryRequestParams = Partial<
   EventQuery & LocationQuery & _DiscoverQueryExtras
->;
+> & {discoverWidgetSplit?: string};
 
 type RetryOptions = {
   statusCodes: number[];

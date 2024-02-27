@@ -289,11 +289,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
+    discover_widget_split = serializers.ChoiceField(
+        choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
+    )
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
     def validate_widget_type(self, widget_type):
+        return DashboardWidgetTypes.get_id_for_type_name(widget_type)
+
+    def validate_discover_widget_split(self, widget_type):
         return DashboardWidgetTypes.get_id_for_type_name(widget_type)
 
     validate_id = validate_id

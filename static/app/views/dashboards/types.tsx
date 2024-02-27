@@ -3,6 +3,7 @@ import type {Layout} from 'react-grid-layout';
 import type {User} from 'sentry/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import {DataSet} from './widgetBuilder/utils';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -26,8 +27,8 @@ export enum WidgetType {
   ISSUE = 'issue',
   RELEASE = 'metrics', // TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
   METRICS = 'custom-metrics',
-  ERROR_EVENTS = 'errors',
-  TRANSACTIONS_MULTI = 'transactions', // Targets 'transaction' data, not limited to events, maps to either 'Transactions' or 'PerformanceMetrics'.
+  ERROR_EVENTS = 'error-events',
+  TRANSACTION_LIKE = 'transaction-like', // Targets 'transaction' data, not limited to events, maps to either 'Transactions' or 'PerformanceMetrics'.
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -81,6 +82,7 @@ export type Widget = {
   queries: WidgetQuery[];
   title: string;
   description?: string;
+  discoverWidgetSplit?: DataSet; // Temporary column for the split of the discover widgettype.
   id?: string;
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget

@@ -47,6 +47,8 @@ class DashboardWidgetSerializer(Serializer):
             "dashboardId": str(obj.dashboard_id),
             "queries": attrs["queries"],
             "limit": obj.limit,
+            "discoverWidgetSplit": DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
+            or None,
             # Default to discover type if null
             "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
             or DashboardWidgetTypes.TYPE_NAMES[0],

@@ -18,20 +18,26 @@ interface Props {
   displayType: DisplayType;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
+  discoverWidgetSplit?: DataSet;
 }
 
 export function DataSetStep({
   dataSet,
+  discoverWidgetSplit,
   onChange,
   hasReleaseHealthFeature,
   displayType,
 }: Props) {
   const org = useOrganization();
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
+  const doesSeeDiscoverSplit = canSeeDiscoverSplit(org);
   const showDiscoverSplitWarning = useMemo(
-    () => dataSet === DataSet.EVENTS && canSeeDiscoverSplit(org),
-    [org]
+    () => dataSet === DataSet.EVENTS && doesSeeDiscoverSplit,
+    [dataSet, doesSeeDiscoverSplit]
   );
+  // We derive the dataset from either the actual set dataset on the widget, or temporarily use discoverWidgetSplit if it's a discover widget and in the process of being split.
+  const derivedDataSet =
+    doesSeeDiscoverSplit && discoverWidgetSplit ? discoverWidgetSplit : dataSet;
 
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
@@ -41,7 +47,7 @@ export function DataSetStep({
   }
 
   const datasetChoices = new Map<string, string>();
-  if (canSeeDiscoverSplit(org)) {
+  if (doesSeeDiscoverSplit) {
     datasetChoices.set(DataSet.ERROR_EVENTS, t('Errors'));
     datasetChoices.set(DataSet.TRANSACTION_LIKE, t('Transactions'));
   } else {
@@ -75,7 +81,7 @@ export function DataSetStep({
       ) : null}
       <DataSetChoices
         label="dataSet"
-        value={dataSet}
+        value={derivedDataSet}
         choices={[...datasetChoices.entries()]}
         disabledChoices={disabledChoices}
         onChange={newDataSet => {

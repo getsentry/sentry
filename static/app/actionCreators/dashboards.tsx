@@ -1,3 +1,4 @@
+import {cloneDeep} from 'lodash';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -6,10 +7,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
+import {
+  type DashboardDetails,
+  type DashboardListItem,
+  type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 
@@ -131,7 +133,7 @@ export function updateDashboard(
     dashboard;
   const data = {
     title,
-    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    widgets: widgets.map(widget => modifyWidgetDataset(omit(widget, ['tempId']))),
     projects,
     environment,
     period,
@@ -169,6 +171,30 @@ export function updateDashboard(
 
   return promise;
 }
+
+function modifyWidgetDataset(widget: Widget) {
+  const newWidget = cloneDeep(widget);
+  if (isSplitDiscoverWidgetType(widget.widgetType)) {
+    newWidget.widgetType = overrideWidgetType(widget.widgetType);
+  }
+  return newWidget;
+}
+
+export const overrideWidgetType = (widgetType?: WidgetType) => {
+  // TODO: Remove this after we've fully migrated to split discover set in the widgetType column.
+  if (isSplitDiscoverWidgetType(widgetType)) {
+    // We return discover and override the widgetType since we're not yet saving the split to the widgetType column
+    return WidgetType.DISCOVER;
+  }
+  return widgetType;
+};
+
+export const isSplitDiscoverWidgetType = (widgetType?: WidgetType) => {
+  return (
+    widgetType &&
+    [WidgetType.ERROR_EVENTS, WidgetType.TRANSACTION_LIKE].includes(widgetType)
+  );
+};
 
 export function deleteDashboard(
   api: Client,
