@@ -24,6 +24,8 @@ class OpsgenieClient(ApiClient):
         self,
         integration: RpcIntegration | Integration,
         integration_key: str,
+        org_integration_id: int | None = None,  # deprecated but still passed by getsentry
+        keyid: str | None = None,  # deprecated but still passed by getsentry
     ) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
