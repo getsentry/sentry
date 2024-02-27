@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {canSeeDiscoverSplit, DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
@@ -71,7 +71,13 @@ function AddWidget({onAddWidget}: Props) {
           />
         </InnerWrapper>
       ) : (
-        <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+        <InnerWrapper
+          onClick={() =>
+            onAddWidget(
+              canSeeDiscoverSplit(organization) ? DataSet.ERROR_EVENTS : DataSet.EVENTS
+            )
+          }
+        >
           <AddButton
             data-test-id="widget-add"
             icon={<IconAdd size="lg" isCircled color="inactive" />}
@@ -111,11 +117,26 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
 
   const items: MenuItemProps[] = useMemo(() => {
     const menuItems = [
-      {
-        key: DataSet.EVENTS,
-        label: t('Errors and Transactions'),
-        onAction: () => handleAction(DataSet.EVENTS),
-      },
+      ...(canSeeDiscoverSplit(organization)
+        ? [
+            {
+              key: DataSet.ERROR_EVENTS,
+              label: t('Errors'),
+              onAction: () => handleAction(DataSet.ERROR_EVENTS),
+            },
+            {
+              key: DataSet.TRANSACTION_LIKE,
+              label: t('Transactions'),
+              onAction: () => handleAction(DataSet.TRANSACTION_LIKE),
+            },
+          ]
+        : [
+            {
+              key: DataSet.EVENTS,
+              label: t('Errors and Transactions'),
+              onAction: () => handleAction(DataSet.EVENTS),
+            },
+          ]),
       {
         key: DataSet.ISSUES,
         label: t('Issues'),
