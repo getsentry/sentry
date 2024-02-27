@@ -63,6 +63,7 @@ interface TagTreeRowProps {
   projectSlug: string;
   streamPath: string;
   tagKey: string;
+  isEven?: boolean;
   isLast?: boolean;
   spacerCount?: number;
 }
@@ -72,6 +73,7 @@ function TagTreeRow({
   tagKey,
   spacerCount = 0,
   isLast = false,
+  isEven = false,
   ...props
 }: TagTreeRowProps) {
   const subtreeTags = Object.keys(content.subtree);
@@ -81,7 +83,7 @@ function TagTreeRow({
 
   return (
     <Fragment>
-      <TreeRow>
+      <TreeRow isEven={isEven}>
         <TreeKeyTrunk spacerCount={spacerCount}>
           {spacerCount > 0 && (
             <Fragment>
@@ -117,6 +119,7 @@ function TagTreeRow({
           content={content.subtree[t]}
           spacerCount={spacerCount + 1}
           isLast={i === subtreeTags.length - 1}
+          isEven={isEven}
           {...props}
         />
       ))}
@@ -148,12 +151,13 @@ function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
   return (
     <TreeContainer>
       <TreeGarden>
-        {tagTreeItemData.map(([tagKey, tagTreeContent]) => (
+        {tagTreeItemData.map(([tagKey, tagTreeContent], i) => (
           <TreeItem key={tagKey}>
             <TagTreeRow
               tagKey={tagKey}
               content={tagTreeContent}
               spacerCount={0}
+              isEven={i % 2 === 0}
               {...props}
             />
           </TreeItem>
@@ -176,17 +180,17 @@ const TreeItem = styled('div')`
   grid-column: span 2;
   grid-template-columns: subgrid;
   background-color: ${p => p.theme.background};
-  padding: ${space(0.5)} ${space(0.75)};
-  :nth-child(odd) {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
+  padding: 0 ${space(0.75)};
 `;
 
-const TreeRow = styled('div')`
+const TreeRow = styled('div')<{isEven: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
   grid-column: span 2;
   grid-template-columns: subgrid;
+  :nth-child(${p => (p.isEven ? 'even' : 'odd')}) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const TreeSpacer = styled('div')<{isLast: boolean; spacerCount: number}>`
