@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import responses
@@ -25,7 +26,7 @@ region = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 region_config = (region,)
 
 issue_updated_payload = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
-no_changelog = {}
+no_changelog: dict[str, Any] = {}
 
 
 @control_silo_test
