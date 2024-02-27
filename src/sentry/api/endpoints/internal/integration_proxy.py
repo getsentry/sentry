@@ -188,9 +188,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
             logger.info(
                 "integration_proxy.bad_request",
-                extra={
-                    **self.log_extra,
-                },
+                extra=self.log_extra,
             )
             return HttpResponseBadRequest()
 
