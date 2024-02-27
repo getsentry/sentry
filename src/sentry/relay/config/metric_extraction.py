@@ -30,7 +30,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -590,7 +590,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
