@@ -902,6 +902,39 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     @with_feature("organizations:slack-block-kit-improvements")
+    def test_build_group_generic_issue_block_no_escaping(self):
+        """Test that a generic issue type's Slack alert contains the expected values"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+        occurrence = self.build_occurrence(
+            level="info",
+            evidence_display=[
+                {"name": "hi", "value": "<bye> `asdf`", "important": True},
+                {"name": "what", "value": "where", "important": False},
+            ],
+        )
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        group_event.group.type = ProfileFileIOGroupType.type_id
+
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert occurrence.issue_title in section["text"]["text"]
+
+        # no escaping
+        assert (
+            blocks["blocks"][1]["text"]["text"] == f"```{occurrence.evidence_display[0].value}```"
+        )
+        assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:slack-block-kit-improvements")
     def test_build_group_generic_issue_block_title_emojis(self):
         """Test that a generic issue type's Slack alert contains the expected values"""
         event = self.store_event(
