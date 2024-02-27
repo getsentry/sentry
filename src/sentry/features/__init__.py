@@ -309,6 +309,7 @@ default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeatur
 default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 
 # Project plugin features
