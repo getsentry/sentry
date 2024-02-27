@@ -321,7 +321,7 @@ class SnubaTSDB(BaseTSDB):
         self,
         model: TSDBModel,
         keys: Sequence | Set | Mapping,
-        start: datetime | None,
+        start: datetime,
         end: datetime | None,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,

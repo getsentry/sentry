@@ -68,7 +68,7 @@ class RedisTSDBTest(TestCase):
         assert result == ("ts:1:1368889980:1", "1?e=1")
 
         result = self.db.make_counter_key(TSDBModel.project, 1, to_datetime(1368889980), "foo", 1)
-        assert result == ("ts:1:1368889980:46", self.db.get_model_key("foo") + "?e=1")
+        assert result == ("ts:1:1368889980:46", str(self.db.get_model_key("foo")) + "?e=1")
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)
@@ -135,14 +135,14 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 9, 2: 4}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 9, 2: 4}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
-        assert results == {1: 4, 2: 3}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert sum_results == {1: 4, 2: 3}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0)
+        assert sum_results == {1: 0, 2: 0}
 
         self.db.merge(TSDBModel.project, 1, [2], now, environment_ids=[0, 1, 2])
 
@@ -177,16 +177,16 @@ class RedisTSDBTest(TestCase):
             2: [(timestamp(dts[i]), 0) for i in range(0, 4)],
         }
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 13, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 13, 2: 0}
 
         self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1], environment_ids=[0, 1, 2])
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert sum_results == {1: 0, 2: 0}
 
-        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
-        assert results == {1: 0, 2: 0}
+        sum_results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        assert sum_results == {1: 0, 2: 0}
 
     def test_count_distinct(self):
         now = datetime.now(timezone.utc) - timedelta(hours=4)
