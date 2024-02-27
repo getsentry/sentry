@@ -333,7 +333,8 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
     def test_staff_cannot_create_app(self):
         """We do not allow staff to create Sentry Apps b/c this cannot be done in _admin."""
         self.login_as(self.staff_user, staff=True)
-        self.get_error_response(**self.get_data(), status_code=404)
+        response = self.get_error_response(**self.get_data(), status_code=404)
+        assert response.data["detail"] == "Not found."
 
     def test_superuser_cannot_create_app_in_nonexistent_organization(self):
         sentry_app = self.create_internal_integration(name="Foo Bar")
