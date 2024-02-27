@@ -98,6 +98,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.token import AuthTokenType
 from sentry.utils import json
 from sentry.utils.json import JSONData
 
@@ -595,6 +596,7 @@ class BackupTestCase(TransactionTestCase):
             user=owner,
             expires_at=None,
             name="create_exhaustive_sentry_app",
+            token_type=AuthTokenType.INTEGRATION,
         )
         ApiGrant.objects.create(
             user=owner,
@@ -628,7 +630,10 @@ class BackupTestCase(TransactionTestCase):
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
         ApiToken.objects.create(
-            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_global_configs",
+            token_type=AuthTokenType.USER,
         )
 
     @assume_test_silo_mode(SiloMode.REGION)

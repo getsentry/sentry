@@ -19,6 +19,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
+from sentry.types.token import AuthTokenType
 
 
 @dataclasses.dataclass
@@ -52,6 +53,7 @@ class SentryAppInstallationTokenCreator:
             application_id=self.sentry_app.application.id,
             scope_list=self.sentry_app.scope_list,
             expires_at=self.expires_at,
+            token_type=AuthTokenType.INTEGRATION,
         )
 
     def _create_sentry_app_installation_token(

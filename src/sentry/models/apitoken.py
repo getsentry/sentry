@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import secrets
 from collections.abc import Collection
 from datetime import timedelta
@@ -32,6 +33,40 @@ def generate_token():
     return secrets.token_hex(nbytes=32)
 
 
+class ApiTokenManager(ControlOutboxProducingManager):
+    def create(self, *args, **kwargs):
+        token_type = kwargs.get("token_type", None)
+
+        match token_type:
+            case AuthTokenType.USER:
+                plaintext_token = f"{token_type}{generate_token()}"
+                plaintext_refresh_token = None
+            case AuthTokenType.INTEGRATION | AuthTokenType.USER_APP:
+                plaintext_token = f"{token_type}{generate_token()}"
+                plaintext_refresh_token = f"{token_type}{generate_token()}"
+            case _:
+                # for backwards compatibility
+                plaintext_token = generate_token()
+                plaintext_refresh_token = None
+
+        kwargs["token"] = plaintext_token
+        kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
+
+        if plaintext_refresh_token is not None:
+            kwargs["refresh_token"] = plaintext_refresh_token
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                plaintext_refresh_token.encode()
+            ).hexdigest()
+
+        api_token = super().create(*args, **kwargs)
+
+        # Store the plaintext tokens in the instance for one-time retrieval
+        api_token._plaintext_token = plaintext_token
+        api_token._plaintext_refresh_token = plaintext_refresh_token
+
+        return api_token
+
+
 @control_silo_only_model
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
@@ -50,7 +85,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ControlOutboxProducingManager(
+    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ApiTokenManager(
         cache_fields=("token",)
     )
 

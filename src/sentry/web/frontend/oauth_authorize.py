@@ -323,6 +323,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+                token_type=AuthTokenType.USER,
             )
 
             logger.info(

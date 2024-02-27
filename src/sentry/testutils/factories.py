@@ -146,6 +146,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_local_region, get_region_by_name
+from sentry.types.token import AuthTokenType
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -421,6 +422,7 @@ class Factories:
         return ApiToken.objects.create(
             user=user,
             scope_list=scope_list,
+            token_type=AuthTokenType.USER,
             **kwargs,
         )
 

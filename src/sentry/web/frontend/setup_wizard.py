@@ -24,6 +24,7 @@ from sentry.services.hybrid_cloud.project.service import project_service
 from sentry.services.hybrid_cloud.project_key.model import ProjectKeyRole
 from sentry.services.hybrid_cloud.project_key.service import project_key_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.types.token import AuthTokenType
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
@@ -153,7 +154,7 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
             return token
 
     # Otherwise, generate a user token
-    tokens = ApiToken.objects.filter(user_id=user.id)
+    tokens = ApiToken.objects.filter(user_id=user.id, token_type=AuthTokenType.USER)
     token = next((token for token in tokens if "project:releases" in token.get_scopes()), None)
     if token is None:
         token = ApiToken.objects.create(
@@ -161,6 +162,7 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
             scope_list=["project:releases"],
             refresh_token=None,
             expires_at=None,
+            token_type=AuthTokenType.USER,
         )
     return serialize(token)
 

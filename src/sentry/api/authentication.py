@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
+from google.cloud.storage.blob import hashlib
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -310,6 +311,37 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         token_str = force_str(auth[1])
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken:
+        """
+        Find token by hash or update token's hash value if only found via plaintext.
+
+        1. Hash provided plaintext token.
+        2. Perform lookup based on hashed value.
+        3. If found, return the token.
+        4. If not found, search for the token based on its plaintext value.
+        5. If found, update the token's hashed value and return the token.
+        6. If not found via hash or plaintext value, raise AuthenticationFailed
+
+        """
+
+        hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
+
+        try:
+            # Try to find the token by its hashed value first
+            return ApiToken.objects.get(hashed_token=hashed_token)
+        except ApiToken.DoesNotExist:
+            try:
+                # If we can't find it by hash, use the plaintext string
+                api_token = ApiToken.objects.get(token=token_str)
+            except ApiToken.DoesNotExist:
+                # If the token does not exist by plaintext either, return None
+                raise AuthenticationFailed("Invalid token")
+            else:
+                # Update it with the hashed value if found by plaintext
+                api_token.hashed_token = hashed_token
+                api_token.save(update_fields=["hashed_token"])
+                return api_token
+
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         user: AnonymousUser | RpcUser | None = AnonymousUser()
 
@@ -329,6 +361,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                 application_is_inactive = not atr.application_is_active
             else:
                 try:
+                    token = self._find_or_update_token_by_hash(token_str)
+                    if not token:
+                        raise
+
                     at = token = (
                         ApiToken.objects.filter(token=token_str)
                         .select_related("user", "application")
