@@ -46,7 +46,7 @@ def wait_for_topics(admin_client: AdminClient, topics: list[str], timeout: int =
                 )
 
 
-def create_topics(cluster_name: str, topics: list[str], force: bool = False) -> None:
+def create_topics(cluster_name: str, topics: list[str]) -> None:
     """
     If configured to do so, create topics and make sure that they exist
 
