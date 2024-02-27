@@ -793,9 +793,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
-        assert result["event_id"] == event_data.event_id, message
-        # assert result["timestamp"] == event_data.data["timestamp"], message
-        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        assert result["event_id"] == pytest.approx(event_data.event_id), message
+        assert result["start_timestamp"] == pytest.approx(
+            event_data.data["start_timestamp"]
+        ), message
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -1500,6 +1501,41 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 self.assert_event(gen3, self.gen3_event, "gen3_0")
             else:
                 assert len(gen1["children"]) == 0
+
+    @mock.patch("sentry.api.endpoints.organization_events_trace.query_trace_data")
+    def test_timestamp_optimization(self, mock_query):
+        """When timestamp is passed we'll ignore the statsPeriod and make a query with a smaller start & end"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        mock_query.assert_called_once()
+        params = mock_query.call_args.args[1]
+        assert abs((params["end"] - params["start"]).days) <= 7
+
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
 
 
 @region_silo_test

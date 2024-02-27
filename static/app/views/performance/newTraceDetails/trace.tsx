@@ -4,17 +4,16 @@ import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Omit} from 'framer-motion/types/types';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,10 +74,15 @@ function Trace({trace, trace_id}: TraceProps) {
 
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.spanSpace[0] ||
-      trace.root.space[1] !== viewManager.current.spanSpace[1])
+    (trace.root.space[0] !== viewManager.current.to_origin ||
+      trace.root.space[1] !== viewManager.current.trace_space[1])
   ) {
-    viewManager.current.initializeSpanSpace(trace.root.space);
+    viewManager.current.initializeTraceSpace([
+      trace.root.space[0],
+      0,
+      trace.root.space[1],
+      1,
+    ]);
     scrollQueue.current = decodeScrollQueue(location.query.node);
   }
 
@@ -181,7 +185,7 @@ function Trace({trace, trace_id}: TraceProps) {
                   })
                 : null}
               <List
-                ref={r => viewManager.current?.registerVirtualizedList(r)}
+                ref={r => viewManager.current?.registerList(r)}
                 rowHeight={24}
                 height={height}
                 width={width}
@@ -277,6 +281,7 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow Autogrouped"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -326,8 +331,6 @@ function RenderRow(props: {
           }
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           {isParentAutogroupedNode(props.node) ? (
@@ -353,6 +356,7 @@ function RenderRow(props: {
   if (isTransactionNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -415,8 +419,6 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -433,6 +435,7 @@ function RenderRow(props: {
   if (isSpanNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -500,8 +503,6 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -518,6 +519,7 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -558,8 +560,6 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
           <TraceBar
@@ -576,6 +576,7 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -627,10 +628,9 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
+          {' '}
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
@@ -645,6 +645,7 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
+        key={props.index}
         className="TraceRow"
         onClick={() => props.onRowClick(props.node)}
         style={{
@@ -696,11 +697,9 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
-            backgroundColor:
-              props.index % 2 ? undefined : props.theme.backgroundSecondary,
           }}
         >
-          {/* @TODO: figure out what to do with trace errors */}
+          {/* @TODO: figure out what to do with trace errors */}{' '}
           {/* <TraceBar
           space={props.space}
           start_timestamp={props.node.value.start_timestamp}
@@ -888,10 +887,12 @@ function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
   let start = isSpanNode(props.node.children[0])
     ? props.node.children[0].value.start_timestamp
     : Number.POSITIVE_INFINITY;
+
   let end = isSpanNode(props.node.children[0])
     ? props.node.children[0].value.timestamp
     : Number.NEGATIVE_INFINITY;
   let totalDuration = 0;
+
   for (let i = 0; i < props.node.children.length; i++) {
     const node = props.node.children[i];
     if (!isSpanNode(node)) {
@@ -947,40 +948,47 @@ function TraceBar(props: TraceBarProps) {
     return null;
   }
 
-  const spanTransform = props.viewManager.computeSpanMatrixTransform(props.node_space);
-  const inverseTransform = props.viewManager.inverseSpanScaling(props.node_space);
-  const textPosition = props.viewManager.computeSpanTextPlacement(
-    spanTransform[4],
-    props.node_space
+  const duration = getDuration(props.node_space[1] / 1000, 2, true);
+  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(props.node_space);
+  const [inside, textTransform] = props.viewManager.computeSpanTextPlacement(
+    props.node_space,
+    duration
   );
 
   return (
-    <div
-      ref={r =>
-        props.viewManager.registerSpanBarRef(r, props.node_space!, props.virtualizedIndex)
-      }
-      className="TraceBar"
-      style={{
-        transform: `matrix(${spanTransform.join(',')})`,
-        backgroundColor: props.color,
-      }}
-    >
+    <Fragment>
       <div
-        className={`TraceBarDuration ${textPosition === 'inside left' ? 'Inside' : ''}`}
+        ref={r =>
+          props.viewManager.registerSpanBarRef(
+            r,
+            props.node_space!,
+            props.virtualizedIndex
+          )
+        }
+        className="TraceBar"
         style={{
-          left: textPosition === 'left' || textPosition === 'inside left' ? '0' : '100%',
-          transform: `matrix(${inverseTransform}, 0,0,1,0,0) translate(${
-            textPosition === 'left' ? 'calc(-100% - 4px)' : '4px'
-          }, 0)`,
+          transform: `matrix(${spanTransform.join(',')})`,
+          backgroundColor: props.color,
+        }}
+      />
+      <div
+        ref={r =>
+          props.viewManager.registerSpanBarTextRef(
+            r,
+            duration,
+            props.node_space!,
+            props.virtualizedIndex
+          )
+        }
+        className="TraceBarDuration"
+        style={{
+          color: inside ? 'white' : '',
+          transform: `translate(${textTransform ?? 0}px, 0)`,
         }}
       >
-        {/* Use node space to calculate duration if the duration prop is not provided. */}
-        <PerformanceDuration
-          seconds={props.duration ?? props.node_space[1]}
-          abbreviation
-        />
+        {duration}
       </div>
-    </div>
+    </Fragment>
   );
 }
 
@@ -991,9 +999,9 @@ function TraceBar(props: TraceBarProps) {
  * the scrolling to flicker.
  */
 const TraceStylingWrapper = styled('div')`
+  overflow: hidden;
   position: relative;
-  border: 1px solid ${p => p.theme.border};
-  padding: ${space(0.5)} 0;
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
 
   @keyframes show {
@@ -1061,6 +1069,12 @@ const TraceStylingWrapper = styled('div')`
     transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
 
+    &:nth-of-type(odd) {
+      .TraceRightColumn {
+        background-color: ${p => p.theme.backgroundSecondary};
+      }
+    }
+
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
     }
@@ -1100,6 +1114,7 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceRightColumn {
     height: 100%;
+    overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;
@@ -1123,10 +1138,7 @@ const TraceStylingWrapper = styled('div')`
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
-
-    &.Inside {
-      color: ${p => p.theme.gray100};
-    }
+    transition: color 0.1s ease-in-out;
   }
 
   .TraceChildrenCount {

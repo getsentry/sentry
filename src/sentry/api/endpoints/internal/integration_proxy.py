@@ -134,6 +134,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+            logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
@@ -183,6 +185,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
+            if self.integration.provider == "slack":
+                self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+                logger.info(
+                    "integration_proxy.slack.bad_request",
+                    extra={
+                        **self.log_extra,
+                        "integration_id": self.integration.id,
+                    },
+                )
             return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
@@ -195,6 +206,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         headers = clean_outbound_headers(request.headers)
 
         response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
+
+        # TODO(hybridcloud) Remove this logging once we have resolved slack delivery issues.
+        if response.status_code != 200 and self.integration.provider == "slack":
+            logger.info(
+                "slack.response",
+                extra={
+                    **self.log_extra,
+                    "integration_id": self.integration.id,
+                    "status_code": response.status_code,
+                    "response_text": response.content.decode("utf8"),
+                },
+            )
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",

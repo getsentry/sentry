@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.db.models import Value
@@ -21,13 +21,10 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import features
 from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
@@ -42,7 +39,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.language_parsers import BETA_PATCH_PARSERS, PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
@@ -195,16 +192,8 @@ def safe_for_comment(
     changed_lines_count = 0
     filtered_pr_files = []
 
-    try:
-        organization = Organization.objects.get_from_cache(id=repository.organization_id)
-    except Organization.DoesNotExist:
-        logger.exception("github.open_pr_comment.org_missing")
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
-        return []
-
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
-        patch_parsers = BETA_PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     for file in pr_files:
         filename = file["filename"]
@@ -285,11 +274,8 @@ def get_top_5_issues_by_count_for_file(
     if not len(projects):
         return []
 
-    organization = projects[0].organization
-
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
-        patch_parsers = BETA_PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
@@ -300,8 +286,8 @@ def get_top_5_issues_by_count_for_file(
 
     group_ids = list(
         Group.objects.filter(
-            first_seen__gte=datetime.now() - timedelta(days=90),
-            last_seen__gte=datetime.now() - timedelta(days=14),
+            first_seen__gte=datetime.now(UTC) - timedelta(days=90),
+            last_seen__gte=datetime.now(UTC) - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
         )
@@ -423,22 +409,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
         return
 
-    # check org option
     org_id = pull_request.organization_id
-    try:
-        organization = Organization.objects.get_from_cache(id=org_id)
-    except Organization.DoesNotExist:
-        logger.exception("github.open_pr_comment.org_missing")
-        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
-        return
-
-    if not OrganizationOption.objects.get_value(
-        organization=organization,
-        key="sentry:github_open_pr_bot",
-        default=True,
-    ):
-        logger.info("github.open_pr_comment.option_missing", extra={"organization_id": org_id})
-        return
 
     # check PR repo exists to get repo name
     try:
@@ -480,8 +451,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     top_issues_per_file = []
 
     patch_parsers = PATCH_PARSERS
-    if features.has("organizations:integrations-open-pr-comment-js", organization):
-        patch_parsers = BETA_PATCH_PARSERS
+    # NOTE: if we are testing beta patch parsers, add check here
 
     file_extensions = set()
     # fetch issues related to the files

@@ -153,10 +153,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 
                 elif key == "role":
-                    members_with_role = organization.get_members_with_org_roles(
-                        roles=value, include_null_users=True
-                    ).values_list("id", flat=True)
-                    queryset = queryset.filter(id__in=members_with_role)
+                    queryset = queryset.filter(role__in=value)
 
                 elif key == "isInvited":
                     isInvited = "true" in value

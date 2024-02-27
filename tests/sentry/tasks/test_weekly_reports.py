@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -10,7 +11,7 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import MonitorCheckInFailure, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -21,6 +22,7 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    ProjectContext,
     organization_project_issue_substatus_summaries,
 )
 from sentry.tasks.summaries.weekly_reports import (
@@ -271,7 +273,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
 
-        project_ctx = ctx.projects_context_map[self.project.id]
+        project_ctx = cast(ProjectContext, ctx.projects_context_map[self.project.id])
 
         assert project_ctx.new_substatus_count == 1
         assert project_ctx.escalating_substatus_count == 0
@@ -349,6 +351,9 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         group2.save()
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
+
+        # store a crons issue just to make sure it's not counted in key_performance_issues
+        self.create_group(type=MonitorCheckInFailure.type_id)
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
