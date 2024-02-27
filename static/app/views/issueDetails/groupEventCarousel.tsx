@@ -33,6 +33,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -378,6 +379,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   });
 
   const hasTraceTimeline = hasTraceTimelineFeature(organization);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <CarouselAndButtonsWrapper>
@@ -428,7 +430,9 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
         {hasTraceTimeline ? (
-          <TraceLink event={event} />
+          issueTypeConfig.traceTimeline ? (
+            <TraceLink event={event} />
+          ) : null
         ) : (
           <QuickTrace event={event} organization={organization} location={location} />
         )}

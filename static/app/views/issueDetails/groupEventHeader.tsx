@@ -4,6 +4,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 import {TraceTimeline} from 'sentry/views/issueDetails/traceTimeline/traceTimeline';
@@ -16,11 +17,12 @@ type GroupEventHeaderProps = {
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const organization = useOrganization();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      <TraceTimeline event={event} />
+      {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}
