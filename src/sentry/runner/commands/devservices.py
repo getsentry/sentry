@@ -168,12 +168,16 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
 
 def ensure_docker_cli_context(context: str):
     # this is faster than running docker context use ...
-    with open(os.path.expanduser("~/.docker/config.json"), "rb") as f:
-        config = json.loads(f.read())
+    config_file = os.path.expanduser("~/.docker/config.json")
+    config = {}
+
+    if os.path.exists(config_file):
+        with open(config_file, "rb") as f:
+            config = json.loads(f.read())
 
     config["currentContext"] = context
 
-    with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
+    with open(config_file, "w") as f:
         f.write(json.dumps(config))
 
 
