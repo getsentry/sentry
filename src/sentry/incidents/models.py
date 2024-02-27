@@ -14,8 +14,10 @@ from django.utils import timezone
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
@@ -740,6 +742,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
 
     class Meta:
         app_label = "sentry"

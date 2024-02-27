@@ -7,6 +7,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.snuba.utils import get_dataset
 
@@ -24,7 +25,7 @@ class DiscoverProcessor:
         self.projects = self.get_projects(organization_id, discover_query)
         self.environments = self.get_environments(organization_id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": organization_id,
             "project_id": [project.id for project in self.projects],
             "start": self.start,

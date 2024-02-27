@@ -28,7 +28,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
@@ -125,7 +125,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> dict[str, Any]:
+    ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
                 len(self.get_field_list(organization, request))
@@ -136,7 +136,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
 
-            params: dict[str, Any] = self.get_filter_params(request, organization)
+            params: ParamsType = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
             params["team_id"] = self.get_team_ids(request, organization)
@@ -350,7 +350,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         ],
         top_events: int = 0,
         query_column: str = "count()",
-        params: dict[str, Any] | None = None,
+        params: ParamsType | None = None,
         query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
