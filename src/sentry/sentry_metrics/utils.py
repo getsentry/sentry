@@ -1,6 +1,8 @@
 from collections.abc import Collection, Mapping, Sequence
 from typing import Union, cast
 
+import sentry_sdk
+
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -105,7 +107,22 @@ def bulk_reverse_resolve(
         if idx > 0:
             indexes_to_resolve.add(idx)
 
-    return indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve)
+    reverse_resolved = indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve)
+    seen_strings = set()
+    for integer_value, string_value in reverse_resolved.items():
+        # We assume that each integer_value is different, thus if we find the same string more than once, it means
+        # we have the same string referenced by two separate ids.
+        if string_value in seen_strings:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("use_case_id", use_case_id.value)
+                scope.set_extra("string_value", string_value)
+                sentry_sdk.capture_message("Duplicated string found in the indexer")
+
+            continue
+
+        seen_strings.add(string_value)
+
+    return reverse_resolved
 
 
 def reverse_resolve_weak(
