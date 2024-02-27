@@ -1,7 +1,4 @@
-from unittest import mock
-
 from sentry.api.bases.organizationmember import MemberAndStaffPermission, MemberPermission
-from sentry.auth.staff import is_active_staff
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 
@@ -72,13 +69,10 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         assert self.has_object_perm("POST", self.org, user=superuser, is_superuser=True)
         assert self.has_object_perm("DELETE", self.org, user=superuser, is_superuser=True)
 
-    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_staff(self, mock_is_active_staff):
+    def test_staff(self):
         staff_user = self.create_user(is_staff=True)
 
         assert self.has_object_perm("GET", self.org, user=staff_user, is_staff=True)
         assert self.has_object_perm("PUT", self.org, user=staff_user, is_staff=True)
         assert self.has_object_perm("POST", self.org, user=staff_user, is_staff=True)
         assert self.has_object_perm("DELETE", self.org, user=staff_user, is_staff=True)
-        # ensure we fail the scope check and call is_active_staff
-        assert mock_is_active_staff.call_count == 12

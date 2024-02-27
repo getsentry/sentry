@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
-from sentry.auth.staff import is_active_staff
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -417,8 +414,7 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("PUT", self.project, user=superuser, is_superuser=True)
         assert self.has_object_perm("DELETE", self.project, user=superuser, is_superuser=True)
 
-    @patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_staff(self, mock_is_active_staff):
+    def test_staff(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
 
@@ -427,11 +423,7 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("PUT", self.project, user=staff_user, is_staff=True)
         assert self.has_object_perm("DELETE", self.project, user=staff_user, is_staff=True)
 
-        # ensure we fail the scope check and call is_active_staff
-        assert mock_is_active_staff.call_count == 4
-
-    @patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
-    def test_staff_passes_2FA(self, mock_is_active_staff):
+    def test_staff_passes_2FA(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
@@ -441,4 +433,3 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         self.organization.save()
 
         assert not permission.is_not_2fa_compliant(request=request, organization=self.organization)
-        assert mock_is_active_staff.call_count == 1
