@@ -503,7 +503,6 @@ module = [
     "sentry.testutils.performance_issues.store_transaction",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
-    "sentry.tsdb.redis",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -629,9 +628,10 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
-  "src.sentry.tasks.on_demand_metrics",
-  "src.sentry.relay.config.metric_extraction",
-  "src.sentry.snuba.metrics.extraction",
+  "sentry.utils.redis",
+  "sentry.tasks.on_demand_metrics",
+  "sentry.relay.config.metric_extraction",
+  "sentry.snuba.metrics.extraction",
   "tests.sentry.tasks.test_on_demand_metrics",
   "tests.sentry.relay.config.test_metric_extraction",
 ]

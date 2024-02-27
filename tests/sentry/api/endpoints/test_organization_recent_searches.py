@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from typing import Any
 
@@ -161,7 +161,7 @@ class RecentSearchesCreateTest(APITestCase):
         self.login_as(self.user)
         search_type = 1
         query = "something"
-        the_date = datetime(2019, 1, 1, 1, 1, 1)
+        the_date = datetime(2019, 1, 1, 1, 1, 1, tzinfo=UTC)
         with freeze_time(the_date):
             response = self.get_response(self.organization.slug, type=search_type, query=query)
             assert response.status_code == 201
@@ -172,7 +172,7 @@ class RecentSearchesCreateTest(APITestCase):
                 query=query,
                 last_seen=the_date,
             ).exists()
-        the_date = datetime(2019, 1, 1, 2, 2, 2)
+        the_date = datetime(2019, 1, 1, 2, 2, 2, tzinfo=UTC)
         with freeze_time(the_date):
             response = self.get_response(self.organization.slug, type=search_type, query=query)
             assert response.status_code == 204, response.content
