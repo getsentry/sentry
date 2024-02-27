@@ -182,7 +182,7 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -277,7 +277,7 @@ def _set_widget_on_demand_state(
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
     enabled_features: set[str],
-):
+) -> None:
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
         specs_per_version.setdefault(spec_version.version, [])
@@ -315,8 +315,8 @@ def set_or_create_on_demand_state(
     organization: Organization,
     is_low_cardinality: bool,
     feature_enabled: bool,
-    current_widget_specs,
-):
+    current_widget_specs: set[str],
+) -> None:
     specs = _get_widget_on_demand_specs(widget_query, organization)
 
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
