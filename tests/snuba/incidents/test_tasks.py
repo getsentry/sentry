@@ -3,13 +3,11 @@ from functools import cached_property
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
-from django.test.utils import override_settings
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -43,17 +41,9 @@ pytestmark = [requires_kafka]
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
-    @pytest.fixture(autouse=True)
-    def subscription_results_topic(self):
-        # make sure that `sentry.consumers` is not imported before this runs
-        with override_settings(
-            KAFKA_TOPICS={self.topic: {"cluster": "default"}},
-            KAFKA_METRICS_SUBSCRIPTIONS_RESULTS=self.topic,
-        ):
-            yield
-
     def setUp(self):
         super().setUp()
+        self.topic = "metrics-subscription-results"
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
