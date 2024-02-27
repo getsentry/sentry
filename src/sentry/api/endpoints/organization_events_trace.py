@@ -611,6 +611,7 @@ def augment_transactions_with_spans(
         spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
 
     # If we're querying over 100 span ids, lets split the query into 3
+    sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
     if len(query_spans) > 100:
         list_spans = list(query_spans)
         chunks = [
