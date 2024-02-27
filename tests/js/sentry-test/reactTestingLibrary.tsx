@@ -163,6 +163,10 @@ export const reactHooks = {
    * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
    */
   renderHook: rtl.renderHook,
+  /**
+   * @deprecated use `import {act} from 'sentry-test/reactTestingLibrary';` instead
+   */
+  act: rtl.act,
 };
 
 // eslint-disable-next-line import/export
