@@ -9,8 +9,7 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.registry.base import ExpressionRegistry
-from sentry.sentry_metrics.querying.registry.base_expressions import FailureRate, Rate
+from sentry.sentry_metrics.querying.registry.ddm import DDM_REGISTRY
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
@@ -70,9 +69,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)
 
-        self.registry = ExpressionRegistry()
-        self.registry.register(Rate())
-        self.registry.register(FailureRate())
+        self.registry = DDM_REGISTRY
 
     def now(self):
         return MOCK_DATETIME
@@ -987,8 +984,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query = self.mql("sum", TransactionMRI.DURATION.value)
         plan = (
             MetricsQueriesPlan()
-            .declare_query("query_1", f"rate(3600)({query}{{}})")
-            .declare_query("query_2", query)
+            .declare_query("query_1", f"rate(3600)({query}{{}}){{platform:ios}}")
+            .declare_query("query_2", f"{query}{{platform:ios}}")
             .apply_formula("$query_1")
             .apply_formula("$query_2")
         )

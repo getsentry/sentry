@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from snuba_sdk import Metric, Timeseries
+from snuba_sdk import Metric
 
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
@@ -26,9 +26,9 @@ class StringArg(ArgumentType[str]):
         return isinstance(value, str)
 
 
-class TimeseriesArg(ArgumentType[Timeseries]):
+class QueryExpressionArg(ArgumentType[QueryExpression]):
     def validate(self, value: T) -> bool:
-        return isinstance(value, Timeseries)
+        return isinstance(value, QueryExpression.__args__)
 
 
 class MetricArg(ArgumentType[Metric]):

@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from typing import Any
 
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
@@ -10,6 +10,7 @@ from sentry.sentry_metrics.querying.registry.base import (
     Argument,
     ExpressionRegistry,
     InheritFilters,
+    InheritGroupBys,
 )
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.visitors.base import (
@@ -326,13 +327,8 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
             else:
                 replaced_parameters.append(self.visit(parameter))
 
-        merged_filters = self._merge_filters(formula.filters)
-        if merged_filters:
-            formula = formula.set_filters(self._merge_filters(formula.filters))
-
-        merged_group_bys = self._merge_group_bys(formula.groupby)
-        if merged_group_bys:
-            formula = formula.set_groupby(self._merge_group_bys(formula.groupby))
+        formula = formula.set_filters(self._merge_filters(formula.filters))
+        formula = formula.set_groupby(self._merge_group_bys(formula.groupby))
 
         return formula.set_parameters(replaced_parameters)
 
@@ -351,6 +347,9 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
             timeseries.aggregate, replaced_aggregate_params or None
         )
 
+        timeseries = timeseries.set_filters(self._merge_filters(timeseries.filters))
+        timeseries = timeseries.set_groupby(self._merge_group_bys(timeseries.groupby))
+
         return timeseries
 
     def _visit_argument(self, argument: Argument) -> Any:
@@ -364,24 +363,33 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
         return arg_value
 
     def _merge_filters(self, filters: ConditionGroup | None) -> ConditionGroup | None:
-        if not self._filters and not filters:
-            return None
-
-        # new_filters = filters[:]
-        # for index, _filter in enumerate(filters):
-        #     if isinstance(_filter, InheritFilters):
-        #         new_filters = self._insert_at_index(index, new_filters, self._filters)
-
-        return (self._filters or []) + (filters or [])
+        return self._merge_collections(filters, self._filters, InheritFilters)
 
     def _merge_group_bys(
         self, group_bys: Sequence[Column | AliasedExpression] | None
     ) -> Sequence[Column | AliasedExpression] | None:
-        if not self._group_bys and not group_bys:
-            return None
+        return self._merge_collections(group_bys, self._group_bys, InheritGroupBys)
 
-        filters = list(filter(lambda f: not isinstance(f, InheritFilters), filters))
-        return (self._group_bys or []) + (group_bys or [])
+    def _merge_collections(
+        self,
+        base_collection: Collection[Any] | None,
+        inheritable_collection: Collection[Any] | None,
+        exclude: type,
+    ) -> Sequence[Column | AliasedExpression] | None:
+        if not base_collection and not inheritable_collection:
+            return base_collection
+
+        filtered_base_collection = []
+        for element in base_collection:
+            if not isinstance(element, exclude):
+                filtered_base_collection.append(element)
+
+        # If the two collections have different sizes, we infer that at least one occurrence of `exclude` was there
+        # and thus, we concatenate `inheritable_collection`.
+        if len(base_collection) != len(filtered_base_collection) and inheritable_collection:
+            filtered_base_collection += inheritable_collection[:]
+
+        return filtered_base_collection if filtered_base_collection else None
 
     def _insert_at_index(self, index: int, list_1: list[Any], list_2: list[Any]) -> list[Any]:
         return list_1[:index] + list_2 + list_1[index:]
