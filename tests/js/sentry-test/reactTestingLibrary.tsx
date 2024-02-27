@@ -155,5 +155,15 @@ instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
+/**
+ * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
+ */
+export const reactHooks = {
+  /**
+   * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
+   */
+  renderHook: rtl.renderHook,
+};
+
 // eslint-disable-next-line import/export
 export {render, renderGlobalModal, userEvent, fireEvent};
