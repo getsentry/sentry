@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -71,7 +71,7 @@ class TestCreatorExternal(TestCreatorBase):
         ).run(user=self.user, request=None)
 
     def test_create_token(self):
-        today = date.today()
+        today = datetime.now(UTC)
         api_token = SentryAppInstallationTokenCreator(
             sentry_app_installation=self.sentry_app_installation, expires_at=today
         ).run(user=self.user, request=None)

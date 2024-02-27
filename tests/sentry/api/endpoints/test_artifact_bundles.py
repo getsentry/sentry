@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.urls import reverse
 
@@ -24,8 +24,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_1 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -36,8 +36,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_2 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now() + timedelta(hours=1),
-            date_last_modified=datetime.now() + timedelta(hours=1),
+            date_uploaded=datetime.now(UTC) + timedelta(hours=1),
+            date_last_modified=datetime.now(UTC) + timedelta(hours=1),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -54,7 +54,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle_3 = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now() + timedelta(hours=2),
+            date_uploaded=datetime.now(UTC) + timedelta(hours=2),
             # We also test with the date set to None.
             date_last_modified=None,
         )
@@ -206,8 +206,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -241,8 +241,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
         artifact_bundle = self.create_artifact_bundle(
             self.organization,
             artifact_count=2,
-            date_uploaded=datetime.now(),
-            date_last_modified=datetime.now(),
+            date_uploaded=datetime.now(UTC),
+            date_last_modified=datetime.now(UTC),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -364,7 +364,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle = self.create_artifact_bundle(
                 self.organization,
                 artifact_count=2,
-                date_uploaded=datetime.now() + timedelta(hours=index),
+                date_uploaded=datetime.now(UTC) + timedelta(hours=index),
             )
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
@@ -393,8 +393,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle = self.create_artifact_bundle(
                 self.organization,
                 artifact_count=2,
-                date_uploaded=datetime.now() + timedelta(hours=index),
-                date_last_modified=datetime.now() + timedelta(hours=index),
+                date_uploaded=datetime.now(UTC) + timedelta(hours=index),
+                date_last_modified=datetime.now(UTC) + timedelta(hours=index),
             )
             bundle_ids.append(str(artifact_bundle.bundle_id))
             ProjectArtifactBundle.objects.create(

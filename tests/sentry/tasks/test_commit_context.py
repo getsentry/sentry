@@ -805,15 +805,15 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             message="foo",
             title="bar",
             merge_commit_sha=self.commit.key,
-            date_added=iso_format(before_now(days=1)),
+            date_added=before_now(days=1),
         )
         self.repo.provider = "integrations:github"
         self.repo.save()
         self.pull_request_comment = PullRequestComment.objects.create(
             pull_request=self.pull_request,
             external_id=1,
-            created_at=iso_format(before_now(days=1)),
-            updated_at=iso_format(before_now(days=1)),
+            created_at=before_now(days=1),
+            updated_at=before_now(days=1),
             group_ids=[],
         )
         self.blame = FileBlameInfo(
@@ -979,7 +979,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow, mock_get_commit_context):
         """No comment on pr that's older than PR_COMMENT_WINDOW"""
         mock_get_commit_context.return_value = [self.blame]
-        self.pull_request.date_added = iso_format(before_now(days=PR_COMMENT_WINDOW + 1))
+        self.pull_request.date_added = before_now(days=PR_COMMENT_WINDOW + 1)
         self.pull_request.save()
 
         self.add_responses()
@@ -1175,8 +1175,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         PullRequestComment.objects.create(
             external_id=1,
             pull_request=self.pull_request,
-            created_at=iso_format(before_now(days=1)),
-            updated_at=iso_format(before_now(days=1)),
+            created_at=before_now(days=1),
+            updated_at=before_now(days=1),
             group_ids=[],
             comment_type=CommentType.OPEN_PR,
         )

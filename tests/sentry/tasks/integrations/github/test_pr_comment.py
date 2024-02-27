@@ -107,7 +107,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
     def add_pr_to_commit(self, commit: Commit, date_added=None):
         if date_added is None:
-            date_added = iso_format(before_now(minutes=1))
+            date_added = before_now(minutes=1)
         pr = PullRequest.objects.create(
             organization_id=commit.organization_id,
             repository_id=commit.repository_id,

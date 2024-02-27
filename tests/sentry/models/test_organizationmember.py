@@ -286,7 +286,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             role="member",
             user=user,
             token="abc-def",
-            token_expires_at="2018-01-01 10:00:00",
+            token_expires_at="2018-01-01 10:00:00+00:00",
         )
         with outbox_runner():
             OrganizationMember.objects.delete_expired(timezone.now())

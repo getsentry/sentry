@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -2745,7 +2745,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
                 author=author,
                 key=EARLIER_COMMIT_SHA,
                 message="Fix all the bugs",
-                date_added=datetime(2011, 4, 14, 16, 0, 49, tzinfo=timezone.utc),
+                date_added=datetime(2011, 4, 14, 16, 0, 49, tzinfo=UTC),
             )
 
             with self.tasks():
@@ -2845,7 +2845,7 @@ class ReleaseIssueTest(TestCase):
 
     def convert_timestamp(self, timestamp):
         date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=timezone.utc)
+        date = date.replace(tzinfo=UTC)
         return date
 
     def assert_release_project_environment(self, event, new_issues_count, first_seen, last_seen):
@@ -2988,15 +2988,17 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_non_observed_release(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=datetime.now(UTC) + timedelta(hours=1)
         )
         release_3 = Release.get_or_create(
-            project=project, version="3.0", date_added=datetime.now() + timedelta(hours=2)
+            project=project, version="3.0", date_added=datetime.now(UTC) + timedelta(hours=2)
         )
 
         for release, environment in (
@@ -3049,15 +3051,17 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_boosts_only_latest_release(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
         release_2 = Release.get_or_create(
             project=project,
             version="2.0",
             # We must make sure the new release_2.date_added > release_1.date_added.
-            date_added=datetime.now() + timedelta(hours=1),
+            date_added=datetime.now(UTC) + timedelta(hours=1),
         )
 
         # We add a transaction for latest release release_2.
@@ -3099,7 +3103,9 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time("2022-11-03 10:00:00")
     def test_boost_release_with_observed_release_and_different_environment(self):
         project = self.create_project(platform="python")
-        release = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
 
         self.make_release_transaction(
             release_version=release.version,
@@ -3224,7 +3230,9 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_observed_release_and_same_environment(self):
         project = self.create_project(platform="python")
-        release = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
 
         for environment in (self.environment1.name, self.environment2.name):
             self.redis_client.set(
@@ -3243,12 +3251,14 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_release_not_boosted_with_deleted_release_after_event_received(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=datetime.now(UTC) + timedelta(hours=1)
         )
 
         self.make_release_transaction(
@@ -3293,12 +3303,14 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_get_boosted_releases_with_old_and_new_cache_keys(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
 
         # Old cache key
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
         self.redis_client.hset(
             f"ds::p:{project.id}:boosted_releases",
             f"{release_1.id}",
@@ -3307,7 +3319,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
         # New cache key
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=datetime.now(UTC) + timedelta(hours=1)
         )
         self.redis_client.hset(
             f"ds::p:{project.id}:boosted_releases",
@@ -3363,7 +3375,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     def test_expired_boosted_releases_are_removed(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         # We want to test with multiple platforms.
         for platform in ("python", "java", None):
@@ -3378,7 +3390,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 release = Release.get_or_create(
                     project=project,
                     version=release_version,
-                    date_added=datetime.now() + timedelta(hours=index),
+                    date_added=datetime.now(UTC) + timedelta(hours=index),
                 )
                 self.redis_client.set(
                     f"ds::p:{project.id}:r:{release.id}:e:{environment}", 1, 60 * 60 * 24
@@ -3394,7 +3406,7 @@ class DSLatestReleaseBoostTest(TestCase):
             release_3 = Release.get_or_create(
                 project=project,
                 version=f"3.0-{platform}",
-                date_added=datetime.now() + timedelta(hours=2),
+                date_added=datetime.now(UTC) + timedelta(hours=2),
             )
             self.make_release_transaction(
                 release_version=release_3.version,
@@ -3445,18 +3457,18 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(
             project=project,
             version="1.0",
-            date_added=datetime.now(),
+            date_added=datetime.now(UTC),
         )
         release_2 = Release.get_or_create(
             project=project,
             version="2.0",
-            date_added=datetime.now() + timedelta(hours=1),
+            date_added=datetime.now(UTC) + timedelta(hours=1),
         )
 
         # We boost with increasing timestamps, so that we know that the smallest will be evicted.
@@ -3475,7 +3487,7 @@ class DSLatestReleaseBoostTest(TestCase):
         release_3 = Release.get_or_create(
             project=project,
             version="3.0",
-            date_added=datetime.now() + timedelta(hours=2),
+            date_added=datetime.now(UTC) + timedelta(hours=2),
         )
         self.make_release_transaction(
             release_version=release_3.version,
@@ -3515,10 +3527,12 @@ class DSLatestReleaseBoostTest(TestCase):
     @freeze_time()
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
     def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
-        ts = datetime.now(timezone.utc).timestamp()
+        ts = datetime.now(UTC).timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=datetime.now(UTC)
+        )
 
         # We want to test that if we have the same release, but we send different environments that go over the
         # limit, and we evict an environment, but then we send a transaction with the evicted environment.

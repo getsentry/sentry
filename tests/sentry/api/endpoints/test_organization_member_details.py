@@ -210,7 +210,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_error_response(self.organization.slug, member.id, reinvite=1, status_code=400)
@@ -225,7 +225,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_success_response(self.organization.slug, member.id, reinvite=1, regenerate=1)

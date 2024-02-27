@@ -1,6 +1,6 @@
 import io
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
 from unittest.mock import patch
@@ -397,9 +397,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
         # `date_added` or the last upload.
-        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00").replace(
-            tzinfo=timezone.utc
-        )
+        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
@@ -927,7 +925,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -957,7 +955,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -965,7 +963,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         artifact_bundle_3 = self._create_bundle_and_bind_to_release(
@@ -973,7 +971,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1004,7 +1002,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1012,7 +1010,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1038,7 +1036,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1046,7 +1044,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1056,7 +1054,7 @@ class ArtifactBundleIndexingTest(TestCase):
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
             # We simulate that this bundle is into the database but was created after the assembling of bundle 1 started
             # its progress but did not finish.
-            date=datetime.now() + timedelta(hours=1),
+            date=datetime.now(UTC) + timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(

@@ -279,12 +279,12 @@ class GroupTest(TestCase, SnubaTestCase):
         last_release = Release.objects.create(
             organization_id=self.organization.id,
             version="100",
-            date_added=iso_format(now - timedelta(seconds=10)),
+            date_added=now - timedelta(seconds=10),
         )
         first_release = Release.objects.create(
             organization_id=self.organization.id,
             version="200",
-            date_added=iso_format(now - timedelta(seconds=100)),
+            date_added=now - timedelta(seconds=100),
         )
         GroupRelease.objects.create(
             project_id=project.id,

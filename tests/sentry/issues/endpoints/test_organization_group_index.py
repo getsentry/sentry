@@ -910,8 +910,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        before_now_300_seconds = iso_format(before_now(seconds=300))
-        before_now_350_seconds = iso_format(before_now(seconds=350))
+        before_now_300_seconds = before_now(seconds=300).isoformat()
+        before_now_350_seconds = before_now(seconds=350).isoformat()
         event2 = self.store_event(
             data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
             project_id=self.project.id,
