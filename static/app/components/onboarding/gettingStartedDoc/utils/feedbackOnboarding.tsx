@@ -1,4 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({link}: {link: string}) =>
@@ -39,3 +41,42 @@ export const getCrashReportInstallDescription = () =>
     'Sentry needs the error [codeEvent:eventId] to be able to associate the user feedback to the corresponding event. To get the [codeEvent:eventId], you can use [codeBefore:beforeSend] or the return value of the method capturing an event.',
     {codeEvent: <code />, codeBefore: <code />}
   );
+
+export const csharpFeedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C#',
+              value: 'csharp',
+              language: 'csharp',
+              code: `using Sentry;
+
+var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
+            },
+            {
+              label: 'F#',
+              value: 'fsharp',
+              language: 'fsharp',
+              code: `open Sentry
+
+let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
