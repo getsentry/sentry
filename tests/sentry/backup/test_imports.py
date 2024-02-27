@@ -4,7 +4,7 @@ import io
 import os
 import tarfile
 import tempfile
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -123,7 +123,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -162,7 +164,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -211,7 +215,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 0
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 0
             )
             assert (
@@ -257,7 +263,9 @@ class SanitizationTests(ImportTestCase):
             assert UserEmail.objects.count() == 4
             assert UserEmail.objects.filter(is_verified=True).count() == 4
             assert (
-                UserEmail.objects.filter(date_hash_added__lt=datetime(2023, 7, 1, 0, 0)).count()
+                UserEmail.objects.filter(
+                    date_hash_added__lt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+                ).count()
                 == 4
             )
             assert (
@@ -409,8 +417,12 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(region_code="CA").exists()
 
             # Unlike global scope, this time must be reset.
-            assert UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
-            assert UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+            assert UserIP.objects.filter(
+                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+            assert UserIP.objects.filter(
+                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
 
     @patch("sentry.models.userip.geo_by_addr")
     def test_good_regional_user_ip_in_global_scope(self, mock_geo_by_addr):
@@ -441,8 +453,12 @@ class SanitizationTests(ImportTestCase):
             assert UserIP.objects.filter(region_code="CA").exists()
 
             # Unlike org/user scope, this must NOT be reset.
-            assert not UserIP.objects.filter(last_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
-            assert not UserIP.objects.filter(first_seen__gt=datetime(2023, 7, 1, 0, 0)).exists()
+            assert not UserIP.objects.filter(
+                last_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
+            assert not UserIP.objects.filter(
+                first_seen__gt=datetime(2023, 7, 1, 0, 0, tzinfo=UTC)
+            ).exists()
 
     # Regression test for getsentry/self-hosted#2468.
     @patch("sentry.models.userip.geo_by_addr")
