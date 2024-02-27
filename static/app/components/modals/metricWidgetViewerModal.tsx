@@ -20,6 +20,7 @@ import {
   getMetricQueries,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
+import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -71,7 +72,16 @@ function MetricWidgetViewerModal({
   );
 
   const addQuery = useCallback(() => {
-    setMetricWidgetQueries(curr => [...curr, emptyMetricsQueryWidget]);
+    setMetricWidgetQueries(curr => {
+      return [
+        ...curr,
+        {
+          ...emptyMetricsQueryWidget,
+          // TODO: generate a unique name
+          name: 'temporary',
+        },
+      ];
+    });
   }, [setMetricWidgetQueries]);
 
   const removeQuery = useCallback(
@@ -113,6 +123,13 @@ function MetricWidgetViewerModal({
     displayType,
   ]);
 
+  // Quick fix to avoid the page crashing with multiple queries
+  // We will need a persistent unique identifier here so we can support formulas in the future
+  const queriesWithName = metricWidgetQueries.map((query, index) => ({
+    ...query,
+    name: getQuerySymbol(index),
+  }));
+
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
@@ -127,13 +144,13 @@ function MetricWidgetViewerModal({
         </Header>
         <Body>
           <Queries
-            metricWidgetQueries={metricWidgetQueries}
+            metricWidgetQueries={queriesWithName}
             handleChange={handleChange}
             addQuery={addQuery}
             removeQuery={removeQuery}
           />
           <MetricVisualization
-            queries={metricWidgetQueries}
+            queries={queriesWithName}
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
           />
