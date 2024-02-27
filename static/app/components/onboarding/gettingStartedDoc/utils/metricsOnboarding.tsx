@@ -327,7 +327,7 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.0.0-beta.8] of the .NET SDK installed',
+        'You need a minimum version [codeVersion:4.0.0] of the .NET SDK installed',
         {
           codeVersion: <code />,
         }
@@ -335,7 +335,7 @@ export const getDotnetMetricsOnboarding = ({
       configurations: [
         {
           language: 'powershell',
-          code: `dotnet add package ${packageName} -v 4.0.0-beta.8`,
+          code: `dotnet add package ${packageName} -v 4.1.2`,
         },
       ],
     },
@@ -358,12 +358,13 @@ export const getDotnetMetricsOnboarding = ({
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], [codeGauge:gauges], and [codeTimings:timings]. Try out this example:",
         {
           codeCounters: <code />,
           codeSets: <code />,
           codeDistribution: <code />,
           codeGauge: <code />,
+          codeTimings: <code />,
         }
       ),
       configurations: [
