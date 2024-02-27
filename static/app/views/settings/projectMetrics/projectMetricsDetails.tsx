@@ -76,7 +76,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
   const {data: metricsData, isLoading} = useMetricsQuery(
-    [{mri, op: operation}],
+    [{mri, op: operation, name: 'query'}],
     {
       datetime: {
         period: '30d',

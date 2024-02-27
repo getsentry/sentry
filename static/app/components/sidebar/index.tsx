@@ -71,8 +71,8 @@ function togglePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.togglePanel(panel);
 }
 
-function hidePanel() {
-  SidebarPanelStore.hidePanel();
+function hidePanel(hash?: string) {
+  SidebarPanelStore.hidePanel(hash);
 }
 
 function useOpenOnboardingSidebar(organization?: Organization) {
@@ -301,7 +301,7 @@ function Sidebar() {
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
-                  isAlpha
+                  isNew
                 />
               </Feature>
               <Feature features="starfish-browser-resource-module-ui">
@@ -558,7 +558,7 @@ function Sidebar() {
           <PerformanceOnboardingSidebar
             currentPanel={activePanel}
             onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
-            hidePanel={hidePanel}
+            hidePanel={() => hidePanel('performance-sidequest')}
             {...sidebarItemProps}
           />
           <FeedbackOnboardingSidebar
