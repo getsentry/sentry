@@ -591,7 +591,7 @@ class _RemoteSiloCall:
         except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
-    def _check_disabled(self) -> bool:
+    def _check_disabled(self):
         if options.get("hybrid_cloud.rpc.disabled"):
             raise RpcDisabledException("RPC disabled")
 
