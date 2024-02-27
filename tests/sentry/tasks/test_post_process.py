@@ -1770,9 +1770,6 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
             "issues.sdk_crash_detection.react-native.project_id": 12345,
             "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
             "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
-            "issues.sdk_crash_detection.java.project_id": 123456,
-            "issues.sdk_crash_detection.java.sample_rate": 0.3,
-            "issues.sdk_crash_detection.java.organization_allowlist": [2],
         }
     )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
@@ -1793,7 +1790,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
 
-        assert len(args["configs"]) == 3
+        assert len(args["configs"]) == 2
         cocoa_config = args["configs"][0]
         assert cocoa_config.sdk_name == SdkName.Cocoa
         assert cocoa_config.project_id == 1234
@@ -1805,12 +1802,6 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         assert react_native_config.project_id == 12345
         assert react_native_config.sample_rate == 1.0
         assert react_native_config.organization_allowlist == [1]
-
-        java_config = args["configs"][2]
-        assert java_config.sdk_name == SdkName.Java
-        assert java_config.project_id == 123456
-        assert java_config.sample_rate == 0.3
-        assert java_config.organization_allowlist == [2]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(
@@ -2815,8 +2806,7 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
-    def test_issueless(self):
-        ...
+    def test_issueless(self): ...
 
     def test_no_cache_abort(self):
         # We don't use the cache for generic issues, so skip this test
