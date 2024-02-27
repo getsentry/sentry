@@ -20,7 +20,7 @@ class Topic(Enum):
     INGEST_METRICS = "ingest-metrics"
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
-    KAFKA_PROFILES = "profiles"
+    PROFILES = "profiles"
     INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
     INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
     SNUBA_GENERIC_METRICS = "snuba-generic-metrics"

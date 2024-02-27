@@ -5,11 +5,17 @@ from typing import Any, Required, TypedDict
 
 import click
 
+from sentry.conf.types.topic_definition import Topic
+
 
 class ConsumerDefinition(TypedDict, total=False):
     # Which logical topic from settings to use.
-    topic: Required[str | Callable[[], str]]
-    default_topic: str
+    topic: Topic
+
+    # Override topic. To be deprecated
+    topic_override: Required[str | Callable[[], str]]
+
+    validate_schema: str
 
     strategy_factory: Required[str]
 

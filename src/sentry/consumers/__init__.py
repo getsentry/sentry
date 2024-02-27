@@ -14,6 +14,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from django.conf import settings
 
 from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.topic_definition import Topic
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -163,44 +164,49 @@ _INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
 ]
 
 # consumer name -> consumer definition
-# XXX: default_topic is needed to lookup the schema even if the actual topic name has been
-# overridden. This is because the current topic override mechanism means the default topic name
-# is no longer available anywhere in code. We should probably fix this later so we don't need both
-#  "topic" and "default_topic" here though.
+# XXX: topic_override will be deprecated here in favor of KAFKA_TOPIC_OVERRIDE once all overrides in
+# prod have been migrated
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
-        "topic": settings.KAFKA_PROFILES,
+        "topic": Topic.PROFILES,
+        "topic_override": settings.KAFKA_PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
     },
     "ingest-replay-recordings": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.EVENTS,
+        "topic_override": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
     "ingest-replay-recordings-buffered": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
+        "topic_override": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
         "click_options": ingest_replay_recordings_buffered_options(),
     },
     "ingest-monitors": {
-        "topic": settings.KAFKA_INGEST_MONITORS,
+        "topic": Topic.INGEST_MONITORS,
+        "topic_override": settings.KAFKA_INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
     "billing-metrics-consumer": {
-        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "topic": Topic.SNUBA_GENERIC_METRICS,
+        "topic_override": settings.KAFKA_SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
     },
     # Known differences to 'sentry run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
     #   group_id tags provided by run_basic_consumer instead
     "ingest-occurrences": {
-        "topic": settings.KAFKA_INGEST_OCCURRENCES,
+        "topic": Topic.INGEST_OCCURRENCES,
+        "topic_override": settings.KAFKA_INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=20),
     },
     "events-subscription-results": {
-        "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+        "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
+        "topic_override": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -208,7 +214,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "transactions-subscription-results": {
-        "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+        "topic": Topic.TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+        "topic_override": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -216,8 +223,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "generic-metrics-subscription-results": {
-        "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-        "default_topic": "generic-metrics-subscription-results",
+        "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        "topic_override": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -225,7 +233,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "sessions-subscription-results": {
-        "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+        "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
+        "topic_override": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(),
         "static_args": {
@@ -233,7 +242,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "metrics-subscription-results": {
-        "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+        "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
+        "topic_override": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -241,7 +251,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "ingest-events": {
-        "topic": settings.KAFKA_INGEST_EVENTS,
+        "topic": Topic.INGEST_EVENTS,
+        "topic_override": settings.KAFKA_INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -249,7 +260,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "ingest-attachments": {
-        "topic": settings.KAFKA_INGEST_ATTACHMENTS,
+        "topic": Topic.INGEST_ATTACHMENTS,
+        "topic_override": settings.KAFKA_INGEST_ATTACHMENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -257,7 +269,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "ingest-transactions": {
-        "topic": settings.KAFKA_INGEST_TRANSACTIONS,
+        "topic": Topic.INGEST_TRANSACTIONS,
+        "topic_override": settings.KAFKA_INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -265,7 +278,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "ingest-metrics": {
-        "topic": settings.KAFKA_INGEST_METRICS,
+        "topic": Topic.INGEST_METRICS,
+        "topic_override": settings.KAFKA_INGEST_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
         "click_options": _METRICS_INDEXER_OPTIONS,
         "static_args": {
@@ -276,7 +290,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_max_consecutive_count": 1000,
     },
     "ingest-generic-metrics": {
-        "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+        "topic": Topic.INGEST_PERFORMANCE_METRICS,
+        "topic_override": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
         "click_options": _METRICS_INDEXER_OPTIONS,
         "static_args": {
@@ -287,7 +302,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_max_consecutive_count": 1000,
     },
     "generic-metrics-last-seen-updater": {
-        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "topic": Topic.SNUBA_GENERIC_METRICS,
+        "topic_override": settings.KAFKA_SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
         "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
         "static_args": {
@@ -295,7 +311,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "metrics-last-seen-updater": {
-        "topic": settings.KAFKA_SNUBA_METRICS,
+        "topic": Topic.SNUBA_METRICS,
+        "topic_override": settings.KAFKA_SNUBA_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
         "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
         "static_args": {
@@ -303,30 +320,35 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "post-process-forwarder-issue-platform": {
-        "topic": settings.KAFKA_EVENTSTREAM_GENERIC,
+        "topic": Topic.EVENTSTREAM_GENERIC,
+        "topic_override": settings.KAFKA_EVENTSTREAM_GENERIC,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-generic-events-commit-log",
         "synchronize_commit_group_default": "generic_events_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
     "post-process-forwarder-transactions": {
-        "topic": settings.KAFKA_TRANSACTIONS,
+        "topic": Topic.TRANSACTIONS,
+        "topic_override": settings.KAFKA_TRANSACTIONS,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-transactions-commit-log",
         "synchronize_commit_group_default": "transactions_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
     "post-process-forwarder-errors": {
-        "topic": settings.KAFKA_EVENTS,
+        "topic": Topic.EVENTS,
+        "topic_override": settings.KAFKA_EVENTS,
         "strategy_factory": "sentry.eventstream.kafka.dispatch.EventPostProcessForwarderStrategyFactory",
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
     "process-spans": {
-        "topic": settings.KAFKA_SNUBA_SPANS,
+        "topic": Topic.SNUBA_SPANS,
+        "topic_override": settings.KAFKA_SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
+    # TODO: This has to be co-ordinated with getsentry
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
@@ -396,6 +418,7 @@ def get_stream_processor(
 
     from sentry.utils import kafka_config
 
+    # Still supported for now until we have moved everything in prod over
     topic_def = settings.KAFKA_TOPICS[logical_topic]
     assert topic_def is not None
     if cluster is None:
@@ -461,8 +484,8 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
-    # Validate schema if "default_topic" is set
-    default_topic = consumer_definition.get("default_topic")
+    # Validate schema if "validate_schema" is set
+    default_topic = consumer_definition.get("validate_schema")
     if default_topic:
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
             default_topic, validate_schema, strategy_factory
