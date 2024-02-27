@@ -423,9 +423,9 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             store_metrics_summary={
                 "d:custom/other@millisecond": [
                     {
-                        "min": 100.0,
-                        "max": 100.0,
-                        "sum": 100.0,
+                        "min": 21.0,
+                        "max": 21.0,
+                        "sum": 21.0,
                         "count": 1,
                         "tags": {},
                     }
