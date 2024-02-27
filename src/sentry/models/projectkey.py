@@ -64,11 +64,13 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
 
 
 class UseCase(enum.Enum):
-    # A user-visible project key.
+    """What the DSN is used for (user vs. internal submissions)"""
+
+    """A user-visible project key"""
     USER = "user"
-    # An internal project key for submitting aggregate function metrics.
+    """An internal project key for submitting aggregate function metrics."""
     PROFILING = "profiling"
-    # An internal project key for submitting escalating issues metrics.
+    """ An internal project key for submitting escalating issues metrics."""
     ESCALATING_ISSUES = "escalating_issues"
 
 
