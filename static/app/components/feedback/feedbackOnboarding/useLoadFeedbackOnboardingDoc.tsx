@@ -15,6 +15,10 @@ function getPlatformPath(platform: PlatformIntegration) {
         return `dart/dart`;
       case 'android':
         return `android/android`;
+      case 'flutter':
+        return `flutter/flutter`;
+      case 'unreal':
+        return `unreal/unreal`;
       default:
         return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }
