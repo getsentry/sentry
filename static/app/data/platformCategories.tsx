@@ -379,18 +379,36 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
-export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+// Feedback platforms that show only NPM widget setup instructions (no loader)
+export const feedbackNpmPlatforms: readonly PlatformKey[] = [
+  'ionic',
+  ...replayFrontendPlatforms,
+];
+
+// Feedback platforms that show widget instructions (both NPM & loader)
+const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+  ...feedbackNpmPlatforms,
+  ...replayBackendPlatforms,
+];
+
+// Feedback platforms that only show crash API instructions
+export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
   'dart',
   'flutter',
-  'ionic',
   'java',
   'java-log4j2',
   'java-logback',
   'kotlin',
   'react-native',
+  'unity',
   'unreal',
-  ...replayPlatforms,
+];
+
+// All feedback onboarding platforms
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWidgetPlatforms,
+  ...feedbackCrashApiPlatforms,
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [

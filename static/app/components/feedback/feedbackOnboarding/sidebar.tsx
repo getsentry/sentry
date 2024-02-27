@@ -20,11 +20,11 @@ import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
+  feedbackCrashApiPlatforms,
+  feedbackNpmPlatforms,
   feedbackOnboardingPlatforms,
   replayBackendPlatforms,
-  replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
-  replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -154,21 +154,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     defaultTab
   );
 
-  const showJsFrameworkInstructions =
-    currentProject.platform &&
-    replayBackendPlatforms.includes(currentProject.platform) &&
-    setupMode() === 'npm';
+  const webBackendPlatform =
+    currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
+
+  const showJsFrameworkInstructions = webBackendPlatform && setupMode() === 'npm';
 
   const showRadioButtons =
     currentProject.platform &&
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
-  const webBackendPlatform =
-    currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
-
-  const backendPlatform =
+  const crashApiPlatform =
     currentProject.platform &&
-    !replayPlatforms.concat('ionic').includes(currentProject.platform);
+    feedbackCrashApiPlatforms.includes(currentProject.platform);
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
@@ -176,8 +173,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const npmOnlyFramework =
     currentProject.platform &&
-    replayFrontendPlatforms
-      .concat('ionic')
+    feedbackNpmPlatforms
       .filter(p => p !== 'javascript')
       .includes(currentProject.platform);
 
@@ -249,7 +245,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         />
       ) : (
         newDocs?.platformOptions &&
-        !backendPlatform && (
+        !crashApiPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -311,7 +307,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectId={currentProject.id}
           projectSlug={currentProject.slug}
           configType={
-            backendPlatform
+            crashApiPlatform
               ? 'feedbackOnboardingCrashApi'
               : setupMode() === 'npm' || // switched to NPM option
                   (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
