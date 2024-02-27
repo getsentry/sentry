@@ -365,7 +365,7 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
     sentry_sdk_frame = frames[-1]
 
     sentry_sdk_frame["module"] = "io.sentry.android.core.SentryAndroidOptions"
-    sentry_sdk_frame["filename"] = "remove_me"
+    sentry_sdk_frame["filename"] = "SentryAndroidOptions.java"
     sentry_sdk_frame["abs_path"] = "remove_me"
     sentry_sdk_frame["package"] = "remove_me"
 
@@ -382,6 +382,7 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
     assert cocoa_sdk_frame == {
         "function": "register",
         "module": "io.sentry.android.core.SentryAndroidOptions",
+        "filename": "SentryAndroidOptions.java",
         "in_app": True,
         "image_addr": "0x100304000",
     }
