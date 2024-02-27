@@ -224,7 +224,9 @@ export class VirtualizedViewManager {
     this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
 
     this.container.style.userSelect = 'auto';
+
     this.dividerStartVec = null;
+    this.previousDividerClientVec = null;
 
     this.container.removeEventListener('mouseup', this.onDividerMouseUp);
     this.container.removeEventListener('mousemove', this.onDividerMouseMove);
