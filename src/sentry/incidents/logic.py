@@ -857,6 +857,13 @@ def subscribe_projects_to_alert_rule(
 
     TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
     """
+    logger.info(
+        "Subscribing projects to alert rule",
+        extra={
+            "monitor_type": alert_rule.monitor_type,
+            "query_extra": query_extra,
+        },
+    )
     # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
     # On activated subscription, additional query parameters will be added to the constructed query in Snuba
     if alert_rule.monitor_type == AlertRuleMonitorType.CONTINUOUS.value:
