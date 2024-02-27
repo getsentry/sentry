@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconEdit} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
-
-import {Tooltip} from '../../tooltip';
 
 type Props = {
   displayValue: string;
