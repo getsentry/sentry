@@ -134,6 +134,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode().value
+            logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
             return False
 
         is_valid_sender = self._validate_sender(request=request)
@@ -188,7 +190,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 "integration_proxy.bad_request",
                 extra={
                     **self.log_extra,
-                    "integration_id": self.integration.id,
                 },
             )
             return HttpResponseBadRequest()
