@@ -159,7 +159,6 @@ function Trace({trace, trace_id}: TraceProps) {
         ref={r => viewManager.current?.onContainerRef(r)}
         className={trace.type === 'loading' ? 'Loading' : ''}
         style={{
-          backgroundColor: '#FFF',
           height: '70vh',
           width: '100%',
           margin: 'auto',
@@ -808,6 +807,7 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
           <div
             key={i}
             style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 24)}}
+            data-connector={c}
             className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
           />
         );
