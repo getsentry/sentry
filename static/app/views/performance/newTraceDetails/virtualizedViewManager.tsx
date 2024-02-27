@@ -204,6 +204,7 @@ export class VirtualizedViewManager {
     }
 
     this.dividerStartVec = [event.clientX, event.clientY];
+    this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
     this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
