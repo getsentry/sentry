@@ -198,11 +198,6 @@ class DispatchRemoteCallTest(TestCase):
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None
 
-    @override_options({"hybrid_cloud.rpc.disabled": True})
-    def test_disable_rpc(self):
-        with pytest.raises(RpcDisabledException):
-            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
-
     @override_options(
         {"hybrid_cloud.rpc.disabled-service-methods": ["organization.get_organization_by_id"]}
     )

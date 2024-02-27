@@ -1655,7 +1655,6 @@ register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Break glass controls
-register("hybrid_cloud.rpc.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
