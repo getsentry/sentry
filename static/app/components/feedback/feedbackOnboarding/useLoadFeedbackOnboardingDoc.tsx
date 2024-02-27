@@ -10,6 +10,7 @@ function getPlatformPath(platform: PlatformIntegration) {
   if (platform.type === 'framework') {
     switch (platform.id) {
       case 'capacitor':
+      case 'ionic':
         return `capacitor/capacitor`;
       case 'dart':
         return `dart/dart`;

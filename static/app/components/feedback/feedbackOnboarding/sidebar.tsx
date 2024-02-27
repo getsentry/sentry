@@ -27,6 +27,7 @@ import {
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {platformOptionsCapacitor} from 'sentry/gettingStartedDocs/capacitor/capacitor';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
@@ -159,12 +160,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     replayBackendPlatforms.includes(currentProject.platform) &&
     setupMode() === 'npm';
 
-  const npmOnlyFramework =
-    currentProject.platform &&
-    replayFrontendPlatforms
-      .filter(p => p !== 'javascript')
-      .includes(currentProject.platform);
-
   const showRadioButtons =
     currentProject.platform &&
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
@@ -173,11 +168,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
 
   const backendPlatform =
-    currentProject.platform && !replayPlatforms.includes(currentProject.platform);
+    currentProject.platform &&
+    !replayPlatforms.concat('ionic').includes(currentProject.platform);
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
     : otherPlatform;
+
+  const ionic = currentPlatform.id === 'ionic';
+
+  const npmOnlyFramework =
+    (currentProject.platform &&
+      replayFrontendPlatforms
+        .filter(p => p !== 'javascript')
+        .includes(currentProject.platform)) ||
+    ionic;
 
   const {
     docs: newDocs,
@@ -246,12 +251,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        newDocs?.platformOptions &&
+        (newDocs?.platformOptions || ionic) &&
         !backendPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+                <PlatformOptionDropdown
+                  platformOptions={
+                    ionic ? platformOptionsCapacitor : newDocs?.platformOptions
+                  }
+                />
               ),
             })}
           </PlatformSelect>
