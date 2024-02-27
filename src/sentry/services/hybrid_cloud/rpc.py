@@ -484,6 +484,7 @@ class _RemoteSiloCall:
             tags=self._metrics_tags(),
         )
         with self._open_request_context():
+            self._check_disabled()
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
@@ -589,6 +590,16 @@ class _RemoteSiloCall:
             raise self._remote_exception("RPC failed, max retries reached.") from e
         except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+
+    def _check_disabled(self):
+        if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
+            service_method = f"{self.service_name}.{self.method_name}"
+            if service_method in disabled_service_methods:
+                raise RpcDisabledException(f"RPC {service_method} disabled")
+
+
+class RpcDisabledException(Exception):
+    """Indicates that an RPC method has been disabled and a request has not been made."""
 
 
 class RpcAuthenticationSetupException(Exception):
