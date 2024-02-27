@@ -172,7 +172,7 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.16.0
+sentry-arroyo==2.16.2
 sentry-cli==2.16.0
 sentry-devenv==1.2.3
 sentry-forked-django-stubs==4.2.7.post3
