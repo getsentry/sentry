@@ -112,6 +112,12 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     storage_kv.set(make_recording_filename(segment_data), recording_segment)
 
     if message.replay_video:
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(message.replay_video),
+            unit="byte",
+        )
         storage_kv.set(make_video_filename(segment_data), message.replay_video)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)

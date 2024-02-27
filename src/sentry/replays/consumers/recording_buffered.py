@@ -246,6 +246,12 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     )
 
     if replay_video := decoded_message.get("replay_video"):
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(replay_video),  # type: ignore
+            unit="byte",
+        )
         buffer.upload_events.append(
             {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore
         )
