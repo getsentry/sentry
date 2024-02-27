@@ -1371,7 +1371,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 "trend_percentage": 1.23,
                 "absolute_percentage_change": 1.23,
                 "trend_difference": 1.23,
-                "breakpoint": (self.hour_ago - timedelta(hours=12)).timestamp(),
+                "breakpoint": int((self.hour_ago - timedelta(hours=12)).timestamp()),
             }
             for project in self.projects
         ]

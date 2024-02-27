@@ -90,7 +90,7 @@ def default_start_end_dates(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[datetime.datetime, datetime.datetime]:
@@ -99,7 +99,7 @@ def get_date_range_from_params(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -107,7 +107,7 @@ def get_date_range_from_params(
 
 
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = False,
     default_stats_period: datetime.timedelta = MAX_STATS_PERIOD,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -133,7 +133,15 @@ def get_date_range_from_params(
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
-    mutable_params = params.copy()
+    mutable_params = {
+        k: params[k]
+        for k in (
+            *("timeframe", "timeframeStart", "timeframeEnd"),
+            *("statsPeriod", "statsPeriodStart", "statsPeriodEnd"),
+            *("start", "end"),
+        )
+        if k in params
+    }
     timeframe = mutable_params.get("timeframe")
     timeframe_start = mutable_params.get("timeframeStart")
     timeframe_end = mutable_params.get("timeframeEnd")

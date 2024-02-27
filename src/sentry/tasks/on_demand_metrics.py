@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -25,7 +24,7 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
@@ -466,7 +465,7 @@ def _query_cardinality(
     # Restrict period down to an allowlist so we're not slamming snuba with giant queries
     if period not in [TASK_QUERY_PERIOD, DASHBOARD_QUERY_PERIOD]:
         raise Exception("Cardinality can only be queried with 1h or 30m")
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "statsPeriod": period,
         "organization_id": organization.id,
         "projects": Project.objects.filter(organization=organization),

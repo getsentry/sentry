@@ -24,7 +24,7 @@ from sentry.models.dashboard_widget import (
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.on_demand_metrics import (
     _get_widget_on_demand_specs,
@@ -195,12 +195,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
-        params = {
+        params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
             "project_id": [p.id for p in self.context["projects"]],
             "organization_id": self.context["organization"].id,
-            "environment": self.context.get("environment"),
+            "environment": self.context.get("environment", []),
         }
 
         try:

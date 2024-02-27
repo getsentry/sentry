@@ -4,6 +4,7 @@ from datetime import timezone
 import pytest
 
 from sentry.exceptions import IncompatibleMetricsQuery
+from sentry.search.events.types import ParamsType
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics_performance import timeseries_query
@@ -26,7 +27,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
         )
         self.default_interval = 3600
         self.projects = [self.project.id]
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,

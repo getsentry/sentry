@@ -270,7 +270,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, Any],
+    params: ParamsType,
     rollup: int,
     referrer: str | None = None,
     zerofill_results: bool = True,
@@ -599,7 +599,7 @@ def get_facets(
     Returns Sequence[FacetResult]
     """
     sample = len(params["project_id"]) > 2
-    fetch_projects = len(params.get("project_id", [])) > 1
+    fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
         key_name_builder = QueryBuilder(

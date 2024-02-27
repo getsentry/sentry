@@ -18,8 +18,22 @@ from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user import RpcUser
 
 WhereType = Union[Condition, BooleanCondition]
+
+
 # Replaced by SnubaParams
-ParamsType = Mapping[str, Union[Sequence[int], int, str, datetime]]
+class ParamsType(TypedDict, total=False):
+    project_id: list[int]
+    projects: list[Project]
+    project_objects: list[Project]
+    start: datetime
+    end: datetime
+    environment: str | list[str]
+    organization_id: int
+    use_case_id: str
+    environment_objects: list[Environment]
+    statsPeriod: str
+
+
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]
 
 NormalizedArg = Optional[Union[str, float]]

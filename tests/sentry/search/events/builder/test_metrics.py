@@ -17,7 +17,7 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import HistogramParams, QueryBuilderConfig
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -105,7 +105,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,
@@ -1639,13 +1639,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self):
         # Need to pick granularity based on the period and interval for timeseries
         def get_granularity(start, end, interval):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": self.projects,
-                "start": start,
-                "end": end,
-            }
-            query = TimeseriesMetricQueryBuilder(params, interval=interval)
+            query = TimeseriesMetricQueryBuilder(
+                {
+                    "organization_id": self.organization.id,
+                    "project_id": self.projects,
+                    "start": start,
+                    "end": end,
+                },
+                interval=interval,
+            )
             return query.granularity.granularity
 
         # If we're doing atleast day and its midnight we should use the daily bucket
@@ -2127,7 +2129,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            {**self.params, "environment": ["prod"]},  # type:ignore
+            {**self.params, "environment": ["prod"]},
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,

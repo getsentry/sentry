@@ -87,7 +87,7 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> dict[str, Any]:
+    ) -> ParamsType:
         params = super().get_snuba_params(request, organization, check_global_views)
 
         if len(params.get("project_id", [])) != 1:
