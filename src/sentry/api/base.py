@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import time
@@ -162,6 +163,21 @@ def apply_cors_headers(
             response["Access-Control-Allow-Credentials"] = "true"
 
     return response
+
+
+class BaseEndpointMixin(abc.ABC):
+    """
+    Inherit from this class when adding mixin classes that call `Endpoint` methods. This allows typing to
+    work correctly
+    """
+
+    @abc.abstractmethod
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
+        pass
 
 
 class Endpoint(APIView):
