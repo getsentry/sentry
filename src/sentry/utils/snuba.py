@@ -156,6 +156,10 @@ METRICS_SUMMARIES_COLUMN_MAP = {
     "segment.id": "segment_id",
     "span.duration": "duration",
     "span.group": "group",
+    "min_metric": "min",
+    "max_metric": "max",
+    "sum_metric": "sum",
+    "count_metric": "count",
 }
 
 SPAN_COLUMN_MAP.update(

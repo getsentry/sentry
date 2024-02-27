@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.events.builder import (
     MetricsSummariesQueryBuilder,
     QueryBuilder,
@@ -22,7 +23,14 @@ from sentry.snuba.metrics.naming_layer.mri import (
 from sentry.snuba.referrer import Referrer
 
 
-class SamplesListExecutor(ABC):
+class Summary(TypedDict):
+    min: float
+    max: float
+    sum: float
+    count: int
+
+
+class AbstractSamplesListExecutor(ABC):
     def __init__(
         self,
         mri: str,
@@ -30,6 +38,8 @@ class SamplesListExecutor(ABC):
         snuba_params: SnubaParams,
         fields: list[str],
         query: str | None,
+        min: float | None,
+        max: float | None,
         rollup: int,
         referrer: Referrer,
     ):
@@ -38,6 +48,8 @@ class SamplesListExecutor(ABC):
         self.snuba_params = snuba_params
         self.fields = fields
         self.query = query
+        self.min = min
+        self.max = max
         self.rollup = rollup
         self.referrer = referrer
 
@@ -50,9 +62,15 @@ class SamplesListExecutor(ABC):
     def execute(self, offset, limit):
         raise NotImplementedError
 
-    def get_spans_by_key(self, span_ids: list[tuple[str, str, str]]):
+    def get_spans_by_key(
+        self, span_ids: list[tuple[str, str, str]], additional_fields: list[str] | None = None
+    ):
         if not span_ids:
             return {"data": []}
+
+        fields = self.fields
+        if additional_fields is not None:
+            fields += additional_fields
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
@@ -105,10 +123,10 @@ class SamplesListExecutor(ABC):
         return builder.process_results(query_results)
 
 
-class SegmentsSamplesListExecutor(SamplesListExecutor):
+class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
     @classmethod
     @abstractmethod
-    def mri_to_column(cls, mri) -> str | None:
+    def mri_to_column(cls, mri: str) -> str | None:
         raise NotImplementedError
 
     @classmethod
@@ -116,12 +134,27 @@ class SegmentsSamplesListExecutor(SamplesListExecutor):
         return cls.mri_to_column(mri) is not None
 
     def execute(self, offset, limit):
-        span_keys = self.get_span_keys(offset, limit)
-        return self.get_spans_by_key(span_keys)
+        span_keys, summaries = self.get_span_keys(offset, limit)
+        result = self.get_spans_by_key(
+            span_keys,
+            # force `id` to be one of the fields
+            additional_fields=["id"],
+        )
 
-    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
-        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+        # if `id` wasn't initially there, we should remove it
+        should_pop_id = "id" not in self.fields
 
+        for row in result["data"]:
+            span_id = row.pop("id") if should_pop_id else row["id"]
+            row["summary"] = summaries[span_id]
+
+        return result
+
+    def get_span_keys(
+        self,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
         """
         When getting examples for a segment, it's actually much faster to read it
         from the transactions dataset compared to the spans dataset as it's a much
@@ -132,24 +165,37 @@ class SegmentsSamplesListExecutor(SamplesListExecutor):
         rethink how to fetch segment samples a little as the transactions dataset
         may not contain all the necessary data.
         """
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
         builder = QueryBuilder(
             Dataset.Transactions,
             self.params,
             snuba_params=self.snuba_params,
             query=self.query,
-            selected_columns=[rounded_timestamp, "example()"],
+            selected_columns=[
+                f"rounded_timestamp({self.rollup})",
+                f"example({column}) AS example",
+            ],
             limit=limit,
             offset=offset,
             sample_rate=options.get("metrics.sample-list.sample-rate"),
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(self.get_additional_conditions())
+        additional_conditions = self.get_additional_conditions(builder)
+
+        if self.min is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
-        return [
+        span_keys = [
             (
                 "00",  # all segments have a group of `00` currently
                 row["example"][0],  # timestamp
@@ -158,28 +204,57 @@ class SegmentsSamplesListExecutor(SamplesListExecutor):
             for row in result["data"]
         ]
 
+        """
+        Because transaction level measurements currently do not get
+        propagated to the spans dataset, we have to query them here,
+        generate the summary for it here, and propagate it to the
+        results of the next stage.
+
+        Once we start writing transaction level measurements to the
+        indexed spans dataset, we can stop doing this and read the
+        value directly from the indexed spans dataset.
+
+        For simplicity, all transaction based metrics use this approach.
+        """
+        summaries = {
+            cast(str, row["example"][1]): cast(
+                Summary,
+                {
+                    "min": row["example"][2],
+                    "max": row["example"][2],
+                    "sum": row["example"][2],
+                    "count": 1,
+                },
+            )
+            for row in result["data"]
+        }
+
+        return span_keys, summaries
+
     @abstractmethod
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         raise NotImplementedError
 
 
 class TransactionDurationSamplesListExecutor(SegmentsSamplesListExecutor):
     @classmethod
-    def mri_to_column(cls, mri) -> str | None:
+    def mri_to_column(cls, mri: str) -> str | None:
         if mri == TransactionMRI.DURATION.value:
-            return "duration"
+            # Because we read this from the transactions dataset,
+            # we use the name for the transactions dataset instead.
+            return "transaction.duration"
         return None
 
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         return []
 
 
-class MeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
+class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
     @classmethod
     def mri_to_column(cls, mri) -> str | None:
         name = cls.measurement_name(mri)
         if name is not None:
-            return f"measurements[{name}]"
+            return f"measurements.{name}"
 
         return None
 
@@ -190,20 +265,16 @@ class MeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
             return parsed_mri.name[len("measurements:") :]
         return None
 
-    def get_additional_conditions(self) -> list[Condition]:
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         name = self.measurement_name(self.mri)
         return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
 
 
-class SpansSamplesListExecutor(SamplesListExecutor):
-    MRI_MAPPING = {
-        SpanMRI.DURATION.value: "span.duration",
-        SpanMRI.SELF_TIME.value: "span.self_time",
-    }
-
+class SpansSamplesListExecutor(AbstractSamplesListExecutor):
     @classmethod
+    @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
-        return cls.MRI_MAPPING.get(mri)
+        raise NotImplementedError
 
     @classmethod
     def supports(cls, mri: str) -> bool:
@@ -211,7 +282,24 @@ class SpansSamplesListExecutor(SamplesListExecutor):
 
     def execute(self, offset, limit):
         span_keys = self.get_span_keys(offset, limit)
-        return self.get_spans_by_key(span_keys)
+
+        column = self.mri_to_column(self.mri)
+        assert column is not None  # should always resolve to a column here
+
+        result = self.get_spans_by_key(span_keys, additional_fields=[column])
+
+        should_pop_column = column not in self.fields
+
+        for row in result["data"]:
+            value = row.pop(column) if should_pop_column else row[column]
+            row["summary"] = {
+                "min": value,
+                "max": value,
+                "sum": value,
+                "count": 1,
+            }
+
+        return result
 
     def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
@@ -228,17 +316,17 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
-        builder.add_conditions(
-            [
-                # The `00` group is used for spans not used within the
-                # new starfish experience. It's effectively the group
-                # for other. It is a massive group, so we've chosen
-                # to exclude it here.
-                #
-                # In the future, we will want to look into exposing them
-                Condition(builder.column("span.group"), Op.NEQ, "00")
-            ]
-        )
+        additional_conditions = self.get_additional_conditions(builder)
+
+        column = self.mri_to_column(self.mri)
+        assert column is not None
+
+        if self.min is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(builder.column(column), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
 
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
@@ -252,8 +340,72 @@ class SpansSamplesListExecutor(SamplesListExecutor):
             for row in result["data"]
         ]
 
+    @abstractmethod
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        raise NotImplementedError
 
-class CustomSamplesListExecutor(SamplesListExecutor):
+
+class SpansTimingsSamplesListExecutor(SpansSamplesListExecutor):
+    MRI_MAPPING = {
+        SpanMRI.DURATION.value: "span.duration",
+        SpanMRI.SELF_TIME.value: "span.self_time",
+    }
+
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        return cls.MRI_MAPPING.get(mri)
+
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        return [
+            # The `00` group is used for spans not used within the
+            # new starfish experience. It's effectively the group
+            # for other. It is a massive group, so we've chosen
+            # to exclude it here.
+            #
+            # In the future, we will want to look into exposing them
+            Condition(builder.column("span.group"), Op.NEQ, "00")
+        ]
+
+
+class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
+    # These are some hard coded metrics in the spans name space that can be
+    # queried in the measurements of the indexed spans dataset
+    MRI_MAPPING = {
+        SpanMRI.RESPONSE_CONTENT_LENGTH.value: "http.response_content_length",
+        SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: "http.decoded_response_content_length",
+        SpanMRI.RESPONSE_TRANSFER_SIZE.value: "http.response_transfer_size",
+    }
+
+    @classmethod
+    def mri_to_column(cls, mri) -> str | None:
+        name = cls.measurement_name(mri)
+        if name is not None:
+            return f"measurements.{name}"
+
+        return None
+
+    @classmethod
+    def measurement_name(cls, mri) -> str | None:
+        if name := cls.MRI_MAPPING.get(mri):
+            return name
+
+        # some web vitals exist on spans
+        parsed_mri = parse_mri(mri)
+        if (
+            parsed_mri is not None
+            and parsed_mri.namespace == "spans"
+            and parsed_mri.name.startswith("webvital.")
+        ):
+            return parsed_mri.name[len("webvital:") :]
+
+        return None
+
+    def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
+        name = self.measurement_name(self.mri)
+        return [Condition(Function("has", [Column("measurements.key"), name]), Op.EQ, 1)]
+
+
+class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     @classmethod
     def supports(cls, mri: str) -> bool:
         parsed_mri = parse_mri(mri)
@@ -262,19 +414,29 @@ class CustomSamplesListExecutor(SamplesListExecutor):
         return False
 
     def execute(self, offset, limit):
-        span_keys = self.get_span_keys(offset, limit)
-        return self.get_spans_by_key(span_keys)
+        span_keys, summaries = self.get_span_keys(offset, limit)
+        result = self.get_spans_by_key(span_keys, additional_fields=["id"])
 
-    def get_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
+        should_pop_id = "id" not in self.fields
+
+        for row in result["data"]:
+            span_id = row.pop("id") if should_pop_id else row["id"]
+            row["summary"] = summaries[span_id]
+
+        return result
+
+    def get_span_keys(
+        self,
+        offset: int,
+        limit: int,
+    ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
         rounded_timestamp = f"rounded_timestamp({self.rollup})"
-
-        query = " ".join(q for q in [self.query, f"metric:{self.mri}"] if q)
 
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
-            query=query,
+            query=self.query,
             selected_columns=[rounded_timestamp, "example()"],
             limit=limit,
             offset=offset,
@@ -283,28 +445,62 @@ class CustomSamplesListExecutor(SamplesListExecutor):
             config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
         )
 
+        additional_conditions = [
+            builder.convert_search_filter_to_condition(
+                SearchFilter(SearchKey("metric"), "=", SearchValue(self.mri)),
+            )
+        ]
+
+        if self.min is not None:
+            additional_conditions.append(Condition(Column("min"), Op.GTE, self.min))
+        if self.max is not None:
+            additional_conditions.append(Condition(Column("max"), Op.LTE, self.max))
+
+        builder.add_conditions(additional_conditions)
+
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
-        return [
+        span_keys = [
             (
-                row["example"][0],  # group
-                row["example"][1],  # timestamp
-                row["example"][2],  # span_id
+                cast(str, row["example"][0]),  # group
+                cast(str, row["example"][1]),  # timestamp
+                cast(str, row["example"][2]),  # span_id
             )
             for row in result["data"]
         ]
 
+        """
+        The indexed spans dataset does not contain any metric related
+        data. To propagate these values, we read it from the metric
+        summaries table, and copy them to the results in the next step.
+        """
+        summaries = {
+            cast(str, row["example"][2]): cast(
+                Summary,
+                {
+                    "min": row["example"][3],
+                    "max": row["example"][4],
+                    "sum": row["example"][5],
+                    "count": row["example"][6],
+                },
+            )
+            for row in result["data"]
+        }
+
+        return span_keys, summaries
+
 
 SAMPLE_LIST_EXECUTORS = [
-    SpansSamplesListExecutor,
     TransactionDurationSamplesListExecutor,
-    MeasurementsSamplesListExecutor,
+    TransactionMeasurementsSamplesListExecutor,
+    SpansTimingsSamplesListExecutor,
+    SpansMeasurementsSamplesListExecutor,
     CustomSamplesListExecutor,
 ]
 
 
-def get_sample_list_executor_cls(mri) -> type[SamplesListExecutor] | None:
+def get_sample_list_executor_cls(mri) -> type[AbstractSamplesListExecutor] | None:
     for executor_cls in SAMPLE_LIST_EXECUTORS:
         if executor_cls.supports(mri):
             return executor_cls

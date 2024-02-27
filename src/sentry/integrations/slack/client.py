@@ -125,6 +125,8 @@ class SlackClient(IntegrationProxyClient):
         *args: Any,
         **kwargs: Any,
     ) -> BaseApiResponse:
+        log_response_with_error = kwargs.pop("log_response_with_error", False)
+
         response = self._request(
             method,
             path,
@@ -137,5 +139,9 @@ class SlackClient(IntegrationProxyClient):
             **kwargs,
         )
         if not raw_response and not response.json.get("ok"):
+            if log_response_with_error:
+                self.logger.info(
+                    "rule.fail.slack_post.log_response", extra={"response": response.__dict__}
+                )
             raise ApiError(response.get("error", ""))
         return response

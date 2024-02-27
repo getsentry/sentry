@@ -379,6 +379,18 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  'android',
+  'dart',
+  'flutter',
+  'java',
+  'java-log4j2',
+  'kotlin',
+  'react-native',
+  'unreal',
+  ...replayPlatforms,
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet',

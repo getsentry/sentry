@@ -260,35 +260,36 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     const {disabled} = this.props;
     return (
       <div>
-        {!disabled && (
-          <div>
-            <BulkFilter>
-              <FieldLabel>{t('Filter out legacy browsers')}:</FieldLabel>
-              <ButtonBar gap={1}>
-                <Button
-                  priority="link"
-                  borderless
-                  onClick={this.handleToggleSubfilters.bind(this, true)}
-                >
-                  {t('All')}
-                </Button>
-                <Button
-                  priority="link"
-                  borderless
-                  onClick={this.handleToggleSubfilters.bind(this, false)}
-                >
-                  {t('None')}
-                </Button>
-              </ButtonBar>
-            </BulkFilter>
-            <FieldHelp>
-              {t(
-                'The browser versions filtered out will be periodically evaluated and updated.'
-              )}
-            </FieldHelp>
-          </div>
-        )}
-
+        <div>
+          <BulkFilter>
+            <FieldLabel disabled={disabled}>
+              {t('Filter out legacy browsers')}:
+            </FieldLabel>
+            <ButtonBar gap={1}>
+              <Button
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, true)}
+                disabled={disabled}
+              >
+                {t('All')}
+              </Button>
+              <Button
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, false)}
+                disabled={disabled}
+              >
+                {t('None')}
+              </Button>
+            </ButtonBar>
+          </BulkFilter>
+          <FieldHelp>
+            {t(
+              'The browser versions filtered out will be periodically evaluated and updated.'
+            )}
+          </FieldHelp>
+        </div>
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {

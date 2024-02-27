@@ -116,5 +116,5 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     elif reason == PriorityChangeReason.ONGOING:
         new_priority = get_priority_for_ongoing_group(group)
 
-    if new_priority is not None:
+    if new_priority is not None and new_priority != group.priority:
         update_priority(group, new_priority, reason)

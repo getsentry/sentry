@@ -210,10 +210,10 @@ class DrainMailboxTest(TestCase):
             status=200,
             body="",
         )
-        records = self.create_payloads(51, "github:123")
+        records = self.create_payloads(101, "github:123")
         drain_mailbox(records[0].id)
 
-        # Drain removes up to 50 messages.
+        # Drain removes up to 101 messages.
         assert WebhookPayload.objects.count() == 1
 
     @responses.activate
@@ -299,7 +299,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_drain_api_error(self):
+    def test_drain_api_error_unauthorized(self):
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -312,10 +312,27 @@ class DrainMailboxTest(TestCase):
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
-        assert hook
-        assert hook.schedule_for > timezone.now()
-        assert hook.attempts == 1
+        # We don't retry 401
+        assert hook is None
+        assert len(responses.calls) == 1
 
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_api_error_bad_request(self):
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=400,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+        )
+        drain_mailbox(webhook_one.id)
+        hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
+        # We don't retry 400
+        assert hook is None
         assert len(responses.calls) == 1
 
     @responses.activate
