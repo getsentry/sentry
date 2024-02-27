@@ -402,11 +402,12 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
-        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
-            "sentry.rules.processor.rules", init_registry()
-        ) as rules:
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
+            patch("sentry.rules.processor.rules", init_registry()) as rules,
+        ):
             MockAction = mock.Mock()
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value = mock.Mock(spec=EventAction)
@@ -1653,8 +1654,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1768,6 +1770,9 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
             "issues.sdk_crash_detection.react-native.project_id": 12345,
             "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
             "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
+            "issues.sdk_crash_detection.java.project_id": 123456,
+            "issues.sdk_crash_detection.java.sample_rate": 0.3,
+            "issues.sdk_crash_detection.java.organization_allowlist": [2],
         }
     )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
@@ -1788,7 +1793,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
 
-        assert len(args["configs"]) == 2
+        assert len(args["configs"]) == 3
         cocoa_config = args["configs"][0]
         assert cocoa_config.sdk_name == SdkName.Cocoa
         assert cocoa_config.project_id == 1234
@@ -1800,6 +1805,12 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         assert react_native_config.project_id == 12345
         assert react_native_config.sample_rate == 1.0
         assert react_native_config.organization_allowlist == [1]
+
+        java_config = args["configs"][2]
+        assert java_config.sdk_name == SdkName.Java
+        assert java_config.project_id == 123456
+        assert java_config.sample_rate == 0.3
+        assert java_config.organization_allowlist == [2]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(
