@@ -8,7 +8,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
   id: string;
-  issue: string;
   'issue.id': number;
   project: string;
   'project.name': string;
@@ -37,7 +36,13 @@ interface UseTraceTimelineEventsOptions {
 export function useTraceTimelineEvents(
   {event}: UseTraceTimelineEventsOptions,
   isEnabled: boolean = true
-) {
+): {
+  endTimestamp: number;
+  isError: boolean;
+  isLoading: boolean;
+  startTimestamp: number;
+  traceEvents: TimelineEvent[];
+} {
   const organization = useOrganization();
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
@@ -54,7 +59,7 @@ export function useTraceTimelineEvents(
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'issue', 'transaction'],
+          field: ['title', 'project', 'timestamp', 'issue.id', 'transaction'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -85,7 +90,6 @@ export function useTraceTimelineEvents(
             'project',
             'timestamp',
             'issue.id',
-            'issue',
             'transaction',
             'event.type',
             'stack.function',
@@ -116,7 +120,23 @@ export function useTraceTimelineEvents(
       };
     }
 
+    // Events is unsorted since they're grouped by date later
     const events = [...issuePlatformData.data, ...discoverData.data];
+
+    // The current event might be missing when there is a large number of issues
+    const hasCurrentEvent = events.some(e => e.id === event.id);
+    if (!hasCurrentEvent) {
+      events.push({
+        id: event.id,
+        'issue.id': Number(event.groupID),
+        project: event.projectID,
+        // The project name for current event is not used
+        'project.name': '',
+        timestamp: event.dateCreated!,
+        title: event.title,
+        transaction: '',
+      });
+    }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());
     const startTimestamp = Math.min(...timestamps);
     const endTimestamp = Math.max(...timestamps);
@@ -126,6 +146,7 @@ export function useTraceTimelineEvents(
       endTimestamp,
     };
   }, [
+    event,
     issuePlatformData,
     discoverData,
     isLoadingIssuePlatform,
@@ -135,7 +156,7 @@ export function useTraceTimelineEvents(
   ]);
 
   return {
-    data: eventData.data,
+    traceEvents: eventData.data,
     startTimestamp: eventData.startTimestamp,
     endTimestamp: eventData.endTimestamp,
     isLoading: isLoadingIssuePlatform || isLoadingDiscover,

@@ -32,8 +32,10 @@ from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
@@ -95,7 +97,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         release_project_env.refresh_from_db()
         assert release_project_env.new_issues_count == 1
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
-        eventstream.insert.assert_called_once_with(
+        eventstream.backend.insert.assert_called_once_with(
             event=event.for_group(group_info.group),
             is_new=True,
             is_regression=False,
@@ -124,6 +126,25 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             ValueError, "IssueOccurrence must have the same event_id as the passed Event"
         ):
             save_issue_occurrence(occurrence.to_dict(), event)
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_default_priority(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(event_id=event.event_id)
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_priority(self) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.HIGH
 
 
 @region_silo_test
@@ -309,6 +330,22 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_default_priority(self) -> None:
+        occurrence = self.build_occurrence()
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_new_group_with_priority(self) -> None:
+        occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.HIGH
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
@@ -325,6 +362,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
             "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
+            "priority": occurrence.type.default_priority,
         }
 
 
@@ -339,6 +377,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_preserves_existing_metadata(self) -> None:
@@ -397,7 +436,7 @@ class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
             event, "for_group", return_value=group_event
         ):
             send_issue_occurrence_to_eventstream(event, occurrence, group_info)
-            eventstream.insert.assert_called_once_with(
+            eventstream.backend.insert.assert_called_once_with(
                 event=group_event,
                 is_new=group_info.is_new,
                 is_regression=group_info.is_regression,

@@ -32,7 +32,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
     def check_valid_environments_response(self, response, monitor, expected_environments):
         assert {
-            monitor_environment.environment.name for monitor_environment in expected_environments
+            monitor_environment.get_environment().name
+            for monitor_environment in expected_environments
         } == {
             monitor_environment_resp["name"]
             for monitor_environment_resp in monitor.get("environments", [])
@@ -142,7 +143,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self._create_monitor(name="A monitor"),
             self._create_monitor(name="ZA monitor"),
         ]
-        monitors.sort(key=lambda m: (not m.is_muted, m.name))
+        monitors.sort(key=lambda m: (m.is_muted, m.name))
 
         response = self.get_success_response(self.organization.slug, sort="muted")
         self.check_valid_response(response, monitors)
@@ -182,13 +183,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
 
         response = self.get_success_response(self.organization.slug, sort="muted")
         expected = [
-            muted_monitor_2,
-            muted_monitor_1,
-            muted_env_monitor,
-            muted_other_env_monitor,
             non_muted_monitor_2,
             non_muted_monitor_1,
             not_muted_env_monitor,
+            muted_env_monitor,
+            muted_other_env_monitor,
+            muted_monitor_2,
+            muted_monitor_1,
         ]
         self.check_valid_response(response, expected)
 
@@ -200,13 +201,13 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             self.organization.slug, sort="muted", environment=["prod"]
         )
         expected = [
-            muted_monitor_2,
-            muted_monitor_1,
-            muted_env_monitor,
             non_muted_monitor_2,
             non_muted_monitor_1,
             muted_other_env_monitor,
             not_muted_env_monitor,
+            muted_env_monitor,
+            muted_monitor_2,
+            muted_monitor_1,
         ]
         self.check_valid_response(response, expected)
 

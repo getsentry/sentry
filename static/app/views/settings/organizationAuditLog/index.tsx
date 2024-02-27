@@ -9,6 +9,7 @@ import type {AuditLog} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import AuditLogList from './auditLogList';
 
@@ -105,15 +106,19 @@ function OrganizationAuditLog({location}: Props) {
 
   return (
     <Fragment>
-      <AuditLogList
-        entries={state.entryList}
-        pageLinks={state.entryListPageLinks}
-        eventType={state.eventType}
-        eventTypes={state.eventTypes}
-        onEventSelect={handleEventSelect}
-        isLoading={state.isLoading}
-        onCursor={handleCursor}
-      />
+      {!organization.access.includes('org:write') ? (
+        <PermissionAlert />
+      ) : (
+        <AuditLogList
+          entries={state.entryList}
+          pageLinks={state.entryListPageLinks}
+          eventType={state.eventType}
+          eventTypes={state.eventTypes}
+          onEventSelect={handleEventSelect}
+          isLoading={state.isLoading}
+          onCursor={handleCursor}
+        />
+      )}
     </Fragment>
   );
 }

@@ -283,6 +283,15 @@ export function eventHasSourceContext(event: Event) {
 }
 
 /**
+ * Function to determine if an event has local variables
+ */
+export function eventHasLocalVariables(event: Event) {
+  const frames = getAllFrames(event, false);
+
+  return frames.some(frame => defined(frame.vars));
+}
+
+/**
  * Function to get status about how many frames have source maps
  */
 export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
@@ -441,6 +450,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
+    has_local_variables: event ? eventHasLocalVariables(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
@@ -481,6 +491,7 @@ export type CommonGroupAnalyticsData = {
   issue_level?: string;
   issue_status?: string;
   issue_substatus?: string | null;
+  priority?: string;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
@@ -507,6 +518,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     num_participants: group?.participants?.length ?? 0,
     num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
+    priority: group?.priority,
   };
 }
 

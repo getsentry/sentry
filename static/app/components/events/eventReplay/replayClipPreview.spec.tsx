@@ -123,6 +123,10 @@ describe('ReplayClipPreview', () => {
     orgSlug: mockOrgSlug,
     replaySlug: mockReplaySlug,
     eventTimestampMs: mockEventTimestampMs,
+    clipOffsets: {
+      durationAfterMs: 5_000,
+      durationBeforeMs: 5_000,
+    },
   };
 
   it('Should render a placeholder when is fetching the replay data', () => {

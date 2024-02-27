@@ -49,7 +49,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     assignee = t('an unknown user');
   }
 
-  const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
+  const isAutoAssigned = ['projectOwnership', 'codeowners', 'suspectCommitter'].includes(
     data.integration as string
   );
 
@@ -61,6 +61,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     slack: t('Slack'),
     projectOwnership: t('Ownership Rule'),
     codeowners: t('Codeowners Rule'),
+    suspectCommitter: t('Suspect Commit'),
   };
 
   return (
@@ -73,7 +74,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
           issueType,
         })}
       </div>
-      {data.integration && (
+      {data.integration && integrationName[data.integration] && (
         <CodeWrapper>
           {t('Assigned via %s', integrationName[data.integration])}
           {data.rule && (
@@ -518,6 +519,16 @@ function GroupActivityItem({
         );
       }
       case GroupActivityType.FIRST_SEEN:
+        if (
+          organization.features.includes('issue-priority-ui') &&
+          activity.data.priority
+        ) {
+          return tct(
+            '[author] first saw this issue and marked it as [priority] priority',
+            {author, priority: activity.data.priority}
+          );
+        }
+
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
         return (

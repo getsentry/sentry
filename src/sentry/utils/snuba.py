@@ -6,7 +6,7 @@ import os
 import re
 import time
 from collections import namedtuple
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
@@ -68,7 +68,21 @@ OVERRIDE_OPTIONS = {
 }
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
-SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
+
+
+def log_snuba_info(content):
+    if SNUBA_INFO_FILE:
+        with open(SNUBA_INFO_FILE, "a") as file:
+            file.writelines(content)
+    else:
+        print(content)  # NOQA: only prints when an env variable is set
+
+
+SNUBA_INFO = (
+    os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
+)
+
 if SNUBA_INFO:
     import sqlparse
 
@@ -130,6 +144,22 @@ SPAN_COLUMN_MAP = {
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
+    "app_start_type": "sentry_tags[app_start_type]",
+}
+
+METRICS_SUMMARIES_COLUMN_MAP = {
+    "project": "project_id",
+    "id": "span_id",
+    "trace": "trace_id",
+    "metric": "metric_mri",
+    "timestamp": "end_timestamp",
+    "segment.id": "segment_id",
+    "span.duration": "duration",
+    "span.group": "group",
+    "min_metric": "min",
+    "max_metric": "max",
+    "sum_metric": "sum",
+    "count_metric": "count",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -182,6 +212,7 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.IssuePlatform: ISSUE_PLATFORM_MAP,
@@ -198,6 +229,7 @@ DATASET_FIELDS = {
     Dataset.Sessions: SESSIONS_FIELD_LIST,
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
+    Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -427,7 +459,7 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
-def to_start_of_hour(dt: datetime) -> datetime:
+def to_start_of_hour(dt: datetime) -> str:
     """This is a function that mimics toStartOfHour from Clickhouse"""
     return dt.replace(minute=0, second=0, microsecond=0).isoformat()
 
@@ -521,7 +553,9 @@ def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int
     return list(set.union(*ids))
 
 
-def get_query_params_to_update_for_projects(query_params, with_org=False):
+def get_query_params_to_update_for_projects(
+    query_params: SnubaQueryParams, with_org: bool = False
+) -> tuple[int, dict[str, Any]]:
     """
     Get the project ID and query params that need to be updated for project
     based datasets, before we send the query to Snuba.
@@ -548,7 +582,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
 
     organization_id = get_organization_id_from_project_ids(project_ids)
 
-    params = {"project": project_ids}
+    params: dict[str, Any] = {"project": project_ids}
     if with_org:
         params["organization"] = organization_id
 
@@ -906,9 +940,11 @@ def _apply_cache_and_build_results(
 
     if to_query:
         query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
-        for result, (query_pos, _, cache_key) in zip(query_results, to_query):
-            if cache_key:
-                cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
+        for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
+            if opt_cache_key:
+                cache.set(
+                    opt_cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS
+                )
             results.append((query_pos, result))
 
     # Sort so that we get the results back in the original param list order
@@ -958,17 +994,17 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data)
+            body = json.loads(response.data, skip_trace=True)
             if SNUBA_INFO:
                 if "sql" in body:
-                    print(  # NOQA: only prints when an env variable is set
+                    log_snuba_info(
                         "{}.sql:\n {}".format(
                             headers.get("referer", "<unknown>"),
                             sqlparse.format(body["sql"], reindent_aligned=True),
                         )
                     )
                 if "error" in body:
-                    print(  # NOQA: only prints when an env variable is set
+                    log_snuba_info(
                         "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
                     )
         except ValueError:
@@ -978,19 +1014,7 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
-            error_query = snuba_param_list[index][0]
-            if isinstance(error_query, Request):
-                query_str = error_query.serialize()
-                query_type = "mql" if isinstance(error_query.query, MetricsQuery) else "snql"
-            else:
-                query_str = json.dumps(error_query)
-                query_type = "snql"
-            sentry_sdk.add_breadcrumb(
-                category="query_info",
-                level="info",
-                message=f"{query_type}_query",
-                data={query_type: query_str},
-            )
+            _log_request_query(snuba_param_list[index][0])
 
             if body.get("error"):
                 error = body["error"]
@@ -1012,6 +1036,18 @@ def _bulk_snuba_query(
         results.append(body)
 
     return results
+
+
+def _log_request_query(req: Request) -> None:
+    """Given a request, logs its associated query in sentry breadcrumbs"""
+    query_str = req.serialize()
+    query_type = "mql" if isinstance(req.query, MetricsQuery) else "snql"
+    sentry_sdk.add_breadcrumb(
+        category="query_info",
+        level="info",
+        message=f"{query_type}_query",
+        data={query_type: query_str},
+    )
 
 
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
@@ -1040,9 +1076,7 @@ def _snuba_query(
         if SNUBA_INFO:
             import pprint
 
-            print(  # NOQA: only prints when an env variable is set
-                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
-            )
+            log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
             request.flags.debug = True
 
         if isinstance(request.query, MetricsQuery):
@@ -1146,7 +1180,11 @@ def query(
             return nest_groups(body["data"], groupby, aggregate_names + selected_names)
 
 
-def nest_groups(data, groups, aggregate_cols):
+def nest_groups(
+    data: Sequence[MutableMapping],
+    groups: Sequence[str] | None,
+    aggregate_cols: Sequence[str],
+) -> dict | Any:
     """
     Build a nested mapping from query response rows. Each group column
     gives a new level of nesting and the leaf result is the aggregate
@@ -1160,14 +1198,14 @@ def nest_groups(data, groups, aggregate_cols):
             return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
-        inter = {}
+        inter: dict[Any, Any] = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
         return {k: nest_groups(v, rest, aggregate_cols) for k, v in inter.items()}
 
 
-def resolve_column(dataset) -> Callable[[str], str]:
-    def _resolve_column(col: str) -> str:
+def resolve_column(dataset) -> Callable:
+    def _resolve_column(col):
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -1207,7 +1245,7 @@ def resolve_column(dataset) -> Callable[[str], str]:
     return _resolve_column
 
 
-def resolve_condition(cond, column_resolver):
+def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> list:
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
@@ -1237,7 +1275,7 @@ def resolve_condition(cond, column_resolver):
             func_args = cond[index + 1]
             for i, arg in enumerate(func_args):
                 if i == 0:
-                    if isinstance(arg, (list, tuple)):
+                    if isinstance(arg, list):
                         func_args[i] = resolve_condition(arg, column_resolver)
                     else:
                         func_args[i] = column_resolver(arg)
@@ -1251,7 +1289,7 @@ def resolve_condition(cond, column_resolver):
         for i, arg in enumerate(func_args):
             # Nested function
             try:
-                if isinstance(arg, (list, tuple)):
+                if isinstance(arg, list):
                     func_args[i] = resolve_condition(arg, column_resolver)
                 else:
                     func_args[i] = column_resolver(arg)
@@ -1266,7 +1304,7 @@ def resolve_condition(cond, column_resolver):
         if isinstance(cond[0], str) and len(cond) == 3:
             cond[0] = column_resolver(cond[0])
             return cond
-        if isinstance(cond[0], (list, tuple)):
+        if isinstance(cond[0], list):
             if get_function_index(cond[0]) is not None:
                 cond[0] = resolve_condition(cond[0], column_resolver)
                 return cond
@@ -1297,8 +1335,8 @@ def _aliased_query_impl(**kwargs):
 
 
 def resolve_conditions(
-    conditions: Sequence[Any] | None, column_resolver: Callable[[str], str]
-) -> Sequence[Any] | None:
+    conditions: Sequence | None, column_resolver: Callable[[Any], Any]
+) -> list | None:
     if conditions is None:
         return conditions
 
@@ -1323,9 +1361,9 @@ def aliased_query_params(
     having=None,
     dataset=None,
     orderby=None,
-    condition_resolver=None,
+    condition_resolver: Callable | None = None,
     **kwargs,
-) -> Mapping[str, Any]:
+) -> dict[str, Any]:
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
@@ -1344,11 +1382,10 @@ def aliased_query_params(
             derived_columns.append(aggregation[2])
 
     if conditions:
-        column_resolver = (
-            functools.partial(condition_resolver, dataset=dataset)
-            if condition_resolver
-            else resolve_func
-        )
+        if condition_resolver:
+            column_resolver: Callable = functools.partial(condition_resolver, dataset=dataset)
+        else:
+            column_resolver = resolve_func
         resolved_conditions = resolve_conditions(conditions, column_resolver)
     else:
         resolved_conditions = conditions
@@ -1489,7 +1526,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list("id", "version")
             )
             fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
-            rev_map = dict(reversed(t) for t in fwd_map.items())
+            rev_map = {v: k for k, v in fwd_map.items()}
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k][1] for k in filters[col]]
@@ -1509,7 +1546,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
             fwd_map = {
                 k: fmt(v) for k, v in model.objects.filter(id__in=ids).values_list("id", field)
             }
-            rev_map = dict(reversed(t) for t in fwd_map.items())
+            rev_map = {v: k for k, v in fwd_map.items()}
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k] for k in filters[col] if k]
@@ -1568,7 +1605,7 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def shrink_time_window(issues, start):
+def shrink_time_window(issues: Collection | None, start: datetime) -> datetime:
     """\
     If a single issue is passed in, shrink the `start` parameter to be briefly before
     the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
@@ -1587,7 +1624,7 @@ def shrink_time_window(issues, start):
     return start
 
 
-def naiveify_datetime(dt):
+def naiveify_datetime(dt: datetime) -> datetime:
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 

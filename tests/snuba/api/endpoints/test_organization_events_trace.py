@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -78,7 +78,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(self.create_span(span))
+                        self.store_span(
+                            self.create_span(
+                                span, start_ts=datetime.fromtimestamp(span["start_timestamp"])
+                            )
+                        )
                 self.store_span(self.convert_event_data_to_span(event))
                 return event
 
@@ -100,6 +104,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
+                "timestamp": int(start_ts * 1000),
                 "received": start_ts,
                 "duration_ms": int(end_ts - start_ts),
             }
@@ -788,9 +793,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
-        assert result["event_id"] == event_data.event_id, message
-        # assert result["timestamp"] == event_data.data["timestamp"], message
-        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        assert result["event_id"] == pytest.approx(event_data.event_id), message
+        assert result["start_timestamp"] == pytest.approx(
+            event_data.data["start_timestamp"]
+        ), message
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -1496,7 +1502,43 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             else:
                 assert len(gen1["children"]) == 0
 
+    @mock.patch("sentry.api.endpoints.organization_events_trace.query_trace_data")
+    def test_timestamp_optimization(self, mock_query):
+        """When timestamp is passed we'll ignore the statsPeriod and make a query with a smaller start & end"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        mock_query.assert_called_once()
+        params = mock_query.call_args.args[1]
+        assert abs((params["end"] - params["start"]).days) <= 7
 
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
+
+
+@region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
     def client_get(self, data, url=None):
         data["useSpans"] = 1
@@ -1527,6 +1569,10 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
     def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        mock_builder = mock.Mock()
+        mock_builder.resolve_column_name.return_value = "span_id"
+        mock_builder.run_query.return_value = {}
+        mock_query_builder.return_value = mock_builder
         # Add a few more projects to the org
         self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)

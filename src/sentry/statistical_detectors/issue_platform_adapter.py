@@ -2,11 +2,7 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from sentry.issues.grouptype import (
-    GroupType,
-    PerformanceDurationRegressionGroupType,
-    PerformanceP95EndpointRegressionGroupType,
-)
+from sentry.issues.grouptype import GroupType, PerformanceP95EndpointRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.seer.utils import BreakpointData
@@ -21,8 +17,8 @@ def fingerprint_regression(transaction, full=False):
     return fingerprint
 
 
-def send_regression_to_platform(regression: BreakpointData, released: bool):
-    current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
+def send_regression_to_platform(regression: BreakpointData):
+    current_timestamp = datetime.now(timezone.utc)
 
     displayed_old_baseline = round(float(regression["aggregate_range_1"]), 2)
     displayed_new_baseline = round(float(regression["aggregate_range_2"]), 2)
@@ -31,11 +27,7 @@ def send_regression_to_platform(regression: BreakpointData, released: bool):
     # TODO fix this in the breakpoint microservice and in trends v2
     project_id = int(regression["project"])
 
-    issue_type: type[GroupType] = (
-        PerformanceP95EndpointRegressionGroupType
-        if released
-        else PerformanceDurationRegressionGroupType
-    )
+    issue_type: type[GroupType] = PerformanceP95EndpointRegressionGroupType
 
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,

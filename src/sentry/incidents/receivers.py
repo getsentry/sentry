@@ -9,6 +9,12 @@ from sentry.models.project import Project
 
 @receiver(post_save, sender=Project, weak=False)
 def add_project_to_include_all_rules(instance, created, **kwargs):
+    """
+    If an alert rule is created for an org that should include all projects
+    When a Project model is saved, it will be subscribed to the AlertRule
+
+    NOTE: This feature is not currently utilized and may break the UX flow
+    """
     from sentry.incidents.logic import subscribe_projects_to_alert_rule
 
     if not created:
@@ -23,4 +29,4 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
 
 @receiver(pre_save, sender=IncidentTrigger)
 def pre_save_incident_trigger(instance, sender, *args, **kwargs):
-    instance.date_modified = datetime.utcnow().replace(tzinfo=timezone.utc)
+    instance.date_modified = datetime.now(timezone.utc)

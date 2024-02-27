@@ -32,7 +32,7 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
 from sentry.utils.json import JSONData
@@ -88,9 +88,9 @@ def _has_elevated_scope(access: Access) -> bool:
 
 
 def _is_org_owner_or_manager(access: Access) -> bool:
-    roles = access.get_organization_roles()
+    role = access.get_organization_role()
     # only org owners and managers have org:write scope
-    return any("org:write" in role.scopes for role in roles)
+    return "org:write" in role.scopes if role else False
 
 
 @extend_schema(tags=["Teams"])
@@ -288,6 +288,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not organization_roles.get(member.role).is_team_roles_allowed:
+            return Response(
+                {
+                    "detail": f"The user with a '{member.role}' role cannot have team-level permissions."
+                },
+                status=403,
+            )
 
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)

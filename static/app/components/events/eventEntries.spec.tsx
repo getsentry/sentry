@@ -30,6 +30,9 @@ describe('EventEntries', function () {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1/actionable-items/',
+    });
   });
 
   it('renders the replay section in the correct place', async function () {

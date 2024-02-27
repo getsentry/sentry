@@ -127,6 +127,65 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert result["message"] == "baz"
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
 
+    def test_exception_interface(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValidationError",
+                            "value": "Bad request",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "foo.py",
+                                        "lineno": 100,
+                                        "in_app": True,
+                                        "vars": {"foo": "[Filtered]"},
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "_meta": {
+                    "exception": {
+                        "values": {
+                            "0": {
+                                "stacktrace": {
+                                    "frames": {
+                                        "0": {
+                                            "lineno": 100,
+                                            "in_app": True,
+                                            "vars": {"foo": {"": {"err": ["some error"]}}},
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event)
+
+        assert result["entries"][0]["type"] == "exception"
+
+        # Exception interface data should be preserved
+        assert (
+            result["entries"][0]["data"]["values"][0]["stacktrace"]["frames"][0]["vars"]["foo"]
+            == "[Filtered]"
+        )
+        # Exception meta should be preserved
+        assert result["_meta"]["entries"][0]["data"]["values"]["0"]["stacktrace"]["frames"]["0"][
+            "vars"
+        ]["foo"] == {"": {"err": ["some error"]}}
+
     def test_tags_tuples(self):
         event = self.store_event(
             data={

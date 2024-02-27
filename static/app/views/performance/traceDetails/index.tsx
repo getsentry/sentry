@@ -22,6 +22,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
+import {TraceView as TraceViewV1} from './../newTraceDetails';
 import TraceDetailsContent from './content';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import NewTraceDetailsContent from './newTraceDetailsContent';
@@ -146,6 +147,7 @@ class TraceSummary extends Component<Props> {
 
     return (
       <TraceFullDetailedQuery
+        type="detailed"
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
@@ -179,6 +181,10 @@ class TraceSummary extends Component<Props> {
 
   render() {
     const {organization} = this.props;
+
+    if (organization.features.includes('trace-view-v1')) {
+      return <TraceViewV1 />;
+    }
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>

@@ -6,6 +6,7 @@ from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
+from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
@@ -54,14 +55,33 @@ class SDKCrashDetection:
         :param configs: The list of configs, one for each SDK.
         """
 
+        context = get_path(event.data, "contexts", "sdk_crash_detection")
+        if context is not None:
+            return None
+
+        sdk_name = get_path(event.data, "sdk", "name")
+        sdk_version = get_path(event.data, "sdk", "version")
+
+        if not sdk_name or not sdk_version:
+            return None
+
+        metric_tags = {"sdk_name": sdk_name, "sdk_version": sdk_version}
+        sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
+
+        num_supported_detectors = sum(
+            1 for detector in sdk_detectors if detector.is_sdk_supported(sdk_name, sdk_version)
+        )
+        if num_supported_detectors > 0:
+            metrics.incr("post_process.sdk_crash_monitoring.sdk_event", tags=metric_tags)
+
         is_error = event.group and event.group.issue_category == GroupCategory.ERROR
         if not is_error:
             return None
 
-        sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
-
         sdk_crash_detectors = [
-            detector for detector in sdk_detectors if detector.should_detect_sdk_crash(event.data)
+            detector
+            for detector in sdk_detectors
+            if detector.should_detect_sdk_crash(sdk_name, sdk_version, event.data)
         ]
 
         if not sdk_crash_detectors:
@@ -81,15 +101,14 @@ class SDKCrashDetection:
         ):
             return None
 
-        context = get_path(event.data, "contexts", "sdk_crash_detection")
-        if context is not None:
-            return None
-
         frames = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
         if not frames:
             return None
 
+        metrics.incr("post_process.sdk_crash_monitoring.detecting_sdk_crash", tags=metric_tags)
+
         if sdk_crash_detector.is_sdk_crash(frames):
+            # TODO this rollout rate is backwards
             if random.random() >= sample_rate:
                 return None
 
@@ -110,6 +129,8 @@ class SDKCrashDetection:
 
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
+
+            metrics.incr("post_process.sdk_crash_monitoring.sdk_crash_detected", tags=metric_tags)
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, project_id)
 

@@ -6,6 +6,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
+import {getMetaDateTimeParams} from './index';
+
+const EMPTY_ARRAY: MetricMeta[] = [];
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function getMetricsMetaQueryKeys(
@@ -14,30 +17,30 @@ export function getMetricsMetaQueryKeys(
   useCases?: UseCase[]
 ): ApiQueryKey[] {
   return (
-    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, projects, useCase)) ?? []
+    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, {projects}, useCase)) ?? []
   );
 }
 
 export function getMetricsMetaQueryKey(
   orgSlug: string,
-  projects: PageFilters['projects'],
+  {projects, datetime}: Partial<PageFilters>,
   useCase: UseCase
 ): ApiQueryKey {
-  return [
-    `/organizations/${orgSlug}/metrics/meta/`,
-    {query: {useCase, project: projects}},
-  ];
+  const queryParams = projects?.length
+    ? {useCase, project: projects, ...getMetaDateTimeParams(datetime)}
+    : {useCase, ...getMetaDateTimeParams(datetime)};
+  return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
 }
 
 function useMetaUseCase(
   useCase: UseCase,
-  projects: PageFilters['projects'],
+  pageFilters: Partial<PageFilters>,
   options: Omit<UseApiQueryOptions<MetricMeta[]>, 'staleTime'>
 ) {
   const {slug} = useOrganization();
 
   const apiQueryResult = useApiQuery<MetricMeta[]>(
-    getMetricsMetaQueryKey(slug, projects, useCase),
+    getMetricsMetaQueryKey(slug, pageFilters, useCase),
     {
       ...options,
       staleTime: 2000, // 2 seconds to cover page load
@@ -48,22 +51,26 @@ function useMetaUseCase(
 }
 
 export function useMetricsMeta(
-  projects: PageFilters['projects'],
+  pageFilters: Partial<PageFilters>,
   useCases?: UseCase[],
   filterBlockedMetrics = true
 ): {data: MetricMeta[]; isLoading: boolean} {
   const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
-  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase('sessions', projects, {
-    enabled: enabledUseCases.includes('sessions'),
-  });
-  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', projects, {
+  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase(
+    'sessions',
+    pageFilters,
+    {
+      enabled: enabledUseCases.includes('sessions'),
+    }
+  );
+  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', pageFilters, {
     enabled: enabledUseCases.includes('transactions'),
   });
-  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', projects, {
+  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', pageFilters, {
     enabled: enabledUseCases.includes('custom'),
   });
-  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', projects, {
+  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', pageFilters, {
     enabled: enabledUseCases.includes('spans'),
   });
 
@@ -85,16 +92,18 @@ export function useMetricsMeta(
   }
 
   return {
-    data: data.filter(meta => {
-      return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
-    }),
+    data: isLoading
+      ? EMPTY_ARRAY
+      : data.filter(meta => {
+          return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+        }),
     isLoading,
   };
 }
 
 export function useProjectMetric(mri: MRI, projectId: number) {
   const useCase = getUseCaseFromMRI(mri);
-  const res = useMetricsMeta([projectId], [useCase ?? 'custom'], false);
+  const res = useMetricsMeta({projects: [projectId]}, [useCase ?? 'custom'], false);
 
   const metricMeta = res.data?.find(({mri: metaMri}) => metaMri === mri);
   const blockingStatus = metricMeta?.blockingStatus?.[0];

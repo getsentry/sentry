@@ -31,7 +31,6 @@ from sentry.sentry_metrics.querying.metadata import (
 
 class MetricMetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
-    # TODO: change name when we settled on the naming.
     CORRELATIONS = "metricSpans"
 
 
@@ -44,7 +43,7 @@ METRIC_META_TYPE_SERIALIZER = {
 @region_silo_endpoint
 class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 

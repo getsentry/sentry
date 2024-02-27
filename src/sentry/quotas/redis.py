@@ -1,11 +1,17 @@
 from time import time
 
+import rb
 import sentry_sdk
+from rediscluster import RedisCluster
 
 from sentry.constants import DataCategory
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
+    is_instance_rb_cluster,
+    is_instance_redis_cluster,
     load_script,
     validate_dynamic_cluster,
 )
@@ -19,7 +25,7 @@ class RedisQuota(Quota):
     #: metrics may not be in sync with the computer running this code.
     grace = 60
 
-    def __init__(self, **options):
+    def __init__(self, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_QUOTA_OPTIONS", options
         )
@@ -34,22 +40,28 @@ class RedisQuota(Quota):
         super().__init__(**options)
         self.namespace = "quota"
 
-    def validate(self):
+    def validate(self) -> None:
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
-    def __get_redis_client(self, routing_key):
-        if self.is_redis_cluster:
+    def __get_redis_client(self, routing_key: str) -> RedisCluster | rb.RoutingClient:
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster
-        else:
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster.get_local_client_for_key(routing_key)
+        else:
+            raise AssertionError("unreachable")
 
-    def __get_redis_key(self, quota, timestamp, shift, organization_id):
+    def __get_redis_key(
+        self, quota: QuotaConfig, timestamp: float, shift: int, organization_id: int
+    ) -> str:
         scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
         local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         interval = quota.window
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
-    def get_quotas(self, project, key=None, keys=None):
+    def get_quotas(
+        self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
+    ) -> list[QuotaConfig]:
         if key:
             key.project = project
 
@@ -127,40 +139,54 @@ class RedisQuota(Quota):
 
         return results
 
-    def get_usage(self, organization_id, quotas, timestamp=None):
+    def get_usage(
+        self, organization_id: int, quotas: list[QuotaConfig], timestamp: float | None = None
+    ) -> list[int | None]:
         if timestamp is None:
             timestamp = time()
 
-        def get_usage_for_quota(client, quota):
+        def get_usage_for_quota(
+            client: RedisCluster, quota: QuotaConfig
+        ) -> tuple[str | None, str | None]:
             if not quota.should_track:
-                return (None, None)
+                return None, None
 
             key = self.__get_redis_key(
                 quota, timestamp, organization_id % quota.window, organization_id
             )
             refund_key = self.get_refunded_quota_key(key)
 
-            return (client.get(key), client.get(refund_key))
+            return client.get(key), client.get(refund_key)
 
-        def get_value_for_result(result, refund_result):
+        def get_value_for_result(result, refund_result) -> int | None:
             if result is None:
                 return None
 
             return int(result.value or 0) - int(refund_result.value or 0)
 
-        if self.is_redis_cluster:
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
-        else:
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
             with self.cluster.fanout() as client:
                 target = client.target_key(str(organization_id))
                 results = [get_usage_for_quota(target, quota) for quota in quotas]
+        else:
+            AssertionError("unreachable")
 
         return [get_value_for_result(*r) for r in results]
 
-    def get_refunded_quota_key(self, key):
+    def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
 
-    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
+    @sentry_sdk.tracing.trace
+    def refund(
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        timestamp: float | None = None,
+        category: DataCategory | None = None,
+        quantity: int | None = None,
+    ) -> None:
         if timestamp is None:
             timestamp = time()
 
@@ -198,11 +224,13 @@ class RedisQuota(Quota):
 
         pipe.execute()
 
-    def get_next_period_start(self, interval, shift, timestamp):
+    def get_next_period_start(self, interval: int, shift: int, timestamp: float) -> float:
         """Return the timestamp when the next rate limit period begins for an interval."""
         return (((timestamp - shift) // interval) + 1) * interval + shift
 
-    def is_rate_limited(self, project, key=None, timestamp=None):
+    def is_rate_limited(
+        self, project: Project, key: ProjectKey | None = None, timestamp: float | None = None
+    ) -> RateLimited | NotRateLimited:
         # XXX: This is effectively deprecated and scheduled for removal. Event
         # ingestion quotas are now enforced in Relay. This function will be
         # deleted once the Python store endpoints are removed.
@@ -225,8 +253,8 @@ class RedisQuota(Quota):
         if not quotas:
             return NotRateLimited()
 
-        keys = []
-        args = []
+        keys: list[str] = []
+        args: list[int] = []
         for quota in quotas:
             if quota.limit == 0:
                 # A zero-sized quota is the absolute worst-case. Do not call
@@ -239,10 +267,10 @@ class RedisQuota(Quota):
 
             assert quota.should_track
 
-            shift = project.organization_id % quota.window
-            key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
-            return_key = self.get_refunded_quota_key(key)
-            keys.extend((key, return_key))
+            shift: int = project.organization_id % quota.window
+            quota_key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
+            return_key = self.get_refunded_quota_key(quota_key)
+            keys.extend((quota_key, return_key))
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
 
             # limit=None is represented as limit=-1 in lua
@@ -258,7 +286,7 @@ class RedisQuota(Quota):
         if not any(rejections):
             return NotRateLimited()
 
-        worst_case = (0, None)
+        worst_case: tuple[float, int | None] = (0, None)
         for quota, rejected in zip(quotas, rejections):
             if not rejected:
                 continue

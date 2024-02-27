@@ -53,7 +53,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
     return <Placeholder />;
   }
 
-  if (!hasSentOneReplay) {
+  if (!hasSentOneReplay && platformSupported) {
     return <ReplayInlineCTAPanel />;
   }
 

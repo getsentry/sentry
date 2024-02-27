@@ -102,12 +102,6 @@ def ingest_monitors_options() -> list[click.Option]:
             default=10,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
-        click.Option(
-            ["--max-workers", "max_workers"],
-            type=int,
-            default=None,
-            help="The maximum number of threads to spawn in parallel mode.",
-        ),
     ]
     return options
 
@@ -328,6 +322,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+    },
+    "process-spans": {
+        "topic": settings.KAFKA_SNUBA_SPANS,
+        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

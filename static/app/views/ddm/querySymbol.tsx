@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
-const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
 export const getQuerySymbol = (index: number) => {
   let result = '';
@@ -27,7 +27,7 @@ const Symbol = styled('div')<{isSelected: boolean}>`
   border-radius: 50%;
   font-weight: 500;
   color: ${p => p.theme.black};
-  font-size: 10px;
+  font-size: 11px;
   background: ${p => p.theme.yellow300};
 
   ${p =>
@@ -39,17 +39,17 @@ const Symbol = styled('div')<{isSelected: boolean}>`
 `;
 
 export function QuerySymbol({
-  index,
+  queryId,
   isSelected,
   ...props
-}: React.ComponentProps<typeof Symbol> & {index: number; isSelected: boolean}) {
-  const {showQuerySymbols} = useDDMContext();
-  if (!showQuerySymbols) {
+}: React.ComponentProps<typeof Symbol> & {isSelected: boolean; queryId: number}) {
+  const {showQuerySymbols, isMultiChartMode} = useDDMContext();
+  if (!showQuerySymbols || queryId < 0) {
     return null;
   }
   return (
-    <Symbol isSelected={isSelected} {...props}>
-      <span>{getQuerySymbol(index)}</span>
+    <Symbol isSelected={isMultiChartMode && isSelected} {...props}>
+      <span>{getQuerySymbol(queryId)}</span>
     </Symbol>
   );
 }

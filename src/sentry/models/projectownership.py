@@ -9,14 +9,14 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.actor import ActorTuple
+from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -111,11 +111,7 @@ class ProjectOwnership(Model):
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
 
-        If there are no matching rules, check ProjectOwnership.fallthrough:
-            If ProjectOwnership.fallthrough is enabled, return Everyone (all project members)
-             - we implicitly are falling through our rules and everyone is responsible.
-            If ProjectOwnership.fallthrough is disabled, return an empty list
-             - there are explicitly no owners
+        If there are no matching rules, return an empty list, and None for the rule.
 
         If there are matching rules, return the ordered actors.
             The order is determined by iterating through rules sequentially, evaluating
@@ -133,13 +129,7 @@ class ProjectOwnership(Model):
         rules = cls._matching_ownership_rules(ownership, data)
 
         if not rules:
-            project = Project.objects.get(id=project_id)
-            if features.has(
-                "organizations:issue-alert-fallback-targeting", project.organization, actor=None
-            ):
-                return [], None
-
-            return cls.Everyone if ownership.fallthrough else [], None
+            return [], None
 
         owners = {o for rule in rules for o in rule.owners}
         owners_to_actors = resolve_actors(owners, project_id)
@@ -178,7 +168,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str,]]:
+    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the issue owners for a project if there are any.
 
@@ -238,12 +228,21 @@ class ProjectOwnership(Model):
         return autoassignment_types
 
     @classmethod
-    def handle_auto_assignment(cls, project_id, event=None, group=None):
+    def handle_auto_assignment(
+        cls,
+        project_id: int,
+        event: Event | GroupEvent | None = None,
+        group: Group | None = None,
+        organization_id: int | None = None,
+        force_autoassign: bool = False,
+        logging_extra: dict[str, str] | None = None,
+    ):
         """
         Get the auto-assign owner for a project if there are any.
-
         We combine the schemas from IssueOwners and CodeOwners.
 
+        If `force_autoassign` is set to True, auto-assignment will occur even if manual assignment
+        has already taken place, but only if auto-assignment is enabled for the project.
         """
         from sentry import analytics
         from sentry.models.activity import ActivityIntegration
@@ -253,104 +252,118 @@ class ProjectOwnership(Model):
         from sentry.models.user import User
         from sentry.services.hybrid_cloud.user import RpcUser
 
-        # If event is passed in, then this is not called from the force auto-assign API, else it is
-        force_autoassign = True
-        if event:
-            force_autoassign = False
+        if logging_extra is None:
+            logging_extra = {}
+
+        if group is None and event is not None:
             group = event.group
+
+        if group is None:
+            return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
+            logging_extra["ownership"] = ownership
 
             autoassignment_types = cls._get_autoassignment_types(ownership)
             if not len(autoassignment_types):
+                logger.info("handle_auto_assignment.autoassignment_disabled", extra=logging_extra)
                 return
+            logging_extra["autoassignment_types"] = autoassignment_types
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
             issue_owner = GroupOwner.get_autoassigned_owner_cached(
                 group.id, project_id, autoassignment_types
             )
             if issue_owner is False:
+                logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return
+            logging_extra["issue_owner"] = issue_owner
 
             owner = issue_owner.owner()
             if not owner:
+                logger.info("handle_auto_assignment.no_owner", extra=logging_extra)
                 return
 
+            logging_extra["owner"] = owner
             try:
                 owner = owner.resolve()
             except (User.DoesNotExist, Team.DoesNotExist):
+                logger.info("handle_auto_assignment.no_resolved_owner", extra=logging_extra)
                 return
+            logging_extra["resolved_owner"] = owner
 
-            details = (
-                {"integration": ActivityIntegration.SUSPECT_COMMITTER.value}
-                if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value
-                else {
-                    "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
-                    "rule": (issue_owner.context or {}).get("rule", ""),
-                }
-                if issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value
-                else {
-                    "integration": ActivityIntegration.CODEOWNERS.value,
-                    "rule": (issue_owner.context or {}).get("rule", ""),
-                }
-            )
+            activity_details = {}
+            if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value:
+                activity_details["integration"] = ActivityIntegration.SUSPECT_COMMITTER.value
+            elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
+                activity_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
+                activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
+            else:
+                activity_details["integration"] = ActivityIntegration.CODEOWNERS.value
+                activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
+
+            logging_extra = {**logging_extra, **activity_details}
+
             activity = Activity.objects.filter(
                 group=group, type=ActivityType.ASSIGNED.value
             ).order_by("-datetime")
             if activity:
                 auto_assigned = activity[0].data.get("integration")
                 if not auto_assigned and not force_autoassign:
-                    logger.info(
-                        "autoassignment.post_manual_assignment",
-                        extra={
-                            "event_id": event.event_id,
-                            "group_id": event.group_id,
-                            "project": event.project_id,
-                            "organization_id": event.project.organization_id,
-                            **details,
-                        },
-                    )
+                    logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
+
+            if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
+                logging_extra["owner_type"] = str(type(owner))
+                logger.info("handle_auto_assignment.unknown_owner_type", extra=logging_extra)
+                return
+
             if (
                 isinstance(owner, Team)
-                and not GroupAssignee.objects.filter(group=group, team=owner.id).exists()
-            ) or (
-                isinstance(owner, RpcUser)
-                and not GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+                and GroupAssignee.objects.filter(group=group, team=owner.id).exists()
             ):
-                assignment = GroupAssignee.objects.assign(
-                    group,
-                    owner,
-                    create_only=not force_autoassign,
-                    extra=details,
-                    force_autoassign=force_autoassign,
-                )
+                logger.info("handle_auto_assignment.team_already_assigned", extra=logging_extra)
+                return
 
-                if assignment["new_assignment"] or assignment["updated_assignment"]:
-                    analytics.record(
+            if (
+                isinstance(owner, RpcUser)
+                and GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
+            ):
+                logger.info("handle_auto_assignment.user_already_assigned", extra=logging_extra)
+                return
+
+            assignment = GroupAssignee.objects.assign(
+                group,
+                owner,
+                create_only=not force_autoassign,
+                extra=activity_details,
+                force_autoassign=force_autoassign,
+            )
+
+            if assignment["new_assignment"] or assignment["updated_assignment"]:
+                analytics.record(
+                    (
                         "codeowners.assignment"
-                        if details.get("integration") == ActivityIntegration.CODEOWNERS.value
-                        else "issueowners.assignment",
-                        organization_id=ownership.project.organization_id,
-                        project_id=project_id,
-                        group_id=group.id,
-                    )
-                    logger.info(
-                        "handle_auto_assignment.success",
-                        extra={
-                            "event": event.event_id if event else None,
-                            "group": group.id,
-                            "project": group.project.id,
-                            "organization": group.project.organization_id,
-                            # owner_id returns a string including the owner type (user or team) and id
-                            "assignee": issue_owner.owner_id(),
-                            "reason": "created" if assignment["new_assignment"] else "updated",
-                            **details,
-                        },
-                    )
+                        if activity_details.get("integration")
+                        == ActivityIntegration.CODEOWNERS.value
+                        else "issueowners.assignment"
+                    ),
+                    organization_id=organization_id or ownership.project.organization_id,
+                    project_id=project_id,
+                    group_id=group.id,
+                )
+                logger.info(
+                    "handle_auto_assignment.success",
+                    extra={
+                        **logging_extra,
+                        # owner_id returns a string including the owner type (user or team) and id
+                        "assignee": issue_owner.owner_id(),
+                        "reason": "created" if assignment["new_assignment"] else "updated",
+                    },
+                )
 
     @classmethod
     def _matching_ownership_rules(
@@ -380,7 +393,7 @@ def process_resource_change(instance, change, **kwargs):
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
     if len(autoassignment_types) > 0:
         GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
-
+    GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 

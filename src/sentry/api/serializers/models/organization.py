@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
-from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -554,16 +553,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
+
+        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
         context["isDynamicallySampled"] = (
             features.has("organizations:dynamic-sampling", obj)
             and sample_rate is not None
             and sample_rate < 1.0
         )
+
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: float | None = get_sliding_window_org_sample_rate(obj.id)
+
+        if sample_rate is not None:
+            context["planSampleRate"] = sample_rate
+
+        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
+            org_id=obj.id, default_sample_rate=sample_rate
+        )
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
