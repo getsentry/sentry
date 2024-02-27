@@ -488,49 +488,16 @@ With download query argument.
 
   Content-Type application/octet-stream
 
-## Replay Videos [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/]
-
-- Parameters
-  - per_page
-  - cursor
-
-### Browse Replay Videos [GET]
-
-Retrieve a collection of replay videos.
-
-| Column     | Type   | Description |
-| ---------- | ------ | ----------- |
-| segment_id | number | -           |
-| url        | string | -           |
-
-- Response 200
-
-  ```json
-  {
-    "data": [
-      {
-        "segment_id": 0,
-        "url": "https://storage.google.com/presigned-url?file=3151351351"
-      }
-    ]
-  }
-  ```
-
 ## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
 
 ### Fetch Replay Video [GET]
 
-Retrieve a single replay video.
+Returns the bytes of a replay-segment video.
 
 - Response 200
 
-  ```json
-  {
-    "data": {
-      "segment_id": 0,
-      "url": "https://storage.google.com/presigned-url?file=3151351351"
-    }
-  }
+  ```
+  \x00\x00\x00
   ```
 
 ## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
