@@ -114,6 +114,7 @@ function useHoverSeries() {
   };
 }
 
+// TODO: add types
 export function MetricVisualization({queries, displayType, onDisplayTypeChange}) {
   const {selection} = usePageFilters();
   const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);

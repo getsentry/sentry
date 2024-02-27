@@ -4,6 +4,7 @@ import {parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
   if (!dashboardFilters?.release?.length) {
@@ -43,7 +44,7 @@ export function getMetricQueries(
       op: parsed.op,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
-      name: query.name || `query_${index + 1}`,
+      name: query.name || getQuerySymbol(index),
     };
   });
 }

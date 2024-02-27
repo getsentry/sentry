@@ -16,6 +16,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {Query} from 'sentry/views/ddm/queries';
 
+// TODO: add types
 export function Queries({metricWidgetQueries, handleChange, addQuery, removeQuery}) {
   const {selection} = usePageFilters();
 

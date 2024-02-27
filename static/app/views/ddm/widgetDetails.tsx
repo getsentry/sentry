@@ -69,6 +69,7 @@ interface MetricDetailsProps {
   query?: string;
 }
 
+// TODO: add types
 export function MetricDetails({
   mri,
   query,
