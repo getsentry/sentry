@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
@@ -8,6 +9,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
+const INVALID_BRANCH_REGEX = /\.{2,}/;
+
 interface TagTree {
   [key: string]: TagTreeContent;
 }
@@ -25,11 +28,12 @@ function addToTagTree(
   meta: Record<any, any>,
   originalTag: EventTag
 ): TagTree {
-  const branchMatches = tag.key.match(/\./g) ?? [];
+  const BRANCH_MATCHES_REGEX = /\./g;
+  const branchMatches = tag.key.match(BRANCH_MATCHES_REGEX) ?? [];
 
   const hasInvalidBranchCount =
     branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = /\.{2,}/g.test(tag.key);
+  const hasInvalidBranchSequence = INVALID_BRANCH_REGEX.test(tag.key);
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
@@ -42,7 +46,6 @@ function addToTagTree(
   const branch = tag.key.slice(splitIndex + 1); // 'model.version'
 
   if (tree[trunk] === undefined) {
-    // We need to define the default as an empty space for alignment
     tree[trunk] = {value: ' ', subtree: {}};
   }
   // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
@@ -122,18 +125,26 @@ interface EventTagsTreeProps {
   meta?: Record<any, any>;
 }
 
-function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
+function createTagTreeItemData(
+  tags: EventTagsTreeProps['tags'],
+  meta: EventTagsTreeProps['meta']
+): [string, TagTreeContent][] {
   const tagTree = tags.reduce<TagTree>(
     (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
     {}
   );
+  return Object.entries(tagTree);
+}
+
+function EventTagsTree({tags, meta, ...props}: EventTagsTreeProps) {
+  const tagTreeItemData = useMemo(() => createTagTreeItemData(tags, meta), [tags, meta]);
   return (
     <TreeContainer>
       <TreeGarden>
-        {Object.keys(tagTree).map((tagKey, i) => (
-          <TreeItem key={`${tagKey}_${i}`}>
-            <TagTreeKeys tag={tagKey} content={tagTree[tagKey]} />
-            <TagTreeValues tag={tagKey} content={tagTree[tagKey]} {...props} />
+        {tagTreeItemData.map(([tagKey, tagTreeContent]) => (
+          <TreeItem key={tagKey}>
+            <TagTreeKeys tag={tagKey} content={tagTreeContent} />
+            <TagTreeValues tag={tagKey} content={tagTreeContent} {...props} />
           </TreeItem>
         ))}
       </TreeGarden>
@@ -145,9 +156,8 @@ const TreeContainer = styled('div')``;
 
 const TreeGarden = styled('div')`
   display: grid;
-  gap: ${space(1)} ${space(2)};
+  gap: 0 ${space(2)};
   grid-template-columns: 1fr 1fr;
-  width: 200px;
 `;
 
 const TreeItem = styled('div')`
@@ -159,7 +169,7 @@ const TreeItem = styled('div')`
     background-color: ${p => p.theme.backgroundSecondary};
   }
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${space(1.5)} ${space(1)};
 `;
 
 const TreeKeyTrunk = styled('div')`
@@ -189,10 +199,9 @@ const TreeSpacer = styled('div')`
 
 const TreeValue = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
-  grid-column: 1 / 2;
-  line-height: 1;
+
   white-space: pre;
-  overflow-x: scroll;
+  display: inline-block;
 `;
 
 const TreeKey = styled(TreeValue)`
