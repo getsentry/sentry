@@ -15,7 +15,8 @@ class ConsumerDefinition(TypedDict, total=False):
     # Override topic. To be deprecated
     topic_override: Required[str | Callable[[], str]]
 
-    validate_schema: str
+    # Schema validation will be run if true
+    validate_schema: bool | None
 
     strategy_factory: Required[str]
 
