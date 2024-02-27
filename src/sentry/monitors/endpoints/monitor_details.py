@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import abc
-from typing import Any
-
 from django.db import router, transaction
 from django.db.models import F
 from django.db.models.functions import TruncMinute
@@ -11,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, quotas
+from sentry.api.base import BaseEndpointMixin
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -38,15 +36,7 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
 
-class MonitorDetailsMixin(abc.ABC):
-    @abc.abstractmethod
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
-        pass
-
+class MonitorDetailsMixin(BaseEndpointMixin):
     def get_monitor(self, request: Request, project: Project, monitor: Monitor) -> Response:
         """
         Retrieves details for a monitor.
