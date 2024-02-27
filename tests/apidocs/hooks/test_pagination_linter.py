@@ -5,7 +5,13 @@ Tests if linting works when `self.paginate` is called inside of the `get` method
 """
 
 
-class PaginateInGetMethod:
+class TestPaginationLinterBase:
+    def paginate(self, paginator, on_results):
+        (paginator, on_results)
+        pass
+
+
+class PaginateInGetMethod(TestPaginationLinterBase):
     def update(self):
         pass
 
@@ -31,7 +37,7 @@ class PaginateInGetMethod:
         pass
 
 
-class PaginateOutsideGetMethod:
+class PaginateOutsideGetMethod(TestPaginationLinterBase):
     def update(self):
         pass
 
@@ -56,7 +62,7 @@ class PaginateOutsideGetMethod:
         pass
 
 
-class PaginateMissing:
+class PaginateMissing(TestPaginationLinterBase):
     def update(self):
         pass
 
@@ -72,10 +78,10 @@ class PaginateMissing:
 
 class TestPaginationLinter:
     def test_paginate_in_get_method(self):
-        assert find_method_and_check_paginate(__file__, "PaginateInGetMethod") is False
+        assert find_method_and_check_paginate(__file__, "PaginateInGetMethod") is True
 
     def test_paginate_outside_get_method(self):
-        assert find_method_and_check_paginate(__file__, "PaginateOutsideGetMethod") is False
+        assert find_method_and_check_paginate(__file__, "PaginateOutsideGetMethod") is True
 
     def test_paginate_missing(self):
         assert find_method_and_check_paginate(__file__, "PaginateMissing") is False
