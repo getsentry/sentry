@@ -53,6 +53,5 @@ def create_topics(cluster_name: str, topics: list[str], force: bool = False) -> 
     topics must be from the same cluster.
     """
     conf = kafka_config.get_kafka_admin_cluster_options(cluster_name)
-    # Topics are implicitly created here
     admin_client = AdminClient(conf)
     wait_for_topics(admin_client, topics)
