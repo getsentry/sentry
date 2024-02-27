@@ -54,12 +54,14 @@ export type MetricsApiResponse = {
   start: string;
 };
 
+export interface MetricsQueryApiReponseData {
+  by: Record<string, string>;
+  series: Array<number | null>;
+  totals: number;
+}
+
 export interface MetricsQueryApiResponse {
-  data: {
-    by: Record<string, string>;
-    series: Array<number | null>;
-    totals: number;
-  }[][];
+  data: MetricsQueryApiReponseData[][];
   end: string;
   intervals: string[];
   meta: [
