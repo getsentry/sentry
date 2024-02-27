@@ -5,6 +5,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -154,8 +158,45 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const feedbackOnboardingCrashApiDart: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: `import 'package:sentry/sentry.dart';
+
+SentryId sentryId = Sentry.captureMessage("My message");
+
+final userFeedback = SentryUserFeedback(
+    eventId: sentryId,
+    comments: 'Hello World!',
+    email: 'foo@bar.org',
+    name: 'John Doe',
+);
+
+Sentry.captureUserFeedback(userFeedback);`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
 };
 
 export default docs;

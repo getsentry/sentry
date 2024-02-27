@@ -355,12 +355,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
         sentry_app_id: int,
         action_id: int,
         incident_id: int,
+        # deprecated
         organization: RpcOrganizationSummary,
         new_status: int,
         incident_attachment_json: str,
+        organization_id: int | None = None,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
+        if organization_id is None:
+            organization_id = organization.id
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
@@ -377,7 +381,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 extra={
                     "action": action_id,
                     "incident": incident_id,
-                    "organization": organization.slug,
+                    "organization_id": organization_id,
                     "sentry_app_id": sentry_app.id,
                 },
                 exc_info=True,
@@ -403,7 +407,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if alert_rule_action_ui_component:
             analytics.record(
                 "alert_rule_ui_component_webhook.sent",
-                organization_id=organization.id,
+                organization_id=organization_id,
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )

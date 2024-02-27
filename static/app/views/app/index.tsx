@@ -35,7 +35,7 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard: React.FC<InstallWizardProps> = lazy(
+const InstallWizard: React.ComponentType<InstallWizardProps> = lazy(
   () => import('sentry/views/admin/installWizard')
 );
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
