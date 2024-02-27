@@ -3520,8 +3520,6 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
 }
 
 
-# If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False

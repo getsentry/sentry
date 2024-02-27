@@ -368,7 +368,7 @@ Alternatively, run without --workers.
 
         for topic_name, topic_data in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
-                create_topics(topic_data["cluster"], [topic_name], force=True)
+                create_topics(topic_data["cluster"], [topic_name])
 
         if dev_consumer:
             daemons.append(
