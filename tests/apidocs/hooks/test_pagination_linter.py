@@ -6,8 +6,8 @@ Tests if linting works when `self.paginate` is called inside of the `get` method
 
 
 class TestPaginationLinterBase:
-    def paginate(self, paginator, on_results):
-        (paginator, on_results)
+    def paginate(self, request=None, paginator=None, on_results=None):
+        (request, paginator, on_results)
         pass
 
 
