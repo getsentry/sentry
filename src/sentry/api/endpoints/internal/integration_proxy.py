@@ -134,6 +134,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
+            self.log_extra["silo_mode"] = SiloMode.get_current_mode()
             logger.info("integration_proxy.incorrect_silo_mode", extra=self.log_extra)
             return False
 
