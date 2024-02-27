@@ -1,45 +1,38 @@
-import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import Color from 'color';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import {transformToLineSeries} from 'sentry/components/charts/lineChart';
-import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import mergeRefs from 'sentry/utils/mergeRefs';
-import {isCumulativeOp} from 'sentry/utils/metrics';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaProps} from 'sentry/views/ddm/context';
-import {useFocusArea} from 'sentry/views/ddm/focusArea';
-
 import {
   defaultFormatAxisLabel,
   getFormatter,
-} from '../../components/charts/components/tooltip';
-import {isChartHovered} from '../../components/charts/utils';
+} from 'sentry/components/charts/components/tooltip';
+import {transformToLineSeries} from 'sentry/components/charts/lineChart';
+import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import {isChartHovered} from 'sentry/components/charts/utils';
+import {t} from 'sentry/locale';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import mergeRefs from 'sentry/utils/mergeRefs';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
+import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
+import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
 
-import {useChartSamples} from './useChartSamples';
-import type {SamplesProps, ScatterSeries as ScatterSeriesType, Series} from './widget';
+export const MAIN_X_AXIS_ID = 'xAxis';
+export const MAIN_Y_AXIS_ID = 'yAxis';
 
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
-  widgetIndex: number;
-  focusArea?: FocusAreaProps;
+  focusArea?: UseFocusAreaResult;
   group?: string;
   height?: number;
-  scatter?: SamplesProps;
+  samples?: UseMetricSamplesResult;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -74,36 +67,12 @@ function addSeriesPadding(data: Series['data']) {
 }
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  (
-    {series, displayType, widgetIndex, focusArea, height, scatter, group},
-    forwardedRef
-  ) => {
-    const router = useRouter();
+  ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
     const chartRef = useRef<ReactEchartsRef>(null);
 
-    const handleZoom = useCallback(
-      (range: DateTimeObject) => {
-        Sentry.metrics.increment('ddm.enhance.zoom');
-        updateDateTime(range, router, {save: true});
-      },
-      [router]
-    );
-
-    const unit = series.find(s => !s.hidden)?.unit || series[0]?.unit || '';
-    const hasCumulativeOp = series.some(s => isCumulativeOp(s.operation));
-
-    const focusAreaBrush = useFocusArea({
-      ...focusArea,
-      sampleUnit: scatter?.unit,
-      chartUnit: unit,
-      chartRef,
-      opts: {
-        widgetIndex,
-        isDisabled: !focusArea?.onAdd || !handleZoom,
-        useFullYAxis: hasCumulativeOp,
-      },
-      onZoom: handleZoom,
-    });
+    const firstUnit = series.find(s => !s.hidden)?.unit || series[0]?.unit || 'none';
+    const firstOperation =
+      series.find(s => !s.hidden)?.operation || series[0]?.operation || '';
 
     useEffect(() => {
       if (!group) {
@@ -141,16 +110,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [series, ingestionBuckets, displayType]
     );
 
-    const samples = useChartSamples({
-      chartRef,
-      correlations: scatter?.data,
-      unit: scatter?.unit,
-      onClick: scatter?.onClick,
-      highlightedSampleId: scatter?.higlightedId,
-      operation: scatter?.operation,
-      timeseries: series,
-    });
-
     const chartProps = useMemo(() => {
       const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
       const seriesMeta = seriesToShow.reduce(
@@ -166,7 +125,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       const timeseriesFormatters = {
         valueFormatter: (value: number, seriesName?: string) => {
-          const meta = seriesName ? seriesMeta[seriesName] : {unit, operation: undefined};
+          const meta = seriesName
+            ? seriesMeta[seriesName]
+            : {unit: firstUnit, operation: undefined};
           return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
         },
         isGroupedByDate: true,
@@ -181,9 +142,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       const heightOptions = height ? {height} : {autoHeightResize: true};
 
-      return {
+      let baseChartProps: CombinedMetricChartProps = {
         ...heightOptions,
-        ...focusAreaBrush.options,
+        displayType,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
         devicePixelRatio: 2,
@@ -191,24 +152,17 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        onClick: samples.handleClick,
         tooltip: {
           formatter: (params, asyncTicket) => {
-            if (focusAreaBrush.isDrawingRef.current) {
-              return '';
-            }
+            // Only show the tooltip if the current chart is hovered
+            // as chart groups trigger the tooltip for all charts in the group when one is hoverered
             if (!isChartHovered(chartRef?.current)) {
               return '';
             }
 
-            // Hovering a single correlated sample datapoint
-            if (params.seriesType === 'scatter') {
-              return getFormatter(samples.formatters)(params, asyncTicket);
-            }
-
-            // The mechanism by which we add the fog of war series to the chart, duplicates the series in the chart data
-            // so we need to deduplicate the series before showing the tooltip
-            // this assumes that the first series is the main series and the second is the fog of war series
+            // The mechanism by which we display ingestion delay the chart, duplicates the series in the chart data
+            // so we need to de-duplicate the series before showing the tooltip
+            // this assumes that the first series is the main series and the second is the ingestion delay series
             if (Array.isArray(params)) {
               const uniqueSeries = new Set<string>();
               const deDupedParams = params.filter(param => {
@@ -266,71 +220,66 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         yAxes: [
           {
             // used to find and convert datapoint to pixel position
-            id: 'yAxis',
+            id: MAIN_Y_AXIS_ID,
             axisLabel: {
               formatter: (value: number) => {
                 return formatMetricsUsingUnitAndOp(
                   value,
-                  hasMultipleUnits ? 'none' : unit,
-                  scatter?.operation
+                  hasMultipleUnits ? 'none' : firstUnit,
+                  firstOperation
                 );
               },
             },
           },
-          samples.yAxis,
         ],
         xAxes: [
           {
             // used to find and convert datapoint to pixel position
-            id: 'xAxis',
+            id: MAIN_X_AXIS_ID,
             axisPointer: {
               snap: true,
             },
           },
-          samples.xAxis,
         ],
       };
+
+      if (samples?.applyChartProps) {
+        baseChartProps = samples.applyChartProps(baseChartProps);
+      }
+      // Apply focus area props as last so it can disable tooltips
+      if (focusArea?.applyChartProps) {
+        baseChartProps = focusArea.applyChartProps(baseChartProps);
+      }
+
+      return baseChartProps;
     }, [
       seriesToShow,
       bucketSize,
       isSubMinuteBucket,
       height,
-      focusAreaBrush.options,
-      focusAreaBrush.isDrawingRef,
+      displayType,
       forwardedRef,
-      samples.handleClick,
-      samples.yAxis,
-      samples.xAxis,
-      samples.formatters,
-      unit,
-      scatter?.operation,
+      samples,
+      focusArea,
+      firstUnit,
+      firstOperation,
     ]);
 
     return (
       <ChartWrapper>
-        {focusAreaBrush.overlay}
-        <CombinedChart
-          {...chartProps}
-          displayType={displayType}
-          scatterSeries={samples.series}
-        />
+        {focusArea?.overlay}
+        <CombinedChart {...chartProps} />
       </ChartWrapper>
     );
   }
 );
-
-interface CombinedChartProps extends BaseChartProps {
-  displayType: MetricDisplayType;
-  series: Series[];
-  scatterSeries?: ScatterSeriesType[];
-}
 
 function CombinedChart({
   displayType,
   series,
   scatterSeries = [],
   ...chartProps
-}: CombinedChartProps) {
+}: CombinedMetricChartProps) {
   const combinedSeries = useMemo(() => {
     if (displayType === MetricDisplayType.LINE) {
       return [

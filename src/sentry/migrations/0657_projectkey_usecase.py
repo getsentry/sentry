@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0652_alert_rule_activation_condition"),
+        ("sentry", "0656_add_discover_dataset_split_dashboard"),
     ]
 
     operations = [

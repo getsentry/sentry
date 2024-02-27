@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from sentry import roles
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
@@ -85,21 +83,20 @@ class ControlAccessService(AccessService):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
-
-        # Get more org role related data into control to reduce this inter silo rpc stuff....
-        org_roles = self.get_all_org_roles(
-            member_id=member.id, organization_id=member.organization_id
-        )
-        if roles.get_top_dog().id not in org_roles:
+        # get member role
+        try:
+            member_role = OrganizationMemberMapping.objects.get(
+                organizationmember_id=member.id, organization_id=member.organization_id
+            ).role
+        except OrganizationMemberMapping.DoesNotExist:
             return False
 
-        all_top_dogs_from_teams = self.get_top_dog_team_member_ids(
-            organization_id=member.organization_id
-        )
+        if member_role != roles.get_top_dog().id:
+            return False
+
         user_ids = (
             OrganizationMemberMapping.objects.filter(
-                Q(organizationmember_id__in=all_top_dogs_from_teams)
-                | Q(role=roles.get_top_dog().id),
+                role=roles.get_top_dog().id,
                 organization_id=member.organization_id,
                 user__is_active=True,
             )
@@ -160,18 +157,20 @@ class RegionAccessService(AccessService):
     def can_override_sso_as_owner(
         self, auth_provider: RpcAuthProvider, member: RpcOrganizationMemberSummary
     ) -> bool:
-        org_roles = self.get_all_org_roles(
-            member_id=member.id, organization_id=member.organization_id
-        )
-        if roles.get_top_dog().id not in org_roles:
+        # get member role
+        try:
+            member_role = OrganizationMember.objects.get(
+                id=member.id, organization_id=member.organization_id
+            ).role
+        except OrganizationMember.DoesNotExist:
             return False
 
-        all_top_dogs_from_teams = self.get_top_dog_team_member_ids(
-            organization_id=member.organization_id
-        )
+        if member_role != roles.get_top_dog().id:
+            return False
+
         user_ids = (
             OrganizationMember.objects.filter(
-                Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
+                role=roles.get_top_dog().id,
                 organization_id=member.organization_id,
                 user_is_active=True,
             )

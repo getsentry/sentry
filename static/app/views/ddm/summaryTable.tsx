@@ -17,7 +17,7 @@ import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/ddm/widget';
+import type {Series} from 'sentry/views/ddm/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
@@ -26,13 +26,13 @@ export const SummaryTable = memo(function SummaryTable({
   onColorDotClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
-  setHoveredSeries,
+  onRowHover,
 }: {
   onRowClick: (series: FocusedMetricsSeries) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  setHoveredSeries?: (seriesName: string) => void;
+  onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
@@ -138,6 +138,7 @@ export const SummaryTable = memo(function SummaryTable({
   return (
     <SummaryTableWrapper hasActions={hasActions}>
       <HeaderCell disabled />
+      <HeaderCell disabled />
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="name">
         {t('Name')}
       </SortableHeaderCell>
@@ -153,15 +154,13 @@ export const SummaryTable = memo(function SummaryTable({
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
-      {hasActions && (
-        <HeaderCell disabled right>
-          {t('Actions')}
-        </HeaderCell>
-      )}
+      <HeaderCell disabled right />
+      <HeaderCell disabled />
       <TableBodyWrapper
+        hasActions={hasActions}
         onMouseLeave={() => {
           if (hasMultipleSeries) {
-            setHoveredSeries?.('');
+            onRowHover?.('');
           }
         }}
       >
@@ -183,7 +182,7 @@ export const SummaryTable = memo(function SummaryTable({
           }) => {
             return (
               <Fragment key={id}>
-                <CellWrapper
+                <Row
                   onClick={() => {
                     if (hasMultipleSeries) {
                       onRowClick({
@@ -194,10 +193,11 @@ export const SummaryTable = memo(function SummaryTable({
                   }}
                   onMouseEnter={() => {
                     if (hasMultipleSeries) {
-                      setHoveredSeries?.(id);
+                      onRowHover?.(id);
                     }
                   }}
                 >
+                  <PaddingCell />
                   <Cell
                     onClick={event => {
                       event.stopPropagation();
@@ -229,19 +229,30 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-                </CellWrapper>
-                {hasActions && (
-                  <Cell right>
+                  <NumberCell>
+                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
+                  </NumberCell>
+                  <NumberCell>
+                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
+                  </NumberCell>
+                  <NumberCell>
+                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
+                  </NumberCell>
+                  <NumberCell>
+                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
+                  </NumberCell>
+
+                  <CenterCell>
                     <ButtonBar gap={0.5}>
                       {transaction && (
                         <div>
                           <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton to={transactionTo(transaction)} size="xs">
-                              <IconLightning size="xs" />
+                            <LinkButton
+                              to={transactionTo(transaction)}
+                              size="zero"
+                              borderless
+                            >
+                              <IconLightning size="sm" />
                             </LinkButton>
                           </Tooltip>
                         </div>
@@ -250,15 +261,17 @@ export const SummaryTable = memo(function SummaryTable({
                       {release && (
                         <div>
                           <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="xs">
-                              <IconReleases size="xs" />
+                            <LinkButton to={releaseTo(release)} size="zero" borderless>
+                              <IconReleases size="sm" />
                             </LinkButton>
                           </Tooltip>
                         </div>
                       )}
                     </ButtonBar>
-                  </Cell>
-                )}
+                  </CenterCell>
+
+                  <PaddingCell />
+                </Row>
               </Fragment>
             );
           }
@@ -316,14 +329,26 @@ function SortableHeaderCell({
       ''
     );
 
+  if (right) {
+    return (
+      <HeaderCell
+        onClick={() => {
+          onClick(name);
+        }}
+        right
+      >
+        {sortIcon} {children}
+      </HeaderCell>
+    );
+  }
+
   return (
     <HeaderCell
       onClick={() => {
         onClick(name);
       }}
-      right={right}
     >
-      {sortIcon} {children}
+      {children} {sortIcon}
     </HeaderCell>
   );
 }
@@ -351,44 +376,65 @@ function getValues(seriesData: Series['data']) {
   return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
-// TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
-// so we're using a custom styled component instead. Figure out what we want to do here
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
-  grid-template-columns: ${p =>
-    p.hasActions ? '24px 8fr repeat(5, 1fr)' : '24px 8fr repeat(4, 1fr)'};
+  /* padding | color dot | name | avg | min | max | sum | actions | padding */
+  grid-template-columns: ${space(0.75)} ${space(3)} 8fr repeat(5, max-content) ${space(
+      0.75
+    )};
+
   max-height: 200px;
+  overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-// TODO(ddm): This is a copy of PanelTableHeader, try to figure out how to reuse it
+const TableBodyWrapper = styled(`div`)<{hasActions: boolean}>`
+  display: contents;
+`;
+
 const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  text-transform: uppercase;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  line-height: 1;
   display: flex;
   flex-direction: row;
+  text-transform: uppercase;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-  padding: ${space(0.5)} ${space(1)};
+  align-items: center;
   gap: ${space(0.5)};
+  padding: ${space(0.25)} ${space(0.75)};
+  line-height: ${p => p.theme.text.lineHeightBody};
+  font-weight: 600;
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.subText};
   user-select: none;
 
-  :hover {
-    cursor: ${p => (p.disabled ? 'auto' : 'pointer')};
-    background-color: ${p => (p.disabled ? p.theme.background : p.theme.bodyBackground)};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: 0;
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  &:hover {
+    cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   }
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${space(0.25)} ${space(0.75)};
   align-items: center;
-  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
   white-space: nowrap;
+`;
+
+const NumberCell = styled(Cell)`
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+`;
+
+const CenterCell = styled(Cell)`
+  justify-content: center;
 `;
 
 const TextOverflowCell = styled(Cell)`
@@ -402,15 +448,15 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   height: ${space(1)};
 `;
 
-const TableBodyWrapper = styled('div')`
-  display: contents;
+const PaddingCell = styled(Cell)`
+  padding: 0;
 `;
 
-const CellWrapper = styled('div')`
+const Row = styled('div')`
   display: contents;
   &:hover {
     cursor: pointer;
-    ${Cell}, ${TextOverflowCell} {
+    ${Cell}, ${NumberCell}, ${CenterCell}, ${PaddingCell}, ${TextOverflowCell} {
       background-color: ${p => p.theme.bodyBackground};
     }
   }

@@ -1,18 +1,21 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -157,7 +160,7 @@ const replayOnboarding: OnboardingConfig = {
               }),
             },
           ],
-          additionalInfo: tracePropagationMessage,
+          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
@@ -282,6 +285,9 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/electron/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],

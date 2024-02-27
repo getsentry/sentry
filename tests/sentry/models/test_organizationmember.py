@@ -517,48 +517,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
                 roles.get("carol"),
             ]
 
-    def test_get_allowed_org_roles_to_invite_subset_member_logic(self):
-        """
-        There are two org options which mutate org member scopes:
-            1. sentry:events_member_admin - if True, members have events:admin
-            2. sentry:alerts_member_write - if True, members have alerts:write
-        These settings are both True by default, although in the SENTRY_ROLES
-        config, we default to giving member alerts:write but not events:admin.
-        """
-        org_member = self.create_member(
-            user=self.create_user(), organization=self.organization, role="member"
-        )
-
-        assert "event:admin" in org_member.get_scopes()
-        assert "alerts:write" in org_member.get_scopes()
-
-        assert org_member.get_allowed_org_roles_to_invite() == [
-            roles.get("member"),
-        ]
-
-        self.organization.update_option("sentry:events_member_admin", False)
-        self.organization.update_option("sentry:events_member_admin", False)
-
-        assert org_member.get_allowed_org_roles_to_invite() == [
-            roles.get("member"),
-        ]
-
-    def test_org_roles_by_source(self):
-        manager_team = self.create_team(organization=self.organization, org_role="manager")
-        owner_team = self.create_team(organization=self.organization, org_role="owner")
-        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
-        member = self.create_member(
-            organization=self.organization,
-            teams=[manager_team, owner_team, owner_team2],
-            user=self.create_user(),
-            role="member",
-        )
-
-        roles = member.get_org_roles_from_teams_by_source()
-        assert roles[0][1].id == "owner"
-        assert roles[-1][0] == manager_team.slug
-        assert roles[-1][1].id == "manager"
-
     def test_cannot_demote_last_owner(self):
         org = self.create_organization()
 
