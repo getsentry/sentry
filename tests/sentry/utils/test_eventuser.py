@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
-now = before_now(days=1).replace(minute=10).replace(second=0).replace(microsecond=0)
+now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None)
 
 
 @region_silo_test
