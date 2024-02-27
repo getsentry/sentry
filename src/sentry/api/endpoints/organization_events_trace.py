@@ -24,6 +24,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.utils import parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -721,6 +722,19 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        # during the transition this is optional but it will become required
+        if "timestamp" in request.GET:
+            example_timestamp: datetime | None = parse_datetime_string(request.GET["timestamp"])
+            # While possible, the majority of traces shouldn't take more than a week
+            # Starting with 3d for now, but potentially something we can increase if this becomes a problem
+            example_start = example_timestamp - timedelta(days=1, hours=12)
+            example_end = example_timestamp + timedelta(days=1, hours=12)
+            # If timestamp is being passed it should always overwrite the statsperiod or start & end
+            # the client should just not pass a timestamp if we need to overwrite this logic for any reason
+            params["start"] = max(params["start"], example_start)
+            params["end"] = min(params["end"], example_end)
+        else:
+            example_timestamp = None
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
@@ -1301,6 +1315,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 "orphan_errors": [self.serialize_error(error) for error in orphan_errors],
             }
 
+    @sentry_sdk.trace
     def calculate_remaining_transactions(self, transactions, visited_transactions):
         return sorted(
             [
@@ -1311,6 +1326,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             key=lambda k: -datetime.fromisoformat(k["timestamp"]).timestamp(),
         )
 
+    @sentry_sdk.trace
     def visit_transactions(
         self, to_visit, transactions, errors, visited_transactions, visited_errors
     ):
