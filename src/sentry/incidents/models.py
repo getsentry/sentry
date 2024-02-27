@@ -743,7 +743,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
 
     class Meta:
