@@ -595,9 +595,10 @@ class _RemoteSiloCall:
         if options.get("hybrid_cloud.rpc.disabled"):
             raise RpcDisabledException("RPC disabled")
 
-        service_method_name = f"{self.service_name}.{self.method_name}"
-        if service_method_name in options.get("hybrid_cloud.rpc.disabled-service-methods"):
-            raise RpcDisabledException(f"RPC {service_method_name} disabled")
+        if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
+            service_method = f"{self.service_name}.{self.method_name}"
+            if service_method in disabled_service_methods:
+                raise RpcDisabledException(f"RPC {service_method} disabled")
 
 
 class RpcDisabledException(Exception):
