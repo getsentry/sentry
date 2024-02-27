@@ -607,6 +607,7 @@ module = [
     "tests.sentry.issues.test_utils",
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
+    "tests.sentry.tasks.test_daily_summary",
     "tests.sentry.tasks.test_post_process",
     "tools.mypy_helpers.make_module_ignores",
 ]
