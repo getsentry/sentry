@@ -20,7 +20,6 @@ import {MetricWidget} from './widget';
 
 function widgetToQuery(
   widget: MetricWidgetQueryParams,
-  queryLookup: Map<string, any>,
   isQueryOnly = false
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
@@ -28,10 +27,7 @@ function widgetToQuery(
         name: getQuerySymbol(widget.id),
         // TODO(aknaus): Properly parse formulas to format identifiers
         // This solution is limited to single character identifiers
-        formula: widget.formula
-          .split('')
-          .map(char => (queryLookup.has(char) ? `$${char}` : char))
-          .join(''),
+        formula: widget.formula,
       }
     : {
         name: getQuerySymbol(widget.id),
@@ -118,10 +114,10 @@ export function MetricScratchpad() {
       // TODO(aknaus): Memoize this
       children.forEach(child => {
         if (child.type === MetricQueryType.FORMULA) {
-          dependencies.push(widgetToQuery(child, queriesLookup, true));
+          dependencies.push(widgetToQuery(child, true));
           dependencies.push(...getFormulasQueryDependencies(child.formula));
         } else {
-          dependencies.push(widgetToQuery(child, queriesLookup, true));
+          dependencies.push(widgetToQuery(child, true));
         }
       });
 
@@ -144,7 +140,7 @@ export function MetricScratchpad() {
             focusedSeries={widget.focusedSeries}
             tableSort={widget.sort}
             queries={[
-              widgetToQuery(widget, queriesLookup),
+              widgetToQuery(widget),
               ...(widget.type === MetricQueryType.FORMULA
                 ? // TODO(aknaus): Properly parse formulas to extract identifiers
                   // This solution is limited to single character identifiers
@@ -173,7 +169,7 @@ export function MetricScratchpad() {
           displayType={firstWidget.displayType}
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
-          queries={widgets.map(w => widgetToQuery(w, queriesLookup))}
+          queries={widgets.map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
