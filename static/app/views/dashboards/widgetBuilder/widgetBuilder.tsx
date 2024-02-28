@@ -124,7 +124,7 @@ interface QueryData {
 
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
-  onSave: (widgets: Widget[], callback?: () => void) => void;
+  onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
   tags: TagCollection;
