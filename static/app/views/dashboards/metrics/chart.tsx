@@ -18,8 +18,8 @@ type MetricChartContainerProps = {
   displayType: MetricDisplayType;
   isLoading: boolean;
   metricQueries: MetricsQueryApiRequestQuery[];
-  timeseriesData: MetricsQueryApiResponse;
   chartHeight?: number;
+  timeseriesData?: MetricsQueryApiResponse;
 };
 
 export function MetricChartContainer({
