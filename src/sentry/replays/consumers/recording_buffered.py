@@ -55,7 +55,12 @@ from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    make_video_filename,
+    storage_kv,
+)
 from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
@@ -132,11 +137,8 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 class UploadEvent(TypedDict):
-    payload: bytes
-    project_id: int
-    replay_id: str
-    retention_days: int
-    segment_id: int
+    key: str
+    value: bytes
 
 
 class InitialSegmentEvent(TypedDict):
@@ -231,16 +233,28 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
         )
         return None
 
+    recording_segment = RecordingSegmentStorageMeta(
+        project_id=decoded_message["project_id"],
+        replay_id=decoded_message["replay_id"],
+        retention_days=decoded_message["retention_days"],
+        segment_id=headers["segment_id"],
+    )
+
     # Append an upload event to the state object for later processing.
     buffer.upload_events.append(
-        {
-            "payload": recording_data,
-            "project_id": decoded_message["project_id"],
-            "replay_id": decoded_message["replay_id"],
-            "retention_days": decoded_message["retention_days"],
-            "segment_id": headers["segment_id"],
-        }
+        {"key": make_recording_filename(recording_segment), "value": recording_data}
     )
+
+    if replay_video := decoded_message.get("replay_video"):
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(replay_video),  # type: ignore
+            unit="byte",
+        )
+        buffer.upload_events.append(
+            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore
+        )
 
     # Initial segment events are recorded in the state machine.
     if headers["segment_id"] == 0:
@@ -357,15 +371,7 @@ def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> Non
 
 def _do_upload(upload_event: UploadEvent) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.upload_segment"):
-        recording_metadata = RecordingSegmentStorageMeta(
-            project_id=upload_event["project_id"],
-            replay_id=upload_event["replay_id"],
-            segment_id=upload_event["segment_id"],
-            retention_days=upload_event["retention_days"],
-        )
-        recording_data = upload_event["payload"]
-
         # If an error occurs this will retry up to five times by default.
         #
         # Refer to `src.sentry.filestore.gcs.GCS_RETRIES`.
-        storage.set(recording_metadata, recording_data)
+        storage_kv.set(upload_event["key"], upload_event["value"])
