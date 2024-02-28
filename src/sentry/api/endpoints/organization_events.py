@@ -313,39 +313,40 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
             This should be removed once the discover dataset is completely split in dashboards.
             """
-            scopedQuery = request.GET.get("query")
+            scoped_query = request.GET.get("query")
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
 
             def fn(offset, limit) -> dict[str, Any]:
                 if not (metrics_enhanced and dashboard_widget_id):
-                    return _data_fn(scopedDataset, offset, limit, scopedQuery)
+                    return _data_fn(scopedDataset, offset, limit, scoped_query)
 
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
 
                 if does_widget_have_split:
                     # This is essentially cached behaviour and we skip the check
+                    split_query = scoped_query
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                        return _data_fn(
-                            discover, offset, limit, f"({scopedQuery}) AND event.type:error"
-                        )
-                    if widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        return _data_fn(scopedDataset, offset, limit, scopedQuery)
-                    if widget.discover_widget_split == DashboardWidgetTypes.DISCOVER:
-                        # This is a fallback for the ambiguous case.
-                        return _data_fn(discover, offset, limit, scopedQuery)
+                        split_dataset = discover
+                        split_query = f"({scoped_query}) AND event.type:error"
+                    elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        split_dataset = scopedDataset
+                    else:
+                        split_dataset = discover
+
+                    return _data_fn(split_dataset, offset, limit, split_query)
 
                 # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                 error_results = _data_fn(
-                    discover, offset, limit, f"({scopedQuery}) AND event.type:error"
+                    discover, offset, limit, f"({scoped_query}) AND event.type:error"
                 )
                 has_errors = len(error_results["data"]) > 0
 
                 if has_errors:
-                    # If we see errors, always fallback to discover to scopedQuery for the user.
-                    all_results = _data_fn(discover, offset, limit, scopedQuery)
+                    # If we see errors, always fallback to discover to scoped_query for the user.
+                    all_results = _data_fn(discover, offset, limit, scoped_query)
                 else:
-                    all_results = _data_fn(scopedDataset, offset, limit, scopedQuery)
+                    all_results = _data_fn(scopedDataset, offset, limit, scoped_query)
 
                 has_other_data = len(all_results["data"]) > 0
                 new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)

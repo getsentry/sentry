@@ -217,7 +217,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
         def _get_event_stats(
-            scopedDataset: Any,
+            scoped_dataset: Any,
             query_columns: Sequence[str],
             query: str,
             params: dict[str, str],
@@ -226,7 +226,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult:
             if top_events > 0:
-                return scopedDataset.top_events_timeseries(
+                return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -244,7 +244,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                 )
 
-            return scopedDataset.timeseries_query(
+            return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
@@ -269,7 +269,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
-        def get_event_stats_factory(scopedDataset):
+        def get_event_stats_factory(scoped_dataset):
             """
             This factory closes over dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
@@ -286,9 +286,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
             ) -> SnubaTSResult:
+
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
-                        scopedDataset,
+                        scoped_dataset,
                         query_columns,
                         query,
                         params,
@@ -303,38 +304,25 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
                     if does_widget_have_split:
                         # This is essentially cached behaviour and we skip the check
+                        split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                            errors_only_query = f"({query}) AND event.type:error"
-                            return _get_event_stats(
-                                discover,
-                                query_columns,
-                                errors_only_query,
-                                params,
-                                rollup,
-                                zerofill_results,
-                                comparison_delta,
-                            )
-                        if widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                            return _get_event_stats(
-                                scopedDataset,
-                                query_columns,
-                                query,
-                                params,
-                                rollup,
-                                zerofill_results,
-                                comparison_delta,
-                            )
-                        if widget.discover_widget_split == DashboardWidgetTypes.DISCOVER:
+                            split_dataset = discover
+                            split_query = f"({query}) AND event.type:error"
+                        elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            split_dataset = scoped_dataset
+                        else:
                             # This is a fallback for the ambiguous case.
-                            return _get_event_stats(
-                                discover,
-                                query_columns,
-                                query,
-                                params,
-                                rollup,
-                                zerofill_results,
-                                comparison_delta,
-                            )
+                            split_dataset = scoped_dataset
+
+                        return _get_event_stats(
+                            split_dataset,
+                            query_columns,
+                            split_query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
 
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                     errors_only_query = f"({query}) AND event.type:error"
@@ -360,7 +348,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if has_errors:
                         # If we see errors, always fallback to discover to scopedQuery for the user.
                         all_results = _get_event_stats(
-                            scopedDataset,
+                            scoped_dataset,
                             query_columns,
                             query,
                             params,
@@ -411,7 +399,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     # Swallow the exception if it was due to dashboards, and try again one more time.
                     sentry_sdk.capture_exception(e)
                     return _get_event_stats(
-                        scopedDataset,
+                        scoped_dataset,
                         query_columns,
                         query,
                         params,
