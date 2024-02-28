@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -13,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types';
+import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/monitors/types';
@@ -68,7 +70,18 @@ export function TimelineTableRow({
           <Name>{monitor.name}</Name>
           {isDisabled && <Tag>{t('Disabled')}</Tag>}
         </DetailsHeadline>
-        <Schedule>{scheduleAsText(monitor.config)}</Schedule>
+        <ProjectScheduleDetails>
+          <Schedule>{scheduleAsText(monitor.config)}</Schedule>
+          <ProjectDetails>
+            <ProjectBadge
+              project={monitor.project}
+              avatarSize={12}
+              disableLink
+              hideName
+            />
+            <Schedule>{trimSlug(monitor.project.slug)}</Schedule>
+          </ProjectDetails>
+        </ProjectScheduleDetails>
       </DetailsLink>
       <DetailsActions>
         {onToggleStatus && (
@@ -217,6 +230,17 @@ const DetailsHeadline = styled('div')`
 
   /* We always leave at least enough room for the status toggle button */
   grid-template-columns: 1fr minmax(30px, max-content);
+`;
+
+const ProjectScheduleDetails = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const ProjectDetails = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
 const Name = styled('h3')`
