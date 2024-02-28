@@ -151,7 +151,7 @@ function Trace({trace, trace_id}: TraceProps) {
       >
         <TraceDivider
           className="TraceDivider"
-          ref={r => viewManager.current?.registerDividerRef(r)}
+          ref={r => viewManager?.registerDividerRef(r)}
         />
         {trace.type === 'loading' ? <TraceLoading /> : null}
         <AutoSizer>
