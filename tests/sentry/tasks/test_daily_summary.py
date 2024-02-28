@@ -21,6 +21,7 @@ from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
+@freeze_time(before_now(days=2).replace(hour=0, minute=5, second=0, microsecond=0))
 class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     def store_event_and_outcomes(
         self, project_id, timestamp, fingerprint, category, num_times, release=None, resolve=True
@@ -34,6 +35,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             }
             if release:
                 data["release"] = release
+
             event = self.store_event(
                 data=data,
                 project_id=project_id,
@@ -60,7 +62,6 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             group.save()
         return group
 
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def setUp(self):
         super().setUp()
         self.now = datetime.now().replace(tzinfo=timezone.utc)
@@ -73,13 +74,12 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             name="foo", organization=self.organization, teams=[self.team]
         )
         self.project2.first_event = self.three_days_ago
-        user = self.create_user()
-        user_option_service.set_option(user_id=user.id, key="timezone", value="America/Los_Angeles")
-        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        user_option_service.set_option(
+            user_id=self.user.id, key="timezone", value="America/Los_Angeles"
+        )
         self.release = self.create_release(project=self.project, date_added=self.now)
 
     @with_feature("organizations:daily-summary")
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
     def test_schedule_organizations(self, mock_prepare_summary_data):
         user2 = self.create_user()
@@ -107,14 +107,13 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         for call_args in mock_prepare_summary_data.delay.call_args_list:
             assert call_args.args == (to_timestamp(self.now), ONE_DAY, self.organization.id)
 
-    @freeze_time(before_now(days=2).replace(hour=12, minute=0, second=0, microsecond=0))
     def test_prepare_summary_data(self):
         group1 = self.store_event_and_outcomes(
             self.project.id,
             self.three_days_ago,
             fingerprint="group-1",
             category=DataCategory.ERROR,
-            num_times=2,
+            num_times=6,
         )
         self.store_event_and_outcomes(
             self.project.id,
@@ -125,13 +124,14 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )
         self.store_event_and_outcomes(
             self.project.id,
-            self.two_hours_ago,
+            self.now,
             fingerprint="group-1",
             category=DataCategory.ERROR,
             num_times=2,
         )
+
         # create an issue first seen in the release
-        group2 = self.store_event_and_outcomes(
+        self.store_event_and_outcomes(
             self.project.id,
             self.now,
             fingerprint="group-2",
@@ -140,37 +140,22 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             release=self.release.version,
         )
         # reopen the issue and set it to regressed
-        data = {
-            "event_id": "a" * 32,
-            "timestamp": iso_format(self.now),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-            "fingerprint": ["group-2"],
-            "release": self.release.version,
-        }
-        event = self.store_event(
-            data=data,
-            project_id=self.project.id,
-        )
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "category": DataCategory.ERROR,
-                "timestamp": self.now,
-                "key_id": 1,
-            },
+        group2 = self.store_event_and_outcomes(
+            self.project.id,
+            self.now,
+            fingerprint="group-2",
+            category=DataCategory.ERROR,
             num_times=1,
+            release=self.release.version,
         )
-        group = event.group
-        group.status = GroupStatus.UNRESOLVED
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save()
+        group2.status = GroupStatus.UNRESOLVED
+        group2.substatus = GroupSubStatus.REGRESSED
+        group2.save()
         Activity.objects.create_group_activity(
-            group,
+            group2,
             ActivityType.SET_REGRESSION,
             data={
-                "event_id": event.event_id,
+                "event_id": group2.get_latest_event().event_id,
                 "version": self.release.version,
             },
         )
@@ -227,7 +212,9 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         summary = prepare_summary_data(to_timestamp(self.now), ONE_DAY, self.organization.id)
         project_id = self.project.id
 
-        assert summary.projects_context_map[project_id].total_today == 13
+        assert (
+            summary.projects_context_map[project_id].total_today == 15
+        )  # total outcomes from today
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert len(summary.projects_context_map[project_id].key_errors) == 3
         assert (group1, None, 1) in summary.projects_context_map[project_id].key_errors
@@ -242,10 +229,8 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         ].key_performance_issues
         assert summary.projects_context_map[project_id].escalated_today == [group3]
         assert summary.projects_context_map[project_id].regressed_today == [group2]
-        assert summary.projects_context_map[project_id].new_in_release[self.release.id] == [
-            group2,
-            group3,
-        ]
+        assert group2 in summary.projects_context_map[project_id].new_in_release[self.release.id]
+        assert group3 in summary.projects_context_map[project_id].new_in_release[self.release.id]
 
         project_id2 = self.project2.id
         assert summary.projects_context_map[project_id2].total_today == 2

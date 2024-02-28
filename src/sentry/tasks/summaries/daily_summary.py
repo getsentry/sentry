@@ -184,9 +184,7 @@ def prepare_summary_data(
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
                 "release_id", flat=True
             )
-            releases = Release.objects.filter(
-                id__in=release_projects, date_added__gte=ctx.end.date()
-            )
+            releases = Release.objects.filter(id__in=release_projects, date_added__gte=ctx.end)
             for release in releases[:2]:  # or whatever we limit this to
                 new_groups_in_release = Group.objects.filter(project=project, first_release=release)
                 if new_groups_in_release:
