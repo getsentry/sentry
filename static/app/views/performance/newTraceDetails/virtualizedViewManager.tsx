@@ -461,6 +461,10 @@ export class VirtualizedViewManager {
       if (span_list?.children?.[0]) {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
       }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'none';
+      }
     }
   }
 
@@ -471,6 +475,10 @@ export class VirtualizedViewManager {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
+      }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'auto';
       }
     }
   }

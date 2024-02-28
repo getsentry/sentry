@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,7 +16,6 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -53,8 +53,12 @@ function Trace({trace, trace_id}: TraceProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const location = useLocation();
-  const viewManager = useRef<VirtualizedViewManager | null>(null);
+  const viewManager = useMemo(() => {
+    return new VirtualizedViewManager({
+      list: {width: 0.5},
+      span_list: {width: 0.5},
+    });
+  }, []);
 
   const [clickedNode, setClickedNode] =
     useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
@@ -65,47 +69,31 @@ function Trace({trace, trace_id}: TraceProps) {
   const treeRef = useRef<TraceTree>(trace);
   treeRef.current = trace;
 
-  if (!viewManager.current) {
-    viewManager.current = new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
-    });
-  }
-
   if (
     trace.root.space &&
-    (trace.root.space[0] !== viewManager.current.to_origin ||
-      trace.root.space[1] !== viewManager.current.trace_space.width)
+    (trace.root.space[0] !== viewManager.to_origin ||
+      trace.root.space[1] !== viewManager.trace_space.width)
   ) {
-    viewManager.current.initializeTraceSpace([
-      trace.root.space[0],
-      0,
-      trace.root.space[1],
-      1,
-    ]);
-    scrollQueue.current = decodeScrollQueue(location.query.node);
+    viewManager.initializeTraceSpace([trace.root.space[0], 0, trace.root.space[1], 1]);
+    scrollQueue.current = decodeScrollQueue(qs.parse(location.search).node);
   }
 
   useEffect(() => {
-    if (
-      trace.type === 'loading' ||
-      scrollQueue.current === null ||
-      !viewManager.current
-    ) {
+    if (trace.type === 'loading' || scrollQueue.current === null || !viewManager) {
       return;
     }
 
-    viewManager.current
+    viewManager
       .scrollToPath(trace, scrollQueue.current, () => setRender(a => (a + 1) % 2), {
         api,
         organization,
       })
       .then(_maybeNode => {
         setClickedNode(_maybeNode);
-        viewManager.current?.onScrollEndOutOfBoundsCheck();
+        viewManager.onScrollEndOutOfBoundsCheck();
         scrollQueue.current = null;
       });
-  }, [api, organization, trace, trace_id]);
+  }, [api, organization, trace, trace_id, viewManager]);
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -133,18 +121,15 @@ function Trace({trace, trace_id}: TraceProps) {
     []
   );
 
-  const onRowClick = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          node: node.path,
-        },
-      });
-    },
-    [location.query, location.pathname]
-  );
+  const onRowClick = useCallback((node: TraceTreeNode<TraceTree.NodeValue>) => {
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...qs.parse(location.search),
+        node: node.path,
+      },
+    });
+  }, []);
 
   const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project>>((acc, project) => {
@@ -156,7 +141,7 @@ function Trace({trace, trace_id}: TraceProps) {
   return (
     <Fragment>
       <TraceStylingWrapper
-        ref={r => viewManager.current?.onContainerRef(r)}
+        ref={r => viewManager.onContainerRef(r)}
         className={trace.type === 'loading' ? 'Loading' : ''}
         style={{
           height: '70vh',
@@ -166,7 +151,7 @@ function Trace({trace, trace_id}: TraceProps) {
       >
         <TraceDivider
           className="TraceDivider"
-          ref={r => viewManager.current?.registerDividerRef(r)}
+          ref={r => viewManager?.registerDividerRef(r)}
         />
         {trace.type === 'loading' ? <TraceLoading /> : null}
         <AutoSizer>
@@ -177,9 +162,7 @@ function Trace({trace, trace_id}: TraceProps) {
                     return (
                       <div
                         key={i}
-                        ref={r =>
-                          viewManager.current?.registerIndicatorRef(r, i, indicator)
-                        }
+                        ref={r => viewManager.registerIndicatorRef(r, i, indicator)}
                         className="TraceIndicator"
                       >
                         <div className="TraceIndicatorLine" />
@@ -188,7 +171,7 @@ function Trace({trace, trace_id}: TraceProps) {
                   })
                 : null}
               <List
-                ref={r => viewManager.current?.registerList(r)}
+                ref={r => viewManager.registerList(r)}
                 rowHeight={24}
                 height={height}
                 width={width}
@@ -203,7 +186,7 @@ function Trace({trace, trace_id}: TraceProps) {
                       index={p.index}
                       theme={theme}
                       projects={projectLookup}
-                      viewManager={viewManager.current!}
+                      viewManager={viewManager!}
                       startIndex={
                         (p.parent as unknown as {_rowStartIndex: number})
                           ._rowStartIndex ?? 0
@@ -222,7 +205,7 @@ function Trace({trace, trace_id}: TraceProps) {
                       trace_id={trace_id}
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
-                      viewManager={viewManager.current!}
+                      viewManager={viewManager!}
                       clickedNode={clickedNode}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
@@ -335,6 +318,8 @@ function RenderRow(props: {
           }
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {isParentAutogroupedNode(props.node) ? (
@@ -423,6 +408,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -507,6 +494,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -564,6 +553,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           <TraceBar
@@ -632,6 +623,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {' '}
@@ -701,6 +694,8 @@ function RenderRow(props: {
           className="TraceRightColumn"
           style={{
             width: props.viewManager.columns.span_list.width * 100 + '%',
+            backgroundColor:
+              props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
           {/* @TODO: figure out what to do with trace errors */}{' '}
@@ -774,6 +769,8 @@ function RenderPlaceholderRow(props: {
         className="TraceRightColumn"
         style={{
           width: props.viewManager.columns.span_list.width * 100 + '%',
+          backgroundColor:
+            props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
         }}
       >
         <Placeholder
@@ -1050,12 +1047,6 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: background-color 0.15s ease-in-out 0s;
     font-size: ${p => p.theme.fontSizeSmall};
-
-    &:nth-of-type(odd) {
-      .TraceRightColumn {
-        background-color: ${p => p.theme.backgroundSecondary};
-      }
-    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
