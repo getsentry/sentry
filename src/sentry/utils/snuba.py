@@ -154,7 +154,7 @@ METRICS_SUMMARIES_COLUMN_MAP = {
     "metric": "metric_mri",
     "timestamp": "end_timestamp",
     "segment.id": "segment_id",
-    "span.duration": "duration",
+    "span.duration": "duration_ms",
     "span.group": "group",
     "min_metric": "min",
     "max_metric": "max",
