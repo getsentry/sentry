@@ -39,6 +39,22 @@ from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
+# TODO - Move AlertsRule* and this registry to sentry.alerts
+# then rename these to be less verbose since it will be relative to the module
+alert_subscription_update_registry: dict[
+    AlertRuleMonitorType, Callable[[QuerySubscription], bool]
+] = {}
+
+
+def register_alert_subscription_update(
+    monitor_type: AlertRuleMonitorType,
+) -> Callable[[Callable], Callable]:
+    def decorator(func: Callable) -> Callable:
+        alert_subscription_update_registry[monitor_type] = func
+        return func
+
+    return decorator
+
 
 @region_silo_only_model
 class IncidentProject(Model):
@@ -493,13 +509,6 @@ class AlertRule(Model):
 
     __repr__ = sane_repr("id", "name", "date_added")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._processor_hooks = []
-
-        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
-            self.add_processor_hook(self.clean_expired_alerts)
-
     def _validate_actor(self):
         # TODO: Remove once owner is fully removed.
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
@@ -509,19 +518,14 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    def add_processor_hook(self, hook: Callable[[QuerySubscription], bool]) -> None:
-        self._processor_hooks.append(hook)
-
-    def process_hooks(self, subscription: QuerySubscription) -> list[bool]:
-        return [func(subscription) for func in self._processor_hooks]
-
+    @register_alert_subscription_update(AlertRuleMonitorType.ACTIVATED)
     def clean_expired_alerts(self, subscription: QuerySubscription) -> bool:
         now = timezone.now()
         subscription_end = subscription.date_added + timedelta(
             seconds=subscription.snuba_query.time_window
         )
 
-        if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value and now > subscription_end:
+        if now > subscription_end:
             subscription.remove()
 
         return True

@@ -33,6 +33,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_update_registry,
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
@@ -445,7 +446,7 @@ class SubscriptionProcessor:
             return
 
         # Update each alert_rule based on the subscription update
-        self.alert_rule.process_hooks(self.subscription)
+        alert_subscription_update_registry[self.alert_rule.type](self.subscription)
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")

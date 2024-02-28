@@ -23,6 +23,8 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_update_registry,
+    register_alert_subscription_update,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
@@ -557,24 +559,6 @@ class AlertRuleActivityTest(TestCase):
 
 
 class AlertRuleTest(TestCase):
-    def test_processor_hooks_default(self):
-        alert_rule = self.create_alert_rule()
-        assert alert_rule._processor_hooks == []
-
-    def test_processor_hooks_activated(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        subscription = alert_rule.snuba_query.subscriptions.get()
-
-        # Processor hook setup for AlertRuleMonitorType.ACTIVATED
-        assert len(alert_rule._processor_hooks) == 1
-
-        # Add a mock processor hook
-        alert_rule._processor_hooks = [Mock()]
-        alert_rule.process_hooks(subscription)
-
-        assert alert_rule._processor_hooks[0].call_count == 1
-        assert alert_rule._processor_hooks[0].call_args == mock.call(subscription)
-
     def test_clean_expired_alerts_active(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
         subscription = alert_rule.snuba_query.subscriptions.get()
@@ -594,4 +578,20 @@ class AlertRuleTest(TestCase):
         result = alert_rule.clean_expired_alerts(subscription)
 
         assert subscription.remove.call_count == 1
+        assert result is True
+
+    def test_clean_expired_alerts_add_processor(self):
+        @register_alert_subscription_update(AlertRuleMonitorType.CONTINUOUS)
+        def mock_processor(_subscription):
+            return True
+
+        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_update_registry
+        assert alert_subscription_update_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+
+    def test_clean_expired_alerts_execute_processor(self):
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        subscription = alert_rule.snuba_query.subscriptions.get()
+
+        callback = alert_subscription_update_registry[AlertRuleMonitorType.CONTINUOUS]
+        result = callback(subscription)
         assert result is True
