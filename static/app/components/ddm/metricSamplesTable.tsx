@@ -1,18 +1,19 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptorObject} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {MRI, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {Container, FieldDateTime} from 'sentry/utils/discover/styles';
+import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatPercentage} from 'sentry/utils/formatters';
-import {isSupportedMRI, useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
+import {useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
@@ -22,30 +23,23 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
   query?: string;
+  sortKey?: string;
 }
 
-export function MetricSamplesTable({focusArea, mri, query}: MetricSamplesTableProps) {
+export function MetricSamplesTable({
+  focusArea,
+  mri,
+  query,
+  sortKey = 'sort',
+}: MetricSamplesTableProps) {
   const location = useLocation();
 
-  const emptyMessage = useMemo(() => {
-    if (defined(mri)) {
-      return null;
-    }
-
-    return (
-      <EmptyStateWarning>
-        <p>{t('Choose a metric to display samples')}</p>
-      </EmptyStateWarning>
-    );
-  }, [mri]);
-
-  const enabled = defined(mri) && isSupportedMRI(mri);
+  const enabled = defined(mri);
 
   const datetime = useMemo(() => {
     if (!defined(focusArea) || !defined(focusArea.start) || !defined(focusArea.end)) {
@@ -56,6 +50,25 @@ export function MetricSamplesTable({focusArea, mri, query}: MetricSamplesTablePr
       end: focusArea.end,
     } as PageFilters['datetime'];
   }, [focusArea]);
+
+  const currentSort = useMemo(() => {
+    const value = decodeScalar(location.query[sortKey], '');
+    if (!value) {
+      return undefined;
+    }
+    const direction: 'asc' | 'desc' = value[0] === '-' ? 'desc' : 'asc';
+    const key = direction === 'asc' ? value : value.substring(1);
+    return {key, direction};
+  }, [location.query, sortKey]);
+
+  const sortQuery = useMemo(() => {
+    if (!defined(currentSort)) {
+      return undefined;
+    }
+
+    const direction = currentSort.direction === 'asc' ? '' : '-';
+    return `${direction}${currentSort.key}`;
+  }, [currentSort]);
 
   const result = useMetricsSamples({
     fields: [
@@ -77,17 +90,65 @@ export function MetricSamplesTable({focusArea, mri, query}: MetricSamplesTablePr
     query,
     referrer: 'foo',
     enabled,
+    sort: sortQuery,
     limit: 10,
   });
+
+  const supportedMRI = useMemo(() => {
+    const responseJSON = result.error?.responseJSON;
+    if (typeof responseJSON?.detail !== 'string') {
+      return true;
+    }
+
+    return !responseJSON?.detail?.startsWith('Unsupported MRI: ');
+  }, [result]);
+
+  const emptyMessage = useMemo(() => {
+    if (!defined(mri)) {
+      return (
+        <EmptyStateWarning>
+          <p>{t('Choose a metric to display samples')}</p>
+        </EmptyStateWarning>
+      );
+    }
+
+    return null;
+  }, [mri]);
+
+  const _renderHeadCell = useMemo(() => {
+    const generateSortLink = (key: string) => () => {
+      if (!SORTABLE_COLUMNS.has(key)) {
+        return undefined;
+      }
+
+      let sort: string | undefined = undefined;
+      if (defined(currentSort) && currentSort.key === key) {
+        if (currentSort.direction === 'desc') {
+          sort = key;
+        }
+      } else {
+        sort = `-${key}`;
+      }
+
+      return {
+        ...location,
+        query: {
+          ...location.query,
+          sort,
+        },
+      };
+    };
+    return renderHeadCell(currentSort, generateSortLink);
+  }, [currentSort, location]);
 
   return (
     <GridEditable
       isLoading={enabled && result.isLoading}
-      error={enabled && result.isError}
+      error={enabled && result.isError && supportedMRI}
       data={result.data?.data ?? []}
       columnOrder={COLUMN_ORDER}
       columnSortBy={[]}
-      grid={{renderBodyCell}}
+      grid={{renderBodyCell, renderHeadCell: _renderHeadCell}}
       location={location}
       emptyMessage={emptyMessage}
     />
@@ -97,13 +158,34 @@ export function MetricSamplesTable({focusArea, mri, query}: MetricSamplesTablePr
 const COLUMN_ORDER = [
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
-  {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Span Op'},
-  {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Span Description'},
-  {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Span Self Time'},
+  {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
+  {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
+  {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'},
+  {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
   {key: 'trace', width: COL_WIDTH_UNDEFINED, name: 'Trace'},
   {key: 'profile_id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
+
+const RIGHT_ALIGNED_COLUMNS = new Set(['span.duration', 'span.self_time']);
+const SORTABLE_COLUMNS = new Set(['span.duration', 'timestamp']);
+
+function renderHeadCell(
+  currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
+  generateSortLink: (key) => () => LocationDescriptorObject | undefined
+) {
+  return function (col) {
+    return (
+      <SortLink
+        align={RIGHT_ALIGNED_COLUMNS.has(col.key) ? 'right' : 'left'}
+        canSort={SORTABLE_COLUMNS.has(col.key)}
+        direction={col.key === currentSort?.key ? currentSort?.direction : undefined}
+        generateSortLink={generateSortLink(col.key)}
+        title={col.name}
+      />
+    );
+  };
+}
 
 function renderBodyCell(col, dataRow) {
   if (col.key === 'id') {
@@ -121,12 +203,17 @@ function renderBodyCell(col, dataRow) {
   }
 
   if (col.key === 'span.self_time') {
-    return (
-      <SpanSelfTimeRenderer
-        selfTime={dataRow['span.self_time']}
-        duration={dataRow['span.duration']}
-      />
-    );
+    return <DurationRenderer duration={dataRow['span.self_time']} />;
+  }
+
+  if (col.key === 'span.duration') {
+    // duration is stored as an UInt32 while self time is stored
+    // as a Float64. So in cases where duration should equal self time,
+    // it can be truncated.
+    //
+    // When this happens, we just take the self time as the duration.
+    const duration = Math.max(dataRow['span.self_time'], dataRow['span.duration']);
+    return <DurationRenderer duration={duration} />;
   }
 
   if (col.key === 'timestamp') {
@@ -185,30 +272,11 @@ function SpanId({project, spanId, transactionId}) {
   );
 }
 
-function SpanSelfTimeRenderer({selfTime, duration}) {
-  // duration is stored as an UInt32 while self time is stored
-  // as a Float64. So in cases where duration should equal self time,
-  // it can be truncated.
-  //
-  // When this happens, we just take the self time as the duration.
-  const spanDuration = Math.max(selfTime, duration);
-  const percentage = selfTime / spanDuration;
-
-  const colorStops = useMemo(() => {
-    return [
-      {color: '#694D99', percent: percentage},
-      {color: 'gray100', percent: 1 - percentage},
-    ];
-  }, [percentage]);
-
+function DurationRenderer({duration}) {
   return (
-    <Container>
-      {tct('[selfTime] ([percentage] of duration)', {
-        selfTime: <PerformanceDuration milliseconds={selfTime} abbreviation />,
-        percentage: formatPercentage(percentage),
-      })}
-      <ColorBar colorStops={colorStops} />
-    </Container>
+    <NumberContainer>
+      <PerformanceDuration milliseconds={duration} abbreviation />
+    </NumberContainer>
   );
 }
 
