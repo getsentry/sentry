@@ -41,7 +41,10 @@ interface Props {
  * There are still a number of places where we consume the legacy organization
  * context. So for now we still need a component that provides this.
  */
-class LegacyOrganizationContextProvider extends Component<{value: Organization | null}> {
+class LegacyOrganizationContextProvider extends Component<{
+  value: Organization | null;
+  children?: React.ReactNode;
+}> {
   static childContextTypes = {
     organization: SentryPropTypeValidators.isOrganization,
   };

@@ -391,7 +391,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -414,7 +414,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_UNRESOLVED;
 }
 

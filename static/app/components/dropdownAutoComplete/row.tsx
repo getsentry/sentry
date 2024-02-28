@@ -52,7 +52,7 @@ function Row<T extends Item>({
   if (item.groupLabel) {
     return (
       <LabelWithBorder style={style}>
-        {item.label && <GroupLabel>{item.label}</GroupLabel>}
+        {item.label && <GroupLabel>{item.label as string}</GroupLabel>}
       </LabelWithBorder>
     );
   }

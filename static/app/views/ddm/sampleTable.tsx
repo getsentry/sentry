@@ -122,7 +122,7 @@ export const SampleTable = memo(function InnerSampleTable({
     return <span>{col.name}</span>;
   }
 
-  function renderBodyCell(col: Column, row: MetricCorrelation) {
+  function renderBodyCell(col: Column, row: MetricCorrelation): React.ReactNode {
     const {key} = col;
     if (!row[key]) {
       return <AlignCenter>{'\u2014'}</AlignCenter>;
@@ -256,7 +256,8 @@ export const SampleTable = memo(function InnerSampleTable({
       );
     }
 
-    return row[col.key];
+    // TODO(TS): The types here indicate it could be an object
+    return row[col.key] as React.ReactNode;
   }
 
   const wrapperRef = useRef<HTMLDivElement>(null);

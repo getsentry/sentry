@@ -95,7 +95,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
   };
   location: Location;
   emptyMessage?: React.ReactNode;
-  error?: React.ReactNode | null;
+  error?: unknown | null;
   /**
    * Inject a set of buttons into the top of the grid table.
    * The controlling component is responsible for handling any actions
