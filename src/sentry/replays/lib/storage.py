@@ -3,9 +3,6 @@
 Blob drivers are polymorphic on the service abstractions provided by Sentry.  Blob drivers are
 not polymorphic on service providers.  Any change of credentials will result in data loss unless
 proper steps are taken to migrate your data.
-
-This module contains legacy interfaces. They are read and delete only! Do not implement writing
-for these interfaces.
 """
 
 import dataclasses
