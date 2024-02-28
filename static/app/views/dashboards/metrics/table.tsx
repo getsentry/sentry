@@ -90,7 +90,7 @@ export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
   );
 }
 
-const groupBysMatch = (a: Record<string, any>, b: Record<string, any>) => {
+const equalGroupBys = (a: Record<string, any>, b: Record<string, any>) => {
   return JSON.stringify(a) === JSON.stringify(b);
 };
 
@@ -112,7 +112,7 @@ function getGroupByCombos(
   });
 
   const uniqueCombos = allCombos.filter(
-    (combo, index, self) => index === self.findIndex(other => groupBysMatch(other, combo))
+    (combo, index, self) => index === self.findIndex(other => equalGroupBys(other, combo))
   );
 
   return uniqueCombos;
@@ -152,13 +152,13 @@ export function getTableData(
     return {field: key, results: normalizedGroupResults};
   }, {});
 
-  const groupBysCombos = getGroupByCombos(filteredQueries, data.data);
+  const groupByCombos = getGroupByCombos(filteredQueries, data.data);
 
-  const rows: Row[] = groupBysCombos.map(combo => {
+  const rows: Row[] = groupByCombos.map(combo => {
     const row: Row = {...combo};
 
     normalizedResults.forEach(({field, results}) => {
-      const entry = results.find(e => groupBysMatch(e.by, combo));
+      const entry = results.find(e => equalGroupBys(e.by, combo));
       row[field] = entry?.totals;
     });
 
