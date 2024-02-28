@@ -1241,12 +1241,22 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   let start = new Date().getTime();
 
+  const root = partialTransaction({
+    ...metadata,
+    generation: 0,
+    start_timestamp: start,
+    transaction: 'root transaction',
+    timestamp: start + randomBetween(100, 200),
+  });
+
+  trace.transactions.push(root);
+
   for (let i = 0; i < 25; i++) {
     const end = start + randomBetween(100, 200);
-    const nest = i > 0 && Math.random() > 0.5;
+    const nest = i > 0 && Math.random() > 0.33;
 
     if (nest) {
-      const parent = trace.transactions[trace.transactions.length - 1];
+      const parent = root.children[root.children.length - 1];
       parent.children.push(
         partialTransaction({
           ...metadata,
@@ -1258,7 +1268,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
       );
       parent.timestamp = end;
     } else {
-      trace.transactions.push(
+      root.children.push(
         partialTransaction({
           ...metadata,
           generation: 0,

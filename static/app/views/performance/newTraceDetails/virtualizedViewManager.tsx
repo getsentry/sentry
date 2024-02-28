@@ -139,6 +139,7 @@ export class VirtualizedViewManager {
 
   // Holds the span to px matrix so we dont keep recalculating it
   span_to_px: mat3 = mat3.create();
+  row_depth_padding: number = 22;
 
   // Column configuration
   columns: {
@@ -521,7 +522,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + innerMostNode.depth * 24 >
+        translation + innerMostNode.depth * this.row_depth_padding >
         this.columns.list.width * this.container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -530,8 +531,8 @@ export class VirtualizedViewManager {
   }
 
   scrollRowIntoViewHorizontally(node: TraceTreeNode<any>, duration: number = 600) {
-    const VISUAL_OFFSET = 24 / 2;
-    const target = Math.min(-node.depth * 24 + VISUAL_OFFSET, 0);
+    const VISUAL_OFFSET = this.row_depth_padding / 2;
+    const target = Math.min(-node.depth * this.row_depth_padding + VISUAL_OFFSET, 0);
     this.animateScrollColumnTo(target, duration);
   }
 
