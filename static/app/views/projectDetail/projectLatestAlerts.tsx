@@ -42,7 +42,7 @@ function AlertRow({alert, orgSlug}: AlertRowProps) {
       aria-label={title}
       to={`/organizations/${orgSlug}/alerts/${identifier}/`}
     >
-      <AlertBadgeWrapper {...statusProps} icon={Icon}>
+      <AlertBadgeWrapper {...statusProps} icon={<Icon />}>
         <AlertBadge status={status} />
       </AlertBadgeWrapper>
       <AlertDetails>
