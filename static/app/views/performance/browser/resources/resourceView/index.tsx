@@ -62,7 +62,7 @@ function ResourceView() {
   return (
     <Fragment>
       <SpanTimeCharts
-        moduleName={ModuleName.OTHER}
+        moduleName={ModuleName.RESOURCE}
         appliedFilters={spanTimeChartsFilters}
         throughputUnit={RESOURCE_THROUGHPUT_UNIT}
         extraQuery={extraQuery}
