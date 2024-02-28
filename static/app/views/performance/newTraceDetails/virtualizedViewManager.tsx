@@ -20,8 +20,8 @@ import {
 
 const DIVIDER_WIDTH = 6;
 
-function easeOutQuad(x: number): number {
-  return 1 - (1 - x) * (1 - x);
+function easeOutSine(x: number): number {
+  return Math.sin((x * Math.PI) / 2);
 }
 
 function onPreventBackForwardNavigation(event: WheelEvent) {
@@ -388,6 +388,39 @@ export class VirtualizedViewManager {
     }
   }
 
+  zoomIntoSpaceRaf: number | null = null;
+  onZoomIntoSpace(space: [number, number]) {
+    const distance_x = space[0] - this.to_origin - this.trace_view.x;
+    const distance_width = this.trace_view.width - space[1];
+
+    const start_x = this.trace_view.x;
+    const start_width = this.trace_view.width;
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      const progress = elapsed / 300;
+
+      const eased = easeOutSine(progress);
+
+      const x = start_x + distance_x * eased;
+      const width = start_width - distance_width * eased;
+
+      this.setTraceView({x, width});
+      this.draw();
+
+      if (progress < 1) {
+        this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+      } else {
+        this.zoomIntoSpaceRaf = null;
+        this.setTraceView({x: space[0] - this.to_origin, width: space[1]});
+        this.draw();
+      }
+    };
+
+    this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+  }
+
   onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
     if (this.onWheelEndRaf !== null) {
@@ -546,7 +579,7 @@ export class VirtualizedViewManager {
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = duration > 0 ? elapsed / duration : 1;
-      const eased = easeOutQuad(progress);
+      const eased = easeOutSine(progress);
 
       const pos = startPosition + distance * eased;
 
