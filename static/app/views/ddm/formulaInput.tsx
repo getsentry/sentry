@@ -72,6 +72,7 @@ export function FormulaInput({
             tokens = parseFormula(newValue);
           } catch (err) {
             setError(t('Invalid formula: %s', err.message));
+            return;
           }
         }
 

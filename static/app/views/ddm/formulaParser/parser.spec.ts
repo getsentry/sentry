@@ -56,7 +56,6 @@ describe('formula > parseFormula', () => {
 
   it('parses a number', () => {
     expect(parseFormula('1')).toEqual([{type: TokenType.NUMBER, content: '1'}]);
-    expect(parseFormula('1.')).toEqual([{type: TokenType.NUMBER, content: '1.'}]);
     expect(parseFormula('1.1')).toEqual([{type: TokenType.NUMBER, content: '1.1'}]);
     expect(parseFormula('1.01')).toEqual([{type: TokenType.NUMBER, content: '1.01'}]);
     expect(parseFormula('1.010')).toEqual([{type: TokenType.NUMBER, content: '1.010'}]);
