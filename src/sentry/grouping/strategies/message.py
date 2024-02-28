@@ -196,7 +196,7 @@ _parameterization_regex_experiments = [
 ]
 
 
-def normalize_message_for_grouping(message: str, event: Event) -> str:
+def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
     """Replace values from a group's message with placeholders (to hide P.I.I. and
     improve grouping when no stacktrace is available) and trim to at most 2 lines.
     """
@@ -260,8 +260,8 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
                 # Register 100 analytics events per experiment per instance restart
                 # This generates samples for review consistently but creates a hard cap on
                 # analytics event volume
-                experiment.counter += 1
-                if experiment.counter < 100:
+                if share_analytics and experiment.counter < 100:
+                    experiment.counter += 1
                     analytics.record(
                         "grouping.experiments.parameterization",
                         experiment_name=experiment.name,
