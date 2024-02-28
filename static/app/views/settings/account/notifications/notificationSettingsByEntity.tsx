@@ -72,7 +72,7 @@ function NotificationSettingsByEntity({
       {
         query: {
           all_projects: '1',
-          collapse: 'latestDeploys',
+          collapse: ['latestDeploys', 'unusedFeatures'],
         },
       },
     ],

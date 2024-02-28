@@ -100,7 +100,7 @@ async function fetchProjects(
     query?: string;
   } = {
     // Never return latestDeploys project property from api
-    collapse: ['latestDeploys'],
+    collapse: ['latestDeploys', 'unusedFeatures'],
   };
 
   if (slugs !== undefined && slugs.length > 0) {
