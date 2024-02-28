@@ -71,7 +71,7 @@ export function TimelineTableRow({
           {isDisabled && <Tag>{t('Disabled')}</Tag>}
         </DetailsHeadline>
         <ProjectScheduleDetails>
-          <Schedule>{scheduleAsText(monitor.config)}</Schedule>
+          <DetailsText>{scheduleAsText(monitor.config)}</DetailsText>
           <ProjectDetails>
             <ProjectBadge
               project={monitor.project}
@@ -79,7 +79,7 @@ export function TimelineTableRow({
               disableLink
               hideName
             />
-            <Schedule>{trimSlug(monitor.project.slug)}</Schedule>
+            <DetailsText>{trimSlug(monitor.project.slug)}</DetailsText>
           </ProjectDetails>
         </ProjectScheduleDetails>
       </DetailsLink>
@@ -249,7 +249,7 @@ const Name = styled('h3')`
   word-break: break-word;
 `;
 
-const Schedule = styled('small')`
+const DetailsText = styled('small')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
