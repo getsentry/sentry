@@ -162,11 +162,9 @@ class StorageBlob(Blob):
     def delete(self, segment: RecordingSegmentStorageMeta) -> None:
         return storage_kv.delete(self.make_key(segment))
 
-    @metrics.wraps("replays.lib.storage.StorageBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
         return storage_kv.get(self.make_key(segment))
 
-    @metrics.wraps("replays.lib.storage.StorageBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         return storage_kv.set(self.make_key(segment), value)
 
@@ -183,6 +181,7 @@ class StorageBlob(Blob):
 
 
 class SimpleStorageBlob:
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.get")
     def get(self, key: str) -> bytes | None:
         try:
             storage = get_storage(self._make_storage_options())
@@ -195,6 +194,7 @@ class SimpleStorageBlob:
         else:
             return result
 
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.set")
     def set(self, key: str, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
         try:
@@ -203,6 +203,7 @@ class SimpleStorageBlob:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
 
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.delete")
     def delete(self, key: str) -> None:
         storage = get_storage(self._make_storage_options())
         storage.delete(key)
