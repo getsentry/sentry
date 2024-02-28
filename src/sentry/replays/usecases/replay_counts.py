@@ -24,6 +24,12 @@ FILTER_HAS_A_REPLAY = " AND !replayId:''"
 
 
 def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
+    """
+    Queries snuba/clickhouse for replay count of each identifier (usually an issue or transaction).
+    - Identifier is parsed from 'query' (select column), and 'snuba_params' is used to filter on time range + project_id
+    - If the identifier is 'replay_id', the returned count is always 1. Use this to check the existence of replay_ids
+    - Set the flag 'return_ids' to get the replay_ids (32 char hex strings) for each identifier
+    """
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
@@ -120,6 +126,9 @@ def _get_replay_id_mappings(
 
 
 def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
+    """
+    Get the number of existing replays associated with each identifier (ex identifier: issue_id)
+    """
     ret: dict[str, int] = defaultdict(int)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[
@@ -133,6 +142,10 @@ def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -
 def _get_replay_ids(
     replay_results: Any, replay_ids_mapping: dict[str, list[str]]
 ) -> dict[str, list[str]]:
+    """
+    Get replay ids associated with each identifier (identifier -> [replay_id]) (ex identifier: issue_id)
+    Can think of it as the inverse of _get_replay_id_mappings, excluding the replay_ids that don't exist
+    """
     ret: dict[str, list[str]] = defaultdict(list)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["rid"]]

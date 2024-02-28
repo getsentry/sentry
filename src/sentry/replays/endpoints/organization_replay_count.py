@@ -4,8 +4,8 @@ from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Request
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
