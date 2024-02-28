@@ -116,7 +116,7 @@ const data = [
 describe('getTableSeries', () => {
   it('should return table series', () => {
     // @ts-expect-error
-    const result = getTableData({data}, queries);
+    const result = getTableData({data, meta: []}, queries);
 
     expect(result.headers).toEqual([
       {name: 'consumer_group', type: 'tag'},
