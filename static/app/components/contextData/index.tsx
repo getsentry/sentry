@@ -36,6 +36,18 @@ function ContextValue({
   return <AnnotatedText value={value} meta={meta?.[''] ?? meta} />;
 }
 
+function LinkHint({value}: {value: string}) {
+  if (!isUrl(value)) {
+    return null;
+  }
+
+  return (
+    <ExternalLink href={value} className="external-icon">
+      <StyledIconOpen size="xs" aria-label={t('Open link')} />
+    </ExternalLink>
+  );
+}
+
 function walk({
   depth,
   value = null,
@@ -59,32 +71,32 @@ function walk({
 
   if (value === null) {
     return (
-      <span className="val-null">
+      <ValueNull>
         <ContextValue
           value={jsonConsts ? 'null' : 'None'}
           meta={meta}
           withAnnotatedText={withAnnotatedText}
         />
-      </span>
+      </ValueNull>
     );
   }
 
   if (value === true || value === false) {
     return (
-      <span className="val-bool">
+      <ValueBoolean>
         <ContextValue
           value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
           meta={meta}
           withAnnotatedText={withAnnotatedText}
         />
-      </span>
+      </ValueBoolean>
     );
   }
 
   if (typeof value === 'string') {
     const valueInfo = analyzeStringForRepr(value);
 
-    const valueToBeReturned = withAnnotatedText ? (
+    const annotatedValue = withAnnotatedText ? (
       <ContextValue
         value={valueInfo.repr}
         meta={meta}
@@ -94,28 +106,27 @@ function walk({
       valueInfo.repr
     );
 
-    const out = [
-      <span
-        key="value"
-        className={
-          (valueInfo.isString ? 'val-string' : '') +
-          (valueInfo.isStripped ? ' val-stripped' : '') +
-          (valueInfo.isMultiLine ? ' val-string-multiline' : '')
-        }
-      >
-        {preserveQuotes ? `"${valueToBeReturned}"` : valueToBeReturned}
-      </span>,
-    ];
+    const printedValue = preserveQuotes ? `"${annotatedValue}"` : annotatedValue;
 
-    if (valueInfo.isString && isUrl(value)) {
-      out.push(
-        <ExternalLink key="external" href={value} className="external-icon">
-          <StyledIconOpen size="xs" aria-label={t('Open link')} />
-        </ExternalLink>
+    if (valueInfo.isStripped) {
+      return <ValueStrippedString>{printedValue}</ValueStrippedString>;
+    }
+
+    if (valueInfo.isMultiLine) {
+      return (
+        <ValueMultiLineString>
+          {printedValue}
+          <LinkHint value={value} />
+        </ValueMultiLineString>
       );
     }
 
-    return out;
+    return (
+      <span>
+        {printedValue}
+        <LinkHint value={value} />
+      </span>
+    );
   }
 
   if (isNumber(value)) {
@@ -127,11 +138,10 @@ function walk({
       );
     return <span>{valueToBeReturned}</span>;
   }
-
   if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
       children.push(
-        <span className="val-array-item" key={i}>
+        <div key={i}>
           {walk({
             value: value[i],
             depth: depth + 1,
@@ -141,39 +151,31 @@ function walk({
             meta: meta?.[i],
             maxDefaultDepth: maxDepth,
           })}
-          {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
-        </span>
+          {i < value.length - 1 ? <span>{', '}</span> : null}
+        </div>
       );
     }
     return (
-      <span className="val-array">
-        <span className="val-array-marker">{'['}</span>
-        <Toggle highUp={depth <= maxDepth} wrapClassName="val-array-items">
-          {children}
-        </Toggle>
-        <span className="val-array-marker">{']'}</span>
+      <span>
+        <span>{'['}</span>
+        <Toggle highUp={depth <= maxDepth}>{children}</Toggle>
+        <span>{']'}</span>
       </span>
     );
   }
-
   if (isValidElement(value)) {
     return value;
   }
-
   const keys = Object.keys(value);
-
   keys.sort(naturalCaseInsensitiveSort);
-
   for (i = 0; i < keys.length; i++) {
     const key = keys[i];
 
     children.push(
-      <span className="val-dict-pair" key={key}>
-        <span className="val-dict-key">
-          <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
-        </span>
-        <span className="val-dict-col">{': '}</span>
-        <span className="val-dict-value">
+      <div key={key}>
+        <ValueObjectKey>{preserveQuotes ? `"${key}"` : key}</ValueObjectKey>
+        <span>{': '}</span>
+        <span>
           {walk({
             value: value[key],
             depth: depth + 1,
@@ -183,19 +185,17 @@ function walk({
             meta: meta?.[key],
             maxDefaultDepth: maxDepth,
           })}
-          {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
+          {i < keys.length - 1 ? <span>{', '}</span> : null}
         </span>
-      </span>
+      </div>
     );
   }
 
   return (
-    <span className="val-dict">
-      <span className="val-dict-marker">{'{'}</span>
-      <Toggle highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
-        {children}
-      </Toggle>
-      <span className="val-dict-marker">{'}'}</span>
+    <span>
+      <span>{'{'}</span>
+      <Toggle highUp={depth <= maxDepth - 1}>{children}</Toggle>
+      <span>{'}'}</span>
     </span>
   );
 }
@@ -231,4 +231,31 @@ export default ContextData;
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
+`;
+
+const ValueNull = styled('span')`
+  font-weight: bold;
+  color: var(--prism-property);
+`;
+
+const ValueBoolean = styled('span')`
+  font-weight: bold;
+  color: var(--prism-property);
+`;
+
+const ValueMultiLineString = styled('span')`
+  color: var(--prism-selector);
+  display: block;
+  overflow: auto;
+  border-radius: 4px;
+  padding: 2px 4px;
+`;
+
+const ValueStrippedString = styled('span')`
+  font-weight: bold;
+  color: var(--prism-keyword);
+`;
+
+const ValueObjectKey = styled('span')`
+  color: var(--prism-keyword);
 `;
