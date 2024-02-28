@@ -1,4 +1,4 @@
-import {isValidElement} from 'react';
+import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import isNumber from 'lodash/isNumber';
 
@@ -20,6 +20,22 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
   withAnnotatedText?: boolean;
 };
 
+function ContextValue({
+  value,
+  withAnnotatedText,
+  meta,
+}: {
+  meta: Record<any, any> | undefined;
+  withAnnotatedText: boolean;
+  value?: React.ReactNode;
+}) {
+  if (!withAnnotatedText || !meta) {
+    return <Fragment>{value}</Fragment>;
+  }
+
+  return <AnnotatedText value={value} meta={meta?.[''] ?? meta} />;
+}
+
 function walk({
   depth,
   value = null,
@@ -30,11 +46,13 @@ function walk({
   meta,
 }: {
   depth: number;
+  jsonConsts: boolean;
+  maxDefaultDepth: number;
+  meta: Record<any, any> | undefined;
+  preserveQuotes: boolean;
+  withAnnotatedText: boolean;
   value?: React.ReactNode;
-} & Pick<
-  Props,
-  'withAnnotatedText' | 'preserveQuotes' | 'jsonConsts' | 'meta' | 'maxDefaultDepth'
->) {
+}) {
   let i = 0;
 
   const children: React.ReactNode[] = [];
@@ -42,7 +60,11 @@ function walk({
   if (value === null) {
     return (
       <span className="val-null">
-        <AnnotatedText value={jsonConsts ? 'null' : 'None'} meta={meta?.[''] ?? meta} />
+        <ContextValue
+          value={jsonConsts ? 'null' : 'None'}
+          meta={meta}
+          withAnnotatedText={withAnnotatedText}
+        />
       </span>
     );
   }
@@ -50,9 +72,10 @@ function walk({
   if (value === true || value === false) {
     return (
       <span className="val-bool">
-        <AnnotatedText
+        <ContextValue
           value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
-          meta={meta?.[''] ?? meta}
+          meta={meta}
+          withAnnotatedText={withAnnotatedText}
         />
       </span>
     );
@@ -62,7 +85,11 @@ function walk({
     const valueInfo = analyzeStringForRepr(value);
 
     const valueToBeReturned = withAnnotatedText ? (
-      <AnnotatedText value={valueInfo.repr} meta={meta?.[''] ?? meta} />
+      <ContextValue
+        value={valueInfo.repr}
+        meta={meta}
+        withAnnotatedText={withAnnotatedText}
+      />
     ) : (
       valueInfo.repr
     );
@@ -94,7 +121,7 @@ function walk({
   if (isNumber(value)) {
     const valueToBeReturned =
       withAnnotatedText && meta ? (
-        <AnnotatedText value={value} meta={meta?.[''] ?? meta} />
+        <ContextValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
       ) : (
         value
       );
@@ -111,7 +138,8 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta: meta?.[i]?.[''] ?? meta?.[i] ?? meta?.[''] ?? meta,
+            meta: meta?.[i],
+            maxDefaultDepth: maxDepth,
           })}
           {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
         </span>
@@ -152,7 +180,8 @@ function walk({
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
-            meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta?.[''] ?? meta,
+            meta: meta?.[key],
+            maxDefaultDepth: maxDepth,
           })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
         </span>
@@ -174,8 +203,8 @@ function walk({
 function ContextData({
   children,
   meta,
-  jsonConsts,
-  maxDefaultDepth,
+  jsonConsts = false,
+  maxDefaultDepth = 2,
   data = null,
   preserveQuotes = false,
   withAnnotatedText = false,
