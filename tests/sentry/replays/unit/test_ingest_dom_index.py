@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import traceback as tb
 import uuid
 from typing import Any
 from unittest import mock
@@ -207,12 +206,7 @@ def test_get_user_actions_performance_spans():
             },
         },
     ]
-
-    try:
-        get_user_actions(1, uuid.uuid4().hex, events, None)
-    except Exception as e:
-        tb.print_exception(e)
-        assert False
+    get_user_actions(1, uuid.uuid4().hex, events, None)
 
 
 def test_parse_replay_actions():
