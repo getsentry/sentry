@@ -19,6 +19,7 @@ def create_widget(
     columns: Sequence[str] | None = None,
     dashboard: Dashboard | None = None,
     widget: DashboardWidget | None = None,
+    discover_widget_split: int | None = None,
 ) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
     columns = columns or []
     dashboard = dashboard or Dashboard.objects.create(
@@ -32,6 +33,7 @@ def create_widget(
         order=order,
         widget_type=DashboardWidgetTypes.DISCOVER,
         display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+        discover_widget_split=discover_widget_split,
     )
 
     if id:
