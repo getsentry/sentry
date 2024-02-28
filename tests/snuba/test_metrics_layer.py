@@ -264,8 +264,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
-        assert rows[1]["aggregate_value"] == [6.0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
 
     def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
@@ -301,9 +303,11 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
-        assert rows[0]["aggregate_value"] == [0]
+        # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+        # For now handle both cases for backwards compatibility
+        assert rows[0]["aggregate_value"] in ([0], 0)
         assert rows[0]["transaction"] == "transaction_0"
-        assert rows[1]["aggregate_value"] == [6.0]
+        assert rows[1]["aggregate_value"] in ([6.0], 6)
         assert rows[1]["transaction"] == "transaction_0"
 
     def test_totals(self) -> None:
@@ -735,7 +739,9 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
-            assert rows[i]["aggregate_value"] == [i]
+            # TODO: Snuba is going to start returning 0 instead of [0] for single value aggregates
+            # For now handle both cases for backwards compatibility
+            assert rows[i]["aggregate_value"] in ([i], i)
             assert (
                 rows[i]["time"]
                 == (
