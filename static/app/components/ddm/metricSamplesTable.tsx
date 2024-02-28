@@ -3,17 +3,23 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
-import type {MRI, PageFilters} from 'sentry/types';
+import type {DateString, MRI, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {useMetricsSamples} from 'sentry/utils/metrics/useMetricsSamples';
+import {
+  type MetricsSamplesResults,
+  useMetricsSamples,
+} from 'sentry/utils/metrics/useMetricsSamples';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
@@ -23,6 +29,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const fields = [
+  'project',
+  'id',
+  'span.op',
+  'span.description',
+  'span.duration',
+  'span.self_time',
+  'timestamp',
+  'trace',
+  'transaction.id',
+  'profile_id',
+];
+
+type Field = (typeof fields)[number];
 
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
@@ -71,18 +92,7 @@ export function MetricSamplesTable({
   }, [currentSort]);
 
   const result = useMetricsSamples({
-    fields: [
-      'project',
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'span.self_time',
-      'timestamp',
-      'trace',
-      'transaction.id',
-      'profile_id',
-    ],
+    fields,
     datetime,
     max: focusArea?.max,
     min: focusArea?.min,
@@ -155,7 +165,7 @@ export function MetricSamplesTable({
   );
 }
 
-const COLUMN_ORDER = [
+const COLUMN_ORDER: GridColumnOrder<Field>[] = [
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
   {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
@@ -167,14 +177,14 @@ const COLUMN_ORDER = [
   {key: 'profile_id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
-const RIGHT_ALIGNED_COLUMNS = new Set(['span.duration', 'span.self_time']);
-const SORTABLE_COLUMNS = new Set(['span.duration', 'timestamp']);
+const RIGHT_ALIGNED_COLUMNS = new Set<Field>(['span.duration', 'span.self_time']);
+const SORTABLE_COLUMNS = new Set<Field>(['span.duration', 'timestamp']);
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
   generateSortLink: (key) => () => LocationDescriptorObject | undefined
 ) {
-  return function (col) {
+  return function (col: GridColumnOrder<Field>) {
     return (
       <SortLink
         align={RIGHT_ALIGNED_COLUMNS.has(col.key) ? 'right' : 'left'}
@@ -187,23 +197,26 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(col, dataRow) {
+function renderBodyCell(
+  col: GridColumnOrder<Field>,
+  dataRow: MetricsSamplesResults<Field>['data'][number]
+) {
   if (col.key === 'id') {
     return (
       <SpanId
-        project={dataRow.project}
-        spanId={dataRow.id}
-        transactionId={dataRow['transaction.id']}
+        project={dataRow.project as string}
+        spanId={dataRow.id as string}
+        transactionId={dataRow['transaction.id'] as string}
       />
     );
   }
 
   if (col.key === 'project') {
-    return <ProjectRenderer projectSlug={dataRow.project} />;
+    return <ProjectRenderer projectSlug={dataRow.project as string} />;
   }
 
   if (col.key === 'span.self_time') {
-    return <DurationRenderer duration={dataRow['span.self_time']} />;
+    return <DurationRenderer duration={dataRow['span.self_time'] as number} />;
   }
 
   if (col.key === 'span.duration') {
@@ -212,23 +225,26 @@ function renderBodyCell(col, dataRow) {
     // it can be truncated.
     //
     // When this happens, we just take the self time as the duration.
-    const duration = Math.max(dataRow['span.self_time'], dataRow['span.duration']);
+    const duration = Math.max(
+      dataRow['span.self_time'] as number,
+      dataRow['span.duration'] as number
+    );
     return <DurationRenderer duration={duration} />;
   }
 
   if (col.key === 'timestamp') {
-    return <TimestampRenderer timestamp={dataRow.timestamp} />;
+    return <TimestampRenderer timestamp={dataRow.timestamp as DateString} />;
   }
 
   if (col.key === 'trace') {
-    return <TraceId traceId={dataRow.trace} />;
+    return <TraceId traceId={dataRow.trace as string} />;
   }
 
   if (col.key === 'profile_id') {
     return (
       <ProfileId
-        projectSlug={dataRow.project}
-        profileId={dataRow.profile_id?.replace('-', '')}
+        projectSlug={dataRow.project as string}
+        profileId={dataRow.profile_id as string | undefined}
       />
     );
   }
@@ -236,7 +252,7 @@ function renderBodyCell(col, dataRow) {
   return <Container>{dataRow[col.key]}</Container>;
 }
 
-function ProjectRenderer({projectSlug}) {
+function ProjectRenderer({projectSlug}: {projectSlug: string}) {
   const organization = useOrganization();
 
   return (
@@ -256,7 +272,15 @@ function ProjectRenderer({projectSlug}) {
   );
 }
 
-function SpanId({project, spanId, transactionId}) {
+function SpanId({
+  project,
+  spanId,
+  transactionId,
+}: {
+  project: string;
+  spanId: string;
+  transactionId: string;
+}) {
   const organization = useOrganization();
   const target = getTransactionDetailsUrl(
     organization.slug,
@@ -272,7 +296,7 @@ function SpanId({project, spanId, transactionId}) {
   );
 }
 
-function DurationRenderer({duration}) {
+function DurationRenderer({duration}: {duration: number}) {
   return (
     <NumberContainer>
       <PerformanceDuration milliseconds={duration} abbreviation />
@@ -280,7 +304,7 @@ function DurationRenderer({duration}) {
   );
 }
 
-function TimestampRenderer({timestamp}) {
+function TimestampRenderer({timestamp}: {timestamp: DateString}) {
   const location = useLocation();
 
   return (
@@ -294,7 +318,7 @@ function TimestampRenderer({timestamp}) {
   );
 }
 
-function TraceId({traceId}) {
+function TraceId({traceId}: {traceId: string}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const target = getTraceDetailsUrl(
@@ -314,7 +338,7 @@ function TraceId({traceId}) {
   );
 }
 
-function ProfileId({projectSlug, profileId}) {
+function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: string}) {
   const organization = useOrganization();
 
   if (!defined(profileId)) {
