@@ -65,7 +65,7 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 
 # These features are not used on the frontend,
 # and add a lot of latency ~100-300ms per flag for large organizations
-# so we exclude them from the response if the unusedFeatures flag is set
+# so we exclude them from the response if the unusedFeatures collapse parameter is set
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
