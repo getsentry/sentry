@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from time import time
 from typing import ClassVar
@@ -46,7 +45,7 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -59,11 +58,6 @@ from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
-
-class SemverVersion(
-    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
-):
-    pass
 
 class ReleaseStatus:
     OPEN = 0
