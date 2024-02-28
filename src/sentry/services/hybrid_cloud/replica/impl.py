@@ -163,9 +163,9 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             expires_at=api_token.expires_at,
             apitoken_id=api_token.id,
             scope_list=api_token.scope_list,
-            allowed_origins="\n".join(api_token.allowed_origins)
-            if api_token.allowed_origins
-            else None,
+            allowed_origins=(
+                "\n".join(api_token.allowed_origins) if api_token.allowed_origins else None
+            ),
             user_id=api_token.user_id,
         )
         handle_replication(ApiToken, destination)
@@ -326,7 +326,6 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             slug=team.slug,
             name=team.name,
             status=team.status,
-            org_role=team.org_role,
         )
 
         handle_replication(Team, destination)
