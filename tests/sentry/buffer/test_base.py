@@ -8,7 +8,8 @@ from sentry.db import models
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import TestCase

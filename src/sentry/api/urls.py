@@ -152,6 +152,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_details import (
 from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
+from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -619,6 +620,9 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
+from ..monitors.endpoints.project_monitor_checkin_attachment import (
+    ProjectMonitorCheckInAttachmentEndpoint,
+)
 from ..monitors.endpoints.project_monitor_checkin_index import ProjectMonitorCheckInIndexEndpoint
 from ..monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
@@ -2417,6 +2421,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-recording-segment-details",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
+        ProjectReplayVideoDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-replay-video-details",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",
         ProjectRulesConfigurationEndpoint.as_view(),
         name="sentry-api-0-project-rules-configuration",
@@ -2672,6 +2681,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/statistical-detector/$",
         ProjectStatisticalDetectors.as_view(),
         name="sentry-api-0-project-statistical-detector",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        ProjectMonitorCheckInAttachmentEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-check-in-attachment",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",

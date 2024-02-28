@@ -412,6 +412,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
 /tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
 /tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
+/tests/sentry/models/releases/                                          @getsentry/alerts-notifications
 ## End of Enterprise
 
 

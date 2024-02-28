@@ -1,7 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {MRI, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -16,6 +14,7 @@ interface UseMetricSamplesOptions<F extends string> {
   min?: number;
   mri?: MRI;
   query?: string;
+  sort?: string;
 }
 
 export interface MetricsSamplesResults<F extends string> {
@@ -35,6 +34,7 @@ export function useMetricsSamples<F extends string>({
   mri,
   referrer,
   query,
+  sort,
 }: UseMetricSamplesOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -53,6 +53,7 @@ export function useMetricsSamples<F extends string>({
       query,
       referrer,
       per_page: limit,
+      sort,
     },
   };
 
@@ -62,37 +63,4 @@ export function useMetricsSamples<F extends string>({
     retry: false,
     enabled,
   });
-}
-
-export function isSupportedMRI(mri: MRI): boolean {
-  // extracted transaction metrics
-  if (mri === 'd:transactions/duration@millisecond') {
-    return true;
-  }
-
-  // extracted span metrics
-  if (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'd:spans/duration@millisecond'
-  ) {
-    return true;
-  }
-
-  const parsedMRI = parseMRI(mri);
-  if (defined(parsedMRI)) {
-    // extracted measurement metrics
-    if (
-      parsedMRI.useCase === 'transactions' &&
-      parsedMRI.name.startsWith('measurements.')
-    ) {
-      return true;
-    }
-
-    // user defined custom metrics
-    if (parsedMRI.useCase === 'custom') {
-      return true;
-    }
-  }
-
-  return false;
 }

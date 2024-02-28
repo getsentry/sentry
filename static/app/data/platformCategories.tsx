@@ -386,7 +386,7 @@ export const feedbackNpmPlatforms: readonly PlatformKey[] = [
 ];
 
 // Feedback platforms that show widget instructions (both NPM & loader)
-const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
   ...feedbackNpmPlatforms,
   ...replayBackendPlatforms,
 ];
@@ -395,6 +395,14 @@ const feedbackWidgetPlatforms: readonly PlatformKey[] = [
 export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
   'dart',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
   'flutter',
   'java',
   'java-log4j2',
