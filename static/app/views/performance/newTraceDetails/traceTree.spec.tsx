@@ -1080,6 +1080,69 @@ describe('TraceTree', () => {
       expect(node.children[0].parent.value.transaction).toBe('txn');
       expect(node.children[0].depth).toBe(node.depth + 1);
     });
+
+    it('handles bottom up zooming', async () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'transaction',
+              project_slug: 'project',
+              event_id: 'event_id',
+              children: [
+                makeTransaction({
+                  parent_span_id: 'span',
+                  transaction: 'child transaction',
+                  project_slug: 'child_project',
+                  event_id: 'child_event_id',
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+
+      const first_request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/project:event_id/',
+        method: 'GET',
+        body: makeEvent({}, [makeSpan({op: 'db', span_id: 'span'})]),
+      });
+
+      const second_request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/child_project:child_event_id/',
+        method: 'GET',
+        body: makeEvent({}, [
+          makeSpan({op: 'db', span_id: 'span'}),
+          makeSpan({op: 'db', span_id: 'span 1', parent_span_id: 'span'}),
+          makeSpan({op: 'db', span_id: 'span 2', parent_span_id: 'span 1'}),
+          makeSpan({op: 'db', span_id: 'span 3', parent_span_id: 'span 2'}),
+          makeSpan({op: 'db', span_id: 'span 4', parent_span_id: 'span 3'}),
+          makeSpan({op: 'db', span_id: 'span 5', parent_span_id: 'span 4'}),
+        ]),
+      });
+
+      tree.zoomIn(tree.list[2], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      await waitFor(() => {
+        expect(second_request).toHaveBeenCalled();
+      });
+
+      assertParentAutogroupedNode(tree.list[tree.list.length - 1]);
+
+      tree.zoomIn(tree.list[1], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      await waitFor(() => {
+        expect(first_request).toHaveBeenCalled();
+      });
+
+      assertParentAutogroupedNode(tree.list[tree.list.length - 1]);
+    });
     it('zooms out', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({

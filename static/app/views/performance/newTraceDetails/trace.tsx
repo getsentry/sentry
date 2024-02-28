@@ -75,7 +75,7 @@ function Trace({trace, trace_id}: TraceProps) {
   if (
     trace.root.space &&
     (trace.root.space[0] !== viewManager.current.to_origin ||
-      trace.root.space[1] !== viewManager.current.trace_space[1])
+      trace.root.space[1] !== viewManager.current.trace_space.width)
   ) {
     viewManager.current.initializeTraceSpace([
       trace.root.space[0],
@@ -159,13 +159,16 @@ function Trace({trace, trace_id}: TraceProps) {
         ref={r => viewManager.current?.onContainerRef(r)}
         className={trace.type === 'loading' ? 'Loading' : ''}
         style={{
-          backgroundColor: '#FFF',
           height: '70vh',
           width: '100%',
           margin: 'auto',
         }}
       >
-        <TraceDivider ref={r => viewManager.current?.registerDividerRef(r)} />
+        <TraceDivider
+          className="TraceDivider"
+          ref={r => viewManager.current?.registerDividerRef(r)}
+        />
+        {trace.type === 'loading' ? <TraceLoading /> : null}
         <AutoSizer>
           {({width, height}) => (
             <Fragment>
@@ -189,6 +192,7 @@ function Trace({trace, trace_id}: TraceProps) {
                 rowHeight={24}
                 height={height}
                 width={width}
+                scrollToAlignment="center"
                 overscanRowCount={5}
                 rowCount={treeRef.current.list.length ?? 0}
                 rowRenderer={p => {
@@ -301,11 +305,11 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div className="TraceChildrenCountWrapper">
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
               <ChildrenCountButton
                 expanded={!props.node.expanded}
                 onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
@@ -376,7 +380,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div
@@ -384,7 +388,7 @@ function RenderRow(props: {
                 props.node.isOrphaned ? 'Orphaned' : ''
               }`}
             >
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
@@ -455,7 +459,7 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div
@@ -463,7 +467,7 @@ function RenderRow(props: {
                 props.node.isOrphaned ? 'Orphaned' : ''
               }`}
             >
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
@@ -539,11 +543,11 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div className="TraceChildrenCountWrapper">
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
             </div>
             <span className="TraceOperation">{t('Missing instrumentation')}</span>
           </div>
@@ -596,11 +600,11 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div className="TraceChildrenCountWrapper Root">
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
@@ -665,11 +669,11 @@ function RenderRow(props: {
           <div
             className="TraceLeftColumnInner"
             style={{
-              paddingLeft: props.node.depth * 24,
+              paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
           >
             <div className="TraceChildrenCountWrapper">
-              <Connectors node={props.node} />
+              <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
@@ -722,7 +726,6 @@ function RenderPlaceholderRow(props: {
   theme: Theme;
   viewManager: VirtualizedViewManager;
 }) {
-  const virtualizedIndex = props.index - props.startIndex;
   return (
     <div
       className="TraceRow"
@@ -731,7 +734,6 @@ function RenderPlaceholderRow(props: {
         height: props.style.height,
         pointerEvents: 'none',
         color: props.theme.subText,
-        animationDelay: `${virtualizedIndex * 0.05}s`,
         paddingLeft: space(1),
       }}
     >
@@ -742,11 +744,13 @@ function RenderPlaceholderRow(props: {
         <div
           className="TraceLeftColumnInner"
           style={{
-            paddingLeft: props.node.depth * 24,
+            paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
           }}
         >
-          <div className="TraceChildrenCountWrapper">
-            <Connectors node={props.node} />
+          <div
+            className={`TraceChildrenCountWrapper ${isTraceNode(props.node) ? 'Root' : ''}`}
+          >
+            <Connectors node={props.node} viewManager={props.viewManager} />
             {props.node.children.length > 0 ? (
               <ChildrenCountButton
                 expanded={props.node.expanded || props.node.zoomedIn}
@@ -756,12 +760,14 @@ function RenderPlaceholderRow(props: {
               </ChildrenCountButton>
             ) : null}
           </div>
-          {isTraceNode(props.node) ? <SmallLoadingIndicator /> : null}
-          {isTraceNode(props.node) ? (
-            'Loading trace...'
-          ) : (
-            <Placeholder className="Placeholder" height="10px" width="86%" />
-          )}
+          <Placeholder
+            className="Placeholder"
+            height="12px"
+            width={randomBetween(20, 80) + '%'}
+            style={{
+              transition: 'all 5s ease-out',
+            }}
+          />
         </div>
       </div>
       <div
@@ -770,20 +776,28 @@ function RenderPlaceholderRow(props: {
           width: props.viewManager.columns.span_list.width * 100 + '%',
         }}
       >
-        {isTraceNode(props.node) ? null : (
-          <Placeholder
-            className="Placeholder"
-            height="14px"
-            width="90%"
-            style={{margin: 'auto'}}
-          />
-        )}
+        <Placeholder
+          className="Placeholder"
+          height="12px"
+          width={randomBetween(20, 80) + '%'}
+          style={{
+            transition: 'all 5s ease-out',
+            transform: `translate(${randomBetween(0, 200) + 'px'}, 0)`,
+          }}
+        />
       </div>
     </div>
   );
 }
 
-function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
+function randomBetween(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function Connectors(props: {
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  viewManager: VirtualizedViewManager;
+}) {
   const showVerticalConnector =
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
     (props.node.value && isParentAutogroupedNode(props.node));
@@ -807,7 +821,13 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
         return (
           <div
             key={i}
-            style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 24)}}
+            style={{
+              left: -(
+                Math.abs(Math.abs(c) - props.node.depth) *
+                props.viewManager.row_depth_padding
+              ),
+            }}
+            data-connector={c}
             className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
           />
         );
@@ -823,26 +843,6 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     </Fragment>
   );
 }
-
-function SmallLoadingIndicator() {
-  return (
-    <StyledLoadingIndicator
-      style={{display: 'inline-block', margin: 0}}
-      size={8}
-      hideMessage
-      relative
-    />
-  );
-}
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  transform: translate(-5px, 0);
-
-  div:first-child {
-    border-left: 6px solid ${p => p.theme.gray300};
-    animation: loading 900ms infinite linear;
-  }
-`;
 
 function ProjectBadge(props: {project: Project}) {
   return <ProjectAvatar project={props.project} />;
@@ -970,6 +970,7 @@ function TraceBar(props: TraceBarProps) {
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
         }}
+        onDoubleClick={() => props.viewManager.onZoomIntoSpace(props.node_space!)}
       />
       <div
         ref={r =>
@@ -1004,25 +1005,19 @@ const TraceStylingWrapper = styled('div')`
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
 
-  @keyframes show {
-    0% {
-      opacity: 0;
-      transform: translate(0, 2px);
+  &.Loading {
+    .TraceRow {
+      .TraceLeftColumnInner {
+        width: 100%;
+      }
     }
-    100% {
-      opacity: 0.7;
-      transform: translate(0, 0px);
-    }
-  }
 
-  @keyframes showPlaceholder {
-    0% {
-      opacity: 0;
-      transform: translate(-8px, 0px);
+    .TraceRightColumn {
+      background-color: transparent !important;
     }
-    100% {
-      opacity: 0.7;
-      transform: translate(0, 0px);
+
+    .TraceDivider {
+      pointer-events: none;
     }
   }
 
@@ -1045,19 +1040,6 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
-    }
-  }
-
-  &.Loading {
-    .TraceRow {
-      opacity: 0;
-      animation: show 0.2s ease-in-out forwards;
-    }
-
-    .Placeholder {
-      opacity: 0;
-      transform: translate(-8px, 0px);
-      animation: showPlaceholder 0.2s ease-in-out forwards;
     }
   }
 
@@ -1169,7 +1151,7 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    min-width: 48px;
+    min-width: 44px;
     height: 100%;
     position: relative;
 
@@ -1199,7 +1181,7 @@ const TraceStylingWrapper = styled('div')`
     &::before {
       content: '';
       display: block;
-      width: 60%;
+      width: 50%;
       height: 2px;
       border-bottom: 2px solid ${p => p.theme.border};
       position: absolute;
@@ -1210,12 +1192,12 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      background-color: rgb(224, 220, 229);
+      background-color: ${p => p.theme.border};
       border-radius: 50%;
       height: 6px;
       width: 6px;
       position: absolute;
-      left: 60%;
+      left: 50%;
       top: 50%;
       transform: translateY(-50%);
     }
@@ -1270,4 +1252,37 @@ const TraceStylingWrapper = styled('div')`
   .TraceDescription {
     white-space: nowrap;
   }
+`;
+
+const LoadingContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  position: absolute;
+  height: auto;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  z-index: 30;
+  padding: 24px;
+  background-color: ${p => p.theme.background};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+`;
+
+function TraceLoading() {
+  return (
+    <LoadingContainer>
+      <NoMarginIndicator size={24}>
+        <div>{t('Assembling the trace')}</div>
+      </NoMarginIndicator>
+    </LoadingContainer>
+  );
+}
+
+const NoMarginIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;

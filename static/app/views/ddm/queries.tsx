@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useLayoutEffect} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
 import SwitchButton from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,10 +17,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {FormulaInput} from 'sentry/views/ddm/formulaInput';
 import {MetricFormulaContextMenu} from 'sentry/views/ddm/metricFormulaContextMenu';
 import {MetricQueryContextMenu} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
-import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 export function Queries() {
   const {
@@ -49,6 +49,20 @@ export function Queries() {
     },
     [updateWidget]
   );
+
+  const [querySymbols, formulaSymbols] = useMemo(() => {
+    const querySymbolSet = new Set<string>();
+    const formulaSymbolSet = new Set<string>();
+    for (const widget of widgets) {
+      const symbol = getQuerySymbol(widget.id);
+      if (widget.type === MetricQueryType.QUERY) {
+        querySymbolSet.add(symbol);
+      } else {
+        formulaSymbolSet.add(symbol);
+      }
+    }
+    return [querySymbolSet, formulaSymbolSet];
+  }, [widgets]);
 
   return (
     <Fragment>
@@ -87,7 +101,10 @@ export function Queries() {
               />
             ) : (
               <Formula
-                onChange={data => handleChange(index, data)}
+                availableVariables={querySymbols}
+                formulaVariables={formulaSymbols}
+                onChange={handleChange}
+                index={index}
                 widget={widget}
                 symbol={
                   showQuerySymbols && (
@@ -166,17 +183,39 @@ export function Query({widget, projects, onChange, contextMenu, symbol}: QueryPr
 }
 
 interface FormulaProps {
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  availableVariables: Set<string>;
+  formulaVariables: Set<string>;
+  index: number;
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   widget: MetricFormulaWidgetParams;
   contextMenu?: React.ReactNode;
   symbol?: React.ReactNode;
 }
 
-export function Formula({widget, onChange, contextMenu, symbol}: FormulaProps) {
+export function Formula({
+  availableVariables,
+  formulaVariables,
+  index,
+  widget,
+  onChange,
+  contextMenu,
+  symbol,
+}: FormulaProps) {
+  const handleChange = useCallback(
+    (formula: string) => {
+      onChange(index, {formula});
+    },
+    [index, onChange]
+  );
   return (
     <QueryWrapper hasSymbol={!!symbol}>
       {symbol}
-      <Input value={widget.formula} onChange={e => onChange({formula: e.target.value})} />
+      <FormulaInput
+        availableVariables={availableVariables}
+        formulaVariables={formulaVariables}
+        value={widget.formula}
+        onChange={handleChange}
+      />
       {contextMenu}
     </QueryWrapper>
   );
