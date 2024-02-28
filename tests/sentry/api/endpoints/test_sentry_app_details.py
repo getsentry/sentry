@@ -519,7 +519,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
 
 @control_silo_test
-class DeleteSuperuserSentryAppDetailsTest(SentryAppDetailsTest):
+class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
     method = "DELETE"
 
     def setUp(self):
@@ -566,71 +566,6 @@ class DeleteSuperuserSentryAppDetailsTest(SentryAppDetailsTest):
 
     def test_superuser_cannot_delete_partner_apps(self):
         self.published_app.update(metadata={"partnership_restricted": True})
-        response = self.get_error_response(
-            self.published_app.slug,
-            status_code=403,
-        )
-        assert response.data["detail"] == PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
-
-    def test_cannot_delete_by_manager(self):
-        self.user_manager = self.create_user("manager@example.com", is_superuser=False)
-        self.create_member(
-            user=self.user_manager, organization=self.organization, role="manager", teams=[]
-        )
-        self.login_as(self.user_manager)
-
-        self.get_error_response(self.internal_integration.slug, status_code=403)
-
-
-@control_silo_test
-class DeleteStaffSentryAppDetailsTest(SentryAppDetailsTest):
-    method = "DELETE"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(user=self.staff_user, staff=True)
-
-    @patch("sentry.analytics.record")
-    def test_staff_delete_unpublished_app(self, record):
-        self.get_success_response(
-            self.unpublished_app.slug,
-            status_code=204,
-        )
-
-        assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
-        ).exists()
-        record.assert_called_with(
-            "sentry_app.deleted",
-            user_id=self.staff_user.id,
-            organization_id=self.organization.id,
-            sentry_app=self.unpublished_app.slug,
-        )
-
-    def test_staff_delete_unpublished_app_with_installs(self):
-        installation = self.create_sentry_app_installation(
-            organization=self.organization,
-            slug=self.unpublished_app.slug,
-            user=self.user,
-        )
-
-        self.get_success_response(
-            self.unpublished_app.slug,
-            status_code=204,
-        )
-
-        assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
-        ).exists()
-        assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
-
-    def test_staff_cannot_delete_published_app(self):
-        response = self.get_error_response(self.published_app.slug, status_code=403)
-        assert response.data == {"detail": ["Published apps cannot be removed."]}
-
-    def test_staff_cannot_delete_partner_apps(self):
-        self.published_app.update(metadata={"partnership_restricted": True})
-
         response = self.get_error_response(
             self.published_app.slug,
             status_code=403,
