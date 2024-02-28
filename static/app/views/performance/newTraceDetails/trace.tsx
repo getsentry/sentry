@@ -1,5 +1,13 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -28,6 +36,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
+import {HighLightedRowContext} from './HighlightedRowContext';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
@@ -55,6 +64,7 @@ function Trace({trace, trace_id}: TraceProps) {
   const organization = useOrganization();
   const location = useLocation();
   const viewManager = useRef<VirtualizedViewManager | null>(null);
+  const {node: highlightedNode, setNode} = useContext(HighLightedRowContext);
 
   const [clickedNode, setClickedNode] =
     useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
@@ -142,8 +152,14 @@ function Trace({trace, trace_id}: TraceProps) {
           node: node.path,
         },
       });
+
+      if (highlightedNode === node) {
+        setNode(undefined);
+      } else {
+        setNode(node);
+      }
     },
-    [location.query, location.pathname]
+    [location.query, location.pathname, setNode, highlightedNode]
   );
 
   const projectLookup = useMemo(() => {
