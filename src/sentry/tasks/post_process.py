@@ -1472,6 +1472,26 @@ def detect_new_escalation(job: PostProcessJob):
         return
 
 
+GROUP_VALIDATION_CACHE_KEY = lambda org_id: f"detect-invalid-group-status-{org_id}"
+GROUP_VALIDATION_CACHE_DURATION = 60 * 60 * 24 * 3  # 3 days
+
+
+def detect_invalid_group_status(job: PostProcessJob):
+    from sentry.tasks.detect_invalid_group_status import detect_invalid_group_status
+
+    org = job["event"].project.organization_id
+    cache_key = GROUP_VALIDATION_CACHE_KEY(org)
+
+    if cache.get(cache_key):
+        return
+
+    try:
+        cache.set(cache_key, True, GROUP_VALIDATION_CACHE_DURATION)
+        detect_invalid_group_status.delay(organization=org)
+    except Exception as e:
+        logger.exception("tasks.detect_invalid_group_status.failed", extra={"error": str(e)})
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1491,6 +1511,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
         process_replay_link,
+        detect_invalid_group_status,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),
