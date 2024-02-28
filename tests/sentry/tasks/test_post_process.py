@@ -55,6 +55,7 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
@@ -1320,12 +1321,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.tasks.post_process.logger")
-    def test_issue_owners_should_ratelimit(self, logger):
+    def test_issue_owners_should_ratelimit(self, mock_logger):
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
-        cache.set(f"commit-context-scm-integration:{self.project.organization_id}", True, 60)
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -1341,18 +1341,20 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.ratelimited",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "ratelimited",
-            },
+        expected_extra = {
+            "event": event.event_id,
+            "group": event.group_id,
+            "project": event.project_id,
+            "organization": event.project.organization_id,
+            "reason": "ratelimited",
+        }
+        mock_logger.info.assert_any_call(
+            "handle_owner_assignment.ratelimited", extra=expected_extra
         )
+        mock_logger.reset_mock()
 
-        mock_config = {"org_ids_exempt_from_ratelimit": {self.project.organization_id}}
+        # Raise this organization's ratelimit
+        mock_config = {"org_ids_with_increased_ratelimit": {self.project.organization_id}}
         with patch.dict("sentry.tasks.post_process.configuration", mock_config):
             self.call_post_process_group(
                 is_new=False,
@@ -1360,13 +1362,30 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=False,
                 event=event,
             )
-            logger.info.assert_any_call(
-                "should_issue_owners_ratelimit.exemption",
-                extra={
-                    "project_id": self.project.id,
-                    "group_id": event.group_id,
-                    "organization_id": self.project.organization_id,
-                },
+            with pytest.raises(AssertionError):
+                mock_logger.info.assert_any_call(
+                    "handle_owner_assignment.ratelimited", extra=expected_extra
+                )
+
+        # Still enforce the raised limit
+        mock_logger.reset_mock()
+        cache.set(
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (
+                set(range(0, HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)),
+                datetime.now(),
+            ),
+        )
+        mock_config = {"org_ids_with_increased_ratelimit": {self.project.organization_id}}
+        with patch.dict("sentry.tasks.post_process.configuration", mock_config):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+            mock_logger.info.assert_any_call(
+                "handle_owner_assignment.ratelimited", extra=expected_extra
             )
 
 

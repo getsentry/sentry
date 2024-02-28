@@ -50,8 +50,9 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 configuration: Mapping[str, Any] = settings.SENTRY_POST_PROCESS_CONFIGURATION
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
+HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -176,17 +177,11 @@ def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_i
     """
     Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
     """
-    exempt_orgs = configuration.get("org_ids_exempt_from_ratelimit", {})
-    if organization_id and organization_id in exempt_orgs:
-        logger.info(
-            "should_issue_owners_ratelimit.exemption",
-            extra={
-                "project_id": project_id,
-                "group_id": group_id,
-                "organization_id": organization_id,
-            },
-        )
-        return False
+    enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    if organization_id and organization_id in configuration.get(
+        "org_ids_with_increased_ratelimit", {}
+    ):
+        enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
 
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
@@ -202,7 +197,7 @@ def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_i
         timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
         cache.set(cache_key, (groups, window_start), timeout)
 
-    return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    return len(groups) > enforced_limit
 
 
 def handle_owner_assignment(job):
