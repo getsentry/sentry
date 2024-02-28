@@ -42,7 +42,7 @@ export function FormulaInput({
 
   const defaultValue = useMemo(() => unescapeVariables(value), [value]);
 
-  const validateVariabled = useCallback(
+  const validateVariables = useCallback(
     (tokens: TokenList): string | null => {
       for (const token of tokens) {
         if (token.type !== TokenType.VARIABLE) {
@@ -75,7 +75,7 @@ export function FormulaInput({
           }
         }
 
-        const validationError = validateVariabled(tokens);
+        const validationError = validateVariables(tokens);
         if (validationError) {
           setError(validationError);
           return;
@@ -84,7 +84,7 @@ export function FormulaInput({
         setError(null);
         onChange(joinTokens(escapeVariables(tokens)));
       }, 200),
-    [onChange, validateVariabled]
+    [onChange, validateVariables]
   );
   return (
     <Tooltip
