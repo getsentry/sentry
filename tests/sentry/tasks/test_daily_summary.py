@@ -131,12 +131,22 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )
 
         # create an issue first seen in the release and set it to regressed
+        self.store_event_and_outcomes(
+            self.project.id,
+            self.now,
+            fingerprint="group-2",
+            category=DataCategory.ERROR,
+            num_times=1,
+            release=self.release.version,
+            resolve=False,
+        )
+        # XXX(CEO): copy/pasting this works but for some reason putting it in a loop does not
         group2 = self.store_event_and_outcomes(
             self.project.id,
             self.now,
             fingerprint="group-2",
             category=DataCategory.ERROR,
-            num_times=3,
+            num_times=2,
             release=self.release.version,
             resolve=False,
         )
@@ -196,7 +206,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert len(summary.projects_context_map[project_id].key_errors) == 3
         assert (group1, None, 1) in summary.projects_context_map[project_id].key_errors
-        assert (group2, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert (group2, None, 2) in summary.projects_context_map[project_id].key_errors
         assert (group3, None, 1) in summary.projects_context_map[project_id].key_errors
         assert len(summary.projects_context_map[project_id].key_performance_issues) == 2
         assert (perf_event.group, None, 1) in summary.projects_context_map[

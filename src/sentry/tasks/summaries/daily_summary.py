@@ -14,7 +14,8 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.referrer import Referrer
