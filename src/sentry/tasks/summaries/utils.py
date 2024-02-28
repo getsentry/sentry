@@ -415,8 +415,20 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
 
 def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
     """
-    Check if this project has any content we could show in an email.
+    Check if this project has any content we could show in a notification.
     """
+    if daily:
+        return (
+            not project_ctx.key_errors
+            and not project_ctx.key_performance_issues
+            and not project_ctx.total_today
+            and not project_ctx.comparison_period_total
+            and not project_ctx.comparison_period_avg
+            and not project_ctx.escalated_today
+            and not project_ctx.regressed_today
+            and not project_ctx.new_in_release
+        )
+
     return (
         not project_ctx.key_errors
         and not project_ctx.key_transactions
@@ -432,10 +444,16 @@ def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
 
 def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
-    Check if the context is empty. If it is, we don't want to send an email.
+    Check if the context is empty. If it is, we don't want to send a notification.
     """
-    project_ctxs = [
-        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-    ]
+    if ctx.daily:
+        project_ctxs = [
+            cast(DailySummaryProjectContext, project_ctx)
+            for project_ctx in ctx.projects_context_map.values()
+        ]
+    else:
+        project_ctxs = [
+            cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
+        ]
 
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
+    return all(check_if_project_is_empty(project_ctx, ctx.daily) for project_ctx in project_ctxs)

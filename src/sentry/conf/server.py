@@ -1096,8 +1096,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-daily-organization-reports": {
         "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
         "schedule": crontab(
-            minute=0,
-            hour="*/1",  # Run every hour
+            minute="*/1",
+            # hour="*/1",  # Run every hour
             day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
@@ -1498,7 +1498,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable daily summary
-    "organizations:daily-summary": False,
+    "organizations:daily-summary": True,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1876,7 +1876,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
-    "organizations:slack-block-kit": False,
+    "organizations:slack-block-kit": True,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
     # Send Slack notifications to threads
@@ -2714,7 +2714,7 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run

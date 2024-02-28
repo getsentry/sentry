@@ -1,3 +1,4 @@
+import logging
 import math
 from collections import defaultdict
 from datetime import datetime
@@ -16,6 +17,9 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.notifications.notifications.daily_summary import DailySummaryNotification
+from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo import SiloMode
 from sentry.snuba.referrer import Referrer
@@ -25,6 +29,7 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     DailySummaryProjectContext,
     OrganizationReportContext,
+    check_if_ctx_is_empty,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
     project_event_counts_for_organization,
@@ -34,9 +39,12 @@ from sentry.tasks.summaries.utils import (
 )
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
+
+logger = logging.getLogger(__name__)
 
 HOUR_TO_SEND_REPORT = 16
 
@@ -84,19 +92,19 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             for user_option in users_with_tz:
                 users_by_tz[user_option.value].append(user_option.user_id)
 
-            # if it's ~4pm (btwn 4 and 5) for any of the users, generate the report
-            # we'll check the timezone for the users again before sending
-            time_to_send_timezones = []
-            for user_tz in users_by_tz.keys():
+            # if it's ~4pm (btwn 4 and 5) for any of the users, generate the report for them
+            users_to_send_to = []
+            for user_tz, users in users_by_tz.items():
                 utc_datetime = to_datetime(timestamp)
                 local_timezone = pytz.timezone(user_tz)
                 local_datetime = utc_datetime.astimezone(local_timezone)
                 if local_datetime.hour == HOUR_TO_SEND_REPORT:
-                    time_to_send_timezones.append(user_tz)
+                    for user in users:
+                        users_to_send_to.append(user)
 
-            if any(time_to_send_timezones):
+            if any(users_to_send_to):
                 # Create a celery task per timezone
-                prepare_summary_data.delay(timestamp, duration, organization.id)
+                prepare_summary_data.delay(timestamp, duration, organization.id, users_to_send_to)
 
 
 @instrumented_task(
@@ -111,6 +119,7 @@ def prepare_summary_data(
     timestamp: float,
     duration: int,
     organization_id: int,
+    users_to_send_to: list[int],
 ):
     organization = Organization.objects.get(id=organization_id)
     ctx = build_summary_data(
@@ -208,4 +217,49 @@ def build_summary_data(
     with sentry_sdk.start_span(op="daily_summary.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
-    return ctx
+    # commenting out temporarily while developing
+
+    with sentry_sdk.start_span(op="daily_summary.check_if_ctx_is_empty"):
+        report_is_available = not check_if_ctx_is_empty(ctx)
+    set_tag("report.available", report_is_available)
+
+    if not report_is_available:
+        logger.info(
+            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+        )
+        return
+
+    with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
+        deliver_summary(ctx=ctx, users=users_to_send_to)
+
+
+def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
+    # TODO: change this to some setting for daily summary
+    user_ids = notifications_service.get_users_for_weekly_reports(
+        organization_id=ctx.organization.id, user_ids=users
+    )
+    for user_id in user_ids:
+        # order the projects by which projects have the highest error count for the day
+        projects_by_error_total = {
+            project_id: context.total_today
+            for project_id, context in ctx.projects_context_map.items()
+        }
+        # can change this to just output a list of project ids once I verify this is working correctly, but for now having the counts helps
+        top_projects = {
+            k: v
+            for k, v in sorted(
+                projects_by_error_total.items(), key=lambda item: item[1], reverse=True
+            )
+        }
+        top_projects_context_map = {}
+        # for now, hard code to the top 2 projects
+        for project in list(top_projects.keys())[:2]:
+            project_context = ctx.projects_context_map[project]
+            top_projects_context_map[project] = project_context
+        user = user_service.get_user(user_id=user_id)
+        DailySummaryNotification(
+            organization=ctx.organization,
+            recipient=user,
+            provider=ExternalProviders.SLACK,
+            project_context=top_projects_context_map,
+        ).send()
