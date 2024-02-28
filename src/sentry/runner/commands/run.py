@@ -8,7 +8,6 @@ from multiprocessing import cpu_count
 import click
 
 from sentry.bgtasks.api import managed_bgtasks
-from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
 
@@ -350,114 +349,6 @@ def cron(**options):
             # without_heartbeat=True,
             **options
         ).run()
-
-
-@run.command("query-subscription-consumer")
-@click.option(
-    "--group",
-    default="query-subscription-consumer",
-    help="Consumer group to track query subscription offsets. ",
-)
-@click.option("--topic", default=None, help="Topic to get subscription updates from.")
-@click.option(
-    "--initial-offset-reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
-@click.option(
-    "--force-offset-reset",
-    default=None,
-    type=click.Choice(["earliest", "latest"]),
-    help="Force subscriptions to start from a particular offset",
-)
-@kafka_options(
-    "query-subscription-consumer",
-    include_batching_options=True,
-    allow_force_cluster=False,
-    default_max_batch_size=100,
-)
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@strict_offset_reset_option()
-@log_options()
-@configuration
-def query_subscription_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-    from sentry.snuba.query_subscriptions.constants import (
-        dataset_to_logical_topic,
-        topic_to_dataset,
-    )
-    from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
-
-    dataset = topic_to_dataset[options["topic"]]
-    logical_topic = dataset_to_logical_topic[dataset]
-    # name of new consumer == name of logical topic
-    print_deprecation_warning(logical_topic, options["group_id"])
-
-    subscriber = get_query_subscription_consumer(
-        topic=options["topic"],
-        group_id=options["group"],
-        strict_offset_reset=options["strict_offset_reset"],
-        initial_offset_reset=options["initial_offset_reset"],
-        max_batch_size=options["max_batch_size"],
-        # Our batcher expects the time in seconds
-        max_batch_time=int(options["max_batch_time"] / 1000),
-        num_processes=options["processes"],
-        input_block_size=options["input_block_size"],
-        output_block_size=options["output_block_size"],
-        multi_proc=True,
-    )
-    run_processor_with_signals(subscriber)
-
-
-@run.command("ingest-consumer")
-@log_options()
-@click.option(
-    "consumer_type",
-    "--consumer-type",
-    required=True,
-    help="Specify which type of consumer to create",
-    type=click.Choice(ConsumerType.all()),
-)
-@kafka_options("ingest-consumer", include_batching_options=True, default_max_batch_size=100)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    "num_processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def ingest_consumer(consumer_type, **options):
-    """
-    Runs an "ingest consumer" task.
-
-    The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
-    process event celery tasks for them
-    """
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning(f"ingest-{consumer_type}", options["group_id"])
-
-    from arroyo import configure_metrics
-
-    from sentry.ingest.consumer.factory import get_ingest_consumer
-    from sentry.utils import metrics
-    from sentry.utils.arroyo import MetricsWrapper
-
-    configure_metrics(MetricsWrapper(metrics.backend, name=f"ingest_{consumer_type}"))
-
-    options["max_batch_time"] = options["max_batch_time"] / 1000
-    consumer = get_ingest_consumer(consumer_type, **options)
-    run_processor_with_signals(consumer)
 
 
 @run.command("consumer")
