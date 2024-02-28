@@ -769,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1089,6 +1090,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1492,6 +1502,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1557,8 +1569,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable grouping of ChunkLoadErrors
-    "organizations:group-chunk-load-errors": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1598,10 +1608,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable interface functionality to synchronize groups between sentry and
     # issues on external services.
     "organizations:integrations-issue-sync": True,
-    # Enable comments of related issues on open PRs
-    "organizations:integrations-open-pr-comment": False,
-    # Enable comments of related issues on open PRs for Javascript
-    "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable stacktrace linking
@@ -1693,8 +1699,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
-    # Enable the setting of org roles for team
-    "organizations:org-roles-for-teams": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1876,6 +1880,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
+    # Send Slack notifications to threads
+    "organizations:slack-thread": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1947,8 +1953,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
-    # Enable using new webhooks from Vercel
-    "organizations:vercel-integration-webhooks": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable AI Autofix feture on the Issue Details page.
@@ -1993,6 +1997,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
@@ -2758,6 +2763,9 @@ SENTRY_USE_CUSTOMER_DOMAINS = False
 # This flag activates replay analyzer service in the development environment
 SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 
+# This flag activates Spotlight Sidecar in the development environment
+SENTRY_USE_SPOTLIGHT = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -3034,6 +3042,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"3000/tcp": 3000},
             "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
+        }
+    ),
+    "spotlight-sidecar": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/spotlight:latest",
+            "environment": {},
+            "ports": {"8969/tcp": 8969},
+            "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
 }
@@ -3504,8 +3520,6 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
 }
 
 
-# If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False

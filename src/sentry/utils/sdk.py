@@ -79,7 +79,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.collect_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
@@ -91,7 +90,6 @@ if settings.ADDITIONAL_SAMPLED_TASKS:
 
 
 UNSAFE_TAG = "_unsafe"
-EXPERIMENT_TAG = "_experimental_event"
 
 
 def _current_stack_filenames() -> Generator[str, None, None]:
@@ -124,16 +122,6 @@ def is_current_event_safe():
     return True
 
 
-def is_current_event_experimental():
-    """
-    Checks if the event was explicitly marked as experimental.
-    """
-    with configure_scope() as scope:
-        if scope._tags.get(EXPERIMENT_TAG):
-            return True
-    return False
-
-
 def mark_scope_as_unsafe():
     """
     Set the unsafe tag on the SDK scope for outgoing crashes and transactions.
@@ -143,16 +131,6 @@ def mark_scope_as_unsafe():
     """
     with configure_scope() as scope:
         scope.set_tag(UNSAFE_TAG, True)
-
-
-def mark_scope_as_experimental():
-    """
-    Set the experimental tag on the SDK scope for outgoing crashes and transactions.
-
-    Marking the scope will cause these crashes and transaction to be sent to a separate experimental dsn.
-    """
-    with configure_scope() as scope:
-        scope.set_tag(EXPERIMENT_TAG, True)
 
 
 def set_current_event_project(project_id):
@@ -352,14 +330,6 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
-            # Experimental events will be sent to the experimental transport.
-            if experimental_transport:
-                if is_current_event_experimental():
-                    if in_random_rollout("store.use-experimental-dsn-sample-rate"):
-                        getattr(experimental_transport, method_name)(*args, **kwargs)
-                    # Experimental events should not be sent to other transports even if they are not sampled.
-                    return
-
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
@@ -392,7 +362,9 @@ def configure_sdk():
 
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
-            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if (sentry_saas_transport or experimental_transport) and options.get(
+                "store.use-relay-dsn-sample-rate"
+            ) == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -401,15 +373,21 @@ def configure_sdk():
                     relay_envelope.items = envelope.items.copy()
                     args = (relay_envelope, *args_list[1:])
 
-                if is_current_event_safe():
-                    metrics.incr("internal.captured.events.relay")
-                    getattr(sentry_saas_transport, method_name)(*args, **kwargs)
-                else:
-                    metrics.incr(
-                        "internal.uncaptured.events.relay",
-                        skip_internal=False,
-                        tags={"reason": "unsafe"},
-                    )
+                if sentry_saas_transport:
+                    if is_current_event_safe():
+                        metrics.incr("internal.captured.events.relay")
+                        getattr(sentry_saas_transport, method_name)(*args, **kwargs)
+                    else:
+                        metrics.incr(
+                            "internal.uncaptured.events.relay",
+                            skip_internal=False,
+                            tags={"reason": "unsafe"},
+                        )
+
+                if experimental_transport:
+                    if is_current_event_safe():
+                        if in_random_rollout("store.experimental-dsn-double-write.sample-rate"):
+                            getattr(experimental_transport, method_name)(*args, **kwargs)
 
         def record_lost_event(self, *args, **kwargs):
             # pass through client report recording to sentry_saas_transport
@@ -716,7 +694,6 @@ def merge_context_into_scope(
 
 
 __all__ = (
-    "EXPERIMENT_TAG",
     "LEGACY_RESOLVER",
     "Scope",
     "UNSAFE_FILES",
@@ -734,10 +711,8 @@ __all__ = (
     "get_options",
     "get_project_key",
     "get_transaction_name_from_request",
-    "is_current_event_experimental",
     "is_current_event_safe",
     "make_transport",
-    "mark_scope_as_experimental",
     "mark_scope_as_unsafe",
     "merge_context_into_scope",
     "patch_transport_for_instrumentation",

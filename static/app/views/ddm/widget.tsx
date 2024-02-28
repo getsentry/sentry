@@ -1,11 +1,13 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
 import moment from 'moment';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -17,13 +19,13 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   formatMetricsFormula,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
+  isCumulativeOp,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -45,12 +47,15 @@ import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import useRouter from 'sentry/utils/useRouter';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import type {Series} from 'sentry/views/ddm/chart/types';
+import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
 import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
 import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
@@ -60,10 +65,10 @@ type MetricWidgetProps = {
   context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
+  focusAreaProps: FocusAreaProps;
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   queries: MetricsQueryApiQueryParams[];
   chartHeight?: number;
-  focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
@@ -122,7 +127,7 @@ export const MetricWidget = memo(
     onChange,
     hasSiblings = false,
     showQuerySymbols,
-    focusArea,
+    focusAreaProps,
     onSampleClick,
     highlightedSampleId,
     chartHeight = 300,
@@ -151,7 +156,7 @@ export const MetricWidget = memo(
     );
 
     const samplesQuery = useMetricSamples(firstQuery?.mri, {
-      ...focusArea?.selection?.range,
+      ...focusAreaProps?.selection?.range,
       query: queryWithFocusedSeries,
     });
 
@@ -216,7 +221,7 @@ export const MetricWidget = memo(
                 widgetIndex={index}
                 getChartPalette={getChartPalette}
                 onChange={handleChange}
-                focusArea={focusArea}
+                focusAreaProps={focusAreaProps}
                 samples={samples}
                 chartHeight={chartHeight}
                 chartGroup={DDM_CHART_GROUP}
@@ -247,11 +252,11 @@ interface MetricWidgetBodyProps {
   context: 'ddm' | 'dashboard';
   displayType: MetricDisplayType;
   filters: PageFilters;
+  focusAreaProps: FocusAreaProps;
   queries: MetricsQueryApiQueryParams[];
   widgetIndex: number;
   chartGroup?: string;
   chartHeight?: number;
-  focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
@@ -275,7 +280,7 @@ const MetricWidgetBody = memo(
     tableSort,
     widgetIndex,
     getChartPalette = createChartPalette,
-    focusArea,
+    focusAreaProps,
     chartHeight,
     chartGroup,
     samples,
@@ -283,6 +288,7 @@ const MetricWidgetBody = memo(
     queries,
     context,
   }: MetricWidgetBodyProps) => {
+    const router = useRouter();
     const {
       data: timeseriesData,
       isLoading,
@@ -292,18 +298,14 @@ const MetricWidgetBody = memo(
       intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 
-    const chartRef = useRef<ReactEchartsRef>(null);
+    const {chartRef, setHoveredSeries} = useSeriesHover();
 
-    const setHoveredSeries = useCallback((seriesId: string) => {
-      if (!chartRef.current) {
-        return;
-      }
-      const echartsInstance = chartRef.current.getEchartsInstance();
-      echartsInstance.dispatchAction({
-        type: 'highlight',
-        seriesId: [seriesId, getIngestionSeriesId(seriesId)],
-      });
-    }, []);
+    const handleHoverSeries = useCallback(
+      (seriesId: string) => {
+        setHoveredSeries([seriesId, getIngestionSeriesId(seriesId)]);
+      },
+      [setHoveredSeries]
+    );
 
     const chartSeries = useMemo(() => {
       return timeseriesData
@@ -322,6 +324,31 @@ const MetricWidgetBody = memo(
       highlightedSampleId: samples?.higlightedId,
       operation: samples?.operation,
       timeseries: chartSeries,
+    });
+
+    const handleZoom = useCallback(
+      (range: DateTimeObject) => {
+        Sentry.metrics.increment('ddm.enhance.zoom');
+        updateDateTime(range, router, {save: true});
+      },
+      [router]
+    );
+
+    const hasCumulativeOp = chartSeries.some(s => isCumulativeOp(s.operation));
+    const firstUnit =
+      chartSeries.find(s => !s.hidden)?.unit || chartSeries[0]?.unit || 'none';
+
+    const focusArea = useFocusArea({
+      ...focusAreaProps,
+      sampleUnit: samples?.unit,
+      chartUnit: firstUnit,
+      chartRef,
+      opts: {
+        widgetIndex,
+        isDisabled: !focusAreaProps.onAdd,
+        useFullYAxis: hasCumulativeOp,
+      },
+      onZoom: handleZoom,
     });
 
     const toggleSeriesVisibility = useCallback(
@@ -384,7 +411,8 @@ const MetricWidgetBody = memo(
           {isLoading && <LoadingIndicator />}
           {isError && (
             <Alert type="error">
-              {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+              {(error?.responseJSON?.detail as string) ||
+                t('Error while fetching metrics data')}
             </Alert>
           )}
         </StyledMetricWidgetBody>
@@ -410,7 +438,6 @@ const MetricWidgetBody = memo(
           ref={chartRef}
           series={chartSeries}
           displayType={displayType}
-          widgetIndex={widgetIndex}
           height={chartHeight}
           samples={samplesProp}
           focusArea={focusArea}
@@ -422,7 +449,7 @@ const MetricWidgetBody = memo(
           sort={tableSort}
           onRowClick={setSeriesVisibility}
           onColorDotClick={toggleSeriesVisibility}
-          setHoveredSeries={setHoveredSeries}
+          onRowHover={handleHoverSeries}
         />
       </StyledMetricWidgetBody>
     );
@@ -445,6 +472,8 @@ export function getChartTimeseries(
 
   const series = data.data.flatMap((group, index) => {
     const query = filteredQueries[index];
+    const metaUnit = data.meta[index]?.[1]?.unit;
+
     const isMultiQuery = filteredQueries.length > 1;
 
     let unit = '';
@@ -456,7 +485,11 @@ export function getChartTimeseries(
     } else {
       // Treat formulas as if they were a single query with none as the unit and count as the operation
       unit = 'none';
-      operation = 'count';
+    }
+
+    // TODO(arthur): fully switch to using the meta unit once it's available
+    if (metaUnit) {
+      unit = metaUnit;
     }
 
     // We normalize metric units to make related units
@@ -536,7 +569,6 @@ const StyledMetricWidgetBody = styled('div')`
 
 const MetricWidgetBodyWrapper = styled('div')`
   padding: ${space(1)};
-  padding-bottom: 0;
 `;
 
 const MetricWidgetHeader = styled('div')`

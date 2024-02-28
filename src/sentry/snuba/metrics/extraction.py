@@ -6,7 +6,18 @@ import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Literal, NamedTuple, NotRequired, Optional, TypedDict, TypeVar, Union, cast
+from typing import (
+    Any,
+    Literal,
+    NamedTuple,
+    NotRequired,
+    Optional,
+    Self,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -40,7 +51,10 @@ logger = logging.getLogger(__name__)
 
 SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
 # Certain functions will only be supported with certain feature flags
-OPS_REQUIRE_FEAT_FLAG: dict[str, str] = {}
+OPS_REQUIRE_FEAT_FLAG = {
+    "count_unique": SPEC_VERSION_TWO_FLAG,
+    "user_misery": SPEC_VERSION_TWO_FLAG,
+}
 
 
 # This helps us control the different spec versions
@@ -119,6 +133,9 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "level": "level",
     "logger": "logger",
     # Top-level structures ("interfaces")
+    # sentry_user is a special field added for on-demand metrics
+    # https://github.com/getsentry/relay/pull/3122
+    "user": "sentry_user",
     "user.email": "user.email",
     "user.id": "user.id",
     "user.ip": "user.ip_address",
@@ -240,10 +257,10 @@ _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
     "count_web_vitals": "on_demand_count_web_vitals",
+    "count_unique": "on_demand_count_unique",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
-    # XXX: Remove support until we can fix the count_unique(users)
-    # "user_misery": "on_demand_user_misery",
+    "user_misery": "on_demand_user_misery",
 }
 
 # Mapping to infer metric type from Discover function.
@@ -262,6 +279,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
+    "count_unique": "s",
     "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
@@ -275,7 +293,12 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals", "on_demand_user_misery"]
+_MULTIPLE_ARGS_METRICS = [
+    "on_demand_apdex",
+    "on_demand_count_unique",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
+]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -553,22 +576,22 @@ class SupportedBy:
     on_demand_metrics: bool
 
     @classmethod
-    def neither(cls):
+    def neither(cls) -> Self:
         return cls(standard_metrics=False, on_demand_metrics=False)
 
     @classmethod
-    def both(cls):
+    def both(cls) -> Self:
         return cls(standard_metrics=True, on_demand_metrics=True)
 
     @classmethod
-    def combine(cls, *supported_by):
+    def combine(cls, *supported_by: Self) -> Self:
         return cls(
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
 
 
-def should_use_on_demand_metrics_for_querying(organization: Organization, **kwargs) -> bool:
+def should_use_on_demand_metrics_for_querying(organization: Organization, **kwargs: Any) -> bool:
     """Helper function to check if an organization can query an specific on-demand function"""
     components = _extract_aggregate_components(kwargs["aggregate"])
     if components is None:
@@ -1184,7 +1207,7 @@ class OnDemandMetricSpec:
         self._arguments = []
         self._eager_process()
 
-    def _eager_process(self):
+    def _eager_process(self) -> None:
         op, metric_type, arguments = self._process_field()
 
         self.op = op
@@ -1192,12 +1215,12 @@ class OnDemandMetricSpec:
         self._arguments = arguments or []
 
     @property
-    def field_to_extract(self):
+    def field_to_extract(self) -> str | None:
         if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("user.id")
+            return _map_field_name("user")
 
         if not self._arguments:
             return None
@@ -1266,7 +1289,7 @@ class OnDemandMetricSpec:
         # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
-    def _groupbys_for_hash(self):
+    def _groupbys_for_hash(self) -> str:
         # A sorted list of group-bys for the hash, since groupbys will be unique per on_demand metric.
         return str(sorted(self.groupbys))
 

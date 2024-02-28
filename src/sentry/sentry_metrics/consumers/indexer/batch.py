@@ -73,7 +73,7 @@ class IndexerBatchMetrics:
         self.total_value_len += value_len
         self.max_bytes = max(self.max_bytes, num_bytes)
         self.max_tags_len = max(self.max_tags_len, tags_len)
-        self.max_value_len = max(self.max_tags_len, tags_len)
+        self.max_value_len = max(self.max_value_len, value_len)
 
     def avg_bytes(self):
         return self.total_bytes / self.message_count
@@ -484,9 +484,7 @@ class IndexerBatch:
                         "timestamp": old_payload_value["timestamp"],
                         "project_id": old_payload_value["project_id"],
                         "type": old_payload_value["type"],
-                        # XXX: The payload in ingest-metrics is "any"-typed,
-                        # but the payload in generic-metrics is string-typed
-                        "value": cast(Any, old_payload_value["value"]),
+                        "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
                     if aggregation_option := get_aggregation_option(old_payload_value["name"]):

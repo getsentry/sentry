@@ -300,7 +300,7 @@ def _resolve_formula_metadata(
             formula_mappings.update(mappings)
 
     formula = formula.set_parameters(parameters)
-    return formula, mappings
+    return formula, formula_mappings
 
 
 def _resolve_timeseries_metadata(

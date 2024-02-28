@@ -24,6 +24,7 @@ from .first_replay_sent import *  # noqa: F401,F403
 from .first_sourcemaps_sent import *  # noqa: F401,F403
 from .first_transaction_sent import *  # noqa: F401,F403
 from .first_user_context_sent import *  # noqa: F401,F403
+from .grouping_parameterization_experiment import *  # noqa: F401,F403
 from .groupowner_assignment import *  # noqa: F401,F403
 from .inapp_request import *  # noqa: F401,F403
 from .integration_commit_context_all_frames import *  # noqa: F401,F403

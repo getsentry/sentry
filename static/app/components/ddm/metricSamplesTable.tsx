@@ -7,7 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import type {MRI} from 'sentry/types';
+import type {MRI, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
@@ -20,15 +20,17 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
 interface MetricSamplesTableProps {
+  focusArea?: SelectionRange;
   mri?: MRI;
   query?: string;
 }
 
-export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
+export function MetricSamplesTable({focusArea, mri, query}: MetricSamplesTableProps) {
   const location = useLocation();
 
   const emptyMessage = useMemo(() => {
@@ -45,6 +47,16 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
 
   const enabled = defined(mri) && isSupportedMRI(mri);
 
+  const datetime = useMemo(() => {
+    if (!defined(focusArea) || !defined(focusArea.start) || !defined(focusArea.end)) {
+      return undefined;
+    }
+    return {
+      start: focusArea.start,
+      end: focusArea.end,
+    } as PageFilters['datetime'];
+  }, [focusArea]);
+
   const result = useMetricsSamples({
     fields: [
       'project',
@@ -58,6 +70,9 @@ export function MetricSamplesTable({mri, query}: MetricSamplesTableProps) {
       'transaction.id',
       'profile_id',
     ],
+    datetime,
+    max: focusArea?.max,
+    min: focusArea?.min,
     mri,
     query,
     referrer: 'foo',
