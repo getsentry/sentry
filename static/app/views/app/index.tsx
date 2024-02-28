@@ -35,9 +35,10 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard: React.ComponentType<InstallWizardProps> = lazy(
+const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')
-);
+  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
+) as unknown as React.ComponentType<InstallWizardProps>;
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
