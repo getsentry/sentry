@@ -3,13 +3,26 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconEdit} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {WidgetDescription} from 'sentry/views/dashboards/widgetCard';
 
-import {Tooltip} from '../../tooltip';
+type Props = {
+  displayValue: string;
+  placeholder: string;
+  value: string;
+  description?: string;
+  onSubmit?: (value: string) => void;
+};
 
-export function WidgetTitle({value, displayValue, placeholder, description, onSubmit}) {
+export function WidgetTitle({
+  value,
+  displayValue,
+  placeholder,
+  description,
+  onSubmit,
+}: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState<string>(value);
 

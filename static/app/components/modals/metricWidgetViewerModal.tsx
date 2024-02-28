@@ -16,10 +16,7 @@ import {convertToDashboardWidget, toDisplayType} from 'sentry/utils/metrics/dash
 import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  getMetricQueries,
-  toMetricDisplayType,
-} from 'sentry/views/dashboards/metrics/utils';
+import {getMetricQueries} from 'sentry/views/dashboards/metrics/utils';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -48,7 +45,7 @@ function MetricWidgetViewerModal({
     [metricWidgetQueries]
   );
 
-  const [displayType, setDisplayType] = useState(toMetricDisplayType(widget.displayType));
+  const [displayType, setDisplayType] = useState(widget.displayType);
   const [editedTitle, setEditedTitle] = useState<string>(widget.title);
   // If user renamed the widget, dislay that title, otherwise display the MQL
   const titleToDisplay = editedTitle === '' ? widgetMQL : editedTitle;
