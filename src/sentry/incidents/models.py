@@ -59,8 +59,12 @@ def register_alert_subscription_update(
 def invoke_alert_subscription_update(
     monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
 ) -> bool:
-    callback = alert_subscription_update_registry[monitor_type]
-    if callback:
+    try:
+        callback = alert_subscription_update_registry[monitor_type]
+    except KeyError:
+        return False
+
+    if callable(callback):
         return callback(subscription)
 
     return False
