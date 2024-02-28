@@ -1706,6 +1706,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable UI sending a discover split for widget
+    "organizations:performance-discover-widget-split-ui": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Enable compressed assets performance issue type
