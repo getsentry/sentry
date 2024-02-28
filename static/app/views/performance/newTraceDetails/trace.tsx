@@ -1,5 +1,14 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -45,6 +54,114 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
 
 const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
 
+interface RovingTabIndexState {
+  index: number | null;
+  items: number | null;
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
+}
+
+function computeNextIndexFromAction(
+  current_index: number,
+  action: RovingTabIndexUserActions,
+  items: number
+): number {
+  switch (action) {
+    case 'next':
+      if (current_index === items) {
+        return 0;
+      }
+      return current_index + 1;
+    case 'previous':
+      if (current_index === 0) {
+        return items;
+      }
+      return current_index - 1;
+    case 'last':
+      return items;
+    case 'first':
+      return 0;
+    default:
+      throw new TypeError(`Invalid or not implemented reducer action - ${action}`);
+  }
+}
+
+type RovingTabIndexAction =
+  | {
+      index: number | null;
+      items: number;
+      node: TraceTreeNode<TraceTree.NodeValue> | null;
+      type: 'initialize';
+    }
+  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'go to index'}
+  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set node'};
+
+type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
+
+function rovingTabIndexReducer(
+  state: RovingTabIndexState,
+  action: RovingTabIndexAction
+): RovingTabIndexState {
+  switch (action.type) {
+    case 'initialize': {
+      return {index: action.index, items: action.items, node: action.node};
+    }
+    case 'go to index':
+      return {...state, index: action.index};
+    case 'set node': {
+      return {...state, node: action.node, index: action.index};
+    }
+    default:
+      throw new Error('Invalid action');
+  }
+}
+
+function getRovingIndexActionFromEvent(
+  event: React.KeyboardEvent
+): RovingTabIndexUserActions | null {
+  // @TODO it would be trivial to extend this and support
+  // things like j/k vim-like navigation or add modifiers
+  // so that users could jump to parent or sibling nodes.
+  // I would need to put some thought into this, but shift+cmd+up
+  // seems like a good candidate for jumping to parent node and
+  // shift+cmd+down for jumping to the next sibling node.
+  switch (event.key) {
+    case 'ArrowDown':
+      if (event.shiftKey) {
+        return 'last';
+      }
+      return 'next';
+    case 'ArrowUp':
+      if (event.shiftKey) {
+        return 'first';
+      }
+      return 'previous';
+    case 'Home':
+      return 'first';
+    case 'End':
+      return 'last';
+    case 'Tab':
+      if (event.shiftKey) {
+        return 'previous';
+      }
+      return 'next';
+
+    default:
+      return null;
+  }
+}
+
+function maybeFocusRow(
+  ref: HTMLDivElement | null,
+  index: number,
+  previouslyFocusedIndexRef: React.MutableRefObject<number | null>
+) {
+  if (!ref) return;
+  if (index === previouslyFocusedIndexRef.current) return;
+
+  ref.focus();
+  previouslyFocusedIndexRef.current = index;
+}
+
 interface TraceProps {
   trace: TraceTree;
   trace_id: string;
@@ -62,8 +179,22 @@ function Trace({trace, trace_id}: TraceProps) {
     });
   }, []);
 
-  const [clickedNode, setClickedNode] =
-    useState<TraceTreeNode<TraceTree.NodeValue> | null>(null);
+  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
+    index: null,
+    items: null,
+    node: null,
+  });
+
+  useLayoutEffect(() => {
+    return dispatch({
+      type: 'initialize',
+      items: trace.list.length - 1,
+      index: null,
+      node: null,
+    });
+  }, [trace.list.length]);
+
+  const previouslyFocusedIndexRef = useRef<number | null>(null);
 
   const [_rerender, setRender] = useState(0);
 
@@ -90,10 +221,15 @@ function Trace({trace, trace_id}: TraceProps) {
         api,
         organization,
       })
-      .then(_maybeNode => {
-        setClickedNode(_maybeNode);
-        viewManager.onScrollEndOutOfBoundsCheck();
+      .then(maybeNode => {
         scrollQueue.current = null;
+
+        if (!maybeNode) {
+          return;
+        }
+
+        viewManager.onScrollEndOutOfBoundsCheck();
+        dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
       });
   }, [api, organization, trace, trace_id, viewManager]);
 
@@ -123,15 +259,43 @@ function Trace({trace, trace_id}: TraceProps) {
     []
   );
 
-  const onRowClick = useCallback((node: TraceTreeNode<TraceTree.NodeValue>) => {
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...qs.parse(location.search),
-        node: node.path,
-      },
-    });
-  }, []);
+  const onRowClick = useCallback(
+    (index: number, node: TraceTreeNode<TraceTree.NodeValue>) => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...qs.parse(location.search),
+          node: node.path,
+        },
+      });
+      dispatch({type: 'go to index', index, node});
+    },
+    []
+  );
+
+  const onRowKeyDown = useCallback(
+    (
+      event: React.KeyboardEvent,
+      index: number,
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ) => {
+      if (!viewManager.list) {
+        return;
+      }
+      const action = getRovingIndexActionFromEvent(event);
+      if (action) {
+        event.preventDefault();
+        const nextIndex = computeNextIndexFromAction(
+          index,
+          action,
+          treeRef.current.list.length - 1
+        );
+        viewManager.list.scrollToRow(nextIndex);
+        dispatch({type: 'go to index', index: nextIndex, node});
+      }
+    },
+    [viewManager.list]
+  );
 
   // @TODO this is the implementation of infinite scroll. Once the user
   // reaches the end of the list, we fetch more data. The data is not yet
@@ -251,16 +415,18 @@ function Trace({trace, trace_id}: TraceProps) {
                         (p.parent as unknown as {_rowStartIndex: number})
                           ._rowStartIndex ?? 0
                       }
+                      previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+                      tabIndex={state.index ?? -1}
                       index={p.index}
                       style={p.style}
                       trace_id={trace_id}
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
                       viewManager={viewManager!}
-                      clickedNode={clickedNode}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
                       onRowClick={onRowClick}
+                      onRowKeyDown={onRowKeyDown}
                     />
                   );
                 }}
@@ -298,15 +464,21 @@ const TraceDivider = styled('div')`
 `;
 
 function RenderRow(props: {
-  clickedNode: TraceTreeNode<TraceTree.NodeValue> | null;
   index: number;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
-  onRowClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onRowClick: (index: number, node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onRowKeyDown: (
+    event: React.KeyboardEvent,
+    index: number,
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ) => void;
+  previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
   style: React.CSSProperties;
+  tabIndex: number;
   theme: Theme;
   trace_id: string;
   viewManager: VirtualizedViewManager;
@@ -320,8 +492,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow Autogrouped"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -397,8 +576,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -478,8 +664,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -564,8 +757,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -623,8 +823,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -694,8 +901,15 @@ function RenderRow(props: {
     return (
       <div
         key={props.index}
+        ref={r =>
+          props.tabIndex === props.index
+            ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
+            : null
+        }
+        tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.node)}
+        onClick={() => props.onRowClick(props.index, props.node)}
+        onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -1096,11 +1310,16 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     position: absolute;
     width: 100%;
-    transition: background-color 0.15s ease-in-out 0s;
+    transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
+    }
+    &:focus {
+      transition: none;
+      background-color: ${p => p.theme.backgroundTertiary};
+      outline: none;
     }
 
     &.Autogrouped {
