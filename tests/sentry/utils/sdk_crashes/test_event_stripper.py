@@ -35,6 +35,9 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "issues.sdk_crash_detection.react-native.project_id": 2,
             "issues.sdk_crash_detection.react-native.sample_rate": 0.2,
             "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
+            "issues.sdk_crash_detection.java.project_id": 3,
+            "issues.sdk_crash_detection.java.sample_rate": 0.3,
+            "issues.sdk_crash_detection.java.organization_allowlist": [2],
         }
     ):
         return build_sdk_crash_detection_configs()
@@ -349,6 +352,37 @@ def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, confi
         "filename": "/sentry-react-native/dist/js/integrations/reactnative.js",
         "abs_path": "/sentry-react-native/dist/js/integrations/reactnative.js",
         "package": "sentry-react-native",
+        "in_app": True,
+        "image_addr": "0x100304000",
+    }
+
+
+@django_db_all
+@pytest.mark.snuba
+def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, configs):
+    frames = get_frames("register", sentry_frame_in_app=False)
+
+    sentry_sdk_frame = frames[-1]
+
+    sentry_sdk_frame["module"] = "io.sentry.android.core.SentryAndroidOptions"
+    sentry_sdk_frame["filename"] = "SentryAndroidOptions.java"
+    sentry_sdk_frame["abs_path"] = "remove_me"
+    sentry_sdk_frame["package"] = "remove_me"
+
+    event_data = get_crash_event_with_frames(frames)
+
+    java_config = configs[2]
+    stripped_event_data = store_and_strip_event(data=event_data, config=java_config)
+
+    stripped_frames = get_path(
+        stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
+    )
+
+    cocoa_sdk_frame = stripped_frames[-1]
+    assert cocoa_sdk_frame == {
+        "function": "register",
+        "module": "io.sentry.android.core.SentryAndroidOptions",
+        "filename": "SentryAndroidOptions.java",
         "in_app": True,
         "image_addr": "0x100304000",
     }
