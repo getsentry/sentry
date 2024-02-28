@@ -405,25 +405,10 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
 
 
 class SpansSamplesListExecutor(AbstractSamplesListExecutor):
-    SORT_MAPPING = {
-        "span.duration": "span.duration",
-        "timestamp": "timestamp",
-    }
-
     @classmethod
     @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
         raise NotImplementedError
-
-    @classmethod
-    def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
-        direction: Literal["", "-"] = ""
-        if sort.startswith("-"):
-            direction = "-"
-            sort = sort[1:]
-        if sort in cls.SORT_MAPPING:
-            return direction, cls.SORT_MAPPING[sort]
-        return None
 
     @classmethod
     def supports_mri(cls, mri: str) -> bool:
