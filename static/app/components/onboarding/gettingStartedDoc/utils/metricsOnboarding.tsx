@@ -44,7 +44,6 @@ export const getJSMetricsOnboarding = ({
       description: tct(
         'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
         {
-          codeIntegration: <code />,
           codeNamespace: <code />,
         }
       ),
