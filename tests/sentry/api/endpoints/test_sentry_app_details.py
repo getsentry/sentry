@@ -147,6 +147,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
         self._validate_updated_published_app(response)
 
+    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_update_published_app(self):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
@@ -252,6 +253,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
+    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_can_update_popularity(self):
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
@@ -291,6 +293,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
+    @with_feature("auth:enterprise-staff-cookie")
     def test_staff_can_publish_apps(self):
         self.login_as(user=self.staff_user, staff=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)

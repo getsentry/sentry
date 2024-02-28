@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
@@ -110,11 +110,12 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
-            # TODO(schew2381): Remove superuser access to this b/c I believe
-            # this can only be done through _admin
             if (
-                not user.is_superuser
-                and not user.is_staff
+                not (
+                    user.is_staff
+                    if features.has("auth:enterprise-staff-cookie", user)
+                    else user.is_superuser
+                )
                 and self.sentry_app.status == SentryAppStatus.PUBLISHED
             ):
                 raise APIError("Cannot update features on a published integration.")
@@ -135,9 +136,11 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
-            # TODO(schew2381): Remove superuser access to this b/c I believe
-            # this can only be done through _admin
-            if user.is_superuser or user.is_staff:
+            if (
+                user.is_staff
+                if features.has("auth:enterprise-staff-cookie", user)
+                else user.is_superuser
+            ):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -235,9 +238,11 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
-            # TODO(schew2381): Remove superuser access to this b/c I believe
-            # this can only be done through _admin
-            if user.is_superuser or user.is_staff:
+            if (
+                user.is_staff
+                if features.has("auth:enterprise-staff-cookie", user)
+                else user.is_superuser
+            ):
                 self.sentry_app.popularity = self.popularity
 
     def _update_schema(self) -> set[str] | None:
