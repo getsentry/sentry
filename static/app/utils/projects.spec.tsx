@@ -92,7 +92,7 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
@@ -157,7 +157,7 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
@@ -294,7 +294,7 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
@@ -368,7 +368,7 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
@@ -432,7 +432,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -487,7 +487,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -596,7 +596,7 @@ describe('utils.projects', function () {
         expect(request).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {all_projects: 1, collapse: ['latestDeploys']},
+            query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
           })
         )
       );
