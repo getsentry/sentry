@@ -1,6 +1,5 @@
 from copy import deepcopy
 from functools import cached_property
-from unittest import mock
 from uuid import uuid4
 
 from arroyo.utils import metrics
@@ -27,8 +26,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -182,16 +179,15 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert out.body == built_message.body
 
     def test_arroyo(self):
-        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
-            from sentry.consumers import get_stream_processor
+        from sentry.consumers import get_stream_processor
 
-            consumer = get_stream_processor(
-                "metrics-subscription-results",
-                consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
-                topic=None,
-                cluster=None,
-                group_id="hi",
-                strict_offset_reset=True,
-                auto_offset_reset="earliest",
-            )
-            self.run_test(consumer)
+        consumer = get_stream_processor(
+            "metrics-subscription-results",
+            consumer_args=["--max-batch-size=1", "--max-batch-time-ms=1000", "--processes=1"],
+            topic=None,
+            cluster=None,
+            group_id="hi",
+            strict_offset_reset=True,
+            auto_offset_reset="earliest",
+        )
+        self.run_test(consumer)
