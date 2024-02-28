@@ -314,11 +314,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         try:
             # Try to find the token by its hashed value first
-            return ApiToken.objects.get(hashed_token=hashed_token)
+            return ApiToken.objects.select_related("user", "application").get(
+                hashed_token=hashed_token
+            )
         except ApiToken.DoesNotExist:
             try:
                 # If we can't find it by hash, use the plaintext string
-                api_token = ApiToken.objects.get(token=token_str)
+                api_token = ApiToken.objects.select_related("user", "application").get(
+                    token=token_str
+                )
             except ApiToken.DoesNotExist:
                 # If the token does not exist by plaintext either, it is not a valid token
                 raise AuthenticationFailed("Invalid token")
@@ -359,11 +363,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                 application_is_inactive = not atr.application_is_active
             else:
                 try:
-                    at = token = (
-                        ApiToken.objects.filter(token=token_str)
-                        .select_related("user", "application")
-                        .get()
-                    )
+                    at = token = self._find_or_update_token_by_hash(token_str)
                 except ApiToken.DoesNotExist:
                     raise AuthenticationFailed("Invalid token")
                 user = at.user
