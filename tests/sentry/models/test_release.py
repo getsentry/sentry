@@ -1341,7 +1341,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-        with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+        with patch("sentry.tasks.relay.schedule_invalidate_project_config") as mock_task:
             release.add_project(project)
             assert mock_task.mock_calls == []
 
@@ -1357,7 +1357,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             project = self.create_project(name="foo")
             release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+            with patch("sentry.tasks.relay.schedule_invalidate_project_config") as mock_task:
                 release.add_project(project)
                 assert mock_task.mock_calls == []
 
