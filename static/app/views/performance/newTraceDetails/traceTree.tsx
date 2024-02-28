@@ -130,7 +130,7 @@ export declare namespace TraceTree {
     | ChildrenAutogroup
     | null;
 
-  type NodePath = `${'txn' | 'span' | 'ag'}:${string}`;
+  type NodePath = `${'txn' | 'span' | 'ag' | 'trace'}:${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -1245,6 +1245,14 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
       }
     }
   }
+  if (isTraceNode(n)) {
+    return `trace:root`;
+  }
+
+  if (isRootNode(n)) {
+    throw new Error('A path to root node does not exist as the node is virtual');
+  }
+
   throw new Error('Not implemented');
 }
 
