@@ -69,7 +69,6 @@ from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
-    bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
@@ -587,7 +586,7 @@ def create_alert_rule(
 
         # NOTE: This constructs the query in snuba
         # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        alert_rule.subscribe_projects(projects)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -828,7 +827,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
+            alert_rule.subscribe_projects(new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
@@ -846,33 +845,6 @@ def update_alert_rule(
     schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
-
-
-def subscribe_projects_to_alert_rule(
-    alert_rule: AlertRule, projects: list[Project], query_extra: str | None = None
-):
-    """
-    Subscribes a list of projects to an alert rule
-    :return: The list of created subscriptions
-
-    TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
-    """
-    logger.info(
-        "Subscribing projects to alert rule",
-        extra={
-            "monitor_type": alert_rule.monitor_type,
-            "query_extra": query_extra,
-        },
-    )
-    # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
-    # On activated subscription, additional query parameters will be added to the constructed query in Snuba
-    if alert_rule.monitor_type == AlertRuleMonitorType.CONTINUOUS.value:
-        return bulk_create_snuba_subscriptions(
-            projects,
-            tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-            alert_rule.snuba_query,
-            query_extra,
-        )
 
 
 def enable_alert_rule(alert_rule):

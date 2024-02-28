@@ -39,44 +39,16 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         """
         from django.utils import timezone
 
-        from sentry.incidents.logic import subscribe_projects_to_alert_rule
-        from sentry.incidents.models import (
-            AlertRule,
-            AlertRuleActivationConditionType,
-            AlertRuleMonitorType,
-        )
+        from sentry.incidents.models import AlertRule
+        from sentry.incidents.utils.types import AlertRuleActivationConditionType
 
-        try:
-            project_alert_rules = AlertRule.filter(project=project)
-            if project_alert_rules.exists():
-                # If we have an AlertRule for the project
-                for par in project_alert_rules:
-                    if (
-                        par.monitor_type == AlertRuleMonitorType.ACTIVATED
-                        and par.activation_conditions
-                        == AlertRuleActivationConditionType.RELEASE_CREATION
-                    ):
-                        query_extra = (
-                            f"release:{release.version} AND event.timestamp:>{timezone.now()}"
-                        )
-                        logger.info(
-                            "Attempt subscribe project to activated alert rule",
-                            extra={
-                                "trigger": trigger,
-                                "query_extra": query_extra,
-                            },
-                        )
-                        subscribe_projects_to_alert_rule(
-                            alert_rule=par, projects=[project], query_extra=query_extra
-                        )
-        except Exception as e:
-            logger.exception(
-                "Failed to subscribe project to activated alert rule",
-                extra={
-                    "trigger": trigger,
-                    "exception": e,
-                },
-            )
+        query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
+        AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
+            project=project,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            query_extra=query_extra,
+            trigger=trigger,
+        )
 
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
