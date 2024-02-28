@@ -9,8 +9,8 @@ import pytest
 from django.conf import settings
 
 from sentry import eventstore
+from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
-from sentry.ingest.consumer.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -109,18 +109,14 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     transaction_message, transaction_event_id = get_test_message(type="transaction")
     producer.produce(topic_event_name, transaction_message)
 
-    consumer = get_ingest_consumer(
-        consumer_type=ConsumerType.Events,
+    consumer = get_stream_processor(
+        "ingest-events",
+        consumer_args=["--max-batch-size=2", "--max-batch-time-ms=5000", "--processes=10"],
+        topic=None,
+        cluster=None,
         group_id=random_group_id,
         auto_offset_reset="earliest",
         strict_offset_reset=False,
-        max_batch_size=2,
-        max_batch_time=5,
-        num_processes=10,
-        input_block_size=DEFAULT_BLOCK_SIZE,
-        output_block_size=DEFAULT_BLOCK_SIZE,
-        force_cluster=None,
-        force_topic=None,
     )
 
     with task_runner():
@@ -144,62 +140,3 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["event_id"] == transaction_event_id
     assert transaction_message.data["spans"] == []
     assert transaction_message.data["contexts"]["trace"]
-
-
-@django_db_all(transaction=True)
-def test_ingest_topic_can_be_overridden(
-    task_runner,
-    kafka_admin,
-    random_group_id,
-    default_project,
-    get_test_message,
-    kafka_producer,
-):
-    """
-    Tests that 'force_topic' overrides the value provided in settings
-    """
-    default_event_topic = ConsumerType.get_topic_name(ConsumerType.Events)
-    new_event_topic = default_event_topic + "-new"
-
-    admin = kafka_admin(settings)
-    admin.delete_topic(default_event_topic)
-    admin.delete_topic(new_event_topic)
-    create_topics("default", [new_event_topic])
-
-    producer = kafka_producer(settings)
-    message, event_id = get_test_message(type="event")
-    producer.produce(new_event_topic, message)
-
-    consumer = get_ingest_consumer(
-        consumer_type=ConsumerType.Events,
-        group_id=random_group_id,
-        auto_offset_reset="earliest",
-        strict_offset_reset=False,
-        max_batch_size=2,
-        max_batch_time=5,
-        num_processes=1,
-        input_block_size=DEFAULT_BLOCK_SIZE,
-        output_block_size=DEFAULT_BLOCK_SIZE,
-        force_topic=new_event_topic,
-        force_cluster="default",
-    )
-
-    with task_runner():
-        i = 0
-        while i < MAX_POLL_ITERATIONS:
-            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
-
-            if message:
-                break
-
-            consumer._run_once()
-            i += 1
-
-    # Check that we got the message
-    assert message.data["event_id"] == event_id
-    assert message.data["extra"]["the_id"] == event_id
-
-    # Check that the default topic was not created
-    all_topics = admin.admin_client.list_topics().topics.keys()
-    assert new_event_topic in all_topics
-    assert default_event_topic not in all_topics

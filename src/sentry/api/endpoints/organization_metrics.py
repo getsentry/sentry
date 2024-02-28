@@ -448,8 +448,9 @@ class MetricsSamplesSerializer(serializers.Serializer):
     min = serializers.FloatField(required=False)
     query = serializers.CharField(required=False)
     referrer = serializers.CharField(required=False)
+    sort = serializers.CharField(required=False)
 
-    def validate_mri(self, mri: str):
+    def validate_mri(self, mri: str) -> str:
         if not is_mri(mri):
             raise serializers.ValidationError(f"Invalid MRI: {mri}")
 
@@ -492,6 +493,11 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
         if not executor_cls:
             raise ParseError(f"Unsupported MRI: {serialized['mri']}")
 
+        if (sort := serialized.get("sort")) is not None:
+            column = sort[1:] if sort.startswith("-") else sort
+            if not executor_cls.supports_sort(column):
+                raise ParseError(f"Unsupported sort: {sort} for MRI")
+
         executor = executor_cls(
             serialized["mri"],
             params,
@@ -500,6 +506,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             serialized.get("query", ""),
             serialized.get("min"),
             serialized.get("max"),
+            serialized.get("sort"),
             rollup,
             Referrer.API_ORGANIZATION_METRICS_SAMPLES,
         )
