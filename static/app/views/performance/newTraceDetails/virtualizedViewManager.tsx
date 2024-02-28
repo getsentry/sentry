@@ -198,12 +198,14 @@ export class VirtualizedViewManager {
   }
 
   dividerStartVec: [number, number] | null = null;
+  previousDividerClientVec: [number, number] | null = null;
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
     }
 
     this.dividerStartVec = [event.clientX, event.clientY];
+    this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
     this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
@@ -224,14 +226,16 @@ export class VirtualizedViewManager {
     this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
 
     this.container.style.userSelect = 'auto';
+
     this.dividerStartVec = null;
+    this.previousDividerClientVec = null;
 
     this.container.removeEventListener('mouseup', this.onDividerMouseUp);
     this.container.removeEventListener('mousemove', this.onDividerMouseMove);
   }
 
   onDividerMouseMove(event: MouseEvent) {
-    if (!this.dividerStartVec || !this.divider) {
+    if (!this.dividerStartVec || !this.divider || !this.previousDividerClientVec) {
       return;
     }
 
@@ -242,10 +246,21 @@ export class VirtualizedViewManager {
       (this.columns.span_list.width - distancePercentage) *
       this.container_physical_space.width;
 
+    const physical_distance = this.previousDividerClientVec[0] - event.clientX;
+    const config_distance_pct = physical_distance / this.trace_physical_space.width;
+    const config_distance = this.trace_view.width * config_distance_pct;
+
+    this.setTraceView({
+      x: this.trace_view.x - config_distance,
+      width: this.trace_view.width + config_distance,
+    });
+
     this.draw({
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
     });
+
+    this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
   registerList(list: List | null) {
@@ -465,7 +480,7 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 0, this.trace_space.width);
+    this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
     this.recomputeSpanToPxMatrix();
   }
 
