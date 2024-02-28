@@ -1,26 +1,11 @@
 import {useEffect, useState} from 'react';
-import partition from 'lodash/partition';
 
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {
-  feedbackOnboardingPlatforms,
-  feedbackWebApiPlatforms,
-} from 'sentry/data/platformCategories';
+import {feedbackOnboardingPlatforms} from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
-
-// Partition platforms into those with either widget/crash API docs, and those that will default to web API
-export function splitProjectsByFeedbackSupport(projects: Project[]) {
-  const [webApi, nonWebApi] = partition(projects, project =>
-    feedbackWebApiPlatforms.includes(project.platform!)
-  );
-  return {
-    webApi,
-    nonWebApi,
-  };
-}
 
 function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanelKey}) {
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
@@ -81,13 +66,9 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
     projectsWithOnboarding,
   ]);
 
-  const {webApi, nonWebApi} = splitProjectsByFeedbackSupport(projects);
-
   return {
     projectsWithOnboarding,
     projects,
-    webApi,
-    nonWebApi,
     currentProject,
     setCurrentProject,
   };
