@@ -139,6 +139,31 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         return args, kwargs
 
 
+class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
+    """
+    Base endpoint class for monitors which will look up a checkin
+    and convert it to a MonitorCheckin object.
+    """
+
+    def convert_args(
+        self,
+        request: Request,
+        checkin_id: str,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["checkin"] = MonitorCheckIn.objects.get(
+                project_id=kwargs["project"].id,
+                guid=checkin_id,
+            )
+        except MonitorCheckIn.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+
 class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
     """
     Base endpoint class for monitor environment which will look up the monitor environment and
