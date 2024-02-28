@@ -3,6 +3,7 @@ from unittest.mock import ANY, patch
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -11,6 +12,7 @@ pytestmark = [requires_snuba]
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("projects:ai-autofix")
 class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_ai_autofix_get_endpoint_with_autofix(self):
         group = self.create_group()
