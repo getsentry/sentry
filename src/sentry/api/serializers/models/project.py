@@ -37,6 +37,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
+from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
@@ -617,11 +618,8 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def __init__(
-        self, access: Access | None = None, lpq_projects: set[int] | None = None, **kwargs
-    ):
+    def __init__(self, access: Access | None = None, **kwargs):
         self.access = access
-        self.lpq_projects = lpq_projects
         super().__init__(**kwargs)
 
     def get_deploys_by_project(self, item_list):
@@ -708,12 +706,18 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
+        with sentry_sdk.start_span(op="project_summary_serializer.get_lpq_projects"):
+            lpq_projects = realtime_metrics.get_lpq_projects()
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            with sentry_sdk.start_span(op="project_summary_serializer.should_demote_symbolication"):
+                attrs[item]["symbolication_degraded"] = should_demote_symbolication(
+                    project_id=item.id, lpq_projects=lpq_projects
+                )
 
         return attrs
 
@@ -733,9 +737,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             dateCreated=obj.date_added,
             environments=attrs["environments"],
             eventProcessing={
-                "symbolicationDegraded": should_demote_symbolication(
-                    project_id=obj.id, lpq_projects=self.lpq_projects
-                ),
+                "symbolicationDegraded": attrs["symbolication_degraded"],
             },
             features=attrs["features"],
             firstEvent=obj.first_event,

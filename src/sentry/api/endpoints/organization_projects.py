@@ -22,7 +22,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.processing import realtime_metrics
 from sentry.search.utils import tokenize_query
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 
@@ -141,14 +140,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            lpq_projects: set[int] = realtime_metrics.get_lpq_projects()
             return Response(
                 serialize(
                     list(queryset),
                     request.user,
-                    ProjectSummarySerializer(
-                        collapse=collapse, dataset=dataset, lpq_projects=lpq_projects
-                    ),
+                    ProjectSummarySerializer(collapse=collapse, dataset=dataset),
                 )
             )
         else:
