@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -11,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
@@ -23,7 +25,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 METRICS_ENHANCED_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
@@ -214,7 +216,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
-        def get_event_stats(
+        def _get_event_stats(
+            scopedDataset: Any,
             query_columns: Sequence[str],
             query: str,
             params: dict[str, str],
@@ -223,7 +226,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult:
             if top_events > 0:
-                return dataset.top_events_timeseries(
+                return scopedDataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -241,7 +244,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                 )
 
-            return dataset.timeseries_query(
+            return scopedDataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
@@ -265,6 +268,161 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
             )
+
+        def get_event_stats_factory(scopedDataset):
+            """
+            This factory closes over dataset in order to make an additional request to the errors dataset
+            in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
+
+            This should be removed once the discover dataset is completely split in dashboards.
+            """
+            dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
+
+            def fn(
+                query_columns: Sequence[str],
+                query: str,
+                params: dict[str, str],
+                rollup: int,
+                zerofill_results: bool,
+                comparison_delta: datetime | None,
+            ) -> SnubaTSResult:
+                if not (metrics_enhanced and dashboard_widget_id):
+                    return _get_event_stats(
+                        scopedDataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+
+                try:
+                    widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                    does_widget_have_split = widget.discover_widget_split is not None
+
+                    if does_widget_have_split:
+                        # This is essentially cached behaviour and we skip the check
+                        if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
+                            errors_only_query = f"({query}) AND event.type:error"
+                            return _get_event_stats(
+                                discover,
+                                query_columns,
+                                errors_only_query,
+                                params,
+                                rollup,
+                                zerofill_results,
+                                comparison_delta,
+                            )
+                        if widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            return _get_event_stats(
+                                scopedDataset,
+                                query_columns,
+                                query,
+                                params,
+                                rollup,
+                                zerofill_results,
+                                comparison_delta,
+                            )
+                        if widget.discover_widget_split == DashboardWidgetTypes.DISCOVER:
+                            # This is a fallback for the ambiguous case.
+                            return _get_event_stats(
+                                discover,
+                                query_columns,
+                                query,
+                                params,
+                                rollup,
+                                zerofill_results,
+                                comparison_delta,
+                            )
+
+                    # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                    errors_only_query = f"({query}) AND event.type:error"
+                    try:
+                        error_results = _get_event_stats(
+                            discover,
+                            query_columns,
+                            errors_only_query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                        sum_error_results = error_results.data["data"]
+                        has_errors = any(
+                            any("(" in column and ")" in column for column in row.keys())
+                            for row in sum_error_results
+                        )
+                    except SnubaError as e:
+                        sentry_sdk.capture_exception(e)
+                        has_errors = True
+
+                    if has_errors:
+                        # If we see errors, always fallback to discover to scopedQuery for the user.
+                        all_results = _get_event_stats(
+                            scopedDataset,
+                            query_columns,
+                            query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                    else:
+                        all_results = _get_event_stats(
+                            discover,
+                            query_columns,
+                            query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+
+                    if isinstance(all_results, SnubaTSResult):
+                        other_data = all_results.data["data"]
+                    else:
+                        other_data = sum(
+                            [
+                                timeseries_result.data["data"]
+                                for timeseries_result in all_results.values()
+                            ],
+                            [],
+                        )
+
+                    has_other_data = any(
+                        any(
+                            column_name != "time"
+                            and isinstance(column_value, (int, float))
+                            and column_value != 0
+                            for (column_name, column_value) in row.items()
+                        )
+                        for row in other_data
+                    )
+
+                    new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
+
+                    if widget.discover_widget_split != new_discover_widget_split:
+                        widget.discover_widget_split = new_discover_widget_split
+                        widget.save()
+                    return all_results
+
+                except Exception as e:
+                    # Swallow the exception if it was due to dashboards, and try again one more time.
+                    sentry_sdk.capture_exception(e)
+                    return _get_event_stats(
+                        scopedDataset,
+                        query_columns,
+                        query,
+                        params,
+                        rollup,
+                        zerofill_results,
+                        comparison_delta,
+                    )
+
+            return fn
+
+        get_event_stats = get_event_stats_factory(dataset)
 
         try:
             return Response(
