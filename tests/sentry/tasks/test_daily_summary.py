@@ -24,11 +24,10 @@ from sentry.utils.outcomes import Outcome
 @freeze_time(before_now(days=2).replace(hour=0, minute=5, second=0, microsecond=0))
 class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     def store_event_and_outcomes(
-        self, project_id, timestamp, fingerprint, category, num_times, release=None, resolve=True
+        self, project_id, timestamp, fingerprint, category, release=None, resolve=True
     ):
         if category == DataCategory.ERROR:
             data = {
-                "event_id": "a" * 32,
                 "timestamp": iso_format(timestamp),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": [fingerprint],
@@ -52,7 +51,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
                 "timestamp": timestamp,
                 "key_id": 1,
             },
-            num_times=num_times,
+            num_times=1,
         )
         group = event.group
         if resolve:
@@ -108,48 +107,38 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             assert call_args.args == (to_timestamp(self.now), ONE_DAY, self.organization.id)
 
     def test_prepare_summary_data(self):
-        group1 = self.store_event_and_outcomes(
-            self.project.id,
-            self.three_days_ago,
-            fingerprint="group-1",
-            category=DataCategory.ERROR,
-            num_times=6,
-        )
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.two_days_ago,
-            fingerprint="group-1",
-            category=DataCategory.ERROR,
-            num_times=4,
-        )
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-1",
-            category=DataCategory.ERROR,
-            num_times=2,
-        )
+        for _ in range(6):
+            group1 = self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+            )
+        for _ in range(4):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.two_days_ago,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+            )
+        for _ in range(3):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+            )
 
         # create an issue first seen in the release and set it to regressed
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-2",
-            category=DataCategory.ERROR,
-            num_times=1,
-            release=self.release.version,
-            resolve=False,
-        )
-        # XXX(CEO): copy/pasting this works but for some reason putting it in a loop does not
-        group2 = self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-2",
-            category=DataCategory.ERROR,
-            num_times=2,
-            release=self.release.version,
-            resolve=False,
-        )
+        for _ in range(2):
+            group2 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+                release=self.release.version,
+                resolve=False,
+            )
         group2.substatus = GroupSubStatus.REGRESSED
         group2.save()
         Activity.objects.create_group_activity(
@@ -161,15 +150,15 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             },
         )
         # create and issue and set it to escalating
-        group3 = self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-3",
-            category=DataCategory.ERROR,
-            num_times=10,
-            release=self.release.version,
-            resolve=False,
-        )
+        for _ in range(10):
+            group3 = self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-3",
+                category=DataCategory.ERROR,
+                release=self.release.version,
+                resolve=False,
+            )
         group3.substatus = GroupSubStatus.ESCALATING
         group3.save()
         Activity.objects.create_group_activity(
@@ -182,13 +171,13 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )
 
         # store an event in another project to be sure they're in separate buckets
-        group4 = self.store_event_and_outcomes(
-            self.project2.id,
-            self.now,
-            fingerprint="group-4",
-            category=DataCategory.ERROR,
-            num_times=2,
-        )
+        for _ in range(2):
+            group4 = self.store_event_and_outcomes(
+                self.project2.id,
+                self.now,
+                fingerprint="group-4",
+                category=DataCategory.ERROR,
+            )
 
         # store some performance issues
         perf_event = self.create_performance_issue(
@@ -205,9 +194,9 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )  # total outcomes from today
         assert summary.projects_context_map[project_id].comparison_period_avg == 1
         assert len(summary.projects_context_map[project_id].key_errors) == 3
-        assert (group1, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert (group1, None, 3) in summary.projects_context_map[project_id].key_errors
         assert (group2, None, 2) in summary.projects_context_map[project_id].key_errors
-        assert (group3, None, 1) in summary.projects_context_map[project_id].key_errors
+        assert (group3, None, 10) in summary.projects_context_map[project_id].key_errors
         assert len(summary.projects_context_map[project_id].key_performance_issues) == 2
         assert (perf_event.group, None, 1) in summary.projects_context_map[
             project_id
@@ -223,7 +212,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         project_id2 = self.project2.id
         assert summary.projects_context_map[project_id2].total_today == 2
         assert summary.projects_context_map[project_id2].comparison_period_avg == 0
-        assert summary.projects_context_map[project_id2].key_errors == [(group4, None, 1)]
+        assert summary.projects_context_map[project_id2].key_errors == [(group4, None, 2)]
         assert summary.projects_context_map[project_id2].key_performance_issues == []
         assert summary.projects_context_map[project_id2].escalated_today == []
         assert summary.projects_context_map[project_id2].regressed_today == []
