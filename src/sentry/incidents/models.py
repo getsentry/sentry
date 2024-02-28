@@ -56,6 +56,16 @@ def register_alert_subscription_update(
     return decorator
 
 
+def invoke_alert_subscription_update(
+    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
+) -> bool:
+    callback = alert_subscription_update_registry[monitor_type]
+    if callback:
+        return callback(subscription)
+
+    return False
+
+
 @region_silo_only_model
 class IncidentProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
