@@ -143,6 +143,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get list of tag names for this project
 
