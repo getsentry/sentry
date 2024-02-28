@@ -10,6 +10,8 @@ from django.utils import timezone as django_timezone
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
+    PROJECT_FEATURES_NOT_USED_ON_FRONTEND,
+    UNUSED_ON_FRONTEND_FEATURES,
     DetailedProjectSerializer,
     ProjectSummarySerializer,
     ProjectWithOrganizationSerializer,
@@ -650,6 +652,28 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["hasHealthData"]
 
         assert check_has_health_data.call_count == 1
+
+    def test_project_with_collapsed_unused_frontend_flags(self):
+        result_with_unused_flags = serialize(
+            self.project,
+            self.user,
+            ProjectSummarySerializer(collapse=[UNUSED_ON_FRONTEND_FEATURES]),
+        )
+
+        intersected_result = PROJECT_FEATURES_NOT_USED_ON_FRONTEND.intersection(
+            set(result_with_unused_flags["features"])
+        )
+        assert intersected_result == set()
+
+        unused_on_frontend_first_element = next(iter(PROJECT_FEATURES_NOT_USED_ON_FRONTEND))
+        with self.feature(f"projects:{unused_on_frontend_first_element}"):
+            result_with_all_flags = serialize(
+                self.project,
+                self.user,
+                ProjectSummarySerializer(),
+            )
+
+        assert unused_on_frontend_first_element in result_with_all_flags["features"]
 
 
 @region_silo_test
