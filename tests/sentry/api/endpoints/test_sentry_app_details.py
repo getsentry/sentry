@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
 from sentry import audit_log, deletions
+from sentry.api.endpoints.integrations.sentry_apps.details import (
+    PARTNERSHIP_RESTRICTED_ERROR_MESSAGE,
+)
 from sentry.constants import SentryAppStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.sentry_app import SentryApp
@@ -17,9 +20,10 @@ class SentryAppDetailsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-details"
 
     def setUp(self):
-        self.superuser = self.create_user(email="a@example.com", is_superuser=True)
+        self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.user.update(is_superuser=False)
+            self.user.update(is_superuser=False, is_staff=False)
         self.login_as(self.user)
 
         self.popularity = 27
@@ -57,6 +61,15 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.get_success_response(self.unpublished_app.slug, status_code=200)
         assert response.data["uuid"] == self.unpublished_app.uuid
 
+    def test_staff_sees_all_apps(self):
+        self.login_as(user=self.staff_user, staff=True)
+
+        response = self.get_success_response(self.published_app.slug, status_code=200)
+        assert response.data["uuid"] == self.published_app.uuid
+
+        response = self.get_success_response(self.unpublished_app.slug, status_code=200)
+        assert response.data["uuid"] == self.unpublished_app.uuid
+
     def test_users_see_published_app(self):
         response = self.get_success_response(self.published_app.slug, status_code=200)
         assert response.data["uuid"] == self.published_app.uuid
@@ -80,19 +93,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
 class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
     method = "PUT"
 
-    def test_update_published_app(self):
-        self.login_as(user=self.superuser, superuser=True)
-        response = self.get_success_response(
-            self.published_app.slug,
-            name=self.published_app.name,
-            author="A Company",
-            webhookUrl="https://newurl.com",
-            redirectUrl="https://newredirecturl.com",
-            isAlertable=True,
-            features=[1, 2],
-            status_code=200,
-        )
-
+    def _validate_updated_published_app(self, response):
         data = response.data
         data["featureData"] = sorted(data["featureData"], key=lambda a: a["featureId"])
 
@@ -130,6 +131,36 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "avatars": set(),
             "metadata": {},
         }
+
+    def test_superuser_update_published_app(self):
+        self.login_as(user=self.superuser, superuser=True)
+        response = self.get_success_response(
+            self.published_app.slug,
+            name=self.published_app.name,
+            author="A Company",
+            webhookUrl="https://newurl.com",
+            redirectUrl="https://newredirecturl.com",
+            isAlertable=True,
+            features=[1, 2],
+            status_code=200,
+        )
+
+        self._validate_updated_published_app(response)
+
+    def test_staff_update_published_app(self):
+        self.login_as(user=self.staff_user, staff=True)
+        response = self.get_success_response(
+            self.published_app.slug,
+            name=self.published_app.name,
+            author="A Company",
+            webhookUrl="https://newurl.com",
+            redirectUrl="https://newredirecturl.com",
+            isAlertable=True,
+            features=[1, 2],
+            status_code=200,
+        )
+
+        self._validate_updated_published_app(response)
 
     def test_update_unpublished_app(self):
         response = self.get_success_response(
@@ -208,7 +239,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=404,
         )
 
-    def test_superusers_can_update_popularity(self):
+    def test_superuser_can_update_popularity(self):
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         assert not app.date_published
@@ -221,7 +252,20 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == popularity
 
-    def test_nonsuperusers_cannot_update_popularity(self):
+    def test_staff_can_update_popularity(self):
+        self.login_as(user=self.staff_user, staff=True)
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        assert not app.date_published
+
+        popularity = 100
+        self.get_success_response(
+            app.slug,
+            popularity=popularity,
+            status_code=200,
+        )
+        assert SentryApp.objects.get(id=app.id).popularity == popularity
+
+    def test_nonsuperuser_nonstaff_cannot_update_popularity(self):
         app = self.create_sentry_app(
             name="SampleApp", organization=self.organization, popularity=self.popularity
         )
@@ -232,7 +276,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         )
         assert SentryApp.objects.get(id=app.id).popularity == self.popularity
 
-    def test_superusers_can_publish_apps(self):
+    def test_superuser_can_publish_apps(self):
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         assert not app.date_published
@@ -247,7 +291,22 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
-    def test_nonsuperusers_cannot_publish_apps(self):
+    def test_staff_can_publish_apps(self):
+        self.login_as(user=self.staff_user, staff=True)
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        assert not app.date_published
+
+        self.get_success_response(
+            app.slug,
+            status="published",
+            status_code=200,
+        )
+
+        app = SentryApp.objects.get(id=app.id)
+        assert app.status == SentryAppStatus.PUBLISHED
+        assert app.date_published
+
+    def test_nonsuperuser_nonstaff_cannot_publish_apps(self):
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_success_response(
             app.slug,
@@ -275,6 +334,29 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             scopes=("event:read",),
             status_code=200,
         )
+
+    def test_staff_can_mutate_scopes(self):
+        self.login_as(user=self.staff_user, staff=True)
+        app = self.create_sentry_app(
+            name="SampleApp", organization=self.organization, scopes=("event:read",)
+        )
+        assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read"]
+
+        # scopes is empty array which should not be treated as none
+        self.get_success_response(
+            app.slug,
+            scopes=(),
+            status_code=200,
+        )
+        assert SentryApp.objects.get(id=app.id).get_scopes() == []
+
+        # update with hierarchy
+        self.get_success_response(
+            app.slug,
+            scopes=("event:write",),
+            status_code=200,
+        )
+        assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
 
     def test_remove_scopes(self):
         app = self.create_sentry_app(
@@ -437,12 +519,15 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
 
 @control_silo_test
-class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
+class DeleteSuperuserSentryAppDetailsTest(SentryAppDetailsTest):
     method = "DELETE"
 
-    @patch("sentry.analytics.record")
-    def test_delete_unpublished_app(self, record):
+    def setUp(self):
+        super().setUp()
         self.login_as(user=self.superuser, superuser=True)
+
+    @patch("sentry.analytics.record")
+    def test_superuser_delete_unpublished_app(self, record):
         self.get_success_response(
             self.unpublished_app.slug,
             status_code=204,
@@ -458,8 +543,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             sentry_app=self.unpublished_app.slug,
         )
 
-    def test_delete_unpublished_app_with_installs(self):
-        self.login_as(user=self.superuser, superuser=True)
+    def test_superuser_delete_unpublished_app_with_installs(self):
         installation = self.create_sentry_app_installation(
             organization=self.organization,
             slug=self.unpublished_app.slug,
@@ -476,18 +560,82 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         ).exists()
         assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
 
-    def test_cannot_delete_published_app(self):
-        self.login_as(user=self.superuser, superuser=True)
-
+    def test_superuser_cannot_delete_published_app(self):
         response = self.get_error_response(self.published_app.slug, status_code=403)
         assert response.data == {"detail": ["Published apps cannot be removed."]}
 
-    def test_cannot_delete_partner_apps(self):
+    def test_superuser_cannot_delete_partner_apps(self):
         self.published_app.update(metadata={"partnership_restricted": True})
-        self.get_error_response(
+        response = self.get_error_response(
             self.published_app.slug,
             status_code=403,
         )
+        assert response.data["detail"] == PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
+
+    def test_cannot_delete_by_manager(self):
+        self.user_manager = self.create_user("manager@example.com", is_superuser=False)
+        self.create_member(
+            user=self.user_manager, organization=self.organization, role="manager", teams=[]
+        )
+        self.login_as(self.user_manager)
+
+        self.get_error_response(self.internal_integration.slug, status_code=403)
+
+
+@control_silo_test
+class DeleteStaffSentryAppDetailsTest(SentryAppDetailsTest):
+    method = "DELETE"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.staff_user, staff=True)
+
+    @patch("sentry.analytics.record")
+    def test_staff_delete_unpublished_app(self, record):
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status_code=204,
+        )
+
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
+        record.assert_called_with(
+            "sentry_app.deleted",
+            user_id=self.staff_user.id,
+            organization_id=self.organization.id,
+            sentry_app=self.unpublished_app.slug,
+        )
+
+    def test_staff_delete_unpublished_app_with_installs(self):
+        installation = self.create_sentry_app_installation(
+            organization=self.organization,
+            slug=self.unpublished_app.slug,
+            user=self.user,
+        )
+
+        self.get_success_response(
+            self.unpublished_app.slug,
+            status_code=204,
+        )
+
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
+        assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
+
+    def test_staff_cannot_delete_published_app(self):
+        response = self.get_error_response(self.published_app.slug, status_code=403)
+        assert response.data == {"detail": ["Published apps cannot be removed."]}
+
+    def test_staff_cannot_delete_partner_apps(self):
+        self.published_app.update(metadata={"partnership_restricted": True})
+
+        response = self.get_error_response(
+            self.published_app.slug,
+            status_code=403,
+        )
+        assert response.data["detail"] == PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 
     def test_cannot_delete_by_manager(self):
         self.user_manager = self.create_user("manager@example.com", is_superuser=False)

@@ -110,6 +110,8 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
+            # TODO(schew2381): Remove superuser access to this b/c I believe
+            # this can only be done through _admin
             if (
                 not user.is_superuser
                 and not user.is_staff
@@ -133,6 +135,8 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
+            # TODO(schew2381): Remove superuser access to this b/c I believe
+            # this can only be done through _admin
             if user.is_superuser or user.is_staff:
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
@@ -231,6 +235,8 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
+            # TODO(schew2381): Remove superuser access to this b/c I believe
+            # this can only be done through _admin
             if user.is_superuser or user.is_staff:
                 self.sentry_app.popularity = self.popularity
 
