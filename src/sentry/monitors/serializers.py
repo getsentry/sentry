@@ -235,7 +235,7 @@ class MonitorCheckInSerializer(Serializer):
                 )
 
             for checkin in item_list:
-                attrs[item]["groups"] = (
+                attrs[checkin]["groups"] = (
                     trace_groups.get(checkin.trace_id.hex, []) if checkin.trace_id else []
                 )
 
