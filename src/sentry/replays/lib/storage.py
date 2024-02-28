@@ -162,9 +162,11 @@ class StorageBlob(Blob):
     def delete(self, segment: RecordingSegmentStorageMeta) -> None:
         return storage_kv.delete(self.make_key(segment))
 
+    @metrics.wraps("replays.lib.storage.StorageBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
         return storage_kv.get(self.make_key(segment))
 
+    @metrics.wraps("replays.lib.storage.StorageBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         return storage_kv.set(self.make_key(segment), value)
 
