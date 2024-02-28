@@ -7,8 +7,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
-from sentry.models.release import ReleaseProject
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.utils.hashlib import hash_values
 

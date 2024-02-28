@@ -22,7 +22,8 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models.activity import Activity
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseCommitError, ReleaseStatus, UnsafeReleaseDeletion
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope

@@ -20,7 +20,8 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.user import RpcUser

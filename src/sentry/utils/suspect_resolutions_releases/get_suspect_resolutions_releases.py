@@ -9,7 +9,8 @@ from django.utils import timezone
 from sentry import features
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.signals import release_created
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task

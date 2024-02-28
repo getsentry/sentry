@@ -11,8 +11,9 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.organization import Organization
-from sentry.models.release import Release, ReleaseCommitError
+from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.plugins.base import bindings

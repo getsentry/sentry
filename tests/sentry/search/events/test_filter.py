@@ -10,7 +10,7 @@ from snuba_sdk.function import Function
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.release import SemverFilter
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import (
     SEMVER_ALIAS,
