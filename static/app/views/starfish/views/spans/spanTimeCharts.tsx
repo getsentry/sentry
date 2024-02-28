@@ -322,7 +322,15 @@ const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
 
 function BundleSizeChart(props: ChartProps) {
   const {isLoading, data} = mockSeries(props);
-  return <Chart stacked loading={isLoading} data={data} aggregateOutputFormat="size" />;
+  return (
+    <Chart
+      stacked
+      loading={isLoading}
+      data={data}
+      aggregateOutputFormat="size"
+      height={CHART_HEIGHT}
+    />
+  );
 }
 
 const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
