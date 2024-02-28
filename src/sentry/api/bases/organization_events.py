@@ -22,6 +22,7 @@ from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSeria
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -222,6 +223,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
 
         return use_on_demand_metrics, on_demand_metric_type
+
+    def get_split_decision(self, has_errors, has_other_data):
+        """This can be removed once the discover dataset has been fully split"""
+        if has_errors and not has_other_data:
+            return DashboardWidgetTypes.ERROR_EVENTS
+        if not has_errors and has_other_data:
+            return DashboardWidgetTypes.TRANSACTION_LIKE
+        # Covers cases of !A && !B and A && B
+        return DashboardWidgetTypes.ERROR_EVENTS
 
     def handle_unit_meta(
         self, meta: dict[str, str]
