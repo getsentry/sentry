@@ -5,7 +5,6 @@ import logging
 import re
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from time import time
 from typing import ClassVar
 
@@ -46,6 +45,7 @@ from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
     ERR_RELEASE_REFERENCED,
+    SemverFilter,
 )
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
@@ -98,14 +98,6 @@ class ReleaseStatus:
             return "archived"
         else:
             raise ValueError(repr(value))
-
-
-@dataclass
-class SemverFilter:
-    operator: str
-    version_parts: Sequence[int | str]
-    package: str | None = None
-    negated: bool = False
 
 
 class ReleaseQuerySet(BaseQuerySet):

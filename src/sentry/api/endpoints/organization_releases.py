@@ -29,7 +29,9 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseCommitError, ReleaseStatus, SemverFilter
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.constants import SemverFilter
+from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
