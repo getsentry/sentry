@@ -64,10 +64,7 @@ def invoke_alert_subscription_update(
     except KeyError:
         return False
 
-    if callable(callback):
-        return callback(subscription)
-
-    return False
+    return callback(subscription)
 
 
 @region_silo_only_model
