@@ -47,8 +47,8 @@ export function FormulaInput({
   onChange,
   ...props
 }: Props) {
-  const [error, setError] = useState<any>(null);
-  const [isValidationEnabled, setIsValidationEnabled] = useState(false);
+  const [errors, setErrors] = useState<any>([]);
+  const [showErrors, setIsValidationEnabled] = useState(false);
   const [value, setValue] = useState<string>(() => unescapeVariables(valueProp));
 
   const validateVariable = useCallback(
@@ -82,25 +82,51 @@ export function FormulaInput({
         const newValue = e.target.value.trim();
 
         let tokens: TokenList = [];
+        const newErrors: any[] = [];
         if (newValue) {
           try {
             tokens = parseFormula(newValue);
           } catch (err) {
-            setError(err);
-            return;
+            newErrors.push({
+              message: err.message,
+              start: err.location.start.offset,
+            });
           }
         }
-        setError(null);
+
+        // validate variables
+        let charCount = 0;
+        tokens.forEach(token => {
+          if (token.type === TokenType.VARIABLE) {
+            const error = validateVariable(token.content);
+            if (error) {
+              newErrors.push({
+                message: error,
+                start: charCount,
+                end: charCount + token.content.length,
+              });
+            }
+          }
+          charCount += token.content.length;
+        });
+
+        newErrors.sort((a, b) => a.start - b.start);
+        setErrors(newErrors);
+
+        if (newErrors.length > 0) {
+          return;
+        }
         onChange(joinTokens(equalizeWhitespace(escapeVariables(tokens))));
       }, 200),
-    [onChange]
+    [onChange, validateVariable]
   );
+
   return (
     <Wrapper>
       <StyledInput
         {...props}
         monospace
-        hasError={isValidationEnabled && !!error}
+        hasError={showErrors && errors.length > 0}
         defaultValue={value}
         onChange={e => {
           setValue(e.target.value);
@@ -108,11 +134,7 @@ export function FormulaInput({
         }}
       />
       <RendererOverlay monospace>
-        <FormularFormatter
-          formula={value}
-          validateVariable={validateVariable}
-          enableValidation={isValidationEnabled}
-        />
+        <FormularFormatter formula={value} errors={showErrors ? errors : []} />
       </RendererOverlay>
     </Wrapper>
   );

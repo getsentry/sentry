@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {TokenType} from 'sentry/views/ddm/formulaParser/types';
 
 import grammar from './formulaFormatting.pegjs';
@@ -14,54 +14,60 @@ const operatorTokens = new Set([
   TokenType.DIVIDE,
 ]);
 
-export function FormularFormatter({
-  formula,
-  validateVariable,
-  enableValidation = false,
-}: {
+interface FormularFormatterProps {
   formula: string;
-  enableValidation?: boolean;
-  validateVariable?: (variable: string) => string | null;
-}) {
+  errors?: [
+    {
+      message: string;
+      start: number;
+      end?: number;
+    },
+  ];
+}
+
+export function FormularFormatter({formula, errors}: FormularFormatterProps) {
   const theme = useTheme();
   const tokens = useMemo(() => {
     try {
       return grammar.parse(formula.trim());
     } catch (err) {
-      return [{type: TokenType.GENERIC, content: formula}];
+      return undefined;
     }
   }, [formula]);
 
-  const error = useMemo(() => {
-    if (!enableValidation) {
-      return null;
-    }
-    try {
-      parseFormula(formula.trim());
-      return null;
-    } catch (err) {
-      return err;
-    }
-  }, [formula, enableValidation]);
+  if (!tokens) {
+    // If the formula cannot be parsed, we simply return it without any highlighting
+    return <Fragment>{formula}</Fragment>;
+  }
 
-  const errorIndex = error?.location?.start?.offset ?? null;
+  const findMatchingError = (charCount: number) => {
+    if (!errors) {
+      return null;
+    }
+    return errors.find(
+      error => error.start <= charCount && (!error.end || error.end >= charCount)
+    );
+  };
+
   let charCount = 0;
   let hasActiveTooltip = false;
 
   return (
     <Fragment>
       {tokens.map((token, index) => {
+        const error = findMatchingError(charCount);
         charCount += token.content.length;
-        if (errorIndex !== null && charCount >= errorIndex) {
+
+        if (error) {
           const content = (
-            <span key={index} style={{color: theme.errorText}}>
+            <Token key={index} style={{color: theme.errorText}}>
               {token.content}
-            </span>
+            </Token>
           );
 
-          const showTooltip =
-            charCount === errorIndex && !hasActiveTooltip && enableValidation;
-          hasActiveTooltip = hasActiveTooltip || showTooltip;
+          // Only show one tooltip at a time
+          const showTooltip = !hasActiveTooltip;
+          hasActiveTooltip = true;
 
           return showTooltip ? (
             <Tooltip title={error.message} key={index} forceVisible>
@@ -73,42 +79,31 @@ export function FormularFormatter({
         }
 
         if (token.type === TokenType.VARIABLE) {
-          const variableError = enableValidation && validateVariable?.(token.content);
-          const content = (
-            <span
-              key={index}
-              style={{color: !variableError ? theme.yellow400 : theme.errorText}}
-            >
+          return (
+            <Token key={index} style={{color: theme.yellow400, fontWeight: 'bold'}}>
               {token.content}
-            </span>
-          );
-
-          const showTooltip = !!variableError && !hasActiveTooltip && enableValidation;
-          hasActiveTooltip = hasActiveTooltip || showTooltip;
-
-          return showTooltip ? (
-            <Tooltip title={variableError} key={index} forceVisible>
-              {content}
-            </Tooltip>
-          ) : (
-            content
+            </Token>
           );
         }
 
         if (operatorTokens.has(token.type)) {
           return (
-            <span key={index} style={{color: theme.blue300}}>
+            <Token key={index} style={{color: theme.blue300}}>
               {token.content}
-            </span>
+            </Token>
           );
         }
 
         return (
-          <span key={index} style={{color: theme.gray500}}>
+          <Token key={index} style={{color: theme.gray500}}>
             {token.content}
-          </span>
+          </Token>
         );
       })}{' '}
     </Fragment>
   );
 }
+
+const Token = styled('span')`
+  white-space: pre;
+`;
