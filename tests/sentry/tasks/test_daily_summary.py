@@ -83,20 +83,20 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
     def test_schedule_organizations(self, mock_prepare_summary_data):
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.three_days_ago,
-            fingerprint="group-1",
-            category=DataCategory.ERROR,
-            num_times=2,
-        )
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-2",
-            category=DataCategory.ERROR,
-            num_times=2,
-        )
+        for _ in range(2):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.three_days_ago,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+            )
+        for _ in range(2):
+            self.store_event_and_outcomes(
+                self.project.id,
+                self.now,
+                fingerprint="group-2",
+                category=DataCategory.ERROR,
+            )
 
         with self.tasks():
             schedule_organizations(timestamp=to_timestamp(self.now))
