@@ -27,7 +27,7 @@ class ReleaseDeploysListTest(APITestCase):
             environment_id=production_env.id,
             organization_id=project.organization_id,
             release=release,
-            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+            date_finished=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1),
         )
 
         staging_env = Environment.objects.create(
@@ -90,7 +90,7 @@ class ReleaseDeploysListTest(APITestCase):
             environment_id=production_env.id,
             organization_id=project.organization_id,
             release=release,
-            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
+            date_finished=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1),
         )
 
         ReleaseProjectEnvironment.objects.create(

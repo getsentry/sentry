@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import time_machine
 
@@ -12,8 +12,8 @@ def iso_format(date):
     return date.isoformat()[:19]
 
 
-def before_now(**kwargs):
-    date = datetime.utcnow() - timedelta(**kwargs)
+def before_now(**kwargs: float) -> datetime:
+    date = datetime.now(UTC) - timedelta(**kwargs)
     return date - timedelta(microseconds=date.microsecond % 1000)
 
 
@@ -25,7 +25,7 @@ class MockClock:
     """Returns a distinct, increasing timestamp each time it is called."""
 
     def __init__(self, initial=None):
-        self.time = initial or datetime.now(timezone.utc)
+        self.time = initial or datetime.now(UTC)
 
     def __call__(self):
         self.time += timedelta(seconds=1)
@@ -34,5 +34,5 @@ class MockClock:
 
 def freeze_time(t: str | datetime | None = None) -> time_machine.travel:
     if t is None:
-        t = datetime.now(timezone.utc)
+        t = datetime.now(UTC)
     return time_machine.travel(t, tick=False)
