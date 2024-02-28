@@ -8,7 +8,7 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {csharpFeedbackOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
