@@ -782,7 +782,7 @@ export class VirtualizedViewManager {
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return anchor_left ? [1, window_left] : [0, window_right];
+      return anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];

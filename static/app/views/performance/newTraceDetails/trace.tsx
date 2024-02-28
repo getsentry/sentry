@@ -29,6 +29,7 @@ import {
   isTransactionNode,
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
+import {getTraceQueryParams} from './useTrace';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -145,6 +146,56 @@ function Trace({trace, trace_id}: TraceProps) {
     },
     [location.query, location.pathname]
   );
+
+  const limitRef = useRef<number | null>(null);
+  if (limitRef.current === null) {
+    let decodedLimit = getTraceQueryParams(location).limit;
+    if (typeof decodedLimit === 'string') {
+      decodedLimit = parseInt(decodedLimit, 2);
+    }
+
+    limitRef.current = decodedLimit;
+  }
+
+  // @TODO this is the implementation of infinite scroll. Once the user
+  // reaches the end of the list, we fetch more data. The data is not yet
+  // being appended to the tree as we need to figure out UX for this.
+  // onRowsRendered callback should be passed to the List component
+
+  // const loadMoreRequestRef =
+  //   useRef<Promise<TraceSplitResults<TraceFullDetailed> | null> | null>(null);
+
+  // const onRowsRendered = useCallback((rows: RenderedRows) => {
+  //   if (loadMoreRequestRef.current) {
+  //     // in flight request
+  //     return;
+  //   }
+  //   if (rows.stopIndex !== treeRef.current.list.length - 1) {
+  //     // not at the end
+  //     return;
+  //   }
+  //   if (
+  //     !loadMoreRequestRef.current &&
+  //     limitRef.current &&
+  //     rows.stopIndex === treeRef.current.list.length - 1
+  //   ) {
+  //     limitRef.current = limitRef.current + 500;
+  //     const promise = fetchTrace(api, {
+  //       traceId: trace_id,
+  //       orgSlug: organization.slug,
+  //       query: qs.stringify(getTraceQueryParams(location, {limit: limitRef.current})),
+  //     })
+  //       .then(data => {
+  //         console.log(data);
+  //         return data;
+  //       })
+  //       .catch(e => {
+  //         return e;
+  //       });
+
+  //     loadMoreRequestRef.current = promise;
+  //   }
+  // }, []);
 
   const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project>>((acc, project) => {
