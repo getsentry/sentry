@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -21,6 +22,7 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    ProjectContext,
     organization_project_issue_substatus_summaries,
 )
 from sentry.tasks.summaries.weekly_reports import (
@@ -271,7 +273,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
 
-        project_ctx = ctx.projects_context_map[self.project.id]
+        project_ctx = cast(ProjectContext, ctx.projects_context_map[self.project.id])
 
         assert project_ctx.new_substatus_count == 1
         assert project_ctx.escalating_substatus_count == 0

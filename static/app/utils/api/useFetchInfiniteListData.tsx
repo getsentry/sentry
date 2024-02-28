@@ -1,13 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import type {Index, IndexRange} from 'react-virtualized';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import type {FeedbackIssueList} from 'sentry/utils/feedback/types';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {type ApiQueryKey, useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
-export const EMPTY_INFINITE_LIST_DATA: ReturnType<
-  typeof useFetchFeedbackInfiniteListData
-> = {
+export const EMPTY_INFINITE_LIST_DATA: ReturnType<typeof useFetchInfiniteListData> = {
   error: null,
   hasNextPage: false,
   isError: false,
@@ -23,20 +19,29 @@ export const EMPTY_INFINITE_LIST_DATA: ReturnType<
   hits: 0,
 };
 
-function uniqueIssues(issues: FeedbackIssueList) {
-  const uniqueIds = new Set(issues.map(issue => issue.id));
-  return issues.filter(issue => {
-    if (uniqueIds.has(issue.id)) {
-      uniqueIds.delete(issue.id);
+function uniqueItems<Data extends Record<string, unknown>>(
+  items: Data[],
+  uniqueField: string
+) {
+  const uniqueIds = new Set(items.map(item => item[uniqueField]));
+  return items.filter(item => {
+    if (uniqueIds.has(item[uniqueField])) {
+      uniqueIds.delete(item[uniqueField]);
       return true;
     }
     return false;
   });
 }
 
-export default function useFetchFeedbackInfiniteListData() {
-  const {listQueryKey} = useFeedbackQueryKeys();
+interface Props {
+  queryKey: NonNullable<ApiQueryKey | undefined>;
+  uniqueField: string;
+}
 
+export default function useFetchInfiniteListData<Data extends Record<string, unknown>>({
+  queryKey,
+  uniqueField,
+}: Props) {
   const {
     data,
     error,
@@ -47,17 +52,17 @@ export default function useFetchFeedbackInfiniteListData() {
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
-  } = useInfiniteApiQuery<FeedbackIssueList>({
-    queryKey: listQueryKey,
+  } = useInfiniteApiQuery<Data[]>({
+    queryKey,
   });
 
   const issues = useMemo(
-    () => uniqueIssues(data?.pages.flatMap(([pageData]) => pageData) ?? []),
-    [data]
+    () => uniqueItems(data?.pages.flatMap(([pageData]) => pageData) ?? [], uniqueField),
+    [data, uniqueField]
   );
 
   const getRow = useCallback(
-    ({index}: Index): FeedbackIssueList[number] | undefined => issues?.[index],
+    ({index}: Index): Data | undefined => issues?.[index],
     [issues]
   );
 
