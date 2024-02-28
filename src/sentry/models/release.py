@@ -397,19 +397,6 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
-    """Get artifact count grouped by IDs"""
-    from sentry.models.releasefile import ReleaseFile
-
-    qs = (
-        ReleaseFile.objects.filter(release_id__in=release_ids)
-        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
-        .values_list("release_id", "count")
-    )
-    qs.query.group_by = ["release_id"]
-    return dict(qs)
-
-
 @region_silo_only_model
 class Release(Model):
     """
@@ -1249,3 +1236,16 @@ class Release(Model):
             self.commit_count = 0
             self.last_commit_id = None
             self.save()
+
+
+def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)
