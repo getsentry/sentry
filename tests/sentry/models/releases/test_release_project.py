@@ -20,7 +20,9 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         project = self.create_project(name="foo")
         release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-        with patch("sentry.tasks.relay.schedule_invalidate_project_config") as mock_task:
+        with patch(
+            "sentry.models.releases.release_project.schedule_invalidate_project_config"
+        ) as mock_task:
             release.add_project(project)
             assert mock_task.mock_calls == []
 
@@ -36,7 +38,9 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             project = self.create_project(name="foo")
             release = Release.objects.create(organization_id=project.organization_id, version="42")
 
-            with patch("sentry.tasks.relay.schedule_invalidate_project_config") as mock_task:
+            with patch(
+                "sentry.models.releases.release_project.schedule_invalidate_project_config"
+            ) as mock_task:
                 release.add_project(project)
                 assert mock_task.mock_calls == []
 
@@ -56,7 +60,9 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             project_boosted_releases.add_boosted_release(release.id, None)
             assert project_boosted_releases.has_boosted_releases
 
-            with patch("sentry.tasks.relay.schedule_invalidate_project_config") as mock_task:
+            with patch(
+                "sentry.models.releases.release_project.schedule_invalidate_project_config"
+            ) as mock_task:
                 release.add_project(project)
                 assert mock_task.mock_calls == [
                     mock_call(project_id=project.id, trigger="releaseproject.post_save")
