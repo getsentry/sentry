@@ -48,12 +48,7 @@ export function FeedbackOnboardingLayout({
 
     return {
       introduction: doc.introduction?.(docParams),
-      steps: [
-        ...doc.install(docParams),
-        ...doc.configure(docParams),
-        ...doc.verify(docParams),
-      ],
-      nextSteps: doc.nextSteps?.(docParams) || [],
+      steps: [...doc.install(docParams), ...doc.configure(docParams)],
     };
   }, [
     cdn,

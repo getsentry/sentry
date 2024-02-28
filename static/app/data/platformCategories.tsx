@@ -386,7 +386,7 @@ export const feedbackNpmPlatforms: readonly PlatformKey[] = [
 ];
 
 // Feedback platforms that show widget instructions (both NPM & loader)
-const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
   ...feedbackNpmPlatforms,
   ...replayBackendPlatforms,
 ];
