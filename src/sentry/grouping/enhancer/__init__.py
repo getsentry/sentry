@@ -19,7 +19,6 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
-from sentry.features.rollout import in_random_rollout
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
@@ -227,13 +226,6 @@ def compare_rust_enhancers(
                 scope.set_extra("python_frames", python_frames)
                 scope.set_extra("rust_enhanced_frames", rust_enhanced_frames)
                 sentry_sdk.capture_message("Rust Enhancements mismatch")
-
-
-def prefer_rust_enhancers():
-    try:
-        return in_random_rollout("grouping.rust_enhancers.prefer_rust_result")
-    except Exception:
-        return False
 
 
 class Enhancements:
