@@ -5,6 +5,7 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework.response import Response
 
 from sentry import features
@@ -16,7 +17,6 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -56,6 +56,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             repo: Repository = repo_config.repository
             repo_name_sections = repo.name.split("/")
 
+            # We expect a repository name to be in the format of "owner/name" for now.
             if len(repo_name_sections) > 1:
                 repos.append(
                     {
@@ -67,7 +68,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         return repos
 
-    def _get_event_entries(self, group: Group, user: User) -> list | None:
+    def _get_event_entries(
+        self, group: Group, user: AbstractBaseUser | AnonymousUser
+    ) -> list | None:
         latest_event = group.get_latest_event()
 
         if not latest_event:
