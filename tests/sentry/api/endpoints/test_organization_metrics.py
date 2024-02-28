@@ -161,6 +161,35 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": [ErrorDetail(string="This field is required.", code="required")],
         }
 
+    def test_unsupported_mri(self):
+        query = {
+            "mri": "d:spans/made_up@none",
+            "field": ["id"],
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": ErrorDetail(
+                string="Unsupported MRI: d:spans/made_up@none", code="parse_error"
+            )
+        }
+
+    def test_unsupported_sort(self):
+        query = {
+            "mri": "d:spans/exclusive_time@millisecond",
+            "field": ["id"],
+            "project": [self.project.id],
+            "sort": "id",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": ErrorDetail(string="Unsupported sort: id for MRI", code="parse_error")
+        }
+
     def test_span_duration_samples(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
