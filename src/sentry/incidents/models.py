@@ -747,6 +747,8 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         ["handler", "slug", "type", "supported_target_types", "integration_provider"],
     )
 
+    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
+
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
