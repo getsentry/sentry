@@ -366,6 +366,9 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
+    yield
+    return
+
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
