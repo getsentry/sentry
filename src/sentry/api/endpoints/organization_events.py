@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -18,6 +19,7 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
@@ -274,16 +276,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def data_fn(offset, limit):
-            return dataset.query(
+        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
+            return scopedDataset.query(
                 selected_columns=self.get_field_list(organization, request),
-                query=request.GET.get("query"),
+                query=query,
                 params=params,
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
@@ -302,6 +305,60 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
             )
+
+        def data_fn_factory(scopedDataset):
+            """
+            This factory closes over query and dataset in order to make an additional request to the errors dataset
+            in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
+
+            This should be removed once the discover dataset is completely split in dashboards.
+            """
+            scopedQuery = request.GET.get("query")
+            dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
+
+            def fn(offset, limit) -> dict[str, Any]:
+                if not (metrics_enhanced and dashboard_widget_id):
+                    return _data_fn(scopedDataset, offset, limit, scopedQuery)
+
+                widget = DashboardWidget.objects.get(id=dashboard_widget_id)
+                does_widget_have_split = widget.discover_widget_split is not None
+
+                if does_widget_have_split:
+                    # This is essentially cached behaviour and we skip the check
+                    if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
+                        return _data_fn(
+                            discover, offset, limit, f"({scopedQuery}) AND event.type:error"
+                        )
+                    if widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
+                        return _data_fn(scopedDataset, offset, limit, scopedQuery)
+                    if widget.discover_widget_split == DashboardWidgetTypes.DISCOVER:
+                        # This is a fallback for the ambiguous case.
+                        return _data_fn(discover, offset, limit, scopedQuery)
+
+                # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                error_results = _data_fn(
+                    discover, offset, limit, f"({scopedQuery}) AND event.type:error"
+                )
+                has_errors = len(error_results["data"]) > 0
+
+                if has_errors:
+                    # If we see errors, always fallback to discover to scopedQuery for the user.
+                    all_results = _data_fn(discover, offset, limit, scopedQuery)
+                else:
+                    all_results = _data_fn(scopedDataset, offset, limit, scopedQuery)
+
+                has_other_data = len(all_results["data"]) > 0
+                new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
+
+                if widget.discover_widget_split != new_discover_widget_split:
+                    widget.discover_widget_split = new_discover_widget_split
+                    widget.save()
+
+                return all_results
+
+            return fn
+
+        data_fn = data_fn_factory(dataset)
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them

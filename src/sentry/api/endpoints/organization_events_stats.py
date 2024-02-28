@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -214,7 +215,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
-        def get_event_stats(
+        def _get_event_stats(
+            scopedDataset: Any,
             query_columns: Sequence[str],
             query: str,
             params: dict[str, str],
@@ -223,7 +225,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult:
             if top_events > 0:
-                return dataset.top_events_timeseries(
+                return scopedDataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -241,7 +243,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     include_other=include_other,
                 )
 
-            return dataset.timeseries_query(
+            return scopedDataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
@@ -265,6 +267,36 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
             )
+
+        def get_event_stats_factory(scopedDataset):
+            """
+            This factory closes over query and dataset in order to make an additional request to the errors dataset
+            in the case that this request is from a dashboard widget and we're trying to split their discover dataset.
+
+            This should be removed once the discover dataset is completely split in dashboards.
+            """
+
+            def fn(
+                query_columns: Sequence[str],
+                query: str,
+                params: dict[str, str],
+                rollup: int,
+                zerofill_results: bool,
+                comparison_delta: datetime | None,
+            ) -> SnubaTSResult:
+                return _get_event_stats(
+                    scopedDataset,
+                    query_columns,
+                    query,
+                    params,
+                    rollup,
+                    zerofill_results,
+                    comparison_delta,
+                )
+
+            return fn
+
+        get_event_stats = get_event_stats_factory(dataset)
 
         try:
             return Response(
