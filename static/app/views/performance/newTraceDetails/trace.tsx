@@ -226,7 +226,7 @@ function Trace({trace, trace_id}: TraceProps) {
           return;
         }
 
-        viewManager.current?.onScrollEndOutOfBoundsCheck();
+        viewManager.onScrollEndOutOfBoundsCheck();
         dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
       });
   }, [api, organization, trace, trace_id, viewManager]);
@@ -257,16 +257,19 @@ function Trace({trace, trace_id}: TraceProps) {
     []
   );
 
-  const onRowClick = useCallback((node: TraceTreeNode<TraceTree.NodeValue>) => {
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...qs.parse(location.search),
-        node: node.path,
-      },
-    });
-    dispatch({type: 'go to index', index, node});
-  }, []);
+  const onRowClick = useCallback(
+    (index: number, node: TraceTreeNode<TraceTree.NodeValue>) => {
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...qs.parse(location.search),
+          node: node.path,
+        },
+      });
+      dispatch({type: 'go to index', index, node});
+    },
+    []
+  );
 
   const onRowKeyDown = useCallback(
     (
@@ -274,7 +277,7 @@ function Trace({trace, trace_id}: TraceProps) {
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
-      if (!viewManager.current?.list) {
+      if (!viewManager.list) {
         return;
       }
       const action = getRovingIndexActionFromEvent(event);
@@ -285,11 +288,11 @@ function Trace({trace, trace_id}: TraceProps) {
           action,
           treeRef.current.list.length - 1
         );
-        viewManager.current.list.scrollToRow(nextIndex);
+        viewManager.list.scrollToRow(nextIndex);
         dispatch({type: 'go to index', index: nextIndex, node});
       }
     },
-    []
+    [viewManager.list]
   );
 
   const projectLookup = useMemo(() => {
@@ -369,7 +372,6 @@ function Trace({trace, trace_id}: TraceProps) {
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
                       viewManager={viewManager!}
-                      clickedNode={clickedNode}
                       onFetchChildren={handleFetchChildren}
                       onExpandNode={handleExpandNode}
                       onRowClick={onRowClick}
