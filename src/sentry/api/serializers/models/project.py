@@ -591,10 +591,11 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    access: Access | None
-
-    def __init__(self, access: Access | None = None, **kwargs):
+    def __init__(
+        self, access: Access | None = None, lpq_projects: set[int] | None = None, **kwargs
+    ):
         self.access = access
+        self.lpq_projects = lpq_projects
         super().__init__(**kwargs)
 
     def get_deploys_by_project(self, item_list):
@@ -690,7 +691,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationProjectResponse:  # type: ignore
+    def serialize(
+        self, obj: Project, attrs: Mapping[str, Any], user: User
+    ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
@@ -704,7 +707,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             dateCreated=obj.date_added,
             environments=attrs["environments"],
             eventProcessing={
-                "symbolicationDegraded": should_demote_symbolication(obj.id),
+                "symbolicationDegraded": should_demote_symbolication(
+                    project_id=obj.id, lpq_projects=self.lpq_projects
+                ),
             },
             features=attrs["features"],
             firstEvent=obj.first_event,
