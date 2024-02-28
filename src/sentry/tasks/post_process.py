@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
+configuration: Mapping[str, Any] = settings.SENTRY_POST_PROCESS_CONFIGURATION
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -171,10 +172,22 @@ def _capture_group_stats(job: PostProcessJob) -> None:
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
-def should_issue_owners_ratelimit(project_id, group_id):
+def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_id: int | None):
     """
     Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
     """
+    exempt_orgs = configuration.get("org_ids_exempt_from_ratelimit", {})
+    if organization_id and organization_id in exempt_orgs:
+        logger.info(
+            "should_issue_owners_ratelimit.exemption",
+            extra={
+                "project_id": project_id,
+                "group_id": group_id,
+                "organization_id": organization_id,
+            },
+        )
+        return False
+
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
 
@@ -221,7 +234,11 @@ def handle_owner_assignment(job):
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-                    if should_issue_owners_ratelimit(project.id, group.id):
+                    if should_issue_owners_ratelimit(
+                        project_id=project.id,
+                        group_id=group.id,
+                        organization_id=event.project.organization_id,
+                    ):
                         logger.info(
                             "handle_owner_assignment.ratelimited",
                             extra={
@@ -346,9 +363,11 @@ def handle_group_owners(
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
-        with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
-            op="post_process.handle_group_owners"
-        ), lock.acquire():
+        with (
+            metrics.timer("post_process.handle_group_owners"),
+            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            lock.acquire(),
+        ):
             current_group_owners = GroupOwner.objects.filter(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
@@ -725,14 +744,17 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with metrics.timer(
-                "tasks.post_process.run_post_process_job.pipeline.duration",
-                tags={
-                    "pipeline": pipeline_step.__name__,
-                    "issue_category": issue_category_metric,
-                    "is_reprocessed": job["is_reprocessed"],
-                },
-            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with (
+                metrics.timer(
+                    "tasks.post_process.run_post_process_job.pipeline.duration",
+                    tags={
+                        "pipeline": pipeline_step.__name__,
+                        "issue_category": issue_category_metric,
+                        "is_reprocessed": job["is_reprocessed"],
+                    },
+                ),
+                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+            ):
                 pipeline_step(job)
         except Exception:
             metrics.incr(
