@@ -3459,14 +3459,12 @@ KAFKA_SNUBA_SPANS = "snuba-spans"
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 # Mapping of default Kafka topic name to topic definition
-KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, TopicDefinition | None]] = {
-    {"cluster": "default"}
-}
+KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, TopicDefinition]] = {{"cluster": "default"}}
 
 
 # Cluster configuration for each Kafka topic by name.
 # Deprecated
-KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
+KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
