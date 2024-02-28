@@ -3421,6 +3421,7 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 #     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
 #     pick up the change.
 
+# START DEPRECATED SECTION
 KAFKA_EVENTS = "events"
 KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
 KAFKA_TRANSACTIONS = "transactions"
@@ -3454,16 +3455,51 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
+# END DEPRECATED SECTION
+
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
-# Mapping of default Kafka topic name to topic definition
-KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, TopicDefinition]] = {{"cluster": "default"}}
+
+# Mapping of default Kafka topic name to cluster name.
+KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, str]] = {
+    "events": "default",
+    "snuba-commit-log": "default",
+    "transactions": "default",
+    "snuba-transactions-commit-log": "default",
+    "outcomes": "default",
+    "outcomes-billing": "default",
+    "events-subscription-results": "default",
+    "transactions-subscription-results": "default",
+    "generic-metrics-subscription-results": "default",
+    "sessions-subscription-results": "default",
+    "metrics-subscription-results": "default",
+    "ingest-events": "default",
+    "ingest-attachments": "default",
+    "ingest-transactions": "default",
+    "ingest-metrics": "default",
+    "ingest-metrics-dlq": "default",
+    "snuba-metrics": "default",
+    "profiles": "default",
+    "ingest-performance-metrics": "default",
+    "ingest-generic-metrics-dlq": "default",
+    "snuba-generic-metrics": "default",
+    "ingest-replay-events": "default",
+    "ingest-replay-recordings": "default",
+    "ingest-occurrences": "default",
+    "ingest-monitors": "default",
+    "generic-events": "default",
+    "snuba-generic-events-commit-log": "default",
+    "group-attributes": "default",
+    "shared-resources-usage": "default",
+    "events": "default",
+    "snuba-spans": "default",
+}
 
 
 # Cluster configuration for each Kafka topic by name.
-# Deprecated
+# DEPRECATED
 KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},

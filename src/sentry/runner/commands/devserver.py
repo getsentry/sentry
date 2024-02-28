@@ -364,7 +364,12 @@ Alternatively, run without --workers.
 """
             )
 
+        from sentry.conf.types.topic_definition import Topic
         from sentry.utils.batching_kafka_consumer import create_topics
+
+        # TODO: Implement this
+        for topic in Topic:
+            print(topic.name)
 
         for topic_name, topic_data in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
