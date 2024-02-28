@@ -449,26 +449,25 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 project=project, monitor_type=AlertRuleMonitorType.ACTIVATED
             )
             created_subscriptions = []
-            if project_alert_rules.exists():
-                # If we have an AlertRule for the project
-                for alert_rule in project_alert_rules:
-                    if alert_rule.activation_conditions.filter(
-                        condition_type=activation_condition
-                    ).exists():
-                        logger.info(
-                            "Attempt subscribe project to activated alert rule",
-                            extra={
-                                "trigger": trigger,
-                                "query_extra": query_extra,
-                            },
+            for alert_rule in project_alert_rules:
+                if alert_rule.activation_conditions.filter(
+                    condition_type=activation_condition
+                ).exists():
+                    logger.info(
+                        "Attempt subscribe project to activated alert rule",
+                        extra={
+                            "trigger": trigger,
+                            "query_extra": query_extra,
+                            "condition": activation_condition,
+                        },
+                    )
+                    created_subscriptions.extend(
+                        alert_rule.subscribe_projects(
+                            projects=[project],
+                            monitor_type=AlertRuleMonitorType.ACTIVATED,
+                            query_extra=query_extra,
                         )
-                        created_subscriptions.append(
-                            alert_rule.subscribe_projects(
-                                projects=[project],
-                                monitor_type=AlertRuleMonitorType.ACTIVATED,
-                                query_extra=query_extra,
-                            )
-                        )
+                    )
             return created_subscriptions
         except Exception as e:
             logger.exception(

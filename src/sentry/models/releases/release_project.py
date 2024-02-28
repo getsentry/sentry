@@ -50,11 +50,14 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             trigger=trigger,
         )
 
-    def post_save(self, instance, **kwargs):
+    def post_save(self, instance, created, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
-        self._subscribe_project_to_alert_rule(
-            project=instance.project, release=instance.release, trigger="releaseproject.post_save"
-        )
+        if created:
+            self._subscribe_project_to_alert_rule(
+                project=instance.project,
+                release=instance.release,
+                trigger="releaseproject.post_save",
+            )
 
     def post_delete(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
