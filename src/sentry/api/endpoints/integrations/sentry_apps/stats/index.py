@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.integrations.sentry_app import SentryApp
@@ -18,7 +18,7 @@ class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
         sentry_apps = (
