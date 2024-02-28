@@ -34,9 +34,11 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
 def monkey_patch_single_process_silo_mode_state():
+    @dataclass
     class LocalSiloModeState(threading.local):
         mode: SiloMode | None = None
         region: Region | None = None
+        disabled: int = 0
 
     state = LocalSiloModeState()
 
@@ -75,10 +77,22 @@ def monkey_patch_single_process_silo_mode_state():
     def get_region() -> Region | None:
         return state.region
 
+    def disable_all_silo_checks() -> None:
+        state.disabled += 1
+
+    def reenable_all_silo_checks() -> None:
+        state.disabled = max(0, state.disabled - 1)
+
+    def are_silo_checks_disabled() -> bool:
+        return state.disabled > 0
+
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.disable_all_silo_checks = staticmethod(disable_all_silo_checks)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.reenable_all_silo_checks = staticmethod(reenable_all_silo_checks)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.are_silo_checks_disabled = staticmethod(are_silo_checks_disabled)  # type: ignore[method-assign]
 
 
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:

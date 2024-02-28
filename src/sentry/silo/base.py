@@ -4,13 +4,10 @@ import abc
 import contextlib
 import functools
 import itertools
-import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
 from enum import Enum
 from typing import Any
-
-from sentry.utils.env import in_test_environment
 
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
@@ -47,7 +44,7 @@ class SiloMode(Enum):
         return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
 
-class SingleProcessSiloModeState(threading.local):
+class SingleProcessSiloModeState:
     """
     Used by silo endpoint decorators and other contexts that help 'suggest' to
     acceptance testing and local single process silo testing which 'silo context' the
@@ -90,30 +87,17 @@ class SingleProcessSiloModeState(threading.local):
     def get_region() -> Region | None:
         return None
 
+    @staticmethod
+    def disable_all_silo_checks() -> None:
+        raise Exception("Silo checks can be disabled only in test env")
 
-_are_silo_checks_disabled = False
+    @staticmethod
+    def reenable_all_silo_checks() -> None:
+        raise Exception("Silo checks can be disabled only in test env")
 
-
-def disable_silo_checks_in_test_env() -> None:
-    if not in_test_environment():
-        raise Exception("Silo mode checks can be disabled only in test environment")
-    global _are_silo_checks_disabled
-    if _are_silo_checks_disabled:
-        raise Exception("Silo checks are already disabled (nested calls not supported)")
-    _are_silo_checks_disabled = True
-
-
-def reenable_silo_checks_in_test_env() -> None:
-    if not in_test_environment():
-        raise Exception("Silo mode checks can be disabled only in test environment")
-    global _are_silo_checks_disabled
-    if not _are_silo_checks_disabled:
-        raise Exception("Silo checks are not disabled (nested calls not supported)")
-    _are_silo_checks_disabled = False
-
-
-def are_silo_checks_disabled() -> bool:
-    return in_test_environment() and _are_silo_checks_disabled
+    @staticmethod
+    def are_silo_checks_disabled() -> bool:
+        return False
 
 
 class SiloLimit(abc.ABC):
@@ -169,7 +153,7 @@ class SiloLimit(abc.ABC):
             # immutably determined when the decorator is first evaluated.
             is_available = self.is_available()
 
-            if is_available or are_silo_checks_disabled():
+            if is_available or SingleProcessSiloModeState.are_silo_checks_disabled():
                 return original_method(*args, **kwargs)
             else:
                 handler = self.handle_when_unavailable(

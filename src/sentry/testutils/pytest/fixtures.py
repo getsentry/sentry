@@ -19,6 +19,7 @@ import yaml
 from django.core.cache import cache
 
 import sentry
+from sentry.silo import SingleProcessSiloModeState
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
@@ -490,13 +491,9 @@ def django_cache():
 
 @pytest.fixture(scope="session")
 def disable_silo_checks_for_db_setup():
-    from sentry.silo import disable_silo_checks_in_test_env
-
-    disable_silo_checks_in_test_env()
+    SingleProcessSiloModeState.disable_all_silo_checks()
 
 
 @pytest.fixture(scope="session")
 def django_db_setup(disable_silo_checks_for_db_setup, django_db_setup):
-    from sentry.silo import reenable_silo_checks_in_test_env
-
-    reenable_silo_checks_in_test_env()
+    SingleProcessSiloModeState.reenable_all_silo_checks()
