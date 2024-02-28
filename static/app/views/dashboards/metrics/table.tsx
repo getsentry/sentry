@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
@@ -35,10 +35,10 @@ export function MetricTableContainer({
   }
 
   return (
-    <MetricWidgetTableWrapper>
+    <Fragment>
       <LoadingScreen loading={isLoading} />
       <MetricTable isLoading={isLoading} data={tableData} borderless />
-    </MetricWidgetTableWrapper>
+    </Fragment>
   );
 }
 
@@ -82,6 +82,7 @@ export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
           </HeaderCell>
         );
       })}
+      stickyHeaders
       isLoading={isLoading}
       emptyMessage={t('No results')}
     >
@@ -90,7 +91,7 @@ export function MetricTable({isLoading, data, borderless}: MetricTableProps) {
   );
 }
 
-const groupBysMatch = (a: Record<string, any>, b: Record<string, any>) => {
+const equalGroupBys = (a: Record<string, any>, b: Record<string, any>) => {
   return JSON.stringify(a) === JSON.stringify(b);
 };
 
@@ -112,7 +113,7 @@ function getGroupByCombos(
   });
 
   const uniqueCombos = allCombos.filter(
-    (combo, index, self) => index === self.findIndex(other => groupBysMatch(other, combo))
+    (combo, index, self) => index === self.findIndex(other => equalGroupBys(other, combo))
   );
 
   return uniqueCombos;
@@ -137,12 +138,14 @@ export function getTableData(
 
   const normalizedResults = filteredQueries.map((query, index) => {
     const queryResults = data.data[index];
+    const metaUnit = data.meta[index]?.[1]?.unit;
     const normalizedGroupResults = queryResults.map(group => {
       return {
         by: {...getEmptyGroup(tags), ...group.by},
         totals: formatMetricsUsingUnitAndOp(
           group.totals,
-          parseMRI(query.mri)?.unit!,
+          // TODO(ogi): switch to using the meta unit when it's available
+          metaUnit ?? parseMRI(query.mri)?.unit!,
           query.op
         ),
       };
@@ -152,13 +155,13 @@ export function getTableData(
     return {field: key, results: normalizedGroupResults};
   }, {});
 
-  const groupBysCombos = getGroupByCombos(filteredQueries, data.data);
+  const groupByCombos = getGroupByCombos(filteredQueries, data.data);
 
-  const rows: Row[] = groupBysCombos.map(combo => {
+  const rows: Row[] = groupByCombos.map(combo => {
     const row: Row = {...combo};
 
     normalizedResults.forEach(({field, results}) => {
-      const entry = results.find(e => groupBysMatch(e.by, combo));
+      const entry = results.find(e => equalGroupBys(e.by, combo));
       row[field] = entry?.totals;
     });
 
@@ -181,6 +184,15 @@ const Cell = styled('div')<{type?: string}>`
 `;
 
 const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
+  position: relative;
+  display: grid;
+  overflow: auto;
+  margin: 0;
+  margin-top: ${space(1.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeMedium};
+  box-shadow: none;
+
   ${p =>
     p.borderless &&
     `border-radius: 0 0 ${p.theme.borderRadius} ${p.theme.borderRadius};
@@ -188,18 +200,9 @@ const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
     border-right: 0;
     border-bottom: 0;`}
 
-  margin: 0;
   ${PanelTableHeader} {
     height: min-content;
   }
-`;
-
-const MetricWidgetTableWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
-  padding: 0;
-  padding-top: ${space(1.5)};
-  overflow: auto;
 `;
 
 const HeaderCell = styled(Cell)`

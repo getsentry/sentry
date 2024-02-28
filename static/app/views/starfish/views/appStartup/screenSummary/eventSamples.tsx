@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -24,10 +25,10 @@ const DEFAULT_SORT: Sort = {
 
 type Props = {
   cursorName: string;
-  release: string;
   sortKey: string;
   transaction: string;
   footerAlignedPagination?: boolean;
+  release?: string;
   showDeviceClassSelector?: boolean;
 };
 
@@ -92,10 +93,11 @@ export function EventSamples({
 
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
-    enabled: true,
+    enabled: defined(release),
     limit: 4,
     cursor,
     referrer: 'api.starfish.mobile-startup-event-samples',
+    initialData: {data: []},
   });
 
   return (
@@ -103,7 +105,7 @@ export function EventSamples({
       cursorName={cursorName}
       eventIdKey="transaction.id"
       eventView={eventView}
-      isLoading={isLoading}
+      isLoading={defined(release) && isLoading}
       profileIdKey="profile_id"
       sortKey={sortKey}
       data={data}

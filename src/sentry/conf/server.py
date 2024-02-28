@@ -1557,8 +1557,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Enable grouping of ChunkLoadErrors
-    "organizations:group-chunk-load-errors": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1689,8 +1687,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
-    # Enable the setting of org roles for team
-    "organizations:org-roles-for-teams": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1945,8 +1941,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
-    # Enable using new webhooks from Vercel
-    "organizations:vercel-integration-webhooks": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable AI Autofix feture on the Issue Details page.
@@ -1991,6 +1985,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
@@ -3513,8 +3508,6 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
 }
 
 
-# If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False

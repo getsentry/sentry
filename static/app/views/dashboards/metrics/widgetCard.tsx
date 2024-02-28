@@ -167,7 +167,6 @@ export function MetricWidgetCard({
         >
           {vizualizationComponent}
         </WidgetCardBody>
-
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {space} from 'sentry/styles/space';
+import type {MetricsQueryApiResponse} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
@@ -17,7 +18,7 @@ type MetricChartContainerProps = {
   displayType: MetricDisplayType;
   isLoading: boolean;
   metricQueries: MetricsQueryApiRequestQuery[];
-  timeseriesData;
+  timeseriesData: MetricsQueryApiResponse;
   chartHeight?: number;
 };
 
