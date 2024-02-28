@@ -29,6 +29,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -543,9 +544,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
-                "openAIConsent": bool(obj.get_option("sentry:open_ai_consent", False)),
-                "perplexityConsent": bool(obj.get_option("sentry:perplexity_consent", False)),
-                "serviceDataConsent": bool(obj.get_option("sentry:service_data_consent", False)),
+                "openAIConsent": bool(
+                    obj.get_option("sentry:open_ai_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "perplexityConsent": bool(
+                    obj.get_option("sentry:perplexity_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "serviceDataConsent": bool(
+                    obj.get_option("sentry:service_data_consent", DATA_CONSENT_DEFAULT)
+                ),
             }
         )
 
