@@ -179,6 +179,23 @@ class BaseEndpointMixin(abc.ABC):
     def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         pass
 
+    @abc.abstractmethod
+    def paginate(
+        self,
+        request,
+        on_results=None,
+        paginator=None,
+        paginator_cls=Paginator,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
+        cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
+        **paginator_kwargs,
+    ):
+        pass
+
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
