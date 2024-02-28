@@ -69,10 +69,15 @@ class MonitorEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_slug)
-        except Monitor.DoesNotExist:
+        # Since we have changed our unique constraints to be on unique on (project, slug) we can
+        # end up with multiple monitors here. Since we have no idea which project the user wants,
+        # we just get the oldest monitor and use that.
+        # This is a temporary measure until we remove these org level endpoints
+        monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
+        if not monitors:
             raise ResourceDoesNotExist
+        monitors.sort(key=lambda monitor: monitor.id)
+        monitor = monitors[0]
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ObjectStatus.ACTIVE:
