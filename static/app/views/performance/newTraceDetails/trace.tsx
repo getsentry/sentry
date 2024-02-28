@@ -172,7 +172,6 @@ function Trace({trace, trace_id}: TraceProps) {
   //       query: qs.stringify(getTraceQueryParams(location, {limit: limitRef.current})),
   //     })
   //       .then(data => {
-  //         console.log(data);
   //         return data;
   //       })
   //       .catch(e => {
