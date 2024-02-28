@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useReducer, useState} from 'react';
 import type {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -26,9 +26,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {rovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import Breadcrumb from '../breadcrumb';
 
+import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
@@ -166,6 +168,21 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
   );
 
+  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
+    index: null,
+    items: null,
+    node: null,
+  });
+
+  useLayoutEffect(() => {
+    return dispatch({
+      type: 'initialize',
+      items: tree.list.length - 1,
+      index: null,
+      node: null,
+    });
+  }, [tree.list.length]);
+
   return (
     <Fragment>
       <Layout.Header>
@@ -216,6 +233,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.traceSplitResult}
             traceEventView={props.traceEventView}
           />
+          <TraceDetailPanel node={state.node} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

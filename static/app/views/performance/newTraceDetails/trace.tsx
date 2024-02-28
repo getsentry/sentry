@@ -1,14 +1,5 @@
 import type React from 'react';
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -16,6 +7,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import state from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
@@ -27,6 +19,12 @@ import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  getRovingIndexActionFromEvent,
+  RovingTabIndexAction,
+  RovingTabIndexState,
+  RovingTabIndexUserActions,
+} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import {
   isAutogroupedNode,
@@ -39,24 +37,6 @@ import {
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
-
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
-  if (Array.isArray(maybePath)) {
-    return maybePath;
-  }
-
-  if (typeof maybePath === 'string') {
-    return [maybePath as TraceTree.NodePath];
-  }
-
-  return null;
-}
-
-interface RovingTabIndexState {
-  index: number | null;
-  items: number | null;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
-}
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -83,71 +63,6 @@ function computeNextIndexFromAction(
   }
 }
 
-type RovingTabIndexAction =
-  | {
-      index: number | null;
-      items: number;
-      node: TraceTreeNode<TraceTree.NodeValue> | null;
-      type: 'initialize';
-    }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'go to index'}
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set node'};
-
-type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
-
-function rovingTabIndexReducer(
-  state: RovingTabIndexState,
-  action: RovingTabIndexAction
-): RovingTabIndexState {
-  switch (action.type) {
-    case 'initialize': {
-      return {index: action.index, items: action.items, node: action.node};
-    }
-    case 'go to index':
-      return {...state, index: action.index};
-    case 'set node': {
-      return {...state, node: action.node, index: action.index};
-    }
-    default:
-      throw new Error('Invalid action');
-  }
-}
-
-function getRovingIndexActionFromEvent(
-  event: React.KeyboardEvent
-): RovingTabIndexUserActions | null {
-  // @TODO it would be trivial to extend this and support
-  // things like j/k vim-like navigation or add modifiers
-  // so that users could jump to parent or sibling nodes.
-  // I would need to put some thought into this, but shift+cmd+up
-  // seems like a good candidate for jumping to parent node and
-  // shift+cmd+down for jumping to the next sibling node.
-  switch (event.key) {
-    case 'ArrowDown':
-      if (event.shiftKey) {
-        return 'last';
-      }
-      return 'next';
-    case 'ArrowUp':
-      if (event.shiftKey) {
-        return 'first';
-      }
-      return 'previous';
-    case 'Home':
-      return 'first';
-    case 'End':
-      return 'last';
-    case 'Tab':
-      if (event.shiftKey) {
-        return 'previous';
-      }
-      return 'next';
-
-    default:
-      return null;
-  }
-}
-
 function maybeFocusRow(
   ref: HTMLDivElement | null,
   index: number,
@@ -160,12 +75,26 @@ function maybeFocusRow(
   previouslyFocusedIndexRef.current = index;
 }
 
+function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+  if (Array.isArray(maybePath)) {
+    return maybePath;
+  }
+
+  if (typeof maybePath === 'string') {
+    return [maybePath as TraceTree.NodePath];
+  }
+
+  return null;
+}
+
 interface TraceProps {
+  roving_dispatch: React.Dispatch<RovingTabIndexAction>;
+  roving_state: RovingTabIndexState;
   trace: TraceTree;
   trace_id: string;
 }
 
-function Trace({trace, trace_id}: TraceProps) {
+function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
@@ -176,21 +105,6 @@ function Trace({trace, trace_id}: TraceProps) {
       span_list: {width: 0.5},
     });
   }, []);
-
-  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
-    index: null,
-    items: null,
-    node: null,
-  });
-
-  useLayoutEffect(() => {
-    return dispatch({
-      type: 'initialize',
-      items: trace.list.length - 1,
-      index: null,
-      node: null,
-    });
-  }, [trace.list.length]);
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
 
@@ -227,7 +141,7 @@ function Trace({trace, trace_id}: TraceProps) {
         }
 
         viewManager.onScrollEndOutOfBoundsCheck();
-        dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
+        roving_dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
       });
   }, [api, organization, trace, trace_id, viewManager]);
 
@@ -266,7 +180,7 @@ function Trace({trace, trace_id}: TraceProps) {
           node: node.path,
         },
       });
-      dispatch({type: 'go to index', index, node});
+      props.roving({type: 'go to index', index, node});
     },
     []
   );
@@ -289,7 +203,7 @@ function Trace({trace, trace_id}: TraceProps) {
           treeRef.current.list.length - 1
         );
         viewManager.list.scrollToRow(nextIndex);
-        dispatch({type: 'go to index', index: nextIndex, node});
+        roving_dispatch({type: 'go to index', index: nextIndex, node});
       }
     },
     [viewManager.list]
