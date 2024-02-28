@@ -232,8 +232,28 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 
     normalized = _parameterization_regex.sub(_handle_match, trimmed)
     for experiment in _parameterization_regex_experiments:
-        if event.project_id and in_rollout_group(
-            f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+        if event.project_id and (
+            in_rollout_group(
+                f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+            )
+            or event.project_id
+            in [  # Active internal Sentry projects
+                155735,
+                4503972821204992,
+                1267915,
+                221969,
+                11276,
+                1269704,
+                4505469596663808,
+                1,
+                54785,
+                1492057,
+                162676,
+                6690737,
+                300688,
+                4506400311934976,
+                6424467,
+            ]
         ):
             experiment_output = experiment.regex.sub(_handle_match, normalized)
             if experiment_output != normalized:

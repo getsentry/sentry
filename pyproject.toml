@@ -628,11 +628,15 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
-  "src.sentry.tasks.on_demand_metrics",
-  "src.sentry.relay.config.metric_extraction",
-  "src.sentry.snuba.metrics.extraction",
-  "tests.sentry.tasks.test_on_demand_metrics",
-  "tests.sentry.relay.config.test_metric_extraction",
+    "sentry.buffer.base",
+    "sentry.buffer.redis",
+    "sentry.utils.redis",
+    "sentry.utils.redis_metrics",
+    "sentry.tasks.on_demand_metrics",
+    "sentry.relay.config.metric_extraction",
+    "sentry.snuba.metrics.extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
+    "tests.sentry.relay.config.test_metric_extraction",
 ]
 disallow_untyped_defs = true
 # end: stronger typing
