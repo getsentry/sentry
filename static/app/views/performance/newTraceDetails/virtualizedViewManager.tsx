@@ -686,73 +686,100 @@ export class VirtualizedViewManager {
 
   computeSpanTextPlacement(span_space: [number, number], text: string): [number, number] {
     const TEXT_PADDING = 2;
-    const span_left = span_space[0] - this.to_origin;
-    const span_right = span_left + span_space[1];
+    const anchor_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
 
-    if (span_right < this.trace_view.x) {
-      return [
-        0,
-        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-      ];
-    }
+    const width = this.text_measurer.measure(text);
 
-    if (span_left > this.trace_view.right) {
-      return [0, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
-    }
-
-    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      const width = this.text_measurer.measure(text);
-      return [
-        1,
-        this.computeTransformXFromTimestamp(
-          this.to_origin + this.trace_view.left + this.trace_view.width
-        ) -
-          width -
-          TEXT_PADDING,
-      ];
-    }
+    // precomput all anchor points aot, so we make the control flow more readable.
+    // this wastes some cycles, but it's not a big deal as computers are fast when
+    // it comes to simple arithmetic.
+    const right_outside =
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING;
+    const right_inside =
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
+      width -
+      TEXT_PADDING;
+    const left_outside =
+      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
+    const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    const window_right =
+      this.computeTransformXFromTimestamp(
+        this.to_origin + this.trace_view.left + this.trace_view.width
+      ) -
+      width -
+      TEXT_PADDING;
+    const window_left =
+      this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left) +
+      TEXT_PADDING;
 
     const view_left = this.trace_view.x;
     const view_right = view_left + this.trace_view.width;
-    const space_right = view_right - span_right;
 
-    // If we have space to the right, place the text there
-    if (space_right > 0) {
-      return [
-        0,
-        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-      ];
+    const span_left = span_space[0] - this.to_origin;
+    const span_right = span_left + span_space[1];
+
+    const space_right = view_right - span_right;
+    const space_left = span_left - view_left;
+
+    // Span is completely outside of the view on the left side
+    if (span_right < this.trace_view.x) {
+      return anchor_left ? [1, right_inside] : [0, right_outside];
     }
 
-    // if we have no space to the right, see if we can place it inside the span
-    if (space_right < 0) {
-      const width = this.text_measurer.measure(text);
-      const full_span_px_width = span_space[1] / this.span_to_px[0];
+    // Span is completely outside of the view on the right side
+    if (span_left > this.trace_view.right) {
+      return anchor_left ? [0, left_outside] : [1, left_inside];
+    }
 
+    // Span "spans" the entire view
+    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
+      return anchor_left ? [1, window_left] : [0, window_right];
+    }
+
+    const full_span_px_width = span_space[1] / this.span_to_px[0];
+
+    if (anchor_left) {
+      // While we have space on the left, place the text there
+      if (space_left > 0) {
+        return [0, left_outside];
+      }
+
+      const distance = span_right - this.trace_view.left;
+      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the left
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= width) {
+        return [1, window_left];
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside right place in the span.
+      return [1, right_inside];
+    } else {
+      // While we have space on the right, place the text there
+      if (space_right > 0) {
+        return [0, right_outside];
+      }
+
+      // If text fits inside the span
       if (full_span_px_width > width) {
-        const difference = span_right - this.trace_view.right;
+        const distance = span_right - this.trace_view.right;
         const visible_width =
-          (span_space[1] - difference) / this.span_to_px[0] - TEXT_PADDING;
+          (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
-        if (visible_width >= width) {
-          return [
-            1,
-            this.computeTransformXFromTimestamp(
-              this.to_origin + this.trace_view.left + this.trace_view.width
-            ) -
-              width -
-              TEXT_PADDING,
-          ];
+        // If the text fits inside the visible portion of the span, anchor it to the right
+        // side of the window so that it is visible while the user pans the view
+        if (visible_width - TEXT_PADDING >= width) {
+          return [1, window_right];
         }
 
-        return [1, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
+        // If the text doesnt fit inside the visible portion of the span,
+        // anchor it to the inside left of the span
+        return [1, left_inside];
       }
+      return [0, right_outside];
     }
-
-    return [
-      0,
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-    ];
   }
 
   draw(options: {list?: number; span_list?: number} = {}) {
