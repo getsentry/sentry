@@ -1914,11 +1914,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The project ID belongs to the sentry organization: https://sentry.sentry.io/issues/?project=4506812075540480
 register(
     "issues.sdk_crash_detection.java.project_id",
-    default=4506812075540480,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # The allowlist of org IDs that the java crash detection is enabled for.
