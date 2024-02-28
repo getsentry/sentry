@@ -8,6 +8,7 @@ from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -144,6 +145,11 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="You must be authenticated to perform this action.")
+
+        if not features.has("projects:ai-autofix", group.project):
+            return self._respond_with_error(
+                group, metadata, "AI Autofix is not enabled for this project.", 403
+            )
 
         event_entries = self._get_event_entries(group, request.user)
 
