@@ -6,7 +6,7 @@ import pytest
 import responses
 from django.db import connections
 
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.pytest.sentry import DEFAULT_SILO_MODE_FOR_TEST_CASES
 
 pytest_plugins = ["sentry.testutils.pytest"]
@@ -118,6 +118,8 @@ def validate_silo_mode():
         "Please read the comment for validate_silo_mode() in tests/conftest.py."
     )
 
+    if SingleProcessSiloModeState.are_silo_checks_disabled():
+        return
     if SiloMode.get_current_mode() != expected:
         raise Exception(message)
     yield
