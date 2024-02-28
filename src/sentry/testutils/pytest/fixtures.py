@@ -492,8 +492,18 @@ def django_cache():
 @pytest.fixture(scope="session")
 def disable_silo_checks_for_db_setup():
     SingleProcessSiloModeState.disable_all_silo_checks()
+    from sentry.silo import SiloMode
+
+    silo_mode = SiloMode.get_current_mode()
+    print(
+        f"\n******\n!!!!!!!!!!!!!!!!! In disable_silo_checks_for_db_setup; {silo_mode=}\n******\n"
+    )
 
 
 @pytest.fixture(scope="session")
 def django_db_setup(disable_silo_checks_for_db_setup, django_db_setup):
     SingleProcessSiloModeState.reenable_all_silo_checks()
+    from sentry.silo import SiloMode
+
+    silo_mode = SiloMode.get_current_mode()
+    print(f"\n******\n!!!!!!!!!!!!!!!!! In django_db_setup; {silo_mode=}\n******\n")

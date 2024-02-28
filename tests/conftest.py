@@ -113,17 +113,18 @@ def validate_silo_mode():
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
     # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
     expected = DEFAULT_SILO_MODE_FOR_TEST_CASES
+    silo_mode = SiloMode.get_current_mode()
     message = (
-        f"Possible test leak bug!  SiloMode was not reset to {expected} between tests.  "
+        f"Possible test leak bug!  SiloMode was not reset to {expected} between tests ({silo_mode=}).  "
         "Please read the comment for validate_silo_mode() in tests/conftest.py."
     )
 
     if SingleProcessSiloModeState.are_silo_checks_disabled():
         return
-    if SiloMode.get_current_mode() != expected:
+    if silo_mode != expected:
         raise Exception(message)
     yield
-    if SiloMode.get_current_mode() != expected:
+    if silo_mode != expected:
         raise Exception(message)
 
 
