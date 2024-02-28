@@ -1943,6 +1943,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable playing replays from the replay tab
+    "organizations:replay-play-from-replay-tab": False,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
