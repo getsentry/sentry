@@ -451,8 +451,8 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             created_subscriptions = []
             if project_alert_rules.exists():
                 # If we have an AlertRule for the project
-                for par in project_alert_rules:
-                    if par.activation_conditions.filter(
+                for alert_rule in project_alert_rules:
+                    if alert_rule.activation_conditions.filter(
                         condition_type=activation_condition
                     ).exists():
                         logger.info(
@@ -463,7 +463,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                             },
                         )
                         created_subscriptions.append(
-                            par.subscribe_projects(
+                            alert_rule.subscribe_projects(
                                 projects=[project],
                                 monitor_type=AlertRuleMonitorType.ACTIVATED,
                                 query_extra=query_extra,
