@@ -57,8 +57,7 @@ def build_tree(spans):
 
 
 def dfs(visited, flattened_spans, tree, span_id):
-    stack = []
-    stack.append(span_id)
+    stack = [span_id]
 
     while len(stack):
         span_id = stack.pop()
