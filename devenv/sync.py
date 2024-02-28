@@ -77,21 +77,6 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "git and precommit",
-                # this can't be done in paralell with python dependencies
-                # as multiple pips cannot act on the same venv
-                ("make", "setup-git"),
-            ),
-        ),
-    ):
-        return 1
-
     # This is for engineers with existing dev environments transitioning over.
     # Bootstrap will set devenv-managed volta up but they won't be running
     # devenv bootstrap, just installing devenv then running devenv sync.
@@ -129,6 +114,21 @@ def main(context: dict[str, str]) -> int:
         (
             ("javascript dependencies", ("make", "install-js-dev")),
             ("python dependencies", ("make", "install-py-dev")),
+        ),
+    ):
+        return 1
+
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            (
+                "git and precommit",
+                # this can't be done in paralell with python dependencies
+                # as multiple pips cannot act on the same venv
+                ("make", "setup-git"),
+            ),
         ),
     ):
         return 1

@@ -20,8 +20,8 @@ import {
 
 const DIVIDER_WIDTH = 6;
 
-function easeOutQuad(x: number): number {
-  return 1 - (1 - x) * (1 - x);
+function easeOutSine(x: number): number {
+  return Math.sin((x * Math.PI) / 2);
 }
 
 function onPreventBackForwardNavigation(event: WheelEvent) {
@@ -139,6 +139,7 @@ export class VirtualizedViewManager {
 
   // Holds the span to px matrix so we dont keep recalculating it
   span_to_px: mat3 = mat3.create();
+  row_depth_padding: number = 22;
 
   // Column configuration
   columns: {
@@ -197,12 +198,14 @@ export class VirtualizedViewManager {
   }
 
   dividerStartVec: [number, number] | null = null;
+  previousDividerClientVec: [number, number] | null = null;
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
     }
 
     this.dividerStartVec = [event.clientX, event.clientY];
+    this.previousDividerClientVec = [event.clientX, event.clientY];
     this.container.style.userSelect = 'none';
 
     this.container.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
@@ -223,14 +226,16 @@ export class VirtualizedViewManager {
     this.columns.span_list.width = this.columns.span_list.width - distancePercentage;
 
     this.container.style.userSelect = 'auto';
+
     this.dividerStartVec = null;
+    this.previousDividerClientVec = null;
 
     this.container.removeEventListener('mouseup', this.onDividerMouseUp);
     this.container.removeEventListener('mousemove', this.onDividerMouseMove);
   }
 
   onDividerMouseMove(event: MouseEvent) {
-    if (!this.dividerStartVec || !this.divider) {
+    if (!this.dividerStartVec || !this.divider || !this.previousDividerClientVec) {
       return;
     }
 
@@ -241,10 +246,21 @@ export class VirtualizedViewManager {
       (this.columns.span_list.width - distancePercentage) *
       this.container_physical_space.width;
 
+    const physical_distance = this.previousDividerClientVec[0] - event.clientX;
+    const config_distance_pct = physical_distance / this.trace_physical_space.width;
+    const config_distance = this.trace_view.width * config_distance_pct;
+
+    this.setTraceView({
+      x: this.trace_view.x - config_distance,
+      width: this.trace_view.width + config_distance,
+    });
+
     this.draw({
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
     });
+
+    this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
   registerList(list: List | null) {
@@ -387,6 +403,39 @@ export class VirtualizedViewManager {
     }
   }
 
+  zoomIntoSpaceRaf: number | null = null;
+  onZoomIntoSpace(space: [number, number]) {
+    const distance_x = space[0] - this.to_origin - this.trace_view.x;
+    const distance_width = this.trace_view.width - space[1];
+
+    const start_x = this.trace_view.x;
+    const start_width = this.trace_view.width;
+
+    const start = performance.now();
+    const rafCallback = (now: number) => {
+      const elapsed = now - start;
+      const progress = elapsed / 300;
+
+      const eased = easeOutSine(progress);
+
+      const x = start_x + distance_x * eased;
+      const width = start_width - distance_width * eased;
+
+      this.setTraceView({x, width});
+      this.draw();
+
+      if (progress < 1) {
+        this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+      } else {
+        this.zoomIntoSpaceRaf = null;
+        this.setTraceView({x: space[0] - this.to_origin, width: space[1]});
+        this.draw();
+      }
+    };
+
+    this.zoomIntoSpaceRaf = window.requestAnimationFrame(rafCallback);
+  }
+
   onWheelEndRaf: number | null = null;
   enqueueOnWheelEndRaf() {
     if (this.onWheelEndRaf !== null) {
@@ -396,7 +445,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 100) {
+      if (elapsed > 16) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -439,7 +488,7 @@ export class VirtualizedViewManager {
     const width = view.width ?? this.trace_view.width;
 
     this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
-    this.trace_view.width = clamp(width, 0, this.trace_space.width);
+    this.trace_view.width = clamp(width, 0, this.trace_space.width - this.trace_view.x);
     this.recomputeSpanToPxMatrix();
   }
 
@@ -529,7 +578,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + innerMostNode.depth * 24 >
+        translation + innerMostNode.depth * this.row_depth_padding >
         this.columns.list.width * this.container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -538,8 +587,8 @@ export class VirtualizedViewManager {
   }
 
   scrollRowIntoViewHorizontally(node: TraceTreeNode<any>, duration: number = 600) {
-    const VISUAL_OFFSET = 24 / 2;
-    const target = Math.min(-node.depth * 24 + VISUAL_OFFSET, 0);
+    const VISUAL_OFFSET = this.row_depth_padding / 2;
+    const target = Math.min(-node.depth * this.row_depth_padding + VISUAL_OFFSET, 0);
     this.animateScrollColumnTo(target, duration);
   }
 
@@ -553,7 +602,7 @@ export class VirtualizedViewManager {
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = duration > 0 ? elapsed / duration : 1;
-      const eased = easeOutQuad(progress);
+      const eased = easeOutSine(progress);
 
       const pos = startPosition + distance * eased;
 
@@ -694,73 +743,99 @@ export class VirtualizedViewManager {
 
   computeSpanTextPlacement(span_space: [number, number], text: string): [number, number] {
     const TEXT_PADDING = 2;
-    const span_left = span_space[0] - this.to_origin;
-    const span_right = span_left + span_space[1];
+    const anchor_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
 
-    if (span_right < this.trace_view.x) {
-      return [
-        0,
-        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-      ];
-    }
+    const width = this.text_measurer.measure(text);
 
-    if (span_left > this.trace_view.right) {
-      return [0, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
-    }
-
-    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      const width = this.text_measurer.measure(text);
-      return [
-        1,
-        this.computeTransformXFromTimestamp(
-          this.to_origin + this.trace_view.left + this.trace_view.width
-        ) -
-          width -
-          TEXT_PADDING,
-      ];
-    }
+    // precomput all anchor points aot, so we make the control flow more readable.
+    // this wastes some cycles, but it's not a big deal as computers are fast when
+    // it comes to simple arithmetic.
+    const right_outside =
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING;
+    const right_inside =
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
+      width -
+      TEXT_PADDING;
+    const left_outside =
+      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING - width;
+    const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    const window_right =
+      this.computeTransformXFromTimestamp(
+        this.to_origin + this.trace_view.left + this.trace_view.width
+      ) -
+      width -
+      TEXT_PADDING;
+    const window_left =
+      this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left) +
+      TEXT_PADDING;
 
     const view_left = this.trace_view.x;
     const view_right = view_left + this.trace_view.width;
+
+    const span_left = span_space[0] - this.to_origin;
+    const span_right = span_left + span_space[1];
+
     const space_right = view_right - span_right;
+    const space_left = span_left - view_left;
 
-    // If we have space to the right, place the text there
-    if (space_right > 0) {
-      return [
-        0,
-        this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-      ];
+    // Span is completely outside of the view on the left side
+    if (span_right < this.trace_view.x) {
+      return anchor_left ? [1, right_inside] : [0, right_outside];
     }
 
-    // if we have no space to the right, see if we can place it inside the span
-    if (space_right < 0) {
-      const width = this.text_measurer.measure(text);
-      const full_span_px_width = span_space[1] / this.span_to_px[0];
+    // Span is completely outside of the view on the right side
+    if (span_left > this.trace_view.right) {
+      return anchor_left ? [0, left_outside] : [1, left_inside];
+    }
 
-      if (full_span_px_width > width) {
-        const difference = span_right - this.trace_view.right;
-        const visible_width =
-          (span_space[1] - difference) / this.span_to_px[0] - TEXT_PADDING;
+    // Span "spans" the entire view
+    if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
+      return anchor_left ? [1, window_left] : [0, window_right];
+    }
 
-        if (visible_width >= width) {
-          return [
-            1,
-            this.computeTransformXFromTimestamp(
-              this.to_origin + this.trace_view.left + this.trace_view.width
-            ) -
-              width -
-              TEXT_PADDING,
-          ];
-        }
+    const full_span_px_width = span_space[1] / this.span_to_px[0];
 
-        return [1, this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING];
+    if (anchor_left) {
+      // While we have space on the left, place the text there
+      if (space_left > 0) {
+        return [0, left_outside];
       }
+
+      const distance = span_right - this.trace_view.left;
+      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the left
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= width) {
+        return [1, window_left];
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside right place in the span.
+      return [1, right_inside];
+    }
+    // While we have space on the right, place the text there
+    if (space_right > 0) {
+      return [0, right_outside];
     }
 
-    return [
-      0,
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) + TEXT_PADDING,
-    ];
+    // If text fits inside the span
+    if (full_span_px_width > width) {
+      const distance = span_right - this.trace_view.right;
+      const visible_width =
+        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the right
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= width) {
+        return [1, window_right];
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside left of the span
+      return [1, left_inside];
+    }
+    return [0, right_outside];
   }
 
   draw(options: {list?: number; span_list?: number} = {}) {

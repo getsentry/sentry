@@ -1,5 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {MRI} from 'sentry/types';
+import type {MRI, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -9,8 +9,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 interface UseMetricSamplesOptions<F extends string> {
   fields: F[];
   referrer: string;
+  datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
+  max?: number;
+  min?: number;
   mri?: MRI;
   query?: string;
 }
@@ -23,9 +26,12 @@ export interface MetricsSamplesResults<F extends string> {
 }
 
 export function useMetricsSamples<F extends string>({
+  datetime,
   enabled,
   fields,
   limit,
+  max,
+  min,
   mri,
   referrer,
   query,
@@ -39,8 +45,10 @@ export function useMetricsSamples<F extends string>({
     query: {
       project: selection.projects,
       environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
+      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
+      max,
+      min,
       mri,
       query,
       referrer,

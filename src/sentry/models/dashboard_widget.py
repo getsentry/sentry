@@ -47,9 +47,21 @@ class TypesClass:
 
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
+    """
+    Old way of accessing error events and transaction events simultaneously @deprecated. Use ERROR_EVENTS or TRANSACTION_LIKE instead.
+    """
     ISSUE = 1
     RELEASE_HEALTH = 2
     METRICS = 3
+    ERROR_EVENTS = 100
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 101
+    """
+    This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
+    """
+
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
@@ -58,8 +70,20 @@ class DashboardWidgetTypes(TypesClass):
             "metrics",
         ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
         (METRICS, "custom-metrics"),
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+# TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
+TransactionWidgetType = [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+# TODO: Can be replaced once conditions are replaced at all callsite to split transaction and error behaviour, and once dashboard no longer have saved Discover dataset.
+DiscoverFullFallbackWidgetType = [
+    DashboardWidgetTypes.DISCOVER,
+    DashboardWidgetTypes.ERROR_EVENTS,
+    DashboardWidgetTypes.TRANSACTION_LIKE,
+]
 
 
 class DashboardWidgetDisplayTypes(TypesClass):
@@ -205,6 +229,9 @@ class DashboardWidget(Model):
     widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
     limit = models.IntegerField(null=True)
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    discover_widget_split = BoundedPositiveIntegerField(
+        choices=DashboardWidgetTypes.as_choices(), null=True
+    )
 
     class Meta:
         app_label = "sentry"
