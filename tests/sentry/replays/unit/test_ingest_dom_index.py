@@ -134,6 +134,81 @@ def test_get_user_actions_missing_node():
     assert len(user_actions) == 0
 
 
+def test_get_user_actions_performance_spans():
+    """Test that "get_user_actions" doesn't error when collecting rsrc metrics, on various formats of performanceSpan"""
+    # payloads are not realistic examples - only include the fields necessary for testing
+    # TODO: does not test if metrics.distribution() is called downstream, with correct param types.
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674298825,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "data": "someString",
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298826,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "data": {
+                        "requestBodySize": 40,
+                        "request": {"body": "Hello" * 8},
+                        "responseBodySize": 34,
+                        "response": {"body": "G" * 34},
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298827,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "data": {
+                        "request": {"body": "Hello", "size": 5},
+                        "response": {},  # intentionally empty,
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298828,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "data": {
+                        "request": "some string",
+                        "response": 1234,
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674298829,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "resource.fetch",
+                    "data": {},
+                },
+            },
+        },
+    ]
+    get_user_actions(1, uuid.uuid4().hex, events, None)
+
+
 def test_parse_replay_actions():
     events = [
         {
