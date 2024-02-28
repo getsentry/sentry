@@ -1,6 +1,7 @@
 import json  # noqa: S003
 import os
 import re
+import sys
 from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
@@ -10,10 +11,12 @@ from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
+from sentry.apidocs.api_pagination_allowlist_dont_modify import API_PAGINATION_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.api_publish_status_allowlist_dont_modify import (
     API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY,
 )
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.pagination_linter import find_method_and_check_paginate
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -161,6 +164,25 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
             }
+
+        # Fail if endpoint doesn't implement pagination correctly
+        if method == "GET":
+            ends_with_object = re.search(r"/([^/{}]+)s/$", path)
+            if ends_with_object is not None:
+                class_name = callback.view_class.__name__
+
+                module_name = callback.view_class.__module__
+                file_path = getattr(sys.modules[module_name], "__file__", None)
+                if file_path is None:
+                    raise SentryApiBuildError(
+                        f"Unable to find file path for {class_name}. Please reach out to #discuss-api for help."
+                    )
+
+                result = find_method_and_check_paginate(file_path, class_name)
+                if not result and path not in API_PAGINATION_ALLOWLIST_DONT_MODIFY:
+                    raise SentryApiBuildError(
+                        f"Endpoint {class_name} has a list API that is not using pagination. Please add self.paginate() to your get method to ensure the product doesn't break with more adoption. If you have any questions, reach out to #discuss-api."
+                    )
 
         # Fail if endpoint is unowned
         if owner_team == ApiOwner.UNOWNED:
