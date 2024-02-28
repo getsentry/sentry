@@ -214,6 +214,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get the time series data for one or more metrics.
 
