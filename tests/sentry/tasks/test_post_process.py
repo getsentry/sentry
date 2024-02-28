@@ -1352,6 +1352,23 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
         )
 
+        mock_config = {"org_ids_exempt_from_ratelimit": {self.project.organization_id}}
+        with patch.dict("sentry.tasks.post_process.configuration", mock_config):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+            logger.info.assert_any_call(
+                "should_issue_owners_ratelimit.exemption",
+                extra={
+                    "project_id": self.project.id,
+                    "group_id": event.group_id,
+                    "organization_id": self.project.organization_id,
+                },
+            )
+
 
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
     github_blame_return_value = {
