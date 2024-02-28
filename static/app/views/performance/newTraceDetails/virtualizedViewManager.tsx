@@ -756,30 +756,29 @@ export class VirtualizedViewManager {
       // If the text doesnt fit inside the visible portion of the span,
       // anchor it to the inside right place in the span.
       return [1, right_inside];
-    } 
-      // While we have space on the right, place the text there
-      if (space_right > 0) {
-        return [0, right_outside];
-      }
-
-      // If text fits inside the span
-      if (full_span_px_width > width) {
-        const distance = span_right - this.trace_view.right;
-        const visible_width =
-          (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
-
-        // If the text fits inside the visible portion of the span, anchor it to the right
-        // side of the window so that it is visible while the user pans the view
-        if (visible_width - TEXT_PADDING >= width) {
-          return [1, window_right];
-        }
-
-        // If the text doesnt fit inside the visible portion of the span,
-        // anchor it to the inside left of the span
-        return [1, left_inside];
-      }
+    }
+    // While we have space on the right, place the text there
+    if (space_right > 0) {
       return [0, right_outside];
-    
+    }
+
+    // If text fits inside the span
+    if (full_span_px_width > width) {
+      const distance = span_right - this.trace_view.right;
+      const visible_width =
+        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
+
+      // If the text fits inside the visible portion of the span, anchor it to the right
+      // side of the window so that it is visible while the user pans the view
+      if (visible_width - TEXT_PADDING >= width) {
+        return [1, window_right];
+      }
+
+      // If the text doesnt fit inside the visible portion of the span,
+      // anchor it to the inside left of the span
+      return [1, left_inside];
+    }
+    return [0, right_outside];
   }
 
   draw(options: {list?: number; span_list?: number} = {}) {
