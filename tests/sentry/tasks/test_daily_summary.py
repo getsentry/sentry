@@ -130,25 +130,16 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             num_times=2,
         )
 
-        # create an issue first seen in the release
-        self.store_event_and_outcomes(
-            self.project.id,
-            self.now,
-            fingerprint="group-2",
-            category=DataCategory.ERROR,
-            num_times=2,
-            release=self.release.version,
-        )
-        # reopen the issue and set it to regressed
+        # create an issue first seen in the release and set it to regressed
         group2 = self.store_event_and_outcomes(
             self.project.id,
             self.now,
             fingerprint="group-2",
             category=DataCategory.ERROR,
-            num_times=1,
+            num_times=3,
             release=self.release.version,
+            resolve=False,
         )
-        group2.status = GroupStatus.UNRESOLVED
         group2.substatus = GroupSubStatus.REGRESSED
         group2.save()
         Activity.objects.create_group_activity(
@@ -160,37 +151,22 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             },
         )
         # create and issue and set it to escalating
-        data = {
-            "event_id": "a" * 32,
-            "timestamp": iso_format(self.now),
-            "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-            "fingerprint": ["group-3"],
-            "release": self.release.version,
-        }
-        event = self.store_event(
-            data=data,
-            project_id=self.project.id,
-        )
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "category": DataCategory.ERROR,
-                "timestamp": self.now,
-                "key_id": 1,
-            },
+        group3 = self.store_event_and_outcomes(
+            self.project.id,
+            self.now,
+            fingerprint="group-3",
+            category=DataCategory.ERROR,
             num_times=10,
+            release=self.release.version,
+            resolve=False,
         )
-        group3 = event.group
-        group3.status = GroupStatus.UNRESOLVED
         group3.substatus = GroupSubStatus.ESCALATING
         group3.save()
         Activity.objects.create_group_activity(
             group3,
             ActivityType.SET_ESCALATING,
             data={
-                "event_id": event.event_id,
+                "event_id": group3.get_latest_event().event_id,
                 "version": self.release.version,
             },
         )
@@ -203,11 +179,13 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             category=DataCategory.ERROR,
             num_times=2,
         )
+
+        # store some performance issues
         perf_event = self.create_performance_issue(
-            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group4"
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group5"
         )
         perf_event2 = self.create_performance_issue(
-            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group5"
+            fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group6"
         )
         summary = prepare_summary_data(to_timestamp(self.now), ONE_DAY, self.organization.id)
         project_id = self.project.id
