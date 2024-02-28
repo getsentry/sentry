@@ -529,6 +529,19 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         super().setUp()
         self.login_as(user=self.superuser, superuser=True)
 
+    def test_staff_cannot_delete_unpublished_app(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user, staff=False)
+        response = self.get_error_response(
+            self.unpublished_app.slug,
+            status_code=404,
+        )
+        assert response.data["detail"] == "Not found."
+
+        assert not AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
+
     @patch("sentry.analytics.record")
     def test_superuser_delete_unpublished_app(self, record):
         self.get_success_response(
