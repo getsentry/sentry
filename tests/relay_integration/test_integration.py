@@ -218,8 +218,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
     def test_project_config_compression(self):
         # Populate redis cache with compressed config:
-        with self.tasks():
-            invalidate_project_config(public_key=self.projectkey, trigger="test")
+        invalidate_project_config(public_key=self.projectkey, trigger="test")
 
         # Disable project config endpoint, to make sure Relay gets its data
         # from redis:

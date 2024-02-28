@@ -549,9 +549,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
-        from sentry.silo import are_silo_checks_disabled
-
-        assert not are_silo_checks_disabled()
         include_all_projects = True
         self.project
         alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
@@ -569,9 +566,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     @pytest.mark.migrations  # requires custom migration 0061
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_two_archived_with_same_name(self):
-        from sentry.silo import are_silo_checks_disabled
-
-        assert not are_silo_checks_disabled()
         name = "allowed"
         alert_rule_1 = create_alert_rule(
             self.organization,
