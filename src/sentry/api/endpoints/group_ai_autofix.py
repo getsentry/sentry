@@ -5,7 +5,6 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
@@ -57,12 +56,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             repo: Repository = repo_config.repository
             repo_name_sections = repo.name.split("/")
 
-            if len(repo_name_sections) == 2:
+            if len(repo_name_sections) > 1:
                 repos.append(
                     {
                         "provider": repo.provider,
                         "owner": repo_name_sections[0],
-                        "name": repo_name_sections[1],
+                        "name": "/".join(repo_name_sections[1:]),
                     }
                 )
 
@@ -142,9 +141,6 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 }
             ],
         }
-
-        if not request.user.is_authenticated:
-            raise PermissionDenied(detail="You must be authenticated to perform this action.")
 
         if not features.has("projects:ai-autofix", group.project):
             return self._respond_with_error(
