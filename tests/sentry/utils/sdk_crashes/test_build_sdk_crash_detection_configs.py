@@ -43,13 +43,13 @@ def test_build_sdk_crash_detection_configs():
 
 @override_options(
     {
-        "issues.sdk_crash_detection.cocoa.project_id": None,
-        "issues.sdk_crash_detection.cocoa.sample_rate": None,
+        "issues.sdk_crash_detection.cocoa.project_id": 0,
+        "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
         "issues.sdk_crash_detection.react-native.project_id": 2,
         "issues.sdk_crash_detection.react-native.sample_rate": 0.2,
         "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
-        "issues.sdk_crash_detection.java.project_id": None,
-        "issues.sdk_crash_detection.java.sample_rate": None,
+        "issues.sdk_crash_detection.java.project_id": 0,
+        "issues.sdk_crash_detection.java.sample_rate": 0.0,
         "issues.sdk_crash_detection.java.organization_allowlist": [],
     }
 )
@@ -67,12 +67,12 @@ def test_build_sdk_crash_detection_configs_only_react_native():
 @override_options(
     {
         "issues.sdk_crash_detection.cocoa.project_id": 1.0,
-        "issues.sdk_crash_detection.cocoa.sample_rate": None,
+        "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
         "issues.sdk_crash_detection.react-native.project_id": 2,
         "issues.sdk_crash_detection.react-native.sample_rate": 0.2,
         "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
         "issues.sdk_crash_detection.java.project_id": 3,
-        "issues.sdk_crash_detection.java.sample_rate": None,
+        "issues.sdk_crash_detection.java.sample_rate": 0.0,
         "issues.sdk_crash_detection.java.organization_allowlist": [2],
     }
 )
@@ -89,15 +89,15 @@ def test_build_sdk_crash_detection_configs_no_sample_rate():
 
 @override_options(
     {
-        "issues.sdk_crash_detection.cocoa.project_id": None,
-        "issues.sdk_crash_detection.cocoa.sample_rate": None,
-        "issues.sdk_crash_detection.react-native.project_id": None,
-        "issues.sdk_crash_detection.react-native.sample_rate": None,
-        "issues.sdk_crash_detection.react-native.organization_allowlist": [],
-        "issues.sdk_crash_detection.java.project_id": None,
-        "issues.sdk_crash_detection.java.sample_rate": None,
-        "issues.sdk_crash_detection.java.organization_allowlist": [],
+        "issues.sdk_crash_detection.cocoa.project_id": 0,
+        "issues.sdk_crash_detection.cocoa.sample_rate": 0.0,
+        "issues.sdk_crash_detection.react-native.project_id": 0,
+        "issues.sdk_crash_detection.react-native.sample_rate": 0.0,
+        "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
+        "issues.sdk_crash_detection.java.project_id": 0,
+        "issues.sdk_crash_detection.java.sample_rate": 0.0,
+        "issues.sdk_crash_detection.java.organization_allowlist": [1],
     }
 )
-def test_build_sdk_crash_detection_configs_no_configs():
+def test_build_sdk_crash_detection_default_configs():
     assert len(build_sdk_crash_detection_configs()) == 0

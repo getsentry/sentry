@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import TypedDict
 
-import sentry_sdk
-
 from sentry import options
 from sentry.utils.sdk_crashes.path_replacer import (
     FixedPathReplacer,
@@ -212,7 +210,6 @@ def _get_options(
 
     project_id = options.get(f"{options_prefix}.project_id")
     if not project_id:
-        sentry_sdk.capture_message(f"{sdk_name.value} project_id is not set.")
         return None
 
     sample_rate = options.get(f"{options_prefix}.sample_rate")

@@ -1921,7 +1921,8 @@ register(
 
 register(
     "issues.sdk_crash_detection.java.project_id",
-    default=None,
+    default=0,
+    type=Int,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
