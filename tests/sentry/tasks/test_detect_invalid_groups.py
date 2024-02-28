@@ -33,7 +33,7 @@ class DetectInvalidGroupStatusTest(TestCase):
 
     @patch("sentry.tasks.detect_invalid_group_status.logger.error")
     def test_no_bad_groups(self, mock_logger):
-        detect_invalid_group_status(self.organization.id)
+        detect_invalid_group_status(self.project.id)
         assert not mock_logger.called
 
     @patch("sentry.tasks.detect_invalid_group_status.logger.error")
@@ -41,7 +41,7 @@ class DetectInvalidGroupStatusTest(TestCase):
         self.new_group.update(
             first_seen=datetime.now() - timedelta(days=4), substatus=GroupSubStatus.NEW
         )
-        detect_invalid_group_status(self.organization.id)
+        detect_invalid_group_status(self.project.id)
         assert mock_logger.called
         assert mock_logger.call_args[0][0] == "Found groups with incorrect substatus"
         assert mock_logger.call_args.kwargs["extra"]["count"] == 1
@@ -52,7 +52,7 @@ class DetectInvalidGroupStatusTest(TestCase):
         self.regressed_grouphistory.update(
             date_added=datetime.now() - timedelta(days=8),
         )
-        detect_invalid_group_status(self.organization.id)
+        detect_invalid_group_status(self.project.id)
         assert mock_logger.called
         assert mock_logger.call_args.kwargs["extra"]["count"] == 1
         assert mock_logger.call_args.kwargs["extra"]["regressed"] == [self.regressed_group.id]
@@ -62,7 +62,7 @@ class DetectInvalidGroupStatusTest(TestCase):
         self.escalating_grouphistory.update(
             date_added=datetime.now() - timedelta(days=8),
         )
-        detect_invalid_group_status(self.organization.id)
+        detect_invalid_group_status(self.project.id)
         assert mock_logger.called
         assert mock_logger.call_args.kwargs["extra"]["count"] == 1
         assert mock_logger.call_args.kwargs["extra"]["escalating"] == [self.escalating_group.id]
@@ -73,7 +73,7 @@ class DetectInvalidGroupStatusTest(TestCase):
         bad_group.update(
             status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.UNTIL_CONDITION_MET
         )
-        detect_invalid_group_status(self.organization.id)
+        detect_invalid_group_status(self.project.id)
         assert mock_logger.called
         assert mock_logger.call_args.kwargs["extra"]["count"] == 1
         assert mock_logger.call_args.kwargs["extra"]["archived_until_condition_met"] == [

@@ -19,13 +19,13 @@ logger = getLogger(__name__)
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
 )
-def detect_invalid_group_status(organization_id: int):
+def detect_invalid_group_status(project_id: int):
     # Find all unresolved groups for the organization
     three_days_ago = timezone.now() - timedelta(days=3)
     seven_days_ago = timezone.now() - timedelta(days=7)
     groups = Group.objects.filter(
         status=GroupStatus.UNRESOLVED,
-        project__organization_id=organization_id,
+        project_id=project_id,
     ).exclude(substatus=GroupSubStatus.ONGOING)
     invalid_groups = defaultdict(list)
 
@@ -65,7 +65,7 @@ def detect_invalid_group_status(organization_id: int):
         logger.error(
             "Found groups with incorrect substatus",
             extra={
-                "organization_id": organization_id,
+                "project_id": project_id,
                 "count": sum(len(v) for v in invalid_groups.values()),
                 **error_extra,
             },
