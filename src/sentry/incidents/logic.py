@@ -1498,9 +1498,11 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
 
 def delete_alert_rule_trigger_action(trigger_action):
     """
-    Deletes a AlertRuleTriggerAction
+    Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
+    Marking it as pending deletion should filter out the object through the manager when querying.
     """
     RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
 def get_actions_for_trigger(trigger):
