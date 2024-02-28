@@ -8,12 +8,12 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
+import useCurrentProjectState from 'sentry/components/feedback/feedbackOnboarding/useCurrentProjectState';
 import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
-import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -40,13 +40,12 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, allProjects, currentProject, setCurrentProject} =
-    useCurrentProjectState({
-      currentPanel,
-    });
+  const {projects, currentProject, setCurrentProject} = useCurrentProjectState({
+    currentPanel,
+  });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = allProjects
+    const supportedProjectItems: SelectValue<string>[] = projects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
@@ -71,10 +70,9 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
         options: supportedProjectItems,
       },
     ];
-  }, [allProjects]);
+  }, [projects]);
 
-  const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-  if (!isActive || !hasProjectAccess || !selectedProject) {
+  if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
   }
 
@@ -111,16 +109,16 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
                 )
               }
               value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
+              onChange={opt => {
+                setCurrentProject(projects.find(p => p.id === opt.value));
+              }}
               triggerProps={{'aria-label': currentProject?.slug}}
               options={projectSelectOptions}
               position="bottom-end"
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} />
+        <OnboardingContent currentProject={currentProject} />
       </TaskList>
     </TaskSidebarPanel>
   );
@@ -154,28 +152,30 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     defaultTab
   );
 
-  const webBackendPlatform =
-    currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
-
-  const showJsFrameworkInstructions = webBackendPlatform && setupMode() === 'npm';
-
-  const showRadioButtons =
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
-
-  const crashApiPlatform =
-    currentProject.platform &&
-    feedbackCrashApiPlatforms.includes(currentProject.platform);
-
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
     : otherPlatform;
 
-  const npmOnlyFramework =
-    currentProject.platform &&
-    feedbackNpmPlatforms
-      .filter(p => p !== 'javascript')
-      .includes(currentProject.platform);
+  const webBackendPlatform = replayBackendPlatforms.includes(currentPlatform.id);
+
+  const showJsFrameworkInstructions = webBackendPlatform && setupMode() === 'npm';
+
+  const showRadioButtons = replayJsLoaderInstructionsPlatformList.includes(
+    currentPlatform.id
+  );
+
+  const crashApiPlatform = feedbackCrashApiPlatforms.includes(currentPlatform.id);
+
+  const npmOnlyFramework = feedbackNpmPlatforms
+    .filter(p => p !== 'javascript')
+    .includes(currentPlatform.id);
+
+  function getJsFramework() {
+    return (
+      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+      replayJsFrameworkOptions[0]
+    );
+  }
 
   const {
     docs: newDocs,
@@ -183,20 +183,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     cdn,
     isProjKeysLoading,
   } = useLoadFeedbackOnboardingDoc({
-    platform:
-      showJsFrameworkInstructions && setupMode() === 'npm'
-        ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions[0]
-        : currentPlatform,
+    platform: showJsFrameworkInstructions ? getJsFramework() : currentPlatform,
     organization,
     projectSlug: currentProject.slug,
   });
 
   // New onboarding docs for initial loading of JS Framework options
   const {docs: jsFrameworkDocs} = useLoadFeedbackOnboardingDoc({
-    platform:
-      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions[0],
+    platform: getJsFramework(),
     organization,
     projectSlug: currentProject.slug,
   });
