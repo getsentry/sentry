@@ -394,18 +394,18 @@ class OrganizationEndpoint(Endpoint):
             if is_active_superuser(request) or include_all_accessible:
                 span.set_tag("mode", "has_project_access")
                 proj_filter = request.access.has_project_access
+            elif is_active_staff(request):
+                # There is a special case for staff, where we want to fetch a single project
+                # (OrganizationStatsEndpointV2) or all projects (OrganizationMetricsDetailsEndpoint)
+                # in _admin. Staff cannot use has_project_access like superuser because it fails due
+                # to staff having no scopes. The workaround is to create a lambda that mimics
+                # checking for active projects like has_project_access without further validation.
+                span.set_tag("mode", "staff_fetch_all")
+                proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
             # Check if explicitly requesting specific projects
             elif not filter_by_membership:
-                if is_active_staff(request):
-                    # There is a special case for staff, where we want to fetch usage stats for a single
-                    # project in _admin using OrganizationStatsEndpointV2 but cannot use has_project_access
-                    # like superuser because it fails. The workaround is to create a lambda that mimics
-                    # checking for active projects like has_project_access without further validation.
-                    span.set_tag("mode", "staff_fetch_all")
-                    proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
-                else:
-                    span.set_tag("mode", "has_project_access")
-                    proj_filter = request.access.has_project_access
+                span.set_tag("mode", "has_project_access")
+                proj_filter = request.access.has_project_access
             else:
                 span.set_tag("mode", "has_project_membership")
                 proj_filter = request.access.has_project_membership

@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.api.bases.organization import (
     NoProjects,
+    OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationMetricsPermission,
 )
@@ -86,6 +87,7 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
