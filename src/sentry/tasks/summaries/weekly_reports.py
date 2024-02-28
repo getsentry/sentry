@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Mapping
 from functools import partial, reduce
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from django.db.models import F
@@ -21,7 +21,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
@@ -71,11 +70,9 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send an email.
     """
-    project_ctxs = [
-        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-    ]
-
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
+    return all(
+        check_if_project_is_empty(project_ctx) for project_ctx in ctx.projects_context_map.values()
+    )
 
 
 # The entry point. This task is scheduled to run every week.
@@ -142,15 +139,13 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
         user_project_ownership(ctx)
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
-        event_counts = project_event_counts_for_organization(
-            start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
-        )
+        event_counts = project_event_counts_for_organization(ctx)
         for data in event_counts:
             project_id = data["project_id"]
             # Project no longer in organization, but events still exist
             if project_id not in ctx.projects_context_map:
                 continue
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project_id])
+            project_ctx = ctx.projects_context_map[project_id]
             total = data["total"]
             timestamp = int(to_timestamp(parse_snuba_datetime(data["time"])))
             if data["category"] == DataCategory.TRANSACTION:
@@ -183,15 +178,11 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
         for project in organization.project_set.all():
-            key_errors = project_key_errors(
-                ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
-            )
-            if project.id not in ctx.projects_context_map:
-                continue
-
-            project_ctx = cast(ProjectContext, ctx.projects_context_map[project.id])
+            key_errors = project_key_errors(ctx, project)
             if key_errors:
-                project_ctx.key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+                ctx.projects_context_map[project.id].key_errors = [
+                    (e["group_id"], e["count()"]) for e in key_errors
+                ]
                 if ctx.organization.slug == "sentry":
                     logger.info(
                         "project_key_errors.results",
@@ -199,7 +190,7 @@ def prepare_organization_report(
                     )
             key_transactions_this_week = project_key_transactions_this_week(ctx, project)
             if key_transactions_this_week:
-                project_ctx.key_transactions = [
+                ctx.projects_context_map[project.id].key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     for i in key_transactions_this_week
                 ]
@@ -211,15 +202,13 @@ def prepare_organization_report(
                     i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
                 }
 
-                project_ctx.key_transactions = [
+                ctx.projects_context_map[project.id].key_transactions = [
                     (i["transaction_name"], i["count"], i["p95"])
                     + last_week_data.get(i["transaction_name"], (0, 0))
                     for i in key_transactions_this_week
                 ]
 
-            key_performance_issues = project_key_performance_issues(
-                ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
-            )
+            key_performance_issues = project_key_performance_issues(ctx, project)
             if key_performance_issues:
                 ctx.projects_context_map[project.id].key_performance_issues = key_performance_issues
 
