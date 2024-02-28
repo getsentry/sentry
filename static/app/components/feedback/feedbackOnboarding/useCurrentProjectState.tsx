@@ -53,7 +53,7 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
       setCurrentProject(firstSelectedProject);
       return;
     }
-    // We have no selection, so pick the first project with onboarding
+    // No selection, so pick the first project with onboarding
     setCurrentProject(projectsWithOnboarding.at(0));
     return;
   }, [
