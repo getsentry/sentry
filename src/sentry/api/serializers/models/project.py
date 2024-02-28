@@ -60,6 +60,24 @@ STATS_PERIOD_CHOICES = {
 _PROJECT_SCOPE_PREFIX = "projects:"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
+UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
+
+
+# These features are not used on the frontend,
+# and add a lot of latency ~100-300ms per flag for large organizations
+# so we exclude them from the response if the unusedFeatures collapse parameter is set
+PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
+    "profiling-ingest-unsampled-profiles",
+    "discard-transaction",
+    "span-metrics-extraction-resource",
+    "span-metrics-extraction-all-modules",
+    "race-free-group-creation",
+    "first-event-severity-new-escalation",
+    "first-event-severity-calculation",
+    "first-event-severity-alerting",
+    "alert-filters",
+    "servicehooks",
+}
 
 
 def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
@@ -132,7 +150,7 @@ def get_access_by_project(
 
 
 def get_features_for_projects(
-    all_projects: Sequence[Project], user: User
+    all_projects: Sequence[Project], user: User, filter_unused_on_frontend_features: bool = False
 ) -> MutableMapping[Project, list[str]]:
     # Arrange to call features.has_for_batch rather than features.has
     # for performance's sake
@@ -146,6 +164,12 @@ def get_features_for_projects(
         for feature in features.all(feature_type=ProjectFeature).keys()
         if feature.startswith(_PROJECT_SCOPE_PREFIX)
     ]
+    if filter_unused_on_frontend_features:
+        project_features = [
+            feature
+            for feature in project_features
+            if feature[len(_PROJECT_SCOPE_PREFIX) :] not in PROJECT_FEATURES_NOT_USED_ON_FRONTEND
+        ]
 
     batch_checked = set()
     for organization, projects in projects_by_org.items():
@@ -338,7 +362,9 @@ class ProjectSerializer(Serializer):
             result = get_access_by_project(item_list, user)
 
         with measure_span("features"):
-            features_by_project = get_features_for_projects(item_list, user)
+            features_by_project = get_features_for_projects(
+                item_list, user, self._collapse(UNUSED_ON_FRONTEND_FEATURES)
+            )
             for project, serialized in result.items():
                 serialized["features"] = features_by_project[project]
 
@@ -591,10 +617,11 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    access: Access | None
-
-    def __init__(self, access: Access | None = None, **kwargs):
+    def __init__(
+        self, access: Access | None = None, lpq_projects: set[int] | None = None, **kwargs
+    ):
         self.access = access
+        self.lpq_projects = lpq_projects
         super().__init__(**kwargs)
 
     def get_deploys_by_project(self, item_list):
@@ -690,7 +717,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationProjectResponse:  # type: ignore
+    def serialize(
+        self, obj: Project, attrs: Mapping[str, Any], user: User
+    ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
@@ -704,7 +733,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             dateCreated=obj.date_added,
             environments=attrs["environments"],
             eventProcessing={
-                "symbolicationDegraded": should_demote_symbolication(obj.id),
+                "symbolicationDegraded": should_demote_symbolication(
+                    project_id=obj.id, lpq_projects=self.lpq_projects
+                ),
             },
             features=attrs["features"],
             firstEvent=obj.first_event,

@@ -250,7 +250,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
         try:
             builder.resolve_orderby(orderby)
-        except (InvalidSearchQuery) as err:
+        except InvalidSearchQuery as err:
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
@@ -593,6 +593,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
@@ -632,6 +633,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
+        widget.discover_widget_split = data.get(
+            "discover_widget_split", widget.discover_widget_split
+        )
         widget.order = order
         widget.limit = data.get("limit", widget.limit)
         widget.detail = {"layout": data.get("layout", prev_layout)}
