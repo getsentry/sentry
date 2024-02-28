@@ -42,8 +42,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
-from sentry.models.release import Release
-from sentry.models.releases.util import follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason

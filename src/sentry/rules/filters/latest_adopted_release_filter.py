@@ -10,9 +10,8 @@ from django.db.models.signals import post_delete, post_save
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releaseenvironment import ReleaseEnvironment
-from sentry.models.releases.util import follows_semver_versioning_scheme
 from sentry.rules import EventState
 from sentry.rules.age import (
     AgeComparisonType,
