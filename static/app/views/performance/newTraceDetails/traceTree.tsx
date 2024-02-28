@@ -138,6 +138,9 @@ export declare namespace TraceTree {
   };
 }
 
+function cacheKey(organization: Organization, project_slug: string, event_id: string) {
+  return organization.slug + ':' + project_slug + ':' + event_id;
+}
 function fetchTransactionSpans(
   api: Client,
   organization: Organization,
@@ -213,8 +216,7 @@ export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   indicators: Indicator[] = [];
 
-  private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
-    new Map();
+  private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
@@ -424,6 +426,7 @@ export class TraceTree {
       if (childTxn) {
         const clonedChildTxn =
           childTxn.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
+
         node.spanChildren.push(clonedChildTxn);
         clonedChildTxn.parent = node;
       }
@@ -690,8 +693,13 @@ export class TraceTree {
       return Promise.resolve(null);
     }
 
+    const key = cacheKey(
+      options.organization,
+      node.metadata.project_slug!,
+      node.metadata.event_id!
+    );
     const promise =
-      this._spanPromises.get(node) ??
+      this._spanPromises.get(key) ??
       fetchTransactionSpans(
         options.api,
         options.organization,
@@ -724,7 +732,7 @@ export class TraceTree {
       return data;
     });
 
-    this._spanPromises.set(node, promise);
+    this._spanPromises.set(key, promise);
     return promise;
   }
 
@@ -819,18 +827,52 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
   }
 
-  cloneDeep(): TraceTreeNode<T> {
-    const node = new TraceTreeNode(this.parent, this.value, this.metadata);
+  cloneDeep(): TraceTreeNode<T> | ParentAutogroupNode | SiblingAutogroupNode {
+    let node: TraceTreeNode<T> | ParentAutogroupNode | SiblingAutogroupNode;
+
+    if (isParentAutogroupedNode(this)) {
+      node = new ParentAutogroupNode(
+        this.parent,
+        this.value,
+        this.metadata,
+        this.head,
+        this.tail
+      );
+      node.groupCount = this.groupCount;
+    } else {
+      node = new TraceTreeNode(this.parent, this.value, this.metadata);
+    }
+
+    if (!node) {
+      throw new Error('CloneDeep is not implemented');
+    }
+
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
     node.canFetchData = this.canFetchData;
     node.space = this.space;
     node.metadata = this.metadata;
 
-    for (const child of this.children) {
-      const childClone = child.cloneDeep() as TraceTreeNode<TraceTree.Span>;
-      node.children.push(childClone);
-      childClone.parent = node;
+    if (isParentAutogroupedNode(node)) {
+      node.head = node.head.cloneDeep() as TraceTreeNode<TraceTree.Span>;
+      node.tail = node.tail.cloneDeep() as TraceTreeNode<TraceTree.Span>;
+
+      for (const child of node.head.children) {
+        child.parent = node;
+      }
+
+      for (const child of node.tail.children) {
+        child.parent = node;
+      }
+
+      node.head.parent = node;
+      node.tail.parent = node;
+    } else {
+      for (const child of this.children) {
+        const childClone = child.cloneDeep() as TraceTreeNode<TraceTree.Span>;
+        node.children.push(childClone);
+        childClone.parent = node;
+      }
     }
 
     return node;
@@ -964,9 +1006,18 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     if (root) {
       const queue = [...this.children];
 
+      if (isParentAutogroupedNode(this)) {
+        queue.push(this.head);
+      }
+
       while (queue.length > 0) {
         const next = queue.pop()!;
         next.invalidate();
+
+        if (isParentAutogroupedNode(next)) {
+          queue.push(next.head);
+        }
+
         for (let i = 0; i < next.children.length; i++) {
           queue.push(next.children[i]);
         }
@@ -1190,12 +1241,22 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
 
   let start = new Date().getTime();
 
+  const root = partialTransaction({
+    ...metadata,
+    generation: 0,
+    start_timestamp: start,
+    transaction: 'root transaction',
+    timestamp: start + randomBetween(100, 200),
+  });
+
+  trace.transactions.push(root);
+
   for (let i = 0; i < 25; i++) {
     const end = start + randomBetween(100, 200);
-    const nest = i > 0 && Math.random() > 0.5;
+    const nest = i > 0 && Math.random() > 0.33;
 
     if (nest) {
-      const parent = trace.transactions[trace.transactions.length - 1];
+      const parent = root.children[root.children.length - 1];
       parent.children.push(
         partialTransaction({
           ...metadata,
@@ -1207,7 +1268,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
       );
       parent.timestamp = end;
     } else {
-      trace.transactions.push(
+      root.children.push(
         partialTransaction({
           ...metadata,
           generation: 0,

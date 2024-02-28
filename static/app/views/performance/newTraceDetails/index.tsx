@@ -142,6 +142,9 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, [props.traceSlug, props.traceSplitResult, projects]);
 
   const traceType = useMemo(() => {
+    if (tree.type === 'loading') {
+      return null;
+    }
     return TraceTree.GetTraceType(tree.root);
   }, [tree]);
 
