@@ -16,20 +16,18 @@ const operatorTokens = new Set([
 
 interface FormularFormatterProps {
   formula: string;
-  errors?: [
-    {
-      message: string;
-      start: number;
-      end?: number;
-    },
-  ];
+  errors?: {
+    message: string;
+    start: number;
+    end?: number;
+  }[];
 }
 
 export function FormularFormatter({formula, errors}: FormularFormatterProps) {
   const theme = useTheme();
   const tokens = useMemo(() => {
     try {
-      return grammar.parse(formula.trim());
+      return grammar.parse(formula);
     } catch (err) {
       return undefined;
     }
@@ -41,7 +39,7 @@ export function FormularFormatter({formula, errors}: FormularFormatterProps) {
   }
 
   const findMatchingError = (charCount: number) => {
-    if (!errors) {
+    if (!errors || errors.length === 0) {
       return null;
     }
     return errors.find(
@@ -52,7 +50,7 @@ export function FormularFormatter({formula, errors}: FormularFormatterProps) {
   let charCount = 0;
   let hasActiveTooltip = false;
 
-  return (
+  const renderedTokens = (
     <Fragment>
       {tokens.map((token, index) => {
         const error = findMatchingError(charCount);
@@ -99,7 +97,25 @@ export function FormularFormatter({formula, errors}: FormularFormatterProps) {
             {token.content}
           </Token>
         );
-      })}{' '}
+      })}
+      {!hasActiveTooltip && findMatchingError(charCount) && (
+        <Tooltip title={findMatchingError(charCount)?.message} forceVisible>
+          &nbsp;
+        </Tooltip>
+      )}
+    </Fragment>
+  );
+
+  // Unexpected EOL might not match a token
+  const remainingError = !hasActiveTooltip && findMatchingError(charCount);
+  return (
+    <Fragment>
+      {renderedTokens}
+      {remainingError && (
+        <Tooltip title={findMatchingError(charCount)?.message} forceVisible>
+          &nbsp;
+        </Tooltip>
+      )}
     </Fragment>
   );
 }
