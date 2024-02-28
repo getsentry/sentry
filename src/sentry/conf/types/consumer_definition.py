@@ -9,11 +9,12 @@ from sentry.conf.types.topic_definition import Topic
 
 
 class ConsumerDefinition(TypedDict, total=False):
-    # Which logical topic from settings to use.
-    topic: Topic
 
-    # Override topic. To be deprecated
-    topic_override: Required[str | Callable[[], str]]
+    # XXX: Eventually only Topic will be accepted here.
+    # For backward compatibility with getsentry, we must also
+    # support the physical override topic name (str, Callable[str], str)
+    # while the migration is taking place
+    topic: Required[Topic | str | Callable[[], str]]
 
     # Schema validation will be run if true
     validate_schema: bool | None
