@@ -43,6 +43,7 @@ else like actual grouping happens elsewhere like test_variants.py.
    If you push any intermediate step into master or even just a PR, you just
    leaked PII to the public and all of this will have been for nothing.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -58,8 +59,6 @@ from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_
 from sentry.grouping.enhancer.actions import VarAction
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
@@ -130,10 +129,6 @@ INPUTS = [
 
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
-@django_db_all
-@override_options(
-    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
-)
 def test_categorization(input: CategorizationInput, insta_snapshot, track_enhancers_coverage):
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
