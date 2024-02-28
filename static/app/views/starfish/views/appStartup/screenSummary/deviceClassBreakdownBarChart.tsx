@@ -4,6 +4,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -168,7 +169,7 @@ function DeviceClassBreakdownBarChart({
             grid={{
               left: '0',
               right: '0',
-              top: '8px',
+              top: space(2),
               bottom: '0',
               containLabel: true,
             }}
