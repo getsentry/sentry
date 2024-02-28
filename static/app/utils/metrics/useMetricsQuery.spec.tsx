@@ -47,6 +47,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       groupBy: ['project'],
       mri: 'c:custom/sessions@none' as MRI,
       op: 'avg',
+      name: 'query_1',
     };
     const filters = {
       projects: [1],
@@ -81,6 +82,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       op: 'avg',
       query: 'error',
       groupBy: ['project'],
+      name: 'query_1',
     };
     const filters = {
       projects: [1],
@@ -114,6 +116,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       op: 'avg',
       query: 'error',
       groupBy: ['project'],
+      name: 'query_1',
     };
     const filters = {
       projects: [1],
@@ -151,6 +154,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       query: 'error',
       groupBy: ['project'],
       orderBy: 'asc' as const,
+      name: 'query_1',
     };
     const filters = {
       projects: [1],
@@ -185,6 +189,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       op: 'avg',
       query: 'error',
       groupBy: [],
+      name: 'query_1',
     };
     const filters = {
       projects: [1],
@@ -219,6 +224,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       op: 'sum',
       query: 'error',
       groupBy: [],
+      name: 'query_1',
     };
     const filters = {
       projects: [1],

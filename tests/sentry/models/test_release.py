@@ -363,7 +363,7 @@ class SetCommitsTestCase(TestCase):
             organization_id=org.id,
             key="b" * 40,
             author=author,
-            date_added="2019-03-01 12:00:00",
+            date_added="2019-03-01 12:00:00+00:00",
             message="fixed a thing",
         )
 
@@ -1281,7 +1281,7 @@ class ClearCommitsTestCase(TestCase):
             organization_id=org.id,
             repository_id=repo.id,
             author=author,
-            date_added="2019-03-01 12:00:00",
+            date_added="2019-03-01 12:00:00+00:00",
             message="fixes %s" % (group.qualified_short_id),
             key="alksdflskdfjsldkfajsflkslk",
         )
@@ -1289,7 +1289,7 @@ class ClearCommitsTestCase(TestCase):
             organization_id=org.id,
             repository_id=repo.id,
             author=author2,
-            date_added="2019-03-01 12:02:00",
+            date_added="2019-03-01 12:02:00+00:00",
             message="i fixed something",
             key="lskfslknsdkcsnlkdflksfdkls",
         )

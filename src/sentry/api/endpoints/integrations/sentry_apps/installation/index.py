@@ -10,6 +10,7 @@ from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
@@ -52,7 +53,9 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         # only published or owned apps are allowed to be installed
         app = SentryApp.objects.filter(slug=slug).first()
         if app is None or (
-            app.status != SentryAppStatus.PUBLISHED and app.owner_id != organization.id
+            app.status != SentryAppStatus.PUBLISHED
+            and app.owner_id != organization.id
+            and not superuser_has_permission(request)
         ):
             return Response(status=404)
 

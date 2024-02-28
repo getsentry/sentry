@@ -81,7 +81,7 @@ SUPPORTED_CONTEXT_DATA = {
     "Users Affected": lambda group: group.count_users_seen(),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
-    "Regressed Date": lambda group: time_since(group.active_at),
+    "Approx. Start Time": lambda group: group.active_at.strftime("%Y-%m-%d %H:%M:%S"),
 }
 
 REGRESSION_PERFORMANCE_ISSUE_TYPES = [
@@ -267,9 +267,21 @@ def get_context(group: Group) -> str:
     # updated block kit
     context = group.issue_type.notification_config.context
     context_dict = {}
+
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
             context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
+
+    # for errors, non-regression performance, and rage click issues
+    # always show state and first seen
+    # only show event count and user count if event count > 1 or state != new
+
+    event_count = context_dict.get("Events")
+    state = context_dict.get("State")
+    if (event_count and int(event_count) <= 1) or (state and state == "New"):
+        # filter out event count and users count
+        context_dict.pop("Events", None)
+        context_dict.pop("Users Affected", None)
 
     for k, v in context_dict.items():
         if v:
