@@ -7,17 +7,16 @@ import {t} from 'sentry/locale';
 type Props = {
   children: React.ReactNode;
   highUp: boolean;
-  wrapClassName: string;
 };
 
-function Toggle({highUp, wrapClassName, children}: Props) {
+function Toggle({highUp, children}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (Children.count(children) === 0) {
     return null;
   }
 
-  const wrappedChildren = <span className={wrapClassName}>{children}</span>;
+  const wrappedChildren = <ValueWrapper>{children}</ValueWrapper>;
 
   if (highUp) {
     return wrappedChildren;
@@ -68,4 +67,9 @@ const IconWrapper = styled('div')<{isExpanded: boolean}>`
             background: ${p.theme.blue200};
           }
         `}
+`;
+
+const ValueWrapper = styled('span')`
+  display: block;
+  padding: 0 0 0 15px;
 `;
