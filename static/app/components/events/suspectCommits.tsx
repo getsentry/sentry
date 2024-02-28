@@ -79,7 +79,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
   const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
 
   return (
-    <Fragment>
+    <div>
       <SuspectCommitHeader>
         <h3 data-test-id="suspect-commit">{commitHeading}</h3>
         {commits.length > 1 && (
@@ -109,7 +109,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
           />
         ))}
       </StyledPanel>
-    </Fragment>
+    </div>
   );
 }
 
