@@ -1,4 +1,11 @@
-import {Fragment, useLayoutEffect, useMemo, useReducer, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 import type {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -34,10 +41,22 @@ import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
-import {TraceTree} from './traceTree';
+import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+
+function maybeFocusRow() {
+  const focused_node = document.querySelector(".TraceRow[tabIndex='0']");
+
+  if (
+    focused_node &&
+    'focus' in focused_node &&
+    typeof focused_node.focus === 'function'
+  ) {
+    focused_node.focus();
+  }
+}
 
 export function TraceView() {
   const location = useLocation();
@@ -183,6 +202,25 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
   }, [tree.list.length]);
 
+  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
+    null
+  );
+
+  const onDetailClose = useCallback(() => {
+    setDetailNode(null);
+    maybeFocusRow();
+  }, []);
+
+  const onSetDetailNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      setDetailNode(prevNode => {
+        return prevNode === node ? null : node;
+      });
+      maybeFocusRow();
+    },
+    []
+  );
+
   return (
     <Fragment>
       <Layout.Header>
@@ -225,7 +263,13 @@ function TraceViewContent(props: TraceViewContentProps) {
             organization={props.organization}
             traces={props.traceSplitResult}
           />
-          <Trace trace={tree} trace_id={props.traceSlug} />
+          <Trace
+            trace={tree}
+            trace_id={props.traceSlug}
+            roving_dispatch={dispatch}
+            roving_state={state}
+            setDetailNode={onSetDetailNode}
+          />
           <TraceFooter
             rootEventResults={rootEventResults}
             organization={props.organization}
@@ -233,7 +277,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.traceSplitResult}
             traceEventView={props.traceEventView}
           />
-          <TraceDetailPanel node={state.node} />
+          <TraceDetailPanel node={detailNode} onClose={onDetailClose} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

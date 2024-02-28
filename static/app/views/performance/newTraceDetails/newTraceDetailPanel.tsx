@@ -539,10 +539,12 @@ function SpanDetailsBody({
 
 interface TraceDetailPanelProps {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
+  onClose: () => void;
 }
+
 function TraceDetailPanel(props: TraceDetailPanelProps) {
-  const organization = useOrganization();
   const location = useLocation();
+  const organization = useOrganization();
 
   if (props.node && !(isTransactionNode(props.node) || isSpanNode(props.node))) {
     return null;
@@ -550,7 +552,11 @@ function TraceDetailPanel(props: TraceDetailPanelProps) {
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={props.node ? 'open' : undefined} skipCloseOnOutsideClick>
+      <DetailPanel
+        detailKey={props.node ? 'open' : undefined}
+        onClose={props.onClose}
+        skipCloseOnOutsideClick
+      >
         {props.node &&
           (isTransactionNode(props.node) ? (
             <EventDetails

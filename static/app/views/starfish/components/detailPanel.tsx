@@ -102,7 +102,8 @@ export default function Detail({
           borderless
           aria-label={t('Close Details')}
           icon={<IconClose size="sm" />}
-          onClick={() => {
+          onClick={event => {
+            event.stopPropagation();
             setState({collapsed: true});
             onClose?.();
           }}

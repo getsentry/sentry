@@ -1,4 +1,4 @@
-import {TraceTree, TraceTreeNode} from './traceTree';
+import type {TraceTree, TraceTreeNode} from './traceTree';
 
 export interface RovingTabIndexState {
   index: number | null;
@@ -13,8 +13,7 @@ export type RovingTabIndexAction =
       node: TraceTreeNode<TraceTree.NodeValue> | null;
       type: 'initialize';
     }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'go to index'}
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set node'};
+  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set index'};
 
 export type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
 
@@ -26,11 +25,8 @@ export function rovingTabIndexReducer(
     case 'initialize': {
       return {index: action.index, items: action.items, node: action.node};
     }
-    case 'go to index':
-      return {...state, index: action.index};
-    case 'set node': {
+    case 'set index':
       return {...state, node: action.node, index: action.index};
-    }
     default:
       throw new Error('Invalid action');
   }

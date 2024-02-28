@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import state from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,9 +20,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   getRovingIndexActionFromEvent,
-  RovingTabIndexAction,
-  RovingTabIndexState,
-  RovingTabIndexUserActions,
+  type RovingTabIndexAction,
+  type RovingTabIndexState,
+  type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import {
@@ -90,11 +89,18 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
 interface TraceProps {
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
+  setDetailNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
   trace_id: string;
 }
 
-function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
+function Trace({
+  trace,
+  trace_id,
+  roving_state,
+  roving_dispatch,
+  setDetailNode,
+}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
@@ -107,7 +113,6 @@ function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
   }, []);
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
-
   const [_rerender, setRender] = useState(0);
 
   const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
@@ -141,9 +146,14 @@ function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
         }
 
         viewManager.onScrollEndOutOfBoundsCheck();
-        roving_dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
+        setDetailNode(maybeNode.node);
+        roving_dispatch({
+          type: 'set index',
+          index: maybeNode.index,
+          node: maybeNode.node,
+        });
       });
-  }, [api, organization, trace, trace_id, viewManager]);
+  }, [api, organization, trace, trace_id, viewManager, setDetailNode, roving_dispatch]);
 
   const handleFetchChildren = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
@@ -180,9 +190,10 @@ function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
           node: node.path,
         },
       });
-      props.roving({type: 'go to index', index, node});
+      setDetailNode(node);
+      roving_dispatch({type: 'set index', index, node});
     },
-    []
+    [roving_dispatch, setDetailNode]
   );
 
   const onRowKeyDown = useCallback(
@@ -203,10 +214,10 @@ function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
           treeRef.current.list.length - 1
         );
         viewManager.list.scrollToRow(nextIndex);
-        roving_dispatch({type: 'go to index', index: nextIndex, node});
+        roving_dispatch({type: 'set index', index: nextIndex, node});
       }
     },
-    [viewManager.list]
+    [viewManager.list, roving_dispatch]
   );
 
   const projectLookup = useMemo(() => {
@@ -279,7 +290,7 @@ function Trace({trace, trace_id, roving_state, roving_dispatch}: TraceProps) {
                           ._rowStartIndex ?? 0
                       }
                       previouslyFocusedIndexRef={previouslyFocusedIndexRef}
-                      tabIndex={state.index ?? -1}
+                      tabIndex={roving_state.index ?? -1}
                       index={p.index}
                       style={p.style}
                       trace_id={trace_id}
