@@ -678,7 +678,7 @@ export class VirtualizedViewManager {
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
     {api, organization}: {api: Client; organization: Organization}
-  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
     const segments = [...scrollQueue];
     const list = this.list;
 
@@ -686,11 +686,20 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
+    if (segments.length === 1 && segments[0] === 'trace:root') {
+      rerender();
+      list.scrollToRow(0);
+      return Promise.resolve({index: 0, node: tree.root.children[0]});
+    }
+
     // Keep parent reference as we traverse the tree so that we can only
     // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-    const scrollToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+    const scrollToRow = async (): Promise<{
+      index: number;
+      node: TraceTreeNode<TraceTree.NodeValue>;
+    } | null | null> => {
       const path = segments.pop();
       const current = findInTreeFromSegment(parent, path!);
 
@@ -731,7 +740,7 @@ export class VirtualizedViewManager {
 
       rerender();
       list.scrollToRow(index);
-      return current;
+      return {index, node: current};
     };
 
     return scrollToRow();

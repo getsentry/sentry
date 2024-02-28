@@ -301,6 +301,25 @@ describe('VirtualizedViewManger', () => {
       span_list: {width: 0.5},
     });
 
+    it('scrolls to root node', async () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [makeTransaction()],
+          orphan_errors: [],
+        })
+      );
+
+      manager.list = makeList();
+
+      const result = await manager.scrollToPath(tree, tree.list[0].path, () => void 0, {
+        api: api,
+        organization,
+      });
+
+      expect(result?.node).toBe(tree.list[0]);
+      expect(manager.list.scrollToRow).toHaveBeenCalledWith(0);
+    });
+
     it('scrolls to transaction', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -321,7 +340,7 @@ describe('VirtualizedViewManger', () => {
         organization,
       });
 
-      expect(result).toBe(tree.list[2]);
+      expect(result?.node).toBe(tree.list[2]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
@@ -364,7 +383,7 @@ describe('VirtualizedViewManger', () => {
         }
       );
 
-      expect(result).toBe(tree.list[tree.list.length - 1]);
+      expect(result?.node).toBe(tree.list[tree.list.length - 1]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(3);
     });
 
@@ -400,8 +419,7 @@ describe('VirtualizedViewManger', () => {
       );
 
       expect(tree.list[1].zoomedIn).toBe(true);
-      expect(result).toBeTruthy();
-      expect(result).toBe(tree.list[2]);
+      expect(result?.node).toBe(tree.list[2]);
       expect(manager.list.scrollToRow).toHaveBeenCalledWith(2);
     });
 
