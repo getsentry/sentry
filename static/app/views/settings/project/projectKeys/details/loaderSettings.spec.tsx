@@ -145,14 +145,14 @@ describe('Loader Script Settings', function () {
     });
 
     // Update SDK version
-    await selectEvent.select(screen.getByText('latest'), '7.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            browserSdkVersion: '7.x',
+            browserSdkVersion: '6.x',
           }),
         })
       );
@@ -188,7 +188,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Update SDK version - should reset performance & replay
-    await selectEvent.select(screen.getByText('latest'), '6.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
