@@ -87,7 +87,8 @@ export function useTrace(
 
   const queryParams = useMemo(() => {
     return getTraceQueryParams(location.query, options);
-  }, [location.query, options]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options]);
 
   useEffect(() => {
     if (!params.traceSlug) {

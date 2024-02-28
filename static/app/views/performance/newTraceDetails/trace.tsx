@@ -44,6 +44,8 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
+const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
+
 interface TraceProps {
   trace: TraceTree;
   trace_id: string;
@@ -348,7 +350,7 @@ function RenderRow(props: {
                 expanded={!props.node.expanded}
                 onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
               >
-                {props.node.groupCount}{' '}
+                {COUNT_FORMATTER.format(props.node.groupCount)}{' '}
               </ChildrenCountButton>
             </div>
 
@@ -430,7 +432,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -511,7 +513,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -652,7 +654,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -723,7 +725,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -802,7 +804,7 @@ function RenderPlaceholderRow(props: {
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onClick={() => void 0}
               >
-                {props.node.children.length}{' '}
+                {COUNT_FORMATTER.format(props.node.children.length)}{' '}
               </ChildrenCountButton>
             ) : null}
           </div>
