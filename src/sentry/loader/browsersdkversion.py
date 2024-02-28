@@ -68,7 +68,8 @@ def load_version_from_file():
 def match_selected_version_to_browser_sdk_version(selected_version):
     versions = load_version_from_file()
     if selected_version == "latest":
-        return get_highest_browser_sdk_version(versions)
+        # "latest" as an option is phased out before the v8 release of the JS SDK, meaning that we pin people to the latest pre-v8-version when they have "latest" selected
+        return get_highest_browser_sdk_version([x for x in versions if Version(x) < Version("8")])
     return get_highest_browser_sdk_version(
         # Filter for all versions that match the selected versions major
         [x for x in versions if x.startswith(selected_version[0])]
