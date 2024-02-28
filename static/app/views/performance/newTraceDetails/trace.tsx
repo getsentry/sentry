@@ -149,7 +149,7 @@ function Trace({trace, trace_id}: TraceProps) {
 
   const limitRef = useRef<number | null>(null);
   if (limitRef.current === null) {
-    let decodedLimit = getTraceQueryParams(location).limit;
+    let decodedLimit = getTraceQueryParams(location.query).limit;
     if (typeof decodedLimit === 'string') {
       decodedLimit = parseInt(decodedLimit, 2);
     }
