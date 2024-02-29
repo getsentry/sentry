@@ -68,6 +68,7 @@ function makeTraceError(
   return {
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
+    event_type: 'error',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
@@ -511,6 +512,35 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(4);
+  });
+
+  it('adjusts trace bounds by orphan error timestamp as well', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: 0.1,
+            timestamp: 0.15,
+            children: [],
+          }),
+          makeTransaction({
+            start_timestamp: 0.2,
+            timestamp: 0.25,
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          makeTraceError({timestamp: 0.05}),
+          makeTraceError({timestamp: 0.3}),
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(5);
+    expect(tree.root.space).toStrictEqual([
+      0.05 * tree.root.multiplier,
+      (0.3 - 0.05) * tree.root.multiplier,
+    ]);
   });
 
   it('calculates correct trace type', () => {

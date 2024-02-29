@@ -1582,6 +1582,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable increased issue_owners rate limit for auto-assignment
+    "organizations:increased-issue-owners-rate-limit": False,
     # Enable integration functionality to work with alert rules
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -1641,8 +1643,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable the trace timeline on issue details
-    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
@@ -3791,10 +3791,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
-SENTRY_POST_PROCESS_CONFIGURATION: Mapping[str, Any] = {
-    "org_ids_with_increased_issue_owners_ratelimit": set()
-}
-
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 

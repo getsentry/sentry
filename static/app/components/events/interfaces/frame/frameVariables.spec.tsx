@@ -107,6 +107,7 @@ describe('Frame Variables', function () {
           null: 'None',
           bool: 'True',
           str: "'string'",
+          number: '123.45',
           other: '<Class at 0x12345>',
         }}
         platform="python"
@@ -123,6 +124,9 @@ describe('Frame Variables', function () {
       within(screen.getByTestId('value-string')).getByText('"string"')
     ).toBeInTheDocument();
     expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
       within(screen.getByTestId('value-unformatted')).getByText('<Class at 0x12345>')
     ).toBeInTheDocument();
   });
@@ -134,6 +138,7 @@ describe('Frame Variables', function () {
           null: '<null>',
           undefined: '<undefined>',
           bool: true,
+          number: 123.45,
           str: 'string',
         }}
         platform="node"
@@ -146,6 +151,9 @@ describe('Frame Variables', function () {
     expect(within(nullValues[1]).getByText('undefined')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('value-unformatted')).getByText('string')

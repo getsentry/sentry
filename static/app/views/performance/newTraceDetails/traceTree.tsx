@@ -8,6 +8,7 @@ import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -256,12 +257,14 @@ export class TraceTree {
       if ('start_timestamp' in value && value.start_timestamp < traceStart) {
         traceStart = value.start_timestamp;
       }
-      if (
-        'timestamp' in value &&
-        typeof value.timestamp === 'number' &&
-        value.timestamp > traceEnd
-      ) {
-        traceEnd = value.timestamp;
+      if ('timestamp' in value && typeof value.timestamp === 'number') {
+        // Errors don't have 'start_timestamp', so we adjust traceStart
+        // with an errors 'timestamp'
+        if (isTraceError(value)) {
+          traceStart = Math.min(value.timestamp, traceStart);
+        }
+
+        traceEnd = Math.max(value.timestamp, traceEnd);
       }
 
       if (value && 'children' in value) {
