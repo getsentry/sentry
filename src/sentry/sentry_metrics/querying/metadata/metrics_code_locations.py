@@ -71,14 +71,14 @@ def get_cache_key_for_code_location(
 class CodeLocationsFetcher:
     # The maximum number of keys that can be fetched by the fetcher.
     #
-    # The estimation was naively done by supposing at most 10 metrics with 2 projects and at most 90 timestamps.
+    # Note that each key might contain multiple code locations.
     MAXIMUM_KEYS = 50
     # The size of the batch of keys that are fetched by endpoint.
     #
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
     BATCH_SIZE = 25
     # The maximum number of code locations we want to retrieve per Redis set.
-    MAX_SET_SIZE = 5
+    MAX_SET_SIZE = 10
 
     # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_SET_SIZE elements being returned.
 
@@ -152,8 +152,12 @@ class CodeLocationsFetcher:
             parsed_locations = [
                 self._parse_code_location_payload(location) for location in locations
             ]
-            # To maintain consistent ordering, we sort by filename.
-            sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")
+            # To maintain consistent ordering, we sort by filename, and we want to only get half of the maximum set
+            # size. This way, we will have consistent ordering up to MAX_SET_SIZE elements in the set, if the size
+            # goes above that, we will end up having different locations returned each time (due to the random access).
+            sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")[
+                : self.MAX_SET_SIZE / 2
+            ]
             frames.append(MetricCodeLocations(query=query, frames=sorted_locations))
 
         return frames
