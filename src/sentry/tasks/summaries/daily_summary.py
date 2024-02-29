@@ -217,8 +217,6 @@ def build_summary_data(
     with sentry_sdk.start_span(op="daily_summary.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
-    # commenting out temporarily while developing
-
     with sentry_sdk.start_span(op="daily_summary.check_if_ctx_is_empty"):
         report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)

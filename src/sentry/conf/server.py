@@ -91,7 +91,7 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
-NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
+NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", True)
 
 IS_DEV = ENVIRONMENT == "development"
 
@@ -1667,7 +1667,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
-    "organizations:monitors": False,
+    "organizations:monitors": True,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -2719,7 +2719,7 @@ SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
 # it as a worker, and devservices will run Kafka.
-SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
+SENTRY_DEV_PROCESS_SUBSCRIPTIONS = True
 
 SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
 

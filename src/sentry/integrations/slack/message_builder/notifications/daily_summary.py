@@ -35,9 +35,10 @@ class SlackDailySummaryMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self) -> SlackAttachment | SlackBlock:
         blocks = []
+        subject = self.notification.get_subject()
         blocks.append(
             self.get_markdown_block(
-                "*Daily Summary for Your Projects*\nYour comprehensive overview for today - key issues, performance insights, and more.",
+                f"*{subject}*\nYour comprehensive overview for today - key issues, performance insights, and more.",
                 ":bell:",
             )
         )
@@ -66,19 +67,17 @@ class SlackDailySummaryMessageBuilder(BlockSlackMessageBuilder):
                 blocks.append(self.get_markdown_block(release_text))
 
             # Calculate today's event count percentage against 14 day avg
-            event_count_text = f"*Today’s Event Count*: {context.total_today}\n"
-            # percentage_diff = context.total_today / context.comparison_period_avg
-            percentage_diff = 100 / 2
-            if context.total_today > context.comparison_period_avg:
-                event_count_text += (
-                    f"\n:warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
-                )
-            else:
-                event_count_text += (
-                    f"\n:tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
-                )
+            if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
+                event_count_text = f"*Today’s Event Count*: {context.total_today}\n"
+                percentage_diff = context.total_today / context.comparison_period_avg
+                if context.total_today > context.comparison_period_avg:
+                    event_count_text += f"\n:warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
+                else:
+                    event_count_text += (
+                        f"\n:tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
+                    )
 
-            blocks.append(self.get_markdown_block(event_count_text))
+                blocks.append(self.get_markdown_block(event_count_text))
 
             # Add Top 3 Error Issues
             if context.key_errors:
