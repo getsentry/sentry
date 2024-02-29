@@ -1,8 +1,9 @@
 from typing import Any
 
 
-def get_redis_cluster_default_options(id: str) -> dict[str, Any]:
+def get_redis_cluster_default_options(id: str, high_watermark: int = 100) -> dict[str, Any]:
     return {
+        "backpressure.high_watermarks.redis": high_watermark,
         "redis.clusters": {
             id: {
                 "is_redis_cluster": True,
@@ -15,5 +16,5 @@ def get_redis_cluster_default_options(id: str) -> dict[str, Any]:
                     {"host": "0.0.0.0", "port": 7005},
                 ],
             }
-        }
+        },
     }

@@ -1,7 +1,11 @@
 from django.test.utils import override_settings
 
 from sentry.processing.backpressure.memory import iter_cluster_memory_usage
-from sentry.processing.backpressure.monitor import Redis, load_service_definitions
+from sentry.processing.backpressure.monitor import (
+    Redis,
+    check_service_health,
+    load_service_definitions,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.redis import get_redis_cluster_default_options
 
@@ -33,3 +37,27 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
     assert memory.used > 0
     assert memory.available > 0
     assert 0.0 < memory.percentage < 1.0
+
+
+@override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "cluster"}})
+@override_options(get_redis_cluster_default_options(id="cluster", high_watermark=100))
+def test_redis_health():
+    services = load_service_definitions()
+    assert isinstance(services["redis"], Redis)
+
+    unhealthy_services = check_service_health(services=services)
+    redis_services = unhealthy_services.get("redis")
+    assert isinstance(redis_services, list)
+    assert len(redis_services) == 0
+
+
+@override_settings(SENTRY_PROCESSING_SERVICES={"redis": {"redis": "cluster"}})
+@override_options(get_redis_cluster_default_options(id="cluster", high_watermark=0))
+def test_redis_unhealthy_state():
+    services = load_service_definitions()
+    assert isinstance(services["redis"], Redis)
+
+    unhealthy_services = check_service_health(services=services)
+    redis_services = unhealthy_services.get("redis")
+    assert isinstance(redis_services, list)
+    assert len(redis_services) == 6
