@@ -84,13 +84,11 @@ def get_stacktrace_string(data):
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = get_value_if_exists(frame_values)
 
-                    frame_str += '  File "{}", line {}\n    {}\n'.format(
-                        frame_dict["filename"], frame_dict["function"], frame_dict["context-line"]
-                    )
+                    frame_str += f'  File "{frame_dict["filename"]}", line {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
 
         # Add the exception values into the formatted string
         if exception.get("contributes"):
-            stacktrace_str += exc_type + ": " + exc_value + "\n"
+            stacktrace_str += f"{exc_type}: {exc_value}\n"
             if frame_str:
                 stacktrace_str += frame_str
 
