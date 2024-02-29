@@ -24,7 +24,6 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         context: Mapping[str, Any],
         recipient: RpcActor,
     ) -> None:
-        # super().__init__()
         super().__init__(notification, context, recipient)
         self.notification = notification
         self.context = context

@@ -269,7 +269,7 @@ class DailySummaryTest(
             organization=self.organization,
             daily=True,
         )
-        top_projects_context_map = build_top_projects_map(context)
+        top_projects_context_map = build_top_projects_map(context, self.user.id)
         assert list(top_projects_context_map.keys()) == [self.project.id, project3.id]
 
     @responses.activate
@@ -282,7 +282,7 @@ class DailySummaryTest(
             organization=self.organization,
             daily=True,
         )
-        top_projects_context_map = build_top_projects_map(ctx)
+        top_projects_context_map = build_top_projects_map(ctx, self.user.id)
         with self.tasks():
             DailySummaryNotification(
                 organization=ctx.organization,

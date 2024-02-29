@@ -1096,8 +1096,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-daily-organization-reports": {
         "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
         "schedule": crontab(
-            minute="*/1",
-            # hour="*/1",  # Run every hour
+            minute=0,
+            hour="*/1",  # Run every hour
             day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
@@ -1667,7 +1667,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
-    "organizations:monitors": True,
+    "organizations:monitors": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1876,7 +1876,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable Slack messages using Block Kit
-    "organizations:slack-block-kit": True,
+    "organizations:slack-block-kit": False,
     # Improvements to Slack messages using Block Kit
     "organizations:slack-block-kit-improvements": False,
     # Send Slack notifications to threads
@@ -2714,12 +2714,12 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = True
+SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run
 # it as a worker, and devservices will run Kafka.
-SENTRY_DEV_PROCESS_SUBSCRIPTIONS = True
+SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
 
 SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
 

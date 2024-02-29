@@ -231,13 +231,16 @@ def build_summary_data(
     return ctx
 
 
-def build_top_projects_map(context: OrganizationReportContext):
+def build_top_projects_map(context: OrganizationReportContext, user_id: int):
     """
-    Order the projects by which projects have the highest error count for the day
+    Order the projects by which of the user's projects have the highest error count for the day
     """
-    projects_context_map = cast(dict[int, DailySummaryProjectContext], context.projects_context_map)
+    user_projects_context_map = {
+        project: context.projects_context_map[project]
+        for project in context.project_ownership[user_id]
+    }
     projects_by_error_total = {
-        project_id: context.total_today for project_id, context in projects_context_map.items()
+        project_id: context.total_today for project_id, context in user_projects_context_map.items()
     }
     top_projects = [
         k
@@ -246,7 +249,7 @@ def build_top_projects_map(context: OrganizationReportContext):
     top_projects_context_map = {}
     # for now, hard code to the top 2 projects
     for project in top_projects[:2]:
-        project_context = projects_context_map[project]
+        project_context = user_projects_context_map[project]
         top_projects_context_map[project] = project_context
 
     return top_projects_context_map
@@ -258,7 +261,7 @@ def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
         organization_id=ctx.organization.id, user_ids=users
     )
     for user_id in user_ids:
-        top_projects_context_map = build_top_projects_map(ctx)
+        top_projects_context_map = build_top_projects_map(ctx, user_id)
         user = user_service.get_user(user_id=user_id)
         DailySummaryNotification(
             organization=ctx.organization,
