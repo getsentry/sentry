@@ -172,7 +172,10 @@ function TraceViewContent(props: TraceViewContentProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!(props.trace?.transactions && props.trace.transactions.length > 0),
+      enabled: !!(
+        (props.trace?.transactions && props.trace.transactions.length > 0) ||
+        (props.trace?.orphan_errors && props.trace.orphan_errors.length > 0)
+      ),
     }
   );
 
