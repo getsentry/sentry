@@ -391,7 +391,7 @@ class OrganizationEndpoint(Endpoint):
 
             # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
             # or all projects (OrganizationMetricsDetailsEndpoint) in _admin. Staff cannot use has_project_access
-            # like superuser because it fails dueto staff having no scopes. The workaround is to create a lambda that
+            # like superuser because it fails due to staff having no scopes. The workaround is to create a lambda that
             # mimics checking for active projects like has_project_access without further validation.
             # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
             if is_active_staff(request):
