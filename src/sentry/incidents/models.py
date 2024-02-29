@@ -529,18 +529,6 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    @register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
-    def clean_expired_alerts(self, subscription: QuerySubscription) -> bool:
-        now = timezone.now()
-        subscription_end = subscription.date_added + timedelta(
-            seconds=subscription.snuba_query.time_window
-        )
-
-        if now > subscription_end:
-            subscription.remove()
-
-        return True
-
     @property
     def created_by_id(self):
         try:
@@ -887,6 +875,19 @@ class AlertRuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
+
+
+@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+def clean_expired_alerts(subscription: QuerySubscription) -> bool:
+    now = timezone.now()
+    subscription_end = subscription.date_added + timedelta(
+        seconds=subscription.snuba_query.time_window
+    )
+
+    if now > subscription_end:
+        subscription.remove()
+
+    return True
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

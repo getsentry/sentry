@@ -24,6 +24,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
     alert_subscription_callback_registry,
+    clean_expired_alerts,
     register_alert_subscription_callback,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -558,13 +559,13 @@ class AlertRuleActivityTest(TestCase):
         ).exists()
 
 
-class AlertRuleTest(TestCase):
+class CleanExpiredAlertsTest(TestCase):
     def test_clean_expired_alerts_active(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
         subscription = alert_rule.snuba_query.subscriptions.get()
         subscription.remove = Mock()
 
-        alert_rule.clean_expired_alerts(subscription)
+        clean_expired_alerts(subscription)
         assert subscription.remove.call_count == 0
 
     def test_clean_expired_alerts_deactive(self):
@@ -575,7 +576,7 @@ class AlertRuleTest(TestCase):
         subscription.date_added = timezone.now() - timedelta(days=21)
         subscription.remove = Mock()
 
-        result = alert_rule.clean_expired_alerts(subscription)
+        result = clean_expired_alerts(subscription)
 
         assert subscription.remove.call_count == 1
         assert result is True
