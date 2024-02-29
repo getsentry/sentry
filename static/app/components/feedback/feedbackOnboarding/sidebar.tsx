@@ -240,7 +240,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         />
       ) : (
         newDocs?.platformOptions &&
-        !crashApiPlatform && (
+        widgetPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
