@@ -103,7 +103,6 @@ export function getMetricsQueryApiRequestPayload(
   queries.forEach((query, index) => {
     if (isMetricFormula(query)) {
       requestFormulas.push({
-        name: query.name,
         mql: query.formula,
         limit: query.limit,
         order: query.orderBy,
