@@ -308,13 +308,30 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
         self.reinstall_repositories()
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
-        path = BitbucketServerAPIPath.source.format(
+        _, name = repo.name.split("/", 1)
+        path = "projects/{project}/repos/{repo}/browse/{path}".format(
             project=repo.config["project"],
-            repo=repo.name,
+            repo=name,
             path=filepath,
         )
-        return f"{repo.url}/{path}?at={branch}"
+        return "{url}/{path}?at={branch}".format(
+            url=self.model.metadata["base_url"],
+            path=path,
+            branch=branch,
+        )
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/browse/", "")
+        source_path, _, _ = url.partition("/")
+        return source_path
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/browse/", "")
+        _, _, branch = url.partition("at=")
+        return branch
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):
     key = "bitbucket_server"
@@ -322,7 +339,12 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    features = frozenset([IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self):

@@ -255,10 +255,11 @@ class BitbucketServerClient(IntegrationProxyClient):
         return values
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        _, name = repo.name.split("/", 1)
         return self.head_cached(
             path=BitbucketServerAPIPath.source.format(
                 project=repo.config["project"],
-                repo=repo.name,
+                repo=name,
                 path=path,
             ),
             params={"at": version},
