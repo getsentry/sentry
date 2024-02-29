@@ -40,6 +40,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         has_global_views = (
             features.has("organizations:global-views", organization, actor=request.user)
             or query_referrer == "issueReplays"
+            or query_referrer == "transactionReplays"
         )
 
         if not has_global_views and len(filter_params.get("project_id", [])) > 1:
