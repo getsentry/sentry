@@ -12,7 +12,6 @@ import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface Props {
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
@@ -27,7 +26,6 @@ function TeamMembersRow({
   member,
   user,
   hasWriteAccess,
-  isOrgOwner,
   removeMember,
   updateMemberRole,
 }: Props) {
@@ -50,7 +48,6 @@ function TeamMembersRow({
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
-          isOrgOwner={isOrgOwner}
           isSelf={isSelf}
           onClick={() => removeMember(member)}
           member={member}
@@ -62,12 +59,11 @@ function TeamMembersRow({
 
 function RemoveButton(props: {
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
 }) {
-  const {member, hasWriteAccess, isOrgOwner, isSelf, onClick} = props;
+  const {member, hasWriteAccess, isSelf, onClick} = props;
 
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
@@ -85,7 +81,7 @@ function RemoveButton(props: {
   }
 
   const isIdpProvisioned = member.flags['idp:provisioned'];
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, !isOrgOwner);
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
