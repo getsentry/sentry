@@ -3483,7 +3483,11 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
 }
 
 
-# Mapping of default Kafka topic name to cluster name.
+# Mapping of default Kafka topic name to cluster name
+# as per KAFKA_CLUSTERS.
+# This must be the default name that matches the topic
+# in sentry.conf.types.kafka_definition and sentry-kafka-schemas
+# and not any environment-specific override value
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "snuba-commit-log": "default",
