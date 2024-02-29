@@ -3263,14 +3263,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         user_misery_field = "user_misery(300)"
         query = "transaction.duration:>=100"
 
-        _, widget, __ = create_widget(
-            ["epm()"],
-            "transaction.duration:>=100",
-            self.project,
-            title="Dashboard 123",
-            columns=["user.id", "release", "count()"],
-            discover_widget_split=None,
-        )
+        _, widget, __ = create_widget(["count()"], "", self.project, discover_widget_split=None)
 
         # We store data for both specs, however, when the query builders try to query
         # for the data it will not query on-demand data
@@ -3305,12 +3298,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         query = "transaction.duration:>=100"
 
         _, widget, __ = create_widget(
-            ["epm()"],
-            "transaction.duration:>=100",
+            ["count()"],
+            "",
             self.project,
-            title="Dashboard 123",
-            columns=["user.id", "release", "count()"],
-            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transaction-like tries to use on-demand
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transactions like uses on-demand
         )
 
         # We store data for both specs, however, when the query builders try to query

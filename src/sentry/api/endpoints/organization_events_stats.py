@@ -341,9 +341,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             any("(" in column and ")" in column for column in row.keys())
                             for row in sum_error_results
                         )
-                    except SnubaError as e:
-                        sentry_sdk.capture_exception(e)
-                        has_errors = True
+                    except SnubaError:
+                        has_errors = False
 
                     if has_errors:
                         # If we see errors, always fallback to discover to scopedQuery for the user.
@@ -387,16 +386,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         for row in other_data
                     )
+                    self.save_split_decision(widget, has_errors, has_other_data)
 
-                    new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
-
-                    if widget.discover_widget_split != new_discover_widget_split:
-                        widget.discover_widget_split = new_discover_widget_split
-                        widget.save()
                     return all_results
 
                 except Exception as e:
-                    # Swallow the exception if it was due to dashboards, and try again one more time.
+                    # Swallow the exception if it was due to discover split, and try again one more time.
                     sentry_sdk.capture_exception(e)
                     return _get_event_stats(
                         scoped_dataset,
