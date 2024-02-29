@@ -394,6 +394,8 @@ export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
 // Feedback platforms that only show crash API instructions
 export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-macos',
+  'apple-ios',
   'dart',
   'dotnet',
   'dotnet-awslambda',
