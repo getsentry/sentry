@@ -17,7 +17,7 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
-from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig

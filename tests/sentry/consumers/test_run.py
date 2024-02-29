@@ -2,7 +2,7 @@ import pytest
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 
 from sentry import consumers
-from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.utils.imports import import_string
 
 

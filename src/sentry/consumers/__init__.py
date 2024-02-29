@@ -13,7 +13,7 @@ from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from django.conf import settings
 
-from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.kafka_definition import ConsumerDefinition, validate_consumer_definition
 from sentry.conf.types.topic_definition import Topic
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string

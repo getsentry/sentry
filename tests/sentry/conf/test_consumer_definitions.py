@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.kafka_definition import ConsumerDefinition, validate_consumer_definition
 from sentry.consumers import KAFKA_CONSUMERS
 from sentry.testutils.cases import TestCase
 
