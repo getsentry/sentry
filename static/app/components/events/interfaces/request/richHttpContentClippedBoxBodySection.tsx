@@ -2,6 +2,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import StructuredEventData from 'sentry/components/structuredEventData';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
 import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -27,11 +28,7 @@ export function RichHttpContentClippedBoxBodySection({
     switch (inferredContentType) {
       case 'application/json':
         return (
-          <StructuredEventData
-            data-test-id="rich-http-content-body-context-data"
-            data={data}
-            preserveQuotes
-          />
+          <JsonEventData data-test-id="rich-http-content-body-context-data" data={data} />
         );
       case 'application/x-www-form-urlencoded':
       case 'multipart/form-data': {
