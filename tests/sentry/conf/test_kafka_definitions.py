@@ -1,8 +1,22 @@
 import pytest
+from django.conf import settings
 
-from sentry.conf.types.kafka_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.kafka_definition import (
+    ConsumerDefinition,
+    Topic,
+    validate_consumer_definition,
+)
 from sentry.consumers import KAFKA_CONSUMERS
 from sentry.testutils.cases import TestCase
+
+
+def test_topic_definition() -> None:
+    for topic in Topic:
+        cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic.value]
+        assert (
+            cluster_name in settings.KAFKA_CLUSTERS
+        ), f"{cluster_name} is not defined in KAFKA_CLUSTERS"
+    assert len(Topic) == len(settings.KAFKA_TOPIC_TO_CLUSTER)
 
 
 class ConsumersDefinitionTest(TestCase):

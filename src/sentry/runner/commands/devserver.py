@@ -364,7 +364,7 @@ Alternatively, run without --workers.
 """
             )
 
-        from sentry.conf.types.topic_definition import Topic
+        from sentry.conf.types.kafka_definition import Topic
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for topic in Topic:
