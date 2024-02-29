@@ -4,7 +4,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingNode} from 'sentry/gettingStartedDocs/node/awslambda';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -104,7 +103,6 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingNode,
 };
 
 export default docs;
