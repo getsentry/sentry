@@ -23,7 +23,7 @@ from sentry.utils import json
 
 @region_silo_endpoint
 class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

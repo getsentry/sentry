@@ -12,7 +12,12 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    make_video_filename,
+    storage_kv,
+)
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -57,6 +62,7 @@ class RecordingIngestMessage:
     received: int
     payload_with_headers: bytes
     replay_event: bytes | None
+    replay_video: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
@@ -75,11 +81,8 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
-                replay_event=(
-                    cast(bytes, message_dict["replay_event"])
-                    if "replay_event" in message_dict
-                    else None
-                ),
+                replay_event=cast(bytes | None, message_dict.get("replay_event")),
+                replay_video=cast(bytes | None, message_dict.get("replay_video")),
             )
             _ingest_recording(message, transaction)
 
@@ -106,7 +109,16 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    storage.set(segment_data, recording_segment)
+    storage_kv.set(make_recording_filename(segment_data), recording_segment)
+
+    if message.replay_video:
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(message.replay_video),
+            unit="byte",
+        )
+        storage_kv.set(make_video_filename(segment_data), message.replay_video)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 

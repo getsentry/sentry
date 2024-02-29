@@ -4,6 +4,7 @@
 import datetime
 import itertools
 import json
+import pprint
 import random
 import string
 
@@ -37,7 +38,7 @@ make_dist_payload = lambda use_case, org_id, rand_str, value_len: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
     "type": "d",
-    "value": [i for i in range(value_len)],
+    "value": {"format": "array", "data": [random.random() for _ in range(value_len)]},
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
@@ -52,7 +53,7 @@ make_set_payload = lambda use_case, org_id, rand_str, value_len: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
     "type": "s",
-    "value": [i for i in range(value_len)],
+    "value": {"format": "array", "data": [random.randint(0, 2048) for _ in range(value_len)]},
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
@@ -107,7 +108,7 @@ def produce_msgs(messages, is_generic, host, dryrun):
     producer = KafkaProducer(conf)
     for i, message in enumerate(messages):
         print(f"{i + 1} / {len(messages)}")
-        # pprint.pprint(message)
+        pprint.pprint(message)
         if not dryrun:
             producer.produce(
                 Topic(name=("ingest-performance-metrics" if is_generic else "ingest-metrics")),
