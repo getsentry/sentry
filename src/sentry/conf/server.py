@@ -1498,7 +1498,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable daily summary
-    "organizations:daily-summary": True,
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
