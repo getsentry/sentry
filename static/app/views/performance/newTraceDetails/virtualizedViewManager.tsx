@@ -461,6 +461,10 @@ export class VirtualizedViewManager {
       if (span_list?.children?.[0]) {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'none';
       }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'none';
+      }
     }
   }
 
@@ -471,6 +475,10 @@ export class VirtualizedViewManager {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
         (span_list.children[0] as HTMLElement).style.pointerEvents = 'auto';
+      }
+      const span_text = this.span_text[i];
+      if (span_text) {
+        span_text.ref.style.pointerEvents = 'auto';
       }
     }
   }
@@ -670,7 +678,7 @@ export class VirtualizedViewManager {
     scrollQueue: TraceTree.NodePath[],
     rerender: () => void,
     {api, organization}: {api: Client; organization: Organization}
-  ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> {
+  ): Promise<{index: number; node: TraceTreeNode<TraceTree.NodeValue>} | null | null> {
     const segments = [...scrollQueue];
     const list = this.list;
 
@@ -678,11 +686,20 @@ export class VirtualizedViewManager {
       return Promise.resolve(null);
     }
 
+    if (segments.length === 1 && segments[0] === 'trace:root') {
+      rerender();
+      list.scrollToRow(0);
+      return Promise.resolve({index: 0, node: tree.root.children[0]});
+    }
+
     // Keep parent reference as we traverse the tree so that we can only
     // perform searching in the current level and not the entire tree
     let parent: TraceTreeNode<TraceTree.NodeValue> = tree.root;
 
-    const scrollToRow = async (): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+    const scrollToRow = async (): Promise<{
+      index: number;
+      node: TraceTreeNode<TraceTree.NodeValue>;
+    } | null | null> => {
       const path = segments.pop();
       const current = findInTreeFromSegment(parent, path!);
 
@@ -723,7 +740,7 @@ export class VirtualizedViewManager {
 
       rerender();
       list.scrollToRow(index);
-      return current;
+      return {index, node: current};
     };
 
     return scrollToRow();
@@ -782,7 +799,7 @@ export class VirtualizedViewManager {
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return anchor_left ? [1, window_left] : [0, window_right];
+      return anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
@@ -843,7 +860,17 @@ export class VirtualizedViewManager {
     const listWidth = list_width * 100 + '%';
     const spanWidth = span_list_width * 100 + '%';
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+    // JavaScript "arrays" are nice in the sense that they are really just dicts,
+    // allowing us to store negative indices. This sometimes happens as the list
+    // virtualizes the rows and we end up with a negative index as they are being
+    // rendered off screen.
+    const overscroll = this.list?.props.overscanRowCount ?? 0;
+    const start = -overscroll;
+    const end = this.columns.list.column_refs.length + overscroll;
+
+    for (let i = start; i < end; i++) {
+      while (this.span_bars[i] === undefined && i < end) i++;
+
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
