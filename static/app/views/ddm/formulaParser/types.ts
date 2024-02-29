@@ -8,6 +8,7 @@ export enum TokenType {
   MINUS = 'minus',
   MULTIPLY = 'multiply',
   DIVIDE = 'divide',
+  GENERIC = 'generic',
 }
 
 export interface Token {

@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
@@ -53,6 +53,7 @@ import type {Series} from 'sentry/views/ddm/chart/types';
 import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
@@ -99,7 +100,11 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   if (filteredQueries.length === 1) {
     const firstQuery = filteredQueries[0];
     if (isMetricFormula(firstQuery)) {
-      return formatMetricsFormula(firstQuery.formula);
+      return (
+        <Fragment>
+          = <FormularFormatter formula={formatMetricsFormula(firstQuery.formula)} />
+        </Fragment>
+      );
     }
     return getFormattedMQL(firstQuery);
   }
