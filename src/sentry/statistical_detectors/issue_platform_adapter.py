@@ -6,6 +6,7 @@ from sentry.issues.grouptype import GroupType, PerformanceP95EndpointRegressionG
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.seer.utils import BreakpointData
+from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 
 
@@ -56,6 +57,7 @@ def send_regression_to_platform(regression: BreakpointData):
         ],
         detection_time=current_timestamp,
         level="info",
+        initial_issue_priority=PriorityLevel.MEDIUM,
     )
 
     event_data = {

@@ -3,6 +3,7 @@ from unittest import mock
 from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.seer.utils import BreakpointData
 from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
+from sentry.types.group import PriorityLevel
 
 
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
@@ -52,6 +53,7 @@ def test_send_regressions_to_plaform(
             "type": PerformanceP95EndpointRegressionGroupType.type_id,
             "level": "info",
             "culprit": "foo",
+            "initial_issue_priority": PriorityLevel.MEDIUM,
         },
     ) == dict(occurrence)
 
