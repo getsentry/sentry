@@ -77,10 +77,12 @@ describe('ProjectsDashboard', function () {
       expect(
         await screen.findByRole('button', {name: 'Join a Team'})
       ).toBeInTheDocument();
+      expect(screen.getByTestId('create-project')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     it('renders with 1 project, with no first event', async function () {
-      const projects = [ProjectFixture({teams, firstEvent: null})];
+      const projects = [ProjectFixture({teams, firstEvent: null, stats: []})];
       ProjectsStore.loadInitialData(projects);
 
       const teamsWithOneProject = [TeamFixture({projects})];
@@ -104,6 +106,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.getByText('My Teams')).toBeInTheDocument();
       expect(screen.getByText('Resources')).toBeInTheDocument();
       expect(screen.getByTestId('badge-display-name')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
   });
 
@@ -116,6 +119,7 @@ describe('ProjectsDashboard', function () {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
+          stats: [],
         }),
         ProjectFixture({
           id: '2',
@@ -123,6 +127,7 @@ describe('ProjectsDashboard', function () {
           teams: [teamA],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
+          stats: [],
         }),
       ];
 
@@ -141,6 +146,7 @@ describe('ProjectsDashboard', function () {
       );
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     it('renders correct project with selected team', async function () {
@@ -246,6 +252,7 @@ describe('ProjectsDashboard', function () {
           slug: 'project1',
           teams: [teamA],
           firstEvent: new Date().toISOString(),
+          stats: [],
         }),
         ProjectFixture({
           id: '2',
@@ -253,6 +260,7 @@ describe('ProjectsDashboard', function () {
           teams: [teamA],
           isBookmarked: true,
           firstEvent: new Date().toISOString(),
+          stats: [],
         }),
       ];
 
@@ -277,6 +285,7 @@ describe('ProjectsDashboard', function () {
       await waitFor(() => {
         expect(screen.queryByText('project1')).not.toBeInTheDocument();
       });
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
     it('renders bookmarked projects first in team list', async function () {
