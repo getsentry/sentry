@@ -3,6 +3,8 @@ import {Fragment, useState} from 'react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types';
@@ -20,12 +22,14 @@ function RecoveryOptionsModal({
   Header,
   Footer,
 }: Props) {
-  const {isLoading, data: authenticators = []} = useApiQuery<Authenticator[]>(
-    ['/users/me/authenticators/'],
-    {
-      staleTime: 5000, // expire after 5 seconds
-    }
-  );
+  const {
+    isLoading,
+    isError,
+    refetch: refetchAuthenticators,
+    data: authenticators = [],
+  } = useApiQuery<Authenticator[]>(['/users/me/authenticators/'], {
+    staleTime: 5000, // expire after 5 seconds
+  });
   const [skipSms, setSkipSms] = useState<boolean>(false);
 
   const {recovery, sms} = authenticators.reduce<{[key: string]: Authenticator}>(
@@ -44,7 +48,16 @@ function RecoveryOptionsModal({
     setSkipSms(true);
   };
 
-  if (isLoading) return null;
+  if (isLoading) return <LoadingIndicator />;
+
+  if (isError) {
+    return (
+      <LoadingError
+        message={t('There was an error loading authenticators.')}
+        onRetry={refetchAuthenticators}
+      />
+    );
+  }
 
   return (
     <Fragment>

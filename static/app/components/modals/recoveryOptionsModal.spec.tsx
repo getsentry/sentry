@@ -107,4 +107,32 @@ describe('RecoveryOptionsModal', function () {
       screen.queryByRole('button', {name: 'Add a Phone Number'})
     ).not.toBeInTheDocument();
   });
+
+  it('renders the LoadingIndicator while fetching authenticators', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/users/me/authenticators/',
+      method: 'GET',
+      body: [],
+    });
+
+    renderComponent();
+
+    const indicator = await screen.findByTestId('loading-indicator');
+    expect(indicator).toBeInTheDocument();
+  });
+
+  it('renders the error message on API error', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/users/me/authenticators/',
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    renderComponent();
+
+    const error = await screen.findByText('There was an error loading authenticators.');
+    expect(error).toBeInTheDocument();
+  });
 });
