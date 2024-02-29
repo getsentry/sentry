@@ -1,4 +1,11 @@
-import {Fragment, useMemo} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 import type {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -25,19 +32,31 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/useTrace';
+import {rovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import Breadcrumb from '../breadcrumb';
 
-import {HighLightedRowContextProvider} from './HighlightedRowContext';
 import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
-import {TraceTree} from './traceTree';
+import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
+import {useTrace} from './useTrace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+
+function maybeFocusRow() {
+  const focused_node = document.querySelector(".TraceRow[tabIndex='0']");
+
+  if (
+    focused_node &&
+    'focus' in focused_node &&
+    typeof focused_node.focus === 'function'
+  ) {
+    focused_node.focus();
+  }
+}
 
 export function TraceView() {
   const location = useLocation();
@@ -157,6 +176,40 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
   );
 
+  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
+    index: null,
+    items: null,
+    node: null,
+  });
+
+  useLayoutEffect(() => {
+    return dispatch({
+      type: 'initialize',
+      items: tree.list.length - 1,
+      index: null,
+      node: null,
+    });
+  }, [tree.list.length]);
+
+  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
+    null
+  );
+
+  const onDetailClose = useCallback(() => {
+    setDetailNode(null);
+    maybeFocusRow();
+  }, []);
+
+  const onSetDetailNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      setDetailNode(prevNode => {
+        return prevNode === node ? null : node;
+      });
+      maybeFocusRow();
+    },
+    []
+  );
+
   return (
     <Fragment>
       <Layout.Header>
@@ -192,24 +245,28 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HighLightedRowContextProvider>
-            {traceType ? <TraceWarnings type={traceType} /> : null}
-            <TraceHeader
-              rootEventResults={rootEventResults}
-              metaResults={props.metaResults}
-              organization={props.organization}
-              traces={props.trace}
-            />
-            <Trace trace={tree} trace_id={props.traceSlug} />
-            <TraceFooter
-              rootEventResults={rootEventResults}
-              organization={props.organization}
-              location={props.location}
-              traces={props.trace}
-              traceEventView={props.traceEventView}
-            />
-            <TraceDetailPanel />
-          </HighLightedRowContextProvider>
+          {traceType ? <TraceWarnings type={traceType} /> : null}
+          <TraceHeader
+            rootEventResults={rootEventResults}
+            metaResults={props.metaResults}
+            organization={props.organization}
+            traces={props.trace}
+          />
+          <Trace
+            trace={tree}
+            trace_id={props.traceSlug}
+            roving_dispatch={dispatch}
+            roving_state={state}
+            setDetailNode={onSetDetailNode}
+          />
+          <TraceFooter
+            rootEventResults={rootEventResults}
+            organization={props.organization}
+            location={props.location}
+            traces={props.trace}
+            traceEventView={props.traceEventView}
+          />
+          <TraceDetailPanel node={detailNode} onClose={onDetailClose} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

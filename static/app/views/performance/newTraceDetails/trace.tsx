@@ -1,15 +1,5 @@
 import type React from 'react';
-import {
-  Fragment,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
@@ -29,6 +19,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  getRovingIndexActionFromEvent,
+  type RovingTabIndexAction,
+  type RovingTabIndexUserActions,
+} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import {
   isAutogroupedNode,
@@ -39,7 +34,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
-import {HighLightedRowContext} from './HighlightedRowContext';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
@@ -88,71 +82,6 @@ function computeNextIndexFromAction(
   }
 }
 
-type RovingTabIndexAction =
-  | {
-      index: number | null;
-      items: number;
-      node: TraceTreeNode<TraceTree.NodeValue> | null;
-      type: 'initialize';
-    }
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'go to index'}
-  | {index: number; node: TraceTreeNode<TraceTree.NodeValue>; type: 'set node'};
-
-type RovingTabIndexUserActions = 'next' | 'previous' | 'last' | 'first';
-
-function rovingTabIndexReducer(
-  state: RovingTabIndexState,
-  action: RovingTabIndexAction
-): RovingTabIndexState {
-  switch (action.type) {
-    case 'initialize': {
-      return {index: action.index, items: action.items, node: action.node};
-    }
-    case 'go to index':
-      return {...state, index: action.index};
-    case 'set node': {
-      return {...state, node: action.node, index: action.index};
-    }
-    default:
-      throw new Error('Invalid action');
-  }
-}
-
-function getRovingIndexActionFromEvent(
-  event: React.KeyboardEvent
-): RovingTabIndexUserActions | null {
-  // @TODO it would be trivial to extend this and support
-  // things like j/k vim-like navigation or add modifiers
-  // so that users could jump to parent or sibling nodes.
-  // I would need to put some thought into this, but shift+cmd+up
-  // seems like a good candidate for jumping to parent node and
-  // shift+cmd+down for jumping to the next sibling node.
-  switch (event.key) {
-    case 'ArrowDown':
-      if (event.shiftKey) {
-        return 'last';
-      }
-      return 'next';
-    case 'ArrowUp':
-      if (event.shiftKey) {
-        return 'first';
-      }
-      return 'previous';
-    case 'Home':
-      return 'first';
-    case 'End':
-      return 'last';
-    case 'Tab':
-      if (event.shiftKey) {
-        return 'previous';
-      }
-      return 'next';
-
-    default:
-      return null;
-  }
-}
-
 function maybeFocusRow(
   ref: HTMLDivElement | null,
   index: number,
@@ -166,17 +95,25 @@ function maybeFocusRow(
 }
 
 interface TraceProps {
+  roving_dispatch: React.Dispatch<RovingTabIndexAction>;
+  roving_state: RovingTabIndexState;
+  setDetailNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
   trace_id: string;
 }
 
-function Trace({trace, trace_id}: TraceProps) {
+function Trace({
+  trace,
+  trace_id,
+  roving_state,
+  roving_dispatch,
+  setDetailNode,
+}: TraceProps) {
   const theme = useTheme();
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
   const location = useLocation();
-  const {node: highlightedNode, setNode} = useContext(HighLightedRowContext);
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
       list: {width: 0.5},
@@ -184,23 +121,7 @@ function Trace({trace, trace_id}: TraceProps) {
     });
   }, []);
 
-  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
-    index: null,
-    items: null,
-    node: null,
-  });
-
-  useLayoutEffect(() => {
-    return dispatch({
-      type: 'initialize',
-      items: trace.list.length - 1,
-      index: null,
-      node: null,
-    });
-  }, [trace.list.length]);
-
   const previouslyFocusedIndexRef = useRef<number | null>(null);
-
   const [_rerender, setRender] = useState(0);
 
   const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
@@ -234,15 +155,26 @@ function Trace({trace, trace_id}: TraceProps) {
         }
 
         viewManager.onScrollEndOutOfBoundsCheck();
-        dispatch({type: 'set node', index: maybeNode.index, node: maybeNode.node});
+        setDetailNode(maybeNode.node);
+        roving_dispatch({
+          type: 'set index',
+          index: maybeNode.index,
+          node: maybeNode.node,
+        });
       });
-  }, [api, organization, trace, trace_id, viewManager]);
+  }, [api, organization, trace, trace_id, viewManager, setDetailNode, roving_dispatch]);
 
-  const handleFetchChildren = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
+  const handleZoomIn = useCallback(
+    (
+      event: React.MouseEvent,
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      value: boolean
+    ) => {
       if (!isTransactionNode(node) && !isSpanNode(node)) {
         throw new TypeError('Node must be a transaction or span');
       }
+
+      event.stopPropagation();
 
       treeRef.current
         .zoomIn(node, value, {
@@ -257,7 +189,13 @@ function Trace({trace, trace_id}: TraceProps) {
   );
 
   const handleExpandNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
+    (
+      event: React.MouseEvent<Element>,
+      node: TraceTreeNode<TraceTree.NodeValue>,
+      value: boolean
+    ) => {
+      event.stopPropagation();
+
       treeRef.current.expand(node, value);
       setRender(a => (a + 1) % 2);
     },
@@ -265,7 +203,11 @@ function Trace({trace, trace_id}: TraceProps) {
   );
 
   const onRowClick = useCallback(
-    (index: number, node: TraceTreeNode<TraceTree.NodeValue>) => {
+    (
+      _event: React.MouseEvent,
+      index: number,
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ) => {
       browserHistory.push({
         pathname: location.pathname,
         query: {
@@ -273,17 +215,11 @@ function Trace({trace, trace_id}: TraceProps) {
           node: node.path,
         },
       });
-
-      if (highlightedNode === node) {
-        setNode(undefined);
-      } else {
-        setNode(node);
-      }
-
-      // TODO JonasBa: replace context logic with reducer here
-      dispatch({type: 'go to index', index, node});
+      setDetailNode(node);
+      roving_dispatch({type: 'set index', index, node});
     },
-    [location.pathname, location.search, setNode, highlightedNode]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [roving_dispatch, setDetailNode]
   );
 
   const onRowKeyDown = useCallback(
@@ -304,10 +240,10 @@ function Trace({trace, trace_id}: TraceProps) {
           treeRef.current.list.length - 1
         );
         viewManager.list.scrollToRow(nextIndex);
-        dispatch({type: 'go to index', index: nextIndex, node});
+        roving_dispatch({type: 'set index', index: nextIndex, node});
       }
     },
-    [viewManager.list]
+    [viewManager.list, roving_dispatch]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
@@ -429,15 +365,15 @@ function Trace({trace, trace_id}: TraceProps) {
                           ._rowStartIndex ?? 0
                       }
                       previouslyFocusedIndexRef={previouslyFocusedIndexRef}
-                      tabIndex={state.index ?? -1}
+                      tabIndex={roving_state.index ?? -1}
                       index={p.index}
                       style={p.style}
                       trace_id={trace_id}
                       projects={projectLookup}
                       node={treeRef.current.list[p.index]}
                       viewManager={viewManager!}
-                      onFetchChildren={handleFetchChildren}
-                      onExpandNode={handleExpandNode}
+                      onExpand={handleExpandNode}
+                      onZoomIn={handleZoomIn}
                       onRowClick={onRowClick}
                       onRowKeyDown={onRowKeyDown}
                     />
@@ -479,13 +415,25 @@ const TraceDivider = styled('div')`
 function RenderRow(props: {
   index: number;
   node: TraceTreeNode<TraceTree.NodeValue>;
-  onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
-  onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
-  onRowClick: (index: number, node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  onExpand: (
+    event: React.MouseEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
+  ) => void;
+  onRowClick: (
+    event: React.MouseEvent<Element>,
+    index: number,
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ) => void;
   onRowKeyDown: (
     event: React.KeyboardEvent,
     index: number,
     node: TraceTreeNode<TraceTree.NodeValue>
+  ) => void;
+  onZoomIn: (
+    event: React.MouseEvent<Element>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    value: boolean
   ) => void;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
@@ -512,7 +460,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow Autogrouped"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -538,7 +486,7 @@ function RenderRow(props: {
               <Connectors node={props.node} viewManager={props.viewManager} />
               <ChildrenCountButton
                 expanded={!props.node.expanded}
-                onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+                onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
               >
                 {COUNT_FORMATTER.format(props.node.groupCount)}{' '}
               </ChildrenCountButton>
@@ -596,7 +544,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -627,7 +575,7 @@ function RenderRow(props: {
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
                   {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
@@ -638,9 +586,7 @@ function RenderRow(props: {
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
             {props.node.canFetchData ? (
-              <button
-                onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}
-              >
+              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
                 {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
               </button>
             ) : null}
@@ -684,7 +630,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -715,7 +661,7 @@ function RenderRow(props: {
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
                   {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
@@ -731,9 +677,7 @@ function RenderRow(props: {
                   : props.node.value.description}
             </span>
             {props.node.canFetchData ? (
-              <button
-                onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}
-              >
+              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
                 {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
               </button>
             ) : null}
@@ -777,7 +721,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -843,7 +787,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -870,7 +814,7 @@ function RenderRow(props: {
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
                   {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
@@ -921,7 +865,7 @@ function RenderRow(props: {
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
         className="TraceRow"
-        onClick={() => props.onRowClick(props.index, props.node)}
+        onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
           top: props.style.top,
@@ -948,7 +892,7 @@ function RenderRow(props: {
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
                   {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
@@ -1126,7 +1070,7 @@ function ProjectBadge(props: {project: Project}) {
 function ChildrenCountButton(props: {
   children: React.ReactNode;
   expanded: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   return (
     <button className="TraceChildrenCount" onClick={props.onClick}>
@@ -1245,7 +1189,10 @@ function TraceBar(props: TraceBarProps) {
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
         }}
-        onDoubleClick={() => props.viewManager.onZoomIntoSpace(props.node_space!)}
+        onDoubleClick={e => {
+          e.stopPropagation();
+          props.viewManager.onZoomIntoSpace(props.node_space!);
+        }}
       />
       <div
         ref={r =>
