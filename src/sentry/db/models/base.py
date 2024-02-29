@@ -267,6 +267,10 @@ class BaseModel(models.Model):
         self.save(force_insert=True)
         return (self.pk, ImportKind.Inserted)
 
+    @classmethod
+    def query_manager_to_use_for_deletion(cls):
+        return cls.objects
+
 
 class Model(BaseModel):
     id: models.Field[int, int] = BoundedBigAutoField(primary_key=True)
