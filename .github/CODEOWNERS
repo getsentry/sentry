@@ -423,10 +423,10 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
 /src/sentry/utils/appleconnect/                                      @getsentry/owners-native
 /tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-/src/sentry/tasks/reprocessing.py                                    @getsentry/owners-processing
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/owners-processing
-/src/sentry/reprocessing2.py                                         @getsentry/owners-processing
-/src/sentry/tasks/store.py                                           @getsentry/owners-processing
+/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
+/src/sentry/reprocessing2.py                                         @getsentry/processing
+/src/sentry/tasks/store.py                                           @getsentry/processing
 ## End of Native
 
 
@@ -518,11 +518,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of ML & AI
 
 ## Processing
-/src/sentry/processing/*                                @getsentry/owners-processing
-/src/sentry/api/endpoints/project_user_reports.py       @getsentry/owners-processing
-/src/sentry/api/endpoints/event_attachments.py          @getsentry/owners-processing
-/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/owners-processing
-/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/owners-processing
+/src/sentry/processing/*                                @getsentry/processing
+/src/sentry/api/endpoints/project_user_reports.py       @getsentry/processing
+/src/sentry/api/endpoints/event_attachments.py          @getsentry/processing
+/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/processing
+/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/processing
 ## End of Processing
 
 ## Ecosystem
