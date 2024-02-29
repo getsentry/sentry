@@ -177,7 +177,12 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         # user2's local timezone is UTC and therefore it isn't sent now
         assert mock_prepare_summary_data.delay.call_count == 1
         for call_args in mock_prepare_summary_data.delay.call_args_list:
-            assert call_args.args == (to_timestamp(self.now), ONE_DAY, self.organization.id)
+            assert call_args.args == (
+                to_timestamp(self.now),
+                ONE_DAY,
+                self.organization.id,
+                [self.user.id],
+            )
 
     def test_build_summary_data(self):
         self.populate_event_data()

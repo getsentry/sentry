@@ -413,7 +413,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         project_ctx.total_substatus_count += item["total"]
 
 
-def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
+def check_if_project_is_empty(project_ctx: ProjectContext, daily: bool) -> bool:
     """
     Check if this project has any content we could show in a notification.
     """
