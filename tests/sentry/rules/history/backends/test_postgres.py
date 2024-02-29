@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -76,7 +76,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         )
         RuleFireHistory.objects.bulk_create(history)
 
-        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
+        base_triggered_date = before_now(days=1)
 
         self.run_test(
             rule,
@@ -151,7 +151,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest):
                 event_id=i,
             )
 
-        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
+        base_triggered_date = before_now(days=1)
         self.run_test(
             rule,
             before_now(days=3),

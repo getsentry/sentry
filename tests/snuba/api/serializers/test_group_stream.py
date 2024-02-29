@@ -1,5 +1,5 @@
 import time
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone as django_timezone
@@ -261,22 +261,22 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 SearchFilter(
                     SearchKey("timestamp"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("timestamp"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     ">",
-                    SearchValue(before_now(hours=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(hours=1)),
                 ),
                 SearchFilter(
                     SearchKey("date"),
                     "<",
-                    SearchValue(before_now(seconds=1).replace(tzinfo=timezone.utc)),
+                    SearchValue(before_now(seconds=1)),
                 ),
             ]
         )

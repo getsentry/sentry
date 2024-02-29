@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest.mock import patch
 
 import responses
@@ -16,7 +15,7 @@ from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
-event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+event_time = before_now(days=3)
 # external_id is the account name in pagerduty
 EXTERNAL_ID = "example-pagerduty"
 SERVICES = [

@@ -175,7 +175,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record):
-        now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
+        now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)

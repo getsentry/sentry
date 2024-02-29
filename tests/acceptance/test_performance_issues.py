@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
@@ -67,7 +67,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
@@ -89,7 +89,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
@@ -100,7 +100,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_n_one_api_call_performance_issue(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream",
             mock_now.return_value.timestamp(),
@@ -124,7 +124,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
-        mock_now.return_value = before_now(minutes=5).replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now(minutes=5)
 
         # Create identical events with different parent spans
         for _ in range(3):

@@ -2372,7 +2372,7 @@ class PostProcessGroupPerformanceTest(
         run_post_process_job_mock,
         generic_metrics_backend_mock,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        min_ago = before_now(minutes=1)
         event = self.store_transaction(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
@@ -2508,7 +2508,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         self,
         mock_store_transaction_name,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        min_ago = before_now(minutes=1)
         event = process_event(
             data={
                 "project": self.project.id,
