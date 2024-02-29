@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.urls import reverse
 
@@ -20,7 +20,7 @@ class ProjectReleaseStatsTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -36,7 +36,10 @@ import {
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {
+  isOnDemandMetricWidget,
+  OnDemandControlProvider,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -213,7 +216,7 @@ function WidgetBuilder({
 
   const api = useApi();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
@@ -352,14 +355,14 @@ function WidgetBuilder({
 
   useEffect(() => {
     const onUnload = () => {
-      if (!isSubmitting && state.userHasModified) {
+      if (!isSubmittingRef.current && state.userHasModified) {
         return t('You have unsaved changes, are you sure you want to leave?');
       }
       return undefined;
     };
 
     router.setRouteLeaveHook(route, onUnload);
-  }, [isSubmitting, state.userHasModified, route, router]);
+  }, [state.userHasModified, route, router]);
 
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
@@ -373,6 +376,8 @@ function WidgetBuilder({
     limit: state.limit,
     widgetType,
   };
+
+  const isOnDemandWidget = isOnDemandMetricWidget(currentWidget);
 
   const validatedWidgetResponse = useValidateWidgetQuery(currentWidget);
 
@@ -768,7 +773,7 @@ function WidgetBuilder({
       return;
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     let nextWidgetList = [...dashboard.widgets];
     const updateWidgetIndex = getUpdateWidgetIndex();
     nextWidgetList.splice(updateWidgetIndex, 1);
@@ -808,7 +813,7 @@ function WidgetBuilder({
       });
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
@@ -1155,6 +1160,7 @@ function WidgetBuilder({
                                           explodedFields={explodedFields}
                                           tags={tags}
                                           organization={organization}
+                                          isOnDemandWidget={isOnDemandWidget}
                                         />
                                       )}
                                     </DashboardsMEPConsumer>

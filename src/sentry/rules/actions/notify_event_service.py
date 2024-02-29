@@ -74,7 +74,7 @@ def send_incident_alert_notification(
         sentry_app_id=action.sentry_app_id,
         action_id=action.id,
         incident_id=incident.id,
-        organization=organization,
+        organization_id=organization.id,
         new_status=new_status.value,
         incident_attachment_json=json.dumps(incident_attachment),
         metric_value=metric_value,

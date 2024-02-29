@@ -16,25 +16,41 @@ export type SortState = {
 };
 
 export interface FocusedMetricsSeries {
-  seriesName: string;
+  id: string;
   groupBy?: Record<string, string>;
 }
 
 export interface MetricsQuery {
   mri: MRI;
+  op: string;
   groupBy?: string[];
-  op?: string;
   query?: string;
 }
 
-export interface MetricWidgetQueryParams extends MetricsQuery {
+export enum MetricQueryType {
+  QUERY = 1,
+  FORMULA = 2,
+}
+
+export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
+  type: MetricQueryType;
   focusedSeries?: FocusedMetricsSeries[];
-  highlightedSample?: string | null;
-  powerUserMode?: boolean;
   sort?: SortState;
 }
+
+export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
+  type: MetricQueryType.QUERY;
+  powerUserMode?: boolean;
+}
+
+export interface MetricFormulaWidgetParams extends BaseWidgetParams {
+  formula: string;
+  type: MetricQueryType.FORMULA;
+}
+
+export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
 
 export interface DdmQueryParams {
   widgets: string; // stringified json representation of MetricWidgetQueryParams
@@ -100,10 +116,3 @@ export type MetricCorrelation = {
     spanOp: string;
   }[];
 };
-
-export interface SelectionRange {
-  end?: DateString;
-  max?: number;
-  min?: number;
-  start?: DateString;
-}

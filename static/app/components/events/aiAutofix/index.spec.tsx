@@ -1,6 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AiAutofix} from 'sentry/components/events/aiAutofix';
 import type {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
@@ -35,7 +35,7 @@ describe('AiAutofix', () => {
                 title: 'Fixed the bug!',
                 pr_number: 123,
                 description: 'This is a description',
-                pr_url: '',
+                pr_url: 'https://github.com/pulls/1234',
                 repo_name: 'getsentry/sentry',
               },
               steps: [],
@@ -46,10 +46,13 @@ describe('AiAutofix', () => {
     );
 
     expect(screen.getByText('Fixed the bug!')).toBeInTheDocument();
-    expect(screen.getByText('View Pull Request')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Pull Request'})).toHaveAttribute(
+      'href',
+      'https://github.com/pulls/1234'
+    );
   });
 
-  it('renders the correct steps', () => {
+  it('can toggle logs for completed fix', async () => {
     render(
       <AiAutofix
         group={{
@@ -74,7 +77,9 @@ describe('AiAutofix', () => {
       />
     );
 
-    expect(screen.getByText('I am processing')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle log details'}));
+
+    expect(screen.getByText('1. I am processing')).toBeInTheDocument();
     expect(screen.getByText('oh yes I am')).toBeInTheDocument();
   });
 });

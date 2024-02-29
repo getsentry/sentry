@@ -1,9 +1,9 @@
 import {urlEncode} from '@sentry/utils';
 
-import type {MRI, PageFilters} from 'sentry/types';
-import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {MRIToField, parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsQuery, MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {PageFilters} from 'sentry/types';
+import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
+import {MRIToField} from 'sentry/utils/metrics/mri';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
@@ -14,38 +14,17 @@ import {
 
 export function convertToDashboardWidget(
   metricQueries: MetricsQuery[],
-  displayType?: MetricDisplayType
+  displayType?: MetricDisplayType,
+  title = ''
 ): Widget {
   // @ts-expect-error TODO: pass interval
   return {
-    title: '',
+    title,
     displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: metricQueries.map(getWidgetQuery),
   };
-}
-
-export function convertToMetricWidget(widget: Widget): MetricWidgetQueryParams[] {
-  return widget.queries.map(query => {
-    const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
-    return {
-      id: NO_QUERY_ID,
-      mri: parsed.mri,
-      op: parsed.op,
-      query: query.conditions,
-      groupBy: query.columns,
-      displayType: toMetricDisplayType(widget.displayType),
-    };
-  });
-}
-
-export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
-  if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
-    return displayType as MetricDisplayType;
-  }
-  return MetricDisplayType.LINE;
 }
 
 export function toDisplayType(displayType: unknown): DisplayType {
@@ -57,13 +36,13 @@ export function toDisplayType(displayType: unknown): DisplayType {
 
 export function defaultMetricWidget(selection: PageFilters) {
   return convertToDashboardWidget(
-    [{...selection, ...emptyWidget}],
+    [{...selection, ...emptyMetricsQueryWidget}],
     MetricDisplayType.LINE
   );
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
-  const field = MRIToField(metricsQuery.mri, metricsQuery.op || '');
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
 
   return {
     name: '',

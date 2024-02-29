@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from django.http import HttpRequest
@@ -162,7 +162,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_inactive_key(self):
-        self.org_auth_token.update(date_deactivated=datetime.now())
+        self.org_auth_token.update(date_deactivated=datetime.now(UTC))
         request = HttpRequest()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
 

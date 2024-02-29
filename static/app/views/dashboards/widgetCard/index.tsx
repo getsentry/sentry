@@ -40,7 +40,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
+import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
@@ -256,13 +256,14 @@ class WidgetCard extends Component<Props, State> {
       }
       return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
     }
+    // prettier-ignore
     const widgetContainsErrorFields = widget.queries.some(
       ({columns, aggregates, conditions}) =>
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(aggregate =>
-              parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(
+              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField
@@ -286,6 +287,7 @@ class WidgetCard extends Component<Props, State> {
             widget={widget}
             dashboardFilters={dashboardFilters}
             renderErrorMessage={renderErrorMessage}
+            showContextMenu={this.props.showContextMenu}
           />
         );
       }
@@ -433,15 +435,19 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
-  const widgetContainsHighCardinality = props.widget.queries.some(wq =>
-    wq.onDemand?.some(
-      d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
-    )
+  // prettier-ignore
+  const widgetContainsHighCardinality = props.widget.queries.some(
+    wq =>
+      wq.onDemand?.some(
+        d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+      )
   );
-  const widgetReachedSpecLimit = props.widget.queries.some(wq =>
-    wq.onDemand?.some(
-      d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
-    )
+  // prettier-ignore
+  const widgetReachedSpecLimit = props.widget.queries.some(
+    wq =>
+      wq.onDemand?.some(
+        d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
+      )
   );
 
   if (widgetContainsHighCardinality) {
