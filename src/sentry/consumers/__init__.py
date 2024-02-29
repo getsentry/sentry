@@ -14,6 +14,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from django.conf import settings
 
 from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.topic_definition import Topic
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -235,7 +236,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "generic-metrics-subscription-results": {
-        "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
         "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
@@ -482,10 +483,15 @@ def get_stream_processor(
         )
 
     # Validate schema if "validate_schema" is set
-    default_topic = consumer_definition.get("validate_schema")
-    if default_topic:
+    validate_schema = consumer_definition.get("validate_schema")
+
+    # TODO: Remove this later but for now we can only validate if `topic` is
+    # the logical topic and not the legacy override topic
+    assert isinstance(topic, Topic)
+
+    if validate_schema:
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
-            default_topic, validate_schema, strategy_factory
+            topic.value, validate_schema, strategy_factory
         )
 
     if healthcheck_file_path is not None:

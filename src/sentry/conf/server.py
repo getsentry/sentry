@@ -3473,7 +3473,9 @@ KAFKA_SNUBA_SPANS = "snuba-spans"
 
 
 # Mapping of default Kafka topic name to custom names
-KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
+    "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
+}
 
 
 # Mapping of default Kafka topic name to cluster name.
