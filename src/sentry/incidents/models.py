@@ -539,10 +539,6 @@ class AlertRule(Model):
 
         return old_pk
 
-    @classmethod
-    def query_manager_to_use_for_deletion(cls):
-        return cls.objects_with_snapshots
-
 
 class TriggerStatus(Enum):
     ACTIVE = 0
@@ -830,10 +826,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     @classmethod
     def get_registered_types(cls):
         return list(cls._type_registrations.values())
-
-    @classmethod
-    def query_manager_to_use_for_deletion(cls):
-        return cls.objects_for_deletion
 
 
 class AlertRuleActivityType(Enum):
