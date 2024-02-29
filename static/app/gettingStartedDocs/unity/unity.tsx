@@ -8,7 +8,10 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -119,9 +122,48 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const feedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C#',
+              value: 'csharp',
+              language: 'csharp',
+              code: `using Sentry;
+
+var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
+            },
+            {
+              label: 'F#',
+              value: 'fsharp',
+              language: 'fsharp',
+              code: `open Sentry
+
+let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
+  feedbackOnboardingCrashApi: feedbackOnboarding,
 };
 
 export default docs;
