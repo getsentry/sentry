@@ -121,5 +121,43 @@ describe('RawStacktraceContent', function () {
   File "application", line 2, in doThing`
       );
     });
+
+    const data_with_non_in_app: StacktraceType = {
+      hasSystemFrames: false,
+      framesOmitted: null,
+      registers: {},
+      frames: [
+        FrameFixture({
+          function: 'main',
+          module: 'example.application',
+          lineNo: 1,
+          filename: 'application',
+          platform: undefined,
+        }),
+        FrameFixture({
+          function: 'doThing',
+          module: 'example.application',
+          lineNo: 2,
+          filename: 'application',
+          platform: undefined,
+          inApp: false,
+        }),
+      ],
+    };
+
+    it('renders non in-app frames example', () => {
+      expect(displayRawContent(data_with_non_in_app, 'python', exception)).toEqual(
+        `Error: an error occurred
+  File "application", line 1, in main
+  File "application", line 2, in doThing`
+      );
+    });
+
+    it('renders no non in-app frames example with hasSimilarityEmbeddingsFeature', () => {
+      expect(displayRawContent(data_with_non_in_app, 'python', exception, true)).toEqual(
+        `Error: an error occurred
+  File "application", line 1, in main`
+      );
+    });
   });
 });
