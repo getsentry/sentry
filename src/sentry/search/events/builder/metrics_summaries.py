@@ -7,6 +7,11 @@ from sentry.snuba.dataset import Dataset
 class MetricsSummariesQueryBuilder(QueryBuilder):
     requires_organization_condition = False
 
+    def get_field_type(self, field: str) -> str | None:
+        if field in ["min_metric", "max_metric", "sum_metric", "count_metric"]:
+            return "number"
+        return None
+
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
 

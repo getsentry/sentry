@@ -329,7 +329,7 @@ describe('IssueList', function () {
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
-            sort: 'priority',
+            sort: 'trends',
             type: 0,
           }),
         ],
@@ -349,7 +349,7 @@ describe('IssueList', function () {
             // Should be called with default query
             data:
               expect.stringContaining('assigned%3Ame') &&
-              expect.stringContaining('sort=priority'),
+              expect.stringContaining('sort=trends'),
           })
         );
       });
@@ -1203,7 +1203,7 @@ describe('IssueList', function () {
         }),
       });
 
-      expect(screen.getByTestId('awaiting-events')).toBeInTheDocument();
+      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
@@ -1403,7 +1403,7 @@ describe('IssueList', function () {
     expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
   });
 
-  describe('project low priority queue alert', function () {
+  describe('project low trends queue alert', function () {
     const {routerContext: newRouterContext} = initializeOrg();
 
     beforeEach(function () {

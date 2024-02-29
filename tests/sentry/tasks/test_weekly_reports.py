@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -10,6 +11,7 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry.constants import DataCategory
+from sentry.issues.grouptype import MonitorCheckInFailure, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -20,6 +22,7 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    ProjectContext,
     organization_project_issue_substatus_summaries,
 )
 from sentry.tasks.summaries.weekly_reports import (
@@ -29,7 +32,7 @@ from sentry.tasks.summaries.weekly_reports import (
     prepare_template_context,
     schedule_organizations,
 )
-from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -43,7 +46,7 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
 @region_silo_test
-class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
+class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
         with unguarded_write(using=router.db_for_write(Project)):
@@ -270,7 +273,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         organization_project_issue_substatus_summaries(ctx)
 
-        project_ctx = ctx.projects_context_map[self.project.id]
+        project_ctx = cast(ProjectContext, ctx.projects_context_map[self.project.id])
 
         assert project_ctx.new_substatus_count == 1
         assert project_ctx.escalating_substatus_count == 0
@@ -346,7 +349,11 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         group2.substatus = None
         group2.resolved_at = two_days_ago
         group2.save()
+        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
+        self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
+        # store a crons issue just to make sure it's not counted in key_performance_issues
+        self.create_group(type=MonitorCheckInFailure.type_id)
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
 
         for call_args in message_builder.call_args_list:
@@ -360,11 +367,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["issue_summary"] == {
                 "escalating_substatus_count": 0,
                 "new_substatus_count": 0,
-                "ongoing_substatus_count": 0,
+                "ongoing_substatus_count": 2,
                 "regression_substatus_count": 0,
-                "total_substatus_count": 0,
+                "total_substatus_count": 2,
             }
             assert len(context["key_errors"]) == 2
+            assert len(context["key_performance_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]

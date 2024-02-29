@@ -286,7 +286,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             role="member",
             user=user,
             token="abc-def",
-            token_expires_at="2018-01-01 10:00:00",
+            token_expires_at="2018-01-01 10:00:00+00:00",
         )
         with outbox_runner():
             OrganizationMember.objects.delete_expired(timezone.now())
@@ -516,22 +516,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert carol.get_allowed_org_roles_to_invite() == [
                 roles.get("carol"),
             ]
-
-    def test_org_roles_by_source(self):
-        manager_team = self.create_team(organization=self.organization, org_role="manager")
-        owner_team = self.create_team(organization=self.organization, org_role="owner")
-        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
-        member = self.create_member(
-            organization=self.organization,
-            teams=[manager_team, owner_team, owner_team2],
-            user=self.create_user(),
-            role="member",
-        )
-
-        roles = member.get_org_roles_from_teams_by_source()
-        assert roles[0][1].id == "owner"
-        assert roles[-1][0] == manager_team.slug
-        assert roles[-1][1].id == "manager"
 
     def test_cannot_demote_last_owner(self):
         org = self.create_organization()

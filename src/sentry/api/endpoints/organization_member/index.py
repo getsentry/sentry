@@ -10,7 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases.organizationmember import MemberPermission
+from sentry.api.bases.organizationmember import MemberAndStaffPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
@@ -121,7 +121,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (MemberPermission,)
+    permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization) -> Response:
@@ -153,10 +153,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
 
                 elif key == "role":
-                    members_with_role = organization.get_members_with_org_roles(
-                        roles=value, include_null_users=True
-                    ).values_list("id", flat=True)
-                    queryset = queryset.filter(id__in=members_with_role)
+                    queryset = queryset.filter(role__in=value)
 
                 elif key == "isInvited":
                     isInvited = "true" in value

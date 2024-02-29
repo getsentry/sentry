@@ -18,7 +18,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_filename
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
 from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
@@ -84,7 +84,8 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
             segment_bytes = download_segment(
-                segment, span=child_span, current_hub=sentry_sdk.Hub.current
+                segment,
+                span=child_span,
             )
             if segment_bytes is None:
                 segment_bytes = b"[]"
@@ -96,5 +97,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                 content_type="application/json",
             )
             response["Content-Length"] = len(segment_bytes)
-            response["Content-Disposition"] = f'attachment; filename="{make_filename(segment)}"'
+            response[
+                "Content-Disposition"
+            ] = f'attachment; filename="{make_recording_filename(segment)}"'
             return response

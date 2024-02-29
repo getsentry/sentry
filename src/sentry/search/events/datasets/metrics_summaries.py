@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from snuba_sdk import Column, Direction, Function, OrderBy
+from snuba_sdk import And, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder, constants
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import IntervalDefault, SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
@@ -23,6 +23,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+            "metric": self._metric_filter_converter,
         }
 
     @property
@@ -39,23 +40,15 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             for function in [
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: Function(
-                        "arrayElement",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
                         [
-                            Function(
-                                "groupArraySample(1, 1)",  # TODO: paginate via the seed
-                                [
-                                    Function(
-                                        "tuple",
-                                        [
-                                            Column("group"),
-                                            Column("end_timestamp"),
-                                            Column("span_id"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            1,
+                            "group",
+                            "end_timestamp",
+                            "span_id",
+                            "min",
+                            "max",
+                            "sum",
+                            "count",
                         ],
                         alias,
                     ),
@@ -64,24 +57,8 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "rounded_timestamp",
                     required_args=[IntervalDefault("interval", 1, None)],
-                    snql_column=lambda args, alias: Function(
-                        "toUInt32",
-                        [
-                            Function(
-                                "multiply",
-                                [
-                                    Function(
-                                        "intDiv",
-                                        [
-                                            Function("toUInt32", [Column("end_timestamp")]),
-                                            args["interval"],
-                                        ],
-                                    ),
-                                    args["interval"],
-                                ],
-                            ),
-                        ],
-                        alias,
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias, timestamp_column="end_timestamp"
                     ),
                     private=True,
                 ),
@@ -94,6 +71,23 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
+
+    def _metric_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        column = search_filter.key.name
+        value = search_filter.value.value
+        return And(
+            [
+                Condition(self.builder.column(column), Op.EQ, value),
+                # The metrics summaries table orders by the cityHash64 of the metric name.
+                # In order to take full advantage of the order by of the table, add an
+                # additional condition on the cityHash64 of the metric name.
+                Condition(
+                    Function("cityHash64", [self.builder.column(column)]),
+                    Op.EQ,
+                    Function("cityHash64", [value]),
+                ),
+            ]
+        )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)

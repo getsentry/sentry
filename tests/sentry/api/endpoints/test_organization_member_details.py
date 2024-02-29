@@ -210,7 +210,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_error_response(self.organization.slug, member.id, reinvite=1, status_code=400)
@@ -225,7 +225,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_success_response(self.organization.slug, member.id, reinvite=1, regenerate=1)
@@ -608,6 +608,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert (
             response.data["detail"]
             == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_can_demote_team_member_to_role_where_team_roles_disabled_with_team_removed(
+        self, mock_get
+    ):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.manager = self.create_user()
+        self.manager_om = self.create_member(
+            organization=self.organization, user=self.manager, role="manager", teams=[team]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        self.get_success_response(
+            self.organization.slug, self.manager_om.id, orgRole="member", teamRoles=[]
         )
 
     @patch(
