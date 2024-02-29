@@ -231,29 +231,34 @@ def build_summary_data(
     return ctx
 
 
+def build_top_projects_map(context: OrganizationReportContext):
+    """
+    Order the projects by which projects have the highest error count for the day
+    """
+    projects_by_error_total = {
+        project_id: context.total_today
+        for project_id, context in context.projects_context_map.items()
+    }
+    top_projects = [
+        k
+        for k, v in sorted(projects_by_error_total.items(), key=lambda item: item[1], reverse=True)
+    ]
+    top_projects_context_map = {}
+    # for now, hard code to the top 2 projects
+    for project in top_projects[:2]:
+        project_context = context.projects_context_map[project]
+        top_projects_context_map[project] = project_context
+
+    return top_projects_context_map
+
+
 def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
     # TODO: change this to some setting for daily summary
     user_ids = notifications_service.get_users_for_weekly_reports(
         organization_id=ctx.organization.id, user_ids=users
     )
     for user_id in user_ids:
-        # order the projects by which projects have the highest error count for the day
-        projects_by_error_total = {
-            project_id: context.total_today
-            for project_id, context in ctx.projects_context_map.items()
-        }
-        # can change this to just output a list of project ids once I verify this is working correctly, but for now having the counts helps
-        top_projects = {
-            k: v
-            for k, v in sorted(
-                projects_by_error_total.items(), key=lambda item: item[1], reverse=True
-            )
-        }
-        top_projects_context_map = {}
-        # for now, hard code to the top 2 projects
-        for project in list(top_projects.keys())[:2]:
-            project_context = ctx.projects_context_map[project]
-            top_projects_context_map[project] = project_context
+        top_projects_context_map = build_top_projects_map(ctx)
         user = user_service.get_user(user_id=user_id)
         DailySummaryNotification(
             organization=ctx.organization,

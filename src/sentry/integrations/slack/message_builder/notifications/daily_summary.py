@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.integrations.message_builder import build_attachment_title, get_title_link
-from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.project import Project
@@ -33,7 +33,7 @@ class SlackDailySummaryMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(group)
         return f"<{link}|*{escape_slack_text(title)}*>"
 
-    def build(self) -> SlackAttachment | SlackBlock:
+    def build(self) -> SlackBlock:
         blocks = []
         subject = self.notification.get_subject()
         blocks.append(

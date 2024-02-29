@@ -211,3 +211,41 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         assert project_context_map2.escalated_today == []
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
+
+    @mock.patch("sentry.notifications.notifications.base.BaseNotification.send")
+    def test_deliver_summary(self, mock_send):
+        self.populate_event_data()
+        summary = build_summary_data(
+            timestamp=to_timestamp(self.now),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        with self.tasks():
+            deliver_summary(summary, [self.user.id])
+
+        assert mock_send.call_count == 1
+
+    def test_build_top_projects_map(self):
+        self.populate_event_data()
+        project3 = self.create_project(
+            name="barf", organization=self.organization, teams=[self.team]
+        )
+        project3.first_event = self.three_days_ago
+        for _ in range(15):
+            self.store_event_and_outcomes(
+                project3.id,
+                self.now,
+                fingerprint="group-1",
+                category=DataCategory.ERROR,
+            )
+        context = build_summary_data(
+            timestamp=to_timestamp(self.now),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(context)
+        assert list(top_projects_context_map.keys()) == [self.project.id, project3.id]
+
+        
