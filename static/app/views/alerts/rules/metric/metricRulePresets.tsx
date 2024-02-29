@@ -57,9 +57,9 @@ export function makeDefaultCta({
         start: timePeriod.start,
         end: timePeriod.end,
         utc: timePeriod.utc,
-        // 7 days are 9999m in alerts as of a rounding error in the `events-stats` endpoint
+        // 7 days are 9998m in alerts as of a rounding error in the `events-stats` endpoint
         // We need to round to 7d here to display it correctly in DDM
-        statsPeriod: timePeriod.period === '9999m' ? '7d' : timePeriod.period,
+        statsPeriod: timePeriod.period === '9998m' ? '7d' : timePeriod.period,
         project: projects
           .filter(({slug}) => rule.projects.includes(slug))
           .map(project => project.id),
