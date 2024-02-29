@@ -45,6 +45,12 @@ interface ClipWindow {
   startTimestampMs: number;
 }
 
+interface MobileAttachment {
+  duration: number;
+  timestamp: number;
+  uri: string;
+}
+
 interface ReplayReaderParams {
   /**
    * Loaded segment data
@@ -61,6 +67,13 @@ interface ReplayReaderParams {
    * like performance-errors or replay-errors
    */
   errors: ReplayError[] | undefined;
+
+  /**
+   * Loaded mobile attachment data
+   *
+   * This is a list of all of the attachments (e.g. videos) for mobile replays
+   */
+  mobile: MobileAttachment[] | undefined;
 
   /**
    * The root Replay event, created at the start of the browser session.
@@ -106,13 +119,19 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
-    if (!attachments || !replayRecord || !errors) {
+  static factory({
+    attachments,
+    errors,
+    mobile,
+    replayRecord,
+    clipWindow,
+  }: ReplayReaderParams) {
+    if (!attachments || !replayRecord || !errors || !mobile) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
+      return new ReplayReader({attachments, errors, mobile, replayRecord, clipWindow});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -123,6 +142,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        mobile: [],
         replayRecord,
         clipWindow,
       });
@@ -132,10 +152,12 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    mobile,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
+    this._mobileAttachments = [];
 
     if (replayRecord.is_archived) {
       this._replayRecord = replayRecord;
@@ -194,6 +216,7 @@ export default class ReplayReader {
     // can have an easier time to render.
     this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
     this._optionFrame = optionFrame;
+    this._mobileAttachments = mobile || [];
 
     // Insert extra records to satisfy minimum requirements for the UI
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
@@ -213,6 +236,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
+  private _mobileAttachments: MobileAttachment[];
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
   private _sortedRRWebEvents: RecordingFrame[] = [];
@@ -419,6 +443,8 @@ export default class ReplayReader {
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
+  getMobileAttachments = memoize(() => this._mobileAttachments);
+
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
@@ -429,6 +455,14 @@ export default class ReplayReader {
    */
   hasCanvasElementInReplay = memoize(() => {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
+  });
+
+  // TODO(mobile-replay): might not be needed
+  isMobileReplay = memoize(() => {
+    // TODO(mobile-replay): check this._sortedRRWebEvents for a mobile replay event
+    return this._sortedRRWebEvents.find(
+      event => event.type === EventType.Custom && event.data.tag === 'video'
+    );
   });
 
   isNetworkDetailsSetup = memoize(() => {

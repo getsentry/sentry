@@ -15,14 +15,14 @@ type Props = {
 export default function useReplayReader({orgSlug, replaySlug, clipWindow}: Props) {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
+  const {attachments, errors, mobile, replayRecord, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });
 
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord, clipWindow}),
-    [attachments, clipWindow, errors, replayRecord]
+    () => ReplayReader.factory({attachments, clipWindow, errors, mobile, replayRecord}),
+    [attachments, clipWindow, errors, mobile, replayRecord]
   );
 
   return {

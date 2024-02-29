@@ -17,6 +17,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
+import {MobileReplayer} from './mobileReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -245,6 +246,8 @@ export function Provider({
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
+  const mobileAttachments = replay?.getMobileAttachments();
+  const startTimestampMs = replay?.getStartTimestampMs();
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -351,6 +354,15 @@ export function Provider({
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
 
+  const onPlay = useCallback(
+    (el, currentTime) => {
+      const {height, width} = el.getBoundingClientRect();
+      console.log('onPlay', buffer, currentTime);
+      forceDimensions({height, width});
+    },
+    [buffer]
+  );
+
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
@@ -372,6 +384,23 @@ export function Provider({
         while (root.firstChild) {
           root.removeChild(root.firstChild);
         }
+      }
+
+      // check if this is a mobile replay and use the mobile replayer
+      if (mobileAttachments?.length && startTimestampMs) {
+        const inst = new MobileReplayer(mobileAttachments, {
+          root,
+          start: startTimestampMs,
+          onPlay,
+          onFinished: setReplayFinished,
+        });
+        // `.current` is marked as readonly, but it's safe to set the value from
+        // inside a `useEffect` hook.
+        // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
+        // @ts-expect-error
+        replayerRef.current = inst;
+        applyInitialOffset();
+        return;
       }
 
       // eslint-disable-next-line no-new
@@ -414,6 +443,9 @@ export function Provider({
       hasNewEvents,
       applyInitialOffset,
       organization.features,
+      mobileAttachments,
+      startTimestampMs,
+      onPlay,
     ]
   );
 
@@ -474,7 +506,7 @@ export function Provider({
       }
     };
 
-    if (replayerRef.current && events) {
+    if (replayerRef.current && (events || mobileAttachments)) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
@@ -482,7 +514,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, togglePlayPause]);
+  }, [initRoot, events, mobileAttachments, togglePlayPause]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
