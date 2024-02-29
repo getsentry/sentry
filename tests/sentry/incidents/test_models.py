@@ -23,8 +23,8 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
-    alert_subscription_update_registry,
-    register_alert_subscription_update,
+    alert_subscription_callback_registry,
+    register_alert_subscription_callback,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
@@ -581,17 +581,19 @@ class AlertRuleTest(TestCase):
         assert result is True
 
     def test_clean_expired_alerts_add_processor(self):
-        @register_alert_subscription_update(AlertRuleMonitorType.CONTINUOUS)
+        @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
         def mock_processor(_subscription):
             return True
 
-        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_update_registry
-        assert alert_subscription_update_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_callback_registry
+        assert (
+            alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+        )
 
     def test_clean_expired_alerts_execute_processor(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
         subscription = alert_rule.snuba_query.subscriptions.get()
 
-        callback = alert_subscription_update_registry[AlertRuleMonitorType.CONTINUOUS]
+        callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
         result = callback(subscription)
         assert result is True

@@ -41,26 +41,26 @@ from sentry.utils.retries import TimedRetryPolicy
 
 # TODO - Move AlertsRule* and this registry to sentry.alerts
 # then rename these to be less verbose since it will be relative to the module
-alert_subscription_update_registry: dict[
+alert_subscription_callback_registry: dict[
     AlertRuleMonitorType, Callable[[QuerySubscription], bool]
 ] = {}
 
 
-def register_alert_subscription_update(
+def register_alert_subscription_callback(
     monitor_type: AlertRuleMonitorType,
 ) -> Callable[[Callable], Callable]:
     def decorator(func: Callable) -> Callable:
-        alert_subscription_update_registry[monitor_type] = func
+        alert_subscription_callback_registry[monitor_type] = func
         return func
 
     return decorator
 
 
-def invoke_alert_subscription_update(
+def invoke_alert_subscription_callback(
     monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
 ) -> bool:
     try:
-        callback = alert_subscription_update_registry[monitor_type]
+        callback = alert_subscription_callback_registry[monitor_type]
     except KeyError:
         return False
 
@@ -529,7 +529,7 @@ class AlertRule(Model):
         self._validate_actor()
         return super().save(**kwargs)
 
-    @register_alert_subscription_update(AlertRuleMonitorType.ACTIVATED)
+    @register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
     def clean_expired_alerts(self, subscription: QuerySubscription) -> bool:
         now = timezone.now()
         subscription_end = subscription.date_added + timedelta(
