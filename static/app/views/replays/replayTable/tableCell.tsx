@@ -287,11 +287,15 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  className,
+  handleClick,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
   referrer_table: ReferrerTableType;
+  className?: string;
+  handleClick?: () => void;
   isWidget?: boolean;
 }) {
   const {projects} = useProjects();
@@ -334,7 +338,12 @@ export function ReplayCell({
 
   if (replay.is_archived) {
     return (
-      <Item isArchived={replay.is_archived} isReplayCell>
+      <Item
+        isArchived={replay.is_archived}
+        isReplayCell
+        className={className}
+        onClick={handleClick}
+      >
         <Row gap={1}>
           <StyledIconDelete color="gray500" size="md" />
           <div>
@@ -369,7 +378,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell>
+    <Item isWidget={isWidget} isReplayCell className={className} onClick={handleClick}>
       <UserBadge
         avatarSize={24}
         displayName={

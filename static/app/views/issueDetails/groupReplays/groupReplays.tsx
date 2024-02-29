@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Group, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,6 +70,7 @@ function GroupReplays({group}: Props) {
       organization={organization}
       pageLinks={pageLinks}
       visibleColumns={VISIBLE_COLUMNS}
+      group={group}
     />
   );
 }
@@ -75,13 +79,16 @@ function GroupReplaysTable({
   eventView,
   organization,
   visibleColumns,
+  group,
 }: {
   eventView: EventView;
+  group: Group;
   organization: Organization;
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
   const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
+  const {getReplayCountForIssue} = useReplayCountForIssues();
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
@@ -92,6 +99,14 @@ function GroupReplaysTable({
 
   return (
     <StyledLayoutPage withPadding>
+      <ReplayCountHeader>
+        <StyledIconUser size="sm" />
+        {t(
+          'Replay captured %s users experiencing this issue across %s events.',
+          getReplayCountForIssue(group.id, group.issueCategory),
+          group.count
+        )}
+      </ReplayCountHeader>
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
@@ -107,6 +122,18 @@ function GroupReplaysTable({
 const StyledLayoutPage = styled(Layout.Page)`
   box-shadow: 0px 0px 1px ${p => p.theme.gray200};
   background-color: ${p => p.theme.background};
+`;
+
+const ReplayCountHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  padding-bottom: ${p => 2 * p.theme.grid}px;
+`;
+
+const StyledIconUser = styled(IconUser)`
+  margin-right: ${p => p.theme.grid}px;
+  height: 16px;
+  width: 16px;
 `;
 
 export default GroupReplays;
