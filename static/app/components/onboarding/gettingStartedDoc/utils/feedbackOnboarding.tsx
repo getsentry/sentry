@@ -1,3 +1,4 @@
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
@@ -39,3 +40,18 @@ export const getCrashReportInstallDescription = () =>
     'Sentry needs the error [codeEvent:eventId] to be able to associate the user feedback to the corresponding event. To get the [codeEvent:eventId], you can use [codeBefore:beforeSend] or the return value of the method capturing an event.',
     {codeEvent: <code />, codeBefore: <code />}
   );
+
+export function FeedbackOnboardingWebApiBanner() {
+  return (
+    <Alert type="info" showIcon>
+      {tct(
+        `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+          ),
+        }
+      )}
+    </Alert>
+  );
+}

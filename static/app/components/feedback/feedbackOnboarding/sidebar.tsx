@@ -13,6 +13,7 @@ import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnb
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -23,6 +24,7 @@ import {
   feedbackCrashApiPlatforms,
   feedbackNpmPlatforms,
   feedbackOnboardingPlatforms,
+  feedbackWebApiPlatforms,
   feedbackWidgetPlatforms,
   replayBackendPlatforms,
   replayJsLoaderInstructionsPlatformList,
@@ -160,6 +162,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const crashApiPlatform = feedbackCrashApiPlatforms.includes(currentPlatform.id);
   const widgetPlatform = feedbackWidgetPlatforms.includes(currentPlatform.id);
+  const webApiPlatform = feedbackWebApiPlatforms.includes(currentPlatform.id);
 
   const npmOnlyFramework = feedbackNpmPlatforms
     .filter(p => p !== 'javascript')
@@ -193,6 +196,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     organization,
     projectSlug: currentProject.slug,
   });
+
+  if (webApiPlatform) {
+    return <FeedbackOnboardingWebApiBanner />;
+  }
 
   const radioButtons = (
     <Header>
@@ -238,7 +245,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         />
       ) : (
         newDocs?.platformOptions &&
-        !crashApiPlatform && (
+        widgetPlatform && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
