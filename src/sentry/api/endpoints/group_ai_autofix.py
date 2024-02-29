@@ -5,21 +5,18 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
-from rest_framework.exceptions import PermissionDenied
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models.commit import Commit
 from sentry.models.group import Group
-from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release
-from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -49,43 +46,31 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_base_commit(self, group: Group) -> Commit | None:
-        # Using `id__in()` because there is no foreign key relationship.
-        releases_query_set = Release.objects.filter(
-            id__in=GroupRelease.objects.filter(group_id=group.id)
-            .order_by("-last_seen")
-            .values("release_id")
-        )
+    def _get_repos_from_code_mapping(self, group: Group):
+        repo_configs: list[
+            RepositoryProjectPathConfig
+        ] = RepositoryProjectPathConfig.objects.filter(project__in=[group.project])
 
-        if not releases_query_set:
-            return None
+        repos = []
+        for repo_config in repo_configs:
+            repo: Repository = repo_config.repository
+            repo_name_sections = repo.name.split("/")
 
-        commits: list[Commit] = list(
-            Commit.objects.filter(
-                id__in=ReleaseCommit.objects.filter(release__in=releases_query_set).values("commit")
-            )
-        )
+            # We expect a repository name to be in the format of "owner/name" for now.
+            if len(repo_name_sections) > 1:
+                repos.append(
+                    {
+                        "provider": repo.provider,
+                        "owner": repo_name_sections[0],
+                        "name": "/".join(repo_name_sections[1:]),
+                    }
+                )
 
-        # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
-        # supports more than just getsentry/sentry, we will just send the latest commit.
-        try:
-            sentry_repo: Repository = Repository.objects.get(
-                organization_id=group.organization.id, name="getsentry/sentry"
-            )
+        return repos
 
-            for commit in commits:
-                if commit.repository_id == sentry_repo.id:
-                    return commit
-        except Repository.DoesNotExist:
-            logger.exception(
-                "No getsentry/sentry repo found for organization",
-                extra={"group.id": group.id, "group.organization.id": group.organization.id},
-            )
-            pass
-
-        return None
-
-    def _get_event_entries(self, group: Group, user: User) -> list | None:
+    def _get_event_entries(
+        self, group: Group, user: AbstractBaseUser | AnonymousUser
+    ) -> list | None:
         latest_event = group.get_latest_event()
 
         if not latest_event:
@@ -120,7 +105,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
     def _call_autofix(
         self,
         group: Group,
-        base_commit_sha: str,
+        repos: list[dict],
         event_entries: list[dict],
         additional_context: str,
     ):
@@ -128,7 +113,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
             data=json.dumps(
                 {
-                    "base_commit_sha": base_commit_sha,
+                    "organization": group.organization.id,
+                    "project": group.project.id,
+                    "repos": repos,
                     "issue": {
                         "id": group.id,
                         "title": group.title,
@@ -158,8 +145,10 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             ],
         }
 
-        if not request.user.is_authenticated:
-            raise PermissionDenied(detail="You must be authenticated to perform this action.")
+        if not features.has("projects:ai-autofix", group.project):
+            return self._respond_with_error(
+                group, metadata, "AI Autofix is not enabled for this project.", 403
+            )
 
         event_entries = self._get_event_entries(group, request.user)
 
@@ -173,20 +162,13 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
             )
 
-        base_commit = self._get_base_commit(group)
+        repos = self._get_repos_from_code_mapping(group)
 
-        if not base_commit:
-            return self._respond_with_error(
-                group,
-                metadata,
-                "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now.",
-                400,
-            )
+        if not repos:
+            return self._respond_with_error(group, metadata, "No valid repositories found.", 400)
 
         try:
-            self._call_autofix(
-                group, base_commit.key, event_entries, data.get("additional_context", "")
-            )
+            self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
 
             # Mark the task as completed after TIMEOUT_SECONDS
             ai_autofix_check_for_timeout.apply_async(
