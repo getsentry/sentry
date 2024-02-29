@@ -1,7 +1,7 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ConfigStore from 'sentry/stores/configStore';
@@ -32,7 +32,7 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideStore.fetchSucceeded(serverGuide);
+    act(() => GuideStore.fetchSucceeded(serverGuide));
     expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
 
     // XXX(epurkhiser): Skip pointer event checks due to a bug with how Popper
@@ -75,7 +75,7 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideStore.fetchSucceeded(serverGuide);
+    act(() => GuideStore.fetchSucceeded(serverGuide));
     expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
 
     const dismissMock = MockApiClient.addMockResponse({
@@ -129,11 +129,11 @@ describe('GuideAnchor', function () {
       </div>
     );
 
-    GuideStore.fetchSucceeded(serverGuide);
+    act(() => GuideStore.fetchSucceeded(serverGuide));
     expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
-    GuideStore.setForceHide(true);
+    act(() => GuideStore.setForceHide(true));
     expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
-    GuideStore.setForceHide(false);
+    act(() => GuideStore.setForceHide(false));
     expect(await screen.findByText('Identify Your Issues')).toBeInTheDocument();
   });
 });

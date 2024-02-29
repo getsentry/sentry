@@ -62,7 +62,7 @@ describe('TraceLiteQuery', function () {
     });
   });
 
-  it('fetches data on mount and passes the event id', function () {
+  it('fetches data on mount and passes the event id', async function () {
     render(
       <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
@@ -71,9 +71,10 @@ describe('TraceLiteQuery', function () {
 
     expect(traceLiteMock).toHaveBeenCalledTimes(1);
     expect(traceFullMock).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
-  it('doesnt fetch meta when not needed', function () {
+  it('doesnt fetch meta when not needed', async function () {
     render(
       <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
@@ -83,6 +84,7 @@ describe('TraceLiteQuery', function () {
     expect(traceLiteMock).toHaveBeenCalledTimes(1);
     expect(traceFullMock).toHaveBeenCalledTimes(1);
     expect(traceMetaMock).toHaveBeenCalledTimes(0);
+    expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
   it('uses lite results when it cannot find current event in full results', async function () {

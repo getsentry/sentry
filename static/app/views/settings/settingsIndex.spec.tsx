@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
@@ -71,7 +71,7 @@ describe('SettingsIndex', function () {
       });
     });
 
-    it('fetches org details for SidebarDropdown', function () {
+    it('fetches org details for SidebarDropdown', async function () {
       const {rerender} = render(
         <BreadcrumbContextProvider>
           <SettingsIndex {...props} params={{}} organization={null} />
@@ -85,11 +85,11 @@ describe('SettingsIndex', function () {
         </BreadcrumbContextProvider>
       );
 
+      await waitFor(() => expect(orgApi).toHaveBeenCalledTimes(1));
       expect(spy).toHaveBeenCalledWith(expect.anything(), organization.slug, {
         setActive: true,
         loadProjects: true,
       });
-      expect(orgApi).toHaveBeenCalledTimes(1);
     });
 
     it('does not fetch org details for SidebarDropdown', function () {

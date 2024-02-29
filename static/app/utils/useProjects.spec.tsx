@@ -38,10 +38,8 @@ describe('useProjects', function () {
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = reactHooks.act(() => onSearch('test'));
+    await reactHooks.act(() => onSearch('test'));
 
-    expect(result.current.fetching).toBe(true);
-    await onSearchPromise;
     expect(result.current.fetching).toBe(false);
 
     // Wait for state to be reflected from the store

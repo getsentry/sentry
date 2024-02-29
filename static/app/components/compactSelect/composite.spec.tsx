@@ -64,7 +64,7 @@ describe('CompactSelect', function () {
     );
   });
 
-  it('renders disabled trigger button', function () {
+  it('renders disabled trigger button', async function () {
     render(
       <CompositeSelect disabled>
         <CompositeSelect.Region
@@ -77,7 +77,7 @@ describe('CompactSelect', function () {
         />
       </CompositeSelect>
     );
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(await screen.findByRole('button')).toBeDisabled();
   });
 
   // CompositeSelect renders a series of separate list boxes, each of which has its own

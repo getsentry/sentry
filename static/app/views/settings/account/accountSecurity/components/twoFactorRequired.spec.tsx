@@ -46,7 +46,7 @@ describe('TwoFactorRequired', function () {
     ...routerProps,
   };
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
@@ -59,10 +59,11 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is disabled and no pendingInvite cookie', function () {
+  it('does not render when 2FA is disabled and no pendingInvite cookie', async function () {
     render(
       <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
         <TwoFactorRequired {...baseProps} />
@@ -70,10 +71,11 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
+  it('does not render when 2FA is enrolled and no pendingInvite cookie', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
@@ -86,10 +88,11 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and has pendingInvite cookie', function () {
+  it('does not render when 2FA is enrolled and has pendingInvite cookie', async function () {
     const cookieData = {
       memberId: 5,
       token: 'abcde',
@@ -112,6 +115,7 @@ describe('TwoFactorRequired', function () {
       {context: routerContext}
     );
 
+    expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });

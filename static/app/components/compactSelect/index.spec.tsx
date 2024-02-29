@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <CompactSelect
         options={[
@@ -14,9 +14,10 @@ describe('CompactSelect', function () {
         ]}
       />
     );
+    expect(await screen.findByRole('button', {name: 'None'})).toBeEnabled();
   });
 
-  it('renders disabled', function () {
+  it('renders disabled', async function () {
     render(
       <CompactSelect
         disabled
@@ -26,7 +27,7 @@ describe('CompactSelect', function () {
         ]}
       />
     );
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'None'})).toBeDisabled();
   });
 
   it('renders with menu title', async function () {
@@ -174,7 +175,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', function () {
+    it('displays trigger button with prefix', async function () {
       render(
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
@@ -185,7 +186,9 @@ describe('CompactSelect', function () {
           ]}
         />
       );
-      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Prefix Option One'})
+      ).toBeInTheDocument();
     });
 
     it('can search', async function () {
@@ -472,7 +475,7 @@ describe('CompactSelect', function () {
       ]);
     });
 
-    it('displays trigger button with prefix', function () {
+    it('displays trigger button with prefix', async function () {
       render(
         <CompactSelect
           grid
@@ -484,7 +487,9 @@ describe('CompactSelect', function () {
           ]}
         />
       );
-      expect(screen.getByRole('button', {name: 'Prefix Option One'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Prefix Option One'})
+      ).toBeInTheDocument();
     });
 
     it('can search', async function () {
