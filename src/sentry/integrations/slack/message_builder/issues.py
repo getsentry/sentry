@@ -590,6 +590,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+        text = text.strip(" \n")
 
         if self.use_improved_block_kit:
             text = escape_slack_markdown_text(text)
