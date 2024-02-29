@@ -31,7 +31,7 @@ export function FrameVariables({data, meta}: Props) {
             return v;
           })
         : data[key],
-      meta: meta?.[key]?.[''],
+      meta: meta?.[key],
     });
   }
 

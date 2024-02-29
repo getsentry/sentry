@@ -14,29 +14,42 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
-import {Query} from 'sentry/views/ddm/queries';
+import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 
-// TODO: add types
-export function Queries({metricWidgetQueries, handleChange, addQuery, removeQuery}) {
+interface Props {
+  addQuery: () => void;
+  handleChange: (data: Partial<MetricsQuery>, index: number) => void;
+  metricWidgetQueries: MetricsQuery[];
+  removeQuery: (index: number) => void;
+}
+
+export function Queries({
+  metricWidgetQueries,
+  handleChange,
+  addQuery,
+  removeQuery,
+}: Props) {
   const {selection} = usePageFilters();
 
   return (
     <QueriesWrapper>
       {metricWidgetQueries.map((query, index) => (
-        <Query
-          key={index}
-          widget={query}
-          projects={selection.projects}
-          onChange={data => handleChange(data, index)}
-          contextMenu={
-            <ContextMenu
-              removeQuery={removeQuery}
-              queryIndex={index}
-              canRemoveQuery={metricWidgetQueries.length > 1}
-              metricsQuery={query}
-            />
-          }
-        />
+        <QueryWrapper key={index}>
+          <QueryBuilder
+            // @ts-expect-error TODO: adjust query builder type
+            onChange={data => handleChange(data, index)}
+            metricsQuery={query}
+            // @ts-expect-error TODO: remove display type from query builder
+            displayType={'line'}
+            projects={selection.projects}
+          />
+          <ContextMenu
+            canRemoveQuery={metricWidgetQueries.length > 1}
+            removeQuery={removeQuery}
+            queryIndex={index}
+            metricsQuery={query}
+          />
+        </QueryWrapper>
       ))}
       <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
         {t('Add query')}
@@ -45,17 +58,19 @@ export function Queries({metricWidgetQueries, handleChange, addQuery, removeQuer
   );
 }
 
+interface ContextMenuProps {
+  canRemoveQuery: boolean;
+  metricsQuery: MetricsQuery;
+  queryIndex: number;
+  removeQuery: (index: number) => void;
+}
+
 function ContextMenu({
   metricsQuery,
   removeQuery,
   canRemoveQuery,
   queryIndex,
-}: {
-  canRemoveQuery: boolean;
-  metricsQuery: MetricsQuery;
-  queryIndex: number;
-  removeQuery: (index: number) => void;
-}) {
+}: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
 
@@ -118,4 +133,11 @@ function ContextMenu({
 
 const QueriesWrapper = styled('div')`
   padding-bottom: ${space(2)};
+`;
+
+const QueryWrapper = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  padding-bottom: ${space(1)};
+  grid-template-columns: 1fr max-content;
 `;

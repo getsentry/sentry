@@ -149,7 +149,7 @@ class BaseQueryBuilder:
                         organization_id=organization.id, name__in=params["environment"]
                     )
                 )
-                if "" in cast(list[str], params["environment"]):
+                if "" in params["environment"]:
                     environments.append(None)
             elif isinstance(params["environment"], str):
                 environments = list(

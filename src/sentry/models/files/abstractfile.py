@@ -236,6 +236,7 @@ class AbstractFile(Model):
         impl = self._get_chunked_blob(mode, prefetch)
         return FileObj(impl, self.name)
 
+    @sentry_sdk.tracing.trace
     def save_to(self, path):
         """Fetches the file and emplaces it at a certain location.  The
         write is done atomically to a tempfile first and then moved over.

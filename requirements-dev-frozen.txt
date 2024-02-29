@@ -72,7 +72,7 @@ grpc-google-iam-v1==0.12.4
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.13.0
-hiredis==0.3.1
+hiredis==2.3.2
 honcho==1.1.0
 httpcore==1.0.2
 httpx==0.25.2
@@ -172,12 +172,12 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.16.0
+sentry-arroyo==2.16.2
 sentry-cli==2.16.0
 sentry-devenv==1.2.3
 sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
-sentry-kafka-schemas==0.1.56
+sentry-kafka-schemas==0.1.58
 sentry-ophio==0.1.5
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.45
@@ -186,7 +186,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==2.0.28
+snuba-sdk==2.0.29
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
