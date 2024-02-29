@@ -47,8 +47,8 @@ class AbstractFileBlob(Model):
     def _storage_config(cls) -> dict[str, Any] | None:
         raise NotImplementedError(cls)
 
-    @sentry_sdk.tracing.trace
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_files(cls, files, organization=None, logger=nooplogger):
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
@@ -184,8 +184,8 @@ class AbstractFileBlob(Model):
                     pass
             logger.debug("FileBlob.from_files.end")
 
-    @sentry_sdk.tracing.trace
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
