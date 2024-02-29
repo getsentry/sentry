@@ -393,14 +393,14 @@ def get_stream_processor(
         ) from e
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-    topic_def = consumer_definition["topic"]
-    if isinstance(topic_def, Topic):
-        default_topic = topic_def.value
+    consumer_topic = consumer_definition["topic"]
+    if isinstance(consumer_topic, Topic):
+        default_topic = consumer_topic.value
         real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
     else:
         # TODO: Deprecated, remove once this way is no longer used
-        if not isinstance(topic_def, str):
-            real_topic = topic_def()
+        if not isinstance(consumer_topic, str):
+            real_topic = consumer_topic()
 
     if topic is None:
         topic = real_topic
@@ -491,12 +491,12 @@ def get_stream_processor(
     validate_schema = consumer_definition.get("validate_schema")
 
     if validate_schema:
-        # TODO: Remove this later but for now we can only validate if `topic` is
+        # TODO: Remove this later but for now we can only validate if `topic_def` is
         # the logical topic and not the legacy override topic
-        assert isinstance(topic, Topic)
+        assert isinstance(consumer_topic, Topic)
 
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
-            topic.value, validate_schema, strategy_factory
+            consumer_topic.value, validate_schema, strategy_factory
         )
 
     if healthcheck_file_path is not None:
