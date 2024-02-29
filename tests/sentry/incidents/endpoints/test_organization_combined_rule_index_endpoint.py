@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import requests
 
@@ -856,7 +856,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
-        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
+        assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
     def test_project_deleted(self):
         from sentry.models.scheduledeletion import RegionScheduledDeletion
