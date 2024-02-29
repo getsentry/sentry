@@ -152,16 +152,13 @@ class CodeLocationsFetcher:
             if not locations:
                 continue
 
+            # To maintain consistent ordering, we sort by the location representation.
+            locations = sorted(locations)[: self.MAX_LOCATIONS_SIZE]
             parsed_locations = [
                 self._parse_code_location_payload(location) for location in locations
             ]
-            # To maintain consistent ordering, we sort by filename, and we want to only get half of the maximum set
-            # size. This way, we will have consistent ordering up to MAX_SET_SIZE elements in the set, if the size
-            # goes above that, we will end up having different locations returned each time (due to the random access).
-            sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")[
-                : self.MAX_LOCATIONS_SIZE
-            ]
-            frames.append(MetricCodeLocations(query=query, frames=sorted_locations))
+
+            frames.append(MetricCodeLocations(query=query, frames=parsed_locations))
 
         return frames
 
