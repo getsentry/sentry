@@ -150,7 +150,10 @@ class Symbolicator:
         }
 
         res = self._process(
-            "process_minidump", "minidump", data=data, files={"upload_file_minidump": minidump}
+            "process_minidump",
+            "minidump",
+            data=data,
+            files={"upload_file_minidump": minidump},
         )
         return process_response(res)
 
@@ -171,12 +174,17 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
+    def process_payload(
+        self, stacktraces, modules, signal=None, apply_source_context=True
+    ):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
+            "options": {
+                "dif_candidates": True,
+                "apply_source_context": apply_source_context,
+            },
             "stacktraces": stacktraces,
             "modules": modules,
             "scraping": scraping_config,
@@ -188,7 +196,9 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, release, dist, apply_source_context=True):
+    def process_js(
+        self, stacktraces, modules, release, dist, apply_source_context=True
+    ):
         source = get_internal_artifact_lookup_source(self.project)
         scraping_config = get_scraping_config(self.project)
 
@@ -206,6 +216,31 @@ class Symbolicator:
             json["dist"] = dist
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
+
+    def process_jvm(
+        self,
+        exceptions,
+        stacktraces,
+        modules,
+        release_package,
+        apply_source_context=True,
+    ):
+        source = get_internal_artifact_lookup_source(self.project)
+
+        json = {
+            "sources": [source],
+            "exceptions": exceptions,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "options": {"apply_source_context": apply_source_context},
+        }
+
+        if release_package is not None:
+            json["release_package"] = release_package
+
+        return self._process(
+            "symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json
+        )
 
 
 class TaskIdNotFound(Exception):
@@ -275,7 +310,9 @@ class SymbolicatorSession:
                 with metrics.timer(
                     "events.symbolicator.session.request", tags={"attempt": attempts}
                 ):
-                    response = self.session.request(method, url, timeout=self.timeout + 1, **kwargs)
+                    response = self.session.request(
+                        method, url, timeout=self.timeout + 1, **kwargs
+                    )
 
                 metrics.incr(
                     "events.symbolicator.status_code",
