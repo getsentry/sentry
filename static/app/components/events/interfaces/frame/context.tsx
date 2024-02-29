@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {
   Frame,
   LineCoverage,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -43,6 +44,7 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
+  platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
 
@@ -74,6 +76,7 @@ function Context({
   className,
   frameMeta,
   registersMeta,
+  platform,
 }: Props) {
   const organization = useOrganization();
 
@@ -184,7 +187,11 @@ function Context({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
+          <FrameVariables
+            platform={platform}
+            data={frame.vars ?? {}}
+            meta={frameMeta?.vars}
+          />
         </StyledClippedBox>
       )}
 
