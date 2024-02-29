@@ -55,6 +55,7 @@ def get_stacktrace_string(data):
         if exception.get("id") != "exception":
             continue
 
+        # For each exception, extract its type, value, and stacktrace frames
         exc_type, exc_value, frame_str = "", "", ""
         for exception_value in exception.get("values", []):
             contributing_frames = []
@@ -87,6 +88,7 @@ def get_stacktrace_string(data):
                         frame_dict["filename"], frame_dict["function"], frame_dict["context-line"]
                     )
 
+        # Add the exception values into the formatted string
         if exception.get("contributes"):
             stacktrace_str += exc_type + ": " + exc_value + "\n"
             if frame_str:
