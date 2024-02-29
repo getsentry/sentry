@@ -23,6 +23,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
 from sentry.snuba.metrics.naming_layer.mri import BundleAnalysisMRI
 
+MINUTE = 1000 * 60
+
 
 class ResourceSizeType(Enum):
     TOTAL = "total"
@@ -36,6 +38,7 @@ class ResourceSizeType(Enum):
 class BundleAnalysisEndpoint(ProjectEndpoint):
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner: ApiOwner = ApiOwner.PERFORMANCE
     permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
@@ -47,7 +50,7 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
     def _parse_result(self, result):
         intervals: list[datetime] = result["intervals"]
         bundles: list[str] = map(lambda x: x["by"]["bundle_name"], result["groups"])
-        bundles_dict = dict.fromkeys(bundles, [])
+        bundles_dict: dict[str, list] = dict.fromkeys(bundles, [])
 
         rows = []
         for i in range(len(intervals)):
