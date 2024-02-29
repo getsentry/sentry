@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {DataSection, SuspectCommitHeader} from 'sentry/components/events/styles';
+import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {StyledPanel, SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import Panel from 'sentry/components/panels/panel';
@@ -189,10 +189,6 @@ const SuspectCommitsContainer = styled(ContextContainer)`
   ${StyledPanel} {
     border: none;
     box-shadow: none;
-  }
-
-  ${DataSection} {
-    padding: 0;
   }
 
   ${SuspectCommitHeader} {
