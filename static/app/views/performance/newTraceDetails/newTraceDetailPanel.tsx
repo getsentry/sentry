@@ -1,4 +1,4 @@
-import {createRef, Fragment, useContext, useEffect, useState} from 'react';
+import {createRef, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -65,6 +65,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/guards';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -72,8 +76,6 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {Row, Tags} from '../traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
-import {isSpanNode, isTransactionNode} from './guards';
-import {HighLightedRowContext} from './HighlightedRowContext';
 import type {TraceTree, TraceTreeNode} from './traceTree';
 
 type EventDetailProps = {
@@ -538,27 +540,35 @@ function SpanDetailsBody({
   );
 }
 
-function TraceDetailPanel() {
-  const organization = useOrganization();
-  const location = useLocation();
-  const {node, setNode} = useContext(HighLightedRowContext);
+interface TraceDetailPanelProps {
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  onClose: () => void;
+}
 
-  if (node && !(isTransactionNode(node) || isSpanNode(node))) {
+function TraceDetailPanel(props: TraceDetailPanelProps) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  if (props.node && !(isTransactionNode(props.node) || isSpanNode(props.node))) {
     return null;
   }
 
   return (
     <PageAlertProvider>
       <DetailPanel
-        detailKey={node ? 'open' : undefined}
+        detailKey={props.node ? 'open' : undefined}
+        onClose={props.onClose}
         skipCloseOnOutsideClick
-        onClose={() => setNode(undefined)}
       >
-        {node &&
-          (isTransactionNode(node) ? (
-            <EventDetails location={location} organization={organization} node={node} />
+        {props.node &&
+          (isTransactionNode(props.node) ? (
+            <EventDetails
+              location={location}
+              organization={organization}
+              node={props.node}
+            />
           ) : (
-            <SpanDetailsBody organization={organization} node={node} />
+            <SpanDetailsBody organization={organization} node={props.node} />
           ))}
       </DetailPanel>
     </PageAlertProvider>
