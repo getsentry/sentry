@@ -4,6 +4,7 @@ import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
+  TraceErrorOrIssue,
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -98,7 +99,11 @@ import {
 
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
-  type Span = RawSpanType;
+  type Span = RawSpanType & {
+    childTxn: Transaction | undefined;
+    event: EventTransaction;
+    relatedErrors: TraceErrorOrIssue[];
+  };
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
 
@@ -377,6 +382,7 @@ export class TraceTree {
 
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
+    data: Event,
     spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
@@ -415,7 +421,13 @@ export class TraceTree {
 
     for (const span of spans) {
       const childTxn = transactionsToSpanMap.get(span.span_id);
-      const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, span, {
+      const spanNodeValue: TraceTree.Span = {
+        ...span,
+        event: data as EventTransaction,
+        relatedErrors: childTxn ? getRelatedErrorsOrIssues(span, childTxn.value) : [],
+        childTxn: childTxn?.value,
+      };
+      const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
         project_slug: undefined,
       });
@@ -725,7 +737,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data, {sdk: data.sdk?.name});
+      TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);
@@ -1315,6 +1327,22 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   throw new Error('Not implemented');
+}
+
+function getRelatedErrorsOrIssues(
+  span: RawSpanType,
+  currentEvent: TraceTree.Transaction
+): TraceErrorOrIssue[] {
+  const performanceIssues = currentEvent.performance_issues.filter(
+    issue =>
+      issue.span.some(id => id === span.span_id) ||
+      issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+  );
+
+  return [
+    ...currentEvent.errors.filter(error => error.span === span.span_id),
+    ...performanceIssues, // Spans can be shown when embedded in performance issues
+  ];
 }
 
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
