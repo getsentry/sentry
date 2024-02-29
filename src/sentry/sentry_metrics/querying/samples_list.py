@@ -11,7 +11,7 @@ from sentry.search.events.builder import (
     QueryBuilder,
     SpansIndexedQueryBuilder,
 )
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import (
     SpanMRI,
@@ -439,7 +439,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         additional_conditions = self.get_additional_conditions(builder)
 
-        min_max_conditions = self.get_min_max_conditions(builder.column(column))
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
 
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
@@ -499,7 +499,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         column = self.mri_to_column(self.mri)
         assert column is not None
-        min_max_conditions = self.get_min_max_conditions(builder.column(column))
+        min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
 
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
@@ -519,7 +519,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
         raise NotImplementedError
 
-    def get_min_max_conditions(self, column: Column) -> list[Condition]:
+    def get_min_max_conditions(self, column: SelectType) -> list[Condition]:
         conditions = []
 
         if self.min is not None:
