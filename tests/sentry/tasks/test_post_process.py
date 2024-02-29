@@ -1354,7 +1354,9 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         mock_logger.reset_mock()
 
         # Raise this organization's ratelimit
-        mock_config = {"org_ids_with_increased_ratelimit": {self.project.organization_id}}
+        mock_config = {
+            "org_ids_with_increased_issue_owners_ratelimit": {self.project.organization_id}
+        }
         with patch.dict("sentry.tasks.post_process.configuration", mock_config):
             self.call_post_process_group(
                 is_new=False,
@@ -1376,7 +1378,9 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
                 datetime.now(),
             ),
         )
-        mock_config = {"org_ids_with_increased_ratelimit": {self.project.organization_id}}
+        mock_config = {
+            "org_ids_with_increased_issue_owners_ratelimit": {self.project.organization_id}
+        }
         with patch.dict("sentry.tasks.post_process.configuration", mock_config):
             self.call_post_process_group(
                 is_new=False,

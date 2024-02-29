@@ -179,7 +179,7 @@ def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_i
     """
     enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
     if organization_id and organization_id in configuration.get(
-        "org_ids_with_increased_ratelimit", {}
+        "org_ids_with_increased_issue_owners_ratelimit", set()
     ):
         enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
 
