@@ -99,7 +99,13 @@ export default function TraceHeader(props: TraceHeaderProps) {
           <MetaData
             headingText={t('Events')}
             tooltipText=""
-            bodyText={metaLoading ? loadingIndicator : meta?.transactions ?? '\u2014'}
+            bodyText={
+              metaLoading
+                ? loadingIndicator
+                : meta
+                  ? meta.transactions + meta.errors
+                  : '\u2014'
+            }
             subtext={null}
           />
         </GuideAnchor>

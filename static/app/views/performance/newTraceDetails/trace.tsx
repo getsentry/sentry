@@ -7,13 +7,15 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -364,6 +366,7 @@ function Trace({
                         (p.parent as unknown as {_rowStartIndex: number})
                           ._rowStartIndex ?? 0
                       }
+                      organization={organization}
                       previouslyFocusedIndexRef={previouslyFocusedIndexRef}
                       tabIndex={roving_state.index ?? -1}
                       index={p.index}
@@ -435,6 +438,7 @@ function RenderRow(props: {
     node: TraceTreeNode<TraceTree.NodeValue>,
     value: boolean
   ) => void;
+  organization: Organization;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
@@ -899,9 +903,16 @@ function RenderRow(props: {
               ) : null}
             </div>
 
-            <span className="TraceOperation">{t('Error')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+            <Link
+              className="Errored Link"
+              onClick={e => e.stopPropagation()}
+              to={generateIssueEventTarget(props.node.value, props.organization)}
+            >
+              <span className="TraceOperation">{t('Error')}</span>
+              <strong className="TraceEmDash"> — </strong>
+              <span className="TraceDescription">{props.node.value.title}</span>
+            </Link>
           </div>
         </div>
         <div
@@ -920,12 +931,18 @@ function RenderRow(props: {
               props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
-          {/* @TODO: figure out what to do with trace errors */}{' '}
-          {/* <TraceBar
-          space={props.space}
-          start_timestamp={props.node.value.start_timestamp}
-          timestamp={props.node.value.timestamp}
-        /> */}
+          {typeof props.node.value.timestamp === 'number' ? (
+            <div
+              className="ErrorIconBorder"
+              style={{
+                transform: `translateX(${props.viewManager.computeTransformXFromTimestamp(
+                  props.node.value.timestamp * 1000
+                )}px)`,
+              }}
+            >
+              <IconFire color="errorText" size="xs" />
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -1272,6 +1289,30 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
+
+    .Errored {
+      color: ${p => p.theme.error};
+    }
+
+    .Link {
+      &:hover {
+        color: ${p => p.theme.blue300};
+      }
+    }
+
+    .ErrorIconBorder {
+      position: absolute;
+      margin: ${space(0.25)};
+      left: -12px;
+      background: ${p => p.theme.background};
+      width: ${space(3)};
+      height: ${space(3)};
+      border: 1px solid ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
