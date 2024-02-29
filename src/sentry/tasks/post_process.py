@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -50,7 +50,9 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
+configuration: Mapping[str, Any] = settings.SENTRY_POST_PROCESS_CONFIGURATION
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
+HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -171,10 +173,16 @@ def _capture_group_stats(job: PostProcessJob) -> None:
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
-def should_issue_owners_ratelimit(project_id, group_id):
+def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_id: int | None):
     """
     Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
     """
+    enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    if organization_id and organization_id in configuration.get(
+        "org_ids_with_increased_issue_owners_ratelimit", set()
+    ):
+        enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
 
@@ -189,7 +197,7 @@ def should_issue_owners_ratelimit(project_id, group_id):
         timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
         cache.set(cache_key, (groups, window_start), timeout)
 
-    return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    return len(groups) > enforced_limit
 
 
 def handle_owner_assignment(job):
@@ -221,7 +229,11 @@ def handle_owner_assignment(job):
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-                    if should_issue_owners_ratelimit(project.id, group.id):
+                    if should_issue_owners_ratelimit(
+                        project_id=project.id,
+                        group_id=group.id,
+                        organization_id=event.project.organization_id,
+                    ):
                         logger.info(
                             "handle_owner_assignment.ratelimited",
                             extra={
