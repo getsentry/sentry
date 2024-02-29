@@ -235,9 +235,9 @@ def build_top_projects_map(context: OrganizationReportContext):
     """
     Order the projects by which projects have the highest error count for the day
     """
+    projects_context_map = cast(dict[int, DailySummaryProjectContext], context.projects_context_map)
     projects_by_error_total = {
-        project_id: context.total_today
-        for project_id, context in context.projects_context_map.items()
+        project_id: context.total_today for project_id, context in projects_context_map.items()
     }
     top_projects = [
         k
@@ -246,7 +246,7 @@ def build_top_projects_map(context: OrganizationReportContext):
     top_projects_context_map = {}
     # for now, hard code to the top 2 projects
     for project in top_projects[:2]:
-        project_context = context.projects_context_map[project]
+        project_context = projects_context_map[project]
         top_projects_context_map[project] = project_context
 
     return top_projects_context_map

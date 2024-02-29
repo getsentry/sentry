@@ -100,6 +100,19 @@ class ProjectContext:
             ]
         )
 
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_transactions
+            and not self.key_performance_issues
+            and not self.accepted_error_count
+            and not self.dropped_error_count
+            and not self.accepted_transaction_count
+            and not self.dropped_transaction_count
+            and not self.accepted_replay_count
+            and not self.dropped_replay_count
+        )
+
 
 class DailySummaryProjectContext:
     total_today = 0
@@ -118,6 +131,18 @@ class DailySummaryProjectContext:
         self.escalated_today = []
         self.regressed_today = []
         self.new_in_release = {}
+
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_performance_issues
+            and not self.total_today
+            and not self.comparison_period_total
+            and not self.comparison_period_avg
+            and not self.escalated_today
+            and not self.regressed_today
+            and not self.new_in_release
+        )
 
 
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
@@ -413,47 +438,16 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         project_ctx.total_substatus_count += item["total"]
 
 
-def check_if_project_is_empty(project_ctx: ProjectContext, daily: bool) -> bool:
-    """
-    Check if this project has any content we could show in a notification.
-    """
-    if daily:
-        return (
-            not project_ctx.key_errors
-            and not project_ctx.key_performance_issues
-            and not project_ctx.total_today
-            and not project_ctx.comparison_period_total
-            and not project_ctx.comparison_period_avg
-            and not project_ctx.escalated_today
-            and not project_ctx.regressed_today
-            and not project_ctx.new_in_release
-        )
-
-    return (
-        not project_ctx.key_errors
-        and not project_ctx.key_transactions
-        and not project_ctx.key_performance_issues
-        and not project_ctx.accepted_error_count
-        and not project_ctx.dropped_error_count
-        and not project_ctx.accepted_transaction_count
-        and not project_ctx.dropped_transaction_count
-        and not project_ctx.accepted_replay_count
-        and not project_ctx.dropped_replay_count
-    )
-
-
 def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send a notification.
     """
     if ctx.daily:
-        project_ctxs = [
-            cast(DailySummaryProjectContext, project_ctx)
-            for project_ctx in ctx.projects_context_map.values()
-        ]
-    else:
-        project_ctxs = [
-            cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-        ]
+        projects_context_map = cast(dict[int, DailySummaryProjectContext], ctx.projects_context_map)
+        project_ctxs = [project_ctx for project_ctx in projects_context_map.values()]
 
-    return all(check_if_project_is_empty(project_ctx, ctx.daily) for project_ctx in project_ctxs)
+    else:
+        projects_context_map = cast(dict[int, ProjectContext], ctx.projects_context_map)
+        project_ctxs = [project_ctx for project_ctx in projects_context_map.values()]
+
+    return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)

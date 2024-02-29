@@ -5,7 +5,6 @@ from typing import Any
 
 from sentry.integrations.message_builder import build_attachment_title, get_title_link
 from sentry.integrations.slack.message_builder import SlackBlock
-from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -15,8 +14,10 @@ from sentry.tasks.summaries.utils import COMPARISON_PERIOD
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
+from .base import SlackNotificationsMessageBuilder
 
-class SlackDailySummaryMessageBuilder(BlockSlackMessageBuilder):
+
+class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
     def __init__(
         self,
         notification: BaseNotification,
@@ -29,7 +30,7 @@ class SlackDailySummaryMessageBuilder(BlockSlackMessageBuilder):
         self.recipient = recipient
 
     def linkify_error_title(self, group):
-        link = get_title_link(group, None, False, False, self, ExternalProviders.SLACK)
+        link = get_title_link(group, None, False, False, self.notification, ExternalProviders.SLACK)
         title = build_attachment_title(group)
         return f"<{link}|*{escape_slack_text(title)}*>"
 

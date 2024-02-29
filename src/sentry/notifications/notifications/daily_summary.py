@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class DailySummaryNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        recipient: User,
+        recipient: RpcUser | None,
         provider: ExternalProviders,
         project_context: {},
     ) -> None:
