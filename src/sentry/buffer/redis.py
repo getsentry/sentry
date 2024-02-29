@@ -7,9 +7,7 @@ from datetime import date, datetime, timezone
 from time import time
 from typing import Any
 
-import rb
 from django.utils.encoding import force_bytes, force_str
-from rediscluster import RedisCluster
 
 from sentry.buffer.base import Buffer
 from sentry.db import models
@@ -19,6 +17,7 @@ from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import (
+    get_cluster_routing_client,
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
@@ -89,14 +88,6 @@ class RedisBuffer(Buffer):
         self.incr_batch_size = incr_batch_size
         assert self.pending_partitions > 0
         assert self.incr_batch_size > 0
-
-    def get_routing_client(self) -> RedisCluster | rb.RoutingClient:
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster.get_routing_client()
-        else:
-            raise AssertionError("unreachable")
 
     def validate(self) -> None:
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
@@ -294,7 +285,7 @@ class RedisBuffer(Buffer):
             # super fast and is fine to do redundantly.
 
         pending_key = self._make_pending_key(partition)
-        client = self.get_routing_client()
+        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
         lock_key = self._make_lock_key(pending_key)
         # prevent a stampede due to celerybeat + periodic task
         if not client.set(lock_key, "1", nx=True, ex=60):
@@ -363,7 +354,7 @@ class RedisBuffer(Buffer):
         return super().process(model, columns, filters, extra, signal_only)
 
     def _process_single_incr(self, key: str) -> None:
-        client = self.get_routing_client()
+        client = get_cluster_routing_client(self.cluster, self.is_redis_cluster)
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
