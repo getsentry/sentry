@@ -404,6 +404,8 @@ def get_stream_processor(
         # TODO: Deprecated, remove once this way is no longer used
         if not isinstance(consumer_topic, str):
             real_topic = consumer_topic()
+        else:
+            real_topic = consumer_topic
 
     if topic is None:
         topic = real_topic
