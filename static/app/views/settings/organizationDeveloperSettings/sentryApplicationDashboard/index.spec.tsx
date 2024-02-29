@@ -70,18 +70,18 @@ describe('Sentry Application Dashboard', function () {
       });
     });
 
-    it('shows the total install/uninstall stats', () => {
+    it('shows the total install/uninstall stats', async () => {
       render(
         <SentryApplicationDashboard
           {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
-      expect(screen.getByTestId('installs')).toHaveTextContent('Total installs5');
+      expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
     });
 
-    it('shows the request log', () => {
+    it('shows the request log', async () => {
       render(
         <SentryApplicationDashboard
           {...RouteComponentPropsFixture()}
@@ -89,7 +89,7 @@ describe('Sentry Application Dashboard', function () {
         />
       );
       // The mock response has 1 request
-      expect(screen.getByTestId('request-item')).toBeInTheDocument();
+      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
       // Make sure that all the info is displayed
       expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('Sentry Application Dashboard', function () {
       expect(requestLog.getByText('Test Org')).toBeInTheDocument();
     });
 
-    it('shows an empty message if there are no requests', () => {
+    it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
@@ -112,11 +112,11 @@ describe('Sentry Application Dashboard', function () {
       );
 
       expect(
-        screen.getByText('No requests found in the last 30 days.')
+        await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
     });
 
-    it('shows integration and interactions chart', () => {
+    it('shows integration and interactions chart', async () => {
       render(
         <SentryApplicationDashboard
           {...RouteComponentPropsFixture()}
@@ -124,7 +124,7 @@ describe('Sentry Application Dashboard', function () {
         />
       );
 
-      expect(screen.getAllByTestId('chart')).toHaveLength(3);
+      expect(await screen.findAllByTestId('chart')).toHaveLength(3);
     });
   });
 
@@ -169,7 +169,7 @@ describe('Sentry Application Dashboard', function () {
       });
     });
 
-    it('shows the request log', () => {
+    it('shows the request log', async () => {
       render(
         <SentryApplicationDashboard
           {...RouteComponentPropsFixture()}
@@ -177,7 +177,7 @@ describe('Sentry Application Dashboard', function () {
         />
       );
       // The mock response has 1 request
-      expect(screen.getByTestId('request-item')).toBeInTheDocument();
+      expect(await screen.findByTestId('request-item')).toBeInTheDocument();
       const requestLog = within(screen.getByTestId('request-item'));
       // Make sure that all the info is displayed
       expect(requestLog.getByText('https://example.com/webhook')).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('Sentry Application Dashboard', function () {
       expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
     });
 
-    it('shows an empty message if there are no requests', () => {
+    it('shows an empty message if there are no requests', async () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/requests/`,
         body: [],
@@ -201,11 +201,11 @@ describe('Sentry Application Dashboard', function () {
         />
       );
       expect(
-        screen.getByText('No requests found in the last 30 days.')
+        await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
     });
 
-    it('shows the component interactions in a line chart', () => {
+    it('shows the component interactions in a line chart', async () => {
       render(
         <SentryApplicationDashboard
           {...RouteComponentPropsFixture()}
@@ -213,7 +213,7 @@ describe('Sentry Application Dashboard', function () {
         />
       );
 
-      expect(screen.getByTestId('chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('chart')).toBeInTheDocument();
     });
   });
 });
