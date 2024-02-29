@@ -1,6 +1,5 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import isNumber from 'lodash/isNumber';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,6 +17,7 @@ import {
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
+  isNumber?: (value: unknown) => boolean;
   isString?: (value: unknown) => boolean;
   renderBoolean?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
@@ -114,6 +114,14 @@ function StructuredData({
     );
   }
 
+  if (typeof value === 'number' || config?.isNumber?.(value)) {
+    return (
+      <ValueNumber data-test-id="value-number">
+        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
+      </ValueNumber>
+    );
+  }
+
   if (typeof value === 'string') {
     if (config?.isString?.(value)) {
       const stringValue = config.renderString?.(value) ?? value;
@@ -158,15 +166,6 @@ function StructuredData({
     );
   }
 
-  if (isNumber(value)) {
-    const valueToBeReturned =
-      withAnnotatedText && meta ? (
-        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
-      ) : (
-        value
-      );
-    return <span>{valueToBeReturned}</span>;
-  }
   if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
       children.push(
@@ -282,6 +281,10 @@ const ValueMultiLineString = styled('span')`
 const ValueStrippedString = styled('span')`
   font-weight: bold;
   color: var(--prism-keyword);
+`;
+
+const ValueNumber = styled('span')`
+  color: var(--prism-property);
 `;
 
 const ValueObjectKey = styled('span')`
