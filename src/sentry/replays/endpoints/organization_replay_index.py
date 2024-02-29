@@ -32,14 +32,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get_replay_filter_params(self, request, organization):
-        filter_params = self.get_filter_params(request, organization)
-
-        if not len(filter_params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
-
-        return filter_params
-
     @extend_schema(
         operation_id="List an Organization's Replays",
         parameters=[GlobalParams.ORG_SLUG, ReplayValidator],
