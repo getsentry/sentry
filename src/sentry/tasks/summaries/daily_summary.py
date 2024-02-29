@@ -21,6 +21,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.summaries.utils import (
+    COMPARISON_PERIOD,
     ONE_DAY,
     DailySummaryProjectContext,
     OrganizationReportContext,
@@ -111,16 +112,25 @@ def prepare_summary_data(
     duration: int,
     organization_id: int,
 ):
-    # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
-    COMPARISON_PERIOD = 14
-    comparison_offset = ONE_DAY * COMPARISON_PERIOD + 1
     organization = Organization.objects.get(id=organization_id)
+    ctx = build_summary_data(
+        timestamp=timestamp, duration=duration, organization=organization, daily=True
+    )
+    return ctx
+    # XXX(CEO): in a follow up PR this will delivery the daily summary
+
+
+def build_summary_data(
+    timestamp: float, duration: int, organization: Organization, daily: bool
+) -> OrganizationReportContext:
+    comparison_offset = ONE_DAY * COMPARISON_PERIOD + 1
     set_tag("org.slug", organization.slug)
-    set_tag("org.id", organization_id)
+    set_tag("org.id", organization.id)
     ctx = OrganizationReportContext(timestamp, duration, organization, daily=True)
     with sentry_sdk.start_span(op="daily_summary.user_project_ownership"):
         user_project_ownership(ctx)
 
+    # build 'Today's Event Count vs. 14 day average'. we need 15 days of data for this
     start = to_datetime(to_timestamp(ctx.end) - comparison_offset)
     with sentry_sdk.start_span(op="daily_summary.project_event_counts_for_organization"):
         event_counts = project_event_counts_for_organization(
