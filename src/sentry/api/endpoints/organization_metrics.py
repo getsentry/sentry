@@ -493,7 +493,8 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
         if not executor_cls:
             raise ParseError(f"Unsupported MRI: {serialized['mri']}")
 
-        if (sort := serialized.get("sort")) is not None:
+        sort = serialized.get("sort")
+        if sort is not None:
             column = sort[1:] if sort.startswith("-") else sort
             if not executor_cls.supports_sort(column):
                 raise ParseError(f"Unsupported sort: {sort} for MRI")

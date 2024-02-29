@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -36,7 +36,6 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 pytestmark = [requires_snuba]
 
@@ -219,7 +218,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            datetime.now(UTC),
             "info",
             "/api/123",
         )
