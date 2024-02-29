@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - releases/**
+      # - cmanallen/replays-merged-file-performance-test
   pull_request:
 
 # Cancel in progress workflows on pull_requests.
@@ -69,7 +70,6 @@ jobs:
       - run: |
           if [ ${{ github.event_name }} = 'push' ]; then
             args=(
-              --tag ghcr.io/getsentry/sentry-self-hosted:latest
               --push
             )
           else
