@@ -76,7 +76,9 @@ class CodeLocationsFetcher:
     # The size of the batch of keys that are fetched by endpoint.
     #
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
-    BATCH_SIZE = 50
+    BATCH_SIZE = 25
+    # The maximum number of code locations we want to retrieve per Redis set.
+    MAX_SET_SIZE = 2
 
     def __init__(
         self,
@@ -138,7 +140,7 @@ class CodeLocationsFetcher:
                 query.metric_mri,
                 query.timestamp,
             )
-            pipeline.smembers(cache_key)
+            pipeline.srandmember(cache_key, self.MAX_SET_SIZE)
 
         frames = []
         for query, locations in zip(queries, pipeline.execute()):
@@ -160,6 +162,8 @@ class CodeLocationsFetcher:
             # We are assuming that code locations have each a unique query, thus we don't perform any merging or
             # de-duplication.
             code_locations += self._get_code_locations(queries)
+
+        metrics.incr("ddm.metrics_code_locations.fetched", amount=len(code_locations))
 
         return code_locations
 
