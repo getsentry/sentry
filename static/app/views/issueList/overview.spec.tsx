@@ -1203,7 +1203,7 @@ describe('IssueList', function () {
         }),
       });
 
-      expect(screen.getByTestId('awaiting-events')).toBeInTheDocument();
+      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
