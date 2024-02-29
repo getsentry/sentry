@@ -50,6 +50,10 @@ describe('ProjectsDashboard', function () {
       url: `/teams/${org.slug}/${team.slug}/members/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
     ProjectsStatsStore.reset();
     ProjectsStore.loadInitialData([]);
   });
@@ -158,10 +162,12 @@ describe('ProjectsDashboard', function () {
           ProjectFixture({
             id: '1',
             slug: 'project1',
+            stats: [],
           }),
           ProjectFixture({
             id: '2',
             slug: 'project2',
+            stats: [],
           }),
         ],
       });

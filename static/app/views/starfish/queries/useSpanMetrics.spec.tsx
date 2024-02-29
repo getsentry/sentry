@@ -65,7 +65,7 @@ describe('useSpanMetrics', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
+    const {result, waitFor} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
         useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
       {
@@ -105,9 +105,7 @@ describe('useSpanMetrics', () => {
       })
     );
 
-    await waitForNextUpdate();
-
-    expect(result.current.isLoading).toEqual(false);
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
     expect(result.current.data).toEqual([
       {
         'span.op': 'db',

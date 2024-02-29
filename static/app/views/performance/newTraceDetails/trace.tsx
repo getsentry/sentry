@@ -2,6 +2,7 @@ import type React from 'react';
 import {
   Fragment,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -25,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -37,6 +39,7 @@ import {
   isTraceNode,
   isTransactionNode,
 } from './guards';
+import {HighLightedRowContext} from './HighlightedRowContext';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
 
@@ -172,6 +175,8 @@ function Trace({trace, trace_id}: TraceProps) {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
+  const {node: highlightedNode, setNode} = useContext(HighLightedRowContext);
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
       list: {width: 0.5},
@@ -268,9 +273,17 @@ function Trace({trace, trace_id}: TraceProps) {
           node: node.path,
         },
       });
+
+      if (highlightedNode === node) {
+        setNode(undefined);
+      } else {
+        setNode(node);
+      }
+
+      // TODO JonasBa: replace context logic with reducer here
       dispatch({type: 'go to index', index, node});
     },
-    []
+    [location.pathname, location.search, setNode, highlightedNode]
   );
 
   const onRowKeyDown = useCallback(
