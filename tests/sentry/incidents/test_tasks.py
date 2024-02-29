@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call, patch
@@ -252,7 +252,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -293,7 +293,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = django_timezone.now().replace(microsecond=0)
         values = {
             "data": [
                 {
