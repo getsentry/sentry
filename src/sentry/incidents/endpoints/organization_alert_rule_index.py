@@ -1,9 +1,8 @@
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.utils.timezone import make_aware
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -239,7 +238,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if "date_triggered" in sort_key:
-            far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(
