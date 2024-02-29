@@ -289,7 +289,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
-        app = SentryApp.objects.get(id=app.id)
+        app.refresh_from_db()
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 
@@ -305,7 +305,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
-        app = SentryApp.objects.get(id=app.id)
+        app.refresh_from_db()
         assert app.status == SentryAppStatus.PUBLISHED
         assert app.date_published
 

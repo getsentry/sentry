@@ -69,6 +69,18 @@ def expand_events(rolled_up_events: list[str]) -> set[str]:
     )
 
 
+# TODO(schew2381): Delete this method after the feature flag is removed
+def _is_elevated_user(user) -> bool:
+    """
+    This is a temporary helper method that checks if the user can become staff
+    if the feature flag is enabled. Otherwise, it defaults to checking that the
+    user can become a superuser.
+    """
+    return (
+        user.is_staff if features.has("auth:enterprise-staff-cookie", user) else user.is_superuser
+    )
+
+
 @dataclasses.dataclass
 class SentryAppUpdater:
     sentry_app: SentryApp
@@ -110,14 +122,7 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
-            if (
-                not (
-                    user.is_staff
-                    if features.has("auth:enterprise-staff-cookie", user)
-                    else user.is_superuser
-                )
-                and self.sentry_app.status == SentryAppStatus.PUBLISHED
-            ):
+            if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise APIError("Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
@@ -136,11 +141,7 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
-            if (
-                user.is_staff
-                if features.has("auth:enterprise-staff-cookie", user)
-                else user.is_superuser
-            ):
+            if _is_elevated_user(user):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -238,11 +239,7 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
-            if (
-                user.is_staff
-                if features.has("auth:enterprise-staff-cookie", user)
-                else user.is_superuser
-            ):
+            if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
 
     def _update_schema(self) -> set[str] | None:
