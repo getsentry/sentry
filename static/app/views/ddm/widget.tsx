@@ -102,7 +102,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     if (isMetricFormula(firstQuery)) {
       return (
         <Fragment>
-          = <FormularFormatter formula={formatMetricsFormula(firstQuery.formula)} />
+          <FormularFormatter formula={formatMetricsFormula(firstQuery.formula)} />
         </Fragment>
       );
     }
