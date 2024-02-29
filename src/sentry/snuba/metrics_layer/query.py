@@ -331,7 +331,7 @@ def _resolve_timeseries_metadata(
     return series, mappings
 
 
-def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
+def _resolve_use_case_id_str(exp: Formula | Timeseries, root: bool = True) -> str | None:
     def fetch_namespace(metric: Metric) -> str:
         if metric.mri is None:
             mri = get_mri(metric.public_name)
@@ -350,14 +350,18 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
     namespaces = set()
     for p in exp.parameters:
         if isinstance(p, (Formula, Timeseries)):
-            namespaces.add(_resolve_use_case_id_str(p))
+            use_case_str = _resolve_use_case_id_str(p, False)
+            if use_case_str:
+                namespaces.add(use_case_str)
 
-    if not namespaces:
-        raise InvalidParams("No use case found in formula parameters")
-    if len(namespaces) > 1:
-        raise InvalidParams("Formula parameters must all be from the same use case")
+    if root:
+        if not namespaces:
+            raise InvalidParams("No use case id found in the query")
 
-    return namespaces.pop()
+        if len(namespaces) > 1:
+            raise InvalidParams("Formula parameters must all be from the same use case")
+
+    return namespaces.pop() if namespaces else None
 
 
 def _lookup_indexer_resolve(

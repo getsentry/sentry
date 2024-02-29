@@ -889,7 +889,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("$query_2 * $query_1 + 100")
+            .apply_formula("$query_2 * $query_1 + (100 - 100 + 100)")
             .apply_formula("$query_1")
             .apply_formula("$query_2")
         )
