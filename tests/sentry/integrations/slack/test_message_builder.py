@@ -908,7 +908,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         group_event = event.for_group(event.groups[0])
-        text = "<bye> ```asdf```"
+        # should also trim whitespace
+        text = "\n\n\n      <bye> ```asdf```      "
         escaped_text = "<bye> `asdf`"
 
         occurrence = self.build_occurrence(
