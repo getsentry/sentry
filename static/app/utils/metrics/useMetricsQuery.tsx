@@ -34,19 +34,19 @@ export function createMqlQuery({
 
 export interface MetricsQueryApiRequestQuery {
   mri: MRI;
+  name: string;
   op: string;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
-  name?: string;
   orderBy?: 'asc' | 'desc';
   query?: string;
 }
 
 interface MetricsQueryApiRequestFormula {
   formula: string;
+  name: string;
   limit?: number;
-  name?: string;
   orderBy?: 'asc' | 'desc';
 }
 
@@ -103,7 +103,6 @@ export function getMetricsQueryApiRequestPayload(
   queries.forEach((query, index) => {
     if (isMetricFormula(query)) {
       requestFormulas.push({
-        name: query.name,
         mql: query.formula,
         limit: query.limit,
         order: query.orderBy,

@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import Pills from 'sentry/components/pills';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -31,6 +32,9 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   const tags = !organization.features.includes('device-classification')
     ? event.tags?.filter(tag => tag.key !== 'device.class')
     : event.tags;
+
+  const shouldDisplayTagTree =
+    location.query.tagsTree || organization.features.includes('event-tags-tree-ui');
 
   useEffect(() => {
     if (
@@ -95,23 +99,35 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   const orgSlug = organization.slug;
   const streamPath = `/organizations/${orgSlug}/issues/`;
-
   return (
     <StyledClippedBox clipHeight={150}>
-      <Pills>
-        {tags.map((tag, index) => (
-          <EventTagsPill
-            key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
-            tag={tag}
-            projectSlug={projectSlug}
-            projectId={projectId}
-            organization={organization}
-            query={generateQueryWithTag({...location.query, referrer: 'event-tags'}, tag)}
-            streamPath={streamPath}
-            meta={meta?.[index]}
-          />
-        ))}
-      </Pills>
+      {shouldDisplayTagTree ? (
+        <EventTagsTree
+          tags={tags}
+          meta={meta}
+          projectSlug={projectSlug}
+          projectId={projectId}
+          streamPath={streamPath}
+        />
+      ) : (
+        <Pills>
+          {tags.map((tag, index) => (
+            <EventTagsPill
+              key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+              tag={tag}
+              projectSlug={projectSlug}
+              projectId={projectId}
+              organization={organization}
+              query={generateQueryWithTag(
+                {...location.query, referrer: 'event-tags'},
+                tag
+              )}
+              streamPath={streamPath}
+              meta={meta?.[index]}
+            />
+          ))}
+        </Pills>
+      )}
     </StyledClippedBox>
   );
 }

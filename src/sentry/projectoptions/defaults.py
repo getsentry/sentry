@@ -166,5 +166,5 @@ register(
 # The available loader SDK versions
 register(
     key="sentry:loader_available_sdk_versions",
-    epoch_defaults={1: ["latest", "7.x", "6.x", "5.x", "4.x"], 11: ["latest", "7.x"]},
+    epoch_defaults={1: ["7.x", "6.x", "5.x", "4.x"], 11: ["7.x"]},
 )

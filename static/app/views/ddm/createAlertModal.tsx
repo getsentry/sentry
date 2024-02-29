@@ -143,6 +143,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       mri: metricsQuery.mri,
       op: metricsQuery.op,
       query: metricsQuery.query,
+      name: 'query',
     }),
     [metricsQuery.mri, metricsQuery.op, metricsQuery.query]
   );
