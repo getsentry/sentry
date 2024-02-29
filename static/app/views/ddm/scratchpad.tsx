@@ -20,6 +20,11 @@ import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalet
 import type {Sample} from './widget';
 import {MetricWidget} from './widget';
 
+interface WidgetDependencies {
+  dependencies: MetricsQueryApiQueryParams[];
+  isError: boolean;
+}
+
 function widgetToQuery(
   widget: MetricWidgetQueryParams,
   isQueryOnly = false
@@ -101,7 +106,7 @@ export function MetricScratchpad() {
   }, [widgets]);
 
   const getFormulaQueryDependencies = useCallback(
-    (formula: string) => {
+    (formula: string): WidgetDependencies => {
       let tokens: TokenList = [];
 
       try {
@@ -131,15 +136,12 @@ export function MetricScratchpad() {
   );
 
   const formulaDependencies = useMemo(() => {
-    return widgets.reduce(
-      (acc: Record<number, ReturnType<typeof getFormulaQueryDependencies>>, widget) => {
-        if (widget.type === MetricQueryType.FORMULA) {
-          acc[widget.id] = getFormulaQueryDependencies(widget.formula);
-        }
-        return acc;
-      },
-      {}
-    );
+    return widgets.reduce((acc: Record<number, WidgetDependencies>, widget) => {
+      if (widget.type === MetricQueryType.FORMULA) {
+        acc[widget.id] = getFormulaQueryDependencies(widget.formula);
+      }
+      return acc;
+    }, {});
   }, [getFormulaQueryDependencies, widgets]);
 
   const filteredWidgets = useMemo(() => {
@@ -209,7 +211,15 @@ export function MetricScratchpad() {
   );
 }
 
-function MultiChartWidgetQueries({widget, formulaDependencies, children}) {
+function MultiChartWidgetQueries({
+  widget,
+  formulaDependencies,
+  children,
+}: {
+  children: (queries: MetricsQueryApiQueryParams[]) => JSX.Element;
+  formulaDependencies: Record<number, WidgetDependencies>;
+  widget: MetricWidgetQueryParams;
+}) {
   const queries = useMemo(() => {
     return [
       widgetToQuery(widget),
