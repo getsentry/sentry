@@ -138,9 +138,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             consumer_type=self.consumer_type,
             reprocess_only_stuck_events=self.reprocess_only_stuck_events,
         )
-        step_1 = maybe_multiprocess_step(
-            mp, attachment_function, filter_step, self._pool  # type:ignore
-        )
+        step_1 = maybe_multiprocess_step(mp, attachment_function, filter_step, self._pool)
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 

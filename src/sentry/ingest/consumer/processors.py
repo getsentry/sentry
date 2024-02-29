@@ -50,7 +50,7 @@ def trace_func(**span_kwargs):
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
-    message: IngestMessage, project: Project, reprocess_only_stuck_events: bool
+    message: IngestMessage, project: Project, reprocess_only_stuck_events: bool = False
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
