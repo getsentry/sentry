@@ -11,6 +11,7 @@ class UpdateProjectKeyTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(is_superuser=False)
+        self.superuser = self.create_user(is_superuser=True)
 
     def test_simple(self):
         project = self.create_project()
@@ -274,7 +275,7 @@ class UpdateProjectKeyTest(APITestCase):
         }
 
     def test_use_case(self):
-        """Cannot update an internal DSN"""
+        """Regular user cannot update an internal DSN"""
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
         self.login_as(user=self.user)
@@ -289,12 +290,36 @@ class UpdateProjectKeyTest(APITestCase):
         response = self.client.put(url, {"name": "hello world"})
         assert response.status_code == 404
 
+        # Superuser can update
+        self.login_as(user=self.superuser, superuser=True)
+        response = self.client.put(url, {"name": "hello world"})
+        assert response.status_code == 200
+
+    def test_cannot_upgrade_to_internal(self):
+        """PUT request ignores use case field"""
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.USER.value, project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        self.client.put(url, {"useCase": "profiling", "name": "updated"})
+        updated = ProjectKey.objects.get(pk=key.id)
+        assert updated.label == "updated"
+        assert updated.use_case == UseCase.USER.value
+
 
 @region_silo_test
 class DeleteProjectKeyTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(is_superuser=False)
+        self.superuser = self.create_user(is_superuser=True)
 
     def test_simple(self):
         project = self.create_project()
@@ -313,9 +338,8 @@ class DeleteProjectKeyTest(APITestCase):
         assert not ProjectKey.objects.filter(id=key.id).exists()
 
     def test_use_case(self):
-        """Cannot delete an internal DSN"""
+        """Regular user cannot delete an internal DSN"""
         project = self.create_project()
-        self.user.is_superuser = False
         self.login_as(user=self.user)
         key = ProjectKey.objects.get_or_create(use_case=UseCase.PROFILING.value, project=project)[0]
         url = reverse(
@@ -328,3 +352,8 @@ class DeleteProjectKeyTest(APITestCase):
         )
         resp = self.client.delete(url)
         assert resp.status_code == 404, resp.content
+
+        # Superuser can delete
+        self.login_as(user=self.superuser, superuser=True)
+        resp = self.client.delete(url)
+        assert resp.status_code == 204, resp.content

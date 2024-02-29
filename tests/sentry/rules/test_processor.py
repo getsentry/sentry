@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 from unittest.mock import patch
 
@@ -626,7 +626,7 @@ class RuleProcessorTestFilters(TestCase):
         release = self.create_release(
             project=self.project,
             version="2021-02.newRelease",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC),
             environments=[self.environment],
         )
 

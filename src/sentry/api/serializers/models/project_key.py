@@ -1,8 +1,9 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.superuser import is_active_superuser
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
     get_selected_browser_sdk_version,
@@ -37,7 +38,7 @@ class DynamicSDKLoaderOptions(TypedDict):
     hasDebug: bool
 
 
-class ProjectKeySerializerResponse(TypedDict, total=False):
+class ProjectKeySerializerResponse(TypedDict):
     """
     This represents a Sentry Project Client Key.
     """
@@ -55,7 +56,7 @@ class ProjectKeySerializerResponse(TypedDict, total=False):
     browserSdk: BrowserSDK
     dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
-    useCase: str | None
+    useCase: NotRequired[str]
 
 
 @register(ProjectKey)
@@ -104,7 +105,8 @@ class ProjectKeySerializer(Serializer):
             },
         }
 
-        if user.is_superuser:
+        request = kwargs.get("request")
+        if request and is_active_superuser(request):
             data["useCase"] = obj.use_case
 
         return data

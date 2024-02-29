@@ -13,8 +13,8 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import OperationalError, connection, router, transaction
-from django.db.models import Func
+from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db.models import Func, Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
@@ -45,7 +45,12 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
+from sentry.grouping.api import (
+    NULL_GROUPHASH_INFO,
+    GroupHashInfo,
+    GroupingConfig,
+    get_grouping_config_dict_for_project,
+)
 from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
     check_for_category_mismatch,
@@ -84,10 +89,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.pullrequest import PullRequest
-from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
@@ -144,14 +150,6 @@ class GroupInfo:
     is_regression: bool
     group_release: GroupRelease | None = None
     is_new_group_environment: bool = False
-
-
-@dataclass
-class GroupHashInfo:
-    config: GroupingConfig | None
-    hashes: CalculatedHashes | None
-    grouphashes: list[GroupHash]
-    existing_grouphash: GroupHash | None
 
 
 def pop_tag(data: dict[str, Any], key: str) -> None:
@@ -1642,7 +1640,7 @@ def _save_aggregate_new(
     metric_tags: MutableTags,
 ) -> GroupInfo | None:
     project = event.project
-    secondary = GroupHashInfo(None, None, [], None)
+    secondary = NULL_GROUPHASH_INFO
 
     group_processing_kwargs = _get_group_processing_kwargs(job)
 
@@ -1677,14 +1675,7 @@ def _save_aggregate_new(
     maybe_run_background_grouping(project, job)
 
     record_hash_calculation_metrics(
-        # Cast in lieu of a non-null assertion operator, which Python doesn't have
-        #
-        # TODO: The typing and necessity of casting here is gross, but might be able to be improved
-        # once hierarchical grouping is gone
-        cast(GroupingConfig, primary.config),
-        cast(CalculatedHashes, primary.hashes),
-        secondary.config,
-        secondary.hashes,
+        primary.config, primary.hashes, secondary.config, secondary.hashes
     )
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
@@ -1700,7 +1691,7 @@ def create_and_seek_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig | None, CalculatedHashes | None],
+        tuple[GroupingConfig, CalculatedHashes],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1714,13 +1705,10 @@ def create_and_seek_grouphashes(
     """
     project = job["event"].project
 
-    grouphashes = []
-    existing_grouphash = None
-
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
 
-    if hashes:
+    if extract_hashes(hashes):
         grouphashes = [
             GroupHash.objects.get_or_create(project=project, hash=hash)[0]
             for hash in extract_hashes(hashes)
@@ -1728,7 +1716,9 @@ def create_and_seek_grouphashes(
 
         existing_grouphash = find_existing_grouphash_new(grouphashes)
 
-    return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+    else:
+        return NULL_GROUPHASH_INFO
 
 
 def handle_existing_grouphash(
@@ -1878,17 +1868,107 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
-        priority = _get_priority_for_group(severity, group_creation_kwargs)
+        priority = group_creation_kwargs.get("priority", None)
+        if priority is None:
+            priority = _get_priority_for_group(severity, group_creation_kwargs)
+
         group_creation_kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 
     group_creation_kwargs["data"] = group_data
 
-    return Group.objects.create(
-        project=project,
-        short_id=short_id,
-        **group_creation_kwargs,
-    )
+    try:
+        with transaction.atomic(router.db_for_write(Group)):
+            # This is the 99.999% path. The rest of the function is all to handle a very rare and
+            # very confounding bug which keeps projects from creating new groups.
+            group = Group.objects.create(
+                project=project,
+                short_id=short_id,
+                **group_creation_kwargs,
+            )
+
+    # Attempt to handle The Mysterious Case of the Stuck Project Counter
+    except IntegrityError as err:
+        if not _is_stuck_counter_error(err, project, short_id):
+            raise
+
+        # Note: There is a potential race condition here, if two events simultaneously try to fix
+        # the counter. Our hunch is that the only effect of that would be to over-increment, which
+        # shouldn't cause any problems. Nonetheless, if we run into trouble with this workaround,
+        # that's one thing to further investigate.
+        new_short_id = _handle_stuck_project_counter(project, short_id)
+
+        # Now that we've theoretically unstuck the counter, try again to create the group
+        try:
+            with transaction.atomic(router.db_for_write(Group)):
+                group = Group.objects.create(
+                    project=project,
+                    short_id=new_short_id,
+                    **group_creation_kwargs,
+                )
+
+        except Exception:
+            # Maybe the stuck counter was hiding some other error
+            logger.exception("Error after unsticking project counter")
+            raise
+
+    return group
+
+
+def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
+    """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
+
+    error_message = err.args[0]
+
+    if not error_message.startswith("UniqueViolation"):
+        return False
+
+    for substring in [
+        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+    ]:
+        if substring in error_message:
+            return True
+
+    return False
+
+
+def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:
+    """
+    Sometimes, for reasons unknown, a project's `Counter` value falls behind its latest group `short_id` value.
+    When that happens, that incorrect counter value leads us to try to create groups with `short_id`s which
+    are already taken.
+
+    This handles that case by updating the counter's value to the latest group `short_id`, and then returns
+    the new value.
+    """
+    new_short_id = current_short_id
+
+    # Ordinarily running max on this many rows would be prohibitively expensive, but a) this is
+    # a very rare case (< 20 ever that we know of), and b) project and short id are indexed
+    # together in order to enforce the unique constraint which got us here in the first place,
+    # so it's faster than it otherwise might be. We can time it just in case, though.
+    with metrics.timer("stuck_project.max_short_id_query"):
+        max_short_id_for_project = Group.objects.filter(project_id=project.id).aggregate(
+            Max("short_id")
+        )["short_id__max"]
+
+    # Add 1 because we're trying to mimic a value which would already have been incremented
+    correct_value = max_short_id_for_project + 1
+
+    if current_short_id < correct_value:
+        difference = correct_value - current_short_id
+        # `_get_next_short_id` corrects the `Counter` value before it returns the new short_id
+        new_short_id = _get_next_short_id(project, delta=difference)
+
+        logger.info(
+            "Fixed stuck counter value.", extra={"project": project.id, "difference": difference}
+        )
+        metrics.incr(
+            "stuck_project.fixed_counter", tags={"difference": difference}, sample_rate=1.0
+        )
+
+    return new_short_id
 
 
 def _get_next_short_id(project: Project, delta: int = 1) -> int:

@@ -193,9 +193,12 @@ def get_user_actions(
         if tag == "options" and random.randint(0, 499) < 1:
             _handle_options_logging_event(project_id, replay_id, event)
         # log large dom mutation breadcrumb events 1/100 times
+
+        payload = event.get("data", {}).get("payload", {})
         if (
-            tag == "breadcrumb"
-            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            isinstance(payload, dict)
+            and tag == "breadcrumb"
+            and payload.get("category") == "replay.mutations"
             and random.randint(0, 99) < 1
         ):
             _handle_mutations_event(project_id, replay_id, event)
@@ -311,31 +314,33 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
     if not isinstance(event_payload_data, dict):
         event_payload_data = {}
 
-    if event_payload_data.get("requestBodySize"):  # 7.44 and 7.45
+    if "requestBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.request_body_size",
             event_payload_data["requestBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("request", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.request_body_size",
-            event_payload_data["request"]["size"],
-            unit="byte",
-        )
+    elif request := event_payload_data.get("request"):
+        if isinstance(request, dict) and "size" in request:
+            metrics.distribution(
+                "replays.usecases.ingest.request_body_size",
+                request["size"],
+                unit="byte",
+            )
 
-    if event_payload_data.get("responseBodySize"):  # 7.44 and 7.45
+    if "responseBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.response_body_size",
             event_payload_data["responseBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("response", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.response_body_size",
-            event_payload_data["response"]["size"],
-            unit="byte",
-        )
+    elif response := event_payload_data.get("response"):
+        if isinstance(response, dict) and "size" in response:
+            metrics.distribution(
+                "replays.usecases.ingest.response_body_size",
+                response["size"],
+                unit="byte",
+            )
 
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
@@ -365,6 +370,9 @@ def _handle_breadcrumb(
     click = None
 
     payload = event["data"].get("payload", {})
+    if not isinstance(payload, dict):
+        return None
+
     category = payload.get("category")
     if category == "ui.slowClickDetected":
         is_timeout_reason = payload["data"].get("endReason") == "timeout"

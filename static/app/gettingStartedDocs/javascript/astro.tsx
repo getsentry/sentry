@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,11 +12,12 @@ import type {
 import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -223,7 +226,7 @@ const replayOnboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
   verify: () => [],
@@ -264,6 +267,9 @@ const feedbackOnboarding: OnboardingConfig = {
           ],
         },
       ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],

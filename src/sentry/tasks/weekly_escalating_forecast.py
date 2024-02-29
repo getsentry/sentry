@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
 from sentry_sdk.crons.decorator import monitor
@@ -67,7 +67,7 @@ def generate_forecasts_for_projects(project_ids: list[int]) -> None:
                 status=GroupStatus.IGNORED,
                 substatus=GroupSubStatus.UNTIL_ESCALATING,
                 project_id__in=project_ids,
-                last_seen__gte=datetime.now() - timedelta(days=7),
+                last_seen__gte=datetime.now(UTC) - timedelta(days=7),
             ).select_related(
                 "project", "project__organization"
             ),  # TODO: Remove this once the feature flag is removed

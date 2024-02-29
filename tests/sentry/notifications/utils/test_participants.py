@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.utils import timezone
@@ -428,7 +428,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             team_id=team.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(
@@ -453,7 +453,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             user_id=self.user.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(
@@ -474,7 +474,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group=event.group,
             project=event.group.project,
             user_id=member.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         self.assert_recipients_are(

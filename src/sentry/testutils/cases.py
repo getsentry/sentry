@@ -644,16 +644,21 @@ class PerformanceIssueTestCase(BaseTestCase):
                     perf_problem.fingerprint = fingerprint
             return perf_problems
 
-        with mock.patch(
-            "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
-            side_effect=send_issue_occurrence_to_eventstream,
-        ) as mock_eventstream, mock.patch(
-            "sentry.event_manager.detect_performance_problems",
-            side_effect=detect_performance_problems_interceptor,
-        ), mock.patch.object(
-            issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
-        ), override_options(
-            {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+        with (
+            mock.patch(
+                "sentry.issues.ingest.send_issue_occurrence_to_eventstream",
+                side_effect=send_issue_occurrence_to_eventstream,
+            ) as mock_eventstream,
+            mock.patch(
+                "sentry.event_manager.detect_performance_problems",
+                side_effect=detect_performance_problems_interceptor,
+            ),
+            mock.patch.object(
+                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+            ),
+            override_options(
+                {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
+            ),
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -957,7 +962,7 @@ class DRFPermissionTestCase(TestCase):
         self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
         self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
-        self.staff_request = self.make_request(user=self.staff_user, is_staff=True)
+        self.staff_request = self.make_request(user=self.staff_user, method="GET", is_staff=True)
 
 
 class PermissionTestCase(TestCase):
@@ -1517,6 +1522,7 @@ class BaseSpansTestCase(SnubaTestCase):
         op: str | None = None,
         duration: int = 10,
         tags: Mapping[str, Any] | None = None,
+        measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
@@ -1546,6 +1552,10 @@ class BaseSpansTestCase(SnubaTestCase):
 
         if tags:
             payload["tags"] = tags
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
         if transaction_id:
             payload["event_id"] = transaction_id
         if profile_id:
@@ -2049,14 +2059,16 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any], features: dict[str, str] = None) -> Response:
+    def do_request(self, data: dict[str, Any], features: dict[str, bool] = None) -> Response:
         """Set up self.features and self.url in the inheriting classes.
         You can pass your own features if you do not want to use the default used by the subclass.
         """
-        with self.feature(self.features if features is None else features):
+        with self.feature(features or self.features):
             return self.client.get(self.url, data=data, format="json")
 
     def _index_metric_strings(self):
@@ -2120,12 +2132,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: int | float,
+        value: int | float | str,
         spec: OnDemandMetricSpec,
         additional_tags: dict[str, str] | None = None,
         timestamp: datetime | None = None,
     ) -> None:
-        """Convert on-demand metric and store it"""
+        """Convert on-demand metric and store it.
+
+        For sets, value needs to be a unique identifier while for counters it is a count."""
         relay_metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}

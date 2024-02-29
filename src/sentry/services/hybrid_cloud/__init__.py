@@ -26,7 +26,7 @@ OptionValue = Any
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
-DEFAULT_DATE = datetime.datetime(2000, 1, 1)
+DEFAULT_DATE = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
 
 
 class ValueEqualityEnum(Enum):
