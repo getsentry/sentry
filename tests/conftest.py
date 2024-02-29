@@ -7,7 +7,7 @@ import responses
 from django.db import connections
 
 from sentry.silo import SiloMode
-from sentry.testutils.pytest.sentry import DEFAULT_SILO_MODE_FOR_TEST_CASES
+from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
 
 pytest_plugins = ["sentry.testutils.pytest"]
 
@@ -112,7 +112,7 @@ def validate_silo_mode():
     # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
     # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
-    expected = DEFAULT_SILO_MODE_FOR_TEST_CASES
+    expected = get_default_silo_mode_for_test_cases()
     message = (
         f"Possible test leak bug!  SiloMode was not reset to {expected} between tests.  "
         "Please read the comment for validate_silo_mode() in tests/conftest.py."
