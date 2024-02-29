@@ -66,7 +66,7 @@ class BaseField(Generic[T]):
         elif operator == "NOT IN":
             visitor = self.query.visit_not_in
         else:
-            raise OperatorNotSupported(f"Unsupported aggregate search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported composite search operator: '{operator}'")
 
         return visitor(expression, value)
 
