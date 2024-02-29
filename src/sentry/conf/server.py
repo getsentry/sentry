@@ -1957,6 +1957,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable playing replays from the replay tab
+    "organizations:replay-play-from-replay-tab": False,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3835,6 +3837,9 @@ SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
+}
+SENTRY_POST_PROCESS_CONFIGURATION: Mapping[str, Any] = {
+    "org_ids_with_increased_issue_owners_ratelimit": set()
 }
 
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint

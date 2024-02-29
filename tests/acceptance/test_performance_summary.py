@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -42,7 +41,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
@@ -66,7 +65,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_view_details_from_summary(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         event = make_event(
             load_data(
@@ -85,7 +84,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_tags_page(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         tags_path = "/organizations/{}/performance/summary/tags/?{}".format(
             self.org.slug,
@@ -104,7 +103,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_transaction_vitals(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
@@ -125,7 +124,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_transaction_vitals_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
@@ -185,7 +184,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_transaction_threshold_modal(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
