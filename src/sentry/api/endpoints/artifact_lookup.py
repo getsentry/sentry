@@ -37,7 +37,7 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
