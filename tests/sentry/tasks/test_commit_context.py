@@ -12,7 +12,6 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
@@ -1009,9 +1008,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.save()
 
         self.add_responses()
-
-        group = Group.objects.get_from_cache(id=self.event.group_id)
-        Group.update(group, level=logging.INFO)
+        self.event.group.update(level=logging.INFO)
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -1024,9 +1021,6 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert not mock_comment_workflow.called
             assert len(PullRequestCommit.objects.all()) == 0
-
-        # Reset group level
-        Group.update(group, level=logging.ERROR)
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
