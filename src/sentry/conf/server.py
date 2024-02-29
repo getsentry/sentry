@@ -3511,7 +3511,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, str]] = {
     "snuba-spans": "default",
 }
 
-
 # Cluster configuration for each Kafka topic by name.
 # DEPRECATED
 KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
