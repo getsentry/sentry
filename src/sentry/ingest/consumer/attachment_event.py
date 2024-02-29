@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload], consumer_type: str
+    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
@@ -40,13 +40,16 @@ def decode_and_process_chunks(
     message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
     if message["type"] == "attachment_chunk":
-        process_attachment_chunk(message)
+        if not reprocess_only_stuck_events:
+            process_attachment_chunk(message)
         return None
 
     return message
 
 
-def process_attachments_and_events(raw_message: Message[IngestMessage]) -> None:
+def process_attachments_and_events(
+    raw_message: Message[IngestMessage], reprocess_only_stuck_events: bool
+) -> None:
     """
     The second pass for the `attachments` topic processes *individual* `attachments`
     which are not needed for event processing, and the `event` itself,
@@ -71,9 +74,10 @@ def process_attachments_and_events(raw_message: Message[IngestMessage]) -> None:
         return None
 
     if message_type == "attachment":
-        process_individual_attachment(message, project)
+        if not reprocess_only_stuck_events:
+            process_individual_attachment(message, project)
     elif message_type == "event":
-        process_event(message, project)
+        process_event(message, project, reprocess_only_stuck_events)
     elif message_type == "user_report":
         process_userreport(message, project)
     else:
