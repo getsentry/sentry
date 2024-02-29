@@ -23,6 +23,7 @@ import {
   feedbackCrashApiPlatforms,
   feedbackNpmPlatforms,
   feedbackOnboardingPlatforms,
+  feedbackWebApiPlatforms,
   feedbackWidgetPlatforms,
   replayBackendPlatforms,
   replayJsLoaderInstructionsPlatformList,
@@ -160,6 +161,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const crashApiPlatform = feedbackCrashApiPlatforms.includes(currentPlatform.id);
   const widgetPlatform = feedbackWidgetPlatforms.includes(currentPlatform.id);
+  const webApiPlatform = feedbackWebApiPlatforms.includes(currentPlatform.id);
 
   const npmOnlyFramework = feedbackNpmPlatforms
     .filter(p => p !== 'javascript')
@@ -288,6 +290,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   function getConfig() {
+    if (webApiPlatform) {
+      return 'feedbackOnboardingWebApi';
+    }
     if (crashApiPlatform) {
       return 'feedbackOnboardingCrashApi';
     }

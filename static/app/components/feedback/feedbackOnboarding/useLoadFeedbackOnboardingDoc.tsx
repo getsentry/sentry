@@ -9,6 +9,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 function getPlatformPath(platform: PlatformIntegration) {
   if (platform.type === 'framework') {
     switch (platform.id) {
+      case 'minidump':
+        return `minidump/minidump`;
+      case 'native-qt':
+        return `native/native-qt`;
       case 'capacitor':
       case 'ionic':
         return `capacitor/capacitor`;
@@ -25,8 +29,18 @@ function getPlatformPath(platform: PlatformIntegration) {
       default:
         return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }
+  } else {
+    switch (platform.id) {
+      case 'python-celery':
+        return `python/celery`;
+      case 'python-rq':
+        return `python/rq`;
+      case 'python-pymongo':
+        return `python/mongo`;
+      default:
+        return `${platform.language}/${platform.id}`;
+    }
   }
-  return `${platform.language}/${platform.id}`;
 }
 
 function useLoadFeedbackOnboardingDoc({

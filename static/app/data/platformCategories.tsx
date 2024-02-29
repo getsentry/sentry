@@ -413,8 +413,32 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'unreal',
 ];
 
+// Feedback platforms that default to the web API
+export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
+  'cordova',
+  'ruby-rack',
+  'ruby',
+  'native',
+  'native-qt',
+  'native',
+  'minidump',
+  'python-asgi',
+  'python-awslambda',
+  'python-celery',
+  'python-chalice',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python',
+  'python-rq',
+  'python-serverless',
+  'python-tryton',
+  'python-wsgi',
+];
+
 // All feedback onboarding platforms
 export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWebApiPlatforms,
   ...feedbackWidgetPlatforms,
   ...feedbackCrashApiPlatforms,
 ];
