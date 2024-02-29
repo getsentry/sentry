@@ -51,7 +51,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
         try:
-            filter_params = self.get_replay_filter_params(request, organization)
+            filter_params = self.get_filter_params(request, organization)
         except NoProjects:
             return Response({"data": []}, status=200)
 
