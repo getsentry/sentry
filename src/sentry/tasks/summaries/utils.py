@@ -45,7 +45,7 @@ class OrganizationReportContext:
             int, ProjectContext | DailySummaryProjectContext
         ] = {}  # { project_id: ProjectContext }
 
-        self.project_ownership: dict[str, set[int]] = {}  # { user_id: set<project_id> }
+        self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
         for project in organization.project_set.all():
             if self.daily:

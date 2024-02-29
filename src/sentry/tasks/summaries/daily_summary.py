@@ -18,6 +18,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -235,10 +236,11 @@ def build_top_projects_map(context: OrganizationReportContext, user_id: int):
     """
     Order the projects by which of the user's projects have the highest error count for the day
     """
-    user_projects_context_map = {
-        project: context.projects_context_map[project]
-        for project in context.project_ownership[user_id]
-    }
+    user_projects_context_map: dict[int, DailySummaryProjectContext] = {}
+    projects_context_map = cast(dict[int, DailySummaryProjectContext], context.projects_context_map)
+    for project in context.project_ownership[user_id]:
+        user_projects_context_map[project] = projects_context_map[project]
+
     projects_by_error_total = {
         project_id: context.total_today for project_id, context in user_projects_context_map.items()
     }
@@ -262,7 +264,7 @@ def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
     )
     for user_id in user_ids:
         top_projects_context_map = build_top_projects_map(ctx, user_id)
-        user = user_service.get_user(user_id=user_id)
+        user = cast(RpcActor, user_service.get_user(user_id=user_id))
         DailySummaryNotification(
             organization=ctx.organization,
             recipient=user,

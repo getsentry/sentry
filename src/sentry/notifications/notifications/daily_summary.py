@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.tasks.summaries.utils import DailySummaryProjectContext
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -25,9 +25,9 @@ class DailySummaryNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        recipient: RpcUser | None,
+        recipient: RpcActor,
         provider: ExternalProviders,
-        project_context: {},
+        project_context: dict[int, DailySummaryProjectContext],
     ) -> None:
         super().__init__(organization)
         self.recipient = recipient
@@ -44,7 +44,7 @@ class DailySummaryNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return self.get_message_description(self.recipient, self.provider)
 
-    def get_context(self) -> MutableMapping[str, Any]:
+    def get_context(self) -> dict[int, DailySummaryProjectContext]:  # type: ignore
         return self.project_context
 
     def get_notification_title(
