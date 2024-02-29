@@ -72,13 +72,15 @@ class CodeLocationsFetcher:
     # The maximum number of keys that can be fetched by the fetcher.
     #
     # The estimation was naively done by supposing at most 10 metrics with 2 projects and at most 90 timestamps.
-    MAXIMUM_KEYS = 2000
+    MAXIMUM_KEYS = 200
     # The size of the batch of keys that are fetched by endpoint.
     #
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
     BATCH_SIZE = 25
     # The maximum number of code locations we want to retrieve per Redis set.
     MAX_SET_SIZE = 2
+
+    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_SET_SIZE elements being returned.
 
     def __init__(
         self,
