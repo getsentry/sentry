@@ -89,7 +89,10 @@ class RuleSerializer(Serializer):
         )
 
         users = {
-            u.id: u for u in user_service.get_many(filter=dict(user_ids=[ra.user_id for ra in ras]))
+            u.id: u
+            for u in user_service.get_many(
+                filter=dict(user_ids=[ra.user_id for ra in ras if ra.user_id is not None])
+            )
         }
 
         for rule_activity in ras:
