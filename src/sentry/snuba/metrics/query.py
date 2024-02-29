@@ -386,7 +386,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
         if self.start and self.end and self.include_series:
             # For this calculation, we decided to round down to the integer since if we get 10.000,x we prefer to allow
-            # the query and lose some data points.
+            # the query and lose some data points. On the other hand, if we get 11.000,x we will not allow the query.
             if int((self.end - self.start).total_seconds() / interval) > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
