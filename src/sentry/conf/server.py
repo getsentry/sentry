@@ -3477,7 +3477,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
 # Mapping of default Kafka topic name to cluster name.
-KAFKA_TOPIC_TO_CLUSTER: Mapping[str, Mapping[str, str]] = {
+KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "snuba-commit-log": "default",
     "transactions": "default",
