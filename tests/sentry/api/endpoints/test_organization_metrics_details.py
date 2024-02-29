@@ -28,6 +28,16 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
+    def test_staff_and_superuser_metrics_details_sessions(self):
+        staff_and_superuser = self.create_user(is_staff=True)
+        self.login_as(user=staff_and_superuser, staff=True, superuser=True)
+        # We should not fail when both modes are active
+        response = self.get_success_response(
+            self.organization.slug, project=self.project.id, useCase="sessions"
+        )
+
+        assert isinstance(response.data, list)
+
     def test_metrics_details_sessions(self):
         response = self.get_success_response(
             self.organization.slug, project=self.project.id, useCase="sessions"
