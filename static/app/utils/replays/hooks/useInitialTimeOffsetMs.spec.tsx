@@ -43,7 +43,7 @@ describe('useInitialTimeOffsetMs', () => {
       const offsetInSeconds = 23;
       mockQuery({t: String(offsetInSeconds)});
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -51,9 +51,8 @@ describe('useInitialTimeOffsetMs', () => {
           replayStartTimestampMs: undefined,
         },
       });
-      await waitForNextUpdate();
 
-      expect(result.current).toStrictEqual({offsetMs: 23 * 1000});
+      await waitFor(() => expect(result.current).toStrictEqual({offsetMs: 23 * 1000}));
     });
 
     it('should prefer reading `t` over the other qs params', async () => {
@@ -64,7 +63,7 @@ describe('useInitialTimeOffsetMs', () => {
         query: 'click.tag:button',
       });
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -72,9 +71,8 @@ describe('useInitialTimeOffsetMs', () => {
           replayStartTimestampMs: undefined,
         },
       });
-      await waitForNextUpdate();
 
-      expect(result.current).toStrictEqual({offsetMs: 23 * 1000});
+      await waitFor(() => expect(result.current).toStrictEqual({offsetMs: 23 * 1000}));
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
     });
   });
@@ -89,41 +87,35 @@ describe('useInitialTimeOffsetMs', () => {
       async ({input}) => {
         mockQuery({event_t: input});
 
-        const {result, waitForNextUpdate} = reactHooks.renderHook(
-          useInitialTimeOffsetMs,
-          {
-            initialProps: {
-              orgSlug: organization.slug,
-              projectSlug: project.slug,
-              replayId: replay.id,
-              replayStartTimestampMs: new Date(NOON).getTime(),
-            },
-          }
-        );
-        await waitForNextUpdate();
+        const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+          initialProps: {
+            orgSlug: organization.slug,
+            projectSlug: project.slug,
+            replayId: replay.id,
+            replayStartTimestampMs: new Date(NOON).getTime(),
+          },
+        });
 
         // Expecting 5 minutes difference, in ms
-        expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
+        await waitFor(() =>
+          expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000})
+        );
       }
     );
 
     it('should return 0 offset if there is no replayStartTimetsamp, then recalculate when the startTimestamp appears', async () => {
       mockQuery({event_t: FIVE_PAST_FORMATTED});
 
-      const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(
-        useInitialTimeOffsetMs,
-        {
-          initialProps: {
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-            replayId: replay.id,
-            replayStartTimestampMs: undefined as number | undefined,
-          },
-        }
-      );
+      const {result, rerender, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+        initialProps: {
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          replayId: replay.id,
+          replayStartTimestampMs: undefined as number | undefined,
+        },
+      });
 
-      await waitForNextUpdate();
-      expect(result.current).toStrictEqual({offsetMs: 0});
+      await waitFor(() => expect(result.current).toStrictEqual({offsetMs: 0}));
 
       rerender({
         orgSlug: organization.slug,
@@ -131,10 +123,11 @@ describe('useInitialTimeOffsetMs', () => {
         replayId: replay.id,
         replayStartTimestampMs: new Date(NOON).getTime(),
       });
-      await waitForNextUpdate();
 
       // Expecting 5 minutes difference, in ms
-      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
+      await waitFor(() =>
+        expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000})
+      );
     });
 
     it('should prefer reading `event_t` over the other search query params', async () => {
@@ -148,7 +141,7 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [],
       });
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -156,9 +149,10 @@ describe('useInitialTimeOffsetMs', () => {
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
-      await waitForNextUpdate();
 
-      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
+      await waitFor(() =>
+        expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000})
+      );
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
     });
   });
@@ -167,7 +161,7 @@ describe('useInitialTimeOffsetMs', () => {
     it('should skip this strategy if there is no `click.*` term in the query', async () => {
       mockQuery({query: 'user.email:*@sentry.io'});
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -175,10 +169,9 @@ describe('useInitialTimeOffsetMs', () => {
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
-      await waitForNextUpdate();
 
+      await waitFor(() => expect(result.current).toStrictEqual({offsetMs: 0}));
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
-      expect(result.current).toStrictEqual({offsetMs: 0});
     });
 
     it('should request a list of click results, and calculate the offset from the first result', async () => {
@@ -189,7 +182,7 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
-      const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+      const {result, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
         initialProps: {
           orgSlug: organization.slug,
           projectSlug: project.slug,
@@ -197,18 +190,19 @@ describe('useInitialTimeOffsetMs', () => {
           replayStartTimestampMs: new Date(NOON).getTime(),
         },
       });
-      await waitForNextUpdate();
 
-      expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
       // Expecting 5 minutes difference, in ms
-      expect(result.current).toStrictEqual({
-        highlight: {
-          annotation: undefined,
-          nodeId: 7,
-          spotlight: true,
-        },
-        offsetMs: 5 * 60 * 1000,
-      });
+      await waitFor(() =>
+        expect(result.current).toStrictEqual({
+          highlight: {
+            annotation: undefined,
+            nodeId: 7,
+            spotlight: true,
+          },
+          offsetMs: 5 * 60 * 1000,
+        })
+      );
+      expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
     });
 
     it('should not call call fetch twice when props change', async () => {
@@ -219,23 +213,21 @@ describe('useInitialTimeOffsetMs', () => {
         clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
-      const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(
-        useInitialTimeOffsetMs,
-        {
-          initialProps: {
-            orgSlug: organization.slug,
-            projectSlug: project.slug,
-            replayId: replay.id,
-            replayStartTimestampMs: undefined as number | undefined,
-          },
-        }
-      );
-      await waitForNextUpdate();
-
-      expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
-      expect(result.current).toStrictEqual({
-        offsetMs: 0,
+      const {result, rerender, waitFor} = reactHooks.renderHook(useInitialTimeOffsetMs, {
+        initialProps: {
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          replayId: replay.id,
+          replayStartTimestampMs: undefined as number | undefined,
+        },
       });
+
+      await waitFor(() => expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0));
+      await waitFor(() =>
+        expect(result.current).toStrictEqual({
+          offsetMs: 0,
+        })
+      );
 
       rerender({
         orgSlug: organization.slug,
@@ -243,17 +235,18 @@ describe('useInitialTimeOffsetMs', () => {
         replayId: replay.id,
         replayStartTimestampMs: new Date(NOON).getTime(),
       });
-      await waitForNextUpdate();
 
+      await waitFor(() =>
+        expect(result.current).toStrictEqual({
+          highlight: {
+            annotation: undefined,
+            nodeId: 7,
+            spotlight: true,
+          },
+          offsetMs: 5 * 60 * 1000,
+        })
+      );
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
-      expect(result.current).toStrictEqual({
-        highlight: {
-          annotation: undefined,
-          nodeId: 7,
-          spotlight: true,
-        },
-        offsetMs: 5 * 60 * 1000,
-      });
     });
   });
 });

@@ -67,7 +67,7 @@ describe('useSpanMetricsSeries', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
+    const {result, waitFor} = reactHooks.renderHook(
       ({filters, yAxis}) => useSpanMetricsSeries({filters, yAxis}),
       {
         wrapper: Wrapper,
@@ -100,9 +100,7 @@ describe('useSpanMetricsSeries', () => {
       })
     );
 
-    await waitForNextUpdate();
-
-    expect(result.current.isLoading).toEqual(false);
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
     expect(result.current.data).toEqual({
       'spm()': {
         data: [
@@ -121,7 +119,7 @@ describe('useSpanMetricsSeries', () => {
       body: {},
     });
 
-    const {rerender, waitForNextUpdate} = reactHooks.renderHook(
+    const {rerender, waitFor} = reactHooks.renderHook(
       ({yAxis}) => useSpanMetricsSeries({yAxis}),
       {
         wrapper: Wrapper,
@@ -146,17 +144,17 @@ describe('useSpanMetricsSeries', () => {
       yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
     });
 
-    expect(eventsRequest).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          interval: '1h',
-          yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
-        }),
-      })
+    await waitFor(() =>
+      expect(eventsRequest).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          method: 'GET',
+          query: expect.objectContaining({
+            interval: '1h',
+            yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
+          }),
+        })
+      )
     );
-
-    await waitForNextUpdate();
   });
 });

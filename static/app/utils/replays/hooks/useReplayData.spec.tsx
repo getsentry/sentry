@@ -88,7 +88,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -96,17 +96,17 @@ describe('useReplayData', () => {
       },
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      attachments: expect.any(Array),
-      errors: expect.any(Array),
-      fetchError: undefined,
-      fetching: false,
-      onRetry: expect.any(Function),
-      projectSlug: project.slug,
-      replayRecord: expectedReplay,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        attachments: expect.any(Array),
+        errors: expect.any(Array),
+        fetchError: undefined,
+        fetching: false,
+        onRetry: expect.any(Function),
+        projectSlug: project.slug,
+        replayRecord: expectedReplay,
+      })
+    );
   });
 
   it('should concat N segment responses and pass them into ReplayReader', async () => {
@@ -161,7 +161,7 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -170,9 +170,7 @@ describe('useReplayData', () => {
       },
     });
 
-    await waitForNextUpdate();
-
-    expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
 
     expect(result.current).toStrictEqual(
@@ -249,7 +247,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -258,9 +256,7 @@ describe('useReplayData', () => {
       },
     });
 
-    await waitForNextUpdate();
-
-    expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockedErrorsCall1).toHaveBeenCalledTimes(1));
     expect(mockedErrorsCall2).toHaveBeenCalledTimes(1);
 
     expect(result.current).toStrictEqual(
@@ -314,7 +310,7 @@ describe('useReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+    const {result, waitFor} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -338,11 +334,9 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall).not.toHaveBeenCalledTimes(1);
     expect(result.current).toEqual(expectedReplayData);
 
-    await waitForNextUpdate();
-
     // Afterwards we see the attachments & errors requests are made
-    expect(mockedReplayCall).toHaveBeenCalledTimes(1);
-    expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockedReplayCall).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockedEventsMetaCall).toHaveBeenCalledTimes(1));
     expect(mockedSegmentsCall).toHaveBeenCalledTimes(1);
     expect(result.current).toStrictEqual(
       expect.objectContaining({
@@ -353,26 +347,26 @@ describe('useReplayData', () => {
       })
     );
 
-    await waitForNextUpdate();
-
     // Next we see that some rrweb data has arrived
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: mockSegmentResponse,
-        errors: [],
-        replayRecord: expectedReplay,
-      })
+    await waitFor(() =>
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: mockSegmentResponse,
+          errors: [],
+          replayRecord: expectedReplay,
+        })
+      )
     );
 
-    await waitForNextUpdate();
-
     // Finally we see fetching is complete, errors are here too
-    expect(result.current).toStrictEqual(
-      expect.objectContaining({
-        attachments: mockSegmentResponse,
-        errors: mockErrorResponse,
-        replayRecord: expectedReplay,
-      })
+    await waitFor(() =>
+      expect(result.current).toStrictEqual(
+        expect.objectContaining({
+          attachments: mockSegmentResponse,
+          errors: mockErrorResponse,
+          replayRecord: expectedReplay,
+        })
+      )
     );
   });
 });
