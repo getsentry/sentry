@@ -42,6 +42,8 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     transaction: 'transaction',
     'transaction.op': '',
     'transaction.status': '',
+    performance_issues: [],
+    errors: [],
     ...overrides,
   } as TraceFullDetailed;
 }
