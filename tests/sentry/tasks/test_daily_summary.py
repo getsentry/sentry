@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest import mock
 
 from sentry.constants import DataCategory
@@ -8,7 +9,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.tasks.summaries.daily_summary import build_summary_data, schedule_organizations
-from sentry.tasks.summaries.utils import ONE_DAY
+from sentry.tasks.summaries.utils import ONE_DAY, DailySummaryProjectContext
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
@@ -182,36 +183,31 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             daily=True,
         )
         project_id = self.project.id
-
-        assert (
-            summary.projects_context_map[project_id].total_today == 15
-        )  # total outcomes from today
-        assert summary.projects_context_map[project_id].comparison_period_avg == 1
-        assert len(summary.projects_context_map[project_id].key_errors) == 3
-        assert (self.group1, None, 3) in summary.projects_context_map[project_id].key_errors
-        assert (self.group2, None, 2) in summary.projects_context_map[project_id].key_errors
-        assert (self.group3, None, 10) in summary.projects_context_map[project_id].key_errors
-        assert len(summary.projects_context_map[project_id].key_performance_issues) == 2
-        assert (self.perf_event.group, None, 1) in summary.projects_context_map[
-            project_id
-        ].key_performance_issues
-        assert (self.perf_event2.group, None, 1) in summary.projects_context_map[
-            project_id
-        ].key_performance_issues
-        assert summary.projects_context_map[project_id].escalated_today == [self.group3]
-        assert summary.projects_context_map[project_id].regressed_today == [self.group2]
-        assert (
-            self.group2 in summary.projects_context_map[project_id].new_in_release[self.release.id]
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert (
-            self.group3 in summary.projects_context_map[project_id].new_in_release[self.release.id]
-        )
+        assert project_context_map.total_today == 15  # total outcomes from today
+        assert project_context_map.comparison_period_avg == 1
+        assert len(project_context_map.key_errors) == 3
+        assert (self.group1, None, 3) in project_context_map.key_errors
+        assert (self.group2, None, 2) in project_context_map.key_errors
+        assert (self.group3, None, 10) in project_context_map.key_errors
+        assert len(project_context_map.key_performance_issues) == 2
+        assert (self.perf_event.group, None, 1) in project_context_map.key_performance_issues
+        assert (self.perf_event2.group, None, 1) in project_context_map.key_performance_issues
+        assert project_context_map.escalated_today == [self.group3]
+        assert project_context_map.regressed_today == [self.group2]
+        assert self.group2 in project_context_map.new_in_release[self.release.id]
+        assert self.group3 in project_context_map.new_in_release[self.release.id]
 
         project_id2 = self.project2.id
-        assert summary.projects_context_map[project_id2].total_today == 2
-        assert summary.projects_context_map[project_id2].comparison_period_avg == 0
-        assert summary.projects_context_map[project_id2].key_errors == [(self.group4, None, 2)]
-        assert summary.projects_context_map[project_id2].key_performance_issues == []
-        assert summary.projects_context_map[project_id2].escalated_today == []
-        assert summary.projects_context_map[project_id2].regressed_today == []
-        assert summary.projects_context_map[project_id2].new_in_release == {}
+        project_context_map2 = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id2]
+        )
+        assert project_context_map2.total_today == 2
+        assert project_context_map2.comparison_period_avg == 0
+        assert project_context_map2.key_errors == [(self.group4, None, 2)]
+        assert project_context_map2.key_performance_issues == []
+        assert project_context_map2.escalated_today == []
+        assert project_context_map2.regressed_today == []
+        assert project_context_map2.new_in_release == {}
