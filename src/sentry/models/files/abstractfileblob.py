@@ -6,6 +6,7 @@ from threading import Semaphore
 from typing import Any, ClassVar, Self
 from uuid import uuid4
 
+import sentry_sdk
 from django.db import IntegrityError, models, router
 from django.utils import timezone
 
@@ -47,6 +48,7 @@ class AbstractFileBlob(Model):
         raise NotImplementedError(cls)
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_files(cls, files, organization=None, logger=nooplogger):
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
@@ -183,6 +185,7 @@ class AbstractFileBlob(Model):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
@@ -222,6 +225,7 @@ class AbstractFileBlob(Model):
         pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return "/".join(pieces)
 
+    @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         if self.path:
             # Defer this by 1 minute just to make sure
