@@ -79,8 +79,10 @@ class CodeLocationsFetcher:
     BATCH_SIZE = 25
     # The maximum number of code locations we want to retrieve per Redis set.
     MAX_SET_SIZE = 10
+    # The maximum number of code locations that we actually return per Redis set.
+    MAX_LOCATIONS_SIZE = 5
 
-    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * (MAX_SET_SIZE / 2) elements being
+    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_LOCATIONS_SIZE elements being
     # returned because we further limit entries returned from Redis after loading them.
 
     def __init__(
@@ -157,7 +159,7 @@ class CodeLocationsFetcher:
             # size. This way, we will have consistent ordering up to MAX_SET_SIZE elements in the set, if the size
             # goes above that, we will end up having different locations returned each time (due to the random access).
             sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")[
-                : self.MAX_SET_SIZE / 2
+                : self.MAX_LOCATIONS_SIZE
             ]
             frames.append(MetricCodeLocations(query=query, frames=sorted_locations))
 

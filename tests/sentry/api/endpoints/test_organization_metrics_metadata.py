@@ -198,13 +198,13 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             self.organization.slug,
             metric=mris,
             project=[project.id for project in projects],
-            statsPeriod="90d",
+            statsPeriod="30d",
             codeLocations="true",
         )
 
-        # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
+        # With a window of 30 days, it means that we are actually requesting 31 days, thus we have 4 batches of 10
         # elements each.
-        assert len(get_code_locations_mock.mock_calls) == 10
+        assert len(get_code_locations_mock.mock_calls) == 4
 
     def test_get_locations_with_incomplete_location(self):
         project = self.create_project(name="project_1")
