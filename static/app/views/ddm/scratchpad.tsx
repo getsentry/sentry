@@ -100,65 +100,89 @@ export function MetricScratchpad() {
     return lookup;
   }, [widgets]);
 
-  const getFormulasQueryDependencies = useCallback(
-    (formula: string): MetricsQueryApiQueryParams[] => {
+  const getFormulaQueryDependencies = useCallback(
+    (formula: string) => {
       let tokens: TokenList = [];
 
       try {
         tokens = parseFormula(formatMetricsFormula(formula));
       } catch {
         // We should not end up here, but if we do, we should not crash the UI
-        return [];
+        return {dependencies: [], isError: true};
       }
 
       const dependencies: MetricsQueryApiQueryParams[] = [];
+      let isError: boolean = false;
 
       tokens.forEach(token => {
         if (token.type === TokenType.VARIABLE) {
           const widget = queriesLookup.get(token.content);
           if (widget && widget.type === MetricQueryType.QUERY) {
             dependencies.push(widgetToQuery(widget, true));
+          } else {
+            isError = true;
           }
         }
       });
 
-      return dependencies;
+      return {dependencies, isError};
     },
     [queriesLookup]
   );
 
+  const formulaDependencies = useMemo(() => {
+    return widgets.reduce(
+      (acc: Record<number, ReturnType<typeof getFormulaQueryDependencies>>, widget) => {
+        if (widget.type === MetricQueryType.FORMULA) {
+          acc[widget.id] = getFormulaQueryDependencies(widget.formula);
+        }
+        return acc;
+      },
+      {}
+    );
+  }, [getFormulaQueryDependencies, widgets]);
+
+  const filteredWidgets = useMemo(() => {
+    return widgets.filter(
+      w =>
+        w.type !== MetricQueryType.FORMULA || formulaDependencies[w.id]?.isError === false
+    );
+  }, [formulaDependencies, widgets]);
+
   return (
     <Wrapper>
       {isMultiChartMode ? (
-        widgets.map((widget, index) => (
-          <MetricWidget
-            queryId={widget.id}
-            key={index}
-            index={index}
-            getChartPalette={getChartPalette}
-            onSelect={setSelectedWidgetIndex}
-            displayType={widget.displayType}
-            focusedSeries={widget.focusedSeries}
-            tableSort={widget.sort}
-            queries={[
-              widgetToQuery(widget),
-              ...(widget.type === MetricQueryType.FORMULA
-                ? getFormulasQueryDependencies(widget.formula)
-                : []),
-            ]}
-            isSelected={selectedWidgetIndex === index}
-            hasSiblings={widgets.length > 1}
-            onChange={handleChange}
-            filters={selection}
-            focusAreaProps={focusArea}
-            showQuerySymbols={showQuerySymbols}
-            onSampleClick={handleSampleClick}
-            chartHeight={200}
-            highlightedSampleId={
-              selectedWidgetIndex === index ? highlightedSampleId : undefined
-            }
-            context="ddm"
-          />
+        filteredWidgets.map((widget, index) => (
+          <MultiChartWidgetQueries
+            formulaDependencies={formulaDependencies}
+            widget={widget}
+            key={widget.id}
+          >
+            {queries => (
+              <MetricWidget
+                queryId={widget.id}
+                index={index}
+                getChartPalette={getChartPalette}
+                onSelect={setSelectedWidgetIndex}
+                displayType={widget.displayType}
+                focusedSeries={widget.focusedSeries}
+                tableSort={widget.sort}
+                queries={queries}
+                isSelected={selectedWidgetIndex === index}
+                hasSiblings={widgets.length > 1}
+                onChange={handleChange}
+                filters={selection}
+                focusAreaProps={focusArea}
+                showQuerySymbols={showQuerySymbols}
+                onSampleClick={handleSampleClick}
+                chartHeight={200}
+                highlightedSampleId={
+                  selectedWidgetIndex === index ? highlightedSampleId : undefined
+                }
+                context="ddm"
+              />
+            )}
+          </MultiChartWidgetQueries>
         ))
       ) : (
         <MetricWidget
@@ -168,7 +192,7 @@ export function MetricScratchpad() {
           displayType={firstWidget.displayType}
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
-          queries={widgets.map(w => widgetToQuery(w))}
+          queries={filteredWidgets.map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
@@ -183,6 +207,19 @@ export function MetricScratchpad() {
       )}
     </Wrapper>
   );
+}
+
+function MultiChartWidgetQueries({widget, formulaDependencies, children}) {
+  const queries = useMemo(() => {
+    return [
+      widgetToQuery(widget),
+      ...(widget.type === MetricQueryType.FORMULA
+        ? formulaDependencies[widget.id]?.dependencies
+        : []),
+    ];
+  }, [widget, formulaDependencies]);
+
+  return children(queries);
 }
 
 const StyledMetricDashboard = styled('div')`
