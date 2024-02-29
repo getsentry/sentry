@@ -488,7 +488,7 @@ def get_stream_processor(
         )
 
     # Validate schema if "validate_schema" is set
-    validate_schema = consumer_definition.get("validate_schema", False)
+    validate_schema = consumer_definition.get("validate_schema") or False
 
     if validate_schema:
         # TODO: Remove this later but for now we can only validate if `topic_def` is
