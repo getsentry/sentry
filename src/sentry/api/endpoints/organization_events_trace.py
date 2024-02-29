@@ -1295,7 +1295,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             raise ParseError("Cannot return a detailed response using Spans")
 
         with sentry_sdk.start_span(op="serialize", description="create parent map"):
-            parent_event_map = defaultdict(list)
+            parent_to_children_event_map = defaultdict(list)
             serialized_transactions = []
             for transaction in transactions:
                 parent_id = transaction["trace.parent_transaction"]
@@ -1308,7 +1308,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     else:
                         root_traces.append(serialized_transaction)
                 else:
-                    parent_event_map[parent_id].append(serialized_transaction)
+                    parent_to_children_event_map[parent_id].append(serialized_transaction)
                 serialized_transactions.append(serialized_transaction)
 
         parent_error_map = defaultdict(list)
@@ -1319,13 +1319,10 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 orphan_errors.append(error)
 
         with sentry_sdk.start_span(op="serialize", description="associate children"):
-            visited_transactions: set[str] = {
-                transaction.event["id"] for transaction in root_traces
-            }
             for transaction in serialized_transactions:
                 event_id = transaction.event["id"]
-                if event_id in parent_event_map:
-                    children_events = parent_event_map.pop(event_id)
+                if event_id in parent_to_children_event_map:
+                    children_events = parent_to_children_event_map.pop(event_id)
                     transaction.children = sorted(children_events, key=child_sort_key)
                 if event_id in parent_error_map:
                     transaction.errors = sorted(
@@ -1333,13 +1330,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     )
 
         with sentry_sdk.start_span(op="serialize", description="more orphans"):
+            visited_transactions_ids: set[str] = {
+                transaction.event["id"] for transaction in root_traces
+            }
             for transaction in sorted(serialized_transactions, key=child_sort_key):
-                if transaction.event["id"] not in visited_transactions:
+                if transaction.event["id"] not in visited_transactions_ids:
                     if transaction not in orphans:
                         orphans.append(transaction)
-                    visited_transactions.add(transaction.event["id"])
+                    visited_transactions_ids.add(transaction.event["id"])
                     for child in transaction.children:
-                        visited_transactions.add(child.event["id"])
+                        visited_transactions_ids.add(child.event["id"])
 
         with sentry_sdk.start_span(op="serialize", description="sort"):
             # Sort the results so they're consistent
@@ -1347,18 +1347,18 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             root_traces.sort(key=child_sort_key)
             orphans.sort(key=child_sort_key)
 
-        visited_transactions = set()
+        visited_transactions_in_serialization: set[str] = set()
         with sentry_sdk.start_span(op="serialize", description="to dict"):
             return {
                 "transactions": [
-                    trace.full_dict(detailed, visited_transactions)
+                    trace.full_dict(detailed, visited_transactions_in_serialization)
                     for trace in root_traces
-                    if trace.event["id"] not in visited_transactions
+                    if trace.event["id"] not in visited_transactions_in_serialization
                 ]
                 + [
-                    orphan.full_dict(detailed, visited_transactions)
+                    orphan.full_dict(detailed, visited_transactions_in_serialization)
                     for orphan in orphans
-                    if orphan.event["id"] not in visited_transactions
+                    if orphan.event["id"] not in visited_transactions_in_serialization
                 ],
                 "orphan_errors": [self.serialize_error(error) for error in orphan_errors],
             }
