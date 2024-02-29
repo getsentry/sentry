@@ -64,6 +64,49 @@ export function FormulaInput({
     [availableVariables, formulaVariables]
   );
 
+  const parseAndValidateFormula = useCallback(
+    (formula: string): TokenList | null => {
+      let tokens: TokenList = [];
+      const newErrors: any[] = [];
+      if (formula) {
+        try {
+          tokens = parseFormula(formula);
+        } catch (err) {
+          newErrors.push({
+            message: err.message,
+            start: err.location.start.offset,
+          });
+        }
+      }
+
+      // validate variables
+      let charCount = 0;
+      tokens.forEach(token => {
+        if (token.type === TokenType.VARIABLE) {
+          const error = validateVariable(token.content);
+          if (error) {
+            newErrors.push({
+              message: error,
+              start: charCount,
+              end: charCount + token.content.length,
+            });
+          }
+        }
+        charCount += token.content.length;
+      });
+
+      newErrors.sort((a, b) => a.start - b.start);
+      setErrors(newErrors);
+
+      if (newErrors.length > 0) {
+        return null;
+      }
+
+      return tokens;
+    },
+    [validateVariable]
+  );
+
   useEffect(() => {
     setIsValidationEnabled(false);
 
@@ -76,49 +119,26 @@ export function FormulaInput({
     };
   }, [value]);
 
+  // Parse and validate formula everytime the validation criteria changes
+  useEffect(() => {
+    parseAndValidateFormula(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parseAndValidateFormula]);
+
   const handleChange = useMemo(
     () =>
       debounce((e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value.trim();
 
-        let tokens: TokenList = [];
-        const newErrors: any[] = [];
-        if (newValue) {
-          try {
-            tokens = parseFormula(newValue);
-          } catch (err) {
-            newErrors.push({
-              message: err.message,
-              start: err.location.start.offset,
-            });
-          }
-        }
+        const tokens = parseAndValidateFormula(newValue);
 
-        // validate variables
-        let charCount = 0;
-        tokens.forEach(token => {
-          if (token.type === TokenType.VARIABLE) {
-            const error = validateVariable(token.content);
-            if (error) {
-              newErrors.push({
-                message: error,
-                start: charCount,
-                end: charCount + token.content.length,
-              });
-            }
-          }
-          charCount += token.content.length;
-        });
-
-        newErrors.sort((a, b) => a.start - b.start);
-        setErrors(newErrors);
-
-        if (newErrors.length > 0) {
+        if (!tokens) {
           return;
         }
+
         onChange(joinTokens(equalizeWhitespace(escapeVariables(tokens))));
       }, 200),
-    [onChange, validateVariable]
+    [onChange, parseAndValidateFormula]
   );
 
   return (
