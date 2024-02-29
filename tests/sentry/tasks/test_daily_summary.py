@@ -8,7 +8,12 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.services.hybrid_cloud.user_option import user_option_service
-from sentry.tasks.summaries.daily_summary import build_summary_data, schedule_organizations
+from sentry.tasks.summaries.daily_summary import (
+    build_summary_data,
+    build_top_projects_map,
+    deliver_summary,
+    schedule_organizations,
+)
 from sentry.tasks.summaries.utils import ONE_DAY, DailySummaryProjectContext
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -247,5 +252,3 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )
         top_projects_context_map = build_top_projects_map(context)
         assert list(top_projects_context_map.keys()) == [self.project.id, project3.id]
-
-        
