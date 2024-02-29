@@ -124,3 +124,19 @@ class CreateProjectKeyTest(APITestCase):
         key = ProjectKey.objects.get(public_key=resp.data["public"])
         assert key.public_key == resp.data["public"] == "a" * 32
         assert key.secret_key == resp.data["secret"] == "b" * 32
+
+    def test_cannot_create_internal(self):
+        """POST request ignores use case field"""
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.USER.value, project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        resp = self.client.post(
+            url, data={"public": "a" * 32, "secret": "b" * 32, "useCase": "profiling"}
+        )
+        assert resp.status_code == 201, resp.content
+        key = ProjectKey.objects.get(public_key=resp.data["public"])
+        assert key.use_case == "user"

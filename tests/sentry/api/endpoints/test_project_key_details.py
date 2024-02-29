@@ -295,6 +295,24 @@ class UpdateProjectKeyTest(APITestCase):
         response = self.client.put(url, {"name": "hello world"})
         assert response.status_code == 200
 
+    def test_cannot_upgrade_to_internal(self):
+        """PUT request ignores use case field"""
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(use_case=UseCase.USER.value, project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        self.client.put(url, {"useCase": "profiling", "name": "updated"})
+        updated = ProjectKey.objects.get(pk=key.id)
+        assert updated.label == "updated"
+        assert updated.use_case == UseCase.USER.value
+
 
 @region_silo_test
 class DeleteProjectKeyTest(APITestCase):
