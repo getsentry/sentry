@@ -24,6 +24,7 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import repository_service
@@ -32,7 +33,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
 
-from .client import BitbucketServerClient, BitbucketServerSetupClient
+from .client import BitbucketServerAPIPath, BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -55,6 +56,13 @@ FEATURES = [
         including `Fixes PROJ-ID` in the message
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
     ),
 ]
 
@@ -298,6 +306,14 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
 
     def reinstall(self):
         self.reinstall_repositories()
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        path = BitbucketServerAPIPath.source.format(
+            project=repo.config["project"],
+            repo=repo.name,
+            path=filepath,
+        )
+        return f"{repo.url}/{path}?at={branch}"
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):

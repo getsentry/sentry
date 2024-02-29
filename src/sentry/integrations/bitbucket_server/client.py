@@ -7,8 +7,10 @@ from requests_oauthlib import OAuth1
 
 from sentry.integrations.client import ApiClient
 from sentry.models.identity import Identity
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -28,6 +30,7 @@ class BitbucketServerAPIPath:
     repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
     repository_commit_details = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}"
     commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
+    source = "/rest/api/1.0/projects/{project}/repos/{repo}/raw/{path}"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -250,3 +253,13 @@ class BitbucketServerClient(IntegrationProxyClient):
             },
         )
         return values
+
+    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+        return self.head_cached(
+            path=BitbucketServerAPIPath.source.format(
+                project=repo.config["project"],
+                repo=repo.name,
+                path=path,
+            ),
+            params={"at": version},
+        )
