@@ -3,10 +3,14 @@ from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
 
+import responses
+from django.conf import settings
+
 from sentry.constants import DataCategory
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.notifications.notifications.daily_summary import DailySummaryNotification
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.tasks.summaries.daily_summary import (
     build_summary_data,
@@ -15,20 +19,29 @@ from sentry.tasks.summaries.daily_summary import (
     schedule_organizations,
 )
 from sentry.tasks.summaries.utils import ONE_DAY, DailySummaryProjectContext
-from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    OutcomesSnubaTest,
+    PerformanceIssueTestCase,
+    SlackActivityNotificationTest,
+    SnubaTestCase,
+)
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
 @freeze_time(before_now(days=2).replace(hour=0, minute=5, second=0, microsecond=0))
-class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase):
+class DailySummaryTest(
+    OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCase, SlackActivityNotificationTest
+):
     def store_event_and_outcomes(
         self, project_id, timestamp, fingerprint, category, release=None, resolve=True
     ):
@@ -68,6 +81,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         return group
 
     def setUp(self):
+        responses.add_passthru(settings.SENTRY_SNUBA)
         super().setUp()
         self.now = datetime.now(UTC)
         self.two_hours_ago = self.now - timedelta(hours=2)
@@ -257,3 +271,58 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
         )
         top_projects_context_map = build_top_projects_map(context)
         assert list(top_projects_context_map.keys()) == [self.project.id, project3.id]
+
+    @responses.activate
+    @with_feature("organizations:slack-block-kit")
+    def test_slack_notification_contents(self):
+        self.populate_event_data()
+        ctx = build_summary_data(
+            timestamp=to_timestamp(self.now),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        top_projects_context_map = build_top_projects_map(ctx)
+        with self.tasks():
+            DailySummaryNotification(
+                organization=ctx.organization,
+                recipient=self.user,
+                provider=ExternalProviders.SLACK,
+                project_context=top_projects_context_map,
+            ).send()
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
+        assert fallback_text == "Daily Summary for Your Projects"
+        assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
+        assert (
+            "Your comprehensive overview for today - key issues, performance insights, and more."
+            in blocks[0]["text"]["text"]
+        )
+        assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
+        # check the new in release section
+        assert ":rocket:" in blocks[3]["text"]["text"]
+        assert self.release.version in blocks[3]["text"]["text"]
+        assert link_text.format(self.group2.id) in blocks[3]["text"]["text"]
+        assert link_text.format(self.group3.id) in blocks[3]["text"]["text"]
+        # check the today's event count section
+        assert "*Today’s Event Count*" in blocks[4]["text"]["text"]
+        assert "higher than last 14d avg" in blocks[4]["text"]["text"]
+        # check error issues
+        assert "*Today's Top 3 Error Issues" in blocks[5]["text"]["text"]
+        assert link_text.format(self.group1.id) in blocks[5]["text"]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
+        assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
+        # check escalated or regressed issues
+        assert "*Issues that escalated or regressed today*" in blocks[6]["text"]["text"]
+        assert link_text.format(self.group2.id) in blocks[6]["text"]["text"]
+        assert link_text.format(self.group3.id) in blocks[6]["text"]["text"]
+        # check performance issues
+        assert "*Today's Top 3 Performance Issues*" in blocks[8]["text"]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[8]["text"]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[8]["text"]["text"]
+        # repeat above for second project
+        assert self.project2.slug in blocks[9]["text"]["text"]
+        assert "*Today's Top 3 Error Issues" in blocks[10]["text"]["text"]
+        assert link_text.format(self.group4.id) in blocks[10]["text"]["text"]
+        # check footer
+        assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]

@@ -24,7 +24,8 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         context: Mapping[str, Any],
         recipient: RpcActor,
     ) -> None:
-        super().__init__()
+        # super().__init__()
+        super().__init__(notification, context, recipient)
         self.notification = notification
         self.context = context
         self.recipient = recipient
@@ -95,13 +96,12 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                     for escalated_issue in context.escalated_today:
                         linked_title = self.linkify_error_title(escalated_issue)
                         issue_state_text += f"• :point_up: {linked_title}\n"
-                    blocks.append(self.get_markdown_block(issue_state_text))
 
                 if context.regressed_today:
                     for regressed_issue in context.regressed_today:
                         linked_title = self.linkify_error_title(regressed_issue)
                         issue_state_text += f"• :recycle: {linked_title}\n"
-                    blocks.append(self.get_markdown_block(issue_state_text))
+                blocks.append(self.get_markdown_block(issue_state_text))
 
             blocks.append(self.get_divider())
 
@@ -113,7 +113,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                     top_perf_issues_text += f"• {linked_title}\n"
                 blocks.append(self.get_markdown_block(top_perf_issues_text))
 
-        text = "here is some text"
+        text = subject
         callback_id_raw = self.notification.get_callback_data()
         callback_id = json.dumps(callback_id_raw) if callback_id_raw else None
         footer = self.notification.build_notification_footer(

@@ -42,7 +42,7 @@ class DailySummaryNotification(BaseNotification):
         return {self.provider: {self.recipient}}
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return "Daily Summary for Your Projects"
+        return self.get_message_description(self.recipient, self.provider)
 
     def get_context(self) -> MutableMapping[str, Any]:
         return self.project_context
@@ -51,6 +51,9 @@ class DailySummaryNotification(BaseNotification):
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         return ""
+
+    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
+        return "Daily Summary for Your Projects"
 
     def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
