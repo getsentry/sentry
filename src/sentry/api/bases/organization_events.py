@@ -233,6 +233,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # Covers cases of !A && !B and A && B
         return DashboardWidgetTypes.ERROR_EVENTS
 
+    def save_split_decision(self, widget, has_errors, has_other_data):
+        """This can be removed once the discover dataset has been fully split"""
+        new_discover_widget_split = self.get_split_decision(has_errors, has_other_data)
+
+        if widget.discover_widget_split != new_discover_widget_split:
+            widget.discover_widget_split = new_discover_widget_split
+            widget.save()
+
     def handle_unit_meta(
         self, meta: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str | None]]:
