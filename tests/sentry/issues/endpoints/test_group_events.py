@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 
 from django.utils import timezone as django_timezone
 
@@ -502,7 +502,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         event_2, _, _ = self.store_search_issue(
@@ -510,7 +510,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
 
         self.login_as(user=self.user)
