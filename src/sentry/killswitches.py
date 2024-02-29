@@ -15,7 +15,6 @@ from typing import Any, Optional, Union
 import click
 
 from sentry import options
-from sentry.utils import metrics
 
 Condition = dict[str, Optional[str]]
 KillswitchConfig = list[Condition]
@@ -255,13 +254,7 @@ def killswitch_matches_context(killswitch_name: str, context: Context) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
     option_value = options.get(killswitch_name)
-    rv = _value_matches(killswitch_name, option_value, context)
-    metrics.incr(
-        "killswitches.run",
-        tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
-    )
-
-    return rv
+    return _value_matches(killswitch_name, option_value, context)
 
 
 def _value_matches(
