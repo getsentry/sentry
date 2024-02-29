@@ -16,12 +16,12 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   getRovingIndexActionFromEvent,
   type RovingTabIndexAction,
-  type RovingTabIndexState,
   type RovingTabIndexUserActions,
 } from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
@@ -36,6 +36,26 @@ import {
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
 import {VirtualizedViewManager} from './virtualizedViewManager';
+
+function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+  if (Array.isArray(maybePath)) {
+    return maybePath;
+  }
+
+  if (typeof maybePath === 'string') {
+    return [maybePath as TraceTree.NodePath];
+  }
+
+  return null;
+}
+
+const COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
+
+interface RovingTabIndexState {
+  index: number | null;
+  items: number | null;
+  node: TraceTreeNode<TraceTree.NodeValue> | null;
+}
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -74,18 +94,6 @@ function maybeFocusRow(
   previouslyFocusedIndexRef.current = index;
 }
 
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
-  if (Array.isArray(maybePath)) {
-    return maybePath;
-  }
-
-  if (typeof maybePath === 'string') {
-    return [maybePath as TraceTree.NodePath];
-  }
-
-  return null;
-}
-
 interface TraceProps {
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
@@ -105,6 +113,7 @@ function Trace({
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
       list: {width: 0.5},
@@ -193,6 +202,7 @@ function Trace({
       setDetailNode(node);
       roving_dispatch({type: 'set index', index, node});
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [roving_dispatch, setDetailNode]
   );
 
@@ -219,6 +229,55 @@ function Trace({
     },
     [viewManager.list, roving_dispatch]
   );
+
+  // @TODO this is the implementation of infinite scroll. Once the user
+  // reaches the end of the list, we fetch more data. The data is not yet
+  // being appended to the tree as we need to figure out UX for this.
+  // onRowsRendered callback should be passed to the List component
+
+  // const limitRef = useRef<number | null>(null);
+  // if (limitRef.current === null) {
+  //   let decodedLimit = getTraceQueryParams(qs.parse(location.search)).limit;
+  //   if (typeof decodedLimit === 'string') {
+  //     decodedLimit = parseInt(decodedLimit, 2);
+  //   }
+
+  //   limitRef.current = decodedLimit;
+  // }
+
+  // const loadMoreRequestRef =
+  //   useRef<Promise<TraceSplitResults<TraceFullDetailed> | null> | null>(null);
+
+  // const onRowsRendered = useCallback((rows: RenderedRows) => {
+  //   if (loadMoreRequestRef.current) {
+  //     // in flight request
+  //     return;
+  //   }
+  //   if (rows.stopIndex !== treeRef.current.list.length - 1) {
+  //     // not at the end
+  //     return;
+  //   }
+  //   if (
+  //     !loadMoreRequestRef.current &&
+  //     limitRef.current &&
+  //     rows.stopIndex === treeRef.current.list.length - 1
+  //   ) {
+  //     limitRef.current = limitRef.current + 500;
+  //     const promise = fetchTrace(api, {
+  //       traceId: trace_id,
+  //       orgSlug: organization.slug,
+  //       query: qs.stringify(getTraceQueryParams(location, {limit: limitRef.current})),
+  //     })
+  //       .then(data => {
+  //         return data;
+  //       })
+  //       .catch(e => {
+  //         return e;
+  //       });
+
+  //     loadMoreRequestRef.current = promise;
+  //   }
+  // }, []);
 
   const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project>>((acc, project) => {
@@ -401,7 +460,7 @@ function RenderRow(props: {
                 expanded={!props.node.expanded}
                 onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
               >
-                {props.node.groupCount}{' '}
+                {COUNT_FORMATTER.format(props.node.groupCount)}{' '}
               </ChildrenCountButton>
             </div>
 
@@ -490,7 +549,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -578,7 +637,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -733,7 +792,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -811,7 +870,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length}{' '}
+                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
                 </ChildrenCountButton>
               ) : null}
             </div>
@@ -890,7 +949,7 @@ function RenderPlaceholderRow(props: {
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onClick={() => void 0}
               >
-                {props.node.children.length}{' '}
+                {COUNT_FORMATTER.format(props.node.children.length)}{' '}
               </ChildrenCountButton>
             ) : null}
           </div>

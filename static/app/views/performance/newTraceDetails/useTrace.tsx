@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
