@@ -67,7 +67,7 @@ class JavaScriptSdkLoader(BaseView):
                 "hasDebug": False,
             }
 
-        is_v7_sdk = sdk_version >= Version("7.0.0")
+        is_greater_or_equal_v7_sdk = sdk_version >= Version("7.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
@@ -80,12 +80,12 @@ class JavaScriptSdkLoader(BaseView):
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
         # We depend on fixes in the tracing bundle that are only available in v7
-        if is_v7_sdk and has_performance:
+        if is_greater_or_equal_v7_sdk and has_performance:
             bundle_kind_modifier += ".tracing"
             is_lazy = False
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
-        if is_v7_sdk and has_replay:
+        if is_greater_or_equal_v7_sdk and has_replay:
             bundle_kind_modifier += ".replay"
             is_lazy = False
 
@@ -94,7 +94,7 @@ class JavaScriptSdkLoader(BaseView):
         #
         # If we are loading replay, do not add the es5 modifier, as those bundles are
         # ES6 only.
-        if is_v7_sdk and not has_replay:
+        if is_greater_or_equal_v7_sdk and not has_replay:
             bundle_kind_modifier += ".es5"
 
         if has_debug:

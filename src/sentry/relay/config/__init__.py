@@ -59,6 +59,7 @@ EXPOSABLE_FEATURES = [
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
+    "projects:discard-transaction",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -432,9 +433,11 @@ def _get_project_config(
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
-            "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
-            if _should_extract_abnormal_mechanism(project)
-            else EXTRACT_METRICS_VERSION,
+            "version": (
+                EXTRACT_ABNORMAL_MECHANISM_VERSION
+                if _should_extract_abnormal_mechanism(project)
+                else EXTRACT_METRICS_VERSION
+            ),
             "drop": features.has(
                 "organizations:release-health-drop-sessions", project.organization
             ),
