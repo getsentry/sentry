@@ -1,6 +1,6 @@
 from django.db.models import F
 
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.services.hybrid_cloud.project_key import (
     ProjectKeyRole,
     ProjectKeyService,
@@ -14,7 +14,9 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         from sentry.models.projectkey import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
-            project=project_id, roles=F("roles").bitor(role.as_orm_role())
+            use_case=UseCase.USER.value,
+            project=project_id,
+            roles=F("roles").bitor(role.as_orm_role()),
         )
 
         if project_keys:
@@ -55,6 +57,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     ) -> list[RpcProjectKey]:
         # TODO: This query is unbounded and will need to be addressed in the future.
         project_keys = ProjectKey.objects.filter(
+            use_case=UseCase.USER.value,
             project__in=project_ids,
             roles=F("roles").bitor(role.as_orm_role()),
             status=ProjectKeyStatus.ACTIVE,
