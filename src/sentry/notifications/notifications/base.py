@@ -258,6 +258,7 @@ class BaseNotification(abc.ABC):
             participants_by_provider = self.get_participants()
             if not participants_by_provider:
                 return
+
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
             with sentry_sdk.start_span(op="notification.send", description=f"send_for_{provider}"):

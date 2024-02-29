@@ -51,4 +51,5 @@ def notify(
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
+
     registry[provider](notification, recipients, shared_context, extra_context_by_actor)

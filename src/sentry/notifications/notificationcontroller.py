@@ -618,20 +618,3 @@ class NotificationController:
             ExternalProviders.EMAIL
         ]  # email only
         return [recipient.id for recipient in recipient_set]
-
-    def get_users_for_daily_summary(self) -> list[int]:
-        """For an internal only MVP, notify users who have Slack issue alerts enabled"""
-        if not self.organization_id:
-            raise Exception("Must specify organization_id")
-
-        if self.type != NotificationSettingEnum.REPORTS:
-            raise Exception(f"Type mismatch: the controller was initialized with type: {self.type}")
-
-        recipient_set = self.get_notification_recipients(
-            type=NotificationSettingEnum.ISSUE_ALERTS,
-            # only look at users
-            actor_type=ActorType.USER,
-        )[
-            ExternalProviders.SLACK
-        ]  # slack only
-        return [recipient.id for recipient in recipient_set]
