@@ -769,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1089,6 +1090,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.summaries.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute="0", hour="12", day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
         ),
         "options": {"expires": 60 * 60 * 3},
     },
@@ -1492,6 +1502,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1706,6 +1718,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable UI sending a discover split for widget
+    "organizations:performance-discover-widget-split-ui": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Enable compressed assets performance issue type
@@ -1941,8 +1955,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:user-feedback-onboarding": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
-    # Enable using new webhooks from Vercel
-    "organizations:vercel-integration-webhooks": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable AI Autofix feture on the Issue Details page.
@@ -1987,6 +1999,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    "projects:discard-transaction": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
@@ -3466,15 +3479,13 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
+KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
-    # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
-    # create a separate producer. Check ``track_outcome`` for details.
-    KAFKA_OUTCOMES_BILLING: None,
+    KAFKA_OUTCOMES_BILLING: {"cluster": "default"},
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
@@ -3509,8 +3520,6 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
 }
 
 
-# If True, consumers will create the topics if they don't exist
-KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
 KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False

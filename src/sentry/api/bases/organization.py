@@ -25,7 +25,8 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,

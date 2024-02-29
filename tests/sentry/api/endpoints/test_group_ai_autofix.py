@@ -3,6 +3,7 @@ from unittest.mock import ANY, patch
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -11,6 +12,7 @@ pytestmark = [requires_snuba]
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("projects:ai-autofix")
 class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_ai_autofix_get_endpoint_with_autofix(self):
         group = self.create_group()
@@ -53,9 +55,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
         )
-        repo.save()
-
-        self.create_commit(project=self.project, release=release, key="1234", repo=repo)
+        self.create_code_mapping(project=self.project, repo=repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -80,7 +80,13 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
             mock_call.assert_called_with(
                 ANY,
-                "1234",
+                [
+                    {
+                        "provider": "integrations:github",
+                        "owner": "getsentry",
+                        "name": "sentry",
+                    }
+                ],
                 ANY,
                 "Yes",
             )
@@ -97,16 +103,12 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "autofix" in group.data["metadata"]
         assert group.data["metadata"]["autofix"]["status"] == "PROCESSING"
 
-    def test_ai_autofix_with_invalid_repo(self):
+    def test_ai_autofix_without_code_mapping(self):
         release = self.create_release(project=self.project, version="1.0.0")
 
-        # Creating a repository with a name that is not 'getsentry/sentry'
-        invalid_repo = self.create_repo(
-            project=self.project, name="invalid/repo", provider="integrations:github"
+        self.create_repo(
+            project=self.project, name="invalid-repo", provider="integrations:someotherprovider"
         )
-        invalid_repo.save()
-
-        self.create_commit(project=self.project, release=release, key="1234", repo=invalid_repo)
 
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(
@@ -134,7 +136,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now."
+        error_msg = "No valid repositories found."
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg

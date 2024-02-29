@@ -196,7 +196,7 @@ _parameterization_regex_experiments = [
 ]
 
 
-def normalize_message_for_grouping(message: str, event: Event) -> str:
+def normalize_message_for_grouping(message: str, event: Event, share_analytics: bool = True) -> str:
     """Replace values from a group's message with placeholders (to hide P.I.I. and
     improve grouping when no stacktrace is available) and trim to at most 2 lines.
     """
@@ -232,16 +232,36 @@ def normalize_message_for_grouping(message: str, event: Event) -> str:
 
     normalized = _parameterization_regex.sub(_handle_match, trimmed)
     for experiment in _parameterization_regex_experiments:
-        if event.project_id and in_rollout_group(
-            f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+        if event.project_id and (
+            in_rollout_group(
+                f"grouping.experiments.parameterization.{experiment.name}", event.project_id
+            )
+            or event.project_id
+            in [  # Active internal Sentry projects
+                155735,
+                4503972821204992,
+                1267915,
+                221969,
+                11276,
+                1269704,
+                4505469596663808,
+                1,
+                54785,
+                1492057,
+                162676,
+                6690737,
+                300688,
+                4506400311934976,
+                6424467,
+            ]
         ):
             experiment_output = experiment.regex.sub(_handle_match, normalized)
             if experiment_output != normalized:
                 # Register 100 analytics events per experiment per instance restart
                 # This generates samples for review consistently but creates a hard cap on
                 # analytics event volume
-                experiment.counter += 1
-                if experiment.counter < 100:
+                if share_analytics and experiment.counter < 100:
+                    experiment.counter += 1
                     analytics.record(
                         "grouping.experiments.parameterization",
                         experiment_name=experiment.name,
