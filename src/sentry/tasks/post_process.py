@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-configuration: Mapping[str, Any] = settings.SENTRY_POST_PROCESS_CONFIGURATION
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
@@ -175,12 +174,13 @@ def _capture_group_stats(job: PostProcessJob) -> None:
 
 def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_id: int | None):
     """
-    Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    Make sure that we do not accept more groups than the enforced_limit at the project level.
     """
+    from sentry.models.organization import Organization
+
     enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
-    if organization_id and organization_id in configuration.get(
-        "org_ids_with_increased_issue_owners_ratelimit", set()
-    ):
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:increased-issue-owners-rate-limit", organization=organization):
         enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
 
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
