@@ -5,7 +5,7 @@ import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -49,7 +49,7 @@ export default function JsonViewer(props: ViewerProps) {
 
   return (
     <PreviewPanelItem>
-      <StyledStructuredData data={json} maxDefaultDepth={4} preserveQuotes />
+      <StyledJsonData data={json} maxDefaultDepth={4} />
     </PreviewPanelItem>
   );
 }
@@ -60,7 +60,7 @@ const LoadingContainer = styled('div')`
   padding: ${space(1)};
 `;
 
-const StyledStructuredData = styled(StructuredEventData)`
+const StyledJsonData = styled(JsonEventData)`
   margin-bottom: 0;
   width: 100%;
 `;

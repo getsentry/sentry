@@ -12,6 +12,8 @@ type Props = {
   platform?: PlatformKey;
 };
 
+const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
+
 const renderPythonBoolean = (value: unknown) => {
   if (typeof value === 'string') {
     return value;
@@ -45,6 +47,8 @@ const getStructuredDataConfig = ({
         isNull: value => value === null || value === 'None',
         renderBoolean: renderPythonBoolean,
         renderNull: () => 'None',
+        isString: value => typeof value === 'string' && PYTHON_STRING_REGEX.test(value),
+        renderString: value => value.replace(PYTHON_STRING_REGEX, '$1'),
       };
     case 'ruby':
       return {

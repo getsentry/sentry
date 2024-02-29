@@ -9,16 +9,23 @@ import {t} from 'sentry/locale';
 import {isUrl} from 'sentry/utils';
 
 import Toggle from './toggle';
-import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
+import {
+  looksLikeMultiLineString,
+  looksLikeStrippedValue,
+  naturalCaseInsensitiveSort,
+} from './utils';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
+  isString?: (value: unknown) => boolean;
   renderBoolean?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
+  renderObjectKeys?: (value: string) => string;
+  renderString?: (value: string) => string;
 };
 
-type StructedEventDataProps = {
+export type StructuredEventDataProps = {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -29,7 +36,6 @@ type StructedEventDataProps = {
   'data-test-id'?: string;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
-  preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
 };
 
@@ -61,12 +67,11 @@ function LinkHint({value}: {value: string}) {
   );
 }
 
-function StructedData({
+function StructuredData({
   config,
   depth,
   value = null,
   maxDefaultDepth,
-  preserveQuotes,
   withAnnotatedText,
   meta,
 }: {
@@ -74,7 +79,6 @@ function StructedData({
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
-  preserveQuotes: boolean;
   withAnnotatedText: boolean;
   value?: React.ReactNode;
 }) {
@@ -111,36 +115,44 @@ function StructedData({
   }
 
   if (typeof value === 'string') {
-    const valueInfo = analyzeStringForRepr(value);
+    if (config?.isString?.(value)) {
+      const stringValue = config.renderString?.(value) ?? value;
 
-    const annotatedValue = withAnnotatedText ? (
-      <AnnotatedValue
-        value={valueInfo.repr}
-        meta={meta}
-        withAnnotatedText={withAnnotatedText}
-      />
-    ) : (
-      valueInfo.repr
-    );
-
-    const printedValue = preserveQuotes ? `"${annotatedValue}"` : annotatedValue;
-
-    if (valueInfo.isStripped) {
-      return <ValueStrippedString>{printedValue}</ValueStrippedString>;
-    }
-
-    if (valueInfo.isMultiLine) {
       return (
-        <ValueMultiLineString>
-          {printedValue}
-          <LinkHint value={value} />
-        </ValueMultiLineString>
+        <ValueString data-test-id="value-string">
+          {'"'}
+          <AnnotatedValue
+            value={stringValue}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+          {'"'}
+          <LinkHint value={stringValue} />
+        </ValueString>
       );
     }
 
+    if (looksLikeStrippedValue(value)) {
+      return (
+        <ValueStrippedString>
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueStrippedString>
+      );
+    }
+
+    if (looksLikeMultiLineString(value)) {
+      <ValueMultiLineString>
+        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
+      </ValueMultiLineString>;
+    }
+
     return (
-      <span>
-        {printedValue}
+      <span data-test-id="value-unformatted">
+        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
         <LinkHint value={value} />
       </span>
     );
@@ -159,11 +171,10 @@ function StructedData({
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
-          <StructedData
+          <StructuredData
             config={config}
             value={value[i]}
             depth={depth + 1}
-            preserveQuotes={preserveQuotes}
             withAnnotatedText={withAnnotatedText}
             meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
@@ -190,14 +201,13 @@ function StructedData({
 
     children.push(
       <div key={key}>
-        <ValueObjectKey>{preserveQuotes ? `"${key}"` : key}</ValueObjectKey>
+        <ValueObjectKey>{config?.renderObjectKeys?.(key) ?? key}</ValueObjectKey>
         <span>{': '}</span>
         <span>
-          <StructedData
+          <StructuredData
             config={config}
             value={value[key]}
             depth={depth + 1}
-            preserveQuotes={preserveQuotes}
             withAnnotatedText={withAnnotatedText}
             meta={meta?.[key]}
             maxDefaultDepth={maxDefaultDepth}
@@ -223,20 +233,18 @@ function StructuredEventData({
   meta,
   maxDefaultDepth = 2,
   data = null,
-  preserveQuotes = false,
   withAnnotatedText = false,
   ...props
-}: StructedEventDataProps) {
+}: StructuredEventDataProps) {
   return (
     <pre {...props}>
-      <StructedData
+      <StructuredData
         config={config}
         value={data}
         depth={0}
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
-        preserveQuotes={preserveQuotes}
       />
       {children}
     </pre>
@@ -258,6 +266,10 @@ const ValueNull = styled('span')`
 const ValueBoolean = styled('span')`
   font-weight: bold;
   color: var(--prism-property);
+`;
+
+const ValueString = styled('span')`
+  color: var(--prism-selector);
 `;
 
 const ValueMultiLineString = styled('span')`
