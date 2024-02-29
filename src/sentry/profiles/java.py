@@ -18,7 +18,11 @@ def parse_obfuscated_signature(signature: str) -> tuple[list[str], str]:
         return [], ""
 
     signature = signature[1:]
-    parameter_types, return_type = signature.rsplit(")", 1)
+    try:
+        parameter_types, return_type = signature.rsplit(")", 1)
+    except ValueError:
+        # the lack of `)` indicates a malformed signature
+        return [], ""
     types = []
     i = 0
     arrays = 0
