@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import type {PageFilters} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
@@ -13,6 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 
 export function fetchTrace(
@@ -33,12 +35,13 @@ const DEFAULT_LIMIT = 1_000;
 
 export function getTraceQueryParams(
   query: Location['query'],
+  filters: Partial<PageFilters> = {},
   options: {limit?: number} = {}
 ) {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
-  const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
+  let statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const project = decodeScalar(normalizedParams.project, ALL_ACCESS_PROJECTS + '');
   const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
@@ -55,6 +58,10 @@ export function getTraceQueryParams(
   }
 
   const limit = decodedLimit;
+
+  if (statsPeriod === undefined && !timestamp && filters.datetime?.period) {
+    statsPeriod = filters.datetime.period;
+  }
 
   return {limit, statsPeriod, project, timestamp, useSpans: 1};
 }
@@ -74,6 +81,7 @@ export function useTrace(
   options: Partial<UseTraceParams> = DEFAULT_OPTIONS
 ): RequestState<TraceSplitResults<TraceFullDetailed> | null> {
   const api = useApi();
+  const filters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
@@ -86,7 +94,7 @@ export function useTrace(
   });
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(location.query, options);
+    return getTraceQueryParams(location.query, filters.selection, options);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);
 
