@@ -1957,6 +1957,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable playing replays from the replay tab
+    "organizations:replay-play-from-replay-tab": False,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3468,15 +3470,6 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
-
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
-
 
 # Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS: Mapping[str, TopicDefinition] = {

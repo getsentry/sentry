@@ -54,12 +54,6 @@ def should_demote_symbolication(project_id: int, lpq_projects: set[int] | None =
     If lpq projects is defined and the auto low priority queue is enabled, this function
     will avoid making additional Redis calls for performance reasons.
     """
-    always_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-always",
-        {
-            "project_id": project_id,
-        },
-    )
     never_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-never",
         {
@@ -69,7 +63,15 @@ def should_demote_symbolication(project_id: int, lpq_projects: set[int] | None =
 
     if never_lowpri:
         return False
-    elif always_lowpri:
+
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+
+    if always_lowpri:
         return True
     elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
