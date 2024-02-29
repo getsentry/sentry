@@ -33,10 +33,7 @@ interface UseTraceTimelineEventsOptions {
   event: Event;
 }
 
-export function useTraceTimelineEvents(
-  {event}: UseTraceTimelineEventsOptions,
-  isEnabled: boolean = true
-): {
+export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): {
   endTimestamp: number;
   isError: boolean;
   isLoading: boolean;
@@ -47,7 +44,7 @@ export function useTraceTimelineEvents(
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
-  const enabled = !!traceId && isEnabled;
+  const enabled = !!traceId;
   const {
     data: issuePlatformData,
     isLoading: isLoadingIssuePlatform,

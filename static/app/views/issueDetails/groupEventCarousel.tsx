@@ -43,10 +43,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
-import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
-
-import QuickTrace from './quickTrace';
 
 type GroupEventCarouselProps = {
   event: Event;
@@ -361,9 +358,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
-  const organization = useOrganization();
-  const location = useLocation();
-
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -378,7 +372,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     text: event.id,
   });
 
-  const hasTraceTimeline = hasTraceTimelineFeature(organization);
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
@@ -429,13 +422,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {hasTraceTimeline ? (
-          issueTypeConfig.traceTimeline ? (
-            <TraceLink event={event} />
-          ) : null
-        ) : (
-          <QuickTrace event={event} organization={organization} location={location} />
-        )}
+        {issueTypeConfig.traceTimeline ? <TraceLink event={event} /> : null}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

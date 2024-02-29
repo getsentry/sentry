@@ -294,6 +294,13 @@ const mockGroupApis = (
     url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
     method: 'GET',
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    body: {
+      data: [],
+      meta: {fields: {}, units: {}},
+    },
+  });
 };
 
 describe('groupEventDetails', () => {
