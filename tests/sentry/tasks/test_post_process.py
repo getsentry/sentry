@@ -1427,28 +1427,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
     @with_feature("organizations:commit-context")
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context",
-        return_value=github_blame_return_value,
-    )
-    def test_debounce_cache_is_set(self, mock_get_commit_context):
-        with self.tasks():
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=self.created_event,
-            )
-        assert GroupOwner.objects.get(
-            group=self.created_event.group,
-            project=self.created_event.project,
-            organization=self.created_event.project.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-        )
-        assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
-
-    @with_feature("organizations:commit-context")
-    @patch(
-        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
         return_value=github_blame_return_value,
     )
     def test_logic_fallback_no_scm(self, mock_get_commit_context):
@@ -1465,14 +1444,15 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=True,
                 event=self.created_event,
             )
-        assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+        assert not mock_get_commit_context.called
 
     @with_feature("organizations:commit-context")
     @patch(
-        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context",
-        return_value=github_blame_return_value,
+        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context_all_frames",
     )
     def test_github_enterprise(self, mock_get_commit_context):
+        mock_get_commit_context.return_value = self.github_blame_all_files_return_value
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()
@@ -1504,12 +1484,10 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:suspect-commits-all-frames")
     @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
     def test_skip_when_not_is_new(self, mock_get_commit_context):
         """
-        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
-        and the group is not new, that we do not process commit context.
+        Tests that we do not process commit context if the group isn't new.
         """
         with self.tasks():
             self.call_post_process_group(
@@ -1527,14 +1505,12 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:suspect-commits-all-frames")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
     )
     def test_does_not_skip_when_is_new(self, mock_get_commit_context):
         """
-        Tests that when the organizations:suspect-commits-all-frames feature is enabled,
-        and the group is new, the commit context should be processed.
+        Tests that the commit context should be processed when the group is new.
         """
         mock_get_commit_context.return_value = self.github_blame_all_files_return_value
         with self.tasks():
@@ -2748,7 +2724,8 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    def test_not_ran_if_crash_report(self):
+    def test_not_ran_if_crash_report_option_disabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", False)
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2773,6 +2750,33 @@ class PostProcessGroupFeedbackTest(
         # assert mock_process_rules is not called
         assert mock_process_func.call_count == 0
 
+    def test_not_ran_if_crash_report_project_option_enabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", True)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},
@@ -2795,7 +2799,6 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 1
 
     @pytest.mark.skip(

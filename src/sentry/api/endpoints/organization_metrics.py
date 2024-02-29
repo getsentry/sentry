@@ -1,3 +1,8 @@
+from collections.abc import Sequence
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,9 +20,12 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
@@ -25,7 +33,10 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
+    TooManyCodeLocationsRequestedError,
 )
+from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
+from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -42,7 +53,16 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import get_rollup_from_request, parse_stats_period
+
+
+class MetricMetaType(Enum):
+    CODE_LOCATIONS = "codeLocations"
+
+
+METRIC_META_TYPE_SERIALIZER = {
+    MetricMetaType.CODE_LOCATIONS.value: MetricCodeLocationsSerializer(),
+}
 
 
 def get_use_case_id(request: Request) -> UseCaseID:
@@ -241,7 +261,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 organization=organization,
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                referrer=Referrer.API_DDM_METRICS_DATA.value,
+                referrer=Referrer.API_ORGANIZATION_METRICS_DATA.value,
                 # Optional parameters.
                 query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
@@ -378,6 +398,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         """
         Extracts the metrics queries plan from the request payload.
         """
+        # TODO: maybe we could use a serializer to read the body of the request.
         metrics_queries_plan = MetricsQueriesPlan()
 
         queries = request.data.get("queries") or []
@@ -406,10 +427,9 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 end=end,
                 interval=interval,
                 organization=organization,
-                # TODO: figure out how to make these methods work with HTTP body.
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                referrer=Referrer.API_DDM_METRICS_QUERY.value,
+                referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
@@ -424,8 +444,13 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 class MetricsSamplesSerializer(serializers.Serializer):
     mri = serializers.CharField(required=True)
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
+    max = serializers.FloatField(required=False)
+    min = serializers.FloatField(required=False)
+    query = serializers.CharField(required=False)
+    referrer = serializers.CharField(required=False)
+    sort = serializers.CharField(required=False)
 
-    def validate_mri(self, mri: str):
+    def validate_mri(self, mri: str) -> str:
         if not is_mri(mri):
             raise serializers.ValidationError(f"Invalid MRI: {mri}")
 
@@ -444,9 +469,19 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response(status=404)
+
+        try:
+            rollup = get_rollup_from_request(
+                request,
+                params,
+                default_interval=None,
+                error=InvalidSearchQuery(),
+            )
+        except InvalidSearchQuery:
+            rollup = 3600  # use a default of 1 hour
 
         serializer = MetricsSamplesSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -454,7 +489,100 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
 
         serialized = serializer.validated_data
 
-        assert params
-        assert serialized
+        executor_cls = get_sample_list_executor_cls(serialized["mri"])
+        if not executor_cls:
+            raise ParseError(f"Unsupported MRI: {serialized['mri']}")
 
-        return Response(status=200)
+        if (sort := serialized.get("sort")) is not None:
+            column = sort[1:] if sort.startswith("-") else sort
+            if not executor_cls.supports_sort(column):
+                raise ParseError(f"Unsupported sort: {sort} for MRI")
+
+        executor = executor_cls(
+            serialized["mri"],
+            params,
+            snuba_params,
+            serialized["field"],
+            serialized.get("query", ""),
+            serialized.get("min"),
+            serialized.get("max"),
+            serialized.get("sort"),
+            rollup,
+            Referrer.API_ORGANIZATION_METRICS_SAMPLES,
+        )
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=executor.execute),
+            on_results=lambda results: self.handle_results_with_meta(
+                request,
+                organization,
+                params["project_id"],
+                results,
+                standard_meta=True,
+            ),
+        )
+
+
+@region_silo_endpoint
+class OrganizationMetricsMetadataEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """
+    Get metadata of a metric for a given set of projects in a time interval.
+    The current metadata supported for metrics is:
+    - Code locations -> these are the code location in which the metric was emitted.
+    """
+
+    def _extract_metric_meta_types(self, request: Request) -> Sequence[MetricMetaType]:
+        meta_types = []
+
+        for meta_type in MetricMetaType:
+            if request.GET.get(meta_type.value) == "true":
+                meta_types.append(meta_type)
+
+        return meta_types
+
+    def _get_metric_code_locations(
+        self,
+        request: Request,
+        organization: Organization,
+        projects: Sequence[Project],
+        start: datetime,
+        end: datetime,
+    ) -> Sequence[MetricCodeLocations]:
+        return get_metric_code_locations(
+            metric_mris=[request.GET["metric"]],
+            start=start,
+            end=end,
+            organization=organization,
+            projects=projects,
+        )
+
+    def get(self, request: Request, organization) -> Response:
+        response = {}
+
+        start, end = get_date_range_from_params(request.GET)
+        projects = self.get_projects(request, organization)
+
+        for meta_type in self._extract_metric_meta_types(request):
+            data: Any = {}
+
+            try:
+                if meta_type == MetricMetaType.CODE_LOCATIONS:
+                    data = self._get_metric_code_locations(
+                        request, organization, projects, start, end
+                    )
+            except LatestReleaseNotFoundError as e:
+                return Response(status=404, data={"detail": str(e)})
+            except TooManyCodeLocationsRequestedError as e:
+                return Response(status=400, data={"detail": str(e)})
+
+            response[meta_type.value] = serialize(
+                data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]
+            )
+
+        return Response(response, status=200)

@@ -9,7 +9,6 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
-import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {
   MobileCursors,
   MobileSortKeys,
@@ -28,30 +27,26 @@ export function SamplesTables({transactionName}) {
       return (
         <EventSplitContainer>
           <ErrorBoundary mini>
-            {primaryRelease && (
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                  release={primaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            )}
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                release={primaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
           </ErrorBoundary>
           <ErrorBoundary mini>
-            {secondaryRelease && (
-              <div>
-                <EventSamples
-                  cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                  release={secondaryRelease}
-                  transaction={transactionName}
-                  footerAlignedPagination
-                />
-              </div>
-            )}
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                release={secondaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
           </ErrorBoundary>
         </EventSplitContainer>
       );
@@ -79,7 +74,6 @@ export function SamplesTables({transactionName}) {
               secondaryRelease={secondaryRelease}
             />
           )}
-          <StartTypeSelector />
           <DeviceClassSelector size="md" clearSpansTableCursor />
         </FiltersContainer>
         <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
@@ -95,7 +89,7 @@ export function SamplesTables({transactionName}) {
 const EventSplitContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)}
+  gap: ${space(1.5)};
 `;
 
 const Controls = styled('div')`

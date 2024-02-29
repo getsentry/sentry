@@ -39,7 +39,6 @@ from sentry.db.models import (
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
-    PRIORITY_LEVEL_TO_STR,
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
@@ -457,7 +456,7 @@ class GroupManager(BaseManager["Group"]):
             group.substatus = substatus
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
-                if priority:
+                if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
 
@@ -480,7 +479,7 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     type=ActivityType.SET_PRIORITY,
                     data={
-                        "priority": PRIORITY_LEVEL_TO_STR[new_priority],
+                        "priority": new_priority.to_str(),
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
@@ -602,6 +601,7 @@ class Group(Model):
             models.Index(fields=("project", "status", "substatus", "id")),
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),

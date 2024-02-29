@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.models.grouphash import GroupHash
 from sentry.receivers import create_default_projects
@@ -18,8 +18,9 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         )
 
     def test_shrink_timeframe(self):
-        now = datetime.now()
-        year_ago = now - timedelta(days=365)
+        now = datetime.now(UTC)
+        naive_now = now.replace(tzinfo=None)
+        year_ago = naive_now - timedelta(days=365)
 
         # issues of None / empty list
         assert snuba.shrink_time_window(None, year_ago) == year_ago
@@ -35,7 +36,9 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project_id=group2.project_id, group=group2, hash="b" * 32)
 
         issues = [group1.id]
-        assert snuba.shrink_time_window(issues, year_ago) == now - timedelta(hours=1, minutes=5)
+        assert snuba.shrink_time_window(issues, year_ago) == naive_now - timedelta(
+            hours=1, minutes=5
+        )
 
         issues = [group1.id, group2.id]
         assert snuba.shrink_time_window(issues, year_ago) == year_ago

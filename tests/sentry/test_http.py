@@ -1,4 +1,3 @@
-import io
 import platform
 from unittest.mock import patch
 
@@ -72,10 +71,8 @@ def test_fetch_file():
         responses.GET, "http://example.com", body="foo bar", content_type="application/json"
     )
 
-    temp = io.BytesIO()
-    result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
-    assert result.body is None
-    assert temp.getvalue() == b"foo bar"
+    result = http.fetch_file(url="http://example.com", domain_lock_enabled=False)
+    assert result.body == b"foo bar"
 
 
 @responses.activate
@@ -89,7 +86,5 @@ def test_fetch_file_brotli():
         adding_headers={"Content-Encoding": "br"},
     )
 
-    temp = io.BytesIO()
-    result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
-    assert result.body is None
-    assert temp.getvalue() == b"foo bar"
+    result = http.fetch_file(url="http://example.com", domain_lock_enabled=False)
+    assert result.body == b"foo bar"

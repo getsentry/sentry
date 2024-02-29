@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict, defaultdict
 from collections.abc import MutableMapping
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
@@ -124,7 +124,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",
-            datetime.fromtimestamp(start),
+            datetime.fromtimestamp(start, UTC),
             function="date_bin",
             output_field=DateTimeField(),
         )

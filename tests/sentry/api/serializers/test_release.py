@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
@@ -15,9 +15,10 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
@@ -93,7 +94,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
 
-        current_formatted_datetime = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        current_formatted_datetime = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S+00:00")
         current_project_meta = {
             "prev_release_version": "foobar@1.0.0",
             "next_release_version": "foobar@2.0.0",
@@ -534,7 +535,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release_id=release.id,
             environment_id=env2.id,
             new_issues_count=1,
-            adopted=datetime.utcnow(),
+            adopted=datetime.now(UTC),
         )
 
         result = serialize(release, user, with_adoption_stages=True)
@@ -558,13 +559,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             release_id=release.id,
             environment_id=env.id,
             new_issues_count=1,
-            adopted=datetime.utcnow(),
+            adopted=datetime.now(UTC),
         )
         result = serialize(release, user, with_adoption_stages=True)
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.ADOPTED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED
 
-        rpe.update(unadopted=datetime.utcnow())
+        rpe.update(unadopted=datetime.now(UTC))
         result = serialize(release, user, with_adoption_stages=True)
         assert result["adoptionStages"][project.slug]["stage"] == ReleaseStages.REPLACED
         assert result["adoptionStages"][project2.slug]["stage"] == ReleaseStages.ADOPTED

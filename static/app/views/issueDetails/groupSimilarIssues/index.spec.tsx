@@ -155,6 +155,43 @@ describe('Issues Similar View', function () {
     await selectNthSimilarItem(0);
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
   });
+
+  it('shows empty message', async function () {
+    // Manually clear responses and add an empty response
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
+      body: [],
+    });
+
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(
+      screen.getByText("There don't seem to be any similar issues.")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'This can occur when the issue has no stacktrace or in-app frames.'
+      )
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('Issues Similar Embeddings View', function () {
@@ -174,8 +211,8 @@ describe('Issues Similar Embeddings View', function () {
   ]);
 
   const similarEmbeddingsScores = [
-    {exception: 0.9987, message: 0.3748, shouldBeGrouped: 'Yes'},
-    {exception: 0.9985, message: 0.3738, shouldBeGrouped: 'Yes'},
+    {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
+    {exception: 0.005, message: 0.3738, shouldBeGrouped: 'Yes'},
     {exception: 0.7384, message: 0.3743, shouldBeGrouped: 'No'},
     {exception: 0.3849, message: 0.4738, shouldBeGrouped: 'No'},
   ];
@@ -191,7 +228,7 @@ describe('Issues Similar Embeddings View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
       body: mockData.simlarEmbeddings,
     });
   });
@@ -321,7 +358,42 @@ describe('Issues Similar Embeddings View', function () {
         projectId: project.id,
         groupId: 'group-id',
         value: 'Yes',
+        wouldGroup: similarEmbeddingsScores[0].shouldBeGrouped,
       })
     );
+  });
+
+  it('shows empty message', async function () {
+    // Manually clear responses and add an empty response
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
+      body: [],
+    });
+
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(
+        "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+      )
+    ).toBeInTheDocument();
   });
 });

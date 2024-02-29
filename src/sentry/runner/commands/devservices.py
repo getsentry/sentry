@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import http
+import json  # noqa
 import os
-import platform
-import shutil
 import signal
 import subprocess
 import sys
@@ -20,19 +19,34 @@ import click
 if TYPE_CHECKING:
     import docker
 
+CI = os.environ.get("CI") is not None
+
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
+COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-# platform.processor() changed at some point between these:
-# 11.2.3: arm
-# 12.3.1: arm64
-APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
+USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_ORBSTACK = (
+    os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
+)
 
-USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+if USE_ORBSTACK:
+    USE_COLIMA = False
 
 if USE_COLIMA:
-    RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    USE_ORBSTACK = False
+
+USE_DOCKER_DESKTOP = not USE_COLIMA and not USE_ORBSTACK
+
+if DARWIN:
+    if USE_COLIMA:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+    elif USE_ORBSTACK:
+        RAW_SOCKET_PATH = os.path.expanduser("~/.orbstack/run/docker.sock")
+    elif USE_DOCKER_DESKTOP:
+        # /var/run/docker.sock is now gated behind a docker desktop advanced setting
+        RAW_SOCKET_PATH = os.path.expanduser("~/.docker/run/docker.sock")
 else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
@@ -58,10 +72,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                             f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
                         )
                     )
-                else:
+                elif USE_DOCKER_DESKTOP:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                    )
+                elif USE_ORBSTACK:
+                    click.echo("Attempting to start orbstack...")
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/OrbStack.app", "--args", "--unattended")
                     )
             else:
                 raise click.ClickException("Make sure docker is running.")
@@ -147,6 +166,21 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
     return rv
 
 
+def ensure_docker_cli_context(context: str):
+    # this is faster than running docker context use ...
+    config_file = os.path.expanduser("~/.docker/config.json")
+    config = {}
+
+    if os.path.exists(config_file):
+        with open(config_file, "rb") as f:
+            config = json.loads(f.read())
+
+    config["currentContext"] = context
+
+    with open(config_file, "w") as f:
+        f.write(json.dumps(config))
+
+
 @click.group()
 def devservices() -> None:
     """
@@ -157,6 +191,20 @@ def devservices() -> None:
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    if CI:
+        click.echo("Assuming docker (CI).")
+        return
+
+    if USE_DOCKER_DESKTOP:
+        click.echo("Using docker desktop.")
+        ensure_docker_cli_context("desktop-linux")
+    if USE_COLIMA:
+        click.echo("Using colima.")
+        ensure_docker_cli_context("colima")
+    if USE_ORBSTACK:
+        click.echo("Using orbstack.")
+        ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()

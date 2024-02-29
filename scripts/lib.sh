@@ -135,16 +135,8 @@ setup-git() {
 
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-    # shellcheck disable=SC2016
-    python3 -c '' || (
-        echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
-        exit 1
-    )
-    if ! require pre-commit; then
-        pip-install -r requirements-dev.txt
-    fi
-    pre-commit install --install-hooks
-    echo ""
+
+    .venv/bin/pre-commit install --install-hooks
 }
 
 node-version-check() {
@@ -255,14 +247,6 @@ reset-db() {
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
-}
-
-prerequisites() {
-    if [ -z "${CI+x}" ]; then
-        brew update -q && brew bundle -q
-    else
-        HOMEBREW_NO_AUTO_UPDATE=on brew install pyenv
-    fi
 }
 
 direnv-help() {

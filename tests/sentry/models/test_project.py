@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from unittest.mock import patch
 
 from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
@@ -11,8 +12,9 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
@@ -340,6 +342,18 @@ class ProjectTest(APITestCase, TestCase):
         assert (
             url == f"http://{self.organization.slug}.testserver/issues/?project={self.project.id}"
         )
+
+    def test_get_next_short_id_simple(self):
+        with patch("sentry.models.Counter.increment", return_value=1231):
+            assert self.project.next_short_id() == 1231
+
+    def test_next_short_id_increments_by_one_if_no_delta_passed(self):
+        assert self.project.next_short_id() == 1
+        assert self.project.next_short_id() == 2
+
+    def test_get_next_short_id_increments_by_delta_value(self):
+        assert self.project.next_short_id() == 1
+        assert self.project.next_short_id(delta=2) == 3
 
 
 @region_silo_test

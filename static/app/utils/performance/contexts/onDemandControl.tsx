@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {FlexContainer} from 'sentry/utils/discover/styles';
-import {AggregationKey} from 'sentry/utils/fields';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -71,49 +70,27 @@ export function OnDemandControlProvider({
 }
 /**
  * We determine that a widget is an on-demand metric widget if the widget
- * 1. type is discover
- * 2. contains no grouping
- * 3. contains only one query condition
- * 4. contains only one aggregate and does not contain unsupported aggregates
- * 5. contains one of the keys that are not supported by the standard metrics.
+ * 1. Widget Type is discover
+ * 2. contains one of the keys that are not supported by standard metrics or conditions that
+ *    can't be on-demand because they are part of errors. (eg. error.type, message, stack, etc.)
  */
-export function _isOnDemandMetricWidget(widget: Widget): boolean {
+export function isOnDemandMetricWidget(widget: Widget): boolean {
   if (widget.widgetType !== WidgetType.DISCOVER) {
-    return false;
-  }
-
-  // currently we only support widgets without grouping
-  const columns = widget.queries.flatMap(query => query.columns);
-
-  if (columns.length > 0) {
     return false;
   }
 
   const conditions = widget.queries.flatMap(query => query.conditions);
 
-  const hasNonStandardConditions = conditions.some(condition =>
+  const hasConditions = conditions.length > 0; // In cases with custom column like user_misery, on-demand can still apply.
+  const hasOnDemandConditions = conditions.some(condition =>
     isOnDemandQueryString(condition)
   );
 
-  // currently we only support one query per widget for on-demand metrics
-  if (conditions.length > 1 || !hasNonStandardConditions) {
+  if (!hasOnDemandConditions && hasConditions) {
     return false;
   }
 
-  const aggregates = widget.queries.flatMap(query => query.aggregates);
-  const unsupportedAggregates = [
-    AggregationKey.PERCENTILE,
-    AggregationKey.APDEX,
-    AggregationKey.FAILURE_RATE,
-  ];
-
-  // check if any of the aggregates contains unsupported aggregates as substr
-  const hasUnsupportedAggregates = aggregates.some(aggregate =>
-    unsupportedAggregates.some(agg => aggregate.includes(agg))
-  );
-
-  // currently we only support one aggregate per widget for on-demand metrics
-  return aggregates.length > 1 || !hasUnsupportedAggregates;
+  return true;
 }
 
 export const shouldUseOnDemandMetrics = (
@@ -125,11 +102,11 @@ export const shouldUseOnDemandMetrics = (
     return false;
   }
 
-  if (onDemandControlContext && onDemandControlContext.isControlEnabled) {
+  if (onDemandControlContext?.isControlEnabled) {
     return onDemandControlContext.forceOnDemand;
   }
 
-  return _isOnDemandMetricWidget(widget);
+  return isOnDemandMetricWidget(widget);
 };
 
 export function ToggleOnDemand() {

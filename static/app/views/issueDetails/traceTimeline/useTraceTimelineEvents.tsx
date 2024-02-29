@@ -33,15 +33,18 @@ interface UseTraceTimelineEventsOptions {
   event: Event;
 }
 
-export function useTraceTimelineEvents(
-  {event}: UseTraceTimelineEventsOptions,
-  isEnabled: boolean = true
-) {
+export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): {
+  endTimestamp: number;
+  isError: boolean;
+  isLoading: boolean;
+  startTimestamp: number;
+  traceEvents: TimelineEvent[];
+} {
   const organization = useOrganization();
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
-  const enabled = !!traceId && isEnabled;
+  const enabled = !!traceId;
   const {
     data: issuePlatformData,
     isLoading: isLoadingIssuePlatform,
@@ -150,7 +153,7 @@ export function useTraceTimelineEvents(
   ]);
 
   return {
-    data: eventData.data,
+    traceEvents: eventData.data,
     startTimestamp: eventData.startTimestamp,
     endTimestamp: eventData.endTimestamp,
     isLoading: isLoadingIssuePlatform || isLoadingDiscover,

@@ -17,25 +17,25 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import HistogramParams, QueryBuilderConfig
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    SPEC_VERSION_TWO_FLAG,
+    MetricSpecType,
+    OnDemandMetricSpec,
+)
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.discover import user_misery_formula
 
 pytestmark = pytest.mark.sentry_metrics
-
-
-def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
-    return (miserable_users + constants.MISERY_ALPHA) / (
-        unique_users + constants.MISERY_ALPHA + constants.MISERY_BETA
-    )
 
 
 def _metric_percentile_definition(
@@ -105,7 +105,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,
@@ -1639,13 +1639,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self):
         # Need to pick granularity based on the period and interval for timeseries
         def get_granularity(start, end, interval):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": self.projects,
-                "start": start,
-                "end": end,
-            }
-            query = TimeseriesMetricQueryBuilder(params, interval=interval)
+            query = TimeseriesMetricQueryBuilder(
+                {
+                    "organization_id": self.organization.id,
+                    "project_id": self.projects,
+                    "start": start,
+                    "end": end,
+                },
+                interval=interval,
+            )
             return query.granularity.granularity
 
         # If we're doing atleast day and its midnight we should use the daily bucket
@@ -2040,7 +2042,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert spec._query_str_for_hash == expected_str_hash
 
         # Because we call the builder with the feature flag we will get the environment to be included
-        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+        with Feature(SPEC_VERSION_TWO_FLAG):
             query_builder = TimeseriesMetricQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
@@ -2127,7 +2129,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            {**self.params, "environment": ["prod"]},  # type:ignore
+            {**self.params, "environment": ["prod"]},
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,
@@ -2862,7 +2864,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         threshold = 300
         field = f"user_misery({threshold})"
         query_s = "transaction.duration:>=10"
-        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=MetricSpecType.SIMPLE_QUERY)
+        # You can only query this function if you have the feature flag for the org
+        spec_type = MetricSpecType.SIMPLE_QUERY
+        spec = OnDemandMetricSpec(field=field, query=query_s, spec_type=spec_type)
 
         for hour in range(0, 2):
             for name, frustrated in user_to_frustration:
@@ -2881,29 +2885,38 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     timestamp=self.start + datetime.timedelta(hours=hour),
                 )
 
-        query = TimeseriesMetricQueryBuilder(
-            self.params,
-            dataset=Dataset.PerformanceMetrics,
-            interval=3600,
-            query=query_s,
-            selected_columns=[field],
-            config=QueryBuilderConfig(
-                on_demand_metrics_enabled=True, on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY
-            ),
-        )
-        assert query._on_demand_metric_spec_map
-        selected_spec = query._on_demand_metric_spec_map[field]
-        metrics_query = query._get_metrics_query_from_on_demand_spec(
-            spec=selected_spec, require_time_range=True
-        )
+        def create_query_builder():
+            return TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query_s,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True, on_demand_metrics_type=spec_type
+                ),
+            )
 
-        assert len(metrics_query.select) == 1
-        assert metrics_query.select[0].op == "on_demand_user_misery"
-        assert metrics_query.where
-        assert metrics_query.where[0].lhs.name == "query_hash"  # type: ignore
-        # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
-        assert metrics_query.where[0].rhs == "f9a20ff3"
-        assert metrics_query.where[0].rhs == spec.query_hash
+        with Feature({SPEC_VERSION_TWO_FLAG: False}):
+            # user_misery was added in spec version 2, querying without it results in fallback.
+            with pytest.raises(IncompatibleMetricsQuery):
+                create_query_builder()
+
+        with Feature(SPEC_VERSION_TWO_FLAG):
+            query = create_query_builder()
+            assert query._on_demand_metric_spec_map
+            selected_spec = query._on_demand_metric_spec_map[field]
+            metrics_query = query._get_metrics_query_from_on_demand_spec(
+                spec=selected_spec, require_time_range=True
+            )
+
+            assert len(metrics_query.select) == 1
+            assert metrics_query.select[0].op == "on_demand_user_misery"
+            assert metrics_query.where
+            assert metrics_query.where[0].lhs.name == "query_hash"
+            # hashed "on_demand_user_misery:300;{'name': 'event.duration', 'op': 'gte', 'value': 10.0}"
+            assert metrics_query.where[0].rhs == "f9a20ff3"
+            assert metrics_query.where[0].rhs == spec.query_hash
 
         result = query.run_query("test_query")
         assert result["data"][:3] == [
@@ -2931,13 +2944,13 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_run_query_with_on_demand_user_misery(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("sad user", True)],
-            _user_misery_formula(1, 2),
+            user_misery_formula(1, 2),
         )
 
     def test_run_query_with_on_demand_user_misery_no_miserable_users(self) -> None:
         self._test_user_misery(
             [("happy user", False), ("ok user", False)],
-            _user_misery_formula(0, 2),
+            user_misery_formula(0, 2),
         )
 
 

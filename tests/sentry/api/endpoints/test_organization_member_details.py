@@ -9,7 +9,6 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -211,7 +210,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_error_response(self.organization.slug, member.id, reinvite=1, status_code=400)
@@ -226,7 +225,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             organization=self.organization,
             email="foo@example.com",
             role="member",
-            token_expires_at="2018-10-20 00:00:00",
+            token_expires_at="2018-10-20 00:00:00+00:00",
         )
 
         self.get_success_response(self.organization.slug, member.id, reinvite=1, regenerate=1)
@@ -523,20 +522,20 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
     def test_with_internal_integration(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("member:admin",),
             webhook_url="http://example.com",
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # there should only be one record created so just grab the first one
-            token = SentryAppInstallationToken.objects.first()
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
             {"role": "manager"},
-            HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
         )
 
         # The app token has no associated OrganizationMember and therefore no role.
@@ -609,6 +608,30 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert (
             response.data["detail"]
             == "The user with a 'member' role cannot have team-level permissions."
+        )
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_can_demote_team_member_to_role_where_team_roles_disabled_with_team_removed(
+        self, mock_get
+    ):
+        team = self.create_team(organization=self.organization, name="Team Foo")
+
+        self.manager = self.create_user()
+        self.manager_om = self.create_member(
+            organization=self.organization, user=self.manager, role="manager", teams=[team]
+        )
+
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        self.get_success_response(
+            self.organization.slug, self.manager_om.id, orgRole="member", teamRoles=[]
         )
 
     @patch(
@@ -712,23 +735,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
-    def test_can_delete_owner_if_other_owners_through_teams(self):
-        # two members of an owner team
-        member = self.create_user("bar@example.com")
-        member2 = self.create_user("foo@example.com")
-        team = self.create_team(org_role="owner")
-        owner = self.create_member(
-            organization=self.organization, role="member", user=member, teams=[team]
-        )
-        self.create_member(
-            organization=self.organization, role="member", user=member2, teams=[team]
-        )
-
-        self.login_as(member)
-        self.get_success_response(self.organization.slug, owner.id)
-
-        assert not OrganizationMember.objects.filter(id=owner.id).exists()
-
     def test_can_delete_self(self):
         other_user = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, role="member", user=other_user)
@@ -798,23 +804,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, member_om.id)
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
-
-    def test_can_delete_with_org_role_from_team(self):
-        member = self.create_user("bar@example.com")
-        team = self.create_team(org_role="manager")
-        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
-
-        member_user = self.create_user("baz@example.com")
-        member_om = self.create_member(
-            organization=self.organization, role="manager", user=member_user
-        )
-
-        self.login_as(member)
-        self.get_success_response(self.organization.slug, member_om.id)
-
-        assert not OrganizationMember.objects.filter(
-            user_id=member_user.id, organization=self.organization
-        ).exists()
 
     def test_can_delete_pending_invite(self):
         invite = self.create_member(

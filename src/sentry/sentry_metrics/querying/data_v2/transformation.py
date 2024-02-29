@@ -85,7 +85,7 @@ def _generate_full_series(
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
-        full_series[index] = value
+        full_series[index] = nan_to_none(value)
 
     return full_series
 
@@ -168,7 +168,11 @@ class QueryTransformer:
 
             # We add additional metadata from the query themselves to make the API more transparent.
             query_meta.append(
-                QueryMeta(group_bys=group_bys, order=query_result.order, limit=query_result.limit)
+                QueryMeta(
+                    group_bys=group_bys,
+                    order=query_result.order.value if query_result.order else None,
+                    limit=query_result.limit,
+                )
             )
 
             queries_groups.append(query_groups)
@@ -180,6 +184,10 @@ class QueryTransformer:
         """
         Transforms the query results into the Sentry's API format.
         """
+        # If we have not run any queries, we won't return anything back.
+        if not self._query_results:
+            return {}
+
         # We first build intermediate results that we can work efficiently with.
         queries_groups, queries_meta = self._build_intermediate_results()
 

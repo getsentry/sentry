@@ -14,8 +14,10 @@ from django.utils import timezone
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
@@ -342,11 +344,6 @@ class AlertRuleStatus(Enum):
     DISABLED = 5
 
 
-class AlertRuleThresholdType(Enum):
-    ABOVE = 0
-    BELOW = 1
-
-
 class AlertRuleManager(BaseManager["AlertRule"]):
     """
     A manager that excludes all rows that are snapshots.
@@ -405,6 +402,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
 @region_silo_only_model
 class AlertRuleExcludedProjects(Model):
+    """
+    Excludes a specific project from an AlertRule
+
+    NOTE: This feature is not currently utilized.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
@@ -418,6 +421,29 @@ class AlertRuleExcludedProjects(Model):
 
 
 @region_silo_only_model
+class AlertRuleProjects(Model):
+    """
+    Specify a project for the AlertRule
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
+    project = FlexibleForeignKey("sentry.Project")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleprojects"
+        unique_together = (("alert_rule", "project"),)
+
+
+class AlertRuleMonitorType(Enum):
+    CONTINUOUS = 0
+    ACTIVATED = 1
+
+
+@region_silo_only_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -425,6 +451,9 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
+    projects = models.ManyToManyField(
+        "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
+    )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     owner = FlexibleForeignKey(
         "sentry.Actor",
@@ -435,12 +464,14 @@ class AlertRule(Model):
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )
+    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
-    include_all_projects = models.BooleanField(default=False)
+    include_all_projects = models.BooleanField(
+        default=False
+    )  # NOTE: This feature is not currently utilized.
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -450,6 +481,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
 
     class Meta:
         app_label = "sentry"
@@ -593,8 +625,20 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
         assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
+class AlertRuleThresholdType(Enum):
+    ABOVE = 0
+    BELOW = 1
+
+
 @region_silo_only_model
 class AlertRuleTrigger(Model):
+    """
+    This model represents the threshold trigger for an AlertRule
+
+    threshold_type is AlertRuleThresholdType (Above/Below)
+    alert_threshold is the trigger value
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
@@ -615,8 +659,41 @@ class AlertRuleTrigger(Model):
         unique_together = (("alert_rule", "label"),)
 
 
+class AlertRuleActivationConditionType(Enum):
+    RELEASE_CREATION = 0
+    DEPLOY_CREATION = 1
+
+
+@region_silo_only_model
+class AlertRuleActivationCondition(Model):
+    """
+    This model represents the activation condition for an activated AlertRule
+
+    label is an optional identifier for an activation condition
+    condition_type is AlertRuleActivationConditionType
+    TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
+    label = models.TextField()
+    condition_type = models.SmallIntegerField(null=True)
+
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivationcondition"
+        unique_together = (("alert_rule", "label"),)
+
+
 @region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
+    """
+    Allows us to define a specific trigger to be excluded from a query subscription
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
@@ -665,6 +742,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
 
     class Meta:
         app_label = "sentry"
@@ -743,10 +823,16 @@ class AlertRuleActivityType(Enum):
     ENABLED = 4
     DISABLED = 5
     SNAPSHOT = 6
+    ACTIVATED = 7
+    DEACTIVATED = 8
 
 
 @region_silo_only_model
 class AlertRuleActivity(Model):
+    """
+    Provides an audit log of activity for the alert rule
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")

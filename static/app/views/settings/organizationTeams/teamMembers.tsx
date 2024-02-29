@@ -147,8 +147,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
         },
         error: resp => {
           const errorMessage =
-            (resp && resp.responseJSON && resp.responseJSON.detail) ||
-            t('Unable to add team member.');
+            resp?.responseJSON?.detail || t('Unable to add team member.');
           addErrorMessage(errorMessage);
         },
       }
@@ -311,10 +310,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
 
   renderMembers(isTeamAdmin: boolean) {
     const {config, organization, team} = this.props;
-    const {access} = organization;
 
-    // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
     const {teamMembers, loading} = this.state;
 
     if (loading) {
@@ -326,7 +322,6 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
           <TeamMembersRow
             key={member.id}
             hasWriteAccess={isTeamAdmin}
-            isOrgOwner={isOrgOwner}
             organization={organization}
             team={team}
             member={member}

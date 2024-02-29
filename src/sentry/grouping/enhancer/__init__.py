@@ -20,6 +20,7 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import options, projectoptions
+from sentry.features.rollout import in_random_rollout
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
@@ -49,7 +50,7 @@ RUST_CACHE = RustCache(1_000)
 enhancements_grammar = Grammar(
     r"""
 
-enhancements = line+
+enhancements = line*
 
 line = _ (comment / rule / empty) newline?
 
@@ -201,9 +202,7 @@ def apply_rust_enhancements(
         return None
 
     try:
-        use_rust_enhancements = random.random() < options.get(
-            "grouping.rust_enhancers.modify_frames_rate"
-        )
+        use_rust_enhancements = in_random_rollout("grouping.rust_enhancers.modify_frames_rate")
     except Exception:
         use_rust_enhancements = False
     if not use_rust_enhancements:
@@ -252,7 +251,7 @@ def compare_rust_enhancers(
 
 def prefer_rust_enhancers():
     try:
-        return random.random() < options.get("grouping.rust_enhancers.prefer_rust_result")
+        return in_random_rollout("grouping.rust_enhancers.prefer_rust_result")
     except Exception:
         return False
 

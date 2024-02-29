@@ -3,17 +3,13 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
-import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
-import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   Frame,
   LineCoverage,
+  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -31,7 +27,8 @@ import {Assembly} from './assembly';
 import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
-import {OpenInContextLine} from './openInContextLine';
+import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
+import {useStacktraceCoverage} from './useStacktraceCoverage';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -47,6 +44,7 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
+  platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
 
@@ -73,19 +71,14 @@ function Context({
   hasAssembly = false,
   emptySourceNotation = false,
   registers,
-  components,
   frame,
   event,
   className,
   frameMeta,
   registersMeta,
+  platform,
 }: Props) {
-  const organization = useOrganization({allowNull: true});
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
-
-  // This is the old design. Only show if the feature flag is not enabled for this organization.
-  const hasStacktraceLink =
-    frame.inApp && !!frame.filename && isExpanded && !hasInFrameFeature;
+  const organization = useOrganization();
 
   const {projects} = useProjects();
   const project = useMemo(
@@ -167,8 +160,6 @@ function Context({
               {lines.map((line, i) => {
                 const contextLine = contextLines[i];
                 const isActive = activeLineNumber === contextLine[0];
-                const hasComponents = isActive && components.length > 0;
-                const showStacktraceLink = hasStacktraceLink && isActive;
 
                 return (
                   <Fragment key={i}>
@@ -186,26 +177,6 @@ function Context({
                         ))}
                       </ContextLineCode>
                     </ContextLineWrapper>
-                    {!hasInFrameFeature && hasComponents && (
-                      <ErrorBoundary mini>
-                        <OpenInContextLine
-                          key={i}
-                          lineNo={contextLine[0]}
-                          filename={frame.filename || ''}
-                          components={components}
-                        />
-                      </ErrorBoundary>
-                    )}
-                    {showStacktraceLink && (
-                      <ErrorBoundary customComponent={null}>
-                        <StacktraceLink
-                          key={i}
-                          line={contextLine[1]}
-                          frame={frame}
-                          event={event}
-                        />
-                      </ErrorBoundary>
-                    )}
                   </Fragment>
                 );
               })}
@@ -216,7 +187,11 @@ function Context({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
+          <FrameVariables
+            platform={platform}
+            data={frame.vars ?? {}}
+            meta={frameMeta?.vars}
+          />
         </StyledClippedBox>
       )}
 

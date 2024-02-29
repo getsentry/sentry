@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -17,7 +16,6 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team} from 'sentry/types';
-import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -62,19 +60,6 @@ function TeamSelect({
   const selectedTeamSlugs = new Set(selectedTeamRoles.map(tm => tm.teamSlug));
   const selectedTeams = teams.filter(tm => selectedTeamSlugs.has(tm.slug));
 
-  // Determine if adding a team changes the minimum team-role
-  // Get org-roles from team membership, if any
-  const groupOrgRoles = selectedTeams
-    .filter(team => team.orgRole)
-    .map(team => team.orgRole as string);
-  if (selectedOrgRole) {
-    groupOrgRoles.push(selectedOrgRole);
-  }
-
-  // Sort them and to get the highest priority role
-  // Highest priority role may change minimum team role
-  const effectiveOrgRole = getEffectiveOrgRole(groupOrgRoles, orgRoleList);
-
   const renderBody = () => {
     if (selectedTeams.length === 0) {
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
@@ -82,9 +67,9 @@ function TeamSelect({
 
     return (
       <Fragment>
-        {effectiveOrgRole && (
+        {selectedOrgRole && (
           <RoleOverwritePanelAlert
-            orgRole={effectiveOrgRole?.id}
+            orgRole={selectedOrgRole}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
@@ -98,7 +83,6 @@ function TeamSelect({
             team={team}
             member={{
               ...member,
-              groupOrgRoles: [{role: effectiveOrgRole, teamSlug: ''}],
               orgRole: selectedOrgRole,
               teamRoles: selectedTeamRoles,
             }}
@@ -154,13 +138,10 @@ function TeamRow({
   organization: Organization;
   team: Team;
 }) {
-  const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = team.flags['idp:provisioned'];
-  const isPermissionGroup = !!team.orgRole && !hasOrgAdmin;
-  const isRemoveDisabled = disabled || isIdpProvisioned || isPermissionGroup;
+  const isRemoveDisabled = disabled || isIdpProvisioned;
 
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
-  const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
@@ -169,8 +150,6 @@ function TeamRow({
           <TeamBadge team={team} />
         </Link>
       </div>
-
-      <div>{orgRoleFromTeam}</div>
 
       <div>
         <TeamRoleSelect

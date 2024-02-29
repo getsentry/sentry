@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -90,14 +90,14 @@ class GroupAttributesTest(TestCase):
             group=group,
             project=group.project,
             user_id=self.user.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
         group_2 = self.create_group()
         GroupAssignee.objects.create(
             group=group_2,
             project=group.project,
             team_id=self.team.id,
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
 
         snapshot_values = _bulk_retrieve_snapshot_values([group, group_2], False)

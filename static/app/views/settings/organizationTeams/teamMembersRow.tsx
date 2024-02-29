@@ -12,7 +12,6 @@ import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface Props {
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
@@ -27,7 +26,6 @@ function TeamMembersRow({
   member,
   user,
   hasWriteAccess,
-  isOrgOwner,
   removeMember,
   updateMemberRole,
 }: Props) {
@@ -50,8 +48,6 @@ function TeamMembersRow({
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
-          hasOrgRoleFromTeam={!!team.orgRole}
-          isOrgOwner={isOrgOwner}
           isSelf={isSelf}
           onClick={() => removeMember(member)}
           member={member}
@@ -62,14 +58,12 @@ function TeamMembersRow({
 }
 
 function RemoveButton(props: {
-  hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
-  isOrgOwner: boolean;
   isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
 }) {
-  const {member, hasWriteAccess, isOrgOwner, isSelf, hasOrgRoleFromTeam, onClick} = props;
+  const {member, hasWriteAccess, isSelf, onClick} = props;
 
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
@@ -87,31 +81,18 @@ function RemoveButton(props: {
   }
 
   const isIdpProvisioned = member.flags['idp:provisioned'];
-  const isPermissionGroup = hasOrgRoleFromTeam && !isOrgOwner;
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
-  if (isIdpProvisioned || isPermissionGroup) {
-    return (
-      <Button
-        size="xs"
-        disabled
-        icon={<IconSubtract isCircled />}
-        aria-label={t('Remove')}
-        title={buttonHelpText}
-      >
-        {t('Remove')}
-      </Button>
-    );
-  }
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
       data-test-id={`button-remove-${member.id}`}
       size="xs"
-      disabled={!canRemoveMember}
+      disabled={!canRemoveMember || isIdpProvisioned}
       icon={<IconSubtract isCircled />}
       onClick={onClick}
       aria-label={buttonRemoveText}
+      title={buttonHelpText}
     >
       {buttonRemoveText}
     </Button>

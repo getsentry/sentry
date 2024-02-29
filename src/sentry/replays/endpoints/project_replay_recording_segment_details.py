@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 
 import sentry_sdk
+import sentry_sdk.tracing
 from django.http import StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema
@@ -17,7 +18,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_filename
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
 from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
@@ -78,22 +79,25 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             )
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        transaction = sentry_sdk.start_transaction(
-            op="http.server",
-            name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
-        )
-        segment_bytes = download_segment(
-            segment, transaction=transaction, current_hub=sentry_sdk.Hub.current
-        )
-        if segment_bytes is None:
-            segment_bytes = b"[]"
+        with sentry_sdk.start_span(
+            op="download_segment",
+            description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+        ) as child_span:
+            segment_bytes = download_segment(
+                segment,
+                span=child_span,
+            )
+            if segment_bytes is None:
+                segment_bytes = b"[]"
 
-        segment_reader = BytesIO(segment_bytes)
+            segment_reader = BytesIO(segment_bytes)
 
-        response = StreamingHttpResponse(
-            iter(lambda: segment_reader.read(4096), b""),
-            content_type="application/json",
-        )
-        response["Content-Length"] = len(segment_bytes)
-        response["Content-Disposition"] = f'attachment; filename="{make_filename(segment)}"'
-        return response
+            response = StreamingHttpResponse(
+                iter(lambda: segment_reader.read(4096), b""),
+                content_type="application/json",
+            )
+            response["Content-Length"] = len(segment_bytes)
+            response[
+                "Content-Disposition"
+            ] = f'attachment; filename="{make_recording_filename(segment)}"'
+            return response

@@ -86,6 +86,10 @@ export type IssueTypeConfig = {
    */
   tags: DisabledWithReasonConfig;
   /**
+   * Displays the trace timeline and trace link for this issue
+   */
+  traceTimeline: boolean;
+  /**
    * Is the User Feedback tab shown for this issue
    */
   userFeedback: DisabledWithReasonConfig;
@@ -114,4 +118,10 @@ export const enum ErrorHelpType {
   LOAD_FAILED = 'load_failed',
   SOCKET_HANG_UP = 'socket_hang_up',
   FAILED_TO_FETCH = 'failed_to_fetch',
+  NEXTJS_ROUTER_NOT_MOUNTED = 'nextjs_router_not_mounted',
+  UNBOUND_LOCAL_ERROR = 'unbound_local_error',
+  NODEJS_CANNOT_FIND_MODULE = 'cannot_find_module',
+  NO_MODULE_NAMED = 'no_module_named',
+  STRINGS_ARE_IMMUTABLE = 'strings_are_immutable',
+  INVARIANT_VIOLATION_ERROR = 'invariant_violation_error',
 }

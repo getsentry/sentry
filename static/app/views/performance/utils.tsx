@@ -391,7 +391,7 @@ export function getProjectID(
 export function transformTransaction(
   transaction: NormalizedTrendsTransaction
 ): NormalizedTrendsTransaction {
-  if (transaction && transaction.breakpoint) {
+  if (transaction?.breakpoint) {
     return {
       ...transaction,
       breakpoint: transaction.breakpoint * 1000,

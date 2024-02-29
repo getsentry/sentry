@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 
 type FormProps = {
   cancelLabel?: string;
+  children?: React.ReactNode;
   className?: string;
   errorMessage?: React.ReactNode;
   extraButton?: React.ReactNode;
@@ -93,7 +94,7 @@ class Form<
       errors: {},
       initialData: {...this.state.data, ...(data || {})},
     });
-    this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
+    this.props.onSubmitSuccess?.(data);
   };
 
   onSubmitError = error => {
@@ -108,7 +109,7 @@ class Form<
       });
     }
 
-    this.props.onSubmitError && this.props.onSubmitError(error);
+    this.props.onSubmitError?.(error);
   };
 
   onFieldChange = (name: string, value: string | number) => {
@@ -128,7 +129,7 @@ class Form<
       ? Object.keys(data).length && !isEqual(data, initialData)
       : true;
     const isError = this.state.state === FormState.ERROR;
-    const nonFieldErrors = this.state.errors && this.state.errors.non_field_errors;
+    const nonFieldErrors = this.state.errors?.non_field_errors;
 
     return (
       <FormContext.Provider value={this.getContext()}>
@@ -148,7 +149,8 @@ class Form<
                   </p>
                   <ul>
                     {nonFieldErrors.map((e, i) => (
-                      <li key={i}>{e}</li>
+                      // TODO(TS): Objects cannot be rendered to dom
+                      <li key={i}>{e as any}</li>
                     ))}
                   </ul>
                 </div>

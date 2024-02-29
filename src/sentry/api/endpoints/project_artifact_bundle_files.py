@@ -53,9 +53,9 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(

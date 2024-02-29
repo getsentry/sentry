@@ -8,6 +8,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import {Flex} from 'sentry/components/profiling/flex';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -120,9 +121,10 @@ export default function ReplayComparisonModal({
             <ReplayGrid>
               <ReplayContextProvider
                 analyticsContext="replay_comparison_modal_left"
-                isFetching={fetching}
-                replay={replay}
                 initialTimeOffsetMs={{offsetMs: startOffset}}
+                isFetching={fetching}
+                prefsStrategy={StaticReplayPreferences}
+                replay={replay}
               >
                 <ComparisonSideWrapper id="leftSide">
                   <ReplaySide
@@ -134,9 +136,10 @@ export default function ReplayComparisonModal({
               </ReplayContextProvider>
               <ReplayContextProvider
                 analyticsContext="replay_comparison_modal_right"
-                isFetching={fetching}
-                replay={replay}
                 initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
+                isFetching={fetching}
+                prefsStrategy={StaticReplayPreferences}
+                replay={replay}
               >
                 <ComparisonSideWrapper id="rightSide">
                   {rightTimestamp > 0 ? (
@@ -203,7 +206,7 @@ function ReplaySide({expectedTime, selector, onLoad}) {
             })
           );
         }
-      }, 0);
+      }, 50);
     }
   }, [currentTime, expectedTime, selector, onLoad]);
   return <ReplayPlayer isPreview />;
