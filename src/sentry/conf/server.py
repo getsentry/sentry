@@ -3474,6 +3474,9 @@ KAFKA_SNUBA_SPANS = "snuba-spans"
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
+    # TODO: This is temporary while we migrate between the old and new way of defining overrides.
+    # To be removed once this is defined in prod, along with KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
+    # variable which will no longer be needed
     "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
 }
 
