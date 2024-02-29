@@ -63,7 +63,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(key, request.user), status=200)
+        return Response(serialize(key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Update a Client Key",
@@ -166,7 +166,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             data=key.get_audit_log_data(),
         )
 
-        return Response(serialize(key, request.user), status=200)
+        return Response(serialize(key, request.user, request=request), status=200)
 
     @extend_schema(
         operation_id="Delete a Client Key",
