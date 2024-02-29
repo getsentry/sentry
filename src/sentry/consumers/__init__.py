@@ -106,6 +106,27 @@ def ingest_monitors_options() -> list[click.Option]:
     return options
 
 
+def ingest_events_options() -> list[click.Option]:
+    """
+    Options for the "events"-like consumers: `events`, `attachments`, `transactions`.
+
+    This adds a `--reprocess-only-stuck-events`option. If that option is specified, *only* events
+    that were already persisted in the `processing_store` will be processed.
+    Events that never made it to the store, and ones that already made it out of the store are skipped,
+    same as attachments (which are not idempotent, and we would rather not duplicate them).
+    """
+    options = multiprocessing_options(default_max_batch_size=100)
+    options.append(
+        click.Option(
+            ["--reprocess-only-stuck-events", "reprocess_only_stuck_events"],
+            type=bool,
+            is_flag=True,
+            default=False,
+        )
+    )
+    return options
+
+
 _METRICS_INDEXER_OPTIONS = [
     click.Option(["--input-block-size"], type=int, default=None),
     click.Option(["--output-block-size"], type=int, default=None),
@@ -243,7 +264,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": ingest_events_options(),
         "static_args": {
             "consumer_type": "events",
         },
@@ -251,7 +272,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": ingest_events_options(),
         "static_args": {
             "consumer_type": "attachments",
         },
@@ -259,7 +280,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-transactions": {
         "topic": settings.KAFKA_INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": ingest_events_options(),
         "static_args": {
             "consumer_type": "transactions",
         },
