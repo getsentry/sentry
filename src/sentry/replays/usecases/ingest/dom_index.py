@@ -314,31 +314,33 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
     if not isinstance(event_payload_data, dict):
         event_payload_data = {}
 
-    if event_payload_data.get("requestBodySize"):  # 7.44 and 7.45
+    if "requestBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.request_body_size",
             event_payload_data["requestBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("request", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.request_body_size",
-            event_payload_data["request"]["size"],
-            unit="byte",
-        )
+    elif request := event_payload_data.get("request"):
+        if isinstance(request, dict) and "size" in request:
+            metrics.distribution(
+                "replays.usecases.ingest.request_body_size",
+                request["size"],
+                unit="byte",
+            )
 
-    if event_payload_data.get("responseBodySize"):  # 7.44 and 7.45
+    if "responseBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.response_body_size",
             event_payload_data["responseBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("response", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.response_body_size",
-            event_payload_data["response"]["size"],
-            unit="byte",
-        )
+    elif response := event_payload_data.get("response"):
+        if isinstance(response, dict) and "size" in response:
+            metrics.distribution(
+                "replays.usecases.ingest.response_body_size",
+                response["size"],
+                unit="byte",
+            )
 
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:

@@ -38,7 +38,7 @@ _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
 
-def _shared_pool(**opts: dict[str, Any]) -> ConnectionPool:
+def _shared_pool(**opts: Any) -> ConnectionPool:
     if "host" in opts:
         key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
     else:
@@ -66,7 +66,7 @@ class _RBCluster:
         self,
         decode_responses: bool | None = None,
         hosts: list[dict[int, Any]] | dict[int, Any] | None = None,
-        **config,
+        **config: Any,
     ) -> functools.partial:
         if not decode_responses:
             raise NotImplementedError("decode_responses=False mode is not implemented for `rb`")
@@ -77,7 +77,7 @@ class _RBCluster:
         hosts = {k: v for k, v in enumerate(hosts)} if isinstance(hosts, list) else hosts
         config["hosts"] = hosts
 
-        pool_options = config.pop("client_args", {})
+        pool_options: dict[str, Any] = config.pop("client_args", {})
         pool_options = {**_REDIS_DEFAULT_CLIENT_ARGS, **pool_options}
         config["pool_options"] = pool_options
 
@@ -103,7 +103,7 @@ class _RedisCluster:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
-        **config,
+        **config: Any,
     ) -> SimpleLazyObject:
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
@@ -264,6 +264,17 @@ def get_dynamic_cluster_from_options(
     # RBCluster
     cluster, config = get_cluster_from_options(setting, config)
     return False, cluster, config
+
+
+def get_cluster_routing_client(
+    cluster: RedisCluster | rb.Cluster, is_redis_cluster: bool
+) -> RedisCluster | rb.RoutingClient:
+    if is_instance_redis_cluster(cluster, is_redis_cluster):
+        return cluster
+    elif is_instance_rb_cluster(cluster, is_redis_cluster):
+        return cluster.get_routing_client()
+    else:
+        raise AssertionError("unreachable")
 
 
 def is_instance_redis_cluster(

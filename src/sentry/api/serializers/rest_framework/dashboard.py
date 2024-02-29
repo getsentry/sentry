@@ -24,7 +24,7 @@ from sentry.models.dashboard_widget import (
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.on_demand_metrics import (
     _get_widget_on_demand_specs,
@@ -195,12 +195,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
-        params = {
+        params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
             "project_id": [p.id for p in self.context["projects"]],
             "organization_id": self.context["organization"].id,
-            "environment": self.context.get("environment"),
+            "environment": self.context.get("environment", []),
         }
 
         try:
@@ -250,7 +250,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
         try:
             builder.resolve_orderby(orderby)
-        except (InvalidSearchQuery) as err:
+        except InvalidSearchQuery as err:
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
@@ -593,6 +593,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
             widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
@@ -632,6 +633,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.display_type = data.get("display_type", widget.display_type)
         widget.interval = data.get("interval", widget.interval)
         widget.widget_type = data.get("widget_type", widget.widget_type)
+        widget.discover_widget_split = data.get(
+            "discover_widget_split", widget.discover_widget_split
+        )
         widget.order = order
         widget.limit = data.get("limit", widget.limit)
         widget.detail = {"layout": data.get("layout", prev_layout)}

@@ -7,12 +7,15 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1156,6 +1159,332 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "onDemandType": "dynamic_query",
             },
         )
+
+        assert response.status_code == 200, response.content
+
+        groups = [
+            ("foo,red", "count()", 0.0, 1488.0),
+            ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
+        ]
+        assert len(response.data.keys()) == 2
+        for group_count in groups:
+            group, agg, row1, row2 = group_count
+            row_data = response.data[group][agg]["data"][:2]
+            assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_transaction_only(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "orderby": ["-count()"],
+                    "query": query,
+                    "yAxis": yAxis,
+                    "field": [field, field_two] + groupbys,
+                    "topEvents": 5,
+                    "dataset": "metricsEnhanced",
+                    "useOnDemandMetrics": "true",
+                    "onDemandType": "dynamic_query",
+                    "dashboardWidgetId": widget.id,
+                },
+            )
+            assert bool(mock_widget_save.assert_called_once)
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 1
+        assert bool(response.data[""])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(self):
+        field = "count()"
+        field_two = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query = "query.dataset:foo"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()"]
+
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "orderby": ["-count()"],
+                    "query": query,
+                    "yAxis": yAxis,
+                    "field": [field, field_two, "customtag1", "customtag2"],
+                    "topEvents": 5,
+                    "dataset": "metricsEnhanced",
+                    "useOnDemandMetrics": "true",
+                    "onDemandType": "dynamic_query",
+                    "dashboardWidgetId": widget.id,
+                },
+            )
+            assert bool(mock_widget_save.assert_called_once)
+
+        assert response.status_code == 200, response.content
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 1
+        assert bool(response.data["error_value,"])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
+        field = "count()"
+        field_two = "count()"
+        groupbys = ["customtag1", "customtag2"]
+        query = "query.dataset:foo"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
+
+        transaction = load_data("transaction")
+        transaction["timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
+        transaction["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
+        transaction["tags"] = {"customtag1": "transaction_value", "query.dataset": "foo"}
+
+        self.store_event(
+            data=transaction,
+            project_id=self.project.id,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()"]
+
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "orderby": ["-count()"],
+                    "query": query,
+                    "yAxis": yAxis,
+                    "field": [field, field_two, "customtag1", "customtag2"],
+                    "topEvents": 5,
+                    "dataset": "metricsEnhanced",
+                    "useOnDemandMetrics": "true",
+                    "onDemandType": "dynamic_query",
+                    "dashboardWidgetId": widget.id,
+                },
+            )
+            assert bool(mock_widget_save.assert_called_once)
+
+        assert response.status_code == 200, response.content
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 2
+        assert bool(response.data["error_value,"])
+        assert bool(response.data["transaction_value,"])
+
+    def test_top_events_with_transaction_on_demand_passing_widget_id_saved(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transactions like uses on-demand
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "orderby": ["-count()"],
+                    "query": query,
+                    "yAxis": yAxis,
+                    "field": [
+                        "count()",
+                        "count_web_vitals(measurements.lcp, good)",
+                        "customtag1",
+                        "customtag2",
+                    ],
+                    "topEvents": 5,
+                    "dataset": "metricsEnhanced",
+                    "useOnDemandMetrics": "true",
+                    "onDemandType": "dynamic_query",
+                    "dashboardWidgetId": widget.id,
+                },
+            )
+            assert bool(mock_widget_save.assert_not_called)
 
         assert response.status_code == 200, response.content
 
