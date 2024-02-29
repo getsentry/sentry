@@ -13,6 +13,7 @@ import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnb
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -196,6 +197,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
+  if (webApiPlatform) {
+    return <FeedbackOnboardingWebApiBanner />;
+  }
+
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
@@ -290,9 +295,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   function getConfig() {
-    if (webApiPlatform) {
-      return 'feedbackOnboardingWebApi';
-    }
     if (crashApiPlatform) {
       return 'feedbackOnboardingCrashApi';
     }

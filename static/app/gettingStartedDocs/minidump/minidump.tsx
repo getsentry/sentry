@@ -8,7 +8,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingWebApi} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -77,7 +76,6 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingWebApi,
 };
 
 export default docs;

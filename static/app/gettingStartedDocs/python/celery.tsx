@@ -10,7 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingWebApi} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -183,7 +182,6 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingWebApi,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),

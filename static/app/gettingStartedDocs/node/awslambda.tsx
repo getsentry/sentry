@@ -5,7 +5,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {feedbackOnboardingWebApi} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -161,7 +160,6 @@ const customMetricsOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingWebApi,
   customMetricsOnboarding,
 };
 
