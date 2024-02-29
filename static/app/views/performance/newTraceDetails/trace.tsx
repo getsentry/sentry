@@ -1281,7 +1281,6 @@ const TraceStylingWrapper = styled('div')`
       min-width: 34px;
       text-align: center;
       position: absolute;
-      transform: translate(-50%, 0);
       font-size: ${p => p.theme.fontSizeExtraSmall};
       font-weight: bold;
       color: ${p => p.theme.textColor};
@@ -1292,6 +1291,7 @@ const TraceStylingWrapper = styled('div')`
       display: inline-block;
       line-height: 1;
       margin-top: 2px;
+      white-space: nowrap;
     }
 
     .TraceIndicatorLine {

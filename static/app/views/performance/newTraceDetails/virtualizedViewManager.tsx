@@ -934,19 +934,59 @@ export class VirtualizedViewManager {
       }
     }
 
+    let start_indicator = 0;
+    let end_indicator = this.indicators.length;
+
+    while (start_indicator < this.indicators.length - 1) {
+      const indicator = this.indicators[start_indicator];
+      if (!indicator?.indicator) {
+        start_indicator++;
+        continue;
+      }
+
+      if (indicator.indicator.start < this.to_origin + this.trace_view.left) {
+        start_indicator++;
+        continue;
+      }
+
+      break;
+    }
+
+    while (end_indicator > start_indicator) {
+      const last_indicator = this.indicators[end_indicator - 1];
+      if (!last_indicator) {
+        end_indicator--;
+        continue;
+      }
+      if (last_indicator.indicator.start > this.to_origin + this.trace_view.right) {
+        end_indicator--;
+        continue;
+      }
+      break;
+    }
+
+    start_indicator = Math.max(0, start_indicator - 1);
+    end_indicator = Math.min(this.indicators.length - 1, end_indicator);
+
     for (let i = 0; i < this.indicators.length; i++) {
       const entry = this.indicators[i];
       if (!entry) {
         continue;
       }
 
+      if (i < start_indicator || i > end_indicator) {
+        entry.ref.style.opacity = '0';
+        continue;
+      }
+
       const transform = this.computeTransformXFromTimestamp(entry.indicator.start);
       const label = entry.ref.children[0] as HTMLElement | undefined;
 
-      const indicator_max = Math.min(this.trace_physical_space.width + 1, transform);
-      const indicator_min = Math.max(-1, transform);
+      const indicator_max = this.trace_physical_space.width + 1;
+      const indicator_min = -1;
 
       const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
+      const clamped_transform = clamp(transform, -1, indicator_max);
 
       if (label_width === undefined) {
         entry.ref.style.transform = `translate(${clamp(transform, indicator_min, indicator_max)}px, 0)`;
@@ -954,36 +994,34 @@ export class VirtualizedViewManager {
       }
 
       if (label) {
-        const label_max = Math.min(
-          this.trace_physical_space.width - label_width,
-          transform
-        );
+        const PADDING = 2;
+        const label_window_left = PADDING;
+        const label_window_right = -label_width - PADDING;
 
-        if (entry.indicator.label === 'CLS') {
-          // console.log(transform, label_width);
-        }
-
-        if (transform - label_width / 2 <= 0) {
-          const distance = label_width / 2 - transform;
-          if (entry.indicator.label === 'CLS') {
-            // console.log(distance);
-          }
-          if (distance > 0) {
-            label.style.transform = `translate(${label_width / 2 + distance}px, 0)`;
-          }
-          // if (transform > label_width) {
-          //   label.style.transform = `translate(0px, 0)`;
-          // } else {
-          // const distance = label_width / 2 - transform;
-          // }
-        } else if (transform > label_max) {
-          // label.style.transform = `translate(${label_max}px, 0)`;
+        if (transform < -1) {
+          label.style.transform = `translateX(${label_window_left}px)`;
+        } else if (transform >= indicator_max) {
+          label.style.transform = `translateX(${label_window_right}px)`;
         } else {
-          // label.style.transform = `translate(-${label_width / 2}px, 0)`;
+          const space_left = transform - PADDING - label_width / 2;
+          const space_right = transform + label_width / 2;
+
+          if (space_left < 0) {
+            const left = -label_width / 2 + Math.abs(space_left);
+            label.style.transform = `translateX(${left - 1}px)`;
+          } else if (space_right > this.trace_physical_space.width) {
+            const right =
+              -label_width / 2 - (space_right - this.trace_physical_space.width) - 1;
+            label.style.transform = `translateX(${right}px)`;
+          } else {
+            label.style.transform = `translateX(${-label_width / 2}px)`;
+          }
         }
       }
 
-      entry.ref.style.transform = `translate(${clamp(transform, -1, indicator_max)}px, 0)`;
+      entry.ref.style.opacity = '1';
+      entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
+      entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
   }
 

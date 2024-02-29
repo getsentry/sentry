@@ -331,6 +331,7 @@ export class TraceTree {
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
 
+    const duration = traceEnd - traceStart;
     // @TODO remove
     tree.indicators.push({
       start: traceStart * traceNode.multiplier,
@@ -339,12 +340,29 @@ export class TraceTree {
       type: 'ttfb',
       label: 'TTFB',
     });
+
     tree.indicators.push({
-      start: (traceStart + (traceEnd - traceStart) / 2) * traceNode.multiplier,
+      start: (traceStart + duration * 0.25) * traceNode.multiplier,
+      duration: 0,
+      node: traceNode,
+      type: 'ttfb',
+      label: 'TTFB 2',
+    });
+
+    tree.indicators.push({
+      start: (traceStart + duration / 2) * traceNode.multiplier,
       duration: 0,
       node: traceNode,
       type: 'cls',
       label: 'CLS',
+    });
+
+    tree.indicators.push({
+      start: (traceStart + duration * 0.75) * traceNode.multiplier,
+      duration: 0,
+      node: traceNode,
+      type: 'lcp',
+      label: 'LCP 2',
     });
 
     tree.indicators.push({
