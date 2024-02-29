@@ -3469,15 +3469,6 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
-
-
 # Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
