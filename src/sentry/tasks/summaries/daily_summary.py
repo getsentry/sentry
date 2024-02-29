@@ -125,8 +125,18 @@ def prepare_summary_data(
     ctx = build_summary_data(
         timestamp=timestamp, duration=duration, organization=organization, daily=True
     )
-    return ctx
-    # XXX(CEO): in a follow up PR this will delivery the daily summary
+    with sentry_sdk.start_span(op="daily_summary.check_if_ctx_is_empty"):
+        report_is_available = not check_if_ctx_is_empty(ctx)
+    set_tag("report.available", report_is_available)
+
+    if not report_is_available:
+        logger.info(
+            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
+        )
+        return
+
+    with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
+        deliver_summary(ctx=ctx, users=users_to_send_to)
 
 
 def build_summary_data(
@@ -136,6 +146,7 @@ def build_summary_data(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization.id)
     ctx = OrganizationReportContext(timestamp, duration, organization, daily=True)
+
     with sentry_sdk.start_span(op="daily_summary.user_project_ownership"):
         user_project_ownership(ctx)
 
@@ -217,18 +228,7 @@ def build_summary_data(
     with sentry_sdk.start_span(op="daily_summary.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
 
-    with sentry_sdk.start_span(op="daily_summary.check_if_ctx_is_empty"):
-        report_is_available = not check_if_ctx_is_empty(ctx)
-    set_tag("report.available", report_is_available)
-
-    if not report_is_available:
-        logger.info(
-            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
-        )
-        return
-
-    with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
-        deliver_summary(ctx=ctx, users=users_to_send_to)
+    return ctx
 
 
 def deliver_summary(ctx: OrganizationReportContext, users: list[int]):

@@ -160,7 +160,6 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
             fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group6"
         )
 
-
     @with_feature("organizations:daily-summary")
     @mock.patch("sentry.tasks.summaries.daily_summary.prepare_summary_data")
     def test_schedule_organizations(self, mock_prepare_summary_data):
