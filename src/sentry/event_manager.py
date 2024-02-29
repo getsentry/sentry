@@ -89,10 +89,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.pullrequest import PullRequest
-from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
@@ -1867,7 +1868,10 @@ def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) 
     group_data["metadata"].update(severity)
 
     if features.has("projects:issue-priority", project, actor=None):
-        priority = _get_priority_for_group(severity, group_creation_kwargs)
+        priority = group_creation_kwargs.get("priority", None)
+        if priority is None:
+            priority = _get_priority_for_group(severity, group_creation_kwargs)
+
         group_creation_kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
 

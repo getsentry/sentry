@@ -4,6 +4,7 @@ Blob drivers are polymorphic on the service abstractions provided by Sentry.  Bl
 not polymorphic on service providers.  Any change of credentials will result in data loss unless
 proper steps are taken to migrate your data.
 """
+
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
@@ -32,6 +33,50 @@ class RecordingSegmentStorageMeta:
     date_added: datetime | None = None
     file_id: int | None = None
     file: File | None = None
+
+
+def make_recording_filename(segment: RecordingSegmentStorageMeta) -> str:
+    return _make_recording_filename(
+        segment.retention_days,
+        segment.project_id,
+        segment.replay_id,
+        segment.segment_id,
+    )
+
+
+def make_video_filename(segment: RecordingSegmentStorageMeta) -> str:
+    return _make_video_filename(
+        segment.retention_days,
+        segment.project_id,
+        segment.replay_id,
+        segment.segment_id,
+    )
+
+
+def _make_recording_filename(
+    retention_days: int | None,
+    project_id: int,
+    replay_id: str,
+    segment_id: int,
+) -> str:
+    """Return a recording segment filename."""
+    return "{}/{}/{}/{}".format(
+        retention_days or 30,
+        project_id,
+        replay_id,
+        segment_id,
+    )
+
+
+def _make_video_filename(
+    retention_days: int | None,
+    project_id: int,
+    replay_id: str,
+    segment_id: int,
+) -> str:
+    """Return a recording segment video filename."""
+    filename = _make_recording_filename(retention_days, project_id, replay_id, segment_id)
+    return filename + ".video"
 
 
 class Blob(ABC):
@@ -82,7 +127,7 @@ class FilestoreBlob(Blob):
             )
             return
 
-        file = File.objects.create(name=make_filename(segment), type="replay.recording")
+        file = File.objects.create(name=make_recording_filename(segment), type="replay.recording")
         file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
         try:
@@ -114,6 +159,57 @@ class StorageBlob(Blob):
     bucket.  Keys are prefixed by their TTL.  Those TTLs are 30, 60, 90.  Measured in days.
     """
 
+    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
+        return storage_kv.delete(self.make_key(segment))
+
+    @metrics.wraps("replays.lib.storage.StorageBlob.get")
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
+        return storage_kv.get(self.make_key(segment))
+
+    @metrics.wraps("replays.lib.storage.StorageBlob.set")
+    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        return storage_kv.set(self.make_key(segment), value)
+
+    def initialize_client(self):
+        return storage_kv.initialize_client()
+
+    def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
+        return _make_recording_filename(
+            segment.retention_days,
+            segment.project_id,
+            segment.replay_id,
+            segment.segment_id,
+        )
+
+
+class SimpleStorageBlob:
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.get")
+    def get(self, key: str) -> bytes | None:
+        try:
+            storage = get_storage(self._make_storage_options())
+            blob = storage.open(key)
+            result = blob.read()
+            blob.close()
+        except Exception:
+            logger.warning("Storage GET error.")
+            return None
+        else:
+            return result
+
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.set")
+    def set(self, key: str, value: bytes) -> None:
+        storage = get_storage(self._make_storage_options())
+        try:
+            storage.save(key, BytesIO(value))
+        except TooManyRequests:
+            # if we 429 because of a dupe segment problem, ignore it
+            metrics.incr("replays.lib.storage.TooManyRequests")
+
+    @metrics.wraps("replays.lib.storage.SimpleStorageBlob.delete")
+    def delete(self, key: str) -> None:
+        storage = get_storage(self._make_storage_options())
+        storage.delete(key)
+
     def initialize_client(self):
         storage = get_storage(self._make_storage_options())
         # acccess the storage client so it is initialized below.
@@ -123,35 +219,6 @@ class StorageBlob(Blob):
         if hasattr(storage, "client"):
             storage.client
 
-    def delete(self, segment: RecordingSegmentStorageMeta) -> None:
-        storage = get_storage(self._make_storage_options())
-        storage.delete(self.make_key(segment))
-
-    @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
-        try:
-            storage = get_storage(self._make_storage_options())
-            blob = storage.open(self.make_key(segment))
-            result = blob.read()
-            blob.close()
-        except Exception:
-            logger.warning("Storage GET error.")
-            return None
-        else:
-            return result
-
-    @metrics.wraps("replays.lib.storage.StorageBlob.set")
-    def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
-        storage = get_storage(self._make_storage_options())
-        try:
-            storage.save(self.make_key(segment), BytesIO(value))
-        except TooManyRequests:
-            # if we 429 because of a dupe segment problem, ignore it
-            metrics.incr("replays.lib.storage.TooManyRequests")
-
-    def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
-        return make_filename(segment)
-
     def _make_storage_options(self) -> dict | None:
         backend = options.get("replay.storage.backend")
         if backend:
@@ -160,25 +227,11 @@ class StorageBlob(Blob):
             return None
 
 
-def make_filename(segment: RecordingSegmentStorageMeta) -> str:
-    """Return a deterministic segment filename.
-
-    Filename prefixes have special ordering requirements.  The first prefix "retention days" is
-    used for managing TTLs.  The project_id and replay_id prefixes are used for managing user
-    and GDPR deletions.
-    """
-    # Records retrieved from the File interface do not have a statically defined retention
-    # period.  Their retention is dynamic and deleted by an async process.  These filenames
-    # default to the 90 day (max) retention period prefix.
-    retention_days = segment.retention_days or 90
-
-    return "{}/{}/{}/{}".format(
-        retention_days,
-        segment.project_id,
-        segment.replay_id,
-        segment.segment_id,
-    )
-
-
-storage = StorageBlob()
+# Filestore interface. Legacy interface which supports slow-to-update self-hosted users.
 filestore = FilestoreBlob()
+
+# Recording segment blob interface. Legacy interface for supporting filestore interop.
+storage = StorageBlob()
+
+# Simple Key-value blob storage interface.
+storage_kv = SimpleStorageBlob()

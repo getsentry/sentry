@@ -49,7 +49,9 @@ def trace_func(**span_kwargs):
 
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
-def process_event(message: IngestMessage, project: Project) -> None:
+def process_event(
+    message: IngestMessage, project: Project, reprocess_only_stuck_events: bool = False
+) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
     """
@@ -123,6 +125,12 @@ def process_event(message: IngestMessage, project: Project) -> None:
             "event_id": event_id,
         },
     ):
+        return
+
+    # If we only want to reprocess "stuck" events, we check if this event is already in the
+    # `processing_store`. We only continue here if the event *is* present, as that will eventually
+    # process and consume the event from the `processing_store`, whereby getting it "unstuck".
+    if reprocess_only_stuck_events and not event_processing_store.exists(data):
         return
 
     with metrics.timer("ingest_consumer._store_event"):
