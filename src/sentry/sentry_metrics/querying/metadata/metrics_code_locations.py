@@ -100,7 +100,7 @@ class CodeLocationsFetcher:
 
     def _validate(self):
         total_combinations = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
-        if total_combinations >= self.MAXIMUM_KEYS:
+        if total_combinations > self.MAXIMUM_KEYS:
             raise TooManyCodeLocationsRequestedError(
                 "The request results in too many code locations to be fetched, try to reduce the number of "
                 "metrics, projects or the time interval"
