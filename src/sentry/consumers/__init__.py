@@ -416,7 +416,7 @@ def get_stream_processor(
     from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
     from arroyo.backends.kafka.consumer import KafkaConsumer
     from arroyo.commit import ONCE_PER_SECOND
-    from arroyo.types import Topic
+    from arroyo.types import Topic as ArroyoTopic
     from django.conf import settings
 
     from sentry.utils import kafka_config
@@ -479,7 +479,7 @@ def get_stream_processor(
         consumer = SynchronizedConsumer(
             consumer=consumer,
             commit_log_consumer=commit_log_consumer,
-            commit_log_topic=Topic(synchronize_commit_log_topic),
+            commit_log_topic=ArroyoTopic(synchronize_commit_log_topic),
             commit_log_groups={synchronize_commit_group},
         )
     elif consumer_definition.get("require_synchronization"):
@@ -488,7 +488,7 @@ def get_stream_processor(
         )
 
     # Validate schema if "validate_schema" is set
-    validate_schema = consumer_definition.get("validate_schema")
+    validate_schema = consumer_definition.get("validate_schema", False)
 
     if validate_schema:
         # TODO: Remove this later but for now we can only validate if `topic_def` is
@@ -522,7 +522,7 @@ def get_stream_processor(
         dlq_producer = KafkaProducer(producer_config)
 
         dlq_policy = DlqPolicy(
-            KafkaDlqProducer(dlq_producer, Topic(dlq_topic)),
+            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic)),
             DlqLimit(
                 max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
                 max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
@@ -534,7 +534,7 @@ def get_stream_processor(
 
     return StreamProcessor(
         consumer=consumer,
-        topic=Topic(topic),
+        topic=ArroyoTopic(topic),
         processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
