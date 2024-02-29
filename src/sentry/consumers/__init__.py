@@ -393,12 +393,17 @@ def get_stream_processor(
         ) from e
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-    logical_topic = consumer_definition["topic"]
-    if not isinstance(logical_topic, str):
-        logical_topic = logical_topic()
+    topic_def = consumer_definition["topic"]
+    if isinstance(topic_def, Topic):
+        default_topic = topic_def.value
+        real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
+    else:
+        # TODO: Deprecated, remove once this way is no longer used
+        if not isinstance(topic_def, str):
+            real_topic = topic_def()
 
     if topic is None:
-        topic = logical_topic
+        topic = real_topic
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -416,9 +421,9 @@ def get_stream_processor(
 
     from sentry.utils import kafka_config
 
-    # Still supported for now until we have moved everything in prod over
-    topic_def = settings.KAFKA_TOPICS[logical_topic]
+    topic_def = settings.KAFKA_TOPICS[real_topic]
     assert topic_def is not None
+
     if cluster is None:
         cluster = topic_def["cluster"]
 
@@ -485,11 +490,11 @@ def get_stream_processor(
     # Validate schema if "validate_schema" is set
     validate_schema = consumer_definition.get("validate_schema")
 
-    # TODO: Remove this later but for now we can only validate if `topic` is
-    # the logical topic and not the legacy override topic
-    assert isinstance(topic, Topic)
-
     if validate_schema:
+        # TODO: Remove this later but for now we can only validate if `topic` is
+        # the logical topic and not the legacy override topic
+        assert isinstance(topic, Topic)
+
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
             topic.value, validate_schema, strategy_factory
         )
