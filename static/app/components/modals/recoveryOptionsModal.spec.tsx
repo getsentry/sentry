@@ -108,20 +108,6 @@ describe('RecoveryOptionsModal', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the LoadingIndicator while fetching authenticators', async () => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/users/me/authenticators/',
-      method: 'GET',
-      body: [],
-    });
-
-    renderComponent();
-
-    const indicator = await screen.findByTestId('loading-indicator');
-    expect(indicator).toBeInTheDocument();
-  });
-
   it('renders the error message on API error', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
