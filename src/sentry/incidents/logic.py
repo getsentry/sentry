@@ -586,7 +586,7 @@ def create_alert_rule(
 
         # NOTE: This constructs the query in snuba
         # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
-        alert_rule.subscribe_projects(projects)
+        alert_rule.subscribe_projects(projects=projects)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -827,7 +827,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            alert_rule.subscribe_projects(new_projects)
+            alert_rule.subscribe_projects(projects=new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)

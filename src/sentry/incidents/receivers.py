@@ -23,7 +23,7 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
     )
     for alert_rule in alert_rules:
         # NOTE: defaults to only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
-        alert_rule.subscribe_projects(project=[instance])
+        alert_rule.subscribe_projects(projects=[instance])
 
 
 @receiver(pre_save, sender=IncidentTrigger)

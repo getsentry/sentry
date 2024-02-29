@@ -39,6 +39,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
+    @staticmethod
     def _subscribe_project_to_alert_rule(project: Project, release: Release, trigger: str):
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
