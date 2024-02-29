@@ -2,7 +2,7 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
@@ -98,5 +98,81 @@ describe('Frame Variables', function () {
       'href',
       '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
+  });
+
+  it('renders python variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'None',
+          bool: 'True',
+        }}
+        platform="python"
+      />
+    );
+
+    expect(
+      within(screen.getByTestId('value-null')).getByText('None')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('True')
+    ).toBeInTheDocument();
+  });
+
+  it('renders node variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: '<null>',
+          undefined: '<undefined>',
+          bool: true,
+        }}
+        platform="node"
+      />
+    );
+
+    const nullValues = screen.getAllByTestId('value-null');
+
+    expect(within(nullValues[0]).getByText('null')).toBeInTheDocument();
+    expect(within(nullValues[1]).getByText('undefined')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+  });
+
+  it('renders ruby variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'nil',
+          bool: 'true',
+        }}
+        platform="ruby"
+      />
+    );
+
+    expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+  });
+
+  it('renders php variables correctly', function () {
+    render(
+      <FrameVariables
+        data={{
+          null: 'null',
+          bool: 'true',
+        }}
+        platform="php"
+      />
+    );
+
+    expect(
+      within(screen.getByTestId('value-null')).getByText('null')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
   });
 });

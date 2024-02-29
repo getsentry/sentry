@@ -11,16 +11,29 @@ import {isUrl} from 'sentry/utils';
 import Toggle from './toggle';
 import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
 
-type Props = React.HTMLAttributes<HTMLPreElement> & {
+export type StructedEventDataConfig = {
+  isBoolean?: (value: unknown) => boolean;
+  isNull?: (value: unknown) => boolean;
+  renderBoolean?: (value: unknown) => React.ReactNode;
+  renderNull?: (value: unknown) => React.ReactNode;
+};
+
+type StructedEventDataProps = {
+  children?: React.ReactNode;
+  className?: string;
+  /**
+   * Allows customization of how values are rendered
+   */
+  config?: StructedEventDataConfig;
   data?: React.ReactNode;
-  jsonConsts?: boolean;
+  'data-test-id'?: string;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
   preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
 };
 
-function ContextValue({
+function AnnotatedValue({
   value,
   withAnnotatedText,
   meta,
@@ -48,17 +61,17 @@ function LinkHint({value}: {value: string}) {
   );
 }
 
-function walk({
+function StructedData({
+  config,
   depth,
   value = null,
-  maxDefaultDepth: maxDepth = 2,
+  maxDefaultDepth,
   preserveQuotes,
   withAnnotatedText,
-  jsonConsts,
   meta,
 }: {
+  config: StructedEventDataConfig | undefined;
   depth: number;
-  jsonConsts: boolean;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   preserveQuotes: boolean;
@@ -69,11 +82,13 @@ function walk({
 
   const children: React.ReactNode[] = [];
 
-  if (value === null) {
+  if (config?.isNull?.(value) || value === null) {
+    const nullValue = config?.renderNull?.(value) ?? String(value);
+
     return (
-      <ValueNull>
-        <ContextValue
-          value={jsonConsts ? 'null' : 'None'}
+      <ValueNull data-test-id="value-null">
+        <AnnotatedValue
+          value={nullValue}
           meta={meta}
           withAnnotatedText={withAnnotatedText}
         />
@@ -81,11 +96,13 @@ function walk({
     );
   }
 
-  if (value === true || value === false) {
+  if (config?.isBoolean?.(value) || value === true || value === false) {
+    const booleanValue = config?.renderBoolean?.(value) ?? String(value);
+
     return (
-      <ValueBoolean>
-        <ContextValue
-          value={jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
+      <ValueBoolean data-test-id="value-boolean">
+        <AnnotatedValue
+          value={booleanValue}
           meta={meta}
           withAnnotatedText={withAnnotatedText}
         />
@@ -97,7 +114,7 @@ function walk({
     const valueInfo = analyzeStringForRepr(value);
 
     const annotatedValue = withAnnotatedText ? (
-      <ContextValue
+      <AnnotatedValue
         value={valueInfo.repr}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
@@ -132,7 +149,7 @@ function walk({
   if (isNumber(value)) {
     const valueToBeReturned =
       withAnnotatedText && meta ? (
-        <ContextValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
+        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
       ) : (
         value
       );
@@ -142,15 +159,15 @@ function walk({
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
-          {walk({
-            value: value[i],
-            depth: depth + 1,
-            preserveQuotes,
-            withAnnotatedText,
-            jsonConsts,
-            meta: meta?.[i],
-            maxDefaultDepth: maxDepth,
-          })}
+          <StructedData
+            config={config}
+            value={value[i]}
+            depth={depth + 1}
+            preserveQuotes={preserveQuotes}
+            withAnnotatedText={withAnnotatedText}
+            meta={meta?.[i]}
+            maxDefaultDepth={maxDefaultDepth}
+          />
           {i < value.length - 1 ? <span>{', '}</span> : null}
         </div>
       );
@@ -158,7 +175,7 @@ function walk({
     return (
       <span>
         <span>{'['}</span>
-        <Toggle highUp={depth <= maxDepth}>{children}</Toggle>
+        <Toggle highUp={depth <= maxDefaultDepth}>{children}</Toggle>
         <span>{']'}</span>
       </span>
     );
@@ -176,15 +193,15 @@ function walk({
         <ValueObjectKey>{preserveQuotes ? `"${key}"` : key}</ValueObjectKey>
         <span>{': '}</span>
         <span>
-          {walk({
-            value: value[key],
-            depth: depth + 1,
-            preserveQuotes,
-            withAnnotatedText,
-            jsonConsts,
-            meta: meta?.[key],
-            maxDefaultDepth: maxDepth,
-          })}
+          <StructedData
+            config={config}
+            value={value[key]}
+            depth={depth + 1}
+            preserveQuotes={preserveQuotes}
+            withAnnotatedText={withAnnotatedText}
+            meta={meta?.[key]}
+            maxDefaultDepth={maxDefaultDepth}
+          />
           {i < keys.length - 1 ? <span>{', '}</span> : null}
         </span>
       </div>
@@ -194,39 +211,39 @@ function walk({
   return (
     <span>
       <span>{'{'}</span>
-      <Toggle highUp={depth <= maxDepth - 1}>{children}</Toggle>
+      <Toggle highUp={depth <= maxDefaultDepth - 1}>{children}</Toggle>
       <span>{'}'}</span>
     </span>
   );
 }
 
-function ContextData({
+function StructuredEventData({
+  config,
   children,
   meta,
-  jsonConsts = false,
   maxDefaultDepth = 2,
   data = null,
   preserveQuotes = false,
   withAnnotatedText = false,
   ...props
-}: Props) {
+}: StructedEventDataProps) {
   return (
     <pre {...props}>
-      {walk({
-        value: data,
-        depth: 0,
-        maxDefaultDepth,
-        meta,
-        jsonConsts,
-        withAnnotatedText,
-        preserveQuotes,
-      })}
+      <StructedData
+        config={config}
+        value={data}
+        depth={0}
+        maxDefaultDepth={maxDefaultDepth}
+        meta={meta}
+        withAnnotatedText={withAnnotatedText}
+        preserveQuotes={preserveQuotes}
+      />
       {children}
     </pre>
   );
 }
 
-export default ContextData;
+export default StructuredEventData;
 
 const StyledIconOpen = styled(IconOpen)`
   position: relative;

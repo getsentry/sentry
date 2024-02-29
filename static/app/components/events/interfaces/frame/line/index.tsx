@@ -164,6 +164,7 @@ function Line({
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
+        platform={platform}
       />
     </StyleListItem>
   );
