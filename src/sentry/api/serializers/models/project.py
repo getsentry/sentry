@@ -714,10 +714,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            with sentry_sdk.start_span(op="project_summary_serializer.should_demote_symbolication"):
-                attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                    project_id=item.id, lpq_projects=lpq_projects
-                )
+            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
+                project_id=item.id, lpq_projects=lpq_projects
+            )
 
         return attrs
 
