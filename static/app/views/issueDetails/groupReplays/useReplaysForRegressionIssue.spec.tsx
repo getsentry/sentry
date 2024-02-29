@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -130,7 +131,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    reactHooks.renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -139,19 +140,19 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    await waitFor(() =>
-      expect(replayCountRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/replay-count/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            start: new Date(
-              mockEvent.occurrence.evidenceData.breakpoint * 1000
-            ).toISOString(),
-            end: new Date().toISOString(),
-          }),
-        })
-      )
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: new Date(
+            mockEvent.occurrence.evidenceData.breakpoint * 1000
+          ).toISOString(),
+          end: new Date().toISOString(),
+        }),
+      })
     );
+
+    await act(tick);
   });
 
   it('queries the transaction name with event type and duration filters', async () => {
@@ -164,7 +165,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    reactHooks.renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -173,16 +174,16 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    await waitFor(() =>
-      expect(replayCountRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/replay-count/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query:
-              'event.type:transaction transaction:["mock-transaction"] transaction.duration:>=50ms',
-          }),
-        })
-      )
+    expect(replayCountRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/replay-count/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'event.type:transaction transaction:["mock-transaction"] transaction.duration:>=50ms',
+        }),
+      })
     );
+
+    await act(tick);
   });
 });
