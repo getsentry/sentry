@@ -7,6 +7,7 @@ import type {
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {feedbackOnboardingNode} from 'sentry/gettingStartedDocs/node/awslambda';
 import {t, tct} from 'sentry/locale';
 import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
@@ -199,6 +200,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: feedbackOnboardingNode,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
 };
 
