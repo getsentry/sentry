@@ -202,7 +202,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": ingest_replay_recordings_buffered_options(),
     },
     "ingest-monitors": {
-        "topic_override": settings.KAFKA_INGEST_MONITORS,
+        "topic": settings.KAFKA_INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
         "click_options": ingest_monitors_options(),
     },
@@ -346,7 +346,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
-    # TODO: This has to be co-ordinated with getsentry
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
