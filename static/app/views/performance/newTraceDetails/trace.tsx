@@ -982,7 +982,7 @@ function RenderPlaceholderRow(props: {
             height="12px"
             width={randomBetween(20, 80) + '%'}
             style={{
-              transition: 'all 5s ease-out',
+              transition: 'all 30s ease-out',
             }}
           />
         </div>
@@ -1000,7 +1000,7 @@ function RenderPlaceholderRow(props: {
           height="12px"
           width={randomBetween(20, 80) + '%'}
           style={{
-            transition: 'all 5s ease-out',
+            transition: 'all 30s ease-out',
             transform: `translate(${randomBetween(0, 200) + 'px'}, 0)`,
           }}
         />
