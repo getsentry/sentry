@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from sentry_sdk.tracing import NoOpSpan, Transaction
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
@@ -174,7 +174,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)

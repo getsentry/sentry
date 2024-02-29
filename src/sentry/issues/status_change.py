@@ -31,7 +31,7 @@ def handle_status_update(
     is_bulk: bool,
     status_details: dict[str, Any],
     acting_user: User | None,
-    activity_type: str | None,
+    activity_type: int | None,
     sender: Any,
 ) -> ActivityInfo:
     """
@@ -40,9 +40,8 @@ def handle_status_update(
     Returns a tuple of (activity_type, activity_data) for the activity that was created.
     """
     activity_data = {}
+    activity_type = ActivityType.SET_UNRESOLVED.value
     if new_status == GroupStatus.UNRESOLVED:
-        activity_type = ActivityType.SET_UNRESOLVED.value
-
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
                 issue_unignored.send_robust(
@@ -64,7 +63,6 @@ def handle_status_update(
         ignore_duration = (
             status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
         ) or None
-        activity_type = ActivityType.SET_IGNORED.value
         activity_data = {
             "ignoreCount": status_details.get("ignoreCount", None),
             "ignoreDuration": ignore_duration,
