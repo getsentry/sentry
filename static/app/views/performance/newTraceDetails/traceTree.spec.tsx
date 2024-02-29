@@ -46,15 +46,18 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
   } as TraceFullDetailed;
 }
 
-function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
+function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   return {
     op: '',
     description: '',
     span_id: '',
     start_timestamp: 0,
     timestamp: 10,
+    event: makeEvent(),
+    relatedErrors: [],
+    childTxn: undefined,
     ...overrides,
-  } as RawSpanType;
+  } as TraceTree.Span;
 }
 
 function makeTraceError(
@@ -496,6 +499,7 @@ describe('TraceTree', () => {
 
     const node = TraceTree.FromSpans(
       root,
+      makeEvent(),
       [
         makeSpan({start_timestamp: 0, op: '1', span_id: '1'}),
         makeSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
@@ -547,6 +551,7 @@ describe('TraceTree', () => {
 
     const node = TraceTree.FromSpans(
       root,
+      makeEvent(),
       [
         makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
         makeSpan({
@@ -596,6 +601,7 @@ describe('TraceTree', () => {
 
     const node = TraceTree.FromSpans(
       root,
+      makeEvent(),
       [
         makeSpan({start_timestamp: 0, timestamp: 0.1, op: 'span', span_id: 'none'}),
         makeSpan({
@@ -625,6 +631,7 @@ describe('TraceTree', () => {
     const date = new Date().getTime();
     const node = TraceTree.FromSpans(
       root,
+      makeEvent(),
       [
         makeSpan({
           start_timestamp: date,
@@ -664,6 +671,7 @@ describe('TraceTree', () => {
     const date = new Date().getTime();
     const node = TraceTree.FromSpans(
       root,
+      makeEvent(),
       [
         makeSpan({
           start_timestamp: date,
