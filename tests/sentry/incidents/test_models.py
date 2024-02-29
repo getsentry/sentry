@@ -394,6 +394,19 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
+class AlertRuleTest(TestCase):
+    @patch("sentry.incidents.models.bulk_create_snuba_subscriptions")
+    def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
+        # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        assert mock_bulk_create_snuba_subscriptions.call_count == 0
+
+        alert_rule.subscribe_projects(
+            projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        )
+        assert mock_bulk_create_snuba_subscriptions.call_count == 1
+
+
 @region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
