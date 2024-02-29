@@ -3450,6 +3450,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
@@ -3486,6 +3487,8 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default"},
+    # ingest-events DLQ
+    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
