@@ -201,7 +201,7 @@ const onboarding: OnboardingConfig = {
 
 export const appleFeedbackOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: getCrashReportInstallDescription(),
@@ -251,7 +251,7 @@ userFeedback.name = @"John Doe";
               code: `import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "https://16f104a1b76e4d69a1d7d075312254a7@o19635.ingest.sentry.io/5471241"
+    options.dsn = "${params.dsn}"
     options.onCrashedLastRun = { event in
         // capture user feedback
     }
@@ -265,7 +265,7 @@ SentrySDK.start { options in
               code: `@import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    options.dsn = @"https://16f104a1b76e4d69a1d7d075312254a7@o19635.ingest.sentry.io/5471241";
+    options.dsn = @"${params.dsn}";
     options.onCrashedLastRun = ^void(SentryEvent * _Nonnull event) {
         // capture user feedback
     };
