@@ -265,7 +265,13 @@ def _resolve_query_metadata(
     assert metrics_query.query is not None
 
     org_id = metrics_query.scope.org_ids[0]
-    use_case_id_str = _resolve_use_case_id_str(metrics_query.query)
+    use_case_ids = _resolve_use_case_ids(metrics_query.query)
+    if not use_case_ids:
+        raise InvalidParams("No use case id found in the query")
+    if len(use_case_ids) > 1:
+        raise InvalidParams("Formula parameters must all be from the same use case")
+
+    use_case_id_str = use_case_ids.pop()
     if metrics_query.scope.use_case_id is None:
         metrics_query = metrics_query.set_scope(
             metrics_query.scope.set_use_case_id(use_case_id_str)
@@ -331,7 +337,7 @@ def _resolve_timeseries_metadata(
     return series, mappings
 
 
-def _resolve_use_case_id_str(exp: Formula | Timeseries, root: bool = True) -> str | None:
+def _resolve_use_case_ids(exp: Formula | Timeseries) -> set[str]:
     def fetch_namespace(metric: Metric) -> str:
         if metric.mri is None:
             mri = get_mri(metric.public_name)
@@ -344,24 +350,15 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries, root: bool = True) -> st
         return parsed_mri.namespace
 
     if isinstance(exp, Timeseries):
-        return fetch_namespace(exp.metric)
+        return {fetch_namespace(exp.metric)}
 
     assert isinstance(exp, Formula), exp
     namespaces = set()
     for p in exp.parameters:
         if isinstance(p, (Formula, Timeseries)):
-            use_case_str = _resolve_use_case_id_str(p, False)
-            if use_case_str:
-                namespaces.add(use_case_str)
+            namespaces = namespaces.union(_resolve_use_case_ids(p))
 
-    if root:
-        if not namespaces:
-            raise InvalidParams("No use case id found in the query")
-
-        if len(namespaces) > 1:
-            raise InvalidParams("Formula parameters must all be from the same use case")
-
-    return namespaces.pop() if namespaces else None
+    return namespaces
 
 
 def _lookup_indexer_resolve(
