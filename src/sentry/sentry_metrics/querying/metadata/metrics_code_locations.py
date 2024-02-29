@@ -80,7 +80,8 @@ class CodeLocationsFetcher:
     # The maximum number of code locations we want to retrieve per Redis set.
     MAX_SET_SIZE = 10
 
-    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_SET_SIZE elements being returned.
+    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * (MAX_SET_SIZE / 2) elements being
+    # returned because we further limit entries returned from Redis after loading them.
 
     def __init__(
         self,
