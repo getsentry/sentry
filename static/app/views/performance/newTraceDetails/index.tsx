@@ -29,6 +29,8 @@ import useProjects from 'sentry/utils/useProjects';
 
 import Breadcrumb from '../breadcrumb';
 
+import {HighLightedRowContextProvider} from './HighlightedRowContext';
+import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
@@ -201,21 +203,24 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {traceType ? <TraceWarnings type={traceType} /> : null}
-          <TraceHeader
-            rootEventResults={rootEventResults}
-            metaResults={props.metaResults}
-            organization={props.organization}
-            traces={props.traceSplitResult}
-          />
-          <Trace trace={tree} trace_id={props.traceSlug} />
-          <TraceFooter
-            rootEventResults={rootEventResults}
-            organization={props.organization}
-            location={props.location}
-            traces={props.traceSplitResult}
-            traceEventView={props.traceEventView}
-          />
+          <HighLightedRowContextProvider>
+            {traceType ? <TraceWarnings type={traceType} /> : null}
+            <TraceHeader
+              rootEventResults={rootEventResults}
+              metaResults={props.metaResults}
+              organization={props.organization}
+              traces={props.traceSplitResult}
+            />
+            <Trace trace={tree} trace_id={props.traceSlug} />
+            <TraceFooter
+              rootEventResults={rootEventResults}
+              organization={props.organization}
+              location={props.location}
+              traces={props.traceSplitResult}
+              traceEventView={props.traceEventView}
+            />
+            <TraceDetailPanel />
+          </HighLightedRowContextProvider>
         </Layout.Main>
       </Layout.Body>
     </Fragment>

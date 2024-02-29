@@ -35,8 +35,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  QuickTraceEvent,
   TraceErrorOrIssue,
+  TraceFullDetailed,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -51,7 +51,7 @@ import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
-import type {ParsedTraceType, ProcessedSpanType, RawSpanType} from './types';
+import type {ParsedTraceType, RawSpanType} from './types';
 import {rawSpanKeys} from './types';
 import type {SubTimingInfo} from './utils';
 import {
@@ -86,15 +86,12 @@ type TransactionResult = {
 };
 
 export type SpanDetailProps = {
-  childTransactions: QuickTraceEvent[] | null;
+  childTransactions: TraceFullDetailed[] | null;
   event: Readonly<EventTransaction>;
-  isRoot: boolean;
   openPanel: string | undefined;
   organization: Organization;
   relatedErrors: TraceErrorOrIssue[] | null;
-  resetCellMeasureCache: () => void;
-  scrollToHash: (hash: string) => void;
-  span: ProcessedSpanType;
+  span: RawSpanType;
   trace: Readonly<ParsedTraceType>;
 };
 
@@ -375,23 +372,19 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanDetails() {
-    const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
+    const {span, event, organization} = props;
 
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
           {organization.features.includes('profiling') ? (
-            <GapSpanDetails
-              event={event}
-              span={span}
-              resetCellMeasureCache={resetCellMeasureCache}
-            />
+            <GapSpanDetails event={event} span={span} resetCellMeasureCache={() => {}} />
           ) : (
             <InlineDocs
               orgSlug={organization.slug}
               platform={event.sdk?.name || ''}
               projectSlug={event?.projectSlug ?? ''}
-              resetCellMeasureCache={resetCellMeasureCache}
+              resetCellMeasureCache={() => {}}
             />
           )}
         </SpanDetails>
@@ -434,7 +427,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     <SpanIdTitle
                       onClick={scrollToSpan(
                         span.span_id,
-                        scrollToHash,
+                        () => {},
                         location,
                         organization
                       )}

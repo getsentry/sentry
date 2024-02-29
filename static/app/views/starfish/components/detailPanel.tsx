@@ -16,6 +16,7 @@ type DetailProps = {
   detailKey?: string;
   onClose?: () => void;
   onOpen?: () => void;
+  skipCloseOnOutsideClick?: boolean;
 };
 
 type DetailState = {
@@ -24,7 +25,13 @@ type DetailState = {
 
 const SLIDEOUT_STORAGE_KEY = 'starfish-panel-slideout-direction';
 
-export default function Detail({children, detailKey, onClose, onOpen}: DetailProps) {
+export default function Detail({
+  children,
+  detailKey,
+  onClose,
+  onOpen,
+  skipCloseOnOutsideClick = false,
+}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
   const [slidePosition, setSlidePosition] = useLocalStorageState<'right' | 'bottom'>(
     SLIDEOUT_STORAGE_KEY,
@@ -43,7 +50,7 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
-    if (!state.collapsed) {
+    if (!state.collapsed && !skipCloseOnOutsideClick) {
       onClose?.();
       setState({collapsed: true});
     }
