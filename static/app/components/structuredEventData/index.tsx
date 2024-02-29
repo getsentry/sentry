@@ -261,7 +261,6 @@ const ValueBoolean = styled('span')`
 `;
 
 const ValueMultiLineString = styled('span')`
-  color: var(--prism-selector);
   display: block;
   overflow: auto;
   border-radius: 4px;
