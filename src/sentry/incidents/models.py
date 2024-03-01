@@ -40,8 +40,6 @@ from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
-# TODO - Move AlertsRule* and this registry to sentry.alerts
-# then rename these to be less verbose since it will be relative to the module
 alert_subscription_callback_registry: dict[
     AlertRuleMonitorType, Callable[[QuerySubscription], bool]
 ] = {}
