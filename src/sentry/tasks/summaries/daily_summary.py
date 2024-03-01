@@ -129,7 +129,6 @@ def prepare_summary_data(
     with sentry_sdk.start_span(op="daily_summary.check_if_ctx_is_empty"):
         report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
-
     if not report_is_available:
         logger.info(
             "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
@@ -206,7 +205,7 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
             if regressed_or_escalated_groups_today:
-                for activity in regressed_or_escalated_groups_today:
+                for activity in regressed_or_escalated_groups_today[:4]:
                     if activity.type == ActivityType.SET_REGRESSION.value:
                         project_ctx.regressed_today.append(activity.group)
                     else:
