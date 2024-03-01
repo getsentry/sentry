@@ -135,6 +135,7 @@ SPAN_COLUMN_MAP = {
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
+    "profile.id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
