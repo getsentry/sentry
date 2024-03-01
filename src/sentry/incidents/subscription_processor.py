@@ -24,6 +24,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     Incident,
@@ -446,7 +447,9 @@ class SubscriptionProcessor:
             return
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        invoke_alert_subscription_callback(self.alert_rule.monitor_type, self.subscription)
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type), self.subscription
+        )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
