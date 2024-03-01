@@ -52,7 +52,7 @@ def save_event_from_occurrence(
 
 
 def lookup_event(project_id: int, event_id: str) -> Event:
-    data = nodestore.get(Event.generate_node_id(project_id, event_id))  # type:ignore [attr-defined]
+    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
     event = Event(event_id=event_id, project_id=project_id)
