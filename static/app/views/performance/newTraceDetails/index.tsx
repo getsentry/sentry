@@ -1,4 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 import type {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -12,7 +19,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery, {
   type TraceMetaQueryChildrenProps,
 } from 'sentry/utils/performance/quickTrace/traceMetaQuery';
@@ -26,18 +32,31 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {rovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
 
 import Breadcrumb from '../breadcrumb';
 
-import {HighLightedRowContextProvider} from './HighlightedRowContext';
 import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
-import {TraceTree} from './traceTree';
+import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
+import {useTrace} from './useTrace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+
+function maybeFocusRow() {
+  const focused_node = document.querySelector(".TraceRow[tabIndex='0']");
+
+  if (
+    focused_node &&
+    'focus' in focused_node &&
+    typeof focused_node.focus === 'function'
+  ) {
+    focused_node.focus();
+  }
+}
 
 export function TraceView() {
   const location = useLocation();
@@ -46,19 +65,19 @@ export function TraceView() {
 
   const traceSlug = params.traceSlug?.trim() ?? '';
 
-  const dateSelection = useMemo(() => {
-    const queryParams = normalizeDateTimeParams(location.query, {
+  const queryParams = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(location.query, {
       allowAbsolutePageDatetime: true,
     });
-    const start = decodeScalar(queryParams.start);
-    const end = decodeScalar(queryParams.end);
-    const statsPeriod = decodeScalar(queryParams.statsPeriod);
+    const start = decodeScalar(normalizedParams.start);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod};
+    return {start, end, statsPeriod, useSpans: 1};
   }, [location.query]);
 
-  const _traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = dateSelection;
+  const traceEventView = useMemo(() => {
+    const {start, end, statsPeriod} = queryParams;
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -72,48 +91,34 @@ export function TraceView() {
       end,
       range: statsPeriod,
     });
-  }, [dateSelection, traceSlug]);
+  }, [queryParams, traceSlug]);
 
-  const [_limit, _setLimit] = useState<number>();
-  // const _handleLimithange = useCallback((newLimit: number) => {
-  //   setLimit(newLimit);
-  // }, []);
+  const trace = useTrace();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
       <Layout.Page>
         <NoProjectMessage organization={organization}>
-          <TraceFullDetailedQuery
-            type="spans"
+          <TraceMetaQuery
             location={location}
             orgSlug={organization.slug}
             traceId={traceSlug}
-            start={dateSelection.start}
-            end={dateSelection.end}
-            statsPeriod={dateSelection.statsPeriod}
+            start={queryParams.start}
+            end={queryParams.end}
+            statsPeriod={queryParams.statsPeriod}
           >
-            {trace => (
-              <TraceMetaQuery
+            {metaResults => (
+              <TraceViewContent
+                status={trace.status}
+                trace={trace.data}
+                traceSlug={traceSlug}
+                organization={organization}
                 location={location}
-                orgSlug={organization.slug}
-                traceId={traceSlug}
-                start={dateSelection.start}
-                end={dateSelection.end}
-                statsPeriod={dateSelection.statsPeriod}
-              >
-                {metaResults => (
-                  <TraceViewContent
-                    traceSplitResult={trace?.traces}
-                    traceSlug={traceSlug}
-                    organization={organization}
-                    location={location}
-                    traceEventView={_traceEventView}
-                    metaResults={metaResults}
-                  />
-                )}
-              </TraceMetaQuery>
+                traceEventView={traceEventView}
+                metaResults={metaResults}
+              />
             )}
-          </TraceFullDetailedQuery>
+          </TraceMetaQuery>
         </NoProjectMessage>
       </Layout.Page>
     </SentryDocumentTitle>
@@ -124,35 +129,19 @@ type TraceViewContentProps = {
   location: Location;
   metaResults: TraceMetaQueryChildrenProps;
   organization: Organization;
+  status: 'pending' | 'resolved' | 'error' | 'initial';
+  trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
-  traceSplitResult: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const rootEvent = props.traceSplitResult?.transactions?.[0];
   const {projects} = useProjects();
-  const tree = useMemo(() => {
-    if (!props.traceSplitResult) {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.traceSlug,
-      });
-    }
 
-    return TraceTree.FromTrace(props.traceSplitResult);
-  }, [props.traceSlug, props.traceSplitResult, projects]);
-
-  const traceType = useMemo(() => {
-    if (tree.type === 'loading') {
-      return null;
-    }
-    return TraceTree.GetTraceType(tree.root);
-  }, [tree]);
-
-  const rootEventResults = useApiQuery<EventTransaction>(
+  const root = props.trace?.transactions?.[0];
+  const rootEvent = useApiQuery<EventTransaction>(
     [
-      `/organizations/${props.organization.slug}/events/${rootEvent?.project_slug}:${rootEvent?.event_id}/`,
+      `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
         query: {
           referrer: 'trace-details-summary',
@@ -161,11 +150,64 @@ function TraceViewContent(props: TraceViewContentProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!(
-        props.traceSplitResult?.transactions &&
-        props.traceSplitResult.transactions.length > 0
-      ),
+      enabled: (props.trace?.transactions.length ?? 0) > 0,
     }
+  );
+
+  const tree = useMemo(() => {
+    if (props.status === 'pending' || rootEvent.status !== 'success') {
+      return TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
+    }
+
+    if (props.trace) {
+      return TraceTree.FromTrace(props.trace, rootEvent.data);
+    }
+
+    return TraceTree.Empty();
+  }, [props.traceSlug, props.trace, props.status, projects, rootEvent]);
+
+  const traceType = useMemo(() => {
+    if (props.status !== 'resolved' || !tree) {
+      return null;
+    }
+    return TraceTree.GetTraceType(tree.root);
+  }, [props.status, tree]);
+
+  const [state, dispatch] = useReducer(rovingTabIndexReducer, {
+    index: null,
+    items: null,
+    node: null,
+  });
+
+  useLayoutEffect(() => {
+    return dispatch({
+      type: 'initialize',
+      items: tree.list.length - 1,
+      index: null,
+      node: null,
+    });
+  }, [tree.list.length]);
+
+  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
+    null
+  );
+
+  const onDetailClose = useCallback(() => {
+    setDetailNode(null);
+    maybeFocusRow();
+  }, []);
+
+  const onSetDetailNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      setDetailNode(prevNode => {
+        return prevNode === node ? null : node;
+      });
+      maybeFocusRow();
+    },
+    []
   );
 
   return (
@@ -176,8 +218,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             organization={props.organization}
             location={props.location}
             transaction={{
-              project: rootEventResults.data?.projectID ?? '',
-              name: rootEventResults.data?.title ?? '',
+              project: rootEvent.data?.projectID ?? '',
+              name: rootEvent.data?.title ?? '',
             }}
             traceSlug={props.traceSlug}
           />
@@ -203,24 +245,28 @@ function TraceViewContent(props: TraceViewContentProps) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <HighLightedRowContextProvider>
-            {traceType ? <TraceWarnings type={traceType} /> : null}
-            <TraceHeader
-              rootEventResults={rootEventResults}
-              metaResults={props.metaResults}
-              organization={props.organization}
-              traces={props.traceSplitResult}
-            />
-            <Trace trace={tree} trace_id={props.traceSlug} />
-            <TraceFooter
-              rootEventResults={rootEventResults}
-              organization={props.organization}
-              location={props.location}
-              traces={props.traceSplitResult}
-              traceEventView={props.traceEventView}
-            />
-            <TraceDetailPanel />
-          </HighLightedRowContextProvider>
+          {traceType ? <TraceWarnings type={traceType} /> : null}
+          <TraceHeader
+            rootEventResults={rootEvent}
+            metaResults={props.metaResults}
+            organization={props.organization}
+            traces={props.trace}
+          />
+          <Trace
+            trace={tree}
+            trace_id={props.traceSlug}
+            roving_dispatch={dispatch}
+            roving_state={state}
+            setDetailNode={onSetDetailNode}
+          />
+          <TraceFooter
+            rootEventResults={rootEvent}
+            organization={props.organization}
+            location={props.location}
+            traces={props.trace}
+            traceEventView={props.traceEventView}
+          />
+          <TraceDetailPanel node={detailNode} onClose={onDetailClose} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

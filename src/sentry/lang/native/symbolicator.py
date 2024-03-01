@@ -15,7 +15,6 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.lang.native.sources import (
-    get_bundle_index_urls,
     get_internal_artifact_lookup_source,
     get_scraping_config,
     sources_for_symbolication,
@@ -200,15 +199,6 @@ class Symbolicator:
             "options": {"apply_source_context": apply_source_context},
             "scraping": scraping_config,
         }
-
-        try:
-            debug_id_index, url_index = get_bundle_index_urls(self.project, release, dist)
-            if debug_id_index:
-                json["debug_id_index"] = debug_id_index
-            if url_index:
-                json["url_index"] = url_index
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
 
         if release is not None:
             json["release"] = release

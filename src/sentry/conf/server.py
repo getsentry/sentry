@@ -1217,11 +1217,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute="0", hour="*/1"),
     },
-    "backfill-artifact-bundle-index": {
-        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
@@ -1523,6 +1518,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enable the unit normalization in the metrics API
+    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
@@ -1582,6 +1579,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable increased issue_owners rate limit for auto-assignment
+    "organizations:increased-issue-owners-rate-limit": False,
     # Enable integration functionality to work with alert rules
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -1641,8 +1640,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable the trace timeline on issue details
-    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
@@ -1957,6 +1954,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable playing replays from the replay tab
+    "organizations:replay-play-from-replay-tab": False,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -3448,6 +3447,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
@@ -3469,15 +3469,6 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
-
-
 # Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
@@ -3493,6 +3484,8 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default"},
+    # ingest-events DLQ
+    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
@@ -3798,7 +3791,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
-
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 

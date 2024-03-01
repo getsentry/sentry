@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -216,7 +216,7 @@ function WidgetBuilder({
 
   const api = useApi();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
     getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
@@ -355,14 +355,14 @@ function WidgetBuilder({
 
   useEffect(() => {
     const onUnload = () => {
-      if (!isSubmitting && state.userHasModified) {
+      if (!isSubmittingRef.current && state.userHasModified) {
         return t('You have unsaved changes, are you sure you want to leave?');
       }
       return undefined;
     };
 
     router.setRouteLeaveHook(route, onUnload);
-  }, [isSubmitting, state.userHasModified, route, router]);
+  }, [state.userHasModified, route, router]);
 
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
 
@@ -773,7 +773,7 @@ function WidgetBuilder({
       return;
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     let nextWidgetList = [...dashboard.widgets];
     const updateWidgetIndex = getUpdateWidgetIndex();
     nextWidgetList.splice(updateWidgetIndex, 1);
@@ -813,7 +813,7 @@ function WidgetBuilder({
       });
     }
 
-    setIsSubmitting(true);
+    isSubmittingRef.current = true;
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
