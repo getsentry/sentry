@@ -6,8 +6,9 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
-from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
@@ -977,6 +978,17 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "organizations:on-demand-metrics-extraction": True,
         }
 
+    def _make_on_demand_request(
+        self, params: dict[str, Any], extra_features: dict[str, bool] | None = None
+    ) -> Response:
+        """Ensures that the required parameters for an on-demand request are included."""
+        # Expected parameters for this helper function
+        params["dataset"] = "metricsEnhanced"
+        params["useOnDemandMetrics"] = "true"
+        params["onDemandType"] = "dynamic_query"
+        _features = {**self.features, **(extra_features or {})}
+        return self.do_request(params, features=_features)
+
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"
         yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
@@ -1196,7 +1208,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             discover_widget_split=None,
         )
 
-        for hour in range(0, 5):
+        for hour in range(0, 2):
             self.store_on_demand_metric(
                 hour * 62 * 24,
                 spec=spec,
@@ -1218,44 +1230,41 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
 
-        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+        yAxis = [field, field_two]
 
-        with mock.patch.object(widget, "save") as mock_widget_save:
-            response = self.do_request(
-                data={
-                    "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "orderby": ["-count()"],
-                    "query": query,
-                    "yAxis": yAxis,
-                    "field": [field, field_two] + groupbys,
-                    "topEvents": 5,
-                    "dataset": "metricsEnhanced",
-                    "useOnDemandMetrics": "true",
-                    "onDemandType": "dynamic_query",
-                    "dashboardWidgetId": widget.id,
-                },
-            )
-            assert bool(mock_widget_save.assert_called_once)
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": yAxis + groupbys,
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
 
         assert response.status_code == 200, response.content
         # Fell back to discover data which is empty for this test (empty group of '').
-        assert len(response.data.keys()) == 1
-        assert bool(response.data[""])
+        assert len(response.data.keys()) == 2
+        assert bool(response.data["foo,red"])
+        assert bool(response.data["bar,blue"])
 
-    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(self):
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
+        self,
+    ):
         field = "count()"
         field_two = "count()"
         groupbys = ["customtag1", "customtag2"]
         query = "query.dataset:foo"
-        spec = OnDemandMetricSpec(
-            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
-        )
-        spec_two = OnDemandMetricSpec(
-            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
-        )
 
         _, widget, __ = create_widget(
             ["count()"],
@@ -1269,62 +1278,51 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "event_id": "a" * 32,
                 "message": "very bad",
                 "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
                 "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
                 "tags": {"customtag1": "error_value", "query.dataset": "foo"},
             },
             project_id=self.project.id,
         )
-
-        for hour in range(0, 5):
-            self.store_on_demand_metric(
-                hour * 62 * 24,
-                spec=spec,
-                additional_tags={
-                    "customtag1": "foo",
-                    "customtag2": "red",
-                    "environment": "production",
-                },
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
-            self.store_on_demand_metric(
-                hour * 60 * 24,
-                spec=spec_two,
-                additional_tags={
-                    "customtag1": "bar",
-                    "customtag2": "blue",
-                    "environment": "production",
-                },
-                timestamp=self.day_ago + timedelta(hours=hour),
-            )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "very bad 2",
+                "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"customtag1": "error_value2", "query.dataset": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
         yAxis = ["count()"]
 
-        with mock.patch.object(widget, "save") as mock_widget_save:
-            response = self.do_request(
-                data={
-                    "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "orderby": ["-count()"],
-                    "query": query,
-                    "yAxis": yAxis,
-                    "field": [field, field_two, "customtag1", "customtag2"],
-                    "topEvents": 5,
-                    "dataset": "metricsEnhanced",
-                    "useOnDemandMetrics": "true",
-                    "onDemandType": "dynamic_query",
-                    "dashboardWidgetId": widget.id,
-                },
-            )
-            assert bool(mock_widget_save.assert_called_once)
-
-        assert response.status_code == 200, response.content
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [field, field_two] + groupbys,
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
 
         assert response.status_code == 200, response.content
         # Fell back to discover data which is empty for this test (empty group of '').
-        assert len(response.data.keys()) == 1
+        assert len(response.data.keys()) == 2
         assert bool(response.data["error_value,"])
+        assert bool(response.data["error_value2,"])
 
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_discover(self):
         field = "count()"
@@ -1390,25 +1388,26 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         yAxis = ["count()"]
 
-        with mock.patch.object(widget, "save") as mock_widget_save:
-            response = self.do_request(
-                data={
-                    "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "orderby": ["-count()"],
-                    "query": query,
-                    "yAxis": yAxis,
-                    "field": [field, field_two, "customtag1", "customtag2"],
-                    "topEvents": 5,
-                    "dataset": "metricsEnhanced",
-                    "useOnDemandMetrics": "true",
-                    "onDemandType": "dynamic_query",
-                    "dashboardWidgetId": widget.id,
-                },
-            )
-            assert bool(mock_widget_save.assert_called_once)
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [field, field_two, "customtag1", "customtag2"],
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.DISCOVER
 
         assert response.status_code == 200, response.content
 
