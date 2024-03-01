@@ -1582,6 +1582,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable increased issue_owners rate limit for auto-assignment
+    "organizations:increased-issue-owners-rate-limit": False,
     # Enable integration functionality to work with alert rules
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -1641,8 +1643,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable the trace timeline on issue details
-    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
@@ -3451,6 +3451,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
@@ -3538,6 +3539,8 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default"},
+    # ingest-events DLQ
+    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
@@ -3842,10 +3845,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
-SENTRY_POST_PROCESS_CONFIGURATION: Mapping[str, Any] = {
-    "org_ids_with_increased_issue_owners_ratelimit": set()
-}
-
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
