@@ -54,8 +54,7 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    general_default_mode = SiloMode.MONOLITH  # to be changed to REGION
-    return SiloMode.MONOLITH if _use_monolith_dbs() else general_default_mode
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
 
 
 def _configure_test_env_regions() -> None:
