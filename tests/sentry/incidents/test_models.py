@@ -28,6 +28,7 @@ from sentry.incidents.models import (
     register_alert_subscription_callback,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -560,26 +561,26 @@ class AlertRuleActivityTest(TestCase):
 
 
 class CleanExpiredAlertsTest(TestCase):
-    @patch("sentry.incidents.models.delete_snuba_subscription")
-    def test_clean_expired_alerts_active(self, mock_delete_snuba_subscription):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        subscription = alert_rule.snuba_query.subscriptions.get()
+    def test_clean_expired_alerts_active(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            subscription = alert_rule.snuba_query.subscriptions.get()
 
-        clean_expired_alerts(subscription)
-        assert mock_delete_snuba_subscription.call_count == 0
+            clean_expired_alerts(subscription)
+            assert QuerySubscription.objects.filter(id=subscription.id).exists()
 
-    @patch("sentry.incidents.models.delete_snuba_subscription")
-    def test_clean_expired_alerts_deactive(self, mock_delete_snuba_subscription):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+    def test_clean_expired_alerts_deactive(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
 
-        subscription = alert_rule.snuba_query.subscriptions.get()
-        subscription.date_added = timezone.now() - timedelta(days=21)
+            subscription = alert_rule.snuba_query.subscriptions.get()
+            subscription.date_added = timezone.now() - timedelta(days=21)
 
-        result = clean_expired_alerts(subscription)
+            result = clean_expired_alerts(subscription)
 
-        assert result is True
-        assert mock_delete_snuba_subscription.call_count == 1
-        assert mock_delete_snuba_subscription.call_args[0][0] == subscription
+            assert result is True
+            assert subscription.status == QuerySubscription.Status.DELETING.value
+            assert not QuerySubscription.objects.filter(id=subscription.id).exists()
 
     def test_clean_expired_alerts_add_processor(self):
         @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
