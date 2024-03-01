@@ -16,7 +16,6 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
-    FlatFileIndexState,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
@@ -266,7 +265,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ReleaseArtifactBundle),
             router.db_for_write(DebugIdArtifactBundle),
             router.db_for_write(ArtifactBundleIndex),
-            router.db_for_write(FlatFileIndexState),
         )
     ):
         # We check again for the date_added condition in order to achieve consistency, this is done because
@@ -286,9 +284,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
             ArtifactBundleIndex.objects.filter(
-                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
-            FlatFileIndexState.objects.filter(
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
 
