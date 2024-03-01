@@ -229,6 +229,14 @@ def record_first_profile(project, **kwargs):
 def record_first_replay(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
 
+    analytics.record(
+        "first_replay.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.SESSION_REPLAY,
@@ -237,13 +245,6 @@ def record_first_replay(project, **kwargs):
     )
 
     if success:
-        analytics.record(
-            "first_replay.sent",
-            user_id=project.organization.default_owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
-        )
         try_mark_onboarding_complete(project.organization_id)
 
 
