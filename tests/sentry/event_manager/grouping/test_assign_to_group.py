@@ -20,7 +20,7 @@ from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.pytest.mocking import capture_return_values
+from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -32,14 +32,12 @@ NEWSTYLE_CONFIG = "newstyle:2023-01-11"
 
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
-    wrapped_find_existing_grouphash = capture_return_values(find_existing_grouphash, return_values)
-    wrapped_find_existing_grouphash_new = capture_return_values(
+    wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
+    wrapped_find_existing_grouphash_new = capture_results(
         find_existing_grouphash_new, return_values
     )
-    wrapped_calculate_primary_hash = capture_return_values(_calculate_primary_hash, return_values)
-    wrapped_calculate_secondary_hash = capture_return_values(
-        _calculate_secondary_hash, return_values
-    )
+    wrapped_calculate_primary_hash = capture_results(_calculate_primary_hash, return_values)
+    wrapped_calculate_secondary_hash = capture_results(_calculate_secondary_hash, return_values)
 
     with (
         mock.patch(
@@ -425,7 +423,7 @@ def test_existing_group_new_hash_exists(
         new_logic_enabled=new_logic_enabled,
     )
 
-    if in_transition:
+    if in_transition and not new_logic_enabled:
         assert results == {
             "primary_hash_calculated": True,
             "secondary_hash_calculated": True,
@@ -439,6 +437,9 @@ def test_existing_group_new_hash_exists(
             "primary_grouphash_exists_now": True,
             "secondary_grouphash_exists_now": True,
         }
+    # Equivalent to `elif (in_transition and new_logic_enabled) or not in_transition`. In other
+    # words, with the new logic, if the new hash exists, it doesn't matter whether we're in
+    # transition or not - no extra calculations are performed.
     else:
         assert results == {
             "primary_hash_calculated": True,

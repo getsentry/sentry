@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -602,7 +602,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
             self.client.get(

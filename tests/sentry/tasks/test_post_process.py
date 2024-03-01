@@ -55,6 +55,7 @@ from sentry.silo import SiloMode, unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
+    HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
     locks,
@@ -1320,12 +1321,11 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
     @patch("sentry.tasks.post_process.logger")
-    def test_issue_owners_should_ratelimit(self, logger):
+    def test_issue_owners_should_ratelimit(self, mock_logger):
         cache.set(
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
-        cache.set(f"commit-context-scm-integration:{self.project.organization_id}", True, 60)
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -1341,16 +1341,50 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        logger.info.assert_any_call(
-            "handle_owner_assignment.ratelimited",
-            extra={
-                "event": event.event_id,
-                "group": event.group_id,
-                "project": event.project_id,
-                "organization": event.project.organization_id,
-                "reason": "ratelimited",
-            },
+        expected_extra = {
+            "event": event.event_id,
+            "group": event.group_id,
+            "project": event.project_id,
+            "organization": event.project.organization_id,
+            "reason": "ratelimited",
+        }
+        mock_logger.info.assert_any_call(
+            "handle_owner_assignment.ratelimited", extra=expected_extra
         )
+        mock_logger.reset_mock()
+
+        # Raise this organization's ratelimit
+        with self.feature("organizations:increased-issue-owners-rate-limit"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+            with pytest.raises(AssertionError):
+                mock_logger.info.assert_any_call(
+                    "handle_owner_assignment.ratelimited", extra=expected_extra
+                )
+
+        # Still enforce the raised limit
+        mock_logger.reset_mock()
+        cache.set(
+            f"issue_owner_assignment_ratelimiter:{self.project.id}",
+            (
+                set(range(0, HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)),
+                datetime.now(),
+            ),
+        )
+        with self.feature("organizations:increased-issue-owners-rate-limit"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+            mock_logger.info.assert_any_call(
+                "handle_owner_assignment.ratelimited", extra=expected_extra
+            )
 
 
 class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
@@ -2372,7 +2406,7 @@ class PostProcessGroupPerformanceTest(
         run_post_process_job_mock,
         generic_metrics_backend_mock,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        min_ago = before_now(minutes=1)
         event = self.store_transaction(
             project_id=self.project.id,
             user_id=self.create_user(name="user1").name,
@@ -2508,7 +2542,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         self,
         mock_store_transaction_name,
     ):
-        min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
+        min_ago = before_now(minutes=1)
         event = process_event(
             data={
                 "project": self.project.id,
@@ -2724,7 +2758,8 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    def test_not_ran_if_crash_report(self):
+    def test_not_ran_if_crash_report_option_disabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", False)
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2749,6 +2784,33 @@ class PostProcessGroupFeedbackTest(
         # assert mock_process_rules is not called
         assert mock_process_func.call_count == 0
 
+    def test_not_ran_if_crash_report_project_option_enabled(self):
+        self.project.update_option("sentry:replay_rage_click_issues", True)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+        )
+        mock_process_func = Mock()
+        with patch(
+            "sentry.tasks.post_process.GROUP_CATEGORY_POST_PROCESS_PIPELINE",
+            {
+                GroupCategory.FEEDBACK: [
+                    feedback_filter_decorator(mock_process_func),
+                ]
+            },
+        ):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+                cache_key="total_rubbish",
+            )
+        # assert mock_process_rules is not called
+        assert mock_process_func.call_count == 1
+
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},
@@ -2771,7 +2833,6 @@ class PostProcessGroupFeedbackTest(
                 event=event,
                 cache_key="total_rubbish",
             )
-        # assert mock_process_rules is not called
         assert mock_process_func.call_count == 1
 
     @pytest.mark.skip(

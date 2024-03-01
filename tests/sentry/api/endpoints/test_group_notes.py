@@ -39,7 +39,7 @@ class GroupNoteTest(APITestCase):
 
     def test_note_merge(self):
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(datetime.UTC)
 
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)

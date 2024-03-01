@@ -24,6 +24,7 @@ from sentry.models.group import Group
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -170,6 +171,29 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert fetched_event.get_event_type() == "generic"
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
+    @with_feature("projects:issue-priority")
+    def test_issue_platform_default_priority(self):
+        # test default priority of LOW
+        message = get_test_message(self.project.id)
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assert group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    def test_issue_platform_override_priority(self):
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["initial_issue_priority"] = PriorityLevel.HIGH.value
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        assert group.priority == PriorityLevel.HIGH
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):

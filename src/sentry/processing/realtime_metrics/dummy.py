@@ -11,6 +11,9 @@ class DummyRealtimeMetricsStore(base.RealtimeMetricsStore):
     def __init__(self, **kwargs: Any) -> None:
         pass
 
+    def validate(self) -> None:
+        pass
+
     def record_project_duration(self, project_id: int, duration: float) -> None:
         pass
 

@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.models.group import GroupStatus
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
@@ -185,49 +186,49 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
     # TODO: update docs to include minutes, days, and weeks suffixes
     @freeze_time("2016-01-01")
     def test_age_tag_negative_value(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:-12h")
         assert result == {"tags": {}, "query": "", "age_from": expected, "age_from_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_positive_value(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:+12h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_weeks(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(days=35)
         result = self.parse_query("age:+5w")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_days(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(days=10)
         result = self.parse_query("age:+10d")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_hours(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(hours=10)
         result = self.parse_query("age:+10h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_age_tag_minutes(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected = start - timedelta(minutes=30)
         result = self.parse_query("age:+30m")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
     @freeze_time("2016-01-01")
     def test_two_age_tags(self):
-        start = datetime.now(timezone.utc)
+        start = timezone.now()
         expected_to = start - timedelta(hours=12)
         expected_from = start - timedelta(hours=24)
         result = self.parse_query("age:+12h age:-24h")
@@ -244,9 +245,9 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         result = self.parse_query("event.timestamp:2016-01-02")
         assert result == {
             "query": "",
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": True,
-            "date_to": datetime(2016, 1, 3, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 3, tzinfo=UTC),
             "date_to_inclusive": False,
             "tags": {},
         }
@@ -264,7 +265,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "query": "",
             "times_seen_lower": 10,
             "times_seen_lower_inclusive": False,
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": False,
         }
 
@@ -275,7 +276,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "query": "",
             "times_seen_lower": 10,
             "times_seen_lower_inclusive": True,
-            "date_from": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_from": datetime(2016, 1, 2, tzinfo=UTC),
             "date_from_inclusive": True,
         }
 
@@ -286,7 +287,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "query": "",
             "times_seen_upper": 10,
             "times_seen_upper_inclusive": False,
-            "date_to": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 2, tzinfo=UTC),
             "date_to_inclusive": False,
         }
 
@@ -299,7 +300,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
             "query": "",
             "times_seen_upper": 10,
             "times_seen_upper_inclusive": True,
-            "date_to": datetime(2016, 1, 2, tzinfo=timezone.utc),
+            "date_to": datetime(2016, 1, 2, tzinfo=UTC),
             "date_to_inclusive": True,
         }
 
@@ -405,12 +406,12 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         release = self.create_release(
             project=self.project,
             version="older_release",
-            date_added=datetime.now() - timedelta(days=1),
+            date_added=timezone.now() - timedelta(days=1),
         )
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [release.version], "tags": {}, "query": ""}
         release = self.create_release(
-            project=self.project, version="new_release", date_added=datetime.now()
+            project=self.project, version="new_release", date_added=timezone.now()
         )
         result = self.parse_query("first-release:latest")
         assert result == {"first_release": [release.version], "tags": {}, "query": ""}
@@ -426,12 +427,12 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         release = self.create_release(
             project=self.project,
             version="older_release",
-            date_added=datetime.now() - timedelta(days=1),
+            date_added=timezone.now() - timedelta(days=1),
         )
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
         release = self.create_release(
-            project=self.project, version="new_release", date_added=datetime.now()
+            project=self.project, version="new_release", date_added=timezone.now()
         )
         result = self.parse_query("release:latest")
         assert result == {"tags": {"sentry:release": [release.version]}, "query": ""}
@@ -453,7 +454,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
     def test_user_lookup_with_dot_query(self):
-        self.project.date_added = django_timezone.now() - timedelta(minutes=10)
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()
 
         self.store_event(
@@ -476,7 +477,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
     def test_user_lookup_legacy_syntax(self):
-        self.project.date_added = django_timezone.now() - timedelta(minutes=10)
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
         self.project.save()
 
         self.store_event(
@@ -516,64 +517,64 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
 
     def test_age_from(self):
         result = self.parse_query("age:-24h")
-        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
+        assert result["age_from"] > timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < timezone.now() - timedelta(hours=23)
         assert not result.get("age_to")
 
     def test_age_to(self):
         result = self.parse_query("age:+24h")
-        assert result["age_to"] > django_timezone.now() - timedelta(hours=25)
-        assert result["age_to"] < django_timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > timezone.now() - timedelta(hours=25)
+        assert result["age_to"] < timezone.now() - timedelta(hours=23)
         assert not result.get("age_from")
 
     def test_age_range(self):
         result = self.parse_query("age:-24h age:+12h")
-        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
-        assert result["age_to"] > django_timezone.now() - timedelta(hours=13)
-        assert result["age_to"] < django_timezone.now() - timedelta(hours=11)
+        assert result["age_from"] > timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > timezone.now() - timedelta(hours=13)
+        assert result["age_to"] < timezone.now() - timedelta(hours=11)
 
     def test_first_seen_range(self):
         result = self.parse_query("firstSeen:-24h firstSeen:+12h")
-        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
-        assert result["age_to"] > django_timezone.now() - timedelta(hours=13)
-        assert result["age_to"] < django_timezone.now() - timedelta(hours=11)
+        assert result["age_from"] > timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > timezone.now() - timedelta(hours=13)
+        assert result["age_to"] < timezone.now() - timedelta(hours=11)
 
     def test_date_range(self):
         result = self.parse_query("event.timestamp:>2016-01-01 event.timestamp:<2016-01-02")
-        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_with_timezone(self):
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00-03:00 event.timestamp:<2016-01-02T10:00:00+02:00"
         )
-        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, 13, 0, 0, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, 8, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_with_z_timezone(self):
         result = self.parse_query(
             "event.timestamp:>2016-01-01T10:00:00Z event.timestamp:<2016-01-02T10:00:00Z"
         )
-        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, 10, 0, 0, tzinfo=UTC)
         assert result["date_from_inclusive"] is False
-        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, 10, 0, tzinfo=UTC)
         assert result["date_to_inclusive"] is False
 
     def test_date_range_inclusive(self):
         result = self.parse_query("event.timestamp:>=2016-01-01 event.timestamp:<=2016-01-02")
-        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=timezone.utc)
+        assert result["date_from"] == datetime(2016, 1, 1, tzinfo=UTC)
         assert result["date_from_inclusive"] is True
-        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=timezone.utc)
+        assert result["date_to"] == datetime(2016, 1, 2, tzinfo=UTC)
         assert result["date_to_inclusive"] is True
 
     def test_date_approx_day(self):
-        date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01")
         assert result["date_from"] == date_value
         assert result["date_from_inclusive"]
@@ -581,7 +582,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert not result["date_to_inclusive"]
 
     def test_date_approx_precise(self):
-        date_value = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
@@ -589,7 +590,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert not result["date_to_inclusive"]
 
     def test_date_approx_precise_with_timezone(self):
-        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=timezone.utc)
+        date_value = datetime(2016, 1, 1, 5, 0, 0, tzinfo=UTC)
         result = self.parse_query("event.timestamp:2016-01-01T00:00:00-05:00")
         assert result["date_from"] == date_value - timedelta(minutes=5)
         assert result["date_from_inclusive"]
@@ -598,10 +599,10 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
 
     def test_last_seen_range(self):
         result = self.parse_query("lastSeen:-24h lastSeen:+12h")
-        assert result["last_seen_from"] > django_timezone.now() - timedelta(hours=25)
-        assert result["last_seen_from"] < django_timezone.now() - timedelta(hours=23)
-        assert result["last_seen_to"] > django_timezone.now() - timedelta(hours=13)
-        assert result["last_seen_to"] < django_timezone.now() - timedelta(hours=11)
+        assert result["last_seen_from"] > timezone.now() - timedelta(hours=25)
+        assert result["last_seen_from"] < timezone.now() - timedelta(hours=23)
+        assert result["last_seen_to"] > timezone.now() - timedelta(hours=13)
+        assert result["last_seen_to"] < timezone.now() - timedelta(hours=11)
 
     def test_has_tag(self):
         result = self.parse_query("has:foo")
@@ -737,7 +738,7 @@ class GetLatestReleaseTest(TestCase):
 
         ReleaseProjectEnvironment.objects.filter(
             release__in=[new, other_project_env_release]
-        ).update(adopted=datetime.now())
+        ).update(adopted=timezone.now())
 
         assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
             new.version,
@@ -766,7 +767,7 @@ class GetLatestReleaseTest(TestCase):
             get_latest_release([project_2, self.project], [self.environment, env_2], adopted=True)
 
         ReleaseProjectEnvironment.objects.filter(release__in=[release_3, release_1]).update(
-            adopted=datetime.now()
+            adopted=timezone.now()
         )
         assert get_latest_release(
             [project_2, self.project], [self.environment, env_2], adopted=True
@@ -779,7 +780,7 @@ class GetLatestReleaseTest(TestCase):
         ]
         # Make sure unadopted releases are ignored
         ReleaseProjectEnvironment.objects.filter(release__in=[release_3]).update(
-            unadopted=datetime.now()
+            unadopted=timezone.now()
         )
         assert get_latest_release(
             [project_2, self.project], [self.environment, env_2], adopted=True
@@ -787,7 +788,7 @@ class GetLatestReleaseTest(TestCase):
             release_1.version,
         ]
 
-        ReleaseProject.objects.filter(release__in=[release_1]).update(adopted=datetime.now())
+        ReleaseProject.objects.filter(release__in=[release_1]).update(adopted=timezone.now())
         assert get_latest_release([project_2, self.project], None, adopted=True) == [
             release_1.version,
         ]

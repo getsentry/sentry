@@ -52,6 +52,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
@@ -148,7 +149,7 @@ class BaseQueryBuilder:
                         organization_id=organization.id, name__in=params["environment"]
                     )
                 )
-                if "" in cast(list[str], params["environment"]):
+                if "" in params["environment"]:
                     environments.append(None)
             elif isinstance(params["environment"], str):
                 environments = list(
@@ -315,20 +316,21 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
-            # Has to be done early, since other conditions depend on start and end
-            self.resolve_time_conditions()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
-            self.where, self.having = self.resolve_conditions(query)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
-            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-            self.where += self.resolve_params()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
-            self.columns = self.resolve_select(selected_columns, equations)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
-            self.orderby = self.resolve_orderby(orderby)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby(groupby_columns)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_query"):
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+                # Has to be done early, since other conditions depend on start and end
+                self.resolve_time_conditions()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+                self.where, self.having = self.resolve_conditions(query)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+                # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+                self.where += self.resolve_params()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+                self.columns = self.resolve_select(selected_columns, equations)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+                self.orderby = self.resolve_orderby(orderby)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+                self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -365,6 +367,8 @@ class BaseQueryBuilder:
             self.config = ProfileFunctionsDatasetConfig(self)
         elif self.dataset == Dataset.SpansIndexed:
             self.config = SpansIndexedDatasetConfig(self)
+        elif self.dataset == Dataset.MetricsSummaries:
+            self.config = MetricsSummariesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 

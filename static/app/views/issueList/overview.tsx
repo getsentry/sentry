@@ -26,7 +26,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -37,6 +37,7 @@ import type {
   Group,
   Organization,
   PageFilters,
+  PriorityLevel,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
@@ -63,6 +64,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -106,7 +108,6 @@ type Props = {
   WithRouteAnalyticsProps;
 
 type State = {
-  actionTaken: boolean;
   error: string | null;
   groupIds: string[];
   issuesLoading: boolean;
@@ -123,7 +124,6 @@ type State = {
   queryMaxCount: number;
   realtimeActive: boolean;
   selectAllActive: boolean;
-  undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
 };
@@ -161,7 +161,6 @@ class IssueListOverview extends Component<Props, State> {
     return {
       groupIds: [],
       actionTaken: false,
-      undo: false,
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
@@ -310,6 +309,8 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
+  private actionTaken = false;
+  private undo = false;
 
   getQueryFromSavedSearchOrLocation({
     savedSearch,
@@ -325,7 +326,9 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return DEFAULT_QUERY;
+    return this.props.organization.features.includes('issue-priority-ui')
+      ? NEW_DEFAULT_QUERY
+      : DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({
@@ -573,7 +576,7 @@ class IssueListOverview extends Component<Props, State> {
     const query = this.getQuery();
 
     if (!this.state.realtimeActive) {
-      if (!this.state.actionTaken && !this.state.undo) {
+      if (!this.actionTaken && !this.undo) {
         GroupStore.loadInitialData([]);
 
         this.setState({
@@ -687,7 +690,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        if (this.state.undo) {
+        if (this.undo) {
           GroupStore.loadInitialData(data);
         }
         GroupStore.add(data);
@@ -740,7 +743,8 @@ class IssueListOverview extends Component<Props, State> {
         this.resumePolling();
 
         if (!this.state.realtimeActive) {
-          this.setState({actionTaken: false, undo: false});
+          this.actionTaken = false;
+          this.undo = false;
         }
       },
     });
@@ -990,7 +994,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   onDelete = () => {
-    this.setState({actionTaken: true});
+    this.actionTaken = true;
     this.fetchData(true);
   };
 
@@ -1028,7 +1032,7 @@ class IssueListOverview extends Component<Props, State> {
         if (!query.includes('is:ignored') && !isForReviewQuery(query)) {
           GroupStore.add(groups);
         }
-        this.setState({undo: true});
+        this.undo = true;
       },
       error: err => {
         this.setState({
@@ -1091,6 +1095,18 @@ class IssueListOverview extends Component<Props, State> {
       });
       return;
     }
+
+    if ('priority' in data && typeof data.priority === 'string') {
+      const priorityValues = parseIssuePrioritySearch(query);
+      const priority = data.priority.toLowerCase() as PriorityLevel;
+
+      this.onIssueAction({
+        itemIds,
+        actionType: 'Reprioritized',
+        shouldRemove: !priorityValues.has(priority),
+      });
+      return;
+    }
   };
 
   onIssueAction = ({
@@ -1099,7 +1115,7 @@ class IssueListOverview extends Component<Props, State> {
     shouldRemove,
     undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived';
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
     itemIds: string[];
     shouldRemove: boolean;
     undo?: () => void;
@@ -1126,10 +1142,8 @@ class IssueListOverview extends Component<Props, State> {
     GroupStore.remove(itemIds);
 
     const queryCount = this.state.queryCount - itemIds.length;
-    this.setState({
-      actionTaken: true,
-      queryCount,
-    });
+    this.actionTaken = true;
+    this.setState({queryCount});
 
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to

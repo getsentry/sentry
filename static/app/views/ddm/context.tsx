@@ -10,15 +10,19 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
-import {emptyWidget, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  emptyMetricsFormulaWidget,
+  emptyMetricsQueryWidget,
+  NO_QUERY_ID,
+} from 'sentry/utils/metrics/constants';
+import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaSelection} from 'sentry/views/ddm/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/ddm/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/ddm/utils/useStructuralSharing';
 
@@ -30,8 +34,9 @@ export type FocusAreaProps = {
 };
 
 interface DDMContextValue {
-  addWidget: () => void;
+  addWidget: (type?: MetricQueryType) => void;
   duplicateWidget: (index: number) => void;
+  focusArea: FocusAreaProps;
   hasMetrics: boolean;
   isDefaultQuery: boolean;
   isMultiChartMode: boolean;
@@ -42,16 +47,18 @@ interface DDMContextValue {
   setIsMultiChartMode: (value: boolean) => void;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
-  updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  updateWidget: (
+    index: number,
+    data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
+  ) => void;
   widgets: MetricWidgetQueryParams[];
-  focusArea?: FocusAreaProps;
   highlightedSampleId?: string;
 }
 
 export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
-  focusArea: undefined,
+  focusArea: {},
   hasMetrics: false,
   highlightedSampleId: undefined,
   isDefaultQuery: false,
@@ -71,15 +78,13 @@ export function useDDMContext() {
   return useContext(DDMContext);
 }
 
-const DEFAULT_WIDGETS_STATE: MetricWidgetQueryParams[] = [emptyWidget];
-
 export function useMetricWidgets() {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
     useMemo<MetricWidgetQueryParams[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets) ?? DEFAULT_WIDGETS_STATE,
+      () => parseMetricWidgetsQueryParam(urlWidgets),
       [urlWidgets]
     )
   );
@@ -101,32 +106,47 @@ export function useMetricWidgets() {
   );
 
   const updateWidget = useCallback(
-    (index: number, data: Partial<MetricWidgetQueryParams>) => {
+    (index: number, data: Partial<Omit<MetricWidgetQueryParams, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
-        newWidgets[index] = {...currentWidgets[index], ...data};
+        newWidgets[index] = {
+          ...currentWidgets[index],
+          ...data,
+        };
         return newWidgets;
       });
     },
     [setWidgets]
   );
 
-  const addWidget = useCallback(() => {
-    setWidgets(currentWidgets => {
-      const lastWidget = currentWidgets.length
-        ? currentWidgets[currentWidgets.length - 1]
-        : {};
+  const addWidget = useCallback(
+    (type: MetricQueryType = MetricQueryType.QUERY) => {
+      setWidgets(currentWidgets => {
+        const lastWidget =
+          currentWidgets.length > 0
+            ? currentWidgets[currentWidgets.length - 1]
+            : undefined;
 
-      const newWidget = {
-        ...emptyWidget,
-        ...lastWidget,
-      };
+        let newWidget =
+          type === MetricQueryType.QUERY
+            ? emptyMetricsQueryWidget
+            : emptyMetricsFormulaWidget;
 
-      newWidget.id = NO_QUERY_ID;
+        // if the last widget is of the same type, we duplicate it
+        if (lastWidget && lastWidget.type === newWidget.type) {
+          newWidget = {
+            ...newWidget,
+            ...lastWidget,
+          };
+        }
 
-      return [...currentWidgets, newWidget];
-    });
-  }, [setWidgets]);
+        newWidget.id = NO_QUERY_ID;
+
+        return [...currentWidgets, newWidget];
+      });
+    },
+    [setWidgets]
+  );
 
   const removeWidget = useCallback(
     (index: number) => {
@@ -266,10 +286,13 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     };
   }, [focusAreaSelection, handleAddFocusArea, handleRemoveFocusArea]);
 
-  const handleAddWidget = useCallback(() => {
-    addWidget();
-    handleSetSelectedWidgetIndex(widgets.length);
-  }, [addWidget, handleSetSelectedWidgetIndex, widgets.length]);
+  const handleAddWidget = useCallback(
+    (type?: MetricQueryType) => {
+      addWidget(type);
+      handleSetSelectedWidgetIndex(widgets.length);
+    },
+    [addWidget, handleSetSelectedWidgetIndex, widgets.length]
+  );
 
   const handleUpdateWidget = useCallback(
     (index: number, data: Partial<MetricWidgetQueryParams>) => {

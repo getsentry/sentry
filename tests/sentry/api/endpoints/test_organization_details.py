@@ -281,6 +281,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 0.5
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
@@ -289,6 +290,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 1.0
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
@@ -297,6 +299,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
         with self.feature({"organizations:dynamic-sampling": False}):
             with patch(
@@ -305,6 +308,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             ):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]

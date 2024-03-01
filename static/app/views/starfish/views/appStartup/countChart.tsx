@@ -1,5 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -11,7 +12,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {RELEASE_COMPARISON} from 'sentry/views/starfish/colours';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -23,7 +27,7 @@ import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQue
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
-function transformData(data?: MultiSeriesEventsStats) {
+function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[release: string]: Series} = {};
 
   // Check that 'meta' is not in the data object because that's a sign
@@ -39,6 +43,12 @@ function transformData(data?: MultiSeriesEventsStats) {
               value: datum[1][0].count,
             };
           }) ?? [],
+        ...(primaryRelease === release
+          ? {color: PRIMARY_RELEASE_COLOR}
+          : {
+              color: SECONDARY_RELEASE_COLOR,
+              lineStyle: {type: 'dashed'},
+            }),
       };
     });
   }
@@ -90,7 +100,11 @@ export function CountChart({chartHeight}: Props) {
     initialData: {},
   });
 
-  const transformedSeries = transformData(series);
+  const transformedSeries = Object.values(transformData(series, primaryRelease)).sort(
+    (releaseA, _releaseB) => {
+      return releaseA.seriesName === primaryRelease ? -1 : 1;
+    }
+  );
 
   const truncatedPrimaryChart = formatVersionAndCenterTruncate(
     primaryRelease ?? '',
@@ -100,8 +114,6 @@ export function CountChart({chartHeight}: Props) {
     secondaryRelease ?? '',
     MAX_CHART_RELEASE_CHARS
   );
-
-  const {PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR} = RELEASE_COMPARISON;
 
   return (
     <MiniChartPanel
@@ -117,14 +129,13 @@ export function CountChart({chartHeight}: Props) {
       }
     >
       <Chart
-        chartColors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
-        data={Object.values(transformedSeries)}
+        data={transformedSeries}
         height={chartHeight}
         loading={isSeriesLoading || isReleasesLoading}
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: space(2),
           bottom: '0',
         }}
         showLegend

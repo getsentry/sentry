@@ -74,13 +74,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org = self.create_organization()
         assert org.default_owner_id is None
 
-    def test_default_owner_id_only_owner_through_team(self):
-        user = self.create_user("foo@example.com")
-        org = self.create_organization()
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        assert org.default_owner_id == user.id
-
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
     )

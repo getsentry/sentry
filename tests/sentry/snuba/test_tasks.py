@@ -588,7 +588,7 @@ class BuildSnqlQueryTest(TestCase):
             query_builder = build_query_builder(
                 entity_subscription,
                 query,
-                (self.project.id,),
+                [self.project.id],
                 environment=environment,
                 params={
                     "organization_id": self.organization.id,
