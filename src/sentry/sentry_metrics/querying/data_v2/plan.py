@@ -1,8 +1,11 @@
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
+from sentry.sentry_metrics.querying.data_v2.transformation.base import (
+    QueryTransformer,
+    QueryTransformerResult,
+)
 from sentry.sentry_metrics.querying.types import QueryOrder
 
 
@@ -70,4 +73,12 @@ class MetricsQueriesPlan:
 
 @dataclass(frozen=True)
 class MetricsQueriesPlanResult:
-    results: Sequence[QueryResult]
+    results: list[QueryResult]
+
+    def apply_transformer(
+        self, transformer: QueryTransformer[QueryTransformerResult]
+    ) -> QueryTransformerResult:
+        """
+        Applies a transformer on the `results` and returns the value of the transformation.
+        """
+        return transformer.transform(self.results)

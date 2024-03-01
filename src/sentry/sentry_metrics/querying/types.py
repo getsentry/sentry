@@ -21,7 +21,7 @@ GroupKey = tuple[Group, ...]
 # Type representing a sequence of groups [[(`key_1`, `value_1`), (`key_2`, `value_2`), ...], ...]
 GroupsCollection = Sequence[Sequence[Group]]
 # Type representing the possible expressions for a query.
-QueryExpression = Union[Timeseries, Formula, float, str]
+QueryExpression = Union[Timeseries, Formula, int, float, str]
 # Type representing the possible conditions for a query.
 QueryCondition = Union[BooleanCondition, Condition]
 
