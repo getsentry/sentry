@@ -3519,9 +3519,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
-    "shared-resources-usage": "default",
-    "events": "default",
     "snuba-spans": "default",
+    "shared-resources-usage": "default",
 }
 
 # Cluster configuration for each Kafka topic by name.
