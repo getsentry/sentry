@@ -10,7 +10,8 @@ import {getMetaDateTimeParams} from './index';
 export function useMetricsTags(
   mri: MRI | undefined,
   pageFilters: Partial<PageFilters>,
-  filterBlockedTags = true
+  filterBlockedTags = true,
+  blockedTags?: string[]
 ) {
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
@@ -41,11 +42,13 @@ export function useMetricsTags(
     }
   );
 
-  const metricMeta = useMetricsMeta(pageFilters, [useCase], false);
-  const blockedTags =
-    metricMeta.data
-      ?.find(meta => meta.mri === mri)
-      ?.blockingStatus?.flatMap(s => s.blockedTags) ?? [];
+  const metricMeta = useMetricsMeta(pageFilters, [useCase], false, !blockedTags);
+  const blockedTagsData =
+    (blockedTags ||
+      metricMeta.data
+        ?.find(meta => meta.mri === mri)
+        ?.blockingStatus?.flatMap(s => s.blockedTags)) ??
+    [];
 
   if (!filterBlockedTags) {
     return tagsQuery;
@@ -53,6 +56,6 @@ export function useMetricsTags(
 
   return {
     ...tagsQuery,
-    data: tagsQuery.data?.filter(tag => !blockedTags.includes(tag.key)) ?? [],
+    data: tagsQuery.data?.filter(tag => !blockedTagsData.includes(tag.key)) ?? [],
   };
 }

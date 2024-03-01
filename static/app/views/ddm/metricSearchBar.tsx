@@ -23,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
   onChange: (value: string) => void;
+  blockedTags?: string[];
   disabled?: boolean;
   mri?: MRI;
   projectIds?: string[];
@@ -63,6 +64,7 @@ export function ensureQuotedTextFilters(
 
 export function MetricSearchBar({
   mri,
+  blockedTags,
   disabled,
   onChange,
   query,
@@ -77,10 +79,15 @@ export function MetricSearchBar({
     [projectIds]
   );
 
-  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(mri, {
-    ...selection,
-    projects: projectIdNumbers,
-  });
+  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(
+    mri,
+    {
+      ...selection,
+      projects: projectIdNumbers,
+    },
+    true,
+    blockedTags
+  );
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),

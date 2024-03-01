@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
-import {formatMetricsFormula, getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
+import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -110,7 +110,7 @@ export function MetricScratchpad() {
       let tokens: TokenList = [];
 
       try {
-        tokens = parseFormula(formatMetricsFormula(formula));
+        tokens = parseFormula(unescapeMetricsFormula(formula));
       } catch {
         // We should not end up here, but if we do, we should not crash the UI
         return {dependencies: [], isError: true};

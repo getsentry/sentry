@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 
 import Input, {inputStyles} from 'sentry/components/input';
 import {t} from 'sentry/locale';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {joinTokens, parseFormula} from 'sentry/views/ddm/formulaParser/parser';
 import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
@@ -27,10 +28,6 @@ function escapeVariables(tokens: TokenList): TokenList {
   });
 }
 
-function unescapeVariables(formula: string): string {
-  return formula.replaceAll('$', '');
-}
-
 function equalizeWhitespace(formula: TokenList): TokenList {
   return formula.map(token => {
     // Ensure equal spacing
@@ -49,7 +46,7 @@ export function FormulaInput({
 }: Props) {
   const [errors, setErrors] = useState<any>([]);
   const [showErrors, setIsValidationEnabled] = useState(false);
-  const [value, setValue] = useState<string>(() => unescapeVariables(valueProp));
+  const [value, setValue] = useState<string>(() => unescapeMetricsFormula(valueProp));
 
   const validateVariable = useCallback(
     (variable: string): string | null => {
