@@ -47,34 +47,6 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
           });
       });`;
 
-const getPerformanceMiddlewareSnippet = () => `
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Sentry.AspNetCore;
-
-public class Startup
-{
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-    {
-        app.UseRouting();
-
-        // Enable automatic tracing integration.
-        // If running with .NET 5 or below, make sure to put this middleware
-        // right after "UseRouting()".
-        app.UseSentryTracing();
-
-        app.UseEndpoints(endpoints =>
-        {
-            endpoints.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
-        });
-    }
-}`;
-
 const getPerformanceSpansSnippet = () => `
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -179,10 +151,6 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getPerformanceMiddlewareSnippet(),
-        },
         {
           description: t(
             "You'll be able to monitor the performance of your actions automatically. To add additional spans to it, you can use the API:"
