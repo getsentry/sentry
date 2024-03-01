@@ -12,12 +12,17 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
-import type {DateString, MRI, PageFilters} from 'sentry/types';
+import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
+  type Field,
   type MetricsSamplesResults,
+  type ResultField,
+  type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -30,7 +35,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-const fields = [
+const fields: Field[] = [
   'project',
   'id',
   'span.op',
@@ -43,11 +48,10 @@ const fields = [
   'profile_id',
 ];
 
-type Field = (typeof fields)[number];
-
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
+  op?: string;
   query?: string;
   sortKey?: string;
 }
@@ -55,12 +59,20 @@ interface MetricSamplesTableProps {
 export function MetricSamplesTable({
   focusArea,
   mri,
+  op,
   query,
   sortKey = 'sort',
 }: MetricSamplesTableProps) {
   const location = useLocation();
 
   const enabled = defined(mri);
+
+  const parsedMRI = useMemo(() => {
+    if (!defined(mri)) {
+      return null;
+    }
+    return parseMRI(mri);
+  }, [mri]);
 
   const datetime = useMemo(() => {
     if (!defined(focusArea) || !defined(focusArea.start) || !defined(focusArea.end)) {
@@ -125,9 +137,14 @@ export function MetricSamplesTable({
     return null;
   }, [mri]);
 
+  const _renderBodyCell = useMemo(
+    () => renderBodyCell(op, parsedMRI?.unit),
+    [op, parsedMRI?.unit]
+  );
+
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
-      if (!SORTABLE_COLUMNS.has(key)) {
+      if (!SORTABLE_COLUMNS.has(key as ResultField)) {
         return undefined;
       }
 
@@ -156,35 +173,50 @@ export function MetricSamplesTable({
       isLoading={enabled && result.isLoading}
       error={enabled && result.isError && supportedMRI}
       data={result.data?.data ?? []}
-      columnOrder={COLUMN_ORDER}
+      columnOrder={getColumnOrder(parsedMRI)}
       columnSortBy={[]}
-      grid={{renderBodyCell, renderHeadCell: _renderHeadCell}}
+      grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
       location={location}
       emptyMessage={emptyMessage}
     />
   );
 }
 
-const COLUMN_ORDER: GridColumnOrder<Field>[] = [
-  {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
-  {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
-  {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
-  {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'},
-  {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
-  {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
-  {key: 'trace', width: COL_WIDTH_UNDEFINED, name: 'Trace'},
-  {key: 'profile_id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-];
+function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
+  const orders: (GridColumnOrder<ResultField> | undefined)[] = [
+    {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
+    {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
+    {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
+    {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
+    {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'},
+    {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
+    parsedMRI?.useCase === 'custom'
+      ? {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'}
+      : undefined,
+    {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
+    {key: 'trace', width: COL_WIDTH_UNDEFINED, name: 'Trace'},
+    {key: 'profile_id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
+  ];
 
-const RIGHT_ALIGNED_COLUMNS = new Set<Field>(['span.duration', 'span.self_time']);
-const SORTABLE_COLUMNS = new Set<Field>(['span.duration', 'timestamp']);
+  return orders.filter(
+    (
+      order: GridColumnOrder<ResultField> | undefined
+    ): order is GridColumnOrder<ResultField> => !!order
+  );
+}
+
+const RIGHT_ALIGNED_COLUMNS = new Set<ResultField>([
+  'span.duration',
+  'span.self_time',
+  'summary',
+]);
+const SORTABLE_COLUMNS = new Set<ResultField>(['span.duration', 'timestamp']);
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
   generateSortLink: (key) => () => LocationDescriptorObject | undefined
 ) {
-  return function (col: GridColumnOrder<Field>) {
+  return function (col: GridColumnOrder<ResultField>) {
     return (
       <SortLink
         align={RIGHT_ALIGNED_COLUMNS.has(col.key) ? 'right' : 'left'}
@@ -197,59 +229,47 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(
-  col: GridColumnOrder<Field>,
-  dataRow: MetricsSamplesResults<Field>['data'][number]
-) {
-  if (col.key === 'id') {
-    return (
-      <SpanId
-        project={dataRow.project as string}
-        spanId={dataRow.id as string}
-        transactionId={dataRow['transaction.id'] as string}
-      />
-    );
-  }
+function renderBodyCell(op?: string, unit?: string) {
+  return function (
+    col: GridColumnOrder<ResultField>,
+    dataRow: MetricsSamplesResults<Field>['data'][number]
+  ) {
+    if (col.key === 'id') {
+      return (
+        <SpanId
+          project={dataRow.project}
+          spanId={dataRow.id}
+          transactionId={dataRow['transaction.id']}
+        />
+      );
+    }
 
-  if (col.key === 'project') {
-    return <ProjectRenderer projectSlug={dataRow.project as string} />;
-  }
+    if (col.key === 'project') {
+      return <ProjectRenderer projectSlug={dataRow.project} />;
+    }
 
-  if (col.key === 'span.self_time') {
-    return <DurationRenderer duration={dataRow['span.self_time'] as number} />;
-  }
+    if (col.key === 'span.self_time' || col.key === 'span.duration') {
+      return <DurationRenderer duration={dataRow[col.key]} />;
+    }
 
-  if (col.key === 'span.duration') {
-    // duration is stored as an UInt32 while self time is stored
-    // as a Float64. So in cases where duration should equal self time,
-    // it can be truncated.
-    //
-    // When this happens, we just take the self time as the duration.
-    const duration = Math.max(
-      dataRow['span.self_time'] as number,
-      dataRow['span.duration'] as number
-    );
-    return <DurationRenderer duration={duration} />;
-  }
+    if (col.key === 'summary') {
+      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
+    }
 
-  if (col.key === 'timestamp') {
-    return <TimestampRenderer timestamp={dataRow.timestamp as DateString} />;
-  }
+    if (col.key === 'timestamp') {
+      return <TimestampRenderer timestamp={dataRow.timestamp} />;
+    }
 
-  if (col.key === 'trace') {
-    return <TraceId traceId={dataRow.trace as string} />;
-  }
+    if (col.key === 'trace') {
+      return <TraceId traceId={dataRow.trace} />;
+    }
 
-  if (col.key === 'profile_id') {
-    return (
-      <ProfileId
-        projectSlug={dataRow.project as string}
-        profileId={dataRow.profile_id as string | undefined}
-      />
-    );
-  }
+    if (col.key === 'profile_id') {
+      return <ProfileId projectSlug={dataRow.project} profileId={dataRow.profile_id} />;
+    }
 
-  return <Container>{dataRow[col.key]}</Container>;
+    return <Container>{dataRow[col.key]}</Container>;
+  };
 }
 
 function ProjectRenderer({projectSlug}: {projectSlug: string}) {
@@ -301,6 +321,34 @@ function DurationRenderer({duration}: {duration: number}) {
     <NumberContainer>
       <PerformanceDuration milliseconds={duration} abbreviation />
     </NumberContainer>
+  );
+}
+
+function SummaryRenderer({
+  summary,
+  op,
+  unit,
+}: {
+  summary: Summary;
+  op?: string;
+  unit?: string;
+}) {
+  const value =
+    op === 'count'
+      ? summary.count
+      : op === 'min'
+        ? summary.min
+        : op === 'max'
+          ? summary.max
+          : op === 'sum'
+            ? summary.sum
+            : summary.sum / summary.count;
+
+  // if the op is `count`, then the unit does not apply
+  unit = op === 'count' ? '' : unit;
+
+  return (
+    <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>
   );
 }
 

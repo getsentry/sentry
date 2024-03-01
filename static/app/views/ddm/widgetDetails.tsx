@@ -48,11 +48,12 @@ export function WidgetDetails() {
     <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, query, focusedSeries} = selectedWidget as MetricQueryWidgetParams;
+  const {mri, op, query, focusedSeries} = selectedWidget as MetricQueryWidgetParams;
 
   return (
     <MetricDetails
       mri={mri}
+      op={op}
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
@@ -66,12 +67,14 @@ interface MetricDetailsProps {
   focusedSeries?: FocusedMetricsSeries[];
   mri?: MRI;
   onRowHover?: SamplesTableProps['onRowHover'];
+  op?: string;
   query?: string;
 }
 
 // TODO: add types
 export function MetricDetails({
   mri,
+  op,
   query,
   focusedSeries,
   onRowHover,
@@ -131,6 +134,7 @@ export function MetricDetails({
                 <MetricSamplesTable
                   focusArea={focusArea?.selection?.range}
                   mri={mri}
+                  op={op}
                   query={queryWithFocusedSeries}
                 />
               ) : (
