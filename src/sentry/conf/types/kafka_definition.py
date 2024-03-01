@@ -8,6 +8,11 @@ import click
 
 
 class Topic(Enum):
+    """
+    These are the default topic names used by Sentry. They must match
+    the registered values in sentry-kafka-schemas.
+    """
+
     EVENTS = "events"
     EVENTS_COMMIT_LOG = "snuba-commit-log"
     TRANSACTIONS = "transactions"
