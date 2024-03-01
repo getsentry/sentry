@@ -1,3 +1,4 @@
+import logging
 import uuid
 import zlib
 
@@ -6,10 +7,16 @@ import requests
 
 from sentry.utils import json
 
+logger = logging.getLogger()
+
 
 def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
+    parts = dsn.split("/")
+    project_id = parts.pop()
+    dsn_url = parts.join("/") + f"/api/{project_id}/envelope/"
+
     replay_id = uuid.uuid4().hex
-    # print(f"Replay envelope emitted with ID: {replay_id}")
+    logger.info("Replay envelope emitted with ID: %s", replay_id)
 
     # Replay Envelope Headers
     headers = {"event_id": replay_id, "dsn": dsn}
@@ -24,7 +31,7 @@ def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
             "error_sample_rate": 1,
             "session_sample_rate": 1,
             "timestamp": 1709314376,
-            "replay_start_timestamp": 1709314376,
+            "replay_start_timestamp": 1709314376 - 30,
             "urls": [],
             "error_ids": [],
             "trace_ids": [],
@@ -33,6 +40,18 @@ def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
             "dist": "mydist",
             "environment": "production",
             "tags": [],
+            # Important to send the SDK.  Apparently the client doesn't know how to act
+            # if you don't!
+            "sdk": {
+                "name": "sentry.javascript.react",
+                "version": "7.47.0",
+            },
+            "user": {
+                "id": "123",
+                "username": "Replay Video Test!",
+                "email": "replay-video@test.com",
+                "ip_address": "0.0.0.0",
+            },
         }
     ).encode()
 
@@ -64,6 +83,7 @@ def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
             ]
         ).encode()
     )
+    replay_recording = b'{"segment_id":0}\n' + replay_recording
 
     replay_video_payload = msgpack.packb(
         {
@@ -82,9 +102,13 @@ def produce_replay_video_envelope(dsn: str, replay_video: bytes) -> None:
 
     payload = (
         json.dumps(headers).encode()
+        + b"\n"
         + json.dumps(replay_video_headers).encode()
+        + b"\n"
         + replay_video_payload
     )
 
-    response = requests.post(dsn, data=payload)
+    response = requests.post(dsn_url, data=payload)
+    logger.info(response.content)
     assert response.status_code == 200
+    logger.info("Successfully ingested id: %s", str(uuid.UUID(replay_id)))
