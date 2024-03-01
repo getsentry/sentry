@@ -99,6 +99,10 @@ def send_incident_alert_notification(
             # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
             payload["thread_ts"] = parent_notification_message.message_identifier
 
+            # If the incident is critical status, even if it's in a thread, send to main channel
+            if incident.status == IncidentStatus.CRITICAL.value:
+                payload["reply_broadcast"] = True
+
     client = SlackClient(integration_id=integration.id)
     success = False
     try:
