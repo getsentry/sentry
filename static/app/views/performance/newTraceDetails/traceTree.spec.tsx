@@ -208,6 +208,114 @@ describe('TreeNode', () => {
     expect(root.getVisibleChildrenCount()).toBe(0);
   });
 
+  describe('indicators', () => {
+    it('collects indicator', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators.length).toBe(1);
+      expect(tree.indicators[0].start).toBe(0);
+    });
+
+    it('converts timestamp to milliseconds', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 500, unit: 'millisecond'},
+            fcp: {value: 0.5, unit: 'second'},
+            lcp: {value: 500_000_000, unit: 'nanosecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators[0].start).toBe(500);
+      expect(tree.indicators[1].start).toBe(500);
+      expect(tree.indicators[2].start).toBe(500);
+    });
+
+    it('extends end timestamp to include measurement', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2, unit: 'second'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.root.space).toEqual([0, 2000]);
+    });
+
+    it('adjusts end and converst timestamp to ms', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2000, unit: 'millisecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.root.space).toEqual([0, 2000]);
+      expect(tree.indicators[0].start).toBe(2000);
+    });
+
+    it('sorts measurements by start', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              start_timestamp: 0,
+              timestamp: 1,
+            }),
+          ],
+        }),
+        {
+          measurements: {
+            ttfb: {value: 2000, unit: 'millisecond'},
+            lcp: {value: 1000, unit: 'millisecond'},
+          },
+        } as unknown as EventTransaction
+      );
+
+      expect(tree.indicators[0].start).toBe(1000);
+      expect(tree.indicators[1].start).toBe(2000);
+    });
+  });
+
   describe('path', () => {
     describe('nested transactions', () => {
       let child: any = null;
@@ -234,112 +342,15 @@ describe('TreeNode', () => {
       });
     });
 
-    describe('indicators', () => {
-      it('collects indicator', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {ttfb: {value: 0, unit: 'millisecond'}},
-          } as unknown as EventTransaction
-        );
+    it('orphan errors', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [],
+          orphan_errors: [makeTraceError({event_id: 'error_id'})],
+        })
+      );
 
-        expect(tree.indicators.length).toBe(1);
-        expect(tree.indicators[0].start).toBe(0);
-      });
-
-      it('converts timestamp to milliseconds', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 500, unit: 'millisecond'},
-              fcp: {value: 0.5, unit: 'second'},
-              lcp: {value: 500_000_000, unit: 'nanosecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.indicators[0].start).toBe(500);
-        expect(tree.indicators[1].start).toBe(500);
-        expect(tree.indicators[2].start).toBe(500);
-      });
-
-      it('extends end timestamp to include measurement', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2, unit: 'second'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.root.space).toEqual([0, 2000]);
-      });
-
-      it('adjusts end and converst timestamp to ms', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2000, unit: 'millisecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.root.space).toEqual([0, 2000]);
-        expect(tree.indicators[0].start).toBe(2000);
-      });
-
-      it('sorts measurements by start', () => {
-        const tree = TraceTree.FromTrace(
-          makeTrace({
-            transactions: [
-              makeTransaction({
-                start_timestamp: 0,
-                timestamp: 1,
-              }),
-            ],
-          }),
-          {
-            measurements: {
-              ttfb: {value: 2000, unit: 'millisecond'},
-              lcp: {value: 1000, unit: 'millisecond'},
-            },
-          } as unknown as EventTransaction
-        );
-
-        expect(tree.indicators[0].start).toBe(1000);
-        expect(tree.indicators[1].start).toBe(2000);
-      });
+      expect(tree.list[1].path).toEqual(['error:error_id']);
     });
 
     describe('spans', () => {
@@ -358,7 +369,22 @@ describe('TreeNode', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeSpan({description: 'span', op: 'db', span_id: 'span'})]),
+        body: makeEvent({}, [
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            span_id: 'span',
+            start_timestamp: 0,
+            timestamp: 1,
+          }),
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            span_id: 'span',
+            start_timestamp: 1.5,
+            timestamp: 2,
+          }),
+        ]),
       });
 
       tree.zoomIn(tree.list[1], true, {
@@ -368,13 +394,17 @@ describe('TreeNode', () => {
 
       it('when span is a child of a txn', async () => {
         await waitFor(() => {
-          expect(tree.list.length).toBe(3);
+          expect(tree.list.length).toBe(5);
         });
 
         expect(tree.list[tree.list.length - 1].path).toEqual([
           'span:span',
           'txn:event_id',
         ]);
+      });
+
+      it('missing instrumentation', () => {
+        expect(tree.list[3].path).toEqual(['ms:span', 'txn:event_id']);
       });
     });
 

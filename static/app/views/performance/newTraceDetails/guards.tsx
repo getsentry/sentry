@@ -1,4 +1,5 @@
 import {
+  MissingInstrumentationNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   type TraceTree,
@@ -7,12 +8,8 @@ import {
 
 export function isMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
-): node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
-  return !!(
-    node.value &&
-    'type' in node.value &&
-    node.value.type === 'missing_instrumentation'
-  );
+): node is MissingInstrumentationNode {
+  return node instanceof MissingInstrumentationNode;
 }
 
 export function isSpanNode(

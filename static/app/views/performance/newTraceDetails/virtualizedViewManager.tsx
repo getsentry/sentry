@@ -8,9 +8,11 @@ import clamp from 'sentry/utils/number/clamp';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
+  isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
   isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {
@@ -747,7 +749,11 @@ export class VirtualizedViewManager {
 
       if (isTransactionNode(current)) {
         const nextSegment = segments[segments.length - 1];
-        if (nextSegment?.startsWith('span:') || nextSegment?.startsWith('ag:')) {
+        if (
+          nextSegment?.startsWith('span:') ||
+          nextSegment?.startsWith('ag:') ||
+          nextSegment?.startsWith('ms:')
+        ) {
           await tree.zoomIn(current, true, {
             api,
             organization,
@@ -1200,6 +1206,14 @@ function findInTreeFromSegment(
           return child.value.span_id === id;
         }
       }
+    }
+
+    if (type === 'ms' && isMissingInstrumentationNode(node)) {
+      return node.previous.value.span_id === id || node.next.value.span_id === id;
+    }
+
+    if (type === 'error' && isTraceErrorNode(node)) {
+      return node.value.event_id === id;
     }
 
     return false;
