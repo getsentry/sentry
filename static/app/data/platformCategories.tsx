@@ -410,6 +410,7 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'java-log4j2',
   'java-logback',
   'kotlin',
+  'node-koa',
   'react-native',
   'unity',
   'unreal',
