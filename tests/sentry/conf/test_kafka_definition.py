@@ -1,4 +1,5 @@
 import pytest
+import sentry_kafka_schemas
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import (
@@ -11,6 +12,25 @@ from sentry.testutils.cases import TestCase
 
 
 def test_topic_definition() -> None:
+    # All topic are registered
+    # TODO: Remove this once these topics are actually registered in sentry-kafka-schemas
+    currently_unregistered_topics = [
+        "outcomes-billing",
+        "ingest-events",
+        "ingest-events-dlq",
+        "ingest-attachments",
+        "ingest-transactions",
+        "ingest-metrics-dlq",
+        "profiles",
+        "ingest-generic-metrics-dlq",
+        "ingest-occurrences",
+        "ingest-monitors",
+    ]
+
+    for topic in Topic:
+        if topic.value not in currently_unregistered_topics:
+            assert sentry_kafka_schemas.get_topic(topic.value) is not None
+
     for topic in Topic:
         cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic.value]
         assert (
