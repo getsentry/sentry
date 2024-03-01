@@ -1,5 +1,5 @@
 import rb
-from rediscluster import RedisCluster
+from redis.cluster import RedisCluster
 
 from sentry.relay.projectconfig_debounce_cache.base import ProjectConfigDebounceCache
 from sentry.utils import metrics

@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TypeVar
 
-from redis import StrictRedis
-from rediscluster import RedisCluster
+from redis.client import StrictRedis
+from redis.cluster import RedisCluster
 
 from sentry.utils.kvstore.abstract import KVStorage
 

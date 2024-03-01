@@ -5,7 +5,7 @@ import rb
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
-from rediscluster import RedisCluster
+from redis.cluster import RedisCluster
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature

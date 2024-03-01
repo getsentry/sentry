@@ -4,7 +4,7 @@ from typing import Any, Union
 
 import rb
 import requests
-from rediscluster import RedisCluster
+from redis.cluster import RedisCluster
 
 
 @dataclass
@@ -37,7 +37,7 @@ def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
 
 
 # Based on configuration, this could be:
-# - a `rediscluster` Cluster (actually `RetryingRedisCluster`)
+# - a `RedisCluster` (actually `RetryingRedisCluster`)
 # - a `rb.Cluster` (client side routing cluster client)
 # - or any class configured via `client_class`.
 Cluster = Union[RedisCluster, rb.Cluster]
@@ -58,8 +58,9 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
     """
     if isinstance(cluster, RedisCluster):
         # `RedisCluster` returns these as a dictionary, with the node-id as key
-        cluster_info = cluster.info()
+        cluster_info = cluster.info(target_nodes=RedisCluster.ALL_NODES)
     else:
+        assert isinstance(cluster, rb.Cluster)
         # rb.Cluster returns a promise with a dictionary with a _local_ node-id as key
         with cluster.all() as client:
             promise = client.info()

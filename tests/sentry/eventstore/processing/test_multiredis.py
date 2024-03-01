@@ -28,12 +28,7 @@ def make_event():
 class MultiRedisTest(TestCase):
     @override_options({"redis.clusters": cluster_config, "eventstore.processing.rollout": 1.0})
     def test_store_and_get_with_new(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         event = make_event()
         key = adapter.store(event)
         result = adapter.get(key)
@@ -44,12 +39,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config, "eventstore.processing.rollout": 0.0})
     def test_store_and_get_with_old(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         event = make_event()
         key = adapter.store(event)
         result = adapter.get(key)
@@ -63,12 +53,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config})
     def test_write_old_read_new(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         # write to the old cluster
         with override_options({"eventstore.processing.rollout": 0.0}):
             event = make_event()
@@ -81,12 +66,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config})
     def test_store_new_read_old(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         # write to the new cluster
         with override_options({"eventstore.processing.rollout": 1.0}):
             event = make_event()
@@ -105,12 +85,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config})
     def test_store_new_no_old_read(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         # write to the old cluster
         with override_options({"eventstore.processing.rollout": 0.0}):
             event = make_event()
@@ -129,12 +104,7 @@ class MultiRedisTest(TestCase):
     @override_options({"redis.clusters": cluster_config})
     def test_old_read_disabled(self):
         event = make_event()
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         # Insert into the old 'cluster'
         key = cache_key_for_event(event)
         old_cluster = redis_clusters.get("old")
@@ -151,12 +121,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config, "eventstore.processing.rollout": 1.0})
     def test_delete_by_key(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         event = make_event()
         key = adapter.store(event)
         assert adapter.get(key)
@@ -165,12 +130,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config, "eventstore.processing.rollout": 1.0})
     def test_delete(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         event = make_event()
         key = adapter.store(event)
         assert adapter.get(key)
@@ -179,12 +139,7 @@ class MultiRedisTest(TestCase):
 
     @override_options({"redis.clusters": cluster_config})
     def test_delete_both(self):
-        adapter = MultiRedisProcessingStore(
-            **{
-                "old_cluster": "old",
-                "new_cluster": "new",
-            }
-        )
+        adapter = MultiRedisProcessingStore(old_cluster="old", new_cluster="new")
         event = make_event()
         # Insert into the old 'cluster'
         key = cache_key_for_event(event)

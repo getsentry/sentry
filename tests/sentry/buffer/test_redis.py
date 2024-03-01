@@ -67,9 +67,9 @@ class TestRedisBuffer:
     def test_process_does_bubble_up_json(self, process):
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
-        client.hmset(
+        client.hset(
             "foo",
-            {
+            mapping={
                 "e+foo": '["s","bar"]',
                 "e+datetime": '["dt","1493791566.000000"]',
                 "f": '{"pk": ["i","1"]}',
@@ -92,9 +92,9 @@ class TestRedisBuffer:
     def test_process_does_bubble_up_pickle(self, process):
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
-        client.hmset(
+        client.hset(
             "foo",
-            {
+            mapping={
                 "e+foo": "S'bar'\np1\n.",
                 "f": "(dp1\nS'pk'\np2\nI1\ns.",
                 "i+times_seen": "2",
@@ -253,9 +253,9 @@ class TestRedisBuffer:
     def test_process_uses_signal_only(self, process):
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
-        client.hmset(
+        client.hset(
             "foo",
-            {
+            mapping={
                 "f": '{"pk": ["i","1"]}',
                 "i+times_seen": "1",
                 "m": "unittest.mock.Mock",

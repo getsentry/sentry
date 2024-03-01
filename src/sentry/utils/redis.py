@@ -4,16 +4,16 @@ import functools
 import importlib.resources
 import logging
 from collections.abc import Callable
-from copy import deepcopy
 from threading import Lock
 from typing import Any, Generic, TypeGuard, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
 from rb.clients import LocalClient
-from redis.client import Script
+from redis.client import StrictRedis
+from redis.cluster import ClusterNode, RedisCluster
+from redis.commands.core import Script
 from redis.connection import ConnectionPool
-from rediscluster import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
@@ -123,6 +123,12 @@ class _RedisCluster:
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory() -> RetryingRedisCluster | FailoverRedis:
             if is_redis_cluster:
+                startup_nodes = list(
+                    map(
+                        lambda entry: ClusterNode(host=entry["host"], port=entry["port"]),
+                        hosts_list,
+                    )
+                )
                 return RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
                     # mutates the inner dicts and this closure can be run
@@ -131,7 +137,7 @@ class _RedisCluster:
                     # reset() after startup
                     #
                     # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                    startup_nodes=deepcopy(hosts_list),
+                    startup_nodes=startup_nodes,
                     decode_responses=decode_responses,
                     skip_full_coverage_check=True,
                     max_connections=16,
@@ -292,8 +298,8 @@ def is_instance_rb_cluster(
 def validate_dynamic_cluster(is_redis_cluster: bool, cluster: rb.Cluster | RedisCluster) -> None:
     try:
         if is_instance_redis_cluster(cluster, is_redis_cluster):
-            cluster.ping()
-            cluster.connection_pool.disconnect()
+            cluster.ping(target_nodes=RedisCluster.ALL_NODES)
+            cluster.disconnect_connection_pools()
         elif is_instance_rb_cluster(cluster, is_redis_cluster):
             with cluster.all() as client:
                 client.ping()
@@ -363,3 +369,13 @@ def load_script(
         return script[0](keys, args, client)
 
     return call_script
+
+
+# Since the implementation to disconnect connection pools differ between
+# RedisCluster and StrictRedis after v4, we need this function.
+def disconnect_redis_connection_pools(client: StrictRedis | RedisCluster) -> None:
+    if isinstance(client, RedisCluster):
+        client.disconnect_connection_pools()
+    else:
+        assert isinstance(client, StrictRedis)
+        client.connection_pool.disconnect()

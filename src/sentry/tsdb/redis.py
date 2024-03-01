@@ -13,7 +13,7 @@ from typing import Any, ContextManager, Generic, TypeVar
 import rb
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from redis.client import Script
+from redis.commands.core import Script
 
 from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
 from sentry.utils.compat import crc32
