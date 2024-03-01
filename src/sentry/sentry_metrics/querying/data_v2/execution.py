@@ -226,7 +226,7 @@ class ScheduledQuery:
         for queried_metric in QueriedMetricsVisitor().visit(metrics_query.query):
             blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
             if blocked_for_projects:
-                metrics.incr(key="ddm.metrics_api.blocked_metric_queried", amount=1)
+                metrics.incr(key="ddm.metrics_api.execution.blocked_metric_queried")
                 intersected_projects -= blocked_for_projects
 
         return metrics_query.set_scope(
@@ -446,14 +446,14 @@ class QueryExecutor:
 
         # List of queries scheduled for execution.
         self._scheduled_queries: list[ScheduledQuery] = []
-        # Tracks the number of queries that have been executed (for measuring purposes).
-        self._number_of_executed_queries = 0
         # Tracks the pending query results that have been run by the executor. The list will contain both the final
         # `QueryResult` objects and the partial `PartialQueryResult` objects that still have to be executed.
         self._pending_query_results: list[QueryResult | PartialQueryResult] = []
-
         # We load the blocked metrics for the supplied projects.
         self._blocked_metrics_for_projects = self._load_blocked_metrics_for_projects()
+
+        # Tracks the number of queries that have been executed (for measuring purposes).
+        self._number_of_executed_queries = 0
 
     def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
         """
@@ -510,10 +510,14 @@ class QueryExecutor:
         return self._build_request(next_metrics_query)
 
     def _bulk_run_query(self, requests: list[Request]) -> list[Mapping[str, Any]]:
+        self._number_of_executed_queries += len(requests)
+
         try:
-            return bulk_run_query(requests)
+            with metrics.timer(key="ddm.metrics_api.execution.bulk_execution_time"):
+                return bulk_run_query(requests)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
+            metrics.incr(key="ddm.metrics_api.execution.error")
             raise MetricsQueryExecutionError("An error occurred while executing the query") from e
 
     def _bulk_execute(self) -> Sequence[QueryResult]:
@@ -601,7 +605,15 @@ class QueryExecutor:
         if not self._scheduled_queries:
             return []
 
-        return self._bulk_execute()
+        with metrics.timer(key="ddm.metrics_api.execution.total_execution_time"):
+            results = self._bulk_execute()
+
+        metrics.distribution(
+            key="ddm.metrics_api.execution.number_of_executed_queries",
+            value=self._number_of_executed_queries,
+        )
+
+        return results
 
     def schedule(self, intermediate_query: IntermediateQuery):
         """
