@@ -13,15 +13,10 @@ from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
-from sentry.debug_files.artifact_bundle_indexing import (
-    BundleManifest,
-    mark_bundle_for_flat_file_indexing,
-    update_artifact_bundle_index,
-)
 from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
     get_bundles_indexing_state,
@@ -634,12 +629,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                 dist=(self.dist or NULL_STRING),
             )
 
-        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
-            try:
-                self._index_bundle_into_flat_file(artifact_bundle)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
@@ -741,27 +730,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # Backfill older bundles we did not index yet if any are missing
         if indexed_bundles + 1 < total_bundles:
             backfill_artifact_bundle_db_indexing.delay(self.organization.id, release, dist)
-
-    @sentry_sdk.tracing.trace
-    def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
-        identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, self.archive.has_debug_ids(), self.project_ids, self.release, self.dist
-        )
-
-        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
-
-        for identifier in identifiers:
-            try:
-                was_indexed = update_artifact_bundle_index(
-                    identifier, bundles_to_add=bundles_to_add
-                )
-                if not was_indexed:
-                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
-                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
-                    # no need to explicitly spawn any backfill task for this
-            except Exception as e:
-                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
-                sentry_sdk.capture_exception(e)
 
 
 def prepare_post_assembler(

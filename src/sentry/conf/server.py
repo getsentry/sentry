@@ -1217,11 +1217,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute="0", hour="*/1"),
     },
-    "backfill-artifact-bundle-index": {
-        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
