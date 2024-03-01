@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
@@ -266,6 +267,76 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         ]
         res = get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
+
+    def test_ignore_info_level_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group2]
+
+    def test_do_not_ignore_other_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.ERROR,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-2"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.DEBUG,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group3, group1]
 
 
 @region_silo_test
