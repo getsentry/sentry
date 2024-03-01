@@ -284,7 +284,7 @@ class GetRelocationsTest(APITestCase):
 @patch("sentry.signals.relocation_link_promo_code.send_robust")
 class PostRelocationsTest(APITestCase):
     endpoint = "sentry-api-0-relocations-index"
-    method = "post"
+    method = "POST"
 
     def setUp(self):
         super().setUp()
