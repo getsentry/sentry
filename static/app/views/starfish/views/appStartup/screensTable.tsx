@@ -26,6 +26,7 @@ import {
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
@@ -40,7 +41,8 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const columnNameMap = {
     transaction: t('Screen'),
