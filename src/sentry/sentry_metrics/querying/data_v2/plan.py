@@ -40,7 +40,9 @@ class FormulaDefinition:
 
     def replace_variables(self, queries: dict[str, str]) -> "FormulaDefinition":
         replaced_mql_formula = self.mql
-        for query_name in queries.keys():
+        # We sort query names by length and content with the goal of trying to always match the longest queries first.
+        sorted_query_names = sorted(queries.keys(), key=lambda q: (len(q), q), reverse=True)
+        for query_name in sorted_query_names:
             replaced_mql_formula = re.sub(
                 rf"\${query_name}", queries.get(query_name, ""), replaced_mql_formula
             )
