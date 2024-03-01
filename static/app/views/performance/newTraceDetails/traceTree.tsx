@@ -1,12 +1,14 @@
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Organization} from 'sentry/types';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
+  TraceErrorOrIssue,
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
 
 import {TraceType} from '../traceDetails/newTraceDetailsContent';
 import {isRootTransaction} from '../traceDetails/utils';
@@ -98,7 +100,11 @@ import {
 
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
-  type Span = RawSpanType;
+  type Span = RawSpanType & {
+    childTxn: Transaction | undefined;
+    event: EventTransaction;
+    relatedErrors: TraceErrorOrIssue[];
+  };
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
 
@@ -136,6 +142,14 @@ export declare namespace TraceTree {
     event_id: string | undefined;
     project_slug: string | undefined;
   };
+
+  type Indicator = {
+    duration: number;
+    label: string;
+    measurement: Measurement;
+    start: number;
+    type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+  };
 }
 
 function cacheKey(organization: Organization, project_slug: string, event_id: string) {
@@ -152,23 +166,21 @@ function fetchTransactionSpans(
   );
 }
 
-const unitToSeconds = {
-  second: 1,
-  millisecond: 1e3,
-  nanosecond: 1e9,
-};
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
   unit: string
 ) {
-  const multiplier = unitToSeconds[unit];
-  if (multiplier === undefined) {
-    throw new TypeError(
-      `Unsupported measurement unit ${unit} for measurement ${measurement}`
-    );
+  if (unit === 'second') {
+    return start_timestamp + measurement;
   }
-  return start_timestamp + measurement / multiplier;
+  if (unit === 'millisecond') {
+    return start_timestamp + measurement / 1e3;
+  }
+  if (unit === 'nanosecond') {
+    return start_timestamp + measurement / 1e9;
+  }
+  throw new TypeError(`Unsupported measurement unit', ${unit}`);
 }
 
 function maybeInsertMissingInstrumentationSpan(
@@ -201,27 +213,19 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
-type Indicator = {
-  duration: number;
-  label: string;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  start: number;
-  type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
-};
-
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
-  type: 'loading' | 'trace' = 'trace';
+  type: 'loading' | 'empty' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
-  indicators: Indicator[] = [];
+  indicators: TraceTree.Indicator[] = [];
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
     const tree = new TraceTree().build();
-    tree.type = 'trace';
+    tree.type = 'empty';
     return tree;
   }
 
@@ -231,7 +235,7 @@ export class TraceTree {
     return tree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -246,36 +250,6 @@ export class TraceTree {
       });
       node.canFetchData = true;
 
-      if ('measurements' in value) {
-        for (const measurement of RENDERABLE_MEASUREMENTS) {
-          if (!value.measurements?.[measurement]) {
-            continue;
-          }
-          if (value.measurements[measurement].value === 0) {
-            continue;
-          }
-
-          const timestamp = measurementToTimestamp(
-            value.start_timestamp,
-            value.measurements[measurement].value,
-            value.measurements[measurement].unit ?? 'milliseconds'
-          );
-
-          // If a rendered measurement extends the trace bounds, we update the trace bounds
-          if (timestamp > traceEnd) {
-            traceEnd = timestamp;
-          }
-
-          tree.indicators.push({
-            start: timestamp * node.multiplier,
-            duration: 0,
-            node,
-            type: measurement as Indicator['type'],
-            label: measurement.toUpperCase(),
-          });
-        }
-      }
-
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
       }
@@ -283,12 +257,14 @@ export class TraceTree {
       if ('start_timestamp' in value && value.start_timestamp < traceStart) {
         traceStart = value.start_timestamp;
       }
-      if (
-        'timestamp' in value &&
-        typeof value.timestamp === 'number' &&
-        value.timestamp > traceEnd
-      ) {
-        traceEnd = value.timestamp;
+      if ('timestamp' in value && typeof value.timestamp === 'number') {
+        // Errors don't have 'start_timestamp', so we adjust traceStart
+        // with an errors 'timestamp'
+        if (isTraceError(value)) {
+          traceStart = Math.min(value.timestamp, traceStart);
+        }
+
+        traceEnd = Math.max(value.timestamp, traceEnd);
       }
 
       if (value && 'children' in value) {
@@ -314,6 +290,22 @@ export class TraceTree {
 
     for (const trace_error of trace.orphan_errors) {
       visit(traceNode, trace_error);
+    }
+
+    if (event?.measurements) {
+      const indicators = tree
+        .collectMeasurements(traceStart, event.measurements)
+        .sort((a, b) => a.start - b.start);
+
+      for (const indicator of indicators) {
+        if (indicator.start > traceEnd) {
+          traceEnd = indicator.start;
+        }
+
+        indicator.start *= traceNode.multiplier;
+      }
+
+      tree.indicators = indicators;
     }
 
     traceNode.space = [
@@ -377,6 +369,7 @@ export class TraceTree {
 
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
+    data: Event,
     spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
   ): TraceTreeNode<TraceTree.NodeValue> {
@@ -415,7 +408,13 @@ export class TraceTree {
 
     for (const span of spans) {
       const childTxn = transactionsToSpanMap.get(span.span_id);
-      const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, span, {
+      const spanNodeValue: TraceTree.Span = {
+        ...span,
+        event: data as EventTransaction,
+        relatedErrors: childTxn ? getRelatedErrorsOrIssues(span, childTxn.value) : [],
+        childTxn: childTxn?.value,
+      };
+      const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
         project_slug: undefined,
       });
@@ -600,6 +599,36 @@ export class TraceTree {
     }
   }
 
+  collectMeasurements(
+    start_timestamp: number,
+    measurements: Record<string, Measurement>
+  ): TraceTree.Indicator[] {
+    const indicators: TraceTree.Indicator[] = [];
+
+    for (const measurement of RENDERABLE_MEASUREMENTS) {
+      const value = measurements[measurement];
+      if (!value) {
+        continue;
+      }
+
+      const timestamp = measurementToTimestamp(
+        start_timestamp,
+        value.value,
+        value.unit ?? 'milliseconds'
+      );
+
+      indicators.push({
+        start: timestamp,
+        duration: 0,
+        measurement: value,
+        type: measurement as TraceTree.Indicator['type'],
+        label: measurement.toUpperCase(),
+      });
+    }
+
+    return indicators;
+  }
+
   // Returns boolean to indicate if node was updated
   expand(node: TraceTreeNode<TraceTree.NodeValue>, expanded: boolean): boolean {
     if (expanded === node.expanded) {
@@ -725,7 +754,7 @@ export class TraceTree {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
 
-      TraceTree.FromSpans(node, spans.data, {sdk: data.sdk?.name});
+      TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);
@@ -1315,6 +1344,22 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   throw new Error('Not implemented');
+}
+
+function getRelatedErrorsOrIssues(
+  span: RawSpanType,
+  currentEvent: TraceTree.Transaction
+): TraceErrorOrIssue[] {
+  const performanceIssues = currentEvent.performance_issues.filter(
+    issue =>
+      issue.span.some(id => id === span.span_id) ||
+      issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+  );
+
+  return [
+    ...currentEvent.errors.filter(error => error.span === span.span_id),
+    ...performanceIssues, // Spans can be shown when embedded in performance issues
+  ];
 }
 
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {

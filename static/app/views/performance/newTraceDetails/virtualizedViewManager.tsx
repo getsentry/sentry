@@ -121,7 +121,10 @@ export class VirtualizedViewManager {
   trace_physical_space: View = View.Empty();
   container_physical_space: View = View.Empty();
 
-  measurer: RowMeasurer = new RowMeasurer();
+  row_measurer: DOMWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
+    new DOMWidthMeasurer();
+  indicator_label_measurer: DOMWidthMeasurer<TraceTree['indicators'][0]> =
+    new DOMWidthMeasurer();
   text_measurer: TextMeasurer = new TextMeasurer();
 
   resize_observer: ResizeObserver | null = null;
@@ -131,6 +134,8 @@ export class VirtualizedViewManager {
   // that rendering can be done programmatically
   divider: HTMLElement | null = null;
   container: HTMLElement | null = null;
+  indicator_container: HTMLElement | null = null;
+
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
@@ -267,6 +272,13 @@ export class VirtualizedViewManager {
     this.list = list;
   }
 
+  registerIndicatorContainerRef(ref: HTMLElement | null) {
+    if (ref) {
+      ref.style.width = this.columns.span_list.width * 100 + '%';
+    }
+    this.indicator_container = ref;
+  }
+
   registerDividerRef(ref: HTMLElement | null) {
     if (!ref) {
       if (this.divider) {
@@ -315,7 +327,7 @@ export class VirtualizedViewManager {
       } else if (ref) {
         const scrollableElement = ref.children[0];
         if (scrollableElement) {
-          this.measurer.measure(node, scrollableElement as HTMLElement);
+          this.row_measurer.measure(node, scrollableElement as HTMLElement);
           ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: true});
         }
       }
@@ -340,13 +352,22 @@ export class VirtualizedViewManager {
     indicator: TraceTree['indicators'][0]
   ) {
     if (!ref) {
+      const element = this.indicators[index]?.ref;
+      if (element) {
+        element.removeEventListener('wheel', this.onWheelZoom);
+      }
       this.indicators[index] = undefined;
     } else {
       this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
-      ref.style.left = this.columns.list.width * 100 + '%';
+      const label = ref.children[0] as HTMLElement | undefined;
+      if (label) {
+        this.indicator_label_measurer.measure(indicator, label);
+      }
+
+      ref.addEventListener('wheel', this.onWheelZoom, {passive: false});
       ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
         indicator.start
       )}px)`;
@@ -466,6 +487,13 @@ export class VirtualizedViewManager {
         span_text.ref.style.pointerEvents = 'none';
       }
     }
+
+    for (let i = 0; i < this.indicators.length; i++) {
+      const indicator = this.indicators[i];
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'none';
+      }
+    }
   }
 
   onWheelEnd() {
@@ -479,6 +507,12 @@ export class VirtualizedViewManager {
       const span_text = this.span_text[i];
       if (span_text) {
         span_text.ref.style.pointerEvents = 'auto';
+      }
+    }
+    for (let i = 0; i < this.indicators.length; i++) {
+      const indicator = this.indicators[i];
+      if (indicator?.ref) {
+        indicator.ref.style.pointerEvents = 'auto';
       }
     }
   }
@@ -504,7 +538,7 @@ export class VirtualizedViewManager {
 
     this.columns.list.translate[0] = clamp(
       this.columns.list.translate[0] - event.deltaX,
-      -(this.measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
+      -(this.row_measurer.max - columnWidth + 16), // 16px margin so we dont scroll right to the last px
       0
     );
 
@@ -560,7 +594,7 @@ export class VirtualizedViewManager {
     const renderCount = this.columns.span_list.column_refs.length;
 
     for (let i = offset + 1; i < renderCount - offset; i++) {
-      const width = this.measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -799,7 +833,7 @@ export class VirtualizedViewManager {
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return anchor_left ? [1, window_left] : [0, window_right];
+      return anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
@@ -853,14 +887,27 @@ export class VirtualizedViewManager {
 
     if (this.divider) {
       this.divider.style.transform = `translateX(${
-        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2
+        list_width * this.container_physical_space.width - DIVIDER_WIDTH / 2 - 1
       }px)`;
+    }
+    if (this.indicator_container) {
+      this.indicator_container.style.width = span_list_width * 100 + '%';
     }
 
     const listWidth = list_width * 100 + '%';
     const spanWidth = span_list_width * 100 + '%';
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+    // JavaScript "arrays" are nice in the sense that they are really just dicts,
+    // allowing us to store negative indices. This sometimes happens as the list
+    // virtualizes the rows and we end up with a negative index as they are being
+    // rendered off screen.
+    const overscroll = this.list?.props.overscanRowCount ?? 0;
+    const start = -overscroll;
+    const end = this.columns.list.column_refs.length + overscroll;
+
+    for (let i = start; i < end; i++) {
+      while (this.span_bars[i] === undefined && i < end) i++;
+
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
@@ -887,15 +934,94 @@ export class VirtualizedViewManager {
       }
     }
 
+    let start_indicator = 0;
+    let end_indicator = this.indicators.length;
+
+    while (start_indicator < this.indicators.length - 1) {
+      const indicator = this.indicators[start_indicator];
+      if (!indicator?.indicator) {
+        start_indicator++;
+        continue;
+      }
+
+      if (indicator.indicator.start < this.to_origin + this.trace_view.left) {
+        start_indicator++;
+        continue;
+      }
+
+      break;
+    }
+
+    while (end_indicator > start_indicator) {
+      const last_indicator = this.indicators[end_indicator - 1];
+      if (!last_indicator) {
+        end_indicator--;
+        continue;
+      }
+      if (last_indicator.indicator.start > this.to_origin + this.trace_view.right) {
+        end_indicator--;
+        continue;
+      }
+      break;
+    }
+
+    start_indicator = Math.max(0, start_indicator - 1);
+    end_indicator = Math.min(this.indicators.length - 1, end_indicator);
+
     for (let i = 0; i < this.indicators.length; i++) {
       const entry = this.indicators[i];
       if (!entry) {
         continue;
       }
-      entry.ref.style.left = listWidth;
-      entry.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(
-        entry.indicator.start
-      )}px)`;
+
+      if (i < start_indicator || i > end_indicator) {
+        entry.ref.style.opacity = '0';
+        continue;
+      }
+
+      const transform = this.computeTransformXFromTimestamp(entry.indicator.start);
+      const label = entry.ref.children[0] as HTMLElement | undefined;
+
+      const indicator_max = this.trace_physical_space.width + 1;
+      const indicator_min = -1;
+
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
+      const clamped_transform = clamp(transform, -1, indicator_max);
+
+      if (label_width === undefined) {
+        entry.ref.style.transform = `translate(${clamp(transform, indicator_min, indicator_max)}px, 0)`;
+        continue;
+      }
+
+      if (label) {
+        const PADDING = 2;
+        const label_window_left = PADDING;
+        const label_window_right = -label_width - PADDING;
+
+        if (transform < -1) {
+          label.style.transform = `translateX(${label_window_left}px)`;
+        } else if (transform >= indicator_max) {
+          label.style.transform = `translateX(${label_window_right}px)`;
+        } else {
+          const space_left = transform - PADDING - label_width / 2;
+          const space_right = transform + label_width / 2;
+
+          if (space_left < 0) {
+            const left = -label_width / 2 + Math.abs(space_left);
+            label.style.transform = `translateX(${left - 1}px)`;
+          } else if (space_right > this.trace_physical_space.width) {
+            const right =
+              -label_width / 2 - (space_right - this.trace_physical_space.width) - 1;
+            label.style.transform = `translateX(${right}px)`;
+          } else {
+            label.style.transform = `translateX(${-label_width / 2}px)`;
+          }
+        }
+      }
+
+      entry.ref.style.opacity = '1';
+      entry.ref.style.zIndex = i === start_indicator || i === end_indicator ? '1' : '2';
+      entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
   }
 
@@ -911,11 +1037,11 @@ export class VirtualizedViewManager {
 
 // The backing cache should be a proper LRU cache,
 // so we dont end up storing an infinite amount of elements
-class RowMeasurer {
-  cache: Map<TraceTreeNode<any>, number> = new Map();
+class DOMWidthMeasurer<T> {
+  cache: Map<T, number> = new Map();
   elements: HTMLElement[] = [];
 
-  queue: [TraceTreeNode<any>, HTMLElement][] = [];
+  queue: [T, HTMLElement][] = [];
   drainRaf: number | null = null;
   max: number = 0;
 
@@ -923,7 +1049,7 @@ class RowMeasurer {
     this.drain = this.drain.bind(this);
   }
 
-  enqueueMeasure(node: TraceTreeNode<any>, element: HTMLElement) {
+  enqueueMeasure(node: T, element: HTMLElement) {
     if (this.cache.has(node)) {
       return;
     }
@@ -942,7 +1068,7 @@ class RowMeasurer {
     }
   }
 
-  measure(node: TraceTreeNode<any>, element: HTMLElement): number {
+  measure(node: T, element: HTMLElement): number {
     const cache = this.cache.get(node);
     if (cache !== undefined) {
       return cache;
