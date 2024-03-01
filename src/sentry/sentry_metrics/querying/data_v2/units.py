@@ -54,9 +54,9 @@ class Unit:
     """
 
     name: MeasurementUnit
-    scaling_factor: float
+    scaling_factor: float | int
 
-    def convert(self, value: float | int) -> float:
+    def convert(self, value: float | int) -> float | int:
         return value * (self.scaling_factor or 1)
 
     def apply_on_timeseries(self, timeseries: Timeseries) -> Formula:
