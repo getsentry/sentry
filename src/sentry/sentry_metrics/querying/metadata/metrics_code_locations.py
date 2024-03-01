@@ -71,12 +71,19 @@ def get_cache_key_for_code_location(
 class CodeLocationsFetcher:
     # The maximum number of keys that can be fetched by the fetcher.
     #
-    # The estimation was naively done by supposing at most 10 metrics with 2 projects and at most 90 timestamps.
-    MAXIMUM_KEYS = 2000
+    # Note that each key might contain multiple code locations.
+    MAXIMUM_KEYS = 50
     # The size of the batch of keys that are fetched by endpoint.
     #
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
-    BATCH_SIZE = 50
+    BATCH_SIZE = 25
+    # The maximum number of code locations we want to retrieve per Redis set.
+    MAX_SET_SIZE = 10
+    # The maximum number of code locations that we actually return per Redis set.
+    MAX_LOCATIONS_SIZE = 5
+
+    # Given the limits above, we can expect, in the worst case MAXIMUM_KEYS * MAX_LOCATIONS_SIZE elements being
+    # returned because we further limit entries returned from Redis after loading them.
 
     def __init__(
         self,
@@ -96,7 +103,7 @@ class CodeLocationsFetcher:
 
     def _validate(self):
         total_combinations = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
-        if total_combinations >= self.MAXIMUM_KEYS:
+        if total_combinations > self.MAXIMUM_KEYS:
             raise TooManyCodeLocationsRequestedError(
                 "The request results in too many code locations to be fetched, try to reduce the number of "
                 "metrics, projects or the time interval"
@@ -138,19 +145,20 @@ class CodeLocationsFetcher:
                 query.metric_mri,
                 query.timestamp,
             )
-            pipeline.smembers(cache_key)
+            pipeline.srandmember(cache_key, self.MAX_SET_SIZE)
 
         frames = []
         for query, locations in zip(queries, pipeline.execute()):
             if not locations:
                 continue
 
+            # To maintain consistent ordering, we sort by the location representation.
+            locations = sorted(locations)[: self.MAX_LOCATIONS_SIZE]
             parsed_locations = [
                 self._parse_code_location_payload(location) for location in locations
             ]
-            # To maintain consistent ordering, we sort by filename.
-            sorted_locations = sorted(parsed_locations, key=lambda value: value.filename or "")
-            frames.append(MetricCodeLocations(query=query, frames=sorted_locations))
+
+            frames.append(MetricCodeLocations(query=query, frames=parsed_locations))
 
         return frames
 
@@ -160,6 +168,8 @@ class CodeLocationsFetcher:
             # We are assuming that code locations have each a unique query, thus we don't perform any merging or
             # de-duplication.
             code_locations += self._get_code_locations(queries)
+
+        metrics.distribution("ddm.metrics_code_locations.fetched", value=len(code_locations))
 
         return code_locations
 
