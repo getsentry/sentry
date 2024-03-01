@@ -120,7 +120,8 @@ SPAN_COLUMN_MAP = {
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
-    "span.duration": "duration",
+    # DO NOT directly expose span.duration, we should always use the alias
+    # "span.duration": "duration",
     "span.group": "group",
     "span.module": "module",
     "span.op": "op",

@@ -72,7 +72,8 @@ export function Queries() {
             {widget.type === MetricQueryType.QUERY ? (
               <Query
                 widget={widget}
-                onChange={data => handleChange(index, data)}
+                onChange={handleChange}
+                index={index}
                 projects={selection.projects}
                 symbol={
                   showQuerySymbols && (
@@ -154,25 +155,45 @@ export function Queries() {
 }
 
 interface QueryProps {
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  index: number;
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   widget: MetricQueryWidgetParams;
   contextMenu?: React.ReactNode;
   symbol?: React.ReactNode;
 }
 
-export function Query({widget, projects, onChange, contextMenu, symbol}: QueryProps) {
+export function Query({
+  widget,
+  projects,
+  onChange,
+  contextMenu,
+  symbol,
+  index,
+}: QueryProps) {
+  const metricsQuery = useMemo(
+    () => ({
+      mri: widget.mri,
+      op: widget.op,
+      groupBy: widget.groupBy,
+      query: widget.query,
+    }),
+    [widget.groupBy, widget.mri, widget.op, widget.query]
+  );
+
+  const handleChange = useCallback(
+    (data: Partial<MetricWidgetQueryParams>) => {
+      onChange(index, data);
+    },
+    [index, onChange]
+  );
+
   return (
     <QueryWrapper hasSymbol={!!symbol}>
       {symbol}
       <QueryBuilder
-        onChange={onChange}
-        metricsQuery={{
-          mri: widget.mri,
-          op: widget.op,
-          groupBy: widget.groupBy,
-          query: widget.query,
-        }}
+        onChange={handleChange}
+        metricsQuery={metricsQuery}
         displayType={widget.displayType}
         isEdit
         projects={projects}

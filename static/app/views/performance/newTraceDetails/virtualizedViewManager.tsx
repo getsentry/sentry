@@ -799,7 +799,7 @@ export class VirtualizedViewManager {
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return anchor_left ? [1, window_left] : [0, window_right];
+      return anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
@@ -860,7 +860,17 @@ export class VirtualizedViewManager {
     const listWidth = list_width * 100 + '%';
     const spanWidth = span_list_width * 100 + '%';
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+    // JavaScript "arrays" are nice in the sense that they are really just dicts,
+    // allowing us to store negative indices. This sometimes happens as the list
+    // virtualizes the rows and we end up with a negative index as they are being
+    // rendered off screen.
+    const overscroll = this.list?.props.overscanRowCount ?? 0;
+    const start = -overscroll;
+    const end = this.columns.list.column_refs.length + overscroll;
+
+    for (let i = start; i < end; i++) {
+      while (this.span_bars[i] === undefined && i < end) i++;
+
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;
       const span = this.columns.span_list.column_refs[i];
