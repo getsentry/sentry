@@ -202,7 +202,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -218,7 +218,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTFD and may affect final display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -233,7 +233,7 @@ export function ScreenLoadSpansTable({
         'This span may not be contributing to TTID or TTFD. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
           ),
         }
       );
@@ -255,7 +255,7 @@ export function ScreenLoadSpansTable({
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
             ),
           }
         );
@@ -270,7 +270,7 @@ export function ScreenLoadSpansTable({
         'This span may not affect initial display. [link: Learn more.]',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/#ttid-and-ttfd-affecting-spans" />
           ),
         }
       );
