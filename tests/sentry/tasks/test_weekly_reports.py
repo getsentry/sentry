@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
 
@@ -52,7 +52,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -75,7 +75,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_with_empty_string_user_option(self):
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
@@ -101,7 +101,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with unguarded_write(using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)

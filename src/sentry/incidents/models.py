@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from collections.abc import Callable
+from datetime import timedelta
 from enum import Enum
 from typing import Any, ClassVar, Self
 from uuid import uuid4
@@ -34,8 +36,34 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
+
+alert_subscription_callback_registry: dict[
+    AlertRuleMonitorType, Callable[[QuerySubscription], bool]
+] = {}
+
+
+def register_alert_subscription_callback(
+    monitor_type: AlertRuleMonitorType,
+) -> Callable[[Callable], Callable]:
+    def decorator(func: Callable) -> Callable:
+        alert_subscription_callback_registry[monitor_type] = func
+        return func
+
+    return decorator
+
+
+def invoke_alert_subscription_callback(
+    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
+) -> bool:
+    try:
+        callback = alert_subscription_callback_registry[monitor_type]
+    except KeyError:
+        return False
+
+    return callback(subscription)
 
 
 @region_silo_only_model
@@ -706,6 +734,15 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
+class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
+    """
+    A manager that excludes trigger actions that are pending to be deleted
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
+
+
 @region_silo_only_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -737,6 +774,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         "TypeRegistration",
         ["handler", "slug", "type", "supported_target_types", "integration_provider"],
     )
+
+    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
@@ -846,6 +886,19 @@ class AlertRuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
+
+
+@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+def clean_expired_alerts(subscription: QuerySubscription) -> bool:
+    now = timezone.now()
+    subscription_end = subscription.date_added + timedelta(
+        seconds=subscription.snuba_query.time_window
+    )
+
+    if now > subscription_end:
+        delete_snuba_subscription(subscription)
+
+    return True
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

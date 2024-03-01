@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest import mock
 
@@ -64,7 +64,7 @@ class DailySummaryTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCas
 
     def setUp(self):
         super().setUp()
-        self.now = datetime.now().replace(tzinfo=timezone.utc)
+        self.now = datetime.now(UTC)
         self.two_hours_ago = self.now - timedelta(hours=2)
         self.two_days_ago = self.now - timedelta(days=2)
         self.three_days_ago = self.now - timedelta(days=3)

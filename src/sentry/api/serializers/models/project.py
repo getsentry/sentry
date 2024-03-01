@@ -233,6 +233,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:feedback_user_report_notification": bool(
             options.get("sentry:feedback_user_report_notification")
         ),
+        "sentry:feedback_ai_spam_detection": bool(options.get("sentry:feedback_ai_spam_detection")),
         "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
@@ -714,10 +715,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            with sentry_sdk.start_span(op="project_summary_serializer.should_demote_symbolication"):
-                attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                    project_id=item.id, lpq_projects=lpq_projects
-                )
+            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
+                project_id=item.id, lpq_projects=lpq_projects
+            )
 
         return attrs
 

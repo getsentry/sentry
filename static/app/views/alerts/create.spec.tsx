@@ -566,7 +566,7 @@ describe('ProjectAlertsCreate', function () {
         'A new issue is created',
       ]);
       expect(
-        screen.getByText('Preview is not supported for these conditions')
+        await screen.findByText('Preview is not supported for these conditions')
       ).toBeInTheDocument();
     });
 
