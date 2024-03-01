@@ -174,6 +174,8 @@ describe('Request entry', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
+    // Expand two levels down
+    await userEvent.click(await screen.findByLabelText('Expand'));
     await userEvent.click(await screen.findByLabelText('Expand'));
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);
