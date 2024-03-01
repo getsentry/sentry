@@ -778,7 +778,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_metric_blocked_for_one_project(self):
-        mri = "d:custom/page_load@millisecond"
+        mri = "d:custom/page_size@byte"
 
         project_1 = self.create_project()
         project_2 = self.create_project()
@@ -813,8 +813,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, self.to_reference_unit(15.0), None]
-        assert data[0][0]["totals"] == self.to_reference_unit(15.0)
+        assert data[0][0]["series"] == [None, self.to_reference_unit(15.0, "byte"), None]
+        assert data[0][0]["totals"] == self.to_reference_unit(15.0, "byte")
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_metric_blocked_for_all_projects(self):
