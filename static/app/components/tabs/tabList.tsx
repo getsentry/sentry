@@ -157,7 +157,7 @@ function BaseTabList({
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
 
-    return sortedOverflowTabs.flatMap<SelectOption<React.Key>>(key => {
+    return sortedOverflowTabs.flatMap<SelectOption<string | number>>(key => {
       const item = state.collection.getItem(key);
 
       if (!item) {

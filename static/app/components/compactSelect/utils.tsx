@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 
 import {SectionToggleButton} from './styles';
 import type {
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
@@ -17,17 +18,17 @@ import type {
   SelectSection,
 } from './types';
 
-export function getEscapedKey<Value extends React.Key | undefined>(value: Value): string {
+export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
   return CSS.escape(String(value));
 }
 
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOption<Value>[]
 ): SelectOptionWithKey<Value>[];
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOptionOrSection<Value>[]
 ): SelectOptionOrSectionWithKey<Value>[];
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOptionOrSection<Value>[]
 ): SelectOptionOrSectionWithKey<Value>[] {
   return options.map((item, i) => {
@@ -47,7 +48,7 @@ export function getItemsWithKeys<Value extends React.Key>(
  * Recursively finds the selected option(s) from an options array. Useful for
  * non-flat arrays that contain sections (groups of options).
  */
-export function getSelectedOptions<Value extends React.Key>(
+export function getSelectedOptions<Value extends SelectKey>(
   items: SelectOptionOrSectionWithKey<Value>[],
   selection: Selection
 ): SelectOption<Value>[] {
@@ -71,7 +72,7 @@ export function getSelectedOptions<Value extends React.Key>(
  * arrays that contain sections (groups of options). Returns the values of options that
  * were removed.
  */
-export function getDisabledOptions<Value extends React.Key>(
+export function getDisabledOptions<Value extends SelectKey>(
   items: SelectOptionOrSection<Value>[],
   isOptionDisabled?: (opt: SelectOption<Value>) => boolean
 ): Value[] {
@@ -97,7 +98,7 @@ export function getDisabledOptions<Value extends React.Key>(
  * Recursively finds the option(s) that don't match the designated search string or are
  * outside the list box's count limit.
  */
-export function getHiddenOptions<Value extends React.Key>(
+export function getHiddenOptions<Value extends SelectKey>(
   items: SelectOptionOrSection<Value>[],
   search: string,
   limit: number = Infinity
@@ -178,7 +179,7 @@ export function getHiddenOptions<Value extends React.Key>(
  * selected, then this function selects all of them. If all of the options are selected,
  * then this function unselects all of them.
  */
-export function toggleOptions<Value extends React.Key>(
+export function toggleOptions<Value extends SelectKey>(
   optionKeys: Value[],
   selectionManager: SelectionManager
 ) {
@@ -198,7 +199,7 @@ interface SectionToggleProps {
   item: Node<any>;
   listState: ListState<any>;
   listId?: string;
-  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
+  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**

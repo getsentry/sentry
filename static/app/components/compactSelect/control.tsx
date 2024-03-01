@@ -31,7 +31,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectOption} from './types';
+import type {SelectKey, SelectOption} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -63,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
+    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -88,7 +88,7 @@ export interface ControlProps
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       keyof Omit<
-        SingleListProps<React.Key>,
+        SingleListProps<SelectKey>,
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
@@ -402,7 +402,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<React.Key> | SelectOption<React.Key>[]>
+    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {

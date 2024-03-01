@@ -10,7 +10,7 @@ import type {FormSize} from 'sentry/utils/theme';
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import type {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -52,7 +52,7 @@ interface ListBoxProps
    * and before `onChange`.
    */
   onSectionToggle?: (
-    section: SelectSection<React.Key>,
+    section: SelectSection<SelectKey>,
     type: 'select' | 'unselect'
   ) => void;
   size?: FormSize;

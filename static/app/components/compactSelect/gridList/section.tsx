@@ -14,7 +14,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
-import type {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {GridListOption} from './option';
@@ -23,7 +23,7 @@ interface GridListSectionProps {
   listState: ListState<any>;
   node: Node<any>;
   size: FormSize;
-  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
+  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**

@@ -59,7 +59,7 @@ export const TabsContext = createContext<TabContext>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs<T extends React.Key>({
+export function Tabs<T extends string | number>({
   orientation = 'horizontal',
   className,
   children,
