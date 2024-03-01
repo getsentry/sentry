@@ -37,30 +37,30 @@ class GetRelocationDetailsTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    def test_superuser_good_found(self):
+    def test_good_superuser_found(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
         assert response.data["uuid"] == str(self.relocation.uuid)
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_good_found_with_flag(self):
+    def test_good_staff_found_with_flag(self):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
         assert response.data["uuid"] == str(self.relocation.uuid)
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_superuser_fails_with_flag(self):
+    def test_bad_superuser_fails_with_flag(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_error_response(self.relocation.uuid, status_code=403)
         assert response.data["detail"]["message"] == StaffRequired.message
 
-    def test_superuser_bad_not_found(self):
+    def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_bad_not_found(self):
+    def test_bad_staff_not_found(self):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
