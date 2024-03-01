@@ -89,7 +89,7 @@ describe('makeUndoableReducer', () => {
 
       reactHooks.act(() => result.current[1]('add'));
       expect(result.current[0]).toEqual(2);
-      expect(reducer).toHaveBeenNthCalledWith(1, 0, 'add');
+      expect(reducer).toHaveBeenNthCalledWith(2, 1, 'add');
     });
 
     it('can undo state', () => {
