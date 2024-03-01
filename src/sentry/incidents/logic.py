@@ -45,6 +45,7 @@ from sentry.incidents.models import (
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
@@ -902,14 +903,15 @@ def delete_alert_rule(alert_rule, user=None, ip_address=None):
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
-            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            alert_rule.delete()
+            RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
+
+        alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
         # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
@@ -1496,9 +1498,11 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
 
 def delete_alert_rule_trigger_action(trigger_action):
     """
-    Deletes a AlertRuleTriggerAction
+    Schedules a deletion for a AlertRuleTriggerAction, and marks it as pending deletion.
+    Marking it as pending deletion should filter out the object through the manager when querying.
     """
-    trigger_action.delete()
+    RegionScheduledDeletion.schedule(instance=trigger_action, days=0)
+    trigger_action.update(status=ObjectStatus.PENDING_DELETION)
 
 
 def get_actions_for_trigger(trigger):

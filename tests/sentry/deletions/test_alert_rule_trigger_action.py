@@ -10,18 +10,18 @@ from sentry.testutils.silo import region_silo_test
 class DeleteAlertRuleTriggerActionTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         incident = self.create_incident()
-        action = self.create_alert_rule_trigger_action()
+        alert_rule_trigger_action = self.create_alert_rule_trigger_action()
         notification_message = NotificationMessage(
             message_identifier="s3iojewd90j23eqw",
             incident=incident,
-            trigger_action=action,
+            trigger_action=alert_rule_trigger_action,
         )
         notification_message.save()
 
-        self.ScheduledDeletion.schedule(instance=action, days=0)
+        self.ScheduledDeletion.schedule(instance=alert_rule_trigger_action, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not AlertRuleTriggerAction.objects.filter(id=action.id).exists()
+        assert not AlertRuleTriggerAction.objects.filter(id=alert_rule_trigger_action.id).exists()
         assert not NotificationMessage.objects.filter(id=notification_message.id).exists()

@@ -706,6 +706,15 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
+class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
+    """
+    A manager that excludes trigger actions that are pending to be deleted
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
+
+
 @region_silo_only_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -737,6 +746,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         "TypeRegistration",
         ["handler", "slug", "type", "supported_target_types", "integration_provider"],
     )
+
+    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
