@@ -135,9 +135,7 @@ export const feedbackOnboarding: OnboardingConfig = {
               label: 'C#',
               value: 'csharp',
               language: 'csharp',
-              code: `using Sentry;
-
-var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+              code: `var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
 
 SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
             },
@@ -145,9 +143,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
               label: 'F#',
               value: 'fsharp',
               language: 'fsharp',
-              code: `open Sentry
-
-let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+              code: `let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
 
 SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
             },
