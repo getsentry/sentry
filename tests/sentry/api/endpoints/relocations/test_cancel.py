@@ -41,7 +41,7 @@ class CancelRelocationTest(APITestCase):
         )
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_good_cancel_in_progress_at_next_step(self):
+    def test_good_staff_cancel_in_progress_at_next_step(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)
