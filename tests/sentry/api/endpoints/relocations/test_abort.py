@@ -38,7 +38,7 @@ class AbortRelocationTest(APITestCase):
         )
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_good_abort_in_progress(self):
+    def test_good_staff_abort_in_progress(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
@@ -47,7 +47,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    def test_superuser_good_abort_in_progress(self):
+    def test_good_superuser_abort_in_progress(self):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
@@ -57,7 +57,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_good_abort_paused(self):
+    def test_good_staff_abort_paused(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
@@ -66,7 +66,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["status"] == Relocation.Status.FAILURE.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
-    def test_superuser_good_abort_paused(self):
+    def test_good_superuser_abort_paused(self):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.PAUSE.value
         self.relocation.save()
@@ -76,7 +76,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_bad_already_succeeded(self):
+    def test_bad_staff_already_succeeded(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
         self.relocation.save()
@@ -85,7 +85,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    def test_superuser_bad_already_succeeded(self):
+    def test_bad_superuser_already_succeeded(self):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.SUCCESS.value
         self.relocation.save()
@@ -95,7 +95,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_bad_already_failed(self):
+    def test_bad_staff_already_failed(self):
         self.login_as(user=self.staff_user, staff=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
@@ -104,7 +104,7 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
-    def test_superuser_bad_already_failed(self):
+    def test_bad_superuser_already_failed(self):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
@@ -114,12 +114,12 @@ class AbortRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_NOT_ABORTABLE_STATUS
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_staff_bad_not_found(self):
+    def test_bad_staff_not_found(self):
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
-    def test_superuser_bad_not_found(self):
+    def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), status_code=404)
