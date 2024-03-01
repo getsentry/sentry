@@ -9,22 +9,27 @@ from sentry_sdk import configure_scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.serializers import serialize
-from sentry.models.files.file import File
-
-from ...api.authentication import (
+from sentry.api.authentication import (
     ApiKeyAuthentication,
     DSNAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from ...api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from ...constants import ObjectStatus
-from ...models import Organization, Project, ProjectKey
-from ...utils.sdk import bind_organization_context
-from ..models import Monitor, MonitorCheckIn
-from .base import ProjectMonitorPermission, get_monitor_by_org_slug, try_checkin_lookup
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
+from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.monitors.endpoints.base import (
+    ProjectMonitorPermission,
+    get_monitor_by_org_slug,
+    try_checkin_lookup,
+)
+from sentry.monitors.models import Monitor, MonitorCheckIn
+from sentry.utils.sdk import bind_organization_context
 
 MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
