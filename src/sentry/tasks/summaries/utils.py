@@ -443,11 +443,9 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     Check if the context is empty. If it is, we don't want to send a notification.
     """
     if ctx.daily:
-        projects_context_map = cast(dict[int, DailySummaryProjectContext], ctx.projects_context_map)
-        project_ctxs = [project_ctx for project_ctx in projects_context_map.values()]
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
 
     else:
-        projects_context_map = cast(dict[int, ProjectContext], ctx.projects_context_map)
-        project_ctxs = [project_ctx for project_ctx in projects_context_map.values()]
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
 
     return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)
