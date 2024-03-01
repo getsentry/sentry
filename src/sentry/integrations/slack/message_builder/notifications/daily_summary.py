@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from sentry_relay.processing import parse_release
+
 from sentry.integrations.message_builder import build_attachment_title, get_title_link
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
@@ -34,6 +36,12 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
         title = build_attachment_title(group)
         return f"<{link}|*{escape_slack_text(title)}*>"
 
+    def linkify_release(self, release, organization):
+        path = f"/releases/{release.version}/"
+        url = organization.absolute_url(path)
+        release_description = parse_release(release.version).get("description")
+        return f":rocket: *<{url}|Release {release_description}>*\n"
+
     def build(self) -> SlackBlock:
         blocks = []
         subject = self.notification.get_subject()
@@ -51,7 +59,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             except Project.DoesNotExist:
                 continue
 
-            project_text = f"*{project.slug}*: Here is some text about this section!"
+            project_text = f"Here's what happened in the *{project.slug}* project today:"
             blocks.append(self.get_markdown_block(project_text))
 
             # Add release info if we have it
@@ -61,10 +69,11 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         release = Release.objects.get(id=release_id)
                     except Release.DoesNotExist:
                         continue
-                    release_text = f":rocket: *{release.version}*:\n"
+
+                    release_text = self.linkify_release(release, project.organization)
                     for error in errors[0:3]:
                         linked_title = self.linkify_error_title(error)
-                        release_text += f"• :new: {linked_title}"
+                        release_text += f"• :new: {linked_title}\n"
                 blocks.append(self.get_markdown_block(release_text))
 
             # Calculate today's event count percentage against 14 day avg
@@ -85,7 +94,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
                 for error in context.key_errors:
                     linked_title = self.linkify_error_title(error[0])
-                    top_errors_text += f"• {linked_title}"
+                    top_errors_text += f"• {linked_title}\n"
                 blocks.append(self.get_markdown_block(top_errors_text))
 
             # Add escalated/regressed issues
@@ -102,8 +111,6 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         issue_state_text += f"• :recycle: {linked_title}\n"
                 blocks.append(self.get_markdown_block(issue_state_text))
 
-            blocks.append(self.get_divider())
-
             # Add performance data
             if context.key_performance_issues:
                 top_perf_issues_text = "*Today's Top 3 Performance Issues*\n"
@@ -111,6 +118,8 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                     linked_title = self.linkify_error_title(perf_issue[0])
                     top_perf_issues_text += f"• {linked_title}\n"
                 blocks.append(self.get_markdown_block(top_perf_issues_text))
+
+            blocks.append(self.get_divider())
 
         text = subject
         callback_id_raw = self.notification.get_callback_data()

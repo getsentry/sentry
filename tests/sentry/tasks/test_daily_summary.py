@@ -378,9 +378,9 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[6]["text"]["text"]
         assert link_text.format(self.group3.id) in blocks[6]["text"]["text"]
         # check performance issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[8]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[8]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[8]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[7]["text"]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[7]["text"]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[7]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[9]["text"]["text"]
         assert "*Today's Top 3 Error Issues" in blocks[10]["text"]["text"]
@@ -534,9 +534,9 @@ class DailySummaryTest(
         assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
         assert link_text.format(self.group2.id) in blocks[5]["text"]["text"]
         # check performance issues - skipped past escalated or regressed issues
-        assert "*Today's Top 3 Performance Issues*" in blocks[7]["text"]["text"]
-        assert link_text.format(self.perf_event.group.id) in blocks[7]["text"]["text"]
-        assert link_text.format(self.perf_event2.group.id) in blocks[7]["text"]["text"]
+        assert "*Today's Top 3 Performance Issues*" in blocks[6]["text"]["text"]
+        assert link_text.format(self.perf_event.group.id) in blocks[6]["text"]["text"]
+        assert link_text.format(self.perf_event2.group.id) in blocks[6]["text"]["text"]
         # repeat above for second project
         assert self.project2.slug in blocks[8]["text"]["text"]
         assert "*Today's Top 3 Error Issues" in blocks[9]["text"]["text"]
