@@ -36,6 +36,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -891,7 +892,7 @@ def clean_expired_alerts(subscription: QuerySubscription) -> bool:
     )
 
     if now > subscription_end:
-        subscription.remove()
+        delete_snuba_subscription(subscription)
 
     return True
 

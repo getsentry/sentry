@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -24,30 +24,3 @@ class SnubaQueryEventTypesTest(TestCase):
             SnubaQueryEventType.EventType.DEFAULT,
             SnubaQueryEventType.EventType.ERROR,
         }
-
-
-@region_silo_test
-class QuerySubscriptionTest(TestCase):
-    def test_remove(self):
-        snuba_query = create_snuba_query(
-            SnubaQuery.Type.ERROR,
-            Dataset.Events,
-            "level:error",
-            "count()",
-            timedelta(minutes=10),
-            timedelta(minutes=1),
-            None,
-        )
-
-        # Create a mock snuba_subscription
-        subscription = create_snuba_subscription(self.project, "something", snuba_query)
-
-        # assert that the subscription exists
-        assert QuerySubscription.objects.filter(id=subscription.id).exists()
-
-        # remove the subscription
-        subscription.remove()
-
-        # assert that the subscription no longer exists
-        assert subscription.status == QuerySubscription.Status.DELETING.value
-        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
