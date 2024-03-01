@@ -13,12 +13,30 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 @region_silo_test
 class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
-
     endpoint = "sentry-api-0-organization-metrics-details"
 
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    def test_staff_metrics_details_sessions(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+        response = self.get_success_response(
+            self.organization.slug, project=self.project.id, useCase="sessions"
+        )
+
+        assert isinstance(response.data, list)
+
+    def test_staff_and_superuser_metrics_details_sessions(self):
+        staff_and_superuser = self.create_user(is_staff=True)
+        self.login_as(user=staff_and_superuser, staff=True, superuser=True)
+        # We should not fail when both modes are active
+        response = self.get_success_response(
+            self.organization.slug, project=self.project.id, useCase="sessions"
+        )
+
+        assert isinstance(response.data, list)
 
     def test_metrics_details_sessions(self):
         response = self.get_success_response(
@@ -42,6 +60,13 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert response.status_code == 400
 
     def test_metrics_details_no_projects(self):
+        response = self.get_success_response(self.organization.slug, useCase="transactions")
+
+        assert isinstance(response.data, list)
+
+    def test_staff_metrics_details_no_projects(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
         response = self.get_success_response(self.organization.slug, useCase="transactions")
 
         assert isinstance(response.data, list)
