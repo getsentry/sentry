@@ -269,6 +269,14 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": "events",
         },
     },
+    "ingest-feedbacks": {
+        "topic": settings.KAFKA_INGEST_FEEDBACKS,
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
+        "click_options": ingest_events_options(),
+        "static_args": {
+            "consumer_type": "events",
+        },
+    },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
