@@ -351,7 +351,7 @@ def update_issue_alert_rule(
 
         # slug condition not present, add slug to conditions
         if not updated:
-            conditions = conditions.append(
+            conditions.append(
                 {
                     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                     "key": "monitor.slug",
