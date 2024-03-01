@@ -3079,7 +3079,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
-    def _create_issue_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3087,13 +3087,16 @@ class MonitorTestCase(APITestCase):
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
         ]
+        if not exclude_slug_filter:
+            conditions.append(
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
