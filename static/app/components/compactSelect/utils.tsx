@@ -98,7 +98,7 @@ export function getDisabledOptions<Value extends SelectKey>(
  * Recursively finds the option(s) that don't match the designated search string or are
  * outside the list box's count limit.
  */
-export function getHiddenOptions<Value extends Key>(
+export function getHiddenOptions<Value extends SelectKey>(
   items: SelectOptionOrSection<Value>[],
   search: string,
   limit: number = Infinity

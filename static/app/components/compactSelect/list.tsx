@@ -277,7 +277,7 @@ function List<Value extends SelectKey>({
    * event was intercepted. If yes, then no further callback function should be run.
    */
   const keyDownHandler = useCallback(
-    (e: KeyboardEvent<HTMLUListElement>) => {
+    (e: React.KeyboardEvent<HTMLUListElement>) => {
       // Don't handle ArrowDown/Up key presses if focus already wraps
       if (shouldFocusWrap && !grid) {
         return true;

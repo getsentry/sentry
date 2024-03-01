@@ -88,7 +88,7 @@ export interface ControlProps
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       keyof Omit<
-        SingleListProps<Key>,
+        SingleListProps<SelectKey>,
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
