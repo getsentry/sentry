@@ -69,16 +69,10 @@ class MonitorEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Since we have changed our unique constraints to be on unique on (project, slug) we can
-        # end up with multiple monitors here. Since we have no idea which project the user wants,
-        # we just get the oldest monitor and use that.
-        # This is a temporary measure until we remove these org level endpoints
-        monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
-        if not monitors:
+        try:
+            monitor = get_monitor_by_org_slug(organization, monitor_slug)
+        except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
-
-        monitor = min(monitors, key=lambda m: m.id)
-
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
@@ -197,6 +191,18 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
             raise ResourceDoesNotExist
 
         return args, kwargs
+
+
+def get_monitor_by_org_slug(organization: Organization, monitor_slug: str) -> Monitor:
+    # Since we have changed our unique constraints to be on unique on (project, slug) we can
+    # end up with multiple monitors here. Since we have no idea which project the user wants,
+    # we just get the oldest monitor and use that.
+    # This is a temporary measure until we remove these org level endpoints
+    monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
+    if not monitors:
+        raise Monitor.DoesNotExist
+
+    return min(monitors, key=lambda m: m.id)
 
 
 class MonitorIngestEndpoint(Endpoint):
