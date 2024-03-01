@@ -57,9 +57,13 @@ class Unit:
     scaling_factor: float | int
 
     def convert(self, value: float | int) -> float | int:
-        return value * (self.scaling_factor or 1)
+        return value * self.scaling_factor
 
-    def apply_on_timeseries(self, timeseries: Timeseries) -> Formula:
+    def apply_on_timeseries(self, timeseries: Timeseries) -> Timeseries | Formula:
+        # In case the factor is the identity of the multiplication, we do not apply any formula.
+        if self.scaling_factor in {1.0, 1}:
+            return timeseries
+
         # We represent the scaling factor as a multiplicative factor, so that we can just multiply.
         return Formula(
             function_name=ArithmeticOperator.MULTIPLY.value,
