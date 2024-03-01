@@ -66,15 +66,12 @@ export const getFeedbackConfigOptions = ({
   email?: boolean;
   name?: boolean;
 } = {}) => {
-  if (name && email) {
-    return `isNameRequired: true,
-          isEmailRequired: true,`;
-  }
+  const options: string[] = [];
   if (name) {
-    return `isNameRequired: true,`;
+    options.push('isNameRequired: true,');
   }
   if (email) {
-    return `isEmailRequired: true,`;
+    options.push('isEmailRequired: true,');
   }
-  return ``;
+  return options.join('\n');
 };
