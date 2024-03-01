@@ -938,6 +938,10 @@ CELERY_QUEUES_REGION = [
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("spans.process_segment", routing_key="spans.process_segment"),
+    Queue(
+        "invalid_group_status_detection",
+        routing_key="invalid_group_status_detection",
+    ),
 ]
 
 from celery.schedules import crontab
@@ -1220,6 +1224,10 @@ CELERYBEAT_SCHEDULE_REGION = {
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
+    },
+    "invalid_group_status_detection": {
+        "task": "sentry.tasks.invalid_group_status_detection",
+        "schedule": crontab(hour="10", day_of_week="sunday"),  # 03:00 PDT, 07:00 EDT, 10:00 UTC
     },
 }
 
