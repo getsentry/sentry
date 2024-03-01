@@ -7,14 +7,14 @@ import moment from 'moment';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
+import {getMetricsConversionFunction} from 'sentry/utils/metrics/convertMetricsValue';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {getMetricValueNormalizer} from 'sentry/utils/metrics/normalizeMetricValue';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chart/chartUtils';
-import type {CombinedMetricChartProps} from 'sentry/views/ddm/chart/types';
+import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
 import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseChartSamplesProps = {
@@ -54,6 +54,7 @@ export function useMetricChartSamples({
 }: UseChartSamplesProps) {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef>(null);
+  const timeseriesUnit = timeseries?.[0]?.unit ?? 'none';
 
   const [valueRect, setValueRect] = useState(getValueRect(chartRef));
 
@@ -138,13 +139,13 @@ export function useMetricChartSamples({
       return [];
     }
 
-    const normalizeMetric = getMetricValueNormalizer(unit ?? '');
+    const valueConverter = getMetricsConversionFunction(unit, timeseriesUnit);
 
     return Object.values(samples).map(sample => {
       const isHighlighted = highlightedSampleId === sample.transactionId;
 
       const xValue = moment(sample.timestamp).valueOf();
-      const yValue = normalizeMetric(((sample.min ?? 0) + (sample.max ?? 0)) / 2) ?? 0;
+      const yValue = valueConverter(((sample.min ?? 0) + (sample.max ?? 0)) / 2) ?? 0;
 
       const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
 
@@ -185,7 +186,15 @@ export function useMetricChartSamples({
         z: 10,
       };
     });
-  }, [operation, unit, samples, highlightedSampleId, valueRect, theme.purple400]);
+  }, [
+    operation,
+    unit,
+    timeseriesUnit,
+    samples,
+    highlightedSampleId,
+    valueRect,
+    theme.purple400,
+  ]);
 
   const formatterOptions = useMemo(() => {
     return {

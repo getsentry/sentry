@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {getMetricConversionFunction} from 'sentry/utils/metrics/normalizeMetricValue';
+import {getMetricsConversionFunction} from 'sentry/utils/metrics/convertMetricsValue';
 import {MAIN_X_AXIS_ID, MAIN_Y_AXIS_ID} from 'sentry/views/ddm/chart/chart';
 import type {ValueRect} from 'sentry/views/ddm/chart/chartUtils';
 import {getValueRect} from 'sentry/views/ddm/chart/chartUtils';
@@ -111,7 +111,7 @@ export function useFocusArea({
         return;
       }
 
-      const valueConverter = getMetricConversionFunction(chartUnit, sampleUnit);
+      const valueConverter = getMetricsConversionFunction(chartUnit, sampleUnit);
 
       const range = getSelectionRange(
         brushEnd,
@@ -275,7 +275,7 @@ function FocusAreaOverlay({
     }
     const finder = {xAxisId: MAIN_X_AXIS_ID, yAxisId: MAIN_Y_AXIS_ID};
 
-    const valueConverter = getMetricConversionFunction(sampleUnit, chartUnit);
+    const valueConverter = getMetricsConversionFunction(sampleUnit, chartUnit);
     const max = valueConverter(rect.range.max);
     const min = valueConverter(rect.range.min);
 
