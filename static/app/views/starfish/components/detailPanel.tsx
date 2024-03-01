@@ -17,6 +17,7 @@ type DetailProps = {
   onClose?: () => void;
   onOpen?: () => void;
   skipCloseOnOutsideClick?: boolean;
+  startingPositionOnLoad?: 'right' | 'bottom';
 };
 
 type DetailState = {
@@ -30,6 +31,7 @@ export default function Detail({
   detailKey,
   onClose,
   onOpen,
+  startingPositionOnLoad,
   skipCloseOnOutsideClick = false,
 }: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
@@ -38,6 +40,12 @@ export default function Detail({
     'right'
   );
   const escapeKeyPressed = useKeyPress('Escape');
+
+  useEffect(() => {
+    if (startingPositionOnLoad) {
+      setSlidePosition(startingPositionOnLoad);
+    }
+  }, [setSlidePosition, startingPositionOnLoad]);
 
   // Any time the key prop changes (due to user interaction), we want to open the panel
   useEffect(() => {
