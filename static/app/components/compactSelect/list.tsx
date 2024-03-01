@@ -353,7 +353,9 @@ function List<Value extends SelectKey>({
           listState={listState}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
-        />
+        >
+          {props.children as React.ReactNode}
+        </GridList>
       ) : (
         <ListBox
           {...props}
@@ -363,7 +365,9 @@ function List<Value extends SelectKey>({
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
-        />
+        >
+          {props.children as React.ReactNode}
+        </ListBox>
       )}
 
       {multiple &&
