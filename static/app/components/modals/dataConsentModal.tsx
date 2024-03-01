@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import missionControl from 'getsentry-images/missionControl.jpg';
+import missionControl from 'sentry-images/spot/missionControl.jpg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
