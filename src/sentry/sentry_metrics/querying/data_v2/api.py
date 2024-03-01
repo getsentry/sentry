@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import cast
 
@@ -18,11 +17,6 @@ from sentry.sentry_metrics.querying.data_v2.preparation import (
     run_preparation_steps,
 )
 from sentry.utils import metrics
-
-
-@dataclass(frozen=True)
-class QueryResults:
-    results: Sequence[QueryResult]
 
 
 def _time_equal_within_bound(time_1: datetime, time_2: datetime, bound: timedelta) -> bool:
