@@ -292,7 +292,7 @@ class DailySummaryTest(
             ).send()
         blocks, fallback_text = get_blocks_and_fallback_text()
         link_text = "http://testserver/organizations/baz/issues/{}/?referrer=slack"
-        assert fallback_text == "Daily Summary for Your Projects"
+        assert fallback_text == "Daily Summary for Your Projects (internal only!!!)"
         assert f":bell: *{fallback_text}*" in blocks[0]["text"]["text"]
         assert (
             "Your comprehensive overview for today - key issues, performance insights, and more."

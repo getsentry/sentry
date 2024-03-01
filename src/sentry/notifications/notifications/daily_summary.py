@@ -53,7 +53,7 @@ class DailySummaryNotification(BaseNotification):
         return ""
 
     def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
-        return "Daily Summary for Your Projects"
+        return "Daily Summary for Your Projects (internal only!!!)"
 
     def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
@@ -62,4 +62,6 @@ class DailySummaryNotification(BaseNotification):
         return ""
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        return "Getting this at a funky time? This sends at 4pm for whatever time zone you have set. Want to unsubscribe? Too bad, it's internal only."
+        return (
+            "Getting this at a funky time? This sends at 4pm for whatever time zone you have set."
+        )
