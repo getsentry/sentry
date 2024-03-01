@@ -130,9 +130,7 @@ def prepare_summary_data(
         report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
     if not report_is_available:
-        logger.info(
-            "prepare_organization_report.skipping_empty", extra={"organization": organization_id}
-        )
+        logger.info("prepare_summary_data.skipping_empty", extra={"organization": organization.id})
         return
 
     with sentry_sdk.start_span(op="daily_summary.deliver_summary"):
