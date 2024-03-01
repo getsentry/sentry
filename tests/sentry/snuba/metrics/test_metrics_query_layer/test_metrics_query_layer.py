@@ -430,11 +430,11 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         (7, timedelta(hours=2, minutes=2, seconds=5).total_seconds(), None, 10),
     ],
 )
-def test_resolve_granularity(day_range: int, sec_offset: int, interval: int, expected: int) -> None:
+def test_resolve_granularity_with_custom_use_case_id(
+    day_range: int, sec_offset: int, interval: int, expected: int
+) -> None:
     now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
     start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
     end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
-    start = now - timedelta(days=day_range) - timedelta(seconds=sec_offset)
-    end = now - timedelta(seconds=sec_offset)
-    assert _resolve_granularity(start, end, interval) == expected
+    assert _resolve_granularity(UseCaseID.CUSTOM, start, end, interval) == expected
