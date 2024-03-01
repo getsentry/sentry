@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import {openDataConsentModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
@@ -13,7 +14,6 @@ import QueryCount from 'sentry/components/queryCount';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
@@ -81,8 +81,6 @@ function IssueListHeader({
   query,
   sort,
   queryCounts,
-  realtimeActive,
-  onRealtimeChange,
   router,
   displayReprocessingTab,
   selectedProjectIds,
@@ -101,9 +99,6 @@ function IssueListHeader({
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-  const realtimeTitle = realtimeActive
-    ? t('Pause real-time updates')
-    : t('Enable real-time updates');
 
   return (
     <Layout.Header noActionWrap>
@@ -121,14 +116,15 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <IssueListSetAsDefault {...{sort, query, organization}} />
-          <Button
+          {/* <Button
             size="sm"
             data-test-id="real-time"
             title={realtimeTitle}
             aria-label={realtimeTitle}
             icon={realtimeActive ? <IconPause /> : <IconPlay />}
             onClick={() => onRealtimeChange(!realtimeActive)}
-          />
+          /> */}
+          <Button aria-label="test" onClick={() => openDataConsentModal()} />
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
