@@ -166,10 +166,10 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         repos = self._get_repos_from_code_mapping(group)
 
-        # if not repos:
-        #     return self._respond_with_error(
-        #         group, metadata, "Found no Github repositories linked to this project.", 400
-        #     )
+        if not repos:
+            return self._respond_with_error(
+                group, metadata, "Found no Github repositories linked to this project.", 400
+            )
 
         try:
             self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
