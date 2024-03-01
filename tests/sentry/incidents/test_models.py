@@ -12,7 +12,6 @@ from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleMonitorType,
@@ -28,6 +27,7 @@ from sentry.incidents.models import (
     clean_expired_alerts,
     register_alert_subscription_callback,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
