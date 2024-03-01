@@ -7,6 +7,7 @@ from typing import Any
 from requests import PreparedRequest, Response
 
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client import BaseApiResponse
@@ -42,11 +43,18 @@ class SlackClient(ApiClient):
         if "Authorization" in prepared_request.headers or not self.integration_id:
             return prepared_request
 
-        integration = integration_service.get_integration(
-            integration_id=self.integration_id,
-            provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            status=ObjectStatus.ACTIVE,
-        )
+        # TODO(hybridcloud) Pass integration into SlackClient.__init__() so
+        # we don't have to workaround watermarks here.
+        # In order to send requests, SlackClient needs to fetch the integration
+        # to get access tokens which trips up rpc method/transaction
+        # boundary detection. Those boundaries are not relevant because
+        # this is a read operation.
+        with in_test_hide_transaction_boundary():
+            integration = integration_service.get_integration(
+                integration_id=self.integration_id,
+                provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                status=ObjectStatus.ACTIVE,
+            )
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})
             return prepared_request
