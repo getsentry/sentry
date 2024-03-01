@@ -1,6 +1,7 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
+import debounce from 'lodash/debounce';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
@@ -54,6 +55,7 @@ export type Field = (typeof fields)[number];
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
+  onRowHover?: (sampleId?: string) => void;
   op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
@@ -65,6 +67,7 @@ interface MetricSamplesTableProps {
 export function MetricSamplesTable({
   focusArea,
   mri,
+  onRowHover,
   op,
   query,
   setMetricsSamples,
@@ -180,17 +183,56 @@ export function MetricSamplesTable({
     return renderHeadCell(currentSort, generateSortLink);
   }, [currentSort, location]);
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useMemo(
+    () =>
+      debounce((event: React.MouseEvent) => {
+        const wrapper = wrapperRef.current;
+        const target = event.target;
+
+        if (!wrapper || !(target instanceof Element)) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        const tableRow = (target as Element).closest('tbody >tr');
+        if (!tableRow) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        const rows = Array.from(wrapper.querySelectorAll('tbody > tr'));
+        const rowIndex = rows.indexOf(tableRow);
+        const rowId = result.data?.data?.[rowIndex]?.id;
+
+        if (!rowId) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        onRowHover?.(rowId);
+      }, 10),
+    [onRowHover, result.data?.data]
+  );
+
   return (
-    <GridEditable
-      isLoading={enabled && result.isLoading}
-      error={enabled && result.isError && supportedMRI}
-      data={result.data?.data ?? []}
-      columnOrder={getColumnOrder(parsedMRI)}
-      columnSortBy={[]}
-      grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
-      location={location}
-      emptyMessage={emptyMessage}
-    />
+    <div
+      ref={wrapperRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => onRowHover?.(undefined)}
+    >
+      <GridEditable
+        isLoading={enabled && result.isLoading}
+        error={enabled && result.isError && supportedMRI}
+        data={result.data?.data ?? []}
+        columnOrder={getColumnOrder(parsedMRI)}
+        columnSortBy={[]}
+        grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
+        location={location}
+        emptyMessage={emptyMessage}
+      />
+    </div>
   );
 }
 

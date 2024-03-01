@@ -145,6 +145,7 @@ export function MetricDetails({
                 <MetricSamplesTable
                   focusArea={focusArea?.selection?.range}
                   mri={mri}
+                  onRowHover={onRowHover}
                   op={op}
                   query={queryWithFocusedSeries}
                   setMetricsSamples={setMetricsSamples}

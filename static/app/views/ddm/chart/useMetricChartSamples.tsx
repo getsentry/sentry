@@ -266,6 +266,7 @@ export function useMetricChartSamples({
 
 interface UseMetricChartSamplesV2Options {
   timeseries: Series[];
+  highlightedSampleId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
   operation?: string;
   samples?: MetricsSamplesResults<Field>['data'];
@@ -274,6 +275,7 @@ interface UseMetricChartSamplesV2Options {
 
 export function useMetricChartSamplesV2({
   timeseries,
+  highlightedSampleId,
   onSampleClick,
   operation,
   samples,
@@ -343,7 +345,7 @@ export function useMetricChartSamplesV2({
     const normalizeMetric = getMetricValueNormalizer(unit);
 
     return (samples ?? []).map(sample => {
-      const isHighlighted = false;
+      const isHighlighted = highlightedSampleId === sample.id;
 
       const xValue = moment(sample.timestamp).valueOf();
       const value = getSummaryValueForOp(sample.summary, operation);
@@ -383,7 +385,7 @@ export function useMetricChartSamplesV2({
         z: 10,
       };
     });
-  }, [operation, samples, theme, unit, valueRect]);
+  }, [highlightedSampleId, operation, samples, theme, unit, valueRect]);
 
   const formatterOptions = useMemo(() => {
     return {

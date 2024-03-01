@@ -366,6 +366,7 @@ const MetricWidgetBody = memo(
 
     const samplesV2Prop = useMetricChartSamplesV2({
       samples: samplesV2?.data,
+      highlightedSampleId: samples?.higlightedId,
       operation: samplesV2?.operation,
       onSampleClick: samplesV2?.onSampleClick,
       timeseries: chartSeries,
