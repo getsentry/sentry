@@ -6,9 +6,20 @@ import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/button';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {t} from 'sentry/locale';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackWidgetBanner({style}: {style?: CSSProperties}) {
   const {activateSidebar} = useFeedbackOnboardingSidebarPanel();
+  const organization = useOrganization();
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.id}:feedback-whats-new-banner`,
+  });
+
+  if (isDismissed) {
+    return null;
+  }
 
   return (
     <PageBanner
@@ -30,6 +41,9 @@ export default function FeedbackWidgetBanner({style}: {style?: CSSProperties}) {
       icon={null}
       image={replaysDeadRageBackground}
       title={null}
+      onDismiss={() => {
+        dismiss();
+      }}
     />
   );
 }
