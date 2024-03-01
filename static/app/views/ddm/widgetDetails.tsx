@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
+import {type Field, MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -15,6 +15,7 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricQueryType} from 'sentry/utils/metrics/types';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
@@ -29,8 +30,13 @@ enum Tab {
 }
 
 export function WidgetDetails() {
-  const {selectedWidgetIndex, widgets, focusArea, setHighlightedSampleId} =
-    useDDMContext();
+  const {
+    selectedWidgetIndex,
+    widgets,
+    focusArea,
+    setHighlightedSampleId,
+    setMetricsSamples,
+  } = useDDMContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
@@ -57,6 +63,7 @@ export function WidgetDetails() {
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
+      setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
     />
   );
@@ -69,6 +76,9 @@ interface MetricDetailsProps {
   onRowHover?: SamplesTableProps['onRowHover'];
   op?: string;
   query?: string;
+  setMetricsSamples?: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
 }
 
 // TODO: add types
@@ -79,6 +89,7 @@ export function MetricDetails({
   focusedSeries,
   onRowHover,
   focusArea,
+  setMetricsSamples,
 }: MetricDetailsProps) {
   const organization = useOrganization();
 
@@ -134,8 +145,10 @@ export function MetricDetails({
                 <MetricSamplesTable
                   focusArea={focusArea?.selection?.range}
                   mri={mri}
+                  onRowHover={onRowHover}
                   op={op}
                   query={queryWithFocusedSeries}
+                  setMetricsSamples={setMetricsSamples}
                 />
               ) : (
                 <SampleTable
