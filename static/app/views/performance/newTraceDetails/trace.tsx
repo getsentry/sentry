@@ -7,13 +7,15 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -321,19 +323,25 @@ function Trace({
         <AutoSizer>
           {({width, height}) => (
             <Fragment>
-              {trace.indicators.length > 0
-                ? trace.indicators.map((indicator, i) => {
-                    return (
-                      <div
-                        key={i}
-                        ref={r => viewManager.registerIndicatorRef(r, i, indicator)}
-                        className="TraceIndicator"
-                      >
-                        <div className="TraceIndicatorLine" />
-                      </div>
-                    );
-                  })
-                : null}
+              <div
+                className="TraceIndicatorContainer"
+                ref={r => viewManager.registerIndicatorContainerRef(r)}
+              >
+                {trace.indicators.length > 0
+                  ? trace.indicators.map((indicator, i) => {
+                      return (
+                        <div
+                          key={i}
+                          ref={r => viewManager.registerIndicatorRef(r, i, indicator)}
+                          className="TraceIndicator"
+                        >
+                          <div className="TraceIndicatorLabel">{indicator.label}</div>
+                          <div className="TraceIndicatorLine" />
+                        </div>
+                      );
+                    })
+                  : null}
+              </div>
               <List
                 ref={r => viewManager.registerList(r)}
                 rowHeight={24}
@@ -364,6 +372,7 @@ function Trace({
                         (p.parent as unknown as {_rowStartIndex: number})
                           ._rowStartIndex ?? 0
                       }
+                      organization={organization}
                       previouslyFocusedIndexRef={previouslyFocusedIndexRef}
                       tabIndex={roving_state.index ?? -1}
                       index={p.index}
@@ -435,6 +444,7 @@ function RenderRow(props: {
     node: TraceTreeNode<TraceTree.NodeValue>,
     value: boolean
   ) => void;
+  organization: Organization;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
@@ -899,9 +909,16 @@ function RenderRow(props: {
               ) : null}
             </div>
 
-            <span className="TraceOperation">{t('Error')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+            <Link
+              className="Errored Link"
+              onClick={e => e.stopPropagation()}
+              to={generateIssueEventTarget(props.node.value, props.organization)}
+            >
+              <span className="TraceOperation">{t('Error')}</span>
+              <strong className="TraceEmDash"> — </strong>
+              <span className="TraceDescription">{props.node.value.title}</span>
+            </Link>
           </div>
         </div>
         <div
@@ -920,12 +937,18 @@ function RenderRow(props: {
               props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
-          {/* @TODO: figure out what to do with trace errors */}{' '}
-          {/* <TraceBar
-          space={props.space}
-          start_timestamp={props.node.value.start_timestamp}
-          timestamp={props.node.value.timestamp}
-        /> */}
+          {typeof props.node.value.timestamp === 'number' ? (
+            <div
+              className="ErrorIconBorder"
+              style={{
+                transform: `translateX(${props.viewManager.computeTransformXFromTimestamp(
+                  props.node.value.timestamp * 1000
+                )}px)`,
+              }}
+            >
+              <IconFire color="errorText" size="xs" />
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -1226,6 +1249,18 @@ const TraceStylingWrapper = styled('div')`
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
+  padding-top: 24px;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 22px;
+    background-color: ${p => p.theme.backgroundSecondary};
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 
   &.Loading {
     .TraceRow {
@@ -1243,6 +1278,15 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  .TraceIndicatorContainer {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
   .TraceIndicator {
     z-index: 1;
     width: 3px;
@@ -1250,12 +1294,30 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     position: absolute;
 
+    .TraceIndicatorLabel {
+      min-width: 34px;
+      text-align: center;
+      position: absolute;
+      font-size: ${p => p.theme.fontSizeExtraSmall};
+      font-weight: bold;
+      color: ${p => p.theme.textColor};
+      background-color: ${p => p.theme.background};
+      border-radius: ${p => p.theme.borderRadius};
+      border: 1px solid ${p => p.theme.border};
+      padding: ${space(0.25)};
+      display: inline-block;
+      line-height: 1;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
     .TraceIndicatorLine {
       width: 1px;
       height: 100%;
+      top: 20px;
       position: absolute;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-2px);
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
@@ -1272,6 +1334,30 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
+
+    .Errored {
+      color: ${p => p.theme.error};
+    }
+
+    .Link {
+      &:hover {
+        color: ${p => p.theme.blue300};
+      }
+    }
+
+    .ErrorIconBorder {
+      position: absolute;
+      margin: ${space(0.25)};
+      left: -12px;
+      background: ${p => p.theme.background};
+      width: ${space(3)};
+      height: ${space(3)};
+      border: 1px solid ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};

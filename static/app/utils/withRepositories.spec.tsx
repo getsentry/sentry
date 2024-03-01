@@ -41,7 +41,7 @@ describe('withRepositories HoC', function () {
     );
   });
 
-  it('prevents repeated calls', function () {
+  it('prevents repeated calls', async function () {
     function Component() {
       return null;
     }
@@ -57,7 +57,7 @@ describe('withRepositories HoC', function () {
     render(<Container api={api} organization={organization} />);
     render(<Container api={api} organization={organization} />);
 
-    expect(api.requestPromise).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(api.requestPromise).toHaveBeenCalledTimes(1));
     expect(Container.prototype.fetchRepositories).toHaveBeenCalledTimes(3);
   });
 
@@ -69,7 +69,7 @@ describe('withRepositories HoC', function () {
    * not check for (store.orgSlug !== orgSlug) as the short-circuit does not
    * change the value for orgSlug
    */
-  it('prevents simultaneous calls', function () {
+  it('prevents simultaneous calls', async function () {
     function Component() {
       return null;
     }
@@ -83,7 +83,7 @@ describe('withRepositories HoC', function () {
     render(<Container api={api} organization={organization} />);
     render(<Container api={api} organization={organization} />);
 
-    expect(api.requestPromise).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(api.requestPromise).toHaveBeenCalledTimes(1));
     expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
   });
 });

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
@@ -68,6 +68,7 @@ function makeTraceError(
   return {
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
+    event_type: 'error',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
@@ -230,6 +231,114 @@ describe('TreeNode', () => {
       });
       it('leafmost node', () => {
         expect(child.path).toEqual(['txn:grandchild', 'txn:child', 'txn:parent']);
+      });
+    });
+
+    describe('indicators', () => {
+      it('collects indicator', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                start_timestamp: 0,
+                timestamp: 1,
+              }),
+            ],
+          }),
+          {
+            measurements: {ttfb: {value: 0, unit: 'millisecond'}},
+          } as unknown as EventTransaction
+        );
+
+        expect(tree.indicators.length).toBe(1);
+        expect(tree.indicators[0].start).toBe(0);
+      });
+
+      it('converts timestamp to milliseconds', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                start_timestamp: 0,
+                timestamp: 1,
+              }),
+            ],
+          }),
+          {
+            measurements: {
+              ttfb: {value: 500, unit: 'millisecond'},
+              fcp: {value: 0.5, unit: 'second'},
+              lcp: {value: 500_000_000, unit: 'nanosecond'},
+            },
+          } as unknown as EventTransaction
+        );
+
+        expect(tree.indicators[0].start).toBe(500);
+        expect(tree.indicators[1].start).toBe(500);
+        expect(tree.indicators[2].start).toBe(500);
+      });
+
+      it('extends end timestamp to include measurement', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                start_timestamp: 0,
+                timestamp: 1,
+              }),
+            ],
+          }),
+          {
+            measurements: {
+              ttfb: {value: 2, unit: 'second'},
+            },
+          } as unknown as EventTransaction
+        );
+
+        expect(tree.root.space).toEqual([0, 2000]);
+      });
+
+      it('adjusts end and converst timestamp to ms', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                start_timestamp: 0,
+                timestamp: 1,
+              }),
+            ],
+          }),
+          {
+            measurements: {
+              ttfb: {value: 2000, unit: 'millisecond'},
+            },
+          } as unknown as EventTransaction
+        );
+
+        expect(tree.root.space).toEqual([0, 2000]);
+        expect(tree.indicators[0].start).toBe(2000);
+      });
+
+      it('sorts measurements by start', () => {
+        const tree = TraceTree.FromTrace(
+          makeTrace({
+            transactions: [
+              makeTransaction({
+                start_timestamp: 0,
+                timestamp: 1,
+              }),
+            ],
+          }),
+          {
+            measurements: {
+              ttfb: {value: 2000, unit: 'millisecond'},
+              lcp: {value: 1000, unit: 'millisecond'},
+            },
+          } as unknown as EventTransaction
+        );
+
+        expect(tree.indicators[0].start).toBe(1000);
+        expect(tree.indicators[1].start).toBe(2000);
       });
     });
 
@@ -403,6 +512,35 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(4);
+  });
+
+  it('adjusts trace bounds by orphan error timestamp as well', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            start_timestamp: 0.1,
+            timestamp: 0.15,
+            children: [],
+          }),
+          makeTransaction({
+            start_timestamp: 0.2,
+            timestamp: 0.25,
+            children: [],
+          }),
+        ],
+        orphan_errors: [
+          makeTraceError({timestamp: 0.05}),
+          makeTraceError({timestamp: 0.3}),
+        ],
+      })
+    );
+
+    expect(tree.list).toHaveLength(5);
+    expect(tree.root.space).toStrictEqual([
+      0.05 * tree.root.multiplier,
+      (0.3 - 0.05) * tree.root.multiplier,
+    ]);
   });
 
   it('calculates correct trace type', () => {

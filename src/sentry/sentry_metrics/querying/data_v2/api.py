@@ -4,12 +4,18 @@ from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.preparation import (
+    IntermediateQuery,
+    UnitNormalizationStep,
+    run_preparation_steps,
+)
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
 from sentry.utils import metrics
 
@@ -69,22 +75,37 @@ def run_metrics_queries_plan(
         ),
     )
 
-    # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
-    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
-
+    intermediate_queries = []
     # We parse the query plan and obtain a series of queries.
     parser = QueryParser(
         projects=projects, environments=environments, metrics_queries_plan=metrics_queries_plan
     )
-
     for query_expression, query_order, query_limit in parser.generate_queries():
-        query = base_query.set_query(query_expression).set_rollup(Rollup(interval=interval))
-        executor.schedule(query=query, order=query_order, limit=query_limit)
+        intermediate_queries.append(
+            IntermediateQuery(
+                metrics_query=base_query.set_query(query_expression).set_rollup(
+                    Rollup(interval=interval)
+                ),
+                order=query_order,
+                limit=query_limit,
+            )
+        )
 
-    with metrics.timer(key="ddm.metrics_api.metrics_queries_plan.execution_time"):
-        # Iterating over each result.
-        results = executor.execute()
+    preparation_steps = []
+    if features.has(
+        "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
+    ):
+        preparation_steps.append(UnitNormalizationStep())
+
+    # We run a series of preparation steps which operate on the entire list of queries.
+    intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
+
+    # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
+    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
+    for intermediate_query in intermediate_queries:
+        executor.schedule(intermediate_query)
+
+    results = executor.execute()
 
     # We transform the result into a custom format which for now it's statically defined.
-    transformer = QueryTransformer(results)
-    return transformer.transform()
+    return QueryTransformer(results).transform()
