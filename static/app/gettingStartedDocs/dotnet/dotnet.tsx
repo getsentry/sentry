@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -235,6 +236,7 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
           ],
         },
       ],
+      additionalInfo: altCrashReportCallout(),
     },
   ],
   configure: () => [],
