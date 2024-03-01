@@ -4,9 +4,10 @@ import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({link}: {link: string}) =>
   tct(
-    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor. Learn more about configuring User Feedback by reading the [link:configuration docs].',
+    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even link the widget to a custom button if you don’t want to use our autoinjected floating button. Learn more about configuring User Feedback by reading the [link:configuration docs].',
     {
       code: <code />,
+      break: <br />,
       link: <ExternalLink href={link} />,
     }
   );
@@ -14,9 +15,11 @@ export const getFeedbackConfigureDescription = ({link}: {link: string}) =>
 export const getFeedbackSDKSetupSnippet = ({
   importStatement,
   dsn,
+  feedbackOptions,
 }: {
   dsn: string;
   importStatement: string;
+  feedbackOptions?: {email?: boolean; name?: boolean};
 }) =>
   `${importStatement}
 
@@ -26,7 +29,7 @@ export const getFeedbackSDKSetupSnippet = ({
       Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
 colorScheme: "light",
-}),
+${getFeedbackConfigOptions(feedbackOptions)}}),
     ],
   });`;
 
@@ -55,3 +58,20 @@ export function FeedbackOnboardingWebApiBanner() {
     </Alert>
   );
 }
+
+export const getFeedbackConfigOptions = ({
+  name,
+  email,
+}: {
+  email?: boolean;
+  name?: boolean;
+} = {}) => {
+  const options: string[] = [];
+  if (name) {
+    options.push('isNameRequired: true,');
+  }
+  if (email) {
+    options.push('isEmailRequired: true,');
+  }
+  return options.join('\n');
+};

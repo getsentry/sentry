@@ -320,6 +320,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
                 dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],

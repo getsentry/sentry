@@ -48,6 +48,10 @@ export interface DocsParams<
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   cdn?: string;
+  feedbackOptions?: {
+    email?: boolean;
+    name?: boolean;
+  };
   newOrg?: boolean;
   replayOptions?: {
     block?: boolean;
