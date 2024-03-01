@@ -9,6 +9,7 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
@@ -16,6 +17,7 @@ import {
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -45,6 +47,9 @@ interface DDMContextValue {
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setHighlightedSampleId: (sample?: string) => void;
   setIsMultiChartMode: (value: boolean) => void;
+  setMetricsSamples: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   updateWidget: (
@@ -53,6 +58,7 @@ interface DDMContextValue {
   ) => void;
   widgets: MetricWidgetQueryParams[];
   highlightedSampleId?: string;
+  metricsSamples?: MetricsSamplesResults<Field>['data'];
 }
 
 export const DDMContext = createContext<DDMContextValue>({
@@ -63,11 +69,13 @@ export const DDMContext = createContext<DDMContextValue>({
   highlightedSampleId: undefined,
   isDefaultQuery: false,
   isMultiChartMode: false,
+  metricsSamples: [],
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
   setHighlightedSampleId: () => {},
   setIsMultiChartMode: () => {},
+  setMetricsSamples: () => {},
   setSelectedWidgetIndex: () => {},
   showQuerySymbols: false,
   updateWidget: () => {},
@@ -233,6 +241,10 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
 
+  const [metricsSamples, setMetricsSamples] = useState<
+    MetricsSamplesResults<Field>['data'] | undefined
+  >();
+
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const selectedProjects = useSelectedProjects();
@@ -346,6 +358,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setHighlightedSampleId,
       isMultiChartMode: isMultiChartMode,
       setIsMultiChartMode: handleSetIsMultiChartMode,
+      metricsSamples,
+      setMetricsSamples,
     }),
     [
       handleAddWidget,
@@ -362,6 +376,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       highlightedSampleId,
       isMultiChartMode,
       handleSetIsMultiChartMode,
+      metricsSamples,
     ]
   );
 

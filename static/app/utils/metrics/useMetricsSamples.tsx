@@ -11,6 +11,7 @@ type FieldTypes = {
   id: string;
   profile_id: string | undefined;
   project: string;
+  'project.id': number;
   'span.description': string;
   'span.duration': number;
   'span.op': string;
@@ -91,4 +92,20 @@ export function useMetricsSamples<F extends Field>({
     retry: false,
     enabled,
   });
+}
+
+export function getSummaryValueForOp(summary: Summary, op?: string) {
+  switch (op) {
+    case 'count':
+      return summary.count;
+    case 'min':
+      return summary.min;
+    case 'max':
+      return summary.max;
+    case 'sum':
+      return summary.sum;
+    case 'avg':
+    default:
+      return summary.sum / summary.count;
+  }
 }

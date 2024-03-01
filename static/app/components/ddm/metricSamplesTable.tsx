@@ -1,6 +1,7 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
+import debounce from 'lodash/debounce';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
@@ -19,7 +20,8 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
-  type Field,
+  type Field as SelectedField,
+  getSummaryValueForOp,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
@@ -35,7 +37,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-const fields: Field[] = [
+const fields: SelectedField[] = [
   'project',
   'id',
   'span.op',
@@ -48,19 +50,27 @@ const fields: Field[] = [
   'profile_id',
 ];
 
+export type Field = (typeof fields)[number];
+
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
+  onRowHover?: (sampleId?: string) => void;
   op?: string;
   query?: string;
+  setMetricsSamples?: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
   sortKey?: string;
 }
 
 export function MetricSamplesTable({
   focusArea,
   mri,
+  onRowHover,
   op,
   query,
+  setMetricsSamples,
   sortKey = 'sort',
 }: MetricSamplesTableProps) {
   const location = useLocation();
@@ -116,6 +126,11 @@ export function MetricSamplesTable({
     limit: 10,
   });
 
+  // propagate the metrics samples up as needed
+  useEffect(() => {
+    setMetricsSamples?.(result.data?.data ?? []);
+  }, [result?.data?.data, setMetricsSamples]);
+
   const supportedMRI = useMemo(() => {
     const responseJSON = result.error?.responseJSON;
     if (typeof responseJSON?.detail !== 'string') {
@@ -168,17 +183,56 @@ export function MetricSamplesTable({
     return renderHeadCell(currentSort, generateSortLink);
   }, [currentSort, location]);
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useMemo(
+    () =>
+      debounce((event: React.MouseEvent) => {
+        const wrapper = wrapperRef.current;
+        const target = event.target;
+
+        if (!wrapper || !(target instanceof Element)) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        const tableRow = (target as Element).closest('tbody >tr');
+        if (!tableRow) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        const rows = Array.from(wrapper.querySelectorAll('tbody > tr'));
+        const rowIndex = rows.indexOf(tableRow);
+        const rowId = result.data?.data?.[rowIndex]?.id;
+
+        if (!rowId) {
+          onRowHover?.(undefined);
+          return;
+        }
+
+        onRowHover?.(rowId);
+      }, 10),
+    [onRowHover, result.data?.data]
+  );
+
   return (
-    <GridEditable
-      isLoading={enabled && result.isLoading}
-      error={enabled && result.isError && supportedMRI}
-      data={result.data?.data ?? []}
-      columnOrder={getColumnOrder(parsedMRI)}
-      columnSortBy={[]}
-      grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
-      location={location}
-      emptyMessage={emptyMessage}
-    />
+    <div
+      ref={wrapperRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => onRowHover?.(undefined)}
+    >
+      <GridEditable
+        isLoading={enabled && result.isLoading}
+        error={enabled && result.isError && supportedMRI}
+        data={result.data?.data ?? []}
+        columnOrder={getColumnOrder(parsedMRI)}
+        columnSortBy={[]}
+        grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
+        location={location}
+        emptyMessage={emptyMessage}
+      />
+    </div>
   );
 }
 
@@ -232,7 +286,7 @@ function renderHeadCell(
 function renderBodyCell(op?: string, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
-    dataRow: MetricsSamplesResults<Field>['data'][number]
+    dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
     if (col.key === 'id') {
       return (
@@ -333,16 +387,7 @@ function SummaryRenderer({
   op?: string;
   unit?: string;
 }) {
-  const value =
-    op === 'count'
-      ? summary.count
-      : op === 'min'
-        ? summary.min
-        : op === 'max'
-          ? summary.max
-          : op === 'sum'
-            ? summary.sum
-            : summary.sum / summary.count;
+  const value = getSummaryValueForOp(summary, op);
 
   // if the op is `count`, then the unit does not apply
   unit = op === 'count' ? '' : unit;
