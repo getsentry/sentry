@@ -26,7 +26,9 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         elif isinstance(query_expression, str):
             return self._visit_string(query_expression)
 
-        raise AssertionError(f"Unhandled query expression {query_expression}")
+        raise AssertionError(
+            f"Unhandled query expression {query_expression} of type {type(query_expression)}"
+        )
 
     def _visit_formula(self, formula: Formula) -> TVisited:
         # The default implementation just mutates the parameters of the `Formula`.
@@ -70,7 +72,9 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
         elif isinstance(query_condition, Condition):
             return self._visit_condition(query_condition)
 
-        raise AssertionError(f"Unhandled query condition {query_condition}")
+        raise AssertionError(
+            f"Unhandled query condition {query_condition} of type {type(query_condition)}"
+        )
 
     def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
         conditions = []
