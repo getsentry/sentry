@@ -321,6 +321,43 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["group_bys"] == ["platform", "transaction"]
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_group_by_and_order_by(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .apply_formula("$query_1", order=QueryOrder.DESC)
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert len(data[0]) == 2
+        assert data[0][0]["by"] == {"transaction": "/hello"}
+        assert data[0][0]["series"] == [
+            None,
+            self.to_reference_unit(7.0),
+            self.to_reference_unit(5.0),
+        ]
+        assert data[0][0]["totals"] == self.to_reference_unit(12.0)
+        assert data[0][1]["by"] == {"transaction": "/world"}
+        assert data[0][1]["series"] == [
+            None,
+            self.to_reference_unit(5.0),
+            self.to_reference_unit(4.0),
+        ]
+        assert data[0][1]["totals"] == self.to_reference_unit(9.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
