@@ -14,7 +14,7 @@ interface OffsetOptions {
 
 interface MobileReplayerOptions {
   onFinished: () => void;
-  onPlay: (el: HTMLVideoElement, currentTime: number) => void;
+  onLoaded: (event: any) => void;
   root: RootElem;
   start: number;
 }
@@ -50,51 +50,59 @@ function findSegmentIndex(trackList: [ts: number, index: number][], segments: Mo
   */
 export class MobileReplayer {
   private _attachments: MobileAttachment[];
+  private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
-  private _videos: HTMLVideoElement[];
-  private _trackList: [ts: number, index: number][];
+  private _playbackSpeed: number = 1.0;
   private _startTimestamp: number;
   private _timer = new Timer();
-  private _callbacks: Record<string, (args?: any) => unknown>;
-  public wrapper: HTMLElement | null;
+  private _trackList: [ts: number, index: number][];
+  private _videos: HTMLVideoElement[];
+  public wrapper: HTMLElement;
   public iframe = {};
 
-  constructor(attachments: MobileAttachment[], { root, start, onPlay, onFinished }: MobileReplayerOptions) {
+  constructor(attachments: MobileAttachment[], { root, start, onFinished, onLoaded}: MobileReplayerOptions) {
     this._attachments = attachments;
     this._startTimestamp = start;
     this._trackList = [];
-    this.wrapper = root;
     this._callbacks = {
       onFinished,
+      onLoaded,
     };
 
-    this._videos = attachments.map(() => document.createElement('video'));
+    this.wrapper = document.createElement('div');
+    if (root) {
+      root.appendChild(this.wrapper);
+    }
 
-    this._videos.forEach((el, i: number) => {
-      const attachment = attachments[i];
-      el.src = attachment.uri;
-      el.style.display = "none";
-
-      // TODO: only attach these when needed
-      el.addEventListener('ended', () => this.handleEnd(i));
-      el.addEventListener('playing', () => onPlay(el, this.getCurrentTime()));
-      el.addEventListener('play', () => {
-        onPlay(el, this.getCurrentTime());
-      });
-      // TODO: Only preload when necessary
-      el.preload = "auto";
-
-      // Append the video element to the root element
-      if (root) {
-        root.appendChild(el);
-      }
-    });
-
+    this._videos = attachments.map((attachment, index) => this.createVideo(attachment, index));
     this._trackList = attachments.map(({ timestamp }, i) => [timestamp, i]);
     this.loadSegment(0);
   }
 
-  private handleEnd(index: number) {
+  private createVideo(segmentData: MobileAttachment, index: number) {
+    const el = document.createElement('video');
+    el.src = segmentData.uri;
+    el.style.display = "none";
+
+    // TODO: only attach these when needed
+    el.addEventListener('ended', () => this.handleSegmentEnd(index));
+    el.addEventListener('loadedmetadata', (event) => {
+      // Only call this for current segment?
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded(event);
+      }
+    });
+    // TODO: Only preload when necessary
+    el.preload = "auto";
+    el.playbackRate = this._playbackSpeed;
+
+      // Append the video element to the mobile player wrapper element
+    this.wrapper.appendChild(el);
+
+    return el;
+  }
+
+  private handleSegmentEnd(index: number) {
     const nextIndex = index + 1;
 
     // No more segments
@@ -162,7 +170,9 @@ export class MobileReplayer {
   }
 
   protected playVideo(video: HTMLVideoElement | null): Promise<void> | undefined {
-    return video?.play();
+    if (!video) {return undefined; }
+    video.playbackRate = this._playbackSpeed;
+    return video.play();
 
   }
 
@@ -272,7 +282,7 @@ export class MobileReplayer {
     if (!segment) {
       // There could be an edge case where we have a gap at the end of the
       // video (due to bad data maybe?), and there is no next segment
-      return;
+      return undefined;
     }
 
     // We are given an offset based on all videos combined, so we have to
@@ -331,5 +341,23 @@ export class MobileReplayer {
 
     // Load the current segment and set to correct time
     this.loadSegmentAtTime(videoOffsetMs);
+  }
+
+  /**
+  * Equivalent to rrweb's `setConfig()`, but here we only support the `speed` configuration
+  */
+  public setConfig({speed}: Partial<{skipInactive: boolean; speed: number;}>): void {
+    if (typeof speed === "undefined") {
+      return;
+    }
+
+    this._playbackSpeed = speed;
+    const currentVideo = this.getVideo(this._currentIndex);
+
+    if (!currentVideo) {
+      return;
+    }
+
+    currentVideo.playbackRate = this._playbackSpeed;;
   }
 }

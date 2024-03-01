@@ -249,9 +249,12 @@ export function Provider({
   const mobileAttachments = replay?.getMobileAttachments();
   const startTimestampMs = replay?.getStartTimestampMs();
 
-  const forceDimensions = (dimension: Dimensions) => {
-    setDimensions(dimension);
-  };
+  const forceDimensions = useCallback(
+    (dimension: Dimensions) => {
+      setDimensions(dimension);
+    },
+    [setDimensions]
+  );
   const onFastForwardStart = (e: {speed: number}) => {
     setFFSpeed(e.speed);
   };
@@ -354,15 +357,6 @@ export function Provider({
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
 
-  const onPlay = useCallback(
-    (el, currentTime) => {
-      const {height, width} = el.getBoundingClientRect();
-      console.log('onPlay', buffer, currentTime);
-      forceDimensions({height, width});
-    },
-    [buffer]
-  );
-
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
@@ -391,8 +385,13 @@ export function Provider({
         const inst = new MobileReplayer(mobileAttachments, {
           root,
           start: startTimestampMs,
-          onPlay,
           onFinished: setReplayFinished,
+          onLoaded: event => {
+            forceDimensions({
+              height: event.target.videoHeight,
+              width: event.target.videoWidth,
+            });
+          },
         });
         // `.current` is marked as readonly, but it's safe to set the value from
         // inside a `useEffect` hook.
@@ -440,12 +439,12 @@ export function Provider({
       isFetching,
       theme.purple200,
       setReplayFinished,
+      forceDimensions,
       hasNewEvents,
       applyInitialOffset,
       organization.features,
       mobileAttachments,
       startTimestampMs,
-      onPlay,
     ]
   );
 
