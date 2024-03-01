@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
@@ -7,13 +7,21 @@ import SwitchButton from 'sentry/components/switchButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  type MetricFormulaWidgetParams,
+  MetricQueryType,
+  type MetricQueryWidgetParams,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {MetricQueryContextMenu} from 'sentry/views/ddm/contextMenu';
+import {FormulaInput} from 'sentry/views/ddm/formulaInput';
+import {MetricFormulaContextMenu} from 'sentry/views/ddm/metricFormulaContextMenu';
+import {MetricQueryContextMenu} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
-import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
+import {getQuerySymbol, QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 export function Queries() {
   const {
@@ -28,6 +36,7 @@ export function Queries() {
   } = useDDMContext();
 
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -41,47 +50,98 @@ export function Queries() {
     [updateWidget]
   );
 
+  const [querySymbols, formulaSymbols] = useMemo(() => {
+    const querySymbolSet = new Set<string>();
+    const formulaSymbolSet = new Set<string>();
+    for (const widget of widgets) {
+      const symbol = getQuerySymbol(widget.id);
+      if (widget.type === MetricQueryType.QUERY) {
+        querySymbolSet.add(symbol);
+      } else {
+        formulaSymbolSet.add(symbol);
+      }
+    }
+    return [querySymbolSet, formulaSymbolSet];
+  }, [widgets]);
+
   return (
     <Fragment>
       <Wrapper showQuerySymbols={showQuerySymbols}>
         {widgets.map((widget, index) => (
-          <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-            <Query
-              widget={widget}
-              onChange={data => handleChange(index, data)}
-              projects={selection.projects}
-              symbol={
-                showQuerySymbols && (
-                  <StyledQuerySymbol
-                    queryId={widget.id}
-                    isClickable={isMultiChartMode}
-                    isSelected={index === selectedWidgetIndex}
-                    onClick={() => setSelectedWidgetIndex(index)}
-                    role={isMultiChartMode ? 'button' : undefined}
-                    aria-label={t('Select query')}
+          <Row key={widget.id} onFocusCapture={() => setSelectedWidgetIndex(index)}>
+            {widget.type === MetricQueryType.QUERY ? (
+              <Query
+                widget={widget}
+                onChange={handleChange}
+                index={index}
+                projects={selection.projects}
+                symbol={
+                  showQuerySymbols && (
+                    <StyledQuerySymbol
+                      queryId={widget.id}
+                      isClickable={isMultiChartMode}
+                      isSelected={index === selectedWidgetIndex}
+                      onClick={() => setSelectedWidgetIndex(index)}
+                      role={isMultiChartMode ? 'button' : undefined}
+                      aria-label={t('Select query')}
+                    />
+                  )
+                }
+                contextMenu={
+                  <MetricQueryContextMenu
+                    displayType={widget.displayType}
+                    widgetIndex={index}
+                    metricsQuery={{
+                      mri: widget.mri,
+                      query: widget.query,
+                      op: widget.op,
+                      groupBy: widget.groupBy,
+                    }}
                   />
-                )
-              }
-              contextMenu={
-                <MetricQueryContextMenu
-                  displayType={widget.displayType}
-                  widgetIndex={index}
-                  metricsQuery={{
-                    mri: widget.mri,
-                    query: widget.query,
-                    op: widget.op,
-                    groupBy: widget.groupBy,
-                  }}
-                />
-              }
-            />
+                }
+              />
+            ) : (
+              <Formula
+                availableVariables={querySymbols}
+                formulaVariables={formulaSymbols}
+                onChange={handleChange}
+                index={index}
+                widget={widget}
+                symbol={
+                  showQuerySymbols && (
+                    <StyledQuerySymbol
+                      queryId={widget.id}
+                      isClickable={isMultiChartMode}
+                      isSelected={index === selectedWidgetIndex}
+                      onClick={() => setSelectedWidgetIndex(index)}
+                      role={isMultiChartMode ? 'button' : undefined}
+                      aria-label={t('Select query')}
+                    />
+                  )
+                }
+                contextMenu={<MetricFormulaContextMenu widgetIndex={index} />}
+              />
+            )}
           </Row>
         ))}
       </Wrapper>
       <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
-        <Button size="sm" icon={<IconAdd isCircled />} onClick={addWidget}>
+        <Button
+          size="sm"
+          icon={<IconAdd isCircled />}
+          onClick={() => addWidget(MetricQueryType.QUERY)}
+        >
           Add query
         </Button>
+        {organization.features.includes('ddm-formulas') && (
+          <Button
+            size="sm"
+            icon={<IconAdd isCircled />}
+            onClick={() => addWidget(MetricQueryType.FORMULA)}
+          >
+            Add formula
+          </Button>
+        )}
         <SwitchWrapper>
           {t('One chart per query')}
           <SwitchButton
@@ -94,29 +154,88 @@ export function Queries() {
   );
 }
 
-interface Props {
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+interface QueryProps {
+  index: number;
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
-  widget: MetricWidgetQueryParams;
+  widget: MetricQueryWidgetParams;
   contextMenu?: React.ReactNode;
   symbol?: React.ReactNode;
 }
 
-export function Query({widget, projects, onChange, contextMenu, symbol}: Props) {
+export function Query({
+  widget,
+  projects,
+  onChange,
+  contextMenu,
+  symbol,
+  index,
+}: QueryProps) {
+  const metricsQuery = useMemo(
+    () => ({
+      mri: widget.mri,
+      op: widget.op,
+      groupBy: widget.groupBy,
+      query: widget.query,
+    }),
+    [widget.groupBy, widget.mri, widget.op, widget.query]
+  );
+
+  const handleChange = useCallback(
+    (data: Partial<MetricWidgetQueryParams>) => {
+      onChange(index, data);
+    },
+    [index, onChange]
+  );
+
   return (
     <QueryWrapper hasSymbol={!!symbol}>
       {symbol}
       <QueryBuilder
-        onChange={onChange}
-        metricsQuery={{
-          mri: widget.mri,
-          op: widget.op,
-          groupBy: widget.groupBy,
-          query: widget.query,
-        }}
+        onChange={handleChange}
+        metricsQuery={metricsQuery}
         displayType={widget.displayType}
         isEdit
         projects={projects}
+      />
+      {contextMenu}
+    </QueryWrapper>
+  );
+}
+
+interface FormulaProps {
+  availableVariables: Set<string>;
+  formulaVariables: Set<string>;
+  index: number;
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  widget: MetricFormulaWidgetParams;
+  contextMenu?: React.ReactNode;
+  symbol?: React.ReactNode;
+}
+
+export function Formula({
+  availableVariables,
+  formulaVariables,
+  index,
+  widget,
+  onChange,
+  contextMenu,
+  symbol,
+}: FormulaProps) {
+  const handleChange = useCallback(
+    (formula: string) => {
+      onChange(index, {formula});
+    },
+    [index, onChange]
+  );
+  return (
+    <QueryWrapper hasSymbol={!!symbol}>
+      {symbol}
+      <FormulaInput
+        availableVariables={availableVariables}
+        formulaVariables={formulaVariables}
+        value={widget.formula}
+        onChange={handleChange}
       />
       {contextMenu}
     </QueryWrapper>

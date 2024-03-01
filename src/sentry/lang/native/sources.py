@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import logging
 import os
-import random
 from copy import deepcopy
 from datetime import datetime
 from typing import Any
@@ -15,8 +14,6 @@ from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
-from sentry.models.artifactbundle import NULL_STRING
 from sentry.models.project import Project
 from sentry.utils import json, metrics, redis, safe
 from sentry.utils.http import get_origins
@@ -264,41 +261,6 @@ def get_internal_artifact_lookup_source_url(project: Project):
             },
         ),
     )
-
-
-def get_bundle_index_urls(
-    project: Project, release: str | None, dist: str | None
-) -> tuple[str | None, str | None]:
-    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
-        return None, None
-
-    base_url = get_internal_artifact_lookup_source_url(project)
-
-    def make_download_url(flat_file_meta: FlatFileMeta):
-        # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
-        # and it is also used as the download key for the artifact-lookup API.
-        # The artifact-lookup API will ignore the additional timestamp on download.
-        return f"{base_url}?download={flat_file_meta.to_string()}"
-
-    url_index = None
-    identifier = FlatFileIdentifier(
-        project_id=project.id, release=release or NULL_STRING, dist=dist or NULL_STRING
-    )
-    if identifier.is_indexing_by_release():
-        url_meta = identifier.get_flat_file_meta()
-        if url_meta is not None:
-            url_index = make_download_url(url_meta)
-
-    # We query the empty release/dist which is a marker for the debug-id index,
-    # as well as the normal release index if we have a release.
-    debug_id_index = None
-    debug_id_meta = FlatFileIdentifier.for_debug_id(
-        project_id=identifier.project_id
-    ).get_flat_file_meta()
-    if debug_id_meta is not None:
-        debug_id_index = make_download_url(debug_id_meta)
-
-    return debug_id_index, url_index
 
 
 def get_scraping_config(project: Project) -> dict[str, Any]:

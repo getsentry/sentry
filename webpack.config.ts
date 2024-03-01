@@ -14,7 +14,6 @@ import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import type {Configuration as DevServerConfig} from 'webpack-dev-server';
-import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -78,7 +77,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
@@ -448,6 +446,8 @@ const appConfig: Configuration = {
       crypto: require.resolve('crypto-browserify'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
+      // For framer motion v6, might be able to remove on v11
+      'process/browser': require.resolve('process/browser'),
     },
 
     modules: ['node_modules'],
@@ -605,15 +605,6 @@ if (
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
-}
-
-// We want Spotlight only in Dev mode - Local and UI only
-if (SHOULD_RUN_SPOTLIGHT) {
-  appConfig.plugins?.push(
-    new WebpackHookPlugin({
-      onBuildStart: ['yarn run spotlight-sidecar'],
-    })
-  );
 }
 
 // XXX(epurkhiser): Sentry (development) can be run in an experimental

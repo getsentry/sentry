@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest import mock
 
 import pytest
@@ -8,6 +7,7 @@ from rest_framework.exceptions import ParseError
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -76,6 +76,15 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
         assert response.status_code == 400, response.content
 
+    @with_feature("organizations:issue-priority-ui")
+    def test_invalid_query_priority(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"query": "is:unresolved priority:[high, medium]"}, format="json"
+            )
+
+        assert response.status_code == 400, response.content
+
     def test_no_projects(self):
         no_project_org = self.create_organization(owner=self.user)
 
@@ -118,7 +127,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         url = reverse(
@@ -204,7 +213,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature(self.features):
             # Don't quantize short time periods
             self.client.get(

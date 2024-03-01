@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -194,20 +194,22 @@ class UpdateGroupsTest(TestCase):
         for data in [
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC) - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC) - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved", "substatus": "ongoing"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
-                "group": self.create_group(status=GroupStatus.IGNORED, first_seen=datetime.now()),
+                "group": self.create_group(
+                    status=GroupStatus.IGNORED, first_seen=datetime.now(UTC)
+                ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.NEW,
             },

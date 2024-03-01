@@ -19,12 +19,16 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
             return self._visit_formula(query_expression)
         elif isinstance(query_expression, Timeseries):
             return self._visit_timeseries(query_expression)
+        elif isinstance(query_expression, int):
+            return self._visit_int(query_expression)
         elif isinstance(query_expression, float):
-            return self._visit_number(query_expression)
+            return self._visit_float(query_expression)
         elif isinstance(query_expression, str):
             return self._visit_string(query_expression)
 
-        raise AssertionError(f"Unhandled query expression {query_expression}")
+        raise AssertionError(
+            f"Unhandled query expression {query_expression} of type {type(query_expression)}"
+        )
 
     def _visit_formula(self, formula: Formula) -> TVisited:
         # The default implementation just mutates the parameters of the `Formula`.
@@ -37,8 +41,11 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
         raise timeseries
 
-    def _visit_number(self, number: float):
-        return number
+    def _visit_int(self, int_number: float):
+        return int_number
+
+    def _visit_float(self, float_number: float):
+        return float_number
 
     def _visit_string(self, string: str):
         return string
@@ -65,7 +72,9 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
         elif isinstance(query_condition, Condition):
             return self._visit_condition(query_condition)
 
-        raise AssertionError(f"Unhandled query condition {query_condition}")
+        raise AssertionError(
+            f"Unhandled query condition {query_condition} of type {type(query_condition)}"
+        )
 
     def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
         conditions = []

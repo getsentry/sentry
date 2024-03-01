@@ -38,14 +38,6 @@ class AccessService(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
-        pass
-
-    @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
-        pass
-
     def auth_identity_is_valid(
         self,
         auth_provider: RpcAuthProvider,

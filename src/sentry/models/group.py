@@ -456,7 +456,7 @@ class GroupManager(BaseManager["Group"]):
             group.substatus = substatus
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
-                if priority:
+                if priority and group.priority != priority:
                     group.priority = priority
                     updated_priority[group.id] = priority
 
@@ -601,6 +601,7 @@ class Group(Model):
             models.Index(fields=("project", "status", "substatus", "id")),
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),

@@ -72,25 +72,10 @@ def main(context: dict[str, str]) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
 
-    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, "sentry")
+    venv_dir, python_version, requirements, editable_paths, bins = venv.get(reporoot, repo)
     url, sha256 = config.get_python(reporoot, python_version)
-    print(f"ensuring venv at {venv_dir}...")
+    print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
-
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "git and precommit",
-                # this can't be done in paralell with python dependencies
-                # as multiple pips cannot act on the same venv
-                ("make", "setup-git"),
-            ),
-        ),
-    ):
-        return 1
 
     # This is for engineers with existing dev environments transitioning over.
     # Bootstrap will set devenv-managed volta up but they won't be running
@@ -133,15 +118,30 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            (
+                "git and precommit",
+                # this can't be done in paralell with python dependencies
+                # as multiple pips cannot act on the same venv
+                ("make", "setup-git"),
+            ),
+        ),
+    ):
+        return 1
+
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
     ):
-        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+        proc.run((f"{venv_dir}/bin/{repo}", "init", "--dev"))
 
     # TODO: check healthchecks for redis and postgres to short circuit this
     proc.run(
         (
-            f"{venv_dir}/bin/sentry",
+            f"{venv_dir}/bin/{repo}",
             "devservices",
             "up",
             "redis",
@@ -157,7 +157,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "python migrations",
-                (f"{venv_dir}/bin/sentry", "upgrade", "--noinput"),
+                (f"{venv_dir}/bin/{repo}", "upgrade", "--noinput"),
             ),
         ),
     ):

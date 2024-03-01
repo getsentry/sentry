@@ -77,6 +77,7 @@ from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError,
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
@@ -1050,6 +1051,12 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule_id = self.alert_rule.id
         with self.tasks():
             delete_alert_rule(self.alert_rule)
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
 
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
@@ -2452,7 +2459,9 @@ class TestCustomMetricAlertRule(TestCase):
         mocked_schedule_invalidate_project_config.assert_not_called()
 
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule(self, mocked_schedule_invalidate_project_config):
+    def test_create_custom_metric_alert_rule_extraction(
+        self, mocked_schedule_invalidate_project_config
+    ):
         with self.feature({"organizations:on-demand-metrics-extraction": True}):
             self.create_alert_rule(
                 projects=[self.project],
@@ -2464,8 +2473,10 @@ class TestCustomMetricAlertRule(TestCase):
                 trigger="alerts:create-on-demand-metric", project_id=self.project.id
             )
 
-        mocked_schedule_invalidate_project_config.reset_mock()
-
+    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
+    def test_create_custom_metric_alert_rule_prefill(
+        self, mocked_schedule_invalidate_project_config
+    ):
         with self.feature({"organizations:on-demand-metrics-prefill": True}):
             self.create_alert_rule(
                 projects=[self.project],

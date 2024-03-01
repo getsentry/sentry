@@ -46,6 +46,8 @@ from sentry.search.events.constants import (
     MISERY_ALPHA,
     MISERY_BETA,
     NON_FAILURE_STATUS,
+    PRECISE_FINISH_TS,
+    PRECISE_START_TS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -156,6 +158,8 @@ class DiscoverDatasetConfig(DatasetConfig):
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
             TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
+            PRECISE_FINISH_TS: self._resolve_precise_finish_ts,
+            PRECISE_START_TS: self._resolve_precise_start_ts,
         }
 
     @property
@@ -1002,45 +1006,17 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: Function(
-                        "arrayElement",
-                        [
-                            Function(
-                                "groupArraySample(1, 1)",  # TODO: paginate via the seed
-                                [
-                                    Function(
-                                        "tuple",
-                                        [Column("timestamp"), Column("span_id")],
-                                    ),
-                                ],
-                            ),
-                            1,
-                        ],
-                        alias,
+                    required_args=[NumericColumn("column")],
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
+                        ["timestamp", "span_id", args["column"].name], alias
                     ),
                     private=True,
                 ),
                 SnQLFunction(
                     "rounded_timestamp",
                     required_args=[IntervalDefault("interval", 1, None)],
-                    snql_column=lambda args, alias: Function(
-                        "toUInt32",
-                        [
-                            Function(
-                                "multiply",
-                                [
-                                    Function(
-                                        "intDiv",
-                                        [
-                                            Function("toUInt32", [Column("timestamp")]),
-                                            args["interval"],
-                                        ],
-                                    ),
-                                    args["interval"],
-                                ],
-                            ),
-                        ],
-                        alias,
+                    snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
+                        args["interval"], alias
                     ),
                     private=True,
                 ),
@@ -1415,6 +1391,26 @@ class DiscoverDatasetConfig(DatasetConfig):
                 None,
             ],
             DEVICE_CLASS_ALIAS,
+        )
+
+    def _resolve_precise_start_ts(self, alias: str) -> SelectType:
+        return Function(
+            "plus",
+            [
+                Function("toUnixTimestamp", [Column("start_ts")]),
+                Function("divide", [Column("start_ms"), 1000]),
+            ],
+            alias,
+        )
+
+    def _resolve_precise_finish_ts(self, alias: str) -> SelectType:
+        return Function(
+            "plus",
+            [
+                Function("toUnixTimestamp", [Column("finish_ts")]),
+                Function("divide", [Column("finish_ms"), 1000]),
+            ],
+            alias,
         )
 
     # Functions

@@ -10,6 +10,7 @@ from typing import TypeVar, cast
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import features
@@ -23,6 +24,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     Incident,
@@ -32,6 +34,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    invoke_alert_subscription_callback,
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
@@ -47,7 +50,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import RetryingRedisCluster
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -282,8 +284,10 @@ class SubscriptionProcessor:
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
     ) -> float | None:
-        """Handle both update formats. Once all subscriptions have been updated
-        to v2, we can remove v1 and replace this function with current v2.
+        """
+        Handle both update formats.
+        Once all subscriptions have been updated to v2,
+        we can remove v1 and replace this function with current v2.
         """
         rows = subscription_update["values"]["data"]
         if BaseCrashRateMetricsEntitySubscription.is_crash_rate_format_v2(rows):
@@ -410,6 +414,9 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
+        """
+        This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
+        """
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -438,6 +445,11 @@ class SubscriptionProcessor:
             )
             # TODO: Delete subscription here.
             return
+
+        # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        invoke_alert_subscription_callback(
+            AlertRuleMonitorType(self.alert_rule.monitor_type), self.subscription
+        )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
@@ -482,6 +494,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             return
 
+        # OVER/UNDER value trigger
         alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
             AlertRuleThresholdType(self.alert_rule.threshold_type)
         ]

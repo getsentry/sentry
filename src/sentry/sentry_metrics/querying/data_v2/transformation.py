@@ -85,7 +85,7 @@ def _generate_full_series(
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
-        full_series[index] = value
+        full_series[index] = nan_to_none(value)
 
     return full_series
 
@@ -172,6 +172,11 @@ class QueryTransformer:
                     group_bys=group_bys,
                     order=query_result.order.value if query_result.order else None,
                     limit=query_result.limit,
+                    unit_family=query_result.unit_family.value
+                    if query_result.unit_family
+                    else None,
+                    unit=query_result.unit,
+                    scaling_factor=query_result.scaling_factor,
                 )
             )
 

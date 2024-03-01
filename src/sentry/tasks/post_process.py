@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
+HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -171,10 +172,17 @@ def _capture_group_stats(job: PostProcessJob) -> None:
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
-def should_issue_owners_ratelimit(project_id, group_id):
+def should_issue_owners_ratelimit(project_id: int, group_id: int, organization_id: int | None):
     """
-    Make sure that we do not accept more groups than ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT at the project level.
+    Make sure that we do not accept more groups than the enforced_limit at the project level.
     """
+    from sentry.models.organization import Organization
+
+    enforced_limit = ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    organization = Organization.objects.get_from_cache(id=organization_id)
+    if features.has("organizations:increased-issue-owners-rate-limit", organization=organization):
+        enforced_limit = HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+
     cache_key = f"issue_owner_assignment_ratelimiter:{project_id}"
     data = cache.get(cache_key)
 
@@ -189,7 +197,7 @@ def should_issue_owners_ratelimit(project_id, group_id):
         timeout = max(60 - (datetime.now() - window_start).total_seconds(), 0)
         cache.set(cache_key, (groups, window_start), timeout)
 
-    return len(groups) > ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT
+    return len(groups) > enforced_limit
 
 
 def handle_owner_assignment(job):
@@ -221,7 +229,11 @@ def handle_owner_assignment(job):
             # - an Assignee has been set with TTL of infinite
             with metrics.timer("post_process.handle_owner_assignment"):
                 with sentry_sdk.start_span(op="post_process.handle_owner_assignment.ratelimited"):
-                    if should_issue_owners_ratelimit(project.id, group.id):
+                    if should_issue_owners_ratelimit(
+                        project_id=project.id,
+                        group_id=group.id,
+                        organization_id=event.project.organization_id,
+                    ):
                         logger.info(
                             "handle_owner_assignment.ratelimited",
                             extra={
@@ -1364,16 +1376,25 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 
     event = job["event"]
+
+    if not hasattr(event, "occurrence") or event.occurrence is None:
+        return False
+
+    feedback_source = event.occurrence.evidence_data.get("source")
+
+    if feedback_source in FeedbackCreationSource.new_feedback_category_values():
+        return True
+
+    should_notify_on_old_feedbacks = job["event"].project.get_option(
+        "sentry:replay_rage_click_issues"
+    )
+
     if (
-        hasattr(event, "occurrence")
-        and event.occurrence is not None
-        and event.occurrence.evidence_data.get("source")
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
-        ]
+        feedback_source in FeedbackCreationSource.old_feedback_category_values()
+        and should_notify_on_old_feedbacks
     ):
         return True
+
     return False
 
 

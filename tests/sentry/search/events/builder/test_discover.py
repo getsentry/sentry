@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import re
 from datetime import timezone
-from typing import Any
 
 import pytest
 from snuba_sdk.aliased_expression import AliasedExpression
@@ -15,7 +14,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import QueryOutsideRetentionError
@@ -31,7 +30,7 @@ class QueryBuilderTest(TestCase):
         ) - datetime.timedelta(days=2)
         self.end = self.start + datetime.timedelta(days=1)
         self.projects = [self.project.id, self.create_project().id, self.create_project().id]
-        self.params: dict[str, Any] = {
+        self.params: ParamsType = {
             "project_id": self.projects,
             "start": self.start,
             "end": self.end,
@@ -447,7 +446,7 @@ class QueryBuilderTest(TestCase):
     def test_retention(self):
         old_start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-        old_params = {**self.params, "start": old_start, "end": old_end}
+        old_params: ParamsType = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
             with pytest.raises(QueryOutsideRetentionError):
                 QueryBuilder(

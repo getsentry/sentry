@@ -565,7 +565,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
 
-        desired_sample_rate = get_sliding_window_org_sample_rate(
+        if sample_rate is not None:
+            context["planSampleRate"] = sample_rate
+
+        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
             org_id=obj.id, default_sample_rate=sample_rate
         )
         if desired_sample_rate is not None:

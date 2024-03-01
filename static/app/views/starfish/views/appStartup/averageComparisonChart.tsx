@@ -11,6 +11,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colours';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
@@ -43,6 +44,9 @@ function transformData(data: TableDataRow[] | undefined, appStartType: string) {
               ]
             ] as number) ?? 0,
         })) ?? [],
+      itemStyle: {
+        color: PRIMARY_RELEASE_COLOR,
+      },
     },
   ];
 }
@@ -57,7 +61,7 @@ export function AverageComparisonChart({chartHeight}: Props) {
   const {selection} = usePageFilters();
 
   const appStartType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([
     'event.type:transaction',

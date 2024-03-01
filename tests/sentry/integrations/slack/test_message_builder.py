@@ -49,7 +49,7 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -98,16 +98,8 @@ def build_test_message_blocks(
     if text:
         new_text = text.lstrip(" ")
         if new_text:
-            text_section = {
-                "type": "rich_text",
-                "elements": [
-                    {
-                        "type": "rich_text_preformatted",
-                        "elements": [{"type": "text", "text": new_text}],
-                        "border": 0,
-                    }
-                ],
-            }
+            markdown_text = "```" + new_text + "```"
+            text_section = {"type": "section", "text": {"type": "mrkdwn", "text": markdown_text}}
             blocks.append(text_section)
 
     tags_text = ""
@@ -905,10 +897,42 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             if section["type"] == "text":
                 assert occurrence.issue_title in section["text"]["text"]
 
-        assert (
-            occurrence.evidence_display[0].value
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+        assert occurrence.evidence_display[0].value in blocks["blocks"][1]["text"]["text"]
+        assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_build_group_generic_issue_block_no_escaping(self):
+        """Test that a generic issue type's Slack alert contains the expected values"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
+        group_event = event.for_group(event.groups[0])
+        # should also trim whitespace
+        text = "\n\n\n      <bye> ```asdf```      "
+        escaped_text = "<bye> `asdf`"
+
+        occurrence = self.build_occurrence(
+            level="info",
+            evidence_display=[
+                {"name": "hi", "value": text, "important": True},
+                {"name": "what", "value": "where", "important": False},
+            ],
+        )
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        group_event.group.type = ProfileFileIOGroupType.type_id
+
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert occurrence.issue_title in section["text"]["text"]
+
+        # no escaping
+        assert blocks["blocks"][1]["text"]["text"] == f"```{escaped_text}```"
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     @with_feature("organizations:slack-block-kit")
@@ -976,15 +1000,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+            in blocks["blocks"][1]["text"]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
     @with_feature("organizations:slack-block-kit")
     def test_block_kit_truncates_long_query(self):
         text = "a" * 5000
-        block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
-        assert block["elements"][0]["elements"][0]["text"] == "a" * 253 + "..."
+        block = BlockSlackMessageBuilder().get_markdown_quote_block(text)
+        assert "a" * 253 + "..." in block["text"]["text"]
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
@@ -1014,10 +1038,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert (
-            "&lt;https://example.com/|*Click Here*&gt;"
-            in ret["blocks"][1]["elements"][0]["elements"][0]["text"]
-        )
+        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][1]["text"]["text"]
 
 
 @region_silo_test
@@ -1634,6 +1655,7 @@ class ActionsTest(TestCase):
 
 @region_silo_test
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
+    @freeze_time("2024-02-23")
     def setUp(self):
         self.one_hour_ago = timezone.now() - timedelta(hours=1)
         self.endpoint_regression_issue = self.create_group(
@@ -1645,17 +1667,43 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
             type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
         )
 
+    @freeze_time("2024-02-23")
     @with_feature("organizations:slack-block-kit-improvements")
     def test_get_context(self):
-        # endpoint regression should use Regressed Date
+        # endpoint regression should use Approx Start Time
         context = get_context(self.endpoint_regression_issue)
-        assert "Regressed Date: *1\xa0hour ago*" in context
+        assert f"Approx. Start Time: *{self.one_hour_ago.strftime('%Y-%m-%d %H:%M:%S')}*" in context
 
         # crons don't have context
         assert get_context(self.cron_issue) == ""
 
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
+
+    @with_feature("organizations:slack-block-kit-improvements")
+    def test_get_context_error_user_count(self):
+        event = self.store_event(
+            data={},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+
+        context_without_error_user_count = get_context(group)
+        assert (
+            context_without_error_user_count
+            == f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+        group.times_seen = 3
+        group.save()
+
+        context_with_error_user_count = get_context(group)
+        assert (
+            context_with_error_user_count
+            == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
 
     @with_feature("organizations:slack-block-kit-improvements")
     def test_get_tags(self):
