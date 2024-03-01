@@ -14,7 +14,7 @@ export default function FeedbackWidgetBanner({style}: {style?: CSSProperties}) {
   const organization = useOrganization();
 
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.id}:feedback-whats-new-banner`,
+    key: `${organization.id}:feedback-widget-callout`,
   });
 
   if (isDismissed) {
