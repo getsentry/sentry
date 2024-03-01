@@ -105,8 +105,7 @@ def run_metrics_queries_plan(
     for intermediate_query in intermediate_queries:
         executor.schedule(intermediate_query)
 
-    with metrics.timer(key="ddm.metrics_api.metrics_queries_plan.execution_time"):
-        results = executor.execute()
+    results = executor.execute()
 
     # We transform the result into a custom format which for now it's statically defined.
     return QueryTransformer(results).transform()
