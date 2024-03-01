@@ -20,6 +20,7 @@ class Topic(Enum):
     SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
     INGEST_EVENTS = "ingest-events"
+    INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_ATTACHMENTS = "ingest-attachments"
     INGEST_TRANSACTIONS = "ingest-transactions"
     INGEST_METRICS = "ingest-metrics"
