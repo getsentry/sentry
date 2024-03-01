@@ -14,6 +14,7 @@ import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
@@ -222,6 +223,9 @@ export function Provider({
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
+  const projectSlug = useProjectFromId({
+    project_id: replay?.getReplay().project_id,
+  })?.slug;
   const events = replay?.getRRWebFrames();
   const savedReplayConfigRef = useRef<ReplayPrefs>(prefsStrategy.get());
 
@@ -383,6 +387,9 @@ export function Provider({
       // check if this is a mobile replay and use the mobile replayer
       if (mobileAttachments?.length && startTimestampMs) {
         const inst = new MobileReplayer(mobileAttachments, {
+          videoApiPrefix: `/api/0/projects/${
+            organization.slug
+          }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
           root,
           start: startTimestampMs,
           onFinished: setReplayFinished,
@@ -435,16 +442,19 @@ export function Provider({
       applyInitialOffset();
     },
     [
+      applyInitialOffset,
       events,
-      isFetching,
-      theme.purple200,
-      setReplayFinished,
       forceDimensions,
       hasNewEvents,
-      applyInitialOffset,
-      organization.features,
+      isFetching,
       mobileAttachments,
+      organization.features,
+      organization.slug,
+      projectSlug,
+      replay,
+      setReplayFinished,
       startTimestampMs,
+      theme.purple200,
     ]
   );
 

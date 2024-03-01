@@ -282,6 +282,6 @@ export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11
 
 export interface MobileAttachment {
   duration: number;
+  id: number;
   timestamp: number;
-  uri: string;
 }

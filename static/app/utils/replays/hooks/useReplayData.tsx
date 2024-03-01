@@ -11,68 +11,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-interface MobileAttachment {
-  duration: number;
-  timestamp: number;
-  uri: string;
-}
-
-// @ts-expect-error
-function useFetchMobile({orgSlug, replayId, isFetchingReplay, events}) {
-  // TODO(mobile-replay): Implement this when endpoint is ready
-  return {
-    data: [
-      {
-        timestamp: 1707530622000,
-        duration: 5000,
-        uri: '/_assets/test.mp4',
-      },
-      // no gap
-      {
-        timestamp: 1707530627000,
-        duration: 5000,
-        uri: '/_assets/test.mp4',
-      },
-      // 7 second gap
-      {
-        timestamp: 1707530639000,
-        duration: 5000,
-        uri: '/_assets/test.mp4',
-      },
-      // ideally ends at :22 seconds
-    ],
-    isFetching: false,
-    error: undefined,
-  };
-
-  /*
-     *
-  if (!this._sortedRRWebEvents.find(event => event.type === EventType.Custom && event.data.tag === 'video')) {
-
-  }
-
-  const {
-    data,
-    isFetching,
-    error,
-  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
-    staleTime: Infinity,
-    retry: false,
-  });
-
-  const record = useMemo(
-    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
-    [replayData?.data]
-  );
-
-  return {
-    data: record,
-    isFetching,
-    error,
-  };
-  */
-}
-
 type Options = {
   /**
    * The organization slug
@@ -102,7 +40,6 @@ interface Result {
   errors: ReplayError[];
   fetchError: undefined | RequestError;
   fetching: boolean;
-  mobile: MobileAttachment[];
   onRetry: () => void;
   projectSlug: string | null;
   replayRecord: ReplayRecord | undefined;
@@ -257,29 +194,16 @@ function useReplayData({
 
   const attachments = attachmentPages.flat(2);
 
-  const {
-    data: mobileData,
-    isFetching: isFetchingMobile,
-    error: fetchMobileError,
-  } = useFetchMobile({
-    orgSlug,
-    replayId,
-    isFetchingReplay,
-    events: attachments,
-  });
-
   return useMemo(() => {
     const fetching =
       isFetchingReplay ||
       isFetchingAttachments ||
       isFetchingErrors ||
-      isFetchingExtraErrors ||
-      isFetchingMobile;
+      isFetchingExtraErrors;
     return {
       attachments,
       errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
-      mobile: mobileData,
-      fetchError: (fetchReplayError || fetchMobileError) ?? undefined,
+      fetchError: fetchReplayError ?? undefined,
       fetching,
       onRetry: clearQueryCache,
       projectSlug,
@@ -287,17 +211,14 @@ function useReplayData({
     };
   }, [
     attachments,
-    mobileData,
     clearQueryCache,
     errorPages,
     extraErrorPages,
-    fetchMobileError,
     fetchReplayError,
     isFetchingAttachments,
     isFetchingErrors,
     isFetchingExtraErrors,
     isFetchingReplay,
-    isFetchingMobile,
     projectSlug,
     replayRecord,
   ]);

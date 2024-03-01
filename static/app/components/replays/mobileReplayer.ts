@@ -14,6 +14,7 @@ interface MobileReplayerOptions {
   onLoaded: (event: any) => void;
   root: RootElem;
   start: number;
+  videoApiPrefix: string;
 }
 
 /**
@@ -28,13 +29,15 @@ export class MobileReplayer {
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
   private _videos: HTMLVideoElement[];
+  private _videoApiPrefix: string;
   public wrapper: HTMLElement;
   public iframe = {};
 
-  constructor(attachments: MobileAttachment[], { root, start, onFinished, onLoaded}: MobileReplayerOptions) {
+  constructor(attachments: MobileAttachment[], { root, start, videoApiPrefix, onFinished, onLoaded}: MobileReplayerOptions) {
     this._attachments = attachments;
     this._startTimestamp = start;
     this._trackList = [];
+    this._videoApiPrefix = videoApiPrefix;
     this._callbacks = {
       onFinished,
       onLoaded,
@@ -52,7 +55,7 @@ export class MobileReplayer {
 
   private createVideo(segmentData: MobileAttachment, index: number) {
     const el = document.createElement('video');
-    el.src = segmentData.uri;
+    el.src = `${this._videoApiPrefix}${segmentData.id}/`;
     el.style.display = "none";
 
     // TODO: only attach these when needed
