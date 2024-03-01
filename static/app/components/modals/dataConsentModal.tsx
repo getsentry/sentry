@@ -33,7 +33,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           <ConsentInfo>
             <ConsentRow>
               <StyledIconWrapper>
-                <IconGraphBar size="xl" />
+                <IconGraphBar size="lg" />
               </StyledIconWrapper>
               <ConsentLabel>
                 <ConsentLabelHeader>{t('What we collect')}</ConsentLabelHeader>
@@ -45,7 +45,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
             <Divider />
             <ConsentRow>
               <StyledIconWrapper>
-                <IconLock isSolid size="xl" />
+                <IconLock isSolid size="lg" />
               </StyledIconWrapper>
               <ConsentLabel>
                 <ConsentLabelHeader>{t('How we store and use it')}</ConsentLabelHeader>
@@ -131,8 +131,8 @@ const ConsentLabel = styled('div')`
   flex-direction: column;
 `;
 
-const ConsentLabelHeader = styled('h5')`
-  margin-bottom: ${space(0.5)};
+const ConsentLabelHeader = styled('h6')`
+  margin-bottom: 0;
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: ${space(0.5)};
@@ -180,7 +180,7 @@ const ImageHeader = styled('div')`
 const Divider = styled('hr')`
   width: 95%;
   height: 1px;
-  background: ${p => p.theme.border};
+  background: ${p => p.theme.gray100};
   border: none;
   margin-top: ${space(2)};
   margin-bottom: ${space(2)};
