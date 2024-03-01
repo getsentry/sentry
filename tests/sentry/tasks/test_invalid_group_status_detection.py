@@ -69,6 +69,20 @@ class DetectInvalidGroupStatusTest(TestCase):
         assert mock_logger.call_args.kwargs["extra"]["escalating"] == [self.escalating_group.id]
 
     @patch("sentry.tasks.invalid_group_status_detection.logger.error")
+    def test_multiple_bad_groups(self, mock_logger):
+        self.new_group.update(
+            first_seen=datetime.now() - timedelta(days=8), substatus=GroupSubStatus.NEW
+        )
+        self.escalating_grouphistory.update(
+            date_added=datetime.now() - timedelta(days=8),
+        )
+        detect_invalid_group_status()
+        assert mock_logger.called
+        assert mock_logger.call_args.kwargs["extra"]["count"] == 2
+        assert mock_logger.call_args.kwargs["extra"]["new"] == [self.new_group.id]
+        assert mock_logger.call_args.kwargs["extra"]["escalating"] == [self.escalating_group.id]
+
+    @patch("sentry.tasks.invalid_group_status_detection.logger.error")
     def test_unsupported_status(self, mock_logger):
         bad_group = self.create_group()
         bad_group.update(
