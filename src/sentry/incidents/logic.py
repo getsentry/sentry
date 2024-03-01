@@ -21,7 +21,6 @@ from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivationCondition,
-    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -42,6 +41,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project

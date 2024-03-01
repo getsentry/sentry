@@ -21,7 +21,6 @@ from sentry.incidents.logic import (
     DEFAULT_CMP_ALERT_RULE_RESOLUTION,
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
-    AlertRuleMonitorType,
     AlertRuleTriggerLabelAlreadyUsedError,
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
@@ -53,6 +52,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
