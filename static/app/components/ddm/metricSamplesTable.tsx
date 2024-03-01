@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
@@ -19,7 +19,8 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
-  type Field,
+  type Field as SelectedField,
+  getSummaryValueForOp,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
@@ -35,7 +36,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-const fields: Field[] = [
+const fields: SelectedField[] = [
   'project',
   'id',
   'span.op',
@@ -48,11 +49,16 @@ const fields: Field[] = [
   'profile_id',
 ];
 
+export type Field = (typeof fields)[number];
+
 interface MetricSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
   op?: string;
   query?: string;
+  setMetricsSamples?: React.Dispatch<
+    React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
+  >;
   sortKey?: string;
 }
 
@@ -61,6 +67,7 @@ export function MetricSamplesTable({
   mri,
   op,
   query,
+  setMetricsSamples,
   sortKey = 'sort',
 }: MetricSamplesTableProps) {
   const location = useLocation();
@@ -115,6 +122,11 @@ export function MetricSamplesTable({
     sort: sortQuery,
     limit: 10,
   });
+
+  // propagate the metrics samples up as needed
+  useEffect(() => {
+    setMetricsSamples?.(result.data?.data ?? []);
+  }, [result?.data?.data, setMetricsSamples]);
 
   const supportedMRI = useMemo(() => {
     const responseJSON = result.error?.responseJSON;
@@ -232,7 +244,7 @@ function renderHeadCell(
 function renderBodyCell(op?: string, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
-    dataRow: MetricsSamplesResults<Field>['data'][number]
+    dataRow: MetricsSamplesResults<SelectedField>['data'][number]
   ) {
     if (col.key === 'id') {
       return (
@@ -333,16 +345,7 @@ function SummaryRenderer({
   op?: string;
   unit?: string;
 }) {
-  const value =
-    op === 'count'
-      ? summary.count
-      : op === 'min'
-        ? summary.min
-        : op === 'max'
-          ? summary.max
-          : op === 'sum'
-            ? summary.sum
-            : summary.sum / summary.count;
+  const value = getSummaryValueForOp(summary, op);
 
   // if the op is `count`, then the unit does not apply
   unit = op === 'count' ? '' : unit;
