@@ -1,7 +1,10 @@
 from collections.abc import Sequence
+from enum import Enum
 from typing import Optional, Union
 
-from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
+from snuba_sdk import BooleanCondition, Condition, Direction, Formula, Timeseries
+
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 # Data V1 types
 
@@ -27,3 +30,25 @@ QueryCondition = Union[BooleanCondition, Condition]
 
 # Type representing a single aggregate value.
 Totals = ResultValue
+
+
+class QueryOrder(Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+    @classmethod
+    # Used `Union` because `|` conflicts with the parser.
+    def from_string(cls, value: str) -> Union["QueryOrder", None]:
+        for v in cls:
+            if v.value == value:
+                return v
+
+        return None
+
+    def to_snuba_order(self) -> Direction:
+        if self == QueryOrder.ASC:
+            return Direction.ASC
+        elif self == QueryOrder.DESC:
+            return Direction.DESC
+
+        raise InvalidMetricsQueryError(f"Ordering {self} does not exist is snuba")

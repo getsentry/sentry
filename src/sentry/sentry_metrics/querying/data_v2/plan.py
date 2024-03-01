@@ -1,35 +1,9 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from enum import Enum
-from typing import Union
 
-from snuba_sdk import Direction
-
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-
-# TODO: move these types in the right folder.
-
-
-class QueryOrder(Enum):
-    ASC = "asc"
-    DESC = "desc"
-
-    @classmethod
-    # Used `Union` because `|` conflicts with the parser.
-    def from_string(cls, value: str) -> Union["QueryOrder", None]:
-        for v in cls:
-            if v.value == value:
-                return v
-
-        return None
-
-    def to_snuba_order(self) -> Direction:
-        if self == QueryOrder.ASC:
-            return Direction.ASC
-        elif self == QueryOrder.DESC:
-            return Direction.DESC
-
-        raise InvalidMetricsQueryError(f"Ordering {self} does not exist is snuba")
+from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
+from sentry.sentry_metrics.querying.types import QueryOrder
 
 
 @dataclass(frozen=True)
@@ -92,3 +66,8 @@ class MetricsQueriesPlan:
         A query plan is defined to be empty is no formulas have been applied on it.
         """
         return not self._formulas
+
+
+@dataclass(frozen=True)
+class MetricsQueriesPlanResult:
+    results: Sequence[QueryResult]
