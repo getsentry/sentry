@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -119,14 +119,16 @@ describe('getFieldRenderer', function () {
       );
     });
 
-    it('can render date fields', function () {
+    it('can render date fields', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
-      expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument()
+      );
     });
 
-    it('can render date fields using utc when query string has utc set to true', function () {
+    it('can render date fields using utc when query string has utc set to true', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
         renderer(data, {
@@ -135,7 +137,9 @@ describe('getFieldRenderer', function () {
         }) as React.ReactElement<any, any>
       );
 
-      expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument()
+      );
     });
   });
 
@@ -278,7 +282,7 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
-  it('can render team key transaction as a star with the dropdown', function () {
+  it('can render team key transaction as a star with the dropdown', async function () {
     const renderer = getFieldRenderer('team_key_transaction', {
       team_key_transaction: 'boolean',
     });
@@ -291,7 +295,7 @@ describe('getFieldRenderer', function () {
 
     // Enabled, can't open the menu in the test without setting up the
     // TeamKeyTransactionManager
-    expect(star).toBeEnabled();
+    await waitFor(() => expect(star).toBeEnabled());
   });
 
   it('can render team key transaction as a star without the dropdown', function () {

@@ -93,7 +93,7 @@ describe('useErrorFilters', () => {
       },
     });
 
-    rerender();
+    rerender({errorFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -105,7 +105,7 @@ describe('useErrorFilters', () => {
     });
   });
 
-  it('should not filter anything when no values are set', () => {
+  it('should not filter anything when no values are set', async () => {
     const errorFrames = [
       ERROR_1_JS_RANGEERROR,
       ERROR_2_NEXTJS_TYPEERROR,
@@ -117,10 +117,10 @@ describe('useErrorFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useErrorFilters, {
+    const {result, waitFor} = reactHooks.renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
-    expect(result.current.items).toHaveLength(3);
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
   });
 
   it('should filter by project', () => {
