@@ -211,7 +211,7 @@ class OptionsManager:
             raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
         logger.error(
-            "Option %s set to %s. previous update channel: %s", key, value, channel, exec_info=True
+            "Option %s set to %s. previous update channel: %s", key, value, channel, exc_info=True
         )
         return self.store.set(opt, value, channel=channel)
 
