@@ -704,13 +704,13 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         :returns Response object
         """
         url = reverse(self.endpoint, args=args)
-        # In some cases we want to pass querystring params to put/post, handle
-        # this here.
+        # In some cases we want to pass querystring params to put/post, handle this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
             url = f"{url}?{query_string}"
 
         headers = params.pop("extra_headers", {})
+        format = params.pop("format", "json")
         raw_data = params.pop("raw_data", None)
         if raw_data and isinstance(raw_data, bytes):
             raw_data = raw_data.decode("utf-8")
@@ -719,7 +719,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format="json", data=data, **headers)
+        return getattr(self.client, method)(url, format=format, data=data, **headers)
 
     def get_success_response(self, *args, **params):
         """
