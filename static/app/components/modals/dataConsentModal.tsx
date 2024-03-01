@@ -73,7 +73,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
           </LearnMoreBody>
         </div>
       )}
-      <Footer>
+      <Footer step={step}>
         {step === 0 && <Button onClick={closeModal}>{t('Maybe later')}</Button>}
         {step === 0 && <Button priority="primary">{t("I'll help")}</Button>}
         {step === 1 && <Button onClick={() => setStep(0)}>{t('Back')}</Button>}
@@ -152,12 +152,12 @@ const StyledIconWrapper = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const Footer = styled('div')`
+const Footer = styled('div')<{step: number}>`
   display: flex;
   flex-direction: row;
   justify-content: right;
   gap: ${space(1)};
-  margin-top: ${space(2)};
+  margin-top: ${p => (p.step === 0 ? space(2) : '84px')};
 `;
 
 const LearnMore = styled('a')`
