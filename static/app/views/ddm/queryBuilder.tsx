@@ -242,6 +242,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
+          blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
         />
       </SearchBarWrapper>
     </QueryBuilderWrapper>

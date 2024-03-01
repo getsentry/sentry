@@ -136,7 +136,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "No valid repositories found."
+        error_msg = "Found no Github repositories linked to this project."
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg

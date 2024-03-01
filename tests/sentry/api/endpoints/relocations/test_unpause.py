@@ -9,6 +9,7 @@ from sentry.api.endpoints.relocations import (
 from sentry.api.endpoints.relocations.unpause import ERR_NOT_UNPAUSABLE_STATUS
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.relocation import OrderedTask
 
@@ -18,15 +19,15 @@ TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 @region_silo_test
 class UnpauseRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-unpause"
+    method = "put"
 
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(
-            "superuser", is_superuser=True, is_staff=True, is_active=True
-        )
+        self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -40,15 +41,28 @@ class UnpauseRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
+    @with_feature("auth:enterprise-staff-cookie")
+    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    def test_good_staff_unpause_until_validating(self, async_task_scheduled: Mock):
+        self.login_as(user=self.staff_user, staff=True)
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
+        )
+
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.PREPROCESSING.name
+        assert response.data["scheduledPauseAtStep"] == Relocation.Step.VALIDATING.name
+
+        assert async_task_scheduled.call_count == 1
+        assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
+
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_good_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.VALIDATING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.PREPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.VALIDATING.name
@@ -61,12 +75,10 @@ class UnpauseRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.save()
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.IMPORTING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.IMPORTING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.VALIDATING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
@@ -79,12 +91,10 @@ class UnpauseRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.IMPORTING.value
         self.relocation.save()
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.POSTPROCESSING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.POSTPROCESSING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.IMPORTING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.POSTPROCESSING.name
@@ -97,12 +107,10 @@ class UnpauseRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
         self.relocation.save()
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.NOTIFYING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.NOTIFYING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.POSTPROCESSING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.NOTIFYING.name
@@ -117,12 +125,10 @@ class UnpauseRelocationTest(APITestCase):
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
         self.relocation.save()
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.NOTIFYING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.NOTIFYING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.VALIDATING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.NOTIFYING.name
@@ -136,12 +142,10 @@ class UnpauseRelocationTest(APITestCase):
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
         self.relocation.save()
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.IMPORTING.name},
+        response = self.get_success_response(
+            self.relocation.uuid, untilStep=Relocation.Step.IMPORTING.name, status_code=200
         )
 
-        assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.VALIDATING.name
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
@@ -155,7 +159,7 @@ class UnpauseRelocationTest(APITestCase):
         self.relocation.step = Relocation.Step.VALIDATING.value
         self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
         self.relocation.save()
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
@@ -169,7 +173,7 @@ class UnpauseRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.step = Relocation.Step.NOTIFYING.value
         self.relocation.save()
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
 
         assert response.status_code == 200
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
@@ -183,18 +187,15 @@ class UnpauseRelocationTest(APITestCase):
     def test_bad_not_found(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
-        response = self.client.put(f"/api/0/relocations/{str(does_not_exist_uuid)}/unpause/")
-
-        assert response.status_code == 404
+        self.get_error_response(does_not_exist_uuid, status_code=404)
 
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_already_completed(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_UNPAUSABLE_STATUS.substitute(
             status=Relocation.Status.FAILURE.name
@@ -207,9 +208,8 @@ class UnpauseRelocationTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         self.relocation.status = Relocation.Status.IN_PROGRESS.value
         self.relocation.save()
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_NOT_UNPAUSABLE_STATUS.substitute(
             status=Relocation.Status.IN_PROGRESS.name
@@ -220,12 +220,10 @@ class UnpauseRelocationTest(APITestCase):
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_invalid_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": "nonexistent"},
+        response = self.get_error_response(
+            self.relocation.uuid, untilStep="nonexistent", status_code=400
         )
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_UNKNOWN_RELOCATION_STEP.substitute(
             step="nonexistent"
@@ -236,12 +234,10 @@ class UnpauseRelocationTest(APITestCase):
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_unknown_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.UNKNOWN.name},
+        response = self.get_error_response(
+            self.relocation.uuid, untilStep=Relocation.Step.UNKNOWN.name, status_code=400
         )
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(
             step=Relocation.Step.UNKNOWN.name
@@ -252,12 +248,10 @@ class UnpauseRelocationTest(APITestCase):
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_current_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.PREPROCESSING.name},
+        response = self.get_error_response(
+            self.relocation.uuid, untilStep=Relocation.Step.PREPROCESSING.name, status_code=400
         )
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(
             step=Relocation.Step.PREPROCESSING.name
@@ -268,12 +262,10 @@ class UnpauseRelocationTest(APITestCase):
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_past_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.UPLOADING.name},
+        response = self.get_error_response(
+            self.relocation.uuid, untilStep=Relocation.Step.UPLOADING.name, status_code=400
         )
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(
             step=Relocation.Step.UPLOADING.name
@@ -284,12 +276,10 @@ class UnpauseRelocationTest(APITestCase):
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_last_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.put(
-            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
-            {"untilStep": Relocation.Step.COMPLETED.name},
+        response = self.get_error_response(
+            self.relocation.uuid, untilStep=Relocation.Step.COMPLETED.name, status_code=400
         )
 
-        assert response.status_code == 400
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(
             step=Relocation.Step.COMPLETED.name
@@ -299,15 +289,13 @@ class UnpauseRelocationTest(APITestCase):
 
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_no_auth(self, async_task_scheduled: Mock):
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        self.get_error_response(self.relocation.uuid, status_code=401)
 
-        assert response.status_code == 401
         assert async_task_scheduled.call_count == 0
 
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
     def test_bad_no_superuser(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=False)
-        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+        self.get_error_response(self.relocation.uuid, status_code=403)
 
-        assert response.status_code == 403
         assert async_task_scheduled.call_count == 0

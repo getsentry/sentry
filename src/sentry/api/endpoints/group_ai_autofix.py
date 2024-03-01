@@ -109,12 +109,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         event_entries: list[dict],
         additional_context: str,
     ):
-        requests.post(
+        response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
             data=json.dumps(
                 {
-                    "organization": group.organization.id,
-                    "project": group.project.id,
+                    "organization_id": group.organization.id,
+                    "project_id": group.project.id,
                     "repos": repos,
                     "issue": {
                         "id": group.id,
@@ -126,6 +126,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
+
+        response.raise_for_status()
 
     def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
@@ -165,7 +167,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         repos = self._get_repos_from_code_mapping(group)
 
         if not repos:
-            return self._respond_with_error(group, metadata, "No valid repositories found.", 400)
+            return self._respond_with_error(
+                group, metadata, "Found no Github repositories linked to this project.", 400
+            )
 
         try:
             self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
