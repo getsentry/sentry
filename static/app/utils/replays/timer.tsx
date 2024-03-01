@@ -15,7 +15,6 @@ export class Timer extends EventTarget {
 
   step = () => {
     if (!this._active) {
-      console.log('not active');
       return;
     }
 
@@ -34,10 +33,6 @@ export class Timer extends EventTarget {
    * @param seconds The number of seconds to start at
    */
   start(seconds?: number) {
-    console.log('timer start');
-    // if (seconds !== undefined) {
-    //   this._additionalTime = seconds;
-    // }
     this._start = window.performance.now() - (seconds ?? 0);
     this._active = true;
     this._id = window.requestAnimationFrame(this.step);
@@ -47,7 +42,6 @@ export class Timer extends EventTarget {
    * Stops timer and moves time to `seconds` if provided
    */
   stop(seconds?: number) {
-    console.log('timer stop');
     if (seconds !== undefined) {
       this._time = seconds;
     }
