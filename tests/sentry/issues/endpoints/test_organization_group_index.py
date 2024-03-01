@@ -110,7 +110,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_priority(self):
+    def test_sort_by_trends(self):
         group = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
@@ -160,7 +160,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         }
 
         response = self.get_success_response(
-            sort="priority",
+            sort="trends",
             query="is:unresolved",
             limit=25,
             start=iso_format(before_now(days=1)),
@@ -910,8 +910,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        before_now_300_seconds = iso_format(before_now(seconds=300))
-        before_now_350_seconds = iso_format(before_now(seconds=350))
+        before_now_300_seconds = before_now(seconds=300).isoformat()
+        before_now_350_seconds = before_now(seconds=350).isoformat()
         event2 = self.store_event(
             data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
             project_id=self.project.id,

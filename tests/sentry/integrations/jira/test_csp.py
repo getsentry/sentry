@@ -20,6 +20,7 @@ class JiraCSPTest(APITestCase):
     def test_csp_frame_ancestors(self):
         response = self.client.get(self.path)
         assert "Content-Security-Policy-Report-Only" in response
+        assert "X-Frame-Options" not in response
 
         csp = self._split_csp_policy(response["Content-Security-Policy-Report-Only"])
         assert "base_url" in csp["frame-ancestors"]

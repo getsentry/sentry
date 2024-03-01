@@ -1,6 +1,7 @@
 import {uuid4} from '@sentry/utils';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {isEventFromBrowserJavaScriptSDK} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types';
 import {EventOrGroupType} from 'sentry/types';
@@ -77,9 +78,14 @@ class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: RawSpanType[] = [];
   transaction: EventTransaction;
+  injectMissingInstrumentationSpans: boolean = true;
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
     this.transaction = transaction;
+
+    if (isEventFromBrowserJavaScriptSDK(transaction)) {
+      this.injectMissingInstrumentationSpans = false;
+    }
 
     this.root = SpanTreeNode.Root({
       description: transaction.title,
@@ -129,6 +135,7 @@ class SpanTree {
         // because the spans are sorted by start time, so we know that we will not be
         // updating anything before span.start_timestamp.
         if (
+          this.injectMissingInstrumentationSpans &&
           parent.children.length > 0 &&
           span.start_timestamp -
             parent.children[parent.children.length - 1].span.timestamp >

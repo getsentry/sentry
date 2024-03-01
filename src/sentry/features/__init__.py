@@ -80,6 +80,7 @@ default_manager.add("organizations:api-auth-provider", OrganizationFeature, Feat
 default_manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:crons-disable-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -103,13 +104,14 @@ default_manager.add("organizations:enterprise-data-secrecy", OrganizationFeature
 default_manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:event-tags-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:group-chunk-load-errors", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-gh-invite", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -128,7 +130,6 @@ default_manager.add("organizations:issue-search-group-attributes-side-query", Or
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issues-trace-timeline", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:legacy-browser-update", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -161,7 +162,6 @@ default_manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFe
 default_manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)  # Only enabled in sentry.io to enable onboarding flows.
-default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:org-subdomains", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-calculate-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -172,6 +172,7 @@ default_manager.add("organizations:performance-consecutive-http-detector", Organ
 default_manager.add("organizations:performance-database-view-percentiles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-database-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-db-main-thread-detector", OrganizationFeature)
+default_manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-issues-compressed-assets-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -249,6 +250,7 @@ default_manager.add("organizations:session-replay-ui", OrganizationFeature, Feat
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:slack-thread", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:slack-block-kit-improvements", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -259,6 +261,7 @@ default_manager.add("organizations:standalone-span-ingestion", OrganizationFeatu
 default_manager.add("organizations:starfish-aggregate-span-waterfall", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:starfish-browser-resource-module-bundle-analysis", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-webvitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -284,8 +287,8 @@ default_manager.add("organizations:user-feedback-spam-filter-ingest", Organizati
 default_manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:user-feedback-onboarding", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:vercel-integration-webhooks", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -307,6 +310,7 @@ default_manager.add("projects:span-metrics-extraction-ga-modules", ProjectFeatur
 default_manager.add("projects:span-metrics-extraction-resource", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("projects:discard-transaction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 
 
 # Project plugin features

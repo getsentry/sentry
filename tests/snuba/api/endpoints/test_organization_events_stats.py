@@ -867,7 +867,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},

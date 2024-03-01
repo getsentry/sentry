@@ -15,6 +15,7 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
+from sentry.features.rollout import in_random_rollout
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -76,7 +77,7 @@ def submit_process(
 ) -> None:
     if from_reprocessing:
         task = process_event_from_reprocessing
-    elif is_proguard and random.random() < options.get("store.separate-proguard-queue-rate"):
+    elif is_proguard and in_random_rollout("store.separate-proguard-queue-rate"):
         # route *some* proguard events to a separate queue
         task = process_event_proguard
     else:

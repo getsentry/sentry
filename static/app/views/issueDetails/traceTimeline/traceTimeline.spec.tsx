@@ -13,7 +13,7 @@ import type {TraceEventResponse} from './useTraceTimelineEvents';
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 
 describe('TraceTimeline', () => {
-  const organization = OrganizationFixture({features: ['issues-trace-timeline']});
+  const organization = OrganizationFixture();
   const event = EventFixture({
     dateCreated: '2024-01-24T09:09:03+00:00',
     contexts: {

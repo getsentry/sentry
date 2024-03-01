@@ -34,7 +34,7 @@ from sentry.search.snuba.backend import (
     EventsDatasetSnubaSearchBackend,
     SnubaSearchBackendBase,
 )
-from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortWeights
+from sentry.search.snuba.executors import InvalidQueryForExecutor, TrendsSortWeights
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
@@ -85,7 +85,7 @@ class SharedSnubaMixin(SnubaTestCase):
         if limit is not None:
             kwargs["limit"] = limit
         if aggregate_kwargs:
-            kwargs["aggregate_kwargs"] = {"priority": {**aggregate_kwargs}}
+            kwargs["aggregate_kwargs"] = {"trends": {**aggregate_kwargs}}
 
         return self.backend.query(
             projects,
@@ -369,14 +369,14 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(sort_by="freq")
         assert list(results) == [self.group1, self.group2]
 
-        results = self.make_query(sort_by="priority")
+        results = self.make_query(sort_by="trends")
         assert list(results) == [self.group2, self.group1]
 
         results = self.make_query(sort_by="user")
         assert list(results) == [self.group1, self.group2]
 
-    def test_priority_sort(self):
-        weights: PrioritySortWeights = {
+    def test_trends_sort(self):
+        weights: TrendsSortWeights = {
             "log_level": 5,
             "has_stacktrace": 5,
             "relative_volume": 1,
@@ -386,7 +386,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             "norm": False,
         }
         results = self.make_query(
-            sort_by="priority",
+            sort_by="trends",
             aggregate_kwargs=weights,
         )
         assert list(results) == [self.group2, self.group1]
@@ -416,9 +416,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(environments=[self.environments["production"]], sort_by="freq")
         assert list(results) == [self.group2, self.group1]
 
-        results = self.make_query(
-            environments=[self.environments["production"]], sort_by="priority"
-        )
+        results = self.make_query(environments=[self.environments["production"]], sort_by="trends")
         assert list(results) == [self.group2, self.group1]
 
         results = self.make_query(environments=[self.environments["production"]], sort_by="user")
@@ -624,25 +622,25 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
-    def test_search_filter_query_with_custom_priority_tag(self):
-        priority = "high"
+    def test_search_filter_query_with_custom_trends_tag(self):
+        trends = "high"
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
                 "timestamp": iso_format(self.group2.first_seen + timedelta(days=1)),
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "message": "group2",
-                "tags": {"priority": priority},
+                "tags": {"trends": trends},
             },
             project_id=self.project.id,
         )
 
-        results = self.make_query(search_filter_query="priority:%s" % priority)
+        results = self.make_query(search_filter_query="trends:%s" % trends)
 
         assert set(results) == {self.group2}
 
-    def test_search_filter_query_with_custom_priority_tag_and_priority_sort(self):
-        priority = "high"
+    def test_search_filter_query_with_custom_trends_tag_and_trends_sort(self):
+        trends = "high"
         for i in range(1, 3):
             self.store_event(
                 data={
@@ -650,7 +648,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
                     "timestamp": iso_format(self.group2.last_seen + timedelta(days=i)),
                     "stacktrace": {"frames": [{"module": "group1"}]},
                     "message": "group1",
-                    "tags": {"priority": priority},
+                    "tags": {"trends": trends},
                 },
                 project_id=self.project.id,
             )
@@ -660,11 +658,11 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
                 "timestamp": iso_format(self.group2.last_seen + timedelta(days=2)),
                 "stacktrace": {"frames": [{"module": "group2"}]},
                 "message": "group2",
-                "tags": {"priority": priority},
+                "tags": {"trends": trends},
             },
             project_id=self.project.id,
         )
-        results = self.make_query(search_filter_query="priority:%s" % priority, sort_by="priority")
+        results = self.make_query(search_filter_query="trends:%s" % trends, sort_by="trends")
         assert list(results) == [self.group2, self.group1]
 
     def test_search_tag_overlapping_with_internal_fields(self):
@@ -2254,7 +2252,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query([self.project, self.project2], sort_by="freq")
         assert list(results) == [self.group1, self.group_p2, self.group2]
 
-        results = self.make_query([self.project, self.project2], sort_by="priority")
+        results = self.make_query([self.project, self.project2], sort_by="trends")
         assert list(results) == [
             self.group_p2,
             self.group2,
@@ -2647,12 +2645,12 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
             self.make_query(search_filter_query="issue.category:wrong")
 
 
-class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
+class EventsTrendsTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def test_priority_sort_old_and_new_events(self):
+    def test_trends_sort_old_and_new_events(self):
         """Test that an issue with only one old event is ranked lower than an issue with only one new event"""
         new_project = self.create_project(organization=self.project.organization)
         base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
@@ -2684,7 +2682,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        weights: PrioritySortWeights = {
+        weights: TrendsSortWeights = {
             "log_level": 0,
             "has_stacktrace": 0,
             "relative_volume": 1,
@@ -2694,7 +2692,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             "norm": False,
         }
         results = self.make_query(
-            sort_by="priority",
+            sort_by="trends",
             projects=[new_project],
             aggregate_kwargs=weights,
         )
@@ -2702,7 +2700,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
 
-    def test_priority_sort_v2(self):
+    def test_trends_sort_v2(self):
         """Test that the v2 formula works."""
         new_project = self.create_project(organization=self.project.organization)
         base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
@@ -2734,7 +2732,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        weights: PrioritySortWeights = {
+        weights: TrendsSortWeights = {
             "log_level": 0,
             "has_stacktrace": 0,
             "relative_volume": 1,
@@ -2744,7 +2742,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             "norm": False,
         }
         results = self.make_query(
-            sort_by="priority",
+            sort_by="trends",
             projects=[new_project],
             aggregate_kwargs=weights,
         )
@@ -2752,7 +2750,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
 
-    def test_priority_log_level_results(self):
+    def test_trends_log_level_results(self):
         """Test that the scoring results change when we pass in different log level weights"""
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
@@ -2783,7 +2781,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         group2 = Group.objects.get(id=event2.group.id)
 
         agg_kwargs = {
-            "priority": {
+            "trends": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2799,7 +2797,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2810,14 +2808,14 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # initially group 2's score is higher since it has a more recent event
         assert group2_score_before > group1_score_before
 
-        agg_kwargs["priority"].update({"log_level": 5})
+        agg_kwargs["trends"].update({"log_level": 5})
 
         results2 = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2828,11 +2826,11 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # ensure fatal has a higher score than error
         assert group1_score_after > group2_score_after
 
-    def test_priority_has_stacktrace_results(self):
+    def test_trends_has_stacktrace_results(self):
         """Test that the scoring results change when we pass in different has_stacktrace weights"""
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         agg_kwargs = {
-            "priority": {
+            "trends": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2883,7 +2881,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2893,13 +2891,13 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         group2_score = results[1][1]
         assert group1_score == group2_score
 
-        agg_kwargs["priority"].update({"has_stacktrace": 3})
+        agg_kwargs["trends"].update({"has_stacktrace": 3})
         results = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2910,7 +2908,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # check that a group with an event with a stacktrace has a higher weight than one without
         assert group1_score < group2_score
 
-    def test_priority_event_halflife_results(self):
+    def test_trends_event_halflife_results(self):
         """Test that the scoring results change when we pass in different event halflife weights"""
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
         event1 = self.store_event(
@@ -2941,7 +2939,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         group2 = Group.objects.get(id=event2.group.id)
 
         agg_kwargs = {
-            "priority": {
+            "trends": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -2957,7 +2955,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2968,13 +2966,13 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         # initially group 2's score is higher since it has a more recent event
         assert group2_score_before > group1_score_before
 
-        agg_kwargs["priority"].update({"event_halflife_hours": 2})
+        agg_kwargs["trends"].update({"event_halflife_hours": 2})
         results = query_executor.snuba_search(
             start=None,
             end=None,
             project_ids=[self.project.id],
             environment_ids=[],
-            sort_field="priority",
+            sort_field="trends",
             organization=self.organization,
             group_ids=[group1.id, group2.id],
             limit=150,
@@ -2984,7 +2982,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         group2_score_after = results[1][1]
         assert group1_score_after < group2_score_after
 
-    def test_priority_mixed_group_types(self):
+    def test_trends_mixed_group_types(self):
         base_datetime = (datetime.utcnow() - timedelta(hours=1)).replace(tzinfo=timezone.utc)
 
         error_event = self.store_event(
@@ -3017,7 +3015,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         profile_group_1 = group_info.group
 
         agg_kwargs = {
-            "priority": {
+            "trends": {
                 "log_level": 0,
                 "has_stacktrace": 0,
                 "relative_volume": 1,
@@ -3039,7 +3037,7 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
                 end=None,
                 project_ids=[self.project.id],
                 environment_ids=[],
-                sort_field="priority",
+                sort_field="trends",
                 organization=self.organization,
                 group_ids=[profile_group_1.id, error_group.id],
                 limit=150,
@@ -3975,12 +3973,12 @@ class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):
             date_from=self.base_datetime - timedelta(days=29),
         )
 
-    def test_sort_priority(self):
+    def test_sort_trends(self):
         self.run_test(
             "is:unresolved",
             [self.group1, self.group2],
             None,
-            sort_by="priority",
+            sort_by="trends",
             date_from=self.base_datetime - timedelta(days=30),
         )
 

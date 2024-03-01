@@ -1,10 +1,10 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest.mock import patch
 
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
@@ -19,10 +19,11 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
@@ -75,25 +76,31 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org2.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org2.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
 
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(project3)
 
         release4 = Release.objects.create(
-            organization_id=org.id, version="4", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="4",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release4.add_project(project3)
 
@@ -122,24 +129,24 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release6 = Release.objects.create(
             organization_id=org.id,
             version="6",
-            date_added=datetime(2013, 8, 10, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 20, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 10, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 20, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release6.add_project(project)
 
         release7 = Release.objects.create(
             organization_id=org.id,
             version="7",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 18, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 18, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release7.add_project(project)
 
         release8 = Release.objects.create(
             organization_id=org.id,
             version="8",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 16, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 16, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release8.add_project(project)
 
@@ -283,14 +290,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(
             organization_id=org.id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
         release2 = Release.objects.create(
             organization_id=org.id,
             version="sdfsdfsdf",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project)
 
@@ -317,14 +324,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(
             organization_id=org.id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
         release2 = Release.objects.create(
             organization_id=org.id,
             version="sdfsdfsdf",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project)
 
@@ -362,7 +369,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(
             organization_id=org.id,
             version="com.foo.BarApp@1.0+1234",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
@@ -460,14 +467,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now() - timedelta(minutes=5),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now() - timedelta(minutes=5),
+            unadopted=timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -526,7 +533,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.assert_expected_versions(
             response, [adopted_release, replaced_release, not_adopted_release]
         )
-        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
 
         # Replaced should come first now.
         response = self.get_success_response(
@@ -573,7 +580,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         prev_cursor = self.get_cursor_headers(response)[0]
         self.assert_expected_versions(response, [replaced_release])
 
-        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
 
         response = self.get_success_response(
             self.organization.slug,
@@ -613,20 +620,24 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
 
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(project1)
 
@@ -654,20 +665,24 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
 
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(project1)
 
@@ -695,12 +710,16 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
 
@@ -771,22 +790,22 @@ class OrganizationReleasesStatsTest(APITestCase):
         release1 = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=timezone.utc),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(self.project1)
 
         release2 = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=timezone.utc),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=timezone.utc),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(self.project2)
 
         release3 = Release.objects.create(
             organization_id=self.organization.id,
             version="3",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=timezone.utc),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(self.project3)
 
@@ -828,24 +847,24 @@ class OrganizationReleasesStatsTest(APITestCase):
         release6 = Release.objects.create(
             organization_id=org.id,
             version="6",
-            date_added=datetime(2013, 8, 10, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 20, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 10, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 20, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release6.add_project(project)
 
         release7 = Release.objects.create(
             organization_id=org.id,
             version="7",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 18, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 18, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release7.add_project(project)
 
         release8 = Release.objects.create(
             organization_id=org.id,
             version="8",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 16, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 16, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release8.add_project(project)
 
@@ -870,7 +889,9 @@ class OrganizationReleasesStatsTest(APITestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
@@ -944,14 +965,14 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now(),
-            unadopted=django_timezone.now(),
+            adopted=timezone.now(),
+            unadopted=timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -1027,13 +1048,13 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=project2.id,
             release_id=multi_project_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=single_project_release.id,
             environment_id=self.environment.id,
-            adopted=django_timezone.now(),
+            adopted=timezone.now(),
         )
 
         # Filtering to self.environment.name and self.project with release.stage:adopted should NOT return multi_project_release.
@@ -1059,10 +1080,14 @@ class OrganizationReleasesStatsTest(APITestCase):
         self.login_as(user=self.user)
 
         release = self.create_release(
-            self.project, version="foobar", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            self.project,
+            version="foobar",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         self.create_release(
-            self.project, version="sdfsdfsdf", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            self.project,
+            version="sdfsdfsdf",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
         response = self.get_success_response(self.organization.slug, query="oob")
@@ -1245,7 +1270,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.login_as(user=user)
 
         release = Release.objects.create(
-            version="1.2.1", date_released=datetime.utcnow(), organization=org
+            version="1.2.1", date_released=timezone.now(), organization=org
         )
         release.add_project(project)
 
@@ -1281,7 +1306,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.login_as(user=user)
 
         release = Release.objects.create(
-            version="x" * 65, date_released=datetime.utcnow(), organization=org
+            version="x" * 65, date_released=timezone.now(), organization=org
         )
         release.add_project(project)
 
@@ -1579,20 +1604,24 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.login_as(user=user)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
 
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(project1)
 
@@ -1618,7 +1647,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         team1 = self.create_team(organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -1668,7 +1699,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         team1 = self.create_team(organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -1757,7 +1790,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         self.create_member(teams=[team1], user=user, organization=org)
         project1 = self.create_project(teams=[team1], organization=org)
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -1944,7 +1979,9 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         env2 = self.make_environment("staging", project2)
 
         release1 = Release.objects.create(
-            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
         ReleaseProjectEnvironment.objects.create(
@@ -1952,7 +1989,9 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
 
         release2 = Release.objects.create(
-            organization_id=org.id, version="2", date_added=datetime(2013, 8, 14, 3, 8, 24, 880386)
+            organization_id=org.id,
+            version="2",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project2)
         ReleaseProjectEnvironment.objects.create(
@@ -1962,8 +2001,8 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         release3 = Release.objects.create(
             organization_id=org.id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release3.add_project(project1)
         ReleaseProjectEnvironment.objects.create(
@@ -2236,7 +2275,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs

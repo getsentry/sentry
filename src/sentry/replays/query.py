@@ -39,21 +39,26 @@ MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
-def query_replays_collection(
+# Compatibility function for getsentry code.
+def query_replays_collection(*args, **kwargs):
+    return query_replays_collection_raw(*args, **kwargs)[0]
+
+
+def query_replays_collection_raw(
     project_ids: list[int],
     start: datetime,
     end: datetime,
     environment: list[str],
     fields: list[str],
     sort: str | None,
-    limit: str | None,
-    offset: str | None,
+    limit: int,
+    offset: int,
     search_filters: Sequence[SearchFilter],
     organization: Organization | None = None,
     actor: Any | None = None,
-) -> dict:
+):
     """Query aggregated replay collection."""
-    paginators = make_pagination_values(limit, offset)
+    paginators = Paginators(limit, offset)
 
     return query_using_optimized_search(
         fields=fields,

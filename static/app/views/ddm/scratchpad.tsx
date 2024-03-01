@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
-import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
+import {formatMetricsFormula, getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,26 +12,27 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {parseFormula} from 'sentry/views/ddm/formulaParser/parser';
+import {type TokenList, TokenType} from 'sentry/views/ddm/formulaParser/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {useGetCachedChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
 
 import type {Sample} from './widget';
 import {MetricWidget} from './widget';
 
+interface WidgetDependencies {
+  dependencies: MetricsQueryApiQueryParams[];
+  isError: boolean;
+}
+
 function widgetToQuery(
   widget: MetricWidgetQueryParams,
-  queryLookup: Map<string, any>,
   isQueryOnly = false
 ): MetricsQueryApiQueryParams {
   return widget.type === MetricQueryType.FORMULA
     ? {
         name: getQuerySymbol(widget.id),
-        // TODO(aknaus): Properly parse formulas to format identifiers
-        // This solution is limited to single character identifiers
-        formula: widget.formula
-          .split('')
-          .map(char => (queryLookup.has(char) ? `$${char}` : char))
-          .join(''),
+        formula: widget.formula,
       }
     : {
         name: getQuerySymbol(widget.id),
@@ -104,66 +105,86 @@ export function MetricScratchpad() {
     return lookup;
   }, [widgets]);
 
-  const getFormulasQueryDependencies = useCallback(
-    (formula: string): MetricsQueryApiQueryParams[] => {
-      const children = formula
-        .split('')
-        .map(char => queriesLookup.get(char))
-        .filter((w): w is Exclude<typeof w, undefined> => !!w);
+  const getFormulaQueryDependencies = useCallback(
+    (formula: string): WidgetDependencies => {
+      let tokens: TokenList = [];
+
+      try {
+        tokens = parseFormula(formatMetricsFormula(formula));
+      } catch {
+        // We should not end up here, but if we do, we should not crash the UI
+        return {dependencies: [], isError: true};
+      }
 
       const dependencies: MetricsQueryApiQueryParams[] = [];
+      let isError: boolean = false;
 
-      // ATM we recursively iterate over child formulas to find all dependencies
-      // TODO(aknaus): clarify API support for this
-      // TODO(aknaus): Memoize this
-      children.forEach(child => {
-        if (child.type === MetricQueryType.FORMULA) {
-          dependencies.push(widgetToQuery(child, queriesLookup, true));
-          dependencies.push(...getFormulasQueryDependencies(child.formula));
-        } else {
-          dependencies.push(widgetToQuery(child, queriesLookup, true));
+      tokens.forEach(token => {
+        if (token.type === TokenType.VARIABLE) {
+          const widget = queriesLookup.get(token.content);
+          if (widget && widget.type === MetricQueryType.QUERY) {
+            dependencies.push(widgetToQuery(widget, true));
+          } else {
+            isError = true;
+          }
         }
       });
 
-      return dependencies;
+      return {dependencies, isError};
     },
     [queriesLookup]
   );
 
+  const formulaDependencies = useMemo(() => {
+    return widgets.reduce((acc: Record<number, WidgetDependencies>, widget) => {
+      if (widget.type === MetricQueryType.FORMULA) {
+        acc[widget.id] = getFormulaQueryDependencies(widget.formula);
+      }
+      return acc;
+    }, {});
+  }, [getFormulaQueryDependencies, widgets]);
+
+  const filteredWidgets = useMemo(() => {
+    return widgets.filter(
+      w =>
+        w.type !== MetricQueryType.FORMULA || formulaDependencies[w.id]?.isError === false
+    );
+  }, [formulaDependencies, widgets]);
+
   return (
     <Wrapper>
       {isMultiChartMode ? (
-        widgets.map((widget, index) => (
-          <MetricWidget
-            queryId={widget.id}
-            key={index}
-            index={index}
-            getChartPalette={getChartPalette}
-            onSelect={setSelectedWidgetIndex}
-            displayType={widget.displayType}
-            focusedSeries={widget.focusedSeries}
-            tableSort={widget.sort}
-            queries={[
-              widgetToQuery(widget, queriesLookup),
-              ...(widget.type === MetricQueryType.FORMULA
-                ? // TODO(aknaus): Properly parse formulas to extract identifiers
-                  // This solution is limited to single character identifiers
-                  getFormulasQueryDependencies(widget.formula)
-                : []),
-            ]}
-            isSelected={selectedWidgetIndex === index}
-            hasSiblings={widgets.length > 1}
-            onChange={handleChange}
-            filters={selection}
-            focusArea={focusArea}
-            showQuerySymbols={showQuerySymbols}
-            onSampleClick={handleSampleClick}
-            chartHeight={200}
-            highlightedSampleId={
-              selectedWidgetIndex === index ? highlightedSampleId : undefined
-            }
-            context="ddm"
-          />
+        filteredWidgets.map((widget, index) => (
+          <MultiChartWidgetQueries
+            formulaDependencies={formulaDependencies}
+            widget={widget}
+            key={widget.id}
+          >
+            {queries => (
+              <MetricWidget
+                queryId={widget.id}
+                index={index}
+                getChartPalette={getChartPalette}
+                onSelect={setSelectedWidgetIndex}
+                displayType={widget.displayType}
+                focusedSeries={widget.focusedSeries}
+                tableSort={widget.sort}
+                queries={queries}
+                isSelected={selectedWidgetIndex === index}
+                hasSiblings={widgets.length > 1}
+                onChange={handleChange}
+                filters={selection}
+                focusAreaProps={focusArea}
+                showQuerySymbols={showQuerySymbols}
+                onSampleClick={handleSampleClick}
+                chartHeight={200}
+                highlightedSampleId={
+                  selectedWidgetIndex === index ? highlightedSampleId : undefined
+                }
+                context="ddm"
+              />
+            )}
+          </MultiChartWidgetQueries>
         ))
       ) : (
         <MetricWidget
@@ -173,12 +194,12 @@ export function MetricScratchpad() {
           displayType={firstWidget.displayType}
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
-          queries={widgets.map(w => widgetToQuery(w, queriesLookup))}
+          queries={filteredWidgets.map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}
           filters={selection}
-          focusArea={focusArea}
+          focusAreaProps={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
           chartHeight={200}
@@ -188,6 +209,27 @@ export function MetricScratchpad() {
       )}
     </Wrapper>
   );
+}
+
+function MultiChartWidgetQueries({
+  widget,
+  formulaDependencies,
+  children,
+}: {
+  children: (queries: MetricsQueryApiQueryParams[]) => JSX.Element;
+  formulaDependencies: Record<number, WidgetDependencies>;
+  widget: MetricWidgetQueryParams;
+}) {
+  const queries = useMemo(() => {
+    return [
+      widgetToQuery(widget),
+      ...(widget.type === MetricQueryType.FORMULA
+        ? formulaDependencies[widget.id]?.dependencies
+        : []),
+    ];
+  }, [widget, formulaDependencies]);
+
+  return children(queries);
 }
 
 const StyledMetricDashboard = styled('div')`
