@@ -30,6 +30,7 @@ class SlackClient(ApiClient):
         integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
+        org_integration_id: int | None = None,  # deprecated but used by getsentry
     ) -> None:
         self.integration_id = integration_id
 
