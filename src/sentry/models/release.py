@@ -683,15 +683,18 @@ class Release(Model):
             raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(type(self)),
-                    router.db_for_write(ReleaseCommit),
-                    router.db_for_write(Repository),
-                    router.db_for_write(CommitAuthor),
-                    router.db_for_write(Commit),
-                )
-            ), in_test_hide_transaction_boundary():
+            with (
+                atomic_transaction(
+                    using=(
+                        router.db_for_write(type(self)),
+                        router.db_for_write(ReleaseCommit),
+                        router.db_for_write(Repository),
+                        router.db_for_write(CommitAuthor),
+                        router.db_for_write(Commit),
+                    )
+                ),
+                in_test_hide_transaction_boundary(),
+            ):
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()

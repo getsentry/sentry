@@ -11,6 +11,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
@@ -440,18 +441,19 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         activation_condition: AlertRuleActivationConditionType,
         query_extra: str,
         trigger: str,
-    ):
+    ) -> list[QuerySubscription]:
         """
         Subscribes a project to an alert rule given activation condition
         """
         try:
-            project_alert_rules: list[AlertRule] = self.filter(
-                project=project, monitor_type=AlertRuleMonitorType.ACTIVATED
+            project_alert_rules: QuerySet[AlertRule] = self.filter(
+                projects=project,
+                monitor_type=AlertRuleMonitorType.ACTIVATED.value,
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
                 if alert_rule.activation_conditions.filter(
-                    condition_type=activation_condition
+                    condition_type=activation_condition.value
                 ).exists():
                     logger.info(
                         "Attempt subscribe project to activated alert rule",

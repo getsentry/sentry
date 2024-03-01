@@ -12,6 +12,7 @@ from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleMonitorType,
@@ -405,6 +406,31 @@ class AlertRuleTest(TestCase):
             projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
         )
         assert mock_bulk_create_snuba_subscriptions.call_count == 1
+
+    def test_conditionally_subscribe_project_to_alert_rules(self):
+        query_extra = "foo:bar"
+        project = self.create_project(name="foo")
+        alert_rule = self.create_alert_rule(
+            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        )
+        self.create_alert_rule_activation_condition(
+            alert_rule=alert_rule,
+            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION,
+        )
+        with self.tasks():
+            created_subscriptions = (
+                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
+                    project=project,
+                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+                    query_extra=query_extra,
+                    trigger="test",
+                )
+            )
+            assert len(created_subscriptions) == 1
+
+            sub = created_subscriptions[0]
+            fetched_sub = QuerySubscription.objects.get(id=sub.id)
+            assert fetched_sub.subscription_id is not None
 
 
 @region_silo_test

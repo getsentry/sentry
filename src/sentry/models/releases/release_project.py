@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.release import Release
+    from sentry.snuba.models import QuerySubscription
 
 
 class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
@@ -40,7 +41,9 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     @staticmethod
-    def _subscribe_project_to_alert_rule(project: Project, release: Release, trigger: str):
+    def _subscribe_project_to_alert_rule(
+        project: Project, release: Release, trigger: str
+    ) -> list[QuerySubscription]:
         """
         TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
         NOTE: import AlertRule model here to avoid circular dependency
@@ -49,7 +52,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         from sentry.incidents.models import AlertRule
 
         query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
-        AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
+        return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
             project=project,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             query_extra=query_extra,
