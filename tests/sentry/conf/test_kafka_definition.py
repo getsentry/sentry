@@ -37,9 +37,9 @@ def test_topic_definition() -> None:
             cluster_name in settings.KAFKA_CLUSTERS
         ), f"{cluster_name} is not defined in KAFKA_CLUSTERS"
 
-    for topic in settings.KAFKA_TOPIC_OVERRIDES:
-        # Ensure all override topics aree in the enum
-        Topic(topic)
+    for default_topic in settings.KAFKA_TOPIC_OVERRIDES:
+        # Ensure all override topics are in the enum
+        Topic(default_topic)
 
     assert len(Topic) == len(settings.KAFKA_TOPIC_TO_CLUSTER)
 
