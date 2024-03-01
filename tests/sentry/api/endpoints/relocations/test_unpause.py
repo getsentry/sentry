@@ -43,7 +43,7 @@ class UnpauseRelocationTest(APITestCase):
 
     @with_feature("auth:enterprise-staff-cookie")
     @patch("sentry.tasks.relocation.preprocessing_scan.delay")
-    def test_staff_good_unpause_until_validating(self, async_task_scheduled: Mock):
+    def test_good_staff_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(
             self.relocation.uuid, untilStep=Relocation.Step.VALIDATING.name, status_code=200
