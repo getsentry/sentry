@@ -16,7 +16,7 @@ from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes
+from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -63,7 +63,7 @@ class DiscordRequestParserTest(TestCase):
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     @patch(
@@ -77,7 +77,7 @@ class DiscordRequestParserTest(TestCase):
         response = parser.get_response()
         assert response.status_code == 401
         assert not response.content
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
         assert len(responses.calls) == 0
 
     @responses.activate
@@ -92,7 +92,7 @@ class DiscordRequestParserTest(TestCase):
         assert response.status_code == 200
         data = json.loads(response.content)
         assert data == {"type": 1}
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
         assert len(responses.calls) == 0
 
     @responses.activate
@@ -119,7 +119,7 @@ class DiscordRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
@@ -135,7 +135,7 @@ class DiscordRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 400
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
@@ -160,7 +160,7 @@ class DiscordRequestParserTest(TestCase):
         assert response.status_code == 201
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     def test_control_classes(self):
@@ -184,7 +184,7 @@ class DiscordRequestParserTest(TestCase):
             assert response.status_code == 200
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
-            assert_no_webhook_outboxes()
+            assert_no_webhook_payloads()
 
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")

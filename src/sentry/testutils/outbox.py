@@ -54,11 +54,6 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
             raise OutboxRecursionLimitError
 
 
-def assert_no_webhook_outboxes():
-    outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count()
-    assert outboxes == 0, "No outboxes should be created"
-
-
 def assert_webhook_outboxes_with_shard_id(
     factory_request: WSGIRequest,
     expected_shard_id: int,
