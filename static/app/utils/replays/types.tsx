@@ -279,3 +279,9 @@ export type ErrorFrame = Overwrite<
 >;
 
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+
+export interface MobileAttachment {
+  duration: number;
+  timestamp: number;
+  uri: string;
+}

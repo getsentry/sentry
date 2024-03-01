@@ -1,10 +1,7 @@
 import {Timer} from 'sentry/utils/replays/timer';
+import type { MobileAttachment } from 'sentry/utils/replays/types';
 
-interface MobileAttachment {
-  duration: number;
-  timestamp: number;
-  uri: string;
-}
+import { findMobileSegmentIndex } from './utils';
 
 type RootElem = HTMLDivElement | null;
 
@@ -17,32 +14,6 @@ interface MobileReplayerOptions {
   onLoaded: (event: any) => void;
   root: RootElem;
   start: number;
-}
-
-function findSegmentIndex(trackList: [ts: number, index: number][], segments: MobileAttachment[], targetTimestamp: number, start: number, end: number) {
-  if (start > end) {
-    // XXX: This means we are not returning "exact" segments, but the prior
-    // segment if it doesn't not satisfy the exact time constraints
-    return end;
-  }
-
-  const mid = Math.floor((start + end) / 2);
-
-  const [ts, index] = trackList[mid];
-  const segment = segments[index];
-
-  // Segment match found
-  if (targetTimestamp >= ts && targetTimestamp <= (ts + segment.duration)) {
-    return index;
-  }
-
-  // Search higher half
-  if (targetTimestamp > ts) {
-    return findSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
-  }
-
-  // Search lower half
-  return findSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
 }
 
 /**
@@ -124,7 +95,7 @@ export class MobileReplayer {
     // This function will return the prior segment index if no valid segments
     // were found, so we will need to double check if the result was an exact
     // match or not
-    const result = findSegmentIndex(this._trackList, this._attachments, timestamp, 0, this._trackList.length - 1);
+    const result = findMobileSegmentIndex(this._trackList, this._attachments, timestamp, 0, this._trackList.length - 1);
     const resultSegment = this.getSegment(result)!;
     const isExactSegment = (timestamp >= resultSegment.timestamp && timestamp <= (resultSegment.timestamp + resultSegment.duration));
 
@@ -234,6 +205,7 @@ export class MobileReplayer {
       this.setVideoTime(nextVideo, segmentOffsetMs);
       this._currentIndex = index;
     } else {
+      // eslint-disable-next-line no-console
       console.error(new Error('Loading invalid video'))
       return -1;
     }
