@@ -1,7 +1,7 @@
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Organization} from 'sentry/types';
-import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {
   TraceError as TraceErrorType,
   TraceErrorOrIssue,
@@ -142,6 +142,14 @@ export declare namespace TraceTree {
     event_id: string | undefined;
     project_slug: string | undefined;
   };
+
+  type Indicator = {
+    duration: number;
+    label: string;
+    measurement: Measurement;
+    start: number;
+    type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+  };
 }
 
 function cacheKey(organization: Organization, project_slug: string, event_id: string) {
@@ -158,23 +166,21 @@ function fetchTransactionSpans(
   );
 }
 
-const unitToSeconds = {
-  second: 1,
-  millisecond: 1e3,
-  nanosecond: 1e9,
-};
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
   unit: string
 ) {
-  const multiplier = unitToSeconds[unit];
-  if (multiplier === undefined) {
-    throw new TypeError(
-      `Unsupported measurement unit ${unit} for measurement ${measurement}`
-    );
+  if (unit === 'second') {
+    return start_timestamp + measurement;
   }
-  return start_timestamp + measurement / multiplier;
+  if (unit === 'millisecond') {
+    return start_timestamp + measurement / 1e3;
+  }
+  if (unit === 'nanosecond') {
+    return start_timestamp + measurement / 1e9;
+  }
+  throw new TypeError(`Unsupported measurement unit', ${unit}`);
 }
 
 function maybeInsertMissingInstrumentationSpan(
@@ -207,27 +213,19 @@ function maybeInsertMissingInstrumentationSpan(
   parent.spanChildren.push(missingInstrumentationSpan);
 }
 
-type Indicator = {
-  duration: number;
-  label: string;
-  node: TraceTreeNode<TraceTree.NodeValue>;
-  start: number;
-  type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
-};
-
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = ['fcp', 'fp', 'lcp', 'ttfb'];
 export class TraceTree {
-  type: 'loading' | 'trace' = 'trace';
+  type: 'loading' | 'empty' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
-  indicators: Indicator[] = [];
+  indicators: TraceTree.Indicator[] = [];
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
     const tree = new TraceTree().build();
-    tree.type = 'trace';
+    tree.type = 'empty';
     return tree;
   }
 
@@ -237,7 +235,7 @@ export class TraceTree {
     return tree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, event?: EventTransaction): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -251,36 +249,6 @@ export class TraceTree {
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
       node.canFetchData = true;
-
-      if ('measurements' in value) {
-        for (const measurement of RENDERABLE_MEASUREMENTS) {
-          if (!value.measurements?.[measurement]) {
-            continue;
-          }
-          if (value.measurements[measurement].value === 0) {
-            continue;
-          }
-
-          const timestamp = measurementToTimestamp(
-            value.start_timestamp,
-            value.measurements[measurement].value,
-            value.measurements[measurement].unit ?? 'milliseconds'
-          );
-
-          // If a rendered measurement extends the trace bounds, we update the trace bounds
-          if (timestamp > traceEnd) {
-            traceEnd = timestamp;
-          }
-
-          tree.indicators.push({
-            start: timestamp * node.multiplier,
-            duration: 0,
-            node,
-            type: measurement as Indicator['type'],
-            label: measurement.toUpperCase(),
-          });
-        }
-      }
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -322,6 +290,22 @@ export class TraceTree {
 
     for (const trace_error of trace.orphan_errors) {
       visit(traceNode, trace_error);
+    }
+
+    if (event?.measurements) {
+      const indicators = tree
+        .collectMeasurements(traceStart, event.measurements)
+        .sort((a, b) => a.start - b.start);
+
+      for (const indicator of indicators) {
+        if (indicator.start > traceEnd) {
+          traceEnd = indicator.start;
+        }
+
+        indicator.start *= traceNode.multiplier;
+      }
+
+      tree.indicators = indicators;
     }
 
     traceNode.space = [
@@ -613,6 +597,36 @@ export class TraceTree {
         }
       }
     }
+  }
+
+  collectMeasurements(
+    start_timestamp: number,
+    measurements: Record<string, Measurement>
+  ): TraceTree.Indicator[] {
+    const indicators: TraceTree.Indicator[] = [];
+
+    for (const measurement of RENDERABLE_MEASUREMENTS) {
+      const value = measurements[measurement];
+      if (!value) {
+        continue;
+      }
+
+      const timestamp = measurementToTimestamp(
+        start_timestamp,
+        value.value,
+        value.unit ?? 'milliseconds'
+      );
+
+      indicators.push({
+        start: timestamp,
+        duration: 0,
+        measurement: value,
+        type: measurement as TraceTree.Indicator['type'],
+        label: measurement.toUpperCase(),
+      });
+    }
+
+    return indicators;
   }
 
   // Returns boolean to indicate if node was updated
