@@ -4,7 +4,7 @@ from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
-from sentry import options
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -92,7 +92,9 @@ def run_metrics_queries_plan(
         )
 
     preparation_steps = []
-    if options.get("ddm.allow-unit-normalization"):
+    if features.has(
+        "organizations:ddm-metrics-api-unit-normalization", organization=organization, actor=None
+    ):
         preparation_steps.append(UnitNormalizationStep())
 
     # We run a series of preparation steps which operate on the entire list of queries.
