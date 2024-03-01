@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import missionControl from 'sentry-images/spot/missionControl.jpg';
+import controlCenter from 'sentry-images/spot/controlCenter.jpg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -168,7 +168,7 @@ const LearnMore = styled('a')`
 const ImageHeader = styled('div')`
   margin: -${space(4)} -${space(4)} 0 -${space(4)};
   border-radius: ${p => p.theme.modalBorderRadius} ${p => p.theme.modalBorderRadius} 0 0;
-  background-image: url(${missionControl});
+  background-image: url(${controlCenter});
   background-size: 620px;
   background-repeat: no-repeat;
   overflow: hidden;
