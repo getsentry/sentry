@@ -4,6 +4,7 @@ from typing import Any
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
+from sentry import options
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -90,8 +91,12 @@ def run_metrics_queries_plan(
             )
         )
 
+    preparation_steps = []
+    if options.get("ddm.allow-unit-normalization"):
+        preparation_steps.append(UnitNormalizationStep())
+
     # We run a series of preparation steps which operate on the entire list of queries.
-    intermediate_queries = run_preparation_steps(intermediate_queries, UnitNormalizationStep())
+    intermediate_queries = run_preparation_steps(intermediate_queries, *preparation_steps)
 
     # We prepare the executor, that will be responsible for scheduling the execution of multiple queries.
     executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)

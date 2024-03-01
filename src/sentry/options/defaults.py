@@ -2159,3 +2159,10 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Boolean that controls whether the metrics API will perform unit normalization or not
+register(
+    "ddm.allow-unit-normalization",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
