@@ -39,11 +39,11 @@ jest.mock('sentry/actionCreators/indicator', () => ({
 }));
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
     mark: jest.fn(),
     measure: jest.fn(),
   },
@@ -242,8 +242,8 @@ describe('IssueRuleEditor', function () {
           })
         )
       );
-      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledTimes(1);
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('strips environment value if "All environments" is selected', async function () {
@@ -258,8 +258,8 @@ describe('IssueRuleEditor', function () {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledTimes(1);
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('updates the alert onboarding task', async function () {
@@ -267,8 +267,8 @@ describe('IssueRuleEditor', function () {
       await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
-      expect(metric.startTransaction).toHaveBeenCalledTimes(1);
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledTimes(1);
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('renders multiple sentry apps at the same time', async () => {

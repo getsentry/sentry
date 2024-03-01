@@ -83,7 +83,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
 
   useEffect(() => {
     const mechanism = event.tags?.find(tag => tag.key === 'mechanism')?.value;
-    const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    const transaction = Sentry.getActiveTransaction();
     if (mechanism && transaction) {
       transaction.tags.hasMechanism = mechanism;
     }

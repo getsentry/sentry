@@ -1,9 +1,8 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
-import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import type {MeasurementUnit, Transaction, TransactionEvent} from '@sentry/types';
+import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
@@ -28,8 +27,8 @@ export {Profiler};
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
  * This will return an interaction-type transaction held onto by a class static if one exists.
  */
-export function getPerformanceTransaction(): IdleTransaction | Transaction | undefined {
-  return PerformanceInteraction.getTransaction() ?? Sentry.getActiveTransaction();
+export function getPerformanceTransaction(): Span | undefined {
+  return PerformanceInteraction.getSpan() ?? Sentry.getActiveTransaction();
 }
 
 /**
@@ -53,11 +52,11 @@ export const onRenderCallback: ProfilerOnRenderCallback = (id, phase, actualDura
 };
 
 export class PerformanceInteraction {
-  private static interactionTransaction: Transaction | null = null;
+  private static interactionSpan: Span | null = null;
   private static interactionTimeoutId: number | undefined = undefined;
 
-  static getTransaction() {
-    return PerformanceInteraction.interactionTransaction;
+  static getSpan() {
+    return PerformanceInteraction.interactionSpan;
   }
 
   static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
@@ -66,26 +65,24 @@ export class PerformanceInteraction {
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
         currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
-        currentIdleTransaction.finish();
+        currentIdleTransaction.end();
       }
       PerformanceInteraction.finishInteraction(immediate);
 
-      const txn = Sentry?.startTransaction({
+      const span = Sentry.startInactiveSpan({
         name: `ui.${name}`,
         op: 'interaction',
+        forceTransaction: true,
       });
 
-      PerformanceInteraction.interactionTransaction = txn;
+      PerformanceInteraction.interactionSpan = span || null;
 
       // Auto interaction timeout
       PerformanceInteraction.interactionTimeoutId = window.setTimeout(() => {
-        if (!PerformanceInteraction.interactionTransaction) {
+        if (!PerformanceInteraction.interactionSpan) {
           return;
         }
-        PerformanceInteraction.interactionTransaction.setTag(
-          'ui.interaction.finish',
-          'timeout'
-        );
+        PerformanceInteraction.interactionSpan.setTag('ui.interaction.finish', 'timeout');
         PerformanceInteraction.finishInteraction(true);
       }, timeout);
     } catch (e) {
@@ -95,21 +92,21 @@ export class PerformanceInteraction {
 
   static async finishInteraction(immediate = false) {
     try {
-      if (!PerformanceInteraction.interactionTransaction) {
+      if (!PerformanceInteraction.interactionSpan) {
         return;
       }
       clearTimeout(PerformanceInteraction.interactionTimeoutId);
 
       if (immediate) {
-        PerformanceInteraction.interactionTransaction?.finish();
-        PerformanceInteraction.interactionTransaction = null;
+        PerformanceInteraction.interactionSpan.end();
+        PerformanceInteraction.interactionSpan = null;
         return;
       }
 
       // Add a slight wait if this isn't called as the result of another transaction starting.
       await new Promise(resolve => setTimeout(resolve, WAIT_POST_INTERACTION));
-      PerformanceInteraction.interactionTransaction?.finish();
-      PerformanceInteraction.interactionTransaction = null;
+      PerformanceInteraction.interactionSpan?.end();
+      PerformanceInteraction.interactionSpan = null;
 
       return;
     } catch (e) {

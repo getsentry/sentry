@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconFlag} from 'sentry/icons';
@@ -29,12 +30,12 @@ type Props = {
 
 function openFeedback(e: React.MouseEvent) {
   e.preventDefault();
-  Sentry.showReportDialog();
+  Sentry.showReportDialog({eventId: getLastEventId()});
 }
 
 function DetailedError({className, heading, message, onRetry, hideSupportLinks}: Props) {
   const showFooter = !!onRetry || !hideSupportLinks;
-  const hasLastEvent = !!Sentry.lastEventId();
+  const hasLastEvent = !!getLastEventId();
 
   return (
     <Wrapper className={className}>

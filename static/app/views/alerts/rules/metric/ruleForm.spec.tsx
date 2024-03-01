@@ -17,11 +17,11 @@ import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
   },
 }));
 
@@ -182,7 +182,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('can create a rule for a different project', async () => {
@@ -219,7 +219,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
     it('creates a rule with generic_metrics dataset', async () => {

@@ -36,7 +36,7 @@ export class SQLishFormatter {
   toFormat(sql: string, format: Format, options?: StringFormatterOptions) {
     let tokens;
 
-    const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+    const sentryTransaction = Sentry.getActiveTransaction();
 
     const sentrySpan = sentryTransaction?.startChild({
       op: 'function',
@@ -61,7 +61,7 @@ export class SQLishFormatter {
     }
 
     const formattedString = FORMATTERS[format](tokens, options);
-    sentrySpan?.finish();
+    sentrySpan?.end();
 
     return formattedString;
   }
