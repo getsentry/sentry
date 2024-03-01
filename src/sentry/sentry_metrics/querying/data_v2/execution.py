@@ -591,7 +591,8 @@ class QueryExecutor:
                 )
                 merged_query_result = first_query_result.merge(second_query_result)
                 # We run the alignment of series and totals when merging two query results. We do this since we want
-                # data to be sorted when it's returned to the user.
+                # data to be correctly ordered when returned to the user as if series were already ordered by the
+                # database.
                 merged_query_result.align_series_to_totals()
                 self._pending_query_results[query_index] = merged_query_result
 
