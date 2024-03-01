@@ -126,7 +126,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
         {tct(
-          'No transactions with [spanCategory] spans found. Please check your [link].',
+          'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
             spanCategory: type === 'db' ? t('Database') : t('HTTP'),
             link: (
