@@ -171,8 +171,22 @@ function Trace({
           index: maybeNode.index,
           node: maybeNode.node,
         });
+
+        if (search_state.query) {
+          onTraceSearch(search_state.query);
+        }
       });
-  }, [api, organization, trace, trace_id, manager, setDetailNode, roving_dispatch]);
+  }, [
+    api,
+    organization,
+    trace,
+    trace_id,
+    manager,
+    search_state.query,
+    onTraceSearch,
+    setDetailNode,
+    roving_dispatch,
+  ]);
 
   const handleZoomIn = useCallback(
     (

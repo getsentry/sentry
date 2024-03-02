@@ -146,9 +146,10 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const {projects} = useProjects();
   const location = useLocation();
-  const rootEvent = useRootEvent(props.traceSlug, projects?.[0]?.slug ?? '', props.trace);
+  const {projects} = useProjects();
+
+  const rootEvent = useRootEvent(props.trace?.transactions);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
@@ -206,8 +207,9 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   const initialQuery = useMemo((): string | undefined => {
     const query = qs.parse(location.search);
+
     if (typeof query.search === 'string') {
-      return '';
+      return query.search;
     }
     return undefined;
     // We only want to decode on load
@@ -392,13 +394,10 @@ function TraceViewContent(props: TraceViewContentProps) {
 }
 
 function useQueryParamSync(query: Record<string, string | undefined>) {
-  const previousQueryRef = useRef<Record<string, string | undefined>>({});
+  const previousQueryRef = useRef<Record<string, string | undefined>>(query);
   const syncStateTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (syncStateTimeoutRef.current !== null) {
-      window.clearTimeout(syncStateTimeoutRef.current);
-    }
     const keys = Object.keys(query);
     const previousKeys = Object.keys(previousQueryRef.current);
 
@@ -406,30 +405,31 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
       keys.length === previousKeys.length &&
       keys.every(key => query[key] === previousQueryRef.current[key])
     ) {
+      previousQueryRef.current = query;
       return;
     }
 
+    if (syncStateTimeoutRef.current !== null) {
+      window.clearTimeout(syncStateTimeoutRef.current);
+    }
     previousQueryRef.current = query;
 
     syncStateTimeoutRef.current = window.setTimeout(() => {
       browserHistory.replace({
         pathname: location.pathname,
-        query: query,
+        query: previousQueryRef.current,
       });
-    }, 200);
+    }, 500);
   }, [query]);
 }
 
-function useRootEvent(
-  trace_id: string,
-  project_slug: string,
-  trace: TraceSplitResults<TraceFullDetailed> | null
-) {
+function useRootEvent(trace: TraceFullDetailed[] | undefined) {
+  const root = trace?.[0];
   const organization = useOrganization();
 
   return useApiQuery<EventTransaction>(
     [
-      `/organizations/${organization.slug}/events/${project_slug}:${trace_id}/`,
+      `/organizations/${organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
         query: {
           referrer: 'trace-details-summary',
@@ -438,7 +438,7 @@ function useRootEvent(
     ],
     {
       staleTime: 0,
-      enabled: (trace?.transactions.length ?? 0) > 0,
+      enabled: !!trace,
     }
   );
 }
