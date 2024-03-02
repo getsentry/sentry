@@ -44,13 +44,11 @@ export function CollapsibleValue({
         <ToggleButton
           size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          aria-expanded={isExpanded}
-          onClick={() => {
-            setIsExpanded(oldValue => !oldValue);
-          }}
+          onClick={() => setIsExpanded(oldValue => !oldValue)}
           icon={
-            <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="9px" />
+            <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
+          borderless
           baseLevelPadding={baseLevelPadding}
         />
       ) : null}
@@ -81,7 +79,7 @@ const CollapsibleDataContainer = styled('span')<{baseLevelPadding: boolean}>`
 `;
 
 const IndentedValues = styled('div')`
-  padding-left: ${space(2)};
+  padding-left: ${space(1.5)};
 `;
 
 const NumItemsButton = styled(Button)`
@@ -98,12 +96,13 @@ const NumItemsButton = styled(Button)`
 
 const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
   position: absolute;
-  left: -20px;
-  top: 1px;
+  left: -${space(3)};
+  top: 2px;
   border-radius: 2px;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: none;
+  border: none;
 
   ${p =>
     p.baseLevelPadding &&
