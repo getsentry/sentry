@@ -216,6 +216,35 @@ class JavascriptParser(LanguageParser):
         )
 
 
+class PHPParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+    @staticmethod
+    def extract_functions_from_patch(patch: str) -> set[str]:
+        r"""
+        Type of function declaration    Example
+        Function declaration:           public static function hello(argument1, argument2)
+        Anonymous Function:             $hello = function(argument1, argument2)
+        Arrow function:                 $arrowFunc = fn($parameter) => $parameter + 1;
+        """
+
+        function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>[^\(]*)\(.*$"
+        anonymous_function_regex = r"^@@.*@@.*\s+\$(?P<fnc>\w+)\s*=\s*function\s*\(.*$"
+        arrow_function_regex = r"^@@.*@@.*\s+\$(?P<fnc>\w+)\s*=\s*fn\([^)]*\)\s*=>.*$"
+
+        regexes = [
+            function_declaration_regex,
+            arrow_function_regex,
+            anonymous_function_regex,
+        ]
+
+        functions = set()
+        for regex in regexes:
+            functions.update(set(re.findall(regex, patch, flags=re.M)))
+
+        return functions
+
+
 PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
@@ -231,4 +260,5 @@ BETA_PATCH_PARSERS: dict[str, Any] = {
     "jsx": JavascriptParser,
     "ts": JavascriptParser,
     "tsx": JavascriptParser,
+    "php": PHPParser,
 }
