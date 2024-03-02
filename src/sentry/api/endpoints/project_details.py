@@ -822,6 +822,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:feedback_user_report_notification",
                     bool(options["sentry:feedback_user_report_notification"]),
                 )
+            if "sentry:feedback_ai_spam_detection" in options:
+                project.update_option(
+                    "sentry:feedback_ai_spam_detection",
+                    bool(options["sentry:feedback_ai_spam_detection"]),
+                )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
                     "sentry:reprocessing_active",
