@@ -322,7 +322,11 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
   }, [props.organization]);
 
-  useQueryParamSync({...qs.parse(location.search), search: searchState.query});
+  const syncQuery = useMemo(() => {
+    return {search: searchState.query};
+  }, [searchState.query]);
+
+  useQueryParamSync(syncQuery);
 
   return (
     <Fragment>
@@ -407,7 +411,9 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
 
     if (
       keys.length === previousKeys.length &&
-      keys.every(key => query[key] === previousQueryRef.current[key])
+      keys.every(key => {
+        return query[key] === previousQueryRef.current[key];
+      })
     ) {
       previousQueryRef.current = query;
       return;
@@ -421,7 +427,10 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
     syncStateTimeoutRef.current = window.setTimeout(() => {
       browserHistory.replace({
         pathname: location.pathname,
-        query: previousQueryRef.current,
+        query: {
+          ...qs.parse(location.search),
+          ...previousQueryRef.current,
+        },
       });
     }, 1000);
   }, [query]);
