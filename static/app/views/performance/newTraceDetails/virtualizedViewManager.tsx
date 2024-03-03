@@ -468,7 +468,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 16) {
+      if (elapsed > 100) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -544,7 +544,11 @@ export class VirtualizedViewManager {
       0
     );
 
-    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+    const overscroll = this.list?.props.overscanRowCount ?? 0;
+    const start = -overscroll;
+    const end = this.columns.list.column_refs.length + overscroll;
+
+    for (let i = start; i < end; i++) {
       const list = this.columns.list.column_refs[i];
       if (list?.children?.[0]) {
         (list.children[0] as HTMLElement).style.transform =

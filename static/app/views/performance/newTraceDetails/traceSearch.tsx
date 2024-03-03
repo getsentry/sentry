@@ -27,6 +27,7 @@ export type TraceSearchState = {
   resultIteratorIndex: number | undefined;
   results: ReadonlyArray<TraceResult> | undefined;
   resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
+  status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
 };
 
 function assertBoundedIndex(index: number, length: number) {
@@ -47,6 +48,7 @@ export function traceSearchReducer(
         results: undefined,
         resultIndex: undefined,
         resultsLookup: new Map(),
+        status: undefined,
       };
     }
     case 'go to next match': {
@@ -98,6 +100,7 @@ export function traceSearchReducer(
     case 'set results': {
       return {
         ...state,
+        status: [performance.now(), 'success'],
         results: action.results,
         resultIteratorIndex: undefined,
         resultIndex: undefined,
@@ -107,6 +110,7 @@ export function traceSearchReducer(
     case 'set query': {
       return {
         ...state,
+        status: [performance.now(), 'loading'],
         query: action.query,
         resultIteratorIndex: undefined,
         resultIndex: undefined,

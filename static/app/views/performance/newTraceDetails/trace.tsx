@@ -390,93 +390,84 @@ function Trace({
   );
 
   return (
-    <Fragment>
-      <TraceStylingWrapper
-        ref={r => manager.onContainerRef(r)}
-        className={trace.type === 'loading' ? 'Loading' : ''}
+    <TraceStylingWrapper
+      ref={r => manager.onContainerRef(r)}
+      className={trace.type === 'loading' ? 'Loading' : ''}
+    >
+      <TraceDivider className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
+      {trace.type === 'loading' ? <TraceLoading /> : null}
+      <div
+        className="TraceIndicatorContainer"
+        ref={r => manager.registerIndicatorContainerRef(r)}
       >
-        <TraceDivider
-          className="TraceDivider"
-          ref={r => manager?.registerDividerRef(r)}
-        />
-        {trace.type === 'loading' ? <TraceLoading /> : null}
-        <AutoSizer>
-          {({width, height}) => (
-            <Fragment>
-              <div
-                className="TraceIndicatorContainer"
-                ref={r => manager.registerIndicatorContainerRef(r)}
-              >
-                {trace.indicators.length > 0
-                  ? trace.indicators.map((indicator, i) => {
-                      return (
-                        <div
-                          key={i}
-                          ref={r => manager.registerIndicatorRef(r, i, indicator)}
-                          className="TraceIndicator"
-                        >
-                          <div className="TraceIndicatorLabel">{indicator.label}</div>
-                          <div className="TraceIndicatorLine" />
-                        </div>
-                      );
-                    })
-                  : null}
-              </div>
-              <List
-                ref={registerListRef}
-                rowHeight={24}
-                height={height}
-                width={width}
-                scrollToAlignment="center"
-                overscanRowCount={5}
-                rowCount={treeRef.current.list.length ?? 0}
-                rowRenderer={p => {
-                  const node = treeRef.current.list[p.index];
-                  return trace.type === 'loading' ? (
-                    <RenderPlaceholderRow
-                      style={p.style}
-                      node={node}
-                      index={p.index}
-                      theme={theme}
-                      projects={projectLookup}
-                      manager={manager}
-                      startIndex={
-                        (p.parent as unknown as {_rowStartIndex: number})
-                          ._rowStartIndex ?? 0
-                      }
-                    />
-                  ) : (
-                    <RenderRow
-                      key={p.key}
-                      theme={theme}
-                      startIndex={
-                        (p.parent as unknown as {_rowStartIndex: number})
-                          ._rowStartIndex ?? 0
-                      }
-                      organization={organization}
-                      previouslyFocusedIndexRef={previouslyFocusedIndexRef}
-                      tabIndex={roving_state.index ?? -1}
-                      isSearchResult={searchResultsMap.has(node)}
-                      searchResultsIteratorIndex={searchResultsIteratorIndex}
-                      index={p.index}
-                      style={p.style}
-                      trace_id={trace_id}
-                      projects={projectLookup}
-                      node={node}
-                      manager={manager}
-                      onExpand={handleExpandNode}
-                      onZoomIn={handleZoomIn}
-                      onRowClick={onRowClick}
-                      onRowKeyDown={onRowKeyDown}
-                    />
-                  );
-                }}
-              />
-            </Fragment>
-          )}
-        </AutoSizer>
-      </TraceStylingWrapper>
-    </Fragment>
+        {trace.indicators.length > 0
+          ? trace.indicators.map((indicator, i) => {
+              return (
+                <div
+                  key={i}
+                  ref={r => manager.registerIndicatorRef(r, i, indicator)}
+                  className="TraceIndicator"
+                >
+                  <div className="TraceIndicatorLabel">{indicator.label}</div>
+                  <div className="TraceIndicatorLine" />
+                </div>
+              );
+            })
+          : null}
+      </div>
+      <AutoSizer>
+        {({width, height}) => (
+          <List
+            ref={registerListRef}
+            rowHeight={24}
+            height={height}
+            width={width}
+            scrollToAlignment="center"
+            overscanRowCount={5}
+            rowCount={treeRef.current.list.length ?? 0}
+            rowRenderer={p => {
+              const node = treeRef.current.list[p.index];
+              return trace.type === 'loading' ? (
+                <RenderPlaceholderRow
+                  style={p.style}
+                  node={node}
+                  index={p.index}
+                  theme={theme}
+                  projects={projectLookup}
+                  manager={manager}
+                  startIndex={
+                    (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ?? 0
+                  }
+                />
+              ) : (
+                <RenderRow
+                  key={p.key}
+                  theme={theme}
+                  startIndex={
+                    (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ?? 0
+                  }
+                  organization={organization}
+                  previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+                  tabIndex={roving_state.index ?? -1}
+                  isSearchResult={searchResultsMap.has(node)}
+                  searchResultsIteratorIndex={searchResultsIteratorIndex}
+                  index={p.index}
+                  style={p.style}
+                  trace_id={trace_id}
+                  projects={projectLookup}
+                  node={node}
+                  manager={manager}
+                  onExpand={handleExpandNode}
+                  onZoomIn={handleZoomIn}
+                  onRowClick={onRowClick}
+                  onRowKeyDown={onRowKeyDown}
+                />
+              );
+            }}
+          />
+        )}
+      </AutoSizer>
+    </TraceStylingWrapper>
   );
 }
 

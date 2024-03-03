@@ -221,6 +221,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultIteratorIndex: undefined,
     resultIndex: undefined,
     results: undefined,
+    status: undefined,
     resultsLookup: new Map(),
   });
 
@@ -276,17 +277,21 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, [searchState.resultIndex, viewManager.list]);
 
   const onSearchChange = useCallback(
-    (query: string) => {
-      if (!query) {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event.currentTarget.value) {
         searchDispatch({type: 'clear query'});
         return;
       }
 
-      onTraceSearch(query);
-      searchDispatch({type: 'set query', query});
+      onTraceSearch(event.currentTarget.value);
+      searchDispatch({type: 'set query', query: event.currentTarget.value});
     },
     [onTraceSearch]
   );
+
+  const onSearchClear = useCallback(() => {
+    searchDispatch({type: 'clear query'});
+  }, []);
 
   const onSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown') {
@@ -356,10 +361,11 @@ function TraceViewContent(props: TraceViewContentProps) {
             organization={props.organization}
             traces={props.trace}
           />
-
           <TraceSearchInput
             query={searchState.query}
+            status={searchState.status}
             onChange={onSearchChange}
+            onSearchClear={onSearchClear}
             onKeyDown={onSearchKeyDown}
             onNextSearchClick={onNextSearchClick}
             onPreviousSearchClick={onPreviousSearchClick}
@@ -412,14 +418,14 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
     if (syncStateTimeoutRef.current !== null) {
       window.clearTimeout(syncStateTimeoutRef.current);
     }
-    previousQueryRef.current = query;
 
+    previousQueryRef.current = query;
     syncStateTimeoutRef.current = window.setTimeout(() => {
       browserHistory.replace({
         pathname: location.pathname,
         query: previousQueryRef.current,
       });
-    }, 500);
+    }, 1000);
   }, [query]);
 }
 
