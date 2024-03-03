@@ -446,6 +446,7 @@ function Trace({
                   startIndex={
                     (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ?? 0
                   }
+                  overscroll={5}
                   organization={organization}
                   previouslyFocusedIndexRef={previouslyFocusedIndexRef}
                   tabIndex={roving_state.index ?? -1}
@@ -521,6 +522,7 @@ function RenderRow(props: {
     value: boolean
   ) => void;
   organization: Organization;
+  overscroll: number;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
   searchResultsIteratorIndex: number | undefined;
@@ -530,7 +532,7 @@ function RenderRow(props: {
   theme: Theme;
   trace_id: string;
 }) {
-  const virtualizedIndex = props.index - props.startIndex;
+  const virtualizedIndex = props.index - props.startIndex + props.overscroll;
   if (!props.node.value) {
     return null;
   }

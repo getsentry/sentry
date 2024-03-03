@@ -146,7 +146,6 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const location = useLocation();
   const {projects} = useProjects();
 
   const rootEvent = useRootEvent(props.trace?.transactions);
@@ -244,19 +243,18 @@ function TraceViewContent(props: TraceViewContentProps) {
     []
   );
 
-  const previousSearchRafRef = useRef<number | null>(null);
+  const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
     (query: string) => {
-      if (previousSearchRafRef.current !== null) {
-        window.cancelAnimationFrame(previousSearchRafRef.current);
+      if (searchingRaf.current?.id) {
+        window.cancelAnimationFrame(searchingRaf.current.id);
       }
 
-      previousSearchRafRef.current = window.requestAnimationFrame(() => {
-        const [results, lookup] = searchInTraceTree(query, tree);
+      searchingRaf.current = searchInTraceTree(query, tree, results => {
         searchDispatch({
           type: 'set results',
-          results: results,
-          resultsLookup: lookup,
+          results: results[0],
+          resultsLookup: results[1],
         });
       });
     },
@@ -324,7 +322,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     });
   }, [props.organization]);
 
-  useQueryParamSync({...location.query, search: searchState.query});
+  useQueryParamSync({...qs.parse(location.search), search: searchState.query});
 
   return (
     <Fragment>
@@ -392,7 +390,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.trace}
             traceEventView={props.traceEventView}
           />
-          {false ? <TraceDetailPanel node={detailNode} onClose={onDetailClose} /> : null}
+          {<TraceDetailPanel node={detailNode} onClose={onDetailClose} />}
         </Layout.Main>
       </Layout.Body>
     </Fragment>

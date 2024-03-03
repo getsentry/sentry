@@ -143,64 +143,80 @@ type TraceResult = {
 
 export function searchInTraceTree(
   query: string,
-  tree: TraceTree
-): [ReadonlyArray<TraceResult>, Map<TraceTreeNode<TraceTree.NodeValue>, number>] {
-  const resultLookup = new Map<TraceTreeNode<TraceTree.NodeValue>, number>();
-  const results: TraceResult[] = [];
+  tree: TraceTree,
+  cb: (
+    results: [ReadonlyArray<TraceResult>, Map<TraceTreeNode<TraceTree.NodeValue>, number>]
+  ) => void
+): {id: number | null} {
+  const raf: {id: number | null} = {id: 0};
+  const results: Array<TraceResult> = [];
+  const resultLookup = new Map();
 
-  let matchIdx = -1;
-  function collect(i: number, n: TraceTreeNode<TraceTree.NodeValue>) {
-    results.push({index: i, value: n});
-    resultLookup.set(n, ++matchIdx);
-  }
+  let start = 0;
+  let matchCount = 0;
+  const nodeCount = tree.list.length - 1;
 
-  for (let i = 0; i < tree.list.length; i++) {
-    const node = tree.list[i];
-
-    if (isSpanNode(node)) {
-      if (node.value.op?.includes(query)) {
-        collect(i, node);
-        continue;
+  function search() {
+    const ts = performance.now();
+    while (start < nodeCount && performance.now() - ts < 12) {
+      const node = tree.list[start];
+      if (searchInTraceSubset(query, node)) {
+        results.push({index: start, value: node});
+        resultLookup.set(node, matchCount);
+        matchCount++;
       }
-      if (node.value.description?.includes(query)) {
-        collect(i, node);
-        continue;
-      }
-      if (node.value.span_id && node.value.span_id === query) {
-        collect(i, node);
-        continue;
-      }
-      continue;
+      start++;
+    }
+    if (start === nodeCount) {
+      cb([results, resultLookup]);
+      raf.id = null;
     }
 
-    if (isTransactionNode(node)) {
-      if (node.value['transaction.op']?.includes(query)) {
-        collect(i, node);
-        continue;
-      }
-      if (node.value.transaction?.includes(query)) {
-        collect(i, node);
-        continue;
-      }
-      if (node.value.event_id && node.value.event_id === query) {
-        collect(i, node);
-        continue;
-      }
-      continue;
-    }
-
-    if (isTraceErrorNode(node)) {
-      if (node.value.level === query) {
-        collect(i, node);
-        continue;
-      }
-      if (node.value.title?.includes(query)) {
-        collect(i, node);
-        continue;
-      }
-      continue;
+    if (start < nodeCount) {
+      raf.id = requestAnimationFrame(search);
     }
   }
 
-  return [results, resultLookup];
+  raf.id = requestAnimationFrame(search);
+  return raf;
+}
+
+function searchInTraceSubset(
+  query: string,
+  node: TraceTreeNode<TraceTree.NodeValue>
+): boolean {
+  if (isSpanNode(node)) {
+    if (node.value.op?.includes(query)) {
+      return true;
+    }
+    if (node.value.description?.includes(query)) {
+      return true;
+    }
+    if (node.value.span_id && node.value.span_id === query) {
+      return true;
+    }
+  }
+
+  if (isTransactionNode(node)) {
+    if (node.value['transaction.op']?.includes(query)) {
+      return true;
+    }
+    if (node.value.transaction?.includes(query)) {
+      return true;
+    }
+    if (node.value.event_id && node.value.event_id === query) {
+      return true;
+    }
+  }
+
+  if (isTraceErrorNode(node)) {
+    if (node.value.level === query) {
+      return true;
+    }
+    if (node.value.title?.includes(query)) {
+      return true;
+    }
+  }
+
+  return false;
 }
