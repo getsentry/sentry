@@ -22,7 +22,7 @@ interface TraceSearchInputProps {
   status: TraceSearchState['status'];
 }
 
-const MIN_LOADING_TIME = 400;
+const MIN_LOADING_TIME = 300;
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const [status, setStatus] = useState<TraceSearchState['status']>();
 

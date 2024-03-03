@@ -547,9 +547,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
-        className={`TraceRow Autogrouped`}
+        className={`TraceRow Autogrouped ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -588,11 +586,10 @@ function RenderRow(props: {
           </div>
         </div>
         <div
-          className="TraceRightColumn"
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -626,10 +623,8 @@ function RenderRow(props: {
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
             : null
         }
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow`}
+        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -673,7 +668,7 @@ function RenderRow(props: {
             <span>{props.node.value.transaction}</span>
             {props.node.canFetchData ? (
               <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
+                {props.node.zoomedIn ? 'spans' : 'span'}
               </button>
             ) : null}
           </div>
@@ -682,8 +677,7 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          className="TraceRightColumn"
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -708,10 +702,8 @@ function RenderRow(props: {
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
             : null
         }
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow`}
+        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -769,8 +761,7 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          className="TraceRightColumn"
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -795,10 +786,8 @@ function RenderRow(props: {
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
             : null
         }
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow`}
+        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -831,8 +820,7 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          className="TraceRightColumn"
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -858,10 +846,8 @@ function RenderRow(props: {
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
             : null
         }
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow`}
+        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -905,8 +891,7 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          className="TraceRightColumn"
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -932,10 +917,8 @@ function RenderRow(props: {
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
             : null
         }
-        data-search-result={props.isSearchResult ? 1 : 0}
-        data-highlight={props.searchResultsIteratorIndex === props.index ? 1 : 0}
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow`}
+        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -986,8 +969,7 @@ function RenderRow(props: {
           ref={r =>
             props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
           }
-          className="TraceRightColumn"
-          data-nth-of-type-odd={props.index % 2 === 0 ? 0 : 1}
+          className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
@@ -1066,7 +1048,7 @@ function RenderPlaceholderRow(props: {
         </div>
       </div>
       <div
-        className="TraceRightColumn"
+        className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
         style={{
           width: props.manager.columns.span_list.width * 100 + '%',
           backgroundColor:
@@ -1123,7 +1105,6 @@ function Connectors(props: {
                 Math.abs(Math.abs(c) - props.node.depth) * props.manager.row_depth_padding
               ),
             }}
-            data-connector={c}
             className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
           />
         );
@@ -1412,7 +1393,7 @@ const TraceStylingWrapper = styled('div')`
       justify-content: center;
     }
 
-    .TraceRightColumn[data-nth-of-type-odd='1'] {
+    .TraceRightColumn.Odd {
       background-color: ${p => p.theme.backgroundSecondary};
     }
 
@@ -1420,12 +1401,12 @@ const TraceStylingWrapper = styled('div')`
       background-color: ${p => p.theme.backgroundSecondary};
     }
 
-    &[data-highlight='1'],
+    &.Highlight,
     &:focus {
       outline: none;
       background-color: ${p => p.theme.backgroundTertiary};
 
-      .TraceRightColumn[data-nth-of-type-odd='1'] {
+      .TraceRightColumn.Odd {
         background-color: transparent !important;
       }
     }
@@ -1438,7 +1419,7 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &[data-highlight='1'] {
+    &.Highlight {
       box-shadow: inset 0 0 0 1px ${p => p.theme.blue200} !important;
 
       .TraceLeftColumn {
@@ -1446,7 +1427,7 @@ const TraceStylingWrapper = styled('div')`
       }
     }
 
-    &[data-search-result='1'] {
+    &.SearchResult {
       background-color: ${p => p.theme.yellow100};
 
       .TraceRightColumn {
