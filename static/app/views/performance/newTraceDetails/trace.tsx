@@ -308,8 +308,8 @@ function Trace({
         manager.list.scrollToRow(nextIndex);
         roving_dispatch({type: 'set index', index: nextIndex, node});
 
-        if (search_state.resultsLookup.has(node)) {
-          const idx = search_state.resultsLookup.get(node)!;
+        if (search_state.resultsLookup.has(trace.list[nextIndex])) {
+          const idx = search_state.resultsLookup.get(trace.list[nextIndex])!;
 
           search_dispatch({
             type: 'set iterator index',
@@ -321,7 +321,7 @@ function Trace({
         }
       }
     },
-    [manager.list, roving_dispatch, search_state, search_dispatch]
+    [manager.list, roving_dispatch, search_state, search_dispatch, trace.list]
   );
 
   // @TODO this is the implementation of infinite scroll. Once the user
