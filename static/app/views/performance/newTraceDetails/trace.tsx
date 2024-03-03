@@ -537,6 +537,8 @@ function RenderRow(props: {
     return null;
   }
 
+  const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
+
   if (isAutogroupedNode(props.node)) {
     return (
       <div
@@ -547,7 +549,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow Autogrouped ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
+        className={`Autogrouped TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -624,7 +626,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
+        className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -703,7 +705,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''}`}
+        className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -787,7 +789,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
+        className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -847,7 +849,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
+        className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
@@ -918,7 +920,7 @@ function RenderRow(props: {
             : null
         }
         tabIndex={props.tabIndex === props.index ? 0 : -1}
-        className={`TraceRow ${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`}
+        className={`TraceRow ${rowSearchClassName}`}
         onClick={e => props.onRowClick(e, props.index, props.node)}
         onKeyDown={event => props.onRowKeyDown(event, props.index, props.node)}
         style={{
