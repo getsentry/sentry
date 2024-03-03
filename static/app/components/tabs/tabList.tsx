@@ -32,10 +32,10 @@ function useOverflowTabs({
   tabItems,
 }: {
   tabItems: TabListItemProps[];
-  tabItemsRef: React.RefObject<Record<React.Key, HTMLLIElement | null>>;
+  tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
-  const [overflowTabs, setOverflowTabs] = useState<React.Key[]>([]);
+  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
   useEffect(() => {
     const options = {
@@ -143,7 +143,7 @@ function BaseTabList({
   }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
-  const tabItemsRef = useRef<Record<React.Key, HTMLLIElement | null>>({});
+  const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
   const overflowTabs = useOverflowTabs({
     tabListRef,
     tabItemsRef,
