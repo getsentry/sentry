@@ -123,8 +123,15 @@ function Trace({
     });
   }, []);
 
-  const previouslyFocusedIndexRef = useRef<number | null>(null);
   const [_rerender, setRender] = useState(0);
+
+  const previouslyFocusedIndexRef = useRef<number | null>(null);
+  const treePromiseStatusRef =
+    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+
+  if (!treePromiseStatusRef.current) {
+    treePromiseStatusRef.current = new Map();
+  }
 
   const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
   const treeRef = useRef<TraceTree>(trace);
@@ -177,6 +184,7 @@ function Trace({
       }
 
       event.stopPropagation();
+      setRender(a => (a + 1) % 2);
 
       treeRef.current
         .zoomIn(node, value, {
@@ -185,6 +193,10 @@ function Trace({
         })
         .then(() => {
           setRender(a => (a + 1) % 2);
+          treePromiseStatusRef.current!.set(node, 'success');
+        })
+        .catch(_e => {
+          treePromiseStatusRef.current!.set(node, 'error');
         });
     },
     [api, organization]
@@ -596,9 +608,12 @@ function RenderRow(props: {
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
             {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
+              <SpanButton
+                status={props.node.fetchStatus}
+                onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}
+              >
                 {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
+              </SpanButton>
             ) : null}
           </div>
         </div>
@@ -687,9 +702,12 @@ function RenderRow(props: {
                   : props.node.value.description}
             </span>
             {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
+              <SpanButton
+                status={props.node.fetchStatus}
+                onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}
+              >
                 {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
+              </SpanButton>
             ) : null}
           </div>
         </div>
@@ -1235,6 +1253,20 @@ function TraceBar(props: TraceBarProps) {
         {duration}
       </div>
     </Fragment>
+  );
+}
+
+interface SpanButtonProps {
+  children: React.ReactNode;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  status: TraceTreeNode<any>['fetchStatus'] | undefined;
+}
+function SpanButton(props: SpanButtonProps) {
+  return (
+    <button onClick={props.onClick}>
+      {t('Spans')}
+      {props.status === 'loading' ? <LoadingIndicator /> : null}
+    </button>
   );
 }
 
