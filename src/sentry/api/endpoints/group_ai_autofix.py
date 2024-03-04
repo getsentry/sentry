@@ -107,7 +107,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
     def _call_autofix(
         self,
-        user: User,
+        user: User | AnonymousUser,
         group: Group,
         repos: list[dict],
         event_entries: list[dict],
@@ -127,10 +127,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                         "events": [{"entries": event_entries}],
                     },
                     "additional_context": additional_context,
-                    "invoking_user": {
-                        "id": user.id,
-                        "display_name": user.get_display_name(),
-                    },
+                    "invoking_user": (
+                        {
+                            "id": user.id,
+                            "display_name": user.get_display_name(),
+                        }
+                        if isinstance(user, User)
+                        else None
+                    ),
                 }
             ),
             headers={"content-type": "application/json;charset=utf-8"},
