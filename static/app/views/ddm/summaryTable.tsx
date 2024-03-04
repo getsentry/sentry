@@ -386,6 +386,7 @@ const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
     ${space(0.75)};
 
   max-height: 200px;
+  overflow-x: hidden;
   overflow-y: auto;
 
   border: 1px solid ${p => p.theme.border};
