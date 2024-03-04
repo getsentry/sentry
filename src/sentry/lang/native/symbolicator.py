@@ -16,6 +16,7 @@ from requests.exceptions import RequestException
 from sentry import options
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
+    get_internal_source,
     get_scraping_config,
     sources_for_symbolication,
 )
@@ -235,7 +236,7 @@ class Symbolicator:
         :param release_package: The name of the release's package. This is optional.
         :param apply_source_context: Whether to add source context to frames.
         """
-        source = get_internal_artifact_lookup_source(self.project)
+        source = get_internal_source(self.project)
 
         json = {
             "sources": [source],
