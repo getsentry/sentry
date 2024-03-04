@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -31,24 +30,22 @@ function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: 
         <EnvironmentPageFilter />
         <DatePageFilter relativeOptions={relativeDateOptions} />
       </PageFilterBar>
-      <GuideAnchor target="releases_search" position="bottom">
-        <SmartSearchBar
-          searchSource="project_filters"
-          query={query}
-          placeholder={t('Search by release version, build, package, or stage')}
-          hasRecentSearches={false}
-          supportedTags={{
-            ...SEMVER_TAGS,
-            release: {
-              key: 'release',
-              name: 'release',
-            },
-          }}
-          maxMenuHeight={500}
-          onSearch={onSearch}
-          onGetTagValues={getTagValues}
-        />
-      </GuideAnchor>
+      <SmartSearchBar
+        searchSource="project_filters"
+        query={query}
+        placeholder={t('Search by release version, build, package, or stage')}
+        hasRecentSearches={false}
+        supportedTags={{
+          ...SEMVER_TAGS,
+          release: {
+            key: 'release',
+            name: 'release',
+          },
+        }}
+        maxMenuHeight={500}
+        onSearch={onSearch}
+        onGetTagValues={getTagValues}
+      />
     </FiltersWrapper>
   );
 }

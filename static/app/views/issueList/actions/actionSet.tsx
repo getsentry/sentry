@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -277,21 +276,13 @@ function ActionSet({
           }}
         />
       )}
-      <GuideAnchor
-        target="issue_stream_archive_button"
-        position="bottom"
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
+        confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
+        confirmLabel={label('archive')}
         disabled={ignoreDisabled}
-      >
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      </GuideAnchor>
+      />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
