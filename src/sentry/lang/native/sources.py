@@ -11,6 +11,7 @@ import jsonschema
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
+from rediscluster import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
@@ -178,9 +179,9 @@ REDACTED_SOURCES_SCHEMA = {
 LAST_UPLOAD_TTL = 24 * 3600
 
 
-def _get_cluster():
+def _get_cluster() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _last_upload_key(project_id: int) -> str:
