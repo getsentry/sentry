@@ -91,7 +91,7 @@ export function MetricReadout({
 }
 
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
-  text-align: ${p => p.align};;
+  text-align: ${p => p.align};
   font-variant-numeric: tabular-nums;
 `;
 
