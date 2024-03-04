@@ -147,6 +147,9 @@ SPAN_COLUMN_MAP = {
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
+    "replay.id": "sentry_tags[replay_id]",
+    "browser.name": "sentry_tags[browser.name]",
+    "origin.transaction": "sentry_tags[transaction]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
