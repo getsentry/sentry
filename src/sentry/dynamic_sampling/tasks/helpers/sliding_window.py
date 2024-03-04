@@ -44,7 +44,12 @@ def get_sliding_window_org_sample_rate(
     cache_key = generate_sliding_window_org_cache_key(org_id)
 
     try:
-        return float(redis_client.get(cache_key)), True
+        value = redis_client.get(cache_key)
+
+        if value is not None:
+            return float(value), True
+
+        return default_sample_rate, False
     except (TypeError, ValueError):
         return default_sample_rate, False
 

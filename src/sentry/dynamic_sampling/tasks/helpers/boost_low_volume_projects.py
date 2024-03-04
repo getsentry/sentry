@@ -16,9 +16,11 @@ def get_boost_low_volume_projects_sample_rate(
     cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
 
     try:
-        return float(redis_client.hget(cache_key, project_id)), True
+        value = redis_client.hget(name=cache_key, key=str(project_id))
+        assert value is not None
+        return float(value), True
     # Thrown if the input is not a string or a float (e.g., None).
-    except TypeError:
+    except (TypeError, AssertionError):
         # In case there is no value in cache, we want to check if the sliding window org was executed. If it was
         # executed, but we didn't have this project boosted, it means that the entire org didn't have traffic in the
         # last hour which resulted in the system not considering it at all.

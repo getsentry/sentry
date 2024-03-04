@@ -1,5 +1,6 @@
 from unittest.mock import ANY, patch
 
+from sentry.api.endpoints.group_ai_autofix import GroupAiAutofixEndpoint
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -136,7 +137,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "No valid repositories found."
+        error_msg = "Found no Github repositories linked to this project."
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
@@ -194,3 +195,67 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert group.data["metadata"]["autofix"]["status"] == "ERROR"
         assert group.data["metadata"]["autofix"]["error_message"] == error_msg
         assert group.data["metadata"]["autofix"]["steps"] == []
+
+    def test_get_repos_from_code_mapping_no_repos(self):
+        group = self.create_group(project=self.project)
+        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        assert len(repos) == 0, "Expected no repositories to be returned when none are linked"
+
+    def test_get_repos_from_code_mapping_with_repos(self):
+        group = self.create_group(project=self.project)
+
+        # Creating a repository and linking it to the project
+        repo1 = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.create_code_mapping(repo=repo1, stack_root="app")
+
+        repo2 = self.create_repo(
+            project=self.project, name="getsentry/sentry-cli", provider="integrations:github"
+        )
+        self.create_code_mapping(repo=repo2, stack_root="src")
+
+        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        assert len(repos) == 2, "Expected two repositories to be returned"
+        assert {
+            "provider": "integrations:github",
+            "owner": "getsentry",
+            "name": "sentry",
+        } in repos, "Expected repo1 to be in the returned list"
+        assert {
+            "provider": "integrations:github",
+            "owner": "getsentry",
+            "name": "sentry-cli",
+        } in repos, "Expected repo2 to be in the returned list"
+
+    def test_get_repos_from_code_mapping_with_duplicate_repos(self):
+        group = self.create_group(project=self.project)
+
+        # Creating a repository and linking it to the project
+        repo1 = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.create_code_mapping(repo=repo1, stack_root="app")
+
+        repo2 = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.create_code_mapping(repo=repo2, stack_root="src")
+
+        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        assert len(repos) == 1, "Expected one repository to be returned"
+        assert {
+            "provider": "integrations:github",
+            "owner": "getsentry",
+            "name": "sentry",
+        } in repos
+
+    def test_get_repos_from_code_mapping_with_invalid_provider(self):
+        group = self.create_group(project=self.project)
+
+        # Creating a repository and linking it to the project
+        repo1 = self.create_repo(project=self.project, name="getsentry/sentry", provider=None)
+        self.create_code_mapping(repo=repo1, stack_root="app")
+
+        repos = GroupAiAutofixEndpoint._get_repos_from_code_mapping(group)
+        assert len(repos) == 0
