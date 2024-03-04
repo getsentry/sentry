@@ -83,6 +83,7 @@ default_manager.add("organizations:codecov-commit-sha-from-git-blame", Organizat
 default_manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:crons-disable-ingest-endpoints", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:crons-disable-new-projects", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:crons-broken-monitor-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
