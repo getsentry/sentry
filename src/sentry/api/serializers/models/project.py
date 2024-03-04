@@ -716,7 +716,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, lpq_projects=lpq_projects
+                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
             )
 
         return attrs
