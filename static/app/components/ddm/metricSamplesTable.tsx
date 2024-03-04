@@ -186,7 +186,7 @@ export function MetricSamplesTable({
     min: focusArea?.min,
     mri,
     query,
-    referrer: 'foo',
+    referrer: 'api.organization.metrics-samples',
     enabled,
     sort: sortQuery,
     limit: 20,
