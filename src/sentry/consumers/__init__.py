@@ -380,6 +380,14 @@ def get_stream_processor(
     validate_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
+    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+    from arroyo.backends.kafka.consumer import KafkaConsumer
+    from arroyo.commit import ONCE_PER_SECOND
+    from arroyo.types import Topic as ArroyoTopic
+    from django.conf import settings
+
+    from sentry.utils import kafka_config
+
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
@@ -417,14 +425,6 @@ def get_stream_processor(
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
-
-    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-    from arroyo.backends.kafka.consumer import KafkaConsumer
-    from arroyo.commit import ONCE_PER_SECOND
-    from arroyo.types import Topic as ArroyoTopic
-    from django.conf import settings
-
-    from sentry.utils import kafka_config
 
     topic_def = settings.KAFKA_TOPICS[real_topic]
     assert topic_def is not None
