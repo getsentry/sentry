@@ -17,6 +17,12 @@ class RealtimeMetricsStore(Service):
         "remove_projects_from_lpq",
     )
 
+    def validate(self) -> None:
+        """
+        Validate the current state of the metrics store.
+        """
+        raise NotImplementedError
+
     def record_project_duration(self, project_id: int, duration: float) -> None:
         """
         Records the duration of a symbolication request for the given project_id.

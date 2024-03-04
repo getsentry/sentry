@@ -244,7 +244,6 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
             "slug": self.slug,
             "name": self.name,
             "status": self.status,
-            "org_role": self.org_role,
         }
 
     def get_projects(self):

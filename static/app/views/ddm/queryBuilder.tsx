@@ -196,8 +196,6 @@ export const QueryBuilder = memo(function QueryBuilder({
             breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
             /\.|-|_/
           )}
-          // TODO(TS): Is this used anywhere?
-          aria-placeholder={t('Select a metric')}
           options={mriOptions}
           value={metricsQuery.mri}
           onChange={handleMRIChange}
@@ -213,7 +211,8 @@ export const QueryBuilder = memo(function QueryBuilder({
                 value: op,
               })) ?? []
             }
-            disabled={!metricsQuery.mri}
+            triggerLabel={metricsQuery.op}
+            disabled={!selectedMeta}
             value={metricsQuery.op}
             onChange={handleOpChange}
           />
@@ -243,6 +242,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
+          blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
         />
       </SearchBarWrapper>
     </QueryBuilderWrapper>

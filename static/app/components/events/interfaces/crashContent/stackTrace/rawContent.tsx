@@ -167,12 +167,18 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
 export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
-  exception?: ExceptionValue
+  exception?: ExceptionValue,
+  hasSimilarityEmbeddingsFeature: boolean = false
 ) {
   const frames: string[] = [];
 
   (data?.frames ?? []).forEach((frame, frameIdx) => {
-    frames.push(getFrame(frame, frameIdx, platform));
+    if (
+      !hasSimilarityEmbeddingsFeature ||
+      (frame.inApp && hasSimilarityEmbeddingsFeature)
+    ) {
+      frames.push(getFrame(frame, frameIdx, platform));
+    }
   });
 
   if (platform !== 'python') {
