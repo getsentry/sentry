@@ -114,6 +114,8 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             queryset=queryset,
             on_results=lambda action: serialize(action, request.user),
             paginator_cls=OffsetPaginator,
+            max_per_page=1000,
+            max_limit=1000,
         )
 
     @extend_schema(

@@ -67,6 +67,23 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         for action in notif_actions:
             assert serialize(action) in response.data
 
+    def test_get_pagination(self):
+        for _ in range(200):
+            self.create_notification_action(organization=self.organization)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        assert len(response.data) == 100
+
+        response = self.get_success_response(
+            self.organization.slug, status_code=status.HTTP_200_OK, per_page=150
+        )
+
+        assert len(response.data) == 150
+
     @patch.object(
         NotificationAction,
         "get_trigger_types",
