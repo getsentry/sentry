@@ -1,23 +1,39 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import partition from 'lodash/partition';
 
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {feedbackOnboardingPlatforms} from 'sentry/data/platformCategories';
+import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
-function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanelKey}) {
+type Props = {
+  allPlatforms: readonly PlatformKey[];
+  currentPanel: '' | SidebarPanelKey;
+  onboardingPlatforms: readonly PlatformKey[];
+  targetPanel: SidebarPanelKey;
+};
+
+function useCurrentProjectState({
+  currentPanel,
+  targetPanel,
+  onboardingPlatforms,
+  allPlatforms,
+}: Props) {
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
-  const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
+  const isActive = currentPanel === targetPanel;
 
   // Projects with onboarding instructions
   const projectsWithOnboarding = projects.filter(
-    p => p.platform && feedbackOnboardingPlatforms.includes(p.platform)
+    p => p.platform && onboardingPlatforms.includes(p.platform)
   );
+
+  const [supportedProjects, unsupportedProjects] = useMemo(() => {
+    return partition(projects, p => p.platform && allPlatforms.includes(p.platform));
+  }, [projects, allPlatforms]);
 
   useEffect(() => {
     if (!isActive) {
@@ -30,7 +46,8 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
       !projectsLoaded ||
       !projects.length ||
       !isReady ||
-      !projectsWithOnboarding
+      !projectsWithOnboarding ||
+      !supportedProjects
     ) {
       return;
     }
@@ -48,13 +65,23 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
         return;
       }
 
+      // If we selected something that supports the product pick that
+      const projectSupportsProduct = supportedProjects.find(p =>
+        selectedProjectIds.includes(p.id)
+      );
+
+      if (projectSupportsProduct) {
+        setCurrentProject(projectSupportsProduct);
+        return;
+      }
+
       // Otherwise, just pick the first selected project
       const firstSelectedProject = projects.find(p => selectedProjectIds.includes(p.id));
       setCurrentProject(firstSelectedProject);
       return;
     }
     // No selection, so pick the first project with onboarding
-    setCurrentProject(projectsWithOnboarding.at(0));
+    setCurrentProject(projectsWithOnboarding.at(0) || supportedProjects.at(0));
     return;
   }, [
     currentProject,
@@ -64,13 +91,18 @@ function useCurrentProjectState({currentPanel}: {currentPanel: '' | SidebarPanel
     isActive,
     selection.projects,
     projectsWithOnboarding,
+    supportedProjects,
   ]);
 
   return {
-    projectsWithOnboarding,
-    projects,
+    projects: supportedProjects,
+    allProjects: projects,
     currentProject,
     setCurrentProject,
+    hasDocs:
+      !!currentProject?.platform && onboardingPlatforms.includes(currentProject.platform),
+    supportedProjects,
+    unsupportedProjects,
   };
 }
 

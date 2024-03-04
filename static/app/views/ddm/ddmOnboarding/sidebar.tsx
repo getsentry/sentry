@@ -7,18 +7,20 @@ import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
+import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {customMetricPlatforms} from 'sentry/data/platformCategories';
+import {
+  customMetricOnboardingPlatforms,
+  customMetricPlatforms,
+} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project, SelectValue} from 'sentry/types';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {useCurrentProjectState} from './useCurrentProjectState';
 
 function MetricsOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -36,7 +38,10 @@ function MetricsOnboardingSidebar(props: CommonSidebarProps) {
     unsupportedProjects,
     hasDocs,
   } = useCurrentProjectState({
-    isActive,
+    currentPanel,
+    targetPanel: SidebarPanelKey.METRICS_ONBOARDING,
+    onboardingPlatforms: customMetricOnboardingPlatforms,
+    allPlatforms: customMetricPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
@@ -150,7 +155,7 @@ function OnboardingContent({
     : undefined;
 
   const supportsCustomMetrics =
-    currentProject.platform && customMetricPlatforms.has(currentProject.platform);
+    currentProject.platform && customMetricPlatforms.includes(currentProject.platform);
 
   if (!supportsCustomMetrics) {
     return (
