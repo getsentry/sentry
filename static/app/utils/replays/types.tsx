@@ -1,4 +1,4 @@
-import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import type {EventType, eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
@@ -279,6 +279,30 @@ export type ErrorFrame = Overwrite<
 >;
 
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+
+interface MobileFrame {
+  container: string;
+  duration: number;
+  encoding: string;
+  frameCount: number;
+  frameRate: number;
+  frameRateType: string;
+  height: number;
+  left: number;
+  segmentId: number;
+  size: number;
+  top: number;
+  width: number;
+}
+
+export interface MobileFrameEvent {
+  data: {
+    payload: MobileFrame;
+    tag: 'video';
+  };
+  timestamp: number;
+  type: EventType.Custom;
+}
 
 export interface MobileAttachment {
   duration: number;
