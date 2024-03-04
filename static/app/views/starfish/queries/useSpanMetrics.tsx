@@ -13,6 +13,7 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 
 interface UseSpanMetricsOptions<Fields> {
   cursor?: string;
+  enabled?: boolean;
   fields?: Fields;
   filters?: SpanMetricsQueryFilters;
   limit?: number;
@@ -29,7 +30,9 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 
   const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
 
-  const enabled = Object.values(filters).every(value => Boolean(value));
+  // TODO: Checking that every filter has a value might not be a good choice, since this API is not convenient. Instead, it's probably fine to omit keys with blank values
+  const enabled =
+    options.enabled && Object.values(filters).every(value => Boolean(value));
 
   const result = useWrappedDiscoverQuery({
     eventView,
