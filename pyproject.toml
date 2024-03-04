@@ -39,9 +39,6 @@ filterwarnings = [
   "ignore:Type google\\._upb.*",
 
   # The following warning filters are for pytest only.
-  # This is so we don't have to wrap most datetime objects in testing code
-  # with django.utils.timezone.
-  "ignore:DateTimeField.*naive datetime:RuntimeWarning",
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
   # pytest has not yet implemented the replacement for this yet
@@ -632,6 +629,7 @@ module = [
     "sentry.buffer.redis",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
+    "sentry.utils.locking.backends.redis",
     "sentry.tasks.on_demand_metrics",
     "sentry.relay.config.metric_extraction",
     "sentry.snuba.metrics.extraction",

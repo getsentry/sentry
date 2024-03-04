@@ -201,7 +201,7 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
         metrics: set[str] = set()
 
         for parameter in formula.parameters:
-            metrics.union(self.visit(parameter))
+            metrics = metrics.union(self.visit(parameter))
 
         return metrics
 
@@ -211,7 +211,10 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
 
         return {timeseries.metric.mri}
 
-    def _visit_number(self, number: float) -> set[str]:
+    def _visit_int(self, int_number: float):
+        return set()
+
+    def _visit_float(self, float_number: float) -> set[str]:
         return set()
 
     def _visit_string(self, string: str) -> set[str]:
@@ -227,14 +230,17 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         group_bys: set[str] = set()
 
         for parameter in formula.parameters:
-            group_bys.union(self.visit(parameter))
+            group_bys = group_bys.union(self.visit(parameter))
 
         return group_bys.union(self._group_bys_as_string(formula.groupby))
 
     def _visit_timeseries(self, timeseries: Timeseries) -> set[str]:
         return self._group_bys_as_string(timeseries.groupby)
 
-    def _visit_number(self, number: float) -> set[str]:
+    def _visit_int(self, int_number: float):
+        return set()
+
+    def _visit_float(self, float_number: float) -> set[str]:
         return set()
 
     def _visit_string(self, string: str) -> set[str]:

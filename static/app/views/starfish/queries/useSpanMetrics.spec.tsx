@@ -50,6 +50,28 @@ describe('useSpanMetrics', () => {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
+  it('respects the `enabled` prop', () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    const {result} = reactHooks.renderHook(
+      ({fields, enabled}) => useSpanMetrics({fields, enabled}),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          fields: ['spm()'] as MetricsProperty[],
+          enabled: false,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toEqual(false);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('queries for current selection', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -65,7 +87,7 @@ describe('useSpanMetrics', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
+    const {result, waitFor} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
         useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
       {
@@ -105,9 +127,7 @@ describe('useSpanMetrics', () => {
       })
     );
 
-    await waitForNextUpdate();
-
-    expect(result.current.isLoading).toEqual(false);
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
     expect(result.current.data).toEqual([
       {
         'span.op': 'db',

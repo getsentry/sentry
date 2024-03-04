@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from sentry.api.exceptions import StaffRequired
 from sentry.models.relocation import Relocation
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.relocation import OrderedTask
 
@@ -19,9 +21,8 @@ class GetRelocationDetailsTest(APITestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(
-            "superuser", is_superuser=True, is_staff=True, is_active=True
-        )
+        self.superuser = self.create_user(is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -36,23 +37,35 @@ class GetRelocationDetailsTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    def test_good_found(self):
+    def test_good_superuser_found(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = self.client.get(f"/api/0/relocations/{str(self.relocation.uuid)}/")
-
-        assert response.status_code == 200
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
         assert response.data["uuid"] == str(self.relocation.uuid)
 
-    def test_bad_not_found(self):
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_good_staff_found_with_flag(self):
+        self.login_as(user=self.staff_user, staff=True)
+        response = self.get_success_response(self.relocation.uuid, status_code=200)
+        assert response.data["uuid"] == str(self.relocation.uuid)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_bad_superuser_fails_with_flag(self):
+        self.login_as(user=self.superuser, superuser=True)
+        response = self.get_error_response(self.relocation.uuid, status_code=403)
+        assert response.data["detail"]["message"] == StaffRequired.message
+
+    def test_bad_superuser_not_found(self):
         self.login_as(user=self.superuser, superuser=True)
         does_not_exist_uuid = uuid4().hex
-        response = self.client.get(f"/api/0/relocations/{str(does_not_exist_uuid)}/")
+        self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
-        assert response.status_code == 404
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_bad_staff_not_found(self):
+        self.login_as(user=self.staff_user, staff=True)
+        does_not_exist_uuid = uuid4().hex
+        self.get_error_response(str(does_not_exist_uuid), status_code=404)
 
     # TODO(getsentry/team-ospo#214): Add test for non-superusers to view their own relocations, but
     # not other owners'.
     def test_bad_no_auth(self):
-        response = self.client.get(f"/api/0/relocations/{str(self.relocation.uuid)}/")
-
-        assert response.status_code == 401
+        self.get_error_response(self.relocation.uuid, status_code=401)

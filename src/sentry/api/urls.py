@@ -152,6 +152,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_details import (
 from sentry.replays.endpoints.project_replay_recording_segment_index import (
     ProjectReplayRecordingSegmentIndexEndpoint,
 )
+from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -619,9 +620,14 @@ from .endpoints.userroles_index import UserRolesEndpoint
 
 __all__ = ("urlpatterns",)
 
+from ..monitors.endpoints.project_monitor_checkin_attachment import (
+    ProjectMonitorCheckInAttachmentEndpoint,
+)
+from ..monitors.endpoints.project_monitor_checkin_index import ProjectMonitorCheckInIndexEndpoint
 from ..monitors.endpoints.project_monitor_environment_details import (
     ProjectMonitorEnvironmentDetailsEndpoint,
 )
+from ..monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
 from ..monitors.endpoints.project_monitors_details import ProjectMonitorDetailsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
@@ -2415,6 +2421,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-replay-recording-segment-details",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/videos/(?P<segment_id>\d+)/$",
+        ProjectReplayVideoDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-replay-video-details",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/configuration/$",
         ProjectRulesConfigurationEndpoint.as_view(),
         name="sentry-api-0-project-rules-configuration",
@@ -2672,14 +2683,29 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-statistical-detector",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        ProjectMonitorCheckInAttachmentEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-check-in-attachment",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         ProjectMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-details",
     ),
     re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
+        ProjectMonitorCheckInIndexEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-check-in-index",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
         ProjectMonitorEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
+        ProjectMonitorStatsEndpoint.as_view(),
+        name="sentry-api-0-project-monitor-stats",
     ),
 ]
 

@@ -379,16 +379,76 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
-export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+// Feedback platforms that show only NPM widget setup instructions (no loader)
+export const feedbackNpmPlatforms: readonly PlatformKey[] = [
+  'ionic',
+  ...replayFrontendPlatforms,
+];
+
+// Feedback platforms that show widget instructions (both NPM & loader)
+export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+  ...feedbackNpmPlatforms,
+  ...replayBackendPlatforms,
+];
+
+// Feedback platforms that only show crash API instructions
+export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-macos',
+  'apple-ios',
   'dart',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
   'flutter',
   'java',
   'java-log4j2',
+  'java-logback',
   'kotlin',
+  'node-koa',
   'react-native',
+  'unity',
   'unreal',
-  ...replayPlatforms,
+];
+
+// Feedback platforms that default to the web API
+export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
+  'cordova',
+  'ruby-rack',
+  'ruby',
+  'native',
+  'native-qt',
+  'native',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-gcpfunctions',
+  'node-serverlesscloud',
+  'minidump',
+  'python-asgi',
+  'python-awslambda',
+  'python-celery',
+  'python-chalice',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python',
+  'python-rq',
+  'python-serverless',
+  'python-tryton',
+  'python-wsgi',
+];
+
+// All feedback onboarding platforms
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWebApiPlatforms,
+  ...feedbackWidgetPlatforms,
+  ...feedbackCrashApiPlatforms,
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [

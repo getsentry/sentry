@@ -11,7 +11,7 @@ from typing import Any, Generic, TypeGuard, TypeVar, overload
 import rb
 from django.utils.functional import SimpleLazyObject
 from rb.clients import LocalClient
-from redis.client import Script
+from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool
 from rediscluster import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
@@ -155,7 +155,7 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster)
+TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster | StrictRedis)
 
 
 class ClusterManager(Generic[TCluster]):
@@ -165,7 +165,7 @@ class ClusterManager(Generic[TCluster]):
 
     @overload
     def __init__(
-        self: ClusterManager[RedisCluster],
+        self: ClusterManager[RedisCluster | StrictRedis],
         options_manager: OptionsManager,
         cluster_type: type[Any],
     ) -> None:
@@ -205,7 +205,7 @@ class ClusterManager(Generic[TCluster]):
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters: ClusterManager[rb.Cluster] = ClusterManager(options.default_manager)
-redis_clusters: ClusterManager[RedisCluster] = ClusterManager(
+redis_clusters: ClusterManager[RedisCluster | StrictRedis] = ClusterManager(
     options.default_manager, _RedisCluster
 )
 
@@ -214,7 +214,7 @@ def get_cluster_from_options(
     setting: str,
     options: dict[str, Any],
     cluster_manager: ClusterManager = clusters,
-) -> tuple[rb.Cluster | RedisCluster, dict[str, Any]]:
+) -> tuple[rb.Cluster | RedisCluster | StrictRedis, dict[str, Any]]:
     cluster_option_name = "cluster"
     default_cluster_name = "default"
     cluster_constructor_option_names = frozenset(("hosts",))
@@ -252,18 +252,29 @@ def get_cluster_from_options(
 
 def get_dynamic_cluster_from_options(
     setting: str, config: dict[str, Any]
-) -> tuple[bool, RedisCluster | rb.Cluster, dict[str, Any]]:
+) -> tuple[bool, RedisCluster | StrictRedis | rb.Cluster, dict[str, Any]]:
     cluster_name = config.get("cluster", "default")
     cluster_opts: dict[str, Any] | None = options.default_manager.get("redis.clusters").get(
         cluster_name
     )
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        # RedisCluster
+        # RedisCluster, StrictRedis
         return True, redis_clusters.get(cluster_name), config
 
     # RBCluster
     cluster, config = get_cluster_from_options(setting, config)
     return False, cluster, config
+
+
+def get_cluster_routing_client(
+    cluster: RedisCluster | rb.Cluster, is_redis_cluster: bool
+) -> RedisCluster | rb.RoutingClient:
+    if is_instance_redis_cluster(cluster, is_redis_cluster):
+        return cluster
+    elif is_instance_rb_cluster(cluster, is_redis_cluster):
+        return cluster.get_routing_client()
+    else:
+        raise AssertionError("unreachable")
 
 
 def is_instance_redis_cluster(

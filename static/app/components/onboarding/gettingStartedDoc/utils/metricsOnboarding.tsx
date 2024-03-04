@@ -12,7 +12,7 @@ const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [
-    new Sentry.metrics.MetricsAggregator(),
+    Sentry.metrics.metricsAggregatorIntegration(),
   ],
 });`;
 
@@ -29,7 +29,7 @@ export const getJSMetricsOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.88.0] of the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codePackage:@sentry/react]) installed.',
+        'You need a minimum version [codeVersion:7.103.0] of the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codePackage:@sentry/react]) installed.',
         {
           codeVersion: <code />,
           codePackage: <code />,
@@ -42,9 +42,8 @@ export const getJSMetricsOnboarding = ({
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:MetricsAggregator] integration under the [codeNamespace:Sentry.metrics] namespace.',
+        'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
         {
-          codeIntegration: <code />,
           codeNamespace: <code />,
         }
       ),
@@ -119,7 +118,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
+        'You need a minimum version [codeVersion:7.103.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
         {
           codeVersion: <code />,
           codeNode: <code />,

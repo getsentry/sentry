@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -27,6 +28,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_callback_registry,
 )
 from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
@@ -205,6 +207,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
+            monitor_type=AlertRuleMonitorType.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -2180,6 +2183,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
+    def test_invoke_alert_subscription_callback(self):
+        mock = Mock()
+        alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] = mock
+
+        self.send_update(self.rule, 1, subscription=self.sub)
+
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.sub
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -2849,7 +2861,7 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        timestamp = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = datetime.now(UTC).replace(microsecond=0)
         pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
