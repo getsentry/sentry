@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.features.rollout import in_random_rollout
@@ -45,10 +46,10 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
     return f"{prefix}:projects"
 
 
-def get_redis_client() -> Any:
+def get_redis_client() -> RedisCluster:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:

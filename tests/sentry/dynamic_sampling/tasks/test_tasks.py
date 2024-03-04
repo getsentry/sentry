@@ -105,7 +105,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     def add_sample_rate_per_project(org_id: int, project_id: int, sample_rate: float):
         redis_client = get_redis_client_for_ds()
         redis_client.hset(
-            generate_boost_low_volume_projects_cache_key(org_id), project_id, sample_rate
+            name=generate_boost_low_volume_projects_cache_key(org_id),
+            key=str(project_id),
+            value=sample_rate,
         )
 
     @staticmethod
@@ -374,7 +376,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     def set_boost_low_volume_projects_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
         cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-        redis.hset(cache_key, project_id, value)
+        redis.hset(name=cache_key, key=str(project_id), value=value)
 
     def set_boost_low_volume_projects_sample_rate(
         self, org_id: int, project_id: int, sample_rate: float
@@ -643,12 +645,14 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             val = redis_client.get(cache_key)
 
             if idx == 0:
+                assert val is not None
                 # we sampled at 10% half of what we want so we should adjust by 2
                 assert float(val) == 2.0
             elif idx == 1:
                 # we sampled at 20% we should be spot on (no adjustment)
                 assert val is None
             elif idx == 2:
+                assert val is not None
                 # we sampled at 40% twice as much as we wanted we should adjust by 0.5
                 assert float(val) == 0.5
 
@@ -662,6 +666,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             val = redis_client.get(cache_key)
 
             if idx == 0:
+                assert val is not None
                 # we sampled at 10% when already having a factor of two half of what we want so we
                 # should double the current factor to 4
                 assert float(val) == 4.0
@@ -669,6 +674,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # we sampled at 20% we should be spot on (no adjustment)
                 assert val is None
             elif idx == 2:
+                assert val is not None
                 # we sampled at 40% twice as much as we wanted we already have a factor of 0.5
                 # half it again to 0.25
                 assert float(val) == 0.25

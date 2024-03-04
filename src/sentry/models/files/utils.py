@@ -8,6 +8,7 @@ from hashlib import sha1
 
 from django.conf import settings
 from django.utils import timezone
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.locks import locks
@@ -64,9 +65,9 @@ def lock_blob(checksum: str, name: str, metric_instance: str | None = None):
         yield
 
 
-def _get_redis_for_blobs():
+def _get_redis_for_blobs() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _redis_key_for_blob(file_blob_model, checksum):

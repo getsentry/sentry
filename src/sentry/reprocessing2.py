@@ -90,6 +90,7 @@ import redis
 import sentry_sdk
 from django.conf import settings
 from django.db import router
+from rediscluster import RedisCluster
 
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -439,8 +440,9 @@ def _get_original_issue_id(data):
     return get_path(data, "contexts", "reprocessing", "original_issue_id")
 
 
-def _get_sync_redis_client():
-    return redis_clusters.get(settings.SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER)
+def _get_sync_redis_client() -> RedisCluster:
+    id = settings.SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER
+    return redis_clusters.get(id)  # type: ignore[return-value]
 
 
 def _get_sync_counter_key(group_id):
