@@ -87,8 +87,7 @@ class StaffPermissionMixin:
             if super().has_permission(request, *args, **kwargs):
                 return True
         except Exception:
-            active_staff = is_active_staff(request)
-            if not active_staff:
+            if not is_active_staff(request):
                 raise
             return True
         return is_active_staff(request)
@@ -103,8 +102,7 @@ class StaffPermissionMixin:
             if super().has_object_permission(request, *args, **kwargs):
                 return True
         except Exception:
-            active_staff = is_active_staff(request)
-            if not active_staff:
+            if not is_active_staff(request):
                 raise
             return True
         return is_active_staff(request)
