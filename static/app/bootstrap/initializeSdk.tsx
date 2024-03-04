@@ -50,16 +50,10 @@ function getSentryIntegrations(routes?: Function) {
       depth: 6,
     }),
     Sentry.metrics.metricsAggregatorIntegration(),
-    Sentry.browserTracingIntegration({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3BrowserTracingIntegration({
-              history: browserHistory as any,
-              routes: createRoutes(routes()),
-              match,
-            }),
-          }
-        : {}),
+    Sentry.reactRouterV3BrowserTracingIntegration({
+      history: browserHistory as any,
+      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
+      match,
       _experiments: {
         enableInteractions: true,
       },
