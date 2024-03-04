@@ -36,7 +36,6 @@ from sentry.incidents.logic import (
     query_datasets_to_type,
 )
 from sentry.incidents.models import (
-    AlertRuleActivationConditionType,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -48,6 +47,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity

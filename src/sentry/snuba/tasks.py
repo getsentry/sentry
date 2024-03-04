@@ -43,6 +43,8 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
     Task to create a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. We store the snuba subscription id locally on success.
+
+    TODO: utilize query_extra from QuerySubscription in request
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
@@ -215,12 +217,12 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        # TODO: pull query_extra from subscription and add to query builder
+        # TODO: determine whether concatenating query_extra is proper
         snql_query = build_query_builder(
-            entity_subscription,
-            snuba_query.query,
-            [subscription.project_id],
-            snuba_query.environment,
+            entity_subscription=entity_subscription,
+            query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',
+            project_ids=[subscription.project_id],
+            environment=snuba_query.environment,
             params={
                 "organization_id": subscription.project.organization_id,
                 "project_id": [subscription.project_id],

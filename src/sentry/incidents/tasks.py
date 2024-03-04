@@ -17,6 +17,10 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
+from sentry.incidents.utils.constants import (
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+    SUBSCRIPTION_METRICS_LOGGER,
+)
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -31,10 +35,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
-
-INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
-INCIDENT_SNAPSHOT_BATCH_SIZE = 50
-SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(

@@ -22,13 +22,13 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
-    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.services.hybrid_cloud.user.service import user_service

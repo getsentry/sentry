@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from time import time
 from typing import ClassVar
@@ -46,7 +45,7 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -58,12 +57,6 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
-
-
-class SemverVersion(
-    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
-):
-    pass
 
 
 class ReleaseStatus:
@@ -477,6 +470,7 @@ class Release(Model):
                         organization_id=project.organization_id, version=version
                     )
 
+                # NOTE: `add_project` creates a ReleaseProject instance
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -689,15 +683,18 @@ class Release(Model):
             raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(type(self)),
-                    router.db_for_write(ReleaseCommit),
-                    router.db_for_write(Repository),
-                    router.db_for_write(CommitAuthor),
-                    router.db_for_write(Commit),
-                )
-            ), in_test_hide_transaction_boundary():
+            with (
+                atomic_transaction(
+                    using=(
+                        router.db_for_write(type(self)),
+                        router.db_for_write(ReleaseCommit),
+                        router.db_for_write(Repository),
+                        router.db_for_write(CommitAuthor),
+                        router.db_for_write(Commit),
+                    )
+                ),
+                in_test_hide_transaction_boundary(),
+            ):
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()
