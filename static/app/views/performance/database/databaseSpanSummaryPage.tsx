@@ -28,6 +28,7 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetrics
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -167,14 +168,14 @@ function SpanSummaryPage({params}: Props) {
               />
 
               <MetricReadout
-                title={t('Avg Duration')}
+                title={DataTitles.avg}
                 value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={areSpanMetricsLoading}
               />
 
               <MetricReadout
-                title={t('Time Spent')}
+                title={DataTitles.timeSpent}
                 value={spanMetrics?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(

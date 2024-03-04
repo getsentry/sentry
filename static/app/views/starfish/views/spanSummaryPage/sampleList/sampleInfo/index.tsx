@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -8,7 +7,7 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -67,7 +66,7 @@ function SampleInfo(props: Props) {
 
         <MetricReadout
           align="left"
-          title={t('Avg Duration')}
+          title={DataTitles.avg}
           value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
           isLoading={areSpanMetricsLoading}
@@ -75,7 +74,7 @@ function SampleInfo(props: Props) {
 
         <MetricReadout
           align="left"
-          title={t('Time Spent')}
+          title={DataTitles.timeSpent}
           value={spanMetrics?.['sum(span.self_time)']}
           unit={DurationUnit.MILLISECOND}
           tooltip={getTimeSpentExplanation(
