@@ -55,7 +55,7 @@ class TestSeerRpc(APITestCase):
         assert response.json() == {}
 
         path = self._get_path("on_autofix_step_update")
-        data: dict[str, Any] = {
+        data = {
             "args": {"issue_id": group.id, "status": "thing", "steps": [1, 2, 3]},
             "meta": {},
         }
@@ -65,7 +65,7 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 200
 
         path = self._get_path("get_autofix_state")
-        data: dict[str, Any] = {"args": {"issue_id": group.id}, "meta": {}}
+        data = {"args": {"issue_id": group.id}, "meta": {}}
         response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
