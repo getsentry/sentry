@@ -35,7 +35,7 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -81,7 +81,7 @@ SUPPORTED_CONTEXT_DATA = {
     "Users Affected": lambda group: group.count_users_seen(),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
-    "Regressed Date": lambda group: time_since(group.active_at),
+    "Approx. Start Time": lambda group: group.active_at.strftime("%Y-%m-%d %H:%M:%S"),
 }
 
 REGRESSION_PERFORMANCE_ISSUE_TYPES = [
@@ -214,7 +214,13 @@ def get_tags(
     ):
         default_tags = set()
 
-    tags = tags | default_tags
+    use_improved_block_kit = features.has(
+        "organizations:slack-block-kit-improvements", group.project.organization
+    )
+    # improved block kit only uses alert rule tags
+    if not use_improved_block_kit:
+        tags = tags | default_tags
+
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -261,9 +267,21 @@ def get_context(group: Group) -> str:
     # updated block kit
     context = group.issue_type.notification_config.context
     context_dict = {}
+
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
             context_dict[c] = SUPPORTED_CONTEXT_DATA[c](group)
+
+    # for errors, non-regression performance, and rage click issues
+    # always show state and first seen
+    # only show event count and user count if event count > 1 or state != new
+
+    event_count = context_dict.get("Events")
+    state = context_dict.get("State")
+    if (event_count and int(event_count) <= 1) or (state and state == "New"):
+        # filter out event count and users count
+        context_dict.pop("Events", None)
+        context_dict.pop("Users Affected", None)
 
     for k, v in context_dict.items():
         if v:
@@ -558,6 +576,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
         self.commits = commits
+        self.use_improved_block_kit = features.has(
+            "organizations:slack-block-kit-improvements", group.project.organization
+        )
 
     @property
     def escape_text(self) -> bool:
@@ -569,7 +590,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-        if self.escape_text:
+        text = text.strip(" \n")
+
+        if self.use_improved_block_kit:
+            text = escape_slack_markdown_text(text)
+        if not self.use_improved_block_kit and self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
             # If we figure out why this is required we should note it here because it's quite strange
@@ -641,21 +666,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
-        use_improved_block_kit = features.has(
-            "organizations:slack-block-kit-improvements", self.group.project.organization
-        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            if use_improved_block_kit:
+            if self.use_improved_block_kit:
                 title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
             else:
                 title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            if use_improved_block_kit:
+            if self.use_improved_block_kit:
                 title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
             else:
                 title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
@@ -669,7 +691,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
             if text:
-                blocks.append(self.get_rich_text_preformatted_block(text))
+                blocks.append(self.get_markdown_quote_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:

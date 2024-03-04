@@ -595,6 +595,13 @@ class CheckAM2Compatibility:
             # We run this query by selecting all projects, so that the widget query should never fail in case the
             # `query` contains "project:something".
             supports_metrics = cls.is_metrics_data(organization.id, all_projects, conditions)
+
+            supports_ondemand = widget_id in ondemand_widget_ids
+            if supports_ondemand:
+                # If it supports on demand it's no longer unsupported, but until all data has begun migrating
+                # we should still be showing the widgets so they can be checked.
+                ondemand_supported_widgets[dashboard_id].append((widget_id, fields, conditions))
+
             if supports_metrics is None:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("org_id", organization.id)
@@ -606,16 +613,9 @@ class CheckAM2Compatibility:
 
                 continue
 
-            supports_ondemand = widget_id in ondemand_widget_ids
-
-            if not supports_metrics:
-                if supports_ondemand:
-                    # If it supports on demand it's no longer unsupported, but until all data has begun migrating
-                    # we should still be showing the widgets so they can be checked.
-                    ondemand_supported_widgets[dashboard_id].append((widget_id, fields, conditions))
-                else:
-                    # We mark whether a metric is not supported.
-                    unsupported_widgets[dashboard_id].append((widget_id, fields, conditions))
+            if not supports_metrics and not supports_ondemand:
+                # We mark whether a metric is not supported.
+                unsupported_widgets[dashboard_id].append((widget_id, fields, conditions))
 
         unsupported_alerts = []
         for alert_id, aggregate, query in cls.get_all_alerts_of_organization(organization.id):
@@ -675,12 +675,16 @@ def get_check_status(org_id):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
-    cached_status = redis_client.get(cache_key)
     try:
-        float_cached_status = float(cached_status)
-        return CheckStatus(float_cached_status)
+        cached_status = redis_client.get(cache_key)
+        if cached_status:
+            float_cached_status = float(cached_status)
+            return CheckStatus(float_cached_status)
+
     except (TypeError, ValueError):
-        return None
+        pass
+
+    return None
 
 
 def set_check_results(org_id, results):

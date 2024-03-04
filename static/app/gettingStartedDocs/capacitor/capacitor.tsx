@@ -1,3 +1,5 @@
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -5,13 +7,16 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -72,6 +77,14 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
           ${
             params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
           }})`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "light",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
     params.isReplaySelected
@@ -420,7 +433,29 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         showExtraStep: false,
         showDescription: false,
       }),
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => getInstallStep(params),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/',
+      }),
+      configurations: getSetupConfiguration({
+        params,
+        showExtraStep: false,
+        showDescription: false,
+      }),
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],
@@ -430,6 +465,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
 };
 

@@ -103,11 +103,16 @@ class QuerySubscription(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
-    type = models.TextField()
+    type = (
+        models.TextField()
+    )  # Text identifier for the subscription type this is. Used to identify the registered callback associated with this subscription.
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now, null=True)
+    query_extra = models.TextField(
+        null=True
+    )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())

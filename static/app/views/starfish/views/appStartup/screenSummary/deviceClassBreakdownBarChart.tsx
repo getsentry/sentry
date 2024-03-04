@@ -4,6 +4,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -18,6 +19,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -51,7 +56,8 @@ function DeviceClassBreakdownBarChart({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
   const yAxis =
     YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);
@@ -136,17 +142,35 @@ function DeviceClassBreakdownBarChart({
           </ErrorPanel>
         ) : (
           <BarChart
+            legend={{
+              show: true,
+              right: 12,
+            }}
             height={chartHeight}
+            colors={[PRIMARY_RELEASE_COLOR, SECONDARY_RELEASE_COLOR]}
             series={
               data.map(series => ({
                 ...series,
+                data: series.data.map(datum =>
+                  datum.value !== 0
+                    ? {
+                        ...datum,
+                        itemStyle: {
+                          color:
+                            series.seriesName === primaryRelease
+                              ? PRIMARY_RELEASE_COLOR
+                              : SECONDARY_RELEASE_COLOR,
+                        },
+                      }
+                    : datum
+                ),
                 name: formatVersion(series.seriesName),
               })) ?? []
             }
             grid={{
               left: '0',
               right: '0',
-              top: '8px',
+              top: space(2),
               bottom: '0',
               containLabel: true,
             }}

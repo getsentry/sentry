@@ -323,3 +323,36 @@ def resolve_division(
         ],
         alias,
     )
+
+
+def resolve_rounded_timestamp(interval: int, alias: str, timestamp_column: str = "timestamp"):
+    return Function(
+        "toUInt32",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [Function("toUInt32", [Column(timestamp_column)]), interval],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def resolve_random_sample(columns: list[str], alias: str, seed: int = 1):
+    return Function(
+        "arrayElement",
+        [
+            Function(
+                f"groupArraySample(1, {seed})",
+                [Function("tuple", [Column(column) for column in columns])],
+            ),
+            1,
+        ],
+        alias,
+    )

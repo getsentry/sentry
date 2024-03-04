@@ -68,6 +68,10 @@ export function PlatformOptionDropdown({
 
   const platforms = platformOptions.siblingOption ?? platformOptions.packageManager;
 
+  if (!platforms) {
+    return null;
+  }
+
   return (
     <OptionControl
       key="platformOption"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import time
@@ -162,6 +163,38 @@ def apply_cors_headers(
             response["Access-Control-Allow-Credentials"] = "true"
 
     return response
+
+
+class BaseEndpointMixin(abc.ABC):
+    """
+    Inherit from this class when adding mixin classes that call `Endpoint` methods. This allows typing to
+    work correctly
+    """
+
+    @abc.abstractmethod
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
+        pass
+
+    @abc.abstractmethod
+    def paginate(
+        self,
+        request,
+        on_results=None,
+        paginator=None,
+        paginator_cls=Paginator,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
+        cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
+        **paginator_kwargs,
+    ):
+        pass
 
 
 class Endpoint(APIView):
@@ -391,7 +424,9 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=f"{type(self).__name__}.{handler.__name__}",
+                description=".".join(
+                    getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
+                ),
             ) as span:
                 with rpcmetrics.wrap_sdk_span(span):
                     response = handler(request, *args, **kwargs)

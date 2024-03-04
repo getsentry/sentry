@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
+from collections.abc import Callable
+from datetime import timedelta
 from enum import Enum
 from typing import Any, ClassVar, Self
 from uuid import uuid4
@@ -8,14 +11,17 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
@@ -26,14 +32,46 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
+
+alert_subscription_callback_registry: dict[
+    AlertRuleMonitorType, Callable[[QuerySubscription], bool]
+] = {}
+
+
+def register_alert_subscription_callback(
+    monitor_type: AlertRuleMonitorType,
+) -> Callable[[Callable], Callable]:
+    def decorator(func: Callable) -> Callable:
+        alert_subscription_callback_registry[monitor_type] = func
+        return func
+
+    return decorator
+
+
+def invoke_alert_subscription_callback(
+    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription
+) -> bool:
+    try:
+        callback = alert_subscription_callback_registry[monitor_type]
+    except KeyError:
+        return False
+
+    return callback(subscription)
+
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_only_model
@@ -342,11 +380,6 @@ class AlertRuleStatus(Enum):
     DISABLED = 5
 
 
-class AlertRuleThresholdType(Enum):
-    ABOVE = 0
-    BELOW = 1
-
-
 class AlertRuleManager(BaseManager["AlertRule"]):
     """
     A manager that excludes all rows that are snapshots.
@@ -402,9 +435,61 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 for sub_id in subscription_ids
             )
 
+    def conditionally_subscribe_project_to_alert_rules(
+        self,
+        project: Project,
+        activation_condition: AlertRuleActivationConditionType,
+        query_extra: str,
+        trigger: str,
+    ) -> list[QuerySubscription]:
+        """
+        Subscribes a project to an alert rule given activation condition
+        """
+        try:
+            project_alert_rules: QuerySet[AlertRule] = self.filter(
+                projects=project,
+                monitor_type=AlertRuleMonitorType.ACTIVATED.value,
+            )
+            created_subscriptions = []
+            for alert_rule in project_alert_rules:
+                if alert_rule.activation_conditions.filter(
+                    condition_type=activation_condition.value
+                ).exists():
+                    logger.info(
+                        "Attempt subscribe project to activated alert rule",
+                        extra={
+                            "trigger": trigger,
+                            "query_extra": query_extra,
+                            "condition": activation_condition,
+                        },
+                    )
+                    created_subscriptions.extend(
+                        alert_rule.subscribe_projects(
+                            projects=[project],
+                            monitor_type=AlertRuleMonitorType.ACTIVATED,
+                            query_extra=query_extra,
+                        )
+                    )
+            return created_subscriptions
+        except Exception as e:
+            logger.exception(
+                "Failed to subscribe project to activated alert rule",
+                extra={
+                    "trigger": trigger,
+                    "exception": e,
+                },
+            )
+        return []
+
 
 @region_silo_only_model
 class AlertRuleExcludedProjects(Model):
+    """
+    Excludes a specific project from an AlertRule
+
+    NOTE: This feature is not currently utilized.
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
@@ -418,6 +503,29 @@ class AlertRuleExcludedProjects(Model):
 
 
 @region_silo_only_model
+class AlertRuleProjects(Model):
+    """
+    Specify a project for the AlertRule
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
+    project = FlexibleForeignKey("sentry.Project")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleprojects"
+        unique_together = (("alert_rule", "project"),)
+
+
+class AlertRuleMonitorType(Enum):
+    CONTINUOUS = 0
+    ACTIVATED = 1
+
+
+@region_silo_only_model
 class AlertRule(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -425,6 +533,9 @@ class AlertRule(Model):
     objects_with_snapshots: ClassVar[BaseManager[Self]] = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
+    projects = models.ManyToManyField(
+        "sentry.Project", related_name="alert_rule_projects", through=AlertRuleProjects
+    )
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     owner = FlexibleForeignKey(
         "sentry.Actor",
@@ -435,12 +546,14 @@ class AlertRule(Model):
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )
+    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
-    include_all_projects = models.BooleanField(default=False)
+    include_all_projects = models.BooleanField(
+        default=False
+    )  # NOTE: This feature is not currently utilized.
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -450,6 +563,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
 
     class Meta:
         app_label = "sentry"
@@ -506,6 +620,36 @@ class AlertRule(Model):
                 self.user_id = actor.user_id
 
         return old_pk
+
+    def subscribe_projects(
+        self,
+        projects: list[Project],
+        monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+        query_extra: str | None = None,
+    ) -> list[QuerySubscription]:
+        """
+        Subscribes a list of projects to the alert rule instance
+        :return: The list of created subscriptions
+        """
+
+        logger.info(
+            "Subscribing projects to alert rule",
+            extra={
+                "alert_rule.monitor_type": self.monitor_type,
+                "conditional_monitor_type": monitor_type.value,
+                "query_extra": query_extra,
+            },
+        )
+        # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
+        # On activated subscription, additional query parameters will be added to the constructed query in Snuba
+        if self.monitor_type == monitor_type.value:
+            return bulk_create_snuba_subscriptions(
+                projects,
+                INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                self.snuba_query,
+                query_extra,
+            )
+        return []
 
 
 class TriggerStatus(Enum):
@@ -593,8 +737,20 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
         assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
+class AlertRuleThresholdType(Enum):
+    ABOVE = 0
+    BELOW = 1
+
+
 @region_silo_only_model
 class AlertRuleTrigger(Model):
+    """
+    This model represents the threshold trigger for an AlertRule
+
+    threshold_type is AlertRuleThresholdType (Above/Below)
+    alert_threshold is the trigger value
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
@@ -616,7 +772,35 @@ class AlertRuleTrigger(Model):
 
 
 @region_silo_only_model
+class AlertRuleActivationCondition(Model):
+    """
+    This model represents the activation condition for an activated AlertRule
+
+    label is an optional identifier for an activation condition
+    condition_type is AlertRuleActivationConditionType
+    TODO: implement extra query params for advanced conditional rules (eg. +10m after event occurs)
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_conditions")
+    label = models.TextField()
+    condition_type = models.SmallIntegerField(null=True)
+
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivationcondition"
+        unique_together = (("alert_rule", "label"),)
+
+
+@region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
+    """
+    Allows us to define a specific trigger to be excluded from a query subscription
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
@@ -627,6 +811,15 @@ class AlertRuleTriggerExclusion(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletriggerexclusion"
         unique_together = (("alert_rule_trigger", "query_subscription"),)
+
+
+class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
+    """
+    A manager that excludes trigger actions that are pending to be deleted
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
 @region_silo_only_model
@@ -661,10 +854,16 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         ["handler", "slug", "type", "supported_target_types", "integration_provider"],
     )
 
+    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
+
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
 
     class Meta:
         app_label = "sentry"
@@ -743,10 +942,16 @@ class AlertRuleActivityType(Enum):
     ENABLED = 4
     DISABLED = 5
     SNAPSHOT = 6
+    ACTIVATED = 7
+    DEACTIVATED = 8
 
 
 @region_silo_only_model
 class AlertRuleActivity(Model):
+    """
+    Provides an audit log of activity for the alert rule
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
@@ -760,6 +965,19 @@ class AlertRuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
+
+
+@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+def clean_expired_alerts(subscription: QuerySubscription) -> bool:
+    now = timezone.now()
+    subscription_end = subscription.date_added + timedelta(
+        seconds=subscription.snuba_query.time_window
+    )
+
+    if now > subscription_end:
+        delete_snuba_subscription(subscription)
+
+    return True
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

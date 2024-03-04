@@ -30,11 +30,13 @@ from sentry.event_manager import EventManager
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
+    create_alert_rule_activation_condition,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
 from sentry.incidents.models import (
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
@@ -45,6 +47,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
@@ -1481,6 +1484,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
+        monitor_type=AlertRuleMonitorType.CONTINUOUS,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1507,12 +1511,25 @@ class Factories:
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
+            monitor_type=monitor_type,
         )
 
         if date_added is not None:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_activation_condition(
+        alert_rule,
+        label=None,
+        condition_type=AlertRuleActivationConditionType.RELEASE_CREATION,
+    ):
+        if not label:
+            label = petname.generate(2, " ", letters=10).title()
+
+        return create_alert_rule_activation_condition(alert_rule, label, condition_type)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1824,14 +1841,13 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
-        kwargs.update(
-            {
-                "request_method": "POST",
-                "request_path": "/extensions/github/webhook/",
-                "request_headers": '{"Content-Type": "application/json"}',
-                "request_body": "{}",
-            }
-        )
+        payload_kwargs = {
+            "request_method": "POST",
+            "request_path": "/extensions/github/webhook/",
+            "request_headers": '{"Content-Type": "application/json"}',
+            "request_body": "{}",
+            **kwargs,
+        }
         return WebhookPayload.objects.create(
-            mailbox_name=mailbox_name, region_name=region_name, **kwargs
+            mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
         )

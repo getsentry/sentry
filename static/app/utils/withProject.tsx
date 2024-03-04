@@ -21,6 +21,7 @@ const withProject = <P extends InjectedProjectProps>(
     static contextTypes = {
       project: SentryPropTypeValidators.isProject,
     };
+    declare context: {project: Project};
 
     render() {
       const {project, ...props} = this.props;

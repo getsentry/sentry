@@ -457,7 +457,8 @@ const DisabledProductWrapper = styled(Button)`
   && {
     cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
     input {
-      cursor: ${p => (p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer')};
+      cursor: ${p =>
+        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
     }
   }
 `;

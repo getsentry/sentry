@@ -3,28 +3,23 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from collections import namedtuple
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from time import time
 from typing import ClassVar
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
-from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
-from django.db.models.signals import pre_save
+from django.db.models import Case, F, Func, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
-    BaseQuerySet,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -37,16 +32,22 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.releases.constants import (
+    DB_VERSION_LENGTH,
+    ERR_RELEASE_HEALTH_DATA,
+    ERR_RELEASE_REFERENCED,
+)
+from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
-from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -56,72 +57,6 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
-
-DB_VERSION_LENGTH = 250
-
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
-ERR_RELEASE_HEALTH_DATA = "This release has health data and cannot be removed."
-
-
-class UnsafeReleaseDeletion(Exception):
-    pass
-
-
-class ReleaseCommitError(Exception):
-    pass
-
-
-class SemverVersion(
-    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
-):
-    pass
-
-
-class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
-    @staticmethod
-    def _on_post(project, trigger):
-        from sentry.dynamic_sampling import ProjectBoostedReleases
-
-        project_boosted_releases = ProjectBoostedReleases(project.id)
-        # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
-        # in the project.
-        if (
-            features.has("organizations:dynamic-sampling", project.organization)
-            and project_boosted_releases.has_boosted_releases
-        ):
-            schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
-
-    def post_save(self, instance, **kwargs):
-        self._on_post(project=instance.project, trigger="releaseproject.post_save")
-
-    def post_delete(self, instance, **kwargs):
-        self._on_post(project=instance.project, trigger="releaseproject.post_delete")
-
-
-@region_silo_only_model
-class ReleaseProject(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    project = FlexibleForeignKey("sentry.Project")
-    release = FlexibleForeignKey("sentry.Release")
-    new_groups = BoundedPositiveIntegerField(null=True, default=0)
-
-    adopted = models.DateTimeField(null=True, blank=True)
-    unadopted = models.DateTimeField(null=True, blank=True)
-    first_seen_transaction = models.DateTimeField(null=True, blank=True)
-
-    objects: ClassVar[ReleaseProjectModelManager] = ReleaseProjectModelManager()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_release_project"
-        indexes = (
-            models.Index(fields=("project", "adopted")),
-            models.Index(fields=("project", "unadopted")),
-            models.Index(fields=("project", "first_seen_transaction")),
-        )
-        unique_together = (("project", "release"),)
 
 
 class ReleaseStatus:
@@ -154,217 +89,6 @@ class ReleaseStatus:
             return "archived"
         else:
             raise ValueError(repr(value))
-
-
-@dataclass
-class SemverFilter:
-    operator: str
-    version_parts: Sequence[int | str]
-    package: str | None = None
-    negated: bool = False
-
-
-class ReleaseQuerySet(BaseQuerySet):
-    def annotate_prerelease_column(self):
-        """
-        Adds a `prerelease_case` column to the queryset which is used to properly sort
-        by prerelease. We treat an empty (but not null) prerelease as higher than any
-        other value.
-        """
-        return self.annotate(
-            prerelease_case=Case(
-                When(prerelease="", then=1), default=0, output_field=models.IntegerField()
-            )
-        )
-
-    def filter_to_semver(self):
-        """
-        Filters the queryset to only include semver compatible rows
-        """
-        return self.filter(major__isnull=False)
-
-    def filter_by_semver_build(
-        self,
-        organization_id: int,
-        operator: str,
-        build: str,
-        project_ids: Sequence[int] | None = None,
-        negated: bool = False,
-    ) -> models.QuerySet:
-        """
-        Filters released by build. If the passed `build` is a numeric string, we'll filter on
-        `build_number` and make use of the passed operator.
-        If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
-        wildcard only at the end of this string, so that we can filter efficiently via the index.
-        """
-        qs = self.filter(organization_id=organization_id)
-        query_func = "exclude" if negated else "filter"
-
-        if project_ids:
-            qs = qs.filter(
-                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
-                    "release_id", flat=True
-                )
-            )
-
-        if build.isnumeric() and validate_bigint(int(build)):
-            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
-        else:
-            if not build or build.endswith("*"):
-                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
-            else:
-                qs = getattr(qs, query_func)(build_code=build)
-
-        return qs
-
-    def filter_by_semver(
-        self,
-        organization_id: int,
-        semver_filter: SemverFilter,
-        project_ids: Sequence[int] | None = None,
-    ) -> models.QuerySet:
-        """
-        Filters releases based on a based `SemverFilter` instance.
-        `SemverFilter.version_parts` can contain up to 6 components, which should map
-        to the columns defined in `Release.SEMVER_COLS`. If fewer components are
-        included, then we will exclude later columns from the filter.
-        `SemverFilter.package` is optional, and if included we will filter the `package`
-        column using the provided value.
-        `SemverFilter.operator` should be a Django field filter.
-
-        Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
-        """
-        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
-        query_func = "exclude" if semver_filter.negated else "filter"
-
-        if semver_filter.package:
-            qs = getattr(qs, query_func)(package=semver_filter.package)
-        if project_ids:
-            qs = qs.filter(
-                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
-                    "release_id", flat=True
-                )
-            )
-
-        if semver_filter.version_parts:
-            filter_func = Func(
-                *(
-                    Value(part) if isinstance(part, str) else part
-                    for part in semver_filter.version_parts
-                ),
-                function="ROW",
-            )
-            cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-            qs = qs.annotate(
-                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
-            )
-            qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
-        return qs
-
-    def filter_by_stage(
-        self,
-        organization_id: int,
-        operator: str,
-        value,
-        project_ids: Sequence[int] | None = None,
-        environments: list[str] | None = None,
-    ) -> models.QuerySet:
-        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
-        from sentry.search.events.filter import to_list
-
-        if not environments or len(environments) != 1:
-            raise InvalidSearchQuery("Choose a single environment to filter by release stage.")
-
-        filters = {
-            ReleaseStages.ADOPTED: Q(adopted__isnull=False, unadopted__isnull=True),
-            ReleaseStages.REPLACED: Q(adopted__isnull=False, unadopted__isnull=False),
-            ReleaseStages.LOW_ADOPTION: Q(adopted__isnull=True, unadopted__isnull=True),
-        }
-        value = to_list(value)
-        operator_conversions = {"=": "IN", "!=": "NOT IN"}
-        operator = operator_conversions.get(operator, operator)
-
-        for stage in value:
-            if stage not in filters:
-                raise InvalidSearchQuery("Unsupported release.stage value.")
-
-        rpes = ReleaseProjectEnvironment.objects.filter(
-            release__organization_id=organization_id,
-        ).select_related("release")
-
-        if project_ids:
-            rpes = rpes.filter(project_id__in=project_ids)
-
-        query = Q()
-        if operator == "IN":
-            for stage in value:
-                query |= filters[stage]
-        elif operator == "NOT IN":
-            for stage in value:
-                query &= ~filters[stage]
-
-        qs = self.filter(id__in=Subquery(rpes.filter(query).values_list("release_id", flat=True)))
-        return qs
-
-    def order_by_recent(self):
-        return self.order_by("-date_added", "-id")
-
-    @staticmethod
-    def massage_semver_cols_into_release_object_data(kwargs):
-        """
-        Helper function that takes kwargs as an argument and massages into it the release semver
-        columns (if possible)
-        Inputs:
-            * kwargs: data of the release that is about to be created
-        """
-        if "version" in kwargs:
-            try:
-                version_info = parse_release(kwargs["version"])
-                package = version_info.get("package")
-                version_parsed = version_info.get("version_parsed")
-
-                if version_parsed is not None and all(
-                    validate_bigint(version_parsed[field])
-                    for field in ("major", "minor", "patch", "revision")
-                ):
-                    build_code = version_parsed.get("build_code")
-                    build_number = ReleaseQuerySet._convert_build_code_to_build_number(build_code)
-
-                    kwargs.update(
-                        {
-                            "major": version_parsed.get("major"),
-                            "minor": version_parsed.get("minor"),
-                            "patch": version_parsed.get("patch"),
-                            "revision": version_parsed.get("revision"),
-                            "prerelease": version_parsed.get("pre") or "",
-                            "build_code": build_code,
-                            "build_number": build_number,
-                            "package": package,
-                        }
-                    )
-            except RelayError:
-                # This can happen on invalid legacy releases
-                pass
-
-    @staticmethod
-    def _convert_build_code_to_build_number(build_code):
-        """
-        Helper function that takes the build_code and checks if that build code can be parsed into
-        a 64 bit integer
-        Inputs:
-            * build_code: str
-        Returns:
-            * build_number
-        """
-        build_number = None
-        if build_code is not None:
-            try:
-                build_code_as_int = int(build_code)
-                if validate_bigint(build_code_as_int):
-                    build_number = build_code_as_int
-            except ValueError:
-                pass
-        return build_number
 
 
 def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
@@ -746,6 +470,7 @@ class Release(Model):
                         organization_id=project.organization_id, version=version
                     )
 
+                # NOTE: `add_project` creates a ReleaseProject instance
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -782,11 +507,11 @@ class Release(Model):
         from sentry.models.group import Group
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.groupresolution import GroupResolution
-        from sentry.models.release import ReleaseProject
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseenvironment import ReleaseEnvironment
         from sentry.models.releasefile import ReleaseFile
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
 
         model_list = (
             ReleaseCommit,
@@ -839,14 +564,15 @@ class Release(Model):
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseProject)):
-                created = ReleaseProject.objects.get_or_create(project=project, release=self)[1]
+                obj, created = ReleaseProject.objects.get_or_create(project=project, release=self)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
+            obj = None
             created = False
 
-        return created
+        return obj, created
 
     def handle_commit_ranges(self, refs):
         """
@@ -957,15 +683,18 @@ class Release(Model):
             raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(type(self)),
-                    router.db_for_write(ReleaseCommit),
-                    router.db_for_write(Repository),
-                    router.db_for_write(CommitAuthor),
-                    router.db_for_write(Commit),
-                )
-            ), in_test_hide_transaction_boundary():
+            with (
+                atomic_transaction(
+                    using=(
+                        router.db_for_write(type(self)),
+                        router.db_for_write(ReleaseCommit),
+                        router.db_for_write(Repository),
+                        router.db_for_write(CommitAuthor),
+                        router.db_for_write(Commit),
+                    )
+                ),
+                in_test_hide_transaction_boundary(),
+            ):
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()
@@ -1319,7 +1048,8 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     Returns:
         Boolean that indicates if we should follow semantic version or not
     """
-    # ToDo(ahmed): Move this function else where to be easily accessible for re-use
+    # TODO(ahmed): Move this function else where to be easily accessible for re-use
+    # TODO: this method could be moved to the Release model manager
     cache_key = "follows_semver:1:%s" % hash_values([org_id, project_id])
     follows_semver = cache.get(cache_key)
 
@@ -1335,7 +1065,7 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
             cache.set(cache_key, False, 3600)
             return False
 
-        # ToDo(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
+        # TODO(ahmed): re-visit/replace these conditions once we enable project wide `semver` setting
         # A project is said to be following semver versioning schemes if it satisfies the following
         # conditions:-
         # 1: At least one semver compliant in the most recent 3 releases
@@ -1363,14 +1093,3 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
-
-
-def parse_semver_pre_save(instance, **kwargs):
-    if instance.id:
-        return
-    ReleaseQuerySet.massage_semver_cols_into_release_object_data(instance.__dict__)
-
-
-pre_save.connect(
-    parse_semver_pre_save, sender="sentry.Release", dispatch_uid="parse_semver_pre_save"
-)
