@@ -3,6 +3,7 @@ import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
@@ -17,7 +18,7 @@ import {GridListOption} from './option';
 import {GridListSection} from './section';
 
 interface GridListProps
-  extends React.HTMLAttributes<HTMLUListElement>,
+  extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
       'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
@@ -34,6 +35,7 @@ interface GridListProps
    * `useGridList()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */

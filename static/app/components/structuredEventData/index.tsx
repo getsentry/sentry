@@ -32,7 +32,8 @@ export type StructuredEventDataProps = {
    * Allows customization of how values are rendered
    */
   config?: StructedEventDataConfig;
-  data?: React.ReactNode;
+  // TODO(TS): What possible types can `data` be?
+  data?: any;
   'data-test-id'?: string;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
@@ -82,7 +83,8 @@ function StructuredData({
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
   objectKey?: string;
-  value?: React.ReactNode;
+  // TODO(TS): What possible types can `value` be?
+  value?: any;
 }) {
   let i = 0;
 
