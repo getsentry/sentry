@@ -9,6 +9,7 @@ from sentry.sentry_metrics.querying.data_v2.units import (
     get_unit_family_and_unit,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.visitors.query_expression import UnitsNormalizationVisitor
 from sentry.snuba.metrics import parse_mri
 
 
@@ -57,29 +58,20 @@ class UnitNormalizationStep(PreparationStep):
         normalized_intermediate_queries = []
 
         for intermediate_query in intermediate_queries:
-            normalized_intermediate_query = intermediate_query
-            metrics_query = intermediate_query.metrics_query
-            # For now, we want to perform units coercion only if the query is a timeseries.
-            if isinstance(metrics_query.query, Timeseries):
-                extracted_unit = self._extract_unit(timeseries=metrics_query.query)
-                if extracted_unit is not None:
-                    unit_family_and_unit = get_unit_family_and_unit(extracted_unit)
-                    if unit_family_and_unit is not None:
-                        (
-                            unit_family,
-                            reference_unit,
-                            unit,
-                        ) = unit_family_and_unit
-                        normalized_intermediate_query = replace(
-                            intermediate_query,
-                            metrics_query=metrics_query.set_query(
-                                unit.apply_on_timeseries(metrics_query.query)
-                            ),
-                            unit_family=unit_family,
-                            unit=reference_unit,
-                            scaling_factor=unit.scaling_factor,
-                        )
+            units_normalization = UnitsNormalizationVisitor()
+            # We compute the new normalized query by visiting and mutating the expression tree.
+            normalized_query = units_normalization.visit(intermediate_query.metrics_query.query)
+            # We obtain the units that have been used by the visitor.
+            unit_family, reference_unit, scaling_factor = units_normalization.get_units_metadata()
 
-            normalized_intermediate_queries.append(normalized_intermediate_query)
+            normalized_intermediate_queries.append(
+                replace(
+                    intermediate_query,
+                    metrics_query=intermediate_query.metrics_query.set_query(normalized_query),
+                    unit_family=unit_family,
+                    unit=reference_unit,
+                    scaling_factor=scaling_factor,
+                )
+            )
 
         return normalized_intermediate_queries
