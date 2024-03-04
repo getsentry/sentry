@@ -589,9 +589,12 @@ class QueryExecutor:
                     scheduled_query=next_scheduled_query,
                     query_result=query_result,
                 )
-                self._pending_query_results[query_index] = first_query_result.merge(
-                    second_query_result
-                )
+                merged_query_result = first_query_result.merge(second_query_result)
+                # We run the alignment of series and totals when merging two query results. We do this since we want
+                # data to be correctly ordered when returned to the user as if series were already ordered by the
+                # database.
+                merged_query_result.align_series_to_totals()
+                self._pending_query_results[query_index] = merged_query_result
 
         # For now, we naively cast to a list of `QueryResult` since we assume that the chaining is used with at most
         # a depth of 2 (e.g., query_1 -> query_2), so by this point we should NOT have anymore `PartialQueryResult`(s)
