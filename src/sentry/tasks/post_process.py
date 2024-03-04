@@ -1124,8 +1124,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
             next_time = timezone.now() + timedelta(hours=1)
 
             # php automatic code mappings currently in LA
-            if event.data["platform"].startswith("php") and not features.has(
-                "organizations:derive-php-code-mappings", org
+            if (
+                event.data["platform"]
+                and event.data["platform"].startswith("php")
+                and not features.has("organizations:derive-php-code-mappings", org)
             ):
                 return
 
