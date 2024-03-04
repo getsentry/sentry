@@ -108,6 +108,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         repos: list[dict],
         event_entries: list[dict],
         additional_context: str,
+        timeout_secs: int,
     ):
         requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
@@ -122,6 +123,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                         "events": [{"entries": event_entries}],
                     },
                     "additional_context": additional_context,
+                    "timeout_secs": timeout_secs,
+                    "last_updated": datetime.now().isoformat(),
                 }
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -168,7 +171,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             return self._respond_with_error(group, metadata, "No valid repositories found.", 400)
 
         try:
-            self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
+            self._call_autofix(
+                group, repos, event_entries, data.get("additional_context", ""), TIMEOUT_SECONDS
+            )
 
             # Mark the task as completed after TIMEOUT_SECONDS
             ai_autofix_check_for_timeout.apply_async(
