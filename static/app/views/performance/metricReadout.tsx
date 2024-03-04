@@ -1,4 +1,3 @@
-import type {ReactText} from 'react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
@@ -19,7 +18,7 @@ type Unit = DurationUnit | SizeUnit | RateUnit | CountUnit;
 interface Props {
   title: string;
   unit: Unit;
-  value: ReactText | undefined;
+  value: number | undefined;
   align?: 'left' | 'right';
   isLoading?: boolean;
   tooltip?: React.ReactNode;

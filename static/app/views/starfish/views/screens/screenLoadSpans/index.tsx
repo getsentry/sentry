@@ -20,7 +20,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -137,6 +141,33 @@ function ScreenLoadSpans() {
                       `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                       `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
                       'count()',
+                    ]}
+                    blocks={[
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                        title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                        title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+                        title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
+                        title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                      },
+                      {
+                        type: 'count',
+                        dataKey: 'count()',
+                        title: t('Count'),
+                      },
                     ]}
                     referrer="api.starfish.mobile-screen-totals"
                   />
