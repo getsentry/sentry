@@ -1164,17 +1164,17 @@ interface AutogroupedTraceBarProps {
 }
 
 function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
-  if (props.node_space && props.node_space.length <= 1) {
-    return (
-      <TraceBar
-        color={props.color}
-        node_space={props.node_space[0]}
-        viewManager={props.viewManager}
-        virtualizedIndex={props.virtualizedIndex}
-        duration={props.duration}
-      />
-    );
-  }
+  // if (props.node_space && props.node_space.length <= 1) {
+  //   return (
+  //     <TraceBar
+  //       color={props.color}
+  //       node_space={props.node_space[0]}
+  //       viewManager={props.viewManager}
+  //       virtualizedIndex={props.virtualizedIndex}
+  //       duration={props.duration}
+  //     />
+  //   );
+  // }
 
   if (!props.node_space) {
     return null;
@@ -1198,7 +1198,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         ref={r =>
           props.viewManager.registerSpanBarRef(r, entire_space, props.virtualizedIndex)
         }
-        className="TraceBar"
+        className="TraceBar Invisible"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
@@ -1424,6 +1424,14 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     background-color: black;
     transform-origin: left center;
+
+    &.Invisible {
+      background-color: transparent !important;
+
+      > div {
+        height: 100%;
+      }
+    }
   }
 
   .TraceBarDuration {
