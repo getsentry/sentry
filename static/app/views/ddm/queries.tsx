@@ -136,7 +136,7 @@ export function Queries() {
           icon={<IconAdd isCircled />}
           onClick={() => addWidget(MetricQueryType.FORMULA)}
         >
-          {t('Add formula')}
+          {t('Add equation')}
         </Button>
         <SwitchWrapper>
           {t('One chart per query')}
