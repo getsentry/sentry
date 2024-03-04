@@ -629,6 +629,7 @@ module = [
     "sentry.buffer.redis",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
+    "sentry.utils.locking.backends.redis",
     "sentry.tasks.on_demand_metrics",
     "sentry.relay.config.metric_extraction",
     "sentry.snuba.metrics.extraction",

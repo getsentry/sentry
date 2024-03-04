@@ -7,6 +7,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
@@ -578,7 +580,7 @@ class FeedbackGroup(GroupType):
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: type[GroupType],
-    client: Any,
+    client: RedisCluster | StrictRedis,
     grouphash: str,
     project: Project,
 ) -> bool:
