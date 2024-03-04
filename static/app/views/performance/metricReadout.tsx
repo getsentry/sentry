@@ -8,8 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {CountUnit} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
-import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 // TODO: Implement percentage units
@@ -35,7 +34,7 @@ export function MetricReadout({
   isLoading,
 }: Props) {
   return (
-    <Block title={title}>
+    <Block title={title} alignment={align}>
       {(() => {
         if (isLoading) {
           return <LoadingIndicator mini />;
@@ -49,7 +48,9 @@ export function MetricReadout({
 
         if (isARateUnit(unit)) {
           renderedValue = (
-            <NumberContainer align={align}>{formatRate(value, unit)}</NumberContainer>
+            <NumberContainer align={align}>
+              {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
+            </NumberContainer>
           );
         }
 
@@ -57,7 +58,11 @@ export function MetricReadout({
           // TODO: Implement other durations
           renderedValue = (
             <NumberContainer align={align}>
-              <Duration seconds={value / 1000} fixedDigits={2} abbreviation />
+              <Duration
+                seconds={typeof value === 'string' ? parseFloat(value) : value / 1000}
+                fixedDigits={2}
+                abbreviation
+              />
             </NumberContainer>
           );
         }
@@ -66,13 +71,19 @@ export function MetricReadout({
           // TODO: Implement other sizes
           renderedValue = (
             <NumberContainer align={align}>
-              <FileSize bytes={value} />
+              <FileSize bytes={typeof value === 'string' ? parseInt(value, 10) : value} />
             </NumberContainer>
           );
         }
 
         if (unit === 'count') {
-          renderedValue = <CountCell count={value} />;
+          renderedValue = (
+            <NumberContainer align={align}>
+              {formatAbbreviatedNumber(
+                typeof value === 'string' ? parseInt(value, 10) : value
+              )}
+            </NumberContainer>
+          );
         }
 
         if (tooltip) {
