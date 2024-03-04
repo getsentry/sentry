@@ -264,14 +264,14 @@ def _send_delete_old_primary_hash_messages(
     old_primary_hashes: Sequence[str],
     force_flush_batch: bool,
 ):
+    # Events for a group are split and bucketed by their primary hashes. If flushing is to be
+    # performed on a per-group basis, the event count needs to be summed up across all buckets
+    # belonging to a single group.
     if options.get(use_store_option):
         event_count = reprocessing_store.event_count_for_hashes(
             project_id, group_id, old_primary_hashes
         )
     else:
-        # Events for a group are split and bucketed by their primary hashes. If flushing is to be
-        # performed on a per-group basis, the event count needs to be summed up across all buckets
-        # belonging to a single group.
         event_count = 0
         for primary_hash in old_primary_hashes:
             key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)

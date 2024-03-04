@@ -54,7 +54,7 @@ class ReprocessingStore(Service):
     ) -> int:
         raise NotImplementedError()
 
-    def rename_key(self, project_id: int, old_group_id: int) -> bool:
+    def rename_key(self, project_id: int, old_group_id: int) -> str | None:
         raise NotImplementedError()
 
     def mark_event_reprocessed(self, group_id: int, num_events: int) -> bool:
@@ -68,5 +68,5 @@ class ReprocessingStore(Service):
     def get_pending(self, group_id: int) -> Any:
         raise NotImplementedError()
 
-    def get_progress(self, group_id: int) -> tuple[dict[str, Any] | None, int]:
+    def get_progress(self, group_id: int) -> dict[str, Any] | None:
         raise NotImplementedError()

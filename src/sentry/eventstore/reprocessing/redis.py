@@ -13,16 +13,20 @@ from sentry.utils.redis import redis_clusters
 from .base import ReprocessingStore
 
 
-def _get_sync_counter_key(group_id):
+def _get_sync_counter_key(group_id) -> str:
     return f"re2:count:{group_id}"
 
 
-def _get_info_reprocessed_key(group_id):
+def _get_info_reprocessed_key(group_id) -> str:
     return f"re2:info:{group_id}"
 
 
-def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_hash: str):
+def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_hash: str) -> str:
     return f"re2:tombstones:{{{project_id}:{group_id}:{primary_hash}}}"
+
+
+def _get_remaining_key(project_id: int, group_id: int) -> str:
+    return f"re2:remaining:{{{project_id}:{group_id}}}"
 
 
 class RedisReprocessingStore(ReprocessingStore):
@@ -50,20 +54,20 @@ class RedisReprocessingStore(ReprocessingStore):
         earliest datetime, and the latest datetime.
         """
         event_ids_batch = []
-        min_datetime = None
-        max_datetime = None
+        min_datetime: datetime | None = None
+        max_datetime: datetime | None = None
         key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
 
         for row in self.redis.lrange(key, 0, -1):
             datetime_raw, event_id = row.split(";")
-            datetime = to_datetime(float(datetime_raw))
+            parsed_datetime = to_datetime(float(datetime_raw))
 
-            assert datetime is not None
+            assert parsed_datetime is not None
 
-            if min_datetime is None or datetime < min_datetime:
-                min_datetime = datetime
-            if max_datetime is None or datetime > max_datetime:
-                max_datetime = datetime
+            if min_datetime is None or parsed_datetime < min_datetime:
+                min_datetime = parsed_datetime
+            if max_datetime is None or parsed_datetime > max_datetime:
+                max_datetime = parsed_datetime
 
             event_ids_batch.append(event_id)
 
@@ -102,7 +106,7 @@ class RedisReprocessingStore(ReprocessingStore):
     ) -> int:
         # We explicitly cluster by only project_id and group_id here such that our
         # RENAME command later succeeds.
-        key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
+        key = _get_remaining_key(project_id, old_group_id)
 
         if datetime_to_event:
             llen = self.redis.lpush(
@@ -118,7 +122,7 @@ class RedisReprocessingStore(ReprocessingStore):
         return llen
 
     def rename_key(self, project_id: int, old_group_id: int) -> str | None:
-        key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
+        key = _get_remaining_key(project_id, old_group_id)
         new_key = f"{key}:{uuid.uuid4().hex}"
         try:
             # Rename `key` to a new temp key that is passed to celery task. We
