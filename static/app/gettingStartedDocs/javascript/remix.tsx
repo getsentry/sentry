@@ -206,6 +206,7 @@ const feedbackOnboarding: OnboardingConfig = {
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
                 dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],

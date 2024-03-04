@@ -141,6 +141,11 @@ register(
     epoch_defaults={12: True},
 )
 
+register(
+    key="sentry:feedback_ai_spam_detection",
+    default=False,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,

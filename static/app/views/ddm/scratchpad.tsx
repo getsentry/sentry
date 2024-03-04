@@ -2,10 +2,12 @@ import {useCallback, useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import {space} from 'sentry/styles/space';
-import {formatMetricsFormula, getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
+import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -54,6 +56,7 @@ export function MetricScratchpad() {
     highlightedSampleId,
     focusArea,
     isMultiChartMode,
+    metricsSamples,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -90,6 +93,21 @@ export function MetricScratchpad() {
     [projects, router, organization]
   );
 
+  const handleSampleClickV2 = useCallback(
+    (sample: MetricsSamplesResults<Field>['data'][number]) => {
+      router.push(
+        getMetricsCorrelationSpanUrl(
+          organization,
+          sample.project,
+          sample.id,
+          sample['transaction.id'],
+          sample['segment.id']
+        )
+      );
+    },
+    [router, organization]
+  );
+
   const firstWidget = widgets[0];
 
   const Wrapper =
@@ -110,7 +128,7 @@ export function MetricScratchpad() {
       let tokens: TokenList = [];
 
       try {
-        tokens = parseFormula(formatMetricsFormula(formula));
+        tokens = parseFormula(unescapeMetricsFormula(formula));
       } catch {
         // We should not end up here, but if we do, we should not crash the UI
         return {dependencies: [], isError: true};
@@ -177,10 +195,12 @@ export function MetricScratchpad() {
                 focusAreaProps={focusArea}
                 showQuerySymbols={showQuerySymbols}
                 onSampleClick={handleSampleClick}
+                onSampleClickV2={handleSampleClickV2}
                 chartHeight={200}
                 highlightedSampleId={
                   selectedWidgetIndex === index ? highlightedSampleId : undefined
                 }
+                metricsSamples={metricsSamples}
                 context="ddm"
               />
             )}
@@ -202,8 +222,10 @@ export function MetricScratchpad() {
           focusAreaProps={focusArea}
           showQuerySymbols={false}
           onSampleClick={handleSampleClick}
+          onSampleClickV2={handleSampleClickV2}
           chartHeight={200}
           highlightedSampleId={highlightedSampleId}
+          metricsSamples={metricsSamples}
           context="ddm"
         />
       )}

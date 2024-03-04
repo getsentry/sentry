@@ -25,6 +25,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/starfish/views/appStartup';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
@@ -69,7 +70,7 @@ export function CountChart({chartHeight}: Props) {
   } = useReleaseSelection();
 
   const appStartType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const query = new MutableSearch([`span.op:app.start.${appStartType}`]);
   const queryString = `${appendReleaseFilters(
