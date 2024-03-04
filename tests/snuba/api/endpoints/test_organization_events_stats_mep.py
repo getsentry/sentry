@@ -1258,6 +1258,67 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert bool(response.data["foo,red"])
         assert bool(response.data["bar,blue"])
 
+    def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_custom_tags_error_only(
+        self,
+    ):
+        field = "count()"
+        query = "error_type:api error_code:10001"
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "tags": {"error_type": "api", "error_code": "10001"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "very bad 2",
+                "type": "error",
+                "start_timestamp": iso_format(self.day_ago + timedelta(hours=2)),
+                "timestamp": iso_format(self.day_ago + timedelta(hours=2)),
+                "tags": {"error_type": "api", "error_code": "10001"},
+            },
+            project_id=self.project.id,
+        )
+
+        yAxis = [field]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [field],
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+                "dashboardWidgetId": widget.id,
+            },
+        )
+        saved_widget = DashboardWidget.objects.get(id=widget.id)
+        assert saved_widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+
+        assert response.status_code == 200, response.content
+        # Fell back to discover data which is empty for this test (empty group of '').
+        assert len(response.data.keys()) == 5
+
     def test_top_events_with_transaction_on_demand_passing_widget_id_unsaved_error(
         self,
     ):
