@@ -1,16 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 
-from snuba_sdk import MetricsQuery, Timeseries
+from snuba_sdk import MetricsQuery
 
-from sentry.sentry_metrics.querying.data_v2.units import (
-    MeasurementUnit,
-    UnitFamily,
-    get_unit_family_and_unit,
-)
+from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, UnitFamily
+from sentry.sentry_metrics.querying.errors import MultipleUnitFamiliesInFormulaError
 from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.querying.visitors.query_expression import UnitsNormalizationVisitor
-from sentry.snuba.metrics import parse_mri
 
 
 @dataclass(frozen=True)
@@ -40,38 +36,36 @@ def run_preparation_steps(
 
 
 class UnitNormalizationStep(PreparationStep):
+    def _get_normalized_intermediate_query(
+        self, intermediate_query: IntermediateQuery
+    ) -> IntermediateQuery:
+        try:
+            units_normalization = UnitsNormalizationVisitor()
+            # We compute the new normalized query by visiting and mutating the expression tree.
+            normalized_query = units_normalization.visit(intermediate_query.metrics_query.query)
+            # We obtain the units that have been used by the visitor.
+            (
+                unit_family,
+                reference_unit,
+                scaling_factor,
+            ) = units_normalization.get_units_metadata()
 
-    EXCLUDED_AGGREGATES = {"count", "count_unique"}
-
-    def _extract_unit(self, timeseries: Timeseries) -> str | None:
-        # If the aggregate doesn't support unit normalization, we will skip it.
-        if timeseries.aggregate in self.EXCLUDED_AGGREGATES:
-            return None
-
-        parsed_mri = parse_mri(timeseries.metric.mri)
-        if parsed_mri is not None:
-            return parsed_mri.unit
-
-        return None
+            return replace(
+                intermediate_query,
+                metrics_query=intermediate_query.metrics_query.set_query(normalized_query),
+                unit_family=unit_family,
+                unit=reference_unit,
+                scaling_factor=scaling_factor,
+            )
+        except MultipleUnitFamiliesInFormulaError:
+            return intermediate_query
 
     def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
         normalized_intermediate_queries = []
 
         for intermediate_query in intermediate_queries:
-            units_normalization = UnitsNormalizationVisitor()
-            # We compute the new normalized query by visiting and mutating the expression tree.
-            normalized_query = units_normalization.visit(intermediate_query.metrics_query.query)
-            # We obtain the units that have been used by the visitor.
-            unit_family, reference_unit, scaling_factor = units_normalization.get_units_metadata()
-
             normalized_intermediate_queries.append(
-                replace(
-                    intermediate_query,
-                    metrics_query=intermediate_query.metrics_query.set_query(normalized_query),
-                    unit_family=unit_family,
-                    unit=reference_unit,
-                    scaling_factor=scaling_factor,
-                )
+                self._get_normalized_intermediate_query(intermediate_query)
             )
 
         return normalized_intermediate_queries
