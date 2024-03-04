@@ -311,7 +311,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: 620px;
+  max-height: 586px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`
@@ -326,7 +326,7 @@ const StaticPanel = styled(FluidHeight)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 520px;
+  height: 586px;
   margin-bottom: ${space(2)};
 `;
 

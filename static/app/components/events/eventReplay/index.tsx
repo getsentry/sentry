@@ -148,6 +148,6 @@ const ReplaySectionMinHeight = styled(EventReplaySection)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: 586px;
   margin-bottom: ${space(2)};
 `;

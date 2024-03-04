@@ -284,7 +284,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 620px;
+  height: 586px;
   margin-bottom: ${space(2)};
 `;
 
