@@ -5,6 +5,7 @@ import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
+import {defined} from 'sentry/utils';
 import type {CountUnit} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
@@ -40,7 +41,7 @@ export function MetricReadout({
           return <LoadingIndicator mini />;
         }
 
-        if (!value) {
+        if (!defined(value)) {
           return '--';
         }
 
