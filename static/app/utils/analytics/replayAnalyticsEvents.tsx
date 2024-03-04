@@ -63,7 +63,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
-    referrer_table: ReferrerTableType;
+    referrer_table?: ReferrerTableType;
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';

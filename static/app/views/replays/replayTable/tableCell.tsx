@@ -287,12 +287,14 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  className,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
-  referrer_table: ReferrerTableType;
+  className?: string;
   isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -369,7 +371,7 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell>
+    <Item isWidget={isWidget} isReplayCell className={className}>
       <UserBadge
         avatarSize={24}
         displayName={
