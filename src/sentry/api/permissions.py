@@ -78,16 +78,34 @@ class StaffPermissionMixin:
     staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
 
     def has_permission(self, request, *args, **kwargs) -> bool:
-        # Check for staff before calling super to avoid catching exceptions from super
-        if request.method in self.staff_allowed_methods and is_active_staff(request):
-            return True
-        return super().has_permission(request, *args, **kwargs)
+        """
+        Calls the parent class's has_permission method. If it fails or raises an
+        error, we then checks if the request is from an active staff.
+        """
+        try:
+            if super().has_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            active_staff = is_active_staff(request)
+            if not active_staff:
+                raise
+            return active_staff
+        return is_active_staff(request)
 
     def has_object_permission(self, request, *args, **kwargs) -> bool:
-        # Check for staff before calling super to avoid catching exceptions from super
-        if request.method in self.staff_allowed_methods and is_active_staff(request):
-            return True
-        return super().has_object_permission(request, *args, **kwargs)
+        """
+        Calls the parent class's has_object_permission method. If it fails or
+        raises an error, we then checks if the request is from an active staff.
+        """
+        try:
+            if super().has_object_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            active_staff = is_active_staff(request)
+            if not active_staff:
+                raise
+            return active_staff
+        return is_active_staff(request)
 
     def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
         return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
