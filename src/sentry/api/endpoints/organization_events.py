@@ -26,7 +26,7 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import SnubaError, SnubaTSResult
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
