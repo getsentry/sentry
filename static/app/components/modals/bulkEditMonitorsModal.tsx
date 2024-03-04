@@ -195,6 +195,7 @@ const ActionButtons = styled(ButtonBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr max-content max-content 0.5fr;
   overflow: scroll;
   max-height: 425px;
 `;
