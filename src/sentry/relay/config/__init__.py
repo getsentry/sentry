@@ -444,6 +444,9 @@ def _get_project_config(
         }
 
     if features.has("organizations:performance-calculate-score-relay", project.organization):
+        shouldIncludeFid = not features.has(
+            "organizations:deprecate-fid-from-performance-score", project.organization
+        )
         config["performanceScore"] = {
             "profiles": [
                 {
@@ -465,7 +468,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -510,7 +513,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -600,7 +603,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
@@ -645,7 +648,7 @@ def _get_project_config(
                         },
                         {
                             "measurement": "fid",
-                            "weight": 0.30,
+                            "weight": 0.30 if shouldIncludeFid else 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
                             "optional": True,
