@@ -1,35 +1,12 @@
 import re
 from dataclasses import dataclass, replace
-from enum import Enum
-from typing import Union
 
-from snuba_sdk import Direction
-
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-
-# TODO: move these types in the right folder.
-
-
-class QueryOrder(Enum):
-    ASC = "asc"
-    DESC = "desc"
-
-    @classmethod
-    # Used `Union` because `|` conflicts with the parser.
-    def from_string(cls, value: str) -> Union["QueryOrder", None]:
-        for v in cls:
-            if v.value == value:
-                return v
-
-        return None
-
-    def to_snuba_order(self) -> Direction:
-        if self == QueryOrder.ASC:
-            return Direction.ASC
-        elif self == QueryOrder.DESC:
-            return Direction.DESC
-
-        raise InvalidMetricsQueryError(f"Ordering {self} does not exist is snuba")
+from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
+from sentry.sentry_metrics.querying.data_v2.transformation.base import (
+    QueryTransformer,
+    QueryTransformerResult,
+)
+from sentry.sentry_metrics.querying.types import QueryOrder
 
 
 @dataclass(frozen=True)
@@ -40,7 +17,9 @@ class FormulaDefinition:
 
     def replace_variables(self, queries: dict[str, str]) -> "FormulaDefinition":
         replaced_mql_formula = self.mql
-        for query_name in queries.keys():
+        # We sort query names by length and content with the goal of trying to always match the longest queries first.
+        sorted_query_names = sorted(queries.keys(), key=lambda q: (len(q), q), reverse=True)
+        for query_name in sorted_query_names:
             replaced_mql_formula = re.sub(
                 rf"\${query_name}", queries.get(query_name, ""), replaced_mql_formula
             )
@@ -90,3 +69,16 @@ class MetricsQueriesPlan:
         A query plan is defined to be empty is no formulas have been applied on it.
         """
         return not self._formulas
+
+
+@dataclass(frozen=True)
+class MetricsQueriesPlanResult:
+    results: list[QueryResult]
+
+    def apply_transformer(
+        self, transformer: QueryTransformer[QueryTransformerResult]
+    ) -> QueryTransformerResult:
+        """
+        Applies a transformer on the `results` and returns the value of the transformation.
+        """
+        return transformer.transform(self.results)

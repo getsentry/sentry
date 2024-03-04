@@ -49,6 +49,8 @@ SnubaTransaction = TypedDict(
         "transaction.duration": int,
         "transaction": str,
         "timestamp": str,
+        "precise.start_ts": int,
+        "precise.finish_ts": int,
         "trace.span": str,
         "trace.parent_span": str,
         "trace.parent_transaction": Optional[str],
@@ -172,15 +174,8 @@ class TraceEvent:
         self._nodestore_event: Event | None = None
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
-        if span_serialized:
-            self.fetched_nodestore = True
-            self.timestamp = datetime.fromisoformat(self.event["timestamp"]).timestamp()
-            self.start_timestamp = (
-                datetime.fromisoformat(self.event["timestamp"]).timestamp()
-                # duration is in ms, timestamp is in seconds
-                - self.event["transaction.duration"] / 1000
-            )
-        self.load_performance_issues(light, snuba_params)
+        if len(self.event["issue.ids"]) > 0:
+            self.load_performance_issues(light, snuba_params)
 
     @property
     def nodestore_event(self) -> Event | None:
@@ -343,13 +338,8 @@ class TraceEvent:
                 }
             )
         if self.span_serialized:
-            result["timestamp"] = self.timestamp
-            result["start_timestamp"] = self.start_timestamp
-            (
-                datetime.fromisoformat(self.event["timestamp"]).timestamp()
-                # duration is in ms, timestamp is in seconds
-                - self.event["transaction.duration"] / 1000
-            )
+            result["timestamp"] = self.event["precise.finish_ts"]
+            result["start_timestamp"] = self.event["precise.start_ts"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
@@ -413,8 +403,8 @@ def child_sort_key(item: TraceEvent) -> list[int]:
         ]
     elif item.span_serialized:
         return [
-            item.start_timestamp,
-            item.timestamp,
+            item.event["precise.start_ts"],
+            item.event["precise.finish_ts"],
             item.event["transaction"],
             item.event["id"],
         ]
@@ -439,7 +429,9 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 
 
 def query_trace_data(
-    trace_id: str, params: Mapping[str, str], limit: int
+    trace_id: str,
+    params: Mapping[str, str],
+    limit: int,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_query = QueryBuilder(
         Dataset.Transactions,
@@ -452,6 +444,8 @@ def query_trace_data(
             "transaction.duration",
             "transaction",
             "timestamp",
+            "precise.start_ts",
+            "precise.finish_ts",
             "project",
             "project.id",
             "trace.span",
@@ -1288,6 +1282,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     ) -> Sequence[FullResponse]:
         root_traces: list[TraceEvent] = []
         orphans: list[TraceEvent] = []
+        orphan_event_ids: set[str] = set()
         orphan_errors: list[SnubaError] = []
         if not allow_orphan_errors:
             raise ParseError("Must allow orphan errors to useSpans")
@@ -1305,6 +1300,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 if parent_id is None:
                     if transaction["trace.parent_span"]:
                         orphans.append(serialized_transaction)
+                        orphan_event_ids.add(serialized_transaction.event["id"])
                     else:
                         root_traces.append(serialized_transaction)
                 else:
@@ -1335,8 +1331,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
             for transaction in sorted(serialized_transactions, key=child_sort_key):
                 if transaction.event["id"] not in visited_transactions_ids:
-                    if transaction not in orphans:
+                    if transaction.event["id"] not in orphan_event_ids:
                         orphans.append(transaction)
+                        orphan_event_ids.add(transaction.event["id"])
                     visited_transactions_ids.add(transaction.event["id"])
                     for child in transaction.children:
                         visited_transactions_ids.add(child.event["id"])

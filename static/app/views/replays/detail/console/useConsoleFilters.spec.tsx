@@ -129,7 +129,7 @@ describe('useConsoleFilters', () => {
       },
     });
 
-    rerender();
+    rerender({frames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -141,16 +141,16 @@ describe('useConsoleFilters', () => {
     });
   });
 
-  it('should not filter anything when no values are set', () => {
+  it('should not filter anything when no values are set', async () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useConsoleFilters, {
+    const {result, waitFor} = reactHooks.renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    expect(result.current.items.length).toEqual(5);
+    await waitFor(() => expect(result.current.items.length).toEqual(5));
   });
 
   it('should filter by logLevel', () => {

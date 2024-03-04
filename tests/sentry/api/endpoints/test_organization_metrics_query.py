@@ -49,6 +49,13 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},
-                {"group_bys": [], "limit": 20, "order": None},
+                {
+                    "group_bys": [],
+                    "limit": 20,
+                    "order": None,
+                    "scaling_factor": None,
+                    "unit": None,
+                    "unit_family": None,
+                },
             ]
         ]

@@ -218,6 +218,7 @@ const feedbackOnboarding: OnboardingConfig = {
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
                 dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],
