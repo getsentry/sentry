@@ -1,15 +1,22 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.utils import timezone as django_timezone
 
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
 from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, get_unit_family_and_unit
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
+from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
@@ -70,6 +77,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         self.prod_env = self.create_environment(name="prod", project=self.project)
         self.dev_env = self.create_environment(name="dev", project=self.project)
 
+        self.query_transformer = MetricsAPIQueryTransformer()
+
     def now(self):
         return MOCK_DATETIME
 
@@ -93,6 +102,28 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         _, _, unit = unit_family_and_unit
         return unit.convert(value)
 
+    def run_query(
+        self,
+        metrics_queries_plan: MetricsQueriesPlan,
+        start: datetime,
+        end: datetime,
+        interval: int,
+        organization: Organization,
+        projects: Sequence[Project],
+        environments: Sequence[Environment],
+        referrer: str,
+    ) -> Mapping[str, Any]:
+        return run_metrics_queries_plan(
+            metrics_queries_plan,
+            start,
+            end,
+            interval,
+            organization,
+            projects,
+            environments,
+            referrer,
+        ).apply_transformer(self.query_transformer)
+
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_empty_results(self) -> None:
         # TODO: the identities returned here to not make much sense, we need to figure out the right semantics.
@@ -105,7 +136,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-            results = run_metrics_queries_plan(
+            results = self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -130,7 +161,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -161,7 +192,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -186,7 +217,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "release:latest")
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -211,7 +242,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("p90", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -242,7 +273,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             query_1 = self.mql(percentile, TransactionMRI.DURATION.value)
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-            results = run_metrics_queries_plan(
+            results = self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -263,7 +294,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
             with pytest.raises(MetricsQueryExecutionError):
-                run_metrics_queries_plan(
+                self.run_query(
                     metrics_queries_plan=plan,
                     start=self.now() - timedelta(minutes=30),
                     end=self.now() + timedelta(hours=1, minutes=30),
@@ -279,7 +310,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction, platform")
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -382,7 +413,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.MEASUREMENTS_FCP.value, group_by="transaction")
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now(),
             end=self.now() + timedelta(hours=1),
@@ -409,7 +440,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -446,7 +477,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -476,7 +507,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -513,7 +544,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -543,7 +574,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -580,7 +611,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -614,7 +645,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_2")
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -653,7 +684,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_2")
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -727,7 +758,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_2", QueryOrder.DESC, 2)
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -797,7 +828,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("count_unique", mri)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -837,7 +868,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", mri)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -877,7 +908,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         query_1 = self.mql("sum", mri)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -922,7 +953,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_1")
             .apply_formula("$query_2")
         )
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -951,7 +982,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
         with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
+            self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -977,7 +1008,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
+            self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -1000,7 +1031,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
+            self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -1023,7 +1054,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
+            self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -1046,7 +1077,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
 
         with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
+            self.run_query(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
@@ -1068,7 +1099,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_2 / $query_1")
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -1097,7 +1128,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_2")
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -1124,7 +1155,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("($query_2 * $query_1) by (platform, transaction)")
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -1161,7 +1192,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),

@@ -3,12 +3,12 @@ from dataclasses import dataclass, replace
 
 from snuba_sdk import MetricsQuery, Timeseries
 
-from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
 from sentry.sentry_metrics.querying.data_v2.units import (
     MeasurementUnit,
     UnitFamily,
     get_unit_family_and_unit,
 )
+from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.snuba.metrics import parse_mri
 
 
