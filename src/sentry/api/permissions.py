@@ -90,7 +90,7 @@ class StaffPermissionMixin:
             active_staff = is_active_staff(request)
             if not active_staff:
                 raise
-            return active_staff
+            return True
         return is_active_staff(request)
 
     def has_object_permission(self, request, *args, **kwargs) -> bool:
@@ -106,7 +106,7 @@ class StaffPermissionMixin:
             active_staff = is_active_staff(request)
             if not active_staff:
                 raise
-            return active_staff
+            return True
         return is_active_staff(request)
 
     def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
