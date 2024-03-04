@@ -150,14 +150,27 @@ def _import(
         else src.read().decode("utf-8")
     )
 
-    if len(DELETED_FIELDS) > 0:
+    # We have to be careful when removing fields from our model schemas, since exports created using
+    # the old-but-still-in-the-support-window versions could have those fields set in the data they
+    # provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
+    # valid in at least one of the versions we support. For example, since our current version
+    # support window is two minor versions back, if we delete a field at version 24.5.N, we must
+    # include an entry in this map for that field until that version is out of the support window
+    # (in this case, we can remove shim once version 24.7.0 is released).
+    #
+    # NOTE TO FUTURE EDITORS: please keep the `deleted_fields` dict, and the subsequent `if` clause,
+    # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
+    # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
+    # the shim, noting in the comment which self-hosted release will trigger the removal.
+    deleted_fields = {}
+    if len(deleted_fields) > 0:
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
-        shimmed_models = set(DELETED_FIELDS.keys())
-        content_as_json = json.loads(content)  # type: ignore
+        shimmed_models = set(deleted_fields.keys())
+        content_as_json = json.loads(content)
         for json_model in content_as_json:
             if json_model["model"] in shimmed_models:
-                fields_to_remove = DELETED_FIELDS[json_model["model"]]
+                fields_to_remove = deleted_fields[json_model["model"]]
                 for field in fields_to_remove:
                     json_model["fields"].pop(field, None)
 
