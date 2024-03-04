@@ -13,11 +13,11 @@ from sentry.utils.redis import redis_clusters
 from .base import ReprocessingStore
 
 
-def _get_sync_counter_key(group_id) -> str:
+def _get_sync_counter_key(group_id: int) -> str:
     return f"re2:count:{group_id}"
 
 
-def _get_info_reprocessed_key(group_id) -> str:
+def _get_info_reprocessed_key(group_id: int) -> str:
     return f"re2:info:{group_id}"
 
 
@@ -30,8 +30,10 @@ def _get_remaining_key(project_id: int, group_id: int) -> str:
 
 
 class RedisReprocessingStore(ReprocessingStore):
-    def __init__(self, **options) -> None:
-        self.redis = redis_clusters.get(options.pop("cluster", "default"))
+    def __init__(self, **options: dict[str, Any]) -> None:
+        cluster = options.pop("cluster", "default")
+        assert isinstance(cluster, str), "cluster option must be a string"
+        self.redis = redis_clusters.get(cluster)
 
     def event_count_for_hashes(
         self, project_id: int, group_id: int, old_primary_hashes: Sequence[str]
