@@ -138,30 +138,8 @@ type TraceViewContentProps = {
 function TraceViewContent(props: TraceViewContentProps) {
   const {projects} = useProjects();
 
-  const tree = useMemo(() => {
-    if (props.status === 'pending') {
-      return TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: props.traceSlug,
-      });
-    }
-
-    if (props.trace) {
-      return TraceTree.FromTrace(props.trace);
-    }
-
-    return TraceTree.Empty();
-  }, [props.traceSlug, props.trace, props.status, projects]);
-
-  const traceType = useMemo(() => {
-    if (props.status !== 'resolved' || !tree) {
-      return null;
-    }
-    return TraceTree.GetTraceType(tree.root);
-  }, [props.status, tree]);
-
   const root = props.trace?.transactions?.[0];
-  const rootEventResults = useApiQuery<EventTransaction>(
+  const rootEvent = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
@@ -172,12 +150,31 @@ function TraceViewContent(props: TraceViewContentProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!(
-        (props.trace?.transactions && props.trace.transactions.length > 0) ||
-        (props.trace?.orphan_errors && props.trace.orphan_errors.length > 0)
-      ),
+      enabled: (props.trace?.transactions.length ?? 0) > 0,
     }
   );
+
+  const tree = useMemo(() => {
+    if (props.status === 'pending' || rootEvent.status !== 'success') {
+      return TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: props.traceSlug,
+      });
+    }
+
+    if (props.trace) {
+      return TraceTree.FromTrace(props.trace, rootEvent.data);
+    }
+
+    return TraceTree.Empty();
+  }, [props.traceSlug, props.trace, props.status, projects, rootEvent]);
+
+  const traceType = useMemo(() => {
+    if (props.status !== 'resolved' || !tree) {
+      return null;
+    }
+    return TraceTree.GetTraceType(tree.root);
+  }, [props.status, tree]);
 
   const [state, dispatch] = useReducer(rovingTabIndexReducer, {
     index: null,
@@ -221,8 +218,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             organization={props.organization}
             location={props.location}
             transaction={{
-              project: rootEventResults.data?.projectID ?? '',
-              name: rootEventResults.data?.title ?? '',
+              project: rootEvent.data?.projectID ?? '',
+              name: rootEvent.data?.title ?? '',
             }}
             traceSlug={props.traceSlug}
           />
@@ -250,7 +247,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         <Layout.Main fullWidth>
           {traceType ? <TraceWarnings type={traceType} /> : null}
           <TraceHeader
-            rootEventResults={rootEventResults}
+            rootEventResults={rootEvent}
             metaResults={props.metaResults}
             organization={props.organization}
             traces={props.trace}
@@ -263,7 +260,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             setDetailNode={onSetDetailNode}
           />
           <TraceFooter
-            rootEventResults={rootEventResults}
+            rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
             traces={props.trace}

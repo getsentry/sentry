@@ -8,7 +8,10 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getFeedbackConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -81,7 +84,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
 colorScheme: "light",
-}),`
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
     params.isReplaySelected

@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.api.bases.organization import (
     NoProjects,
+    OrganizationAndStaffPermission,
     OrganizationEndpoint,
     OrganizationMetricsPermission,
 )
@@ -28,7 +29,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, QueryOrder
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -37,6 +39,7 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
+from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -86,6 +89,7 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
@@ -141,6 +145,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get list of tag names for this project
 
@@ -211,6 +216,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (OrganizationAndStaffPermission,)
 
     """Get the time series data for one or more metrics.
 
@@ -430,7 +436,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
-            )
+            ).apply_transformer(MetricsAPIQueryTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
         except LatestReleaseNotFoundError as e:
