@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import hashlib
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -193,7 +196,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.n_spans[0].get("description", ""),
-                type=PerformanceNPlusOneGroupType,
+                type=(
+                    PerformanceStreamedSpansGroupTypeExperimental
+                    if self.use_experimental_detector
+                    else PerformanceNPlusOneGroupType
+                ),
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=offender_span_ids,
@@ -257,6 +264,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         full_fingerprint = hashlib.sha1(
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{full_fingerprint}"
+
         return f"1-{problem_class}-{full_fingerprint}"
 
 

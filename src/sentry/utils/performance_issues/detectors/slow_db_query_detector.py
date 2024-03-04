@@ -4,7 +4,10 @@ import hashlib
 from datetime import timedelta
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    PerformanceSlowDBQueryGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -61,7 +64,11 @@ class SlowDBQueryDetector(PerformanceDetector):
             type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
 
             self.stored_problems[fingerprint] = PerformanceProblem(
-                type=type,
+                type=(
+                    PerformanceStreamedSpansGroupTypeExperimental
+                    if self.use_experimental_detector
+                    else type
+                ),
                 fingerprint=self._fingerprint(hash),
                 op=op,
                 desc=description,
@@ -115,4 +122,7 @@ class SlowDBQueryDetector(PerformanceDetector):
     def _fingerprint(self, hash):
         signature = (str(hash)).encode("utf-8")
         full_fingerprint = hashlib.sha1(signature).hexdigest()
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{full_fingerprint}"
+
         return f"1-{PerformanceSlowDBQueryGroupType.type_id}-{full_fingerprint}"

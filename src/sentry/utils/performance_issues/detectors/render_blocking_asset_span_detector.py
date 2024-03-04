@@ -5,7 +5,10 @@ from datetime import timedelta
 from typing import Any
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import (
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -79,7 +82,11 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     fingerprint=fingerprint,
                     op=op,
                     desc=span.get("description") or "",
-                    type=PerformanceRenderBlockingAssetSpanGroupType,
+                    type=(
+                        PerformanceStreamedSpansGroupTypeExperimental
+                        if self.use_experimental_detector
+                        else PerformanceRenderBlockingAssetSpanGroupType
+                    ),
                     offender_span_ids=[span_id],
                     parent_span_ids=[],
                     cause_span_ids=[],
@@ -155,4 +162,6 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
     def _fingerprint(self, span: Span):
         resource_url_hash = fingerprint_resource_span(span)
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{resource_url_hash}"
         return f"1-{PerformanceRenderBlockingAssetSpanGroupType.type_id}-{resource_url_hash}"

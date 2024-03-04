@@ -10,6 +10,7 @@ from sentry import features, options
 from sentry.issues.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
@@ -65,7 +66,11 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                     op=span_list[0].get("op"),
                     desc=span_list[0].get("description", ""),
                     parent_span_ids=[parent_span_id],
-                    type=self.group_type,
+                    type=(
+                        PerformanceStreamedSpansGroupTypeExperimental
+                        if self.use_experimental_detector
+                        else self.group_type
+                    ),
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in offender_spans],
                     evidence_data={
@@ -176,6 +181,9 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             )
         call_stack = "-".join(sorted(set(overall_stack), key=lambda s: overall_stack.index(s)))
         hashed_stack = hashlib.sha1(call_stack.encode("utf8")).hexdigest()
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{hashed_stack}"
+
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
 
     def _is_io_on_main_thread(self, span: Span) -> bool:
@@ -223,6 +231,9 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
             sorted(set(description_strings), key=lambda c: description_strings.index(c))
         )
         hashed_queries = hashlib.sha1(joined_queries.encode("utf8")).hexdigest()
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{hashed_queries}"
+
         return f"1-{PerformanceDBMainThreadGroupType.type_id}-{hashed_queries}"
 
     def _is_io_on_main_thread(self, span: Span) -> bool:

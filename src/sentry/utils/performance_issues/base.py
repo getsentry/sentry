@@ -89,9 +89,15 @@ class PerformanceDetector(ABC):
     type: ClassVar[DetectorType]
     stored_problems: PerformanceProblemsMap
 
-    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        settings: dict[DetectorType, Any],
+        event: dict[str, Any],
+        use_experimental_detector: bool = False,
+    ) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
+        self.use_experimental_detector = use_experimental_detector
         self.init()
 
     @abstractmethod

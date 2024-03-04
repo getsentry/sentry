@@ -4,7 +4,10 @@ import re
 from datetime import timedelta
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
+from sentry.issues.grouptype import (
+    PerformanceLargeHTTPPayloadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -65,7 +68,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             fingerprint,
             "http",
             desc=desc,
-            type=PerformanceLargeHTTPPayloadGroupType,
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else PerformanceLargeHTTPPayloadGroupType
+            ),
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -121,6 +128,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def _fingerprint(self, span) -> str:
         hashed_url_paths = fingerprint_http_spans([span])
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{hashed_url_paths}"
         return f"1-{PerformanceLargeHTTPPayloadGroupType.type_id}-{hashed_url_paths}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:

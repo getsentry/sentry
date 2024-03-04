@@ -11,6 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -63,10 +64,15 @@ class SearchingForMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: dict[str, Any], event: Event, initial_spans: Sequence[Span] | None = None
+        self,
+        settings: dict[str, Any],
+        event: Event,
+        initial_spans: Sequence[Span] | None = None,
+        use_experimental_detector: bool = False,
     ) -> None:
         self.settings = settings
         self.event = event
+        self.use_experimental_detector = use_experimental_detector
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
     def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
@@ -125,11 +131,17 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+        self,
+        settings: dict[str, Any],
+        event: Event,
+        pattern: Sequence[Span],
+        first_span: Span,
+        use_experimental_detector: bool = False,
     ) -> None:
         self.settings = settings
         self.event = event
         self.pattern = pattern
+        self.use_experimental_detector = use_experimental_detector
 
         # The full list of spans involved in the MN pattern.
         self.spans: Sequence[Span] = pattern.copy()
@@ -184,7 +196,11 @@ class ContinuingMNPlusOne(MNPlusOneState):
             fingerprint=self._fingerprint(db_span["hash"], parent_span),
             op="db",
             desc=db_span["description"],
-            type=PerformanceNPlusOneGroupType,
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else PerformanceNPlusOneGroupType
+            ),
             parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
@@ -240,6 +256,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         full_fingerprint = hashlib.sha1(
             (parent_op + parent_hash + db_hash).encode("utf8")
         ).hexdigest()
+
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{full_fingerprint}"
+
         return f"1-{PerformanceMNPlusOneDBQueriesGroupType.type_id}-{full_fingerprint}"
 
 
@@ -262,7 +282,9 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     def init(self):
         self.stored_problems = {}
-        self.state = SearchingForMNPlusOne(self.settings, self.event())
+        self.state = SearchingForMNPlusOne(
+            self.settings, self.event(), self.use_experimental_detector
+        )
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return features.has(

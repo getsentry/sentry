@@ -10,7 +10,10 @@ from urllib.parse import parse_qs, urlparse
 from django.utils.encoding import force_bytes
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -174,7 +177,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
+            ),
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=offender_span_ids,
@@ -243,6 +250,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return None
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
+
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{fingerprint}"
 
         return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 

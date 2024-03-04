@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -105,7 +108,11 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             fingerprint,
             "http",
             desc=desc,
-            type=PerformanceConsecutiveHTTPQueriesGroupType,
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else PerformanceConsecutiveHTTPQueriesGroupType
+            ),
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -166,6 +173,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{hashed_url_paths}"
         return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_url_paths}"
 
     def on_complete(self) -> None:

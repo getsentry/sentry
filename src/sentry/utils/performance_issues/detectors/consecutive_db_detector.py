@@ -8,7 +8,10 @@ from typing import Any
 from django.utils.translation import gettext_lazy as _
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -125,7 +128,11 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             fingerprint,
             "db",
             desc=query,  # TODO - figure out which query to use for description
-            type=PerformanceConsecutiveDBQueriesGroupType,
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else PerformanceConsecutiveDBQueriesGroupType
+            ),
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
@@ -248,6 +255,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         hashed_spans = fingerprint_spans(
             [self.consecutive_db_spans[prior_span_index]] + self.independent_db_spans
         )
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{hashed_spans}"
+
         return f"1-{PerformanceConsecutiveDBQueriesGroupType.type_id}-{hashed_spans}"
 
     def on_complete(self) -> None:
