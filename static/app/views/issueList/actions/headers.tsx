@@ -129,7 +129,7 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
 const PriorityLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   justify-content: flex-end;
   text-align: right;
-  width: 85px;
+  width: 70px;
   margin: 0 ${space(2)};
 
   /* prettier-ignore */

@@ -22,7 +22,7 @@ type GroupPriorityBadgeProps = {
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
   [PriorityLevel.HIGH]: t('High'),
-  [PriorityLevel.MEDIUM]: t('Medium'),
+  [PriorityLevel.MEDIUM]: t('Med'),
   [PriorityLevel.LOW]: t('Low'),
 };
 
