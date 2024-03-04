@@ -2158,3 +2158,22 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# killswitch for profiling ddm functions metrics.
+# Enable/Disable the ingestion of function metrics
+# in the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of org IDs for which we'll write the function
+# metrics to the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.allowed_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
