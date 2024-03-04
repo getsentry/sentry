@@ -15,15 +15,23 @@ interface Filters {
   [key: string]: string;
 }
 
-export const useIndexedSpans = (
-  filters: Filters,
-  sorts: Sort[] = [{field: 'timestamp', kind: 'desc'}],
-  limit: number = DEFAULT_LIMIT,
-  enabled: boolean = true,
-  referrer: string = 'use-indexed-spans'
-) => {
+export const useIndexedSpans = ({
+  filters,
+  sorts = [{field: 'timestamp', kind: 'desc'}],
+  limit = DEFAULT_LIMIT,
+  enabled = true,
+  referrer = 'use-indexed-spans',
+  fields = undefined,
+}: {
+  filters: Filters;
+  enabled?: boolean;
+  fields?: string[];
+  limit?: number;
+  referrer?: string;
+  sorts?: Sort[];
+}) => {
   const location = useLocation();
-  const eventView = getEventView(filters, location, sorts);
+  const eventView = getEventView(filters, location, sorts, fields);
 
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
@@ -34,7 +42,12 @@ export const useIndexedSpans = (
   });
 };
 
-function getEventView(filters: Filters, location: Location, sorts?: Sort[]) {
+function getEventView(
+  filters: Filters,
+  location: Location,
+  sorts?: Sort[],
+  fields?: string[]
+) {
   // TODO: Add a `MutableSearch` constructor that accept a key-value mapping
   const search = new MutableSearch([]);
 
@@ -46,7 +59,7 @@ function getEventView(filters: Filters, location: Location, sorts?: Sort[]) {
     {
       name: '',
       query: search.formatString(),
-      fields: Object.values(SpanIndexedField),
+      fields: fields ?? Object.values(SpanIndexedField),
       dataset: DiscoverDatasets.SPANS_INDEXED,
       version: 2,
     },

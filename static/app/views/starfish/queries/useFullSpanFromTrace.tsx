@@ -20,7 +20,7 @@ export function useFullSpanFromTrace(
     filters[SpanIndexedField.SPAN_GROUP] = group;
   }
 
-  const indexedSpansResponse = useIndexedSpans(filters, sorts, 1, enabled);
+  const indexedSpansResponse = useIndexedSpans({filters, sorts, limit: 1, enabled});
 
   const firstIndexedSpan = indexedSpansResponse.data?.[0];
 

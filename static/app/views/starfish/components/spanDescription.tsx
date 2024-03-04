@@ -35,11 +35,11 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans(
-    {'span.group': groupId},
-    [INDEXED_SPAN_SORT],
-    1
-  );
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
+    filters: {'span.group': groupId},
+    sorts: [INDEXED_SPAN_SORT],
+    limit: 1,
+  });
   const indexedSpan = indexedSpans?.[0];
 
   // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
