@@ -431,9 +431,9 @@ function Trace({
   return (
     <TraceStylingWrapper
       ref={r => {
-          containerRef.current = r;
-          viewManager.onContainerRef(r);
-       }}
+        containerRef.current = r;
+        viewManager.onContainerRef(r);
+      }}
       className={trace.type === 'loading' ? 'Loading' : ''}
     >
       <TraceDivider className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
