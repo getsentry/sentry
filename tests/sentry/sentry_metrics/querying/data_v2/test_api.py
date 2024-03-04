@@ -1244,9 +1244,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][2]["series"] == [None, 0.0, 0.0]
         assert data[0][2]["totals"] == 0.0
 
-    # Same unit family
-    # Different unit family
-    # Unsupported ops
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_coercible_units(self):
         mri_1 = "d:custom/page_load@nanosecond"
