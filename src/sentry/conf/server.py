@@ -1455,6 +1455,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
+    # Enables datadog buffering
+    "datadog:enable-buffering": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -1544,10 +1546,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover-query": True,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
@@ -1662,6 +1660,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-blocking": False,
     # Enables the new samples list experience
     "organizations:metrics-samples-list": False,
+    # Enables the search bar for metrics samples list
+    "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend

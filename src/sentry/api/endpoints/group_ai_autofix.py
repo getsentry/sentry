@@ -46,27 +46,29 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_repos_from_code_mapping(self, group: Group):
+    @staticmethod
+    def _get_repos_from_code_mapping(group: Group) -> list[dict]:
         repo_configs: list[
             RepositoryProjectPathConfig
         ] = RepositoryProjectPathConfig.objects.filter(project__in=[group.project])
 
-        repos = []
+        repos: dict[tuple, dict] = {}
         for repo_config in repo_configs:
             repo: Repository = repo_config.repository
             repo_name_sections = repo.name.split("/")
 
             # We expect a repository name to be in the format of "owner/name" for now.
-            if len(repo_name_sections) > 1:
-                repos.append(
-                    {
-                        "provider": repo.provider,
-                        "owner": repo_name_sections[0],
-                        "name": "/".join(repo_name_sections[1:]),
-                    }
-                )
+            if len(repo_name_sections) > 1 and repo.provider:
+                repo_dict = {
+                    "provider": repo.provider,
+                    "owner": repo_name_sections[0],
+                    "name": "/".join(repo_name_sections[1:]),
+                }
+                repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
-        return repos
+                repos[repo_key] = repo_dict
+
+        return list(repos.values())
 
     def _get_event_entries(
         self, group: Group, user: AbstractBaseUser | AnonymousUser
