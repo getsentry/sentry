@@ -244,6 +244,89 @@ class PHPParser(LanguageParser):
 
         return functions
 
+    @staticmethod
+    def _get_function_name_conditions(stackframe_level: int, function_names: list[str]):
+        """
+        For PHP we need a special case of matching both for the function name itself and for
+        "::" + the function name, because sometimes Snuba stores the function name as "namespace::FunctionName".
+        """
+        prepended_function_names = ["%::" + function_name for function_name in function_names]
+        function_name_conditions = [
+            Condition(
+                stackframe_function_name(stackframe_level),
+                Op.LIKE,
+                function_name,
+            )
+            for function_name in prepended_function_names
+        ]
+        function_name_conditions.append(
+            Condition(
+                stackframe_function_name(stackframe_level),
+                Op.IN,
+                function_names,
+            ),
+        )
+        return function_name_conditions
+
+    @staticmethod
+    def _get_function_name_functions(stackframe_level: int, function_names: list[str]):
+        """
+        This is used in the multi_if. We need to account for the special Javascript cases in order to
+        properly fetch the function name -- "namespace::FunctionName" or simply "functionName" depending
+        on what matches in the stack trace.
+        """
+        prepended_function_names = ["%::" + function_name for function_name in function_names]
+        function_name_conditions = [
+            Function(
+                "like",
+                [
+                    stackframe_function_name(stackframe_level),
+                    function_name,
+                ],
+            )
+            for function_name in prepended_function_names
+        ]
+        function_name_conditions.append(
+            Function(
+                "in",
+                [
+                    stackframe_function_name(stackframe_level),
+                    function_names,
+                ],
+            )
+        )
+        return function_name_conditions
+
+    @staticmethod
+    def generate_multi_if(function_names: list[str]) -> list[Function]:
+        """
+        Fetch the function name from the stackframe that matches a name within the list of function names.
+        """
+        multi_if = []
+        for i in range(-STACKFRAME_COUNT, 0):
+            # if, then conditions
+            stackframe_function_name_conditions = PHPParser._get_function_name_functions(
+                i, function_names
+            )
+            multi_if.extend(
+                [
+                    Function("or", stackframe_function_name_conditions),
+                    stackframe_function_name(i),
+                ]
+            )
+        # else condition
+        multi_if.append(stackframe_function_name(-1))
+
+        return multi_if
+
+    @staticmethod
+    def generate_function_name_conditions(function_names: list[str], stack_frame: int) -> Condition:
+        """Check if the function name in the stack frame is within the list of function names."""
+        return BooleanCondition(
+            BooleanOp.OR,
+            PHPParser._get_function_name_conditions(stack_frame, function_names),
+        )
+
 
 PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
