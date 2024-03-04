@@ -251,7 +251,7 @@ def normalize_value(
     return rv
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=False) -> bool:
+def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
     option_value = options.get(killswitch_name)
