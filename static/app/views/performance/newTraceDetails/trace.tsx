@@ -147,8 +147,21 @@ function Trace({
     scrollQueue.current = decodeScrollQueue(qs.parse(location.search).node);
   }
 
+  const loadedRef = useRef(false);
   useEffect(() => {
-    if (trace.type === 'loading' || scrollQueue.current === null || !manager) {
+    if (loadedRef.current) {
+      return;
+    }
+    if (trace.type === 'loading' || !manager) {
+      return;
+    }
+
+    loadedRef.current = true;
+
+    if (!scrollQueue.current) {
+      if (search_state.query) {
+        onTraceSearch(search_state.query);
+      }
       return;
     }
 

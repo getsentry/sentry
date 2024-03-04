@@ -152,28 +152,30 @@ export function searchInTraceTree(
   const results: Array<TraceResult> = [];
   const resultLookup = new Map();
 
-  let start = 0;
+  let i = 0;
   let matchCount = 0;
-  const nodeCount = tree.list.length - 1;
+  const count = tree.list.length - 1;
 
   function search() {
     const ts = performance.now();
-    while (start < nodeCount && performance.now() - ts < 12) {
-      const node = tree.list[start];
+
+    while (i < count && performance.now() - ts < 12) {
+      const node = tree.list[i];
       if (searchInTraceSubset(query, node)) {
-        results.push({index: start, value: node});
+        results.push({index: i, value: node});
         resultLookup.set(node, matchCount);
         matchCount++;
       }
-      start++;
-    }
-    if (start === nodeCount) {
-      cb([results, resultLookup]);
-      raf.id = null;
+      i++;
     }
 
-    if (start < nodeCount) {
+    if (i < count) {
       raf.id = requestAnimationFrame(search);
+    }
+
+    if (i === count) {
+      cb([results, resultLookup]);
+      raf.id = null;
     }
   }
 
