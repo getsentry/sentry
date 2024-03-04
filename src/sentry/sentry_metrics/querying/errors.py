@@ -18,5 +18,5 @@ class TooManyCodeLocationsRequestedError(Exception):
     pass
 
 
-class MultipleUnitFamiliesInFormulaError(Exception):
+class NonNormalizableUnitsError(Exception):
     pass

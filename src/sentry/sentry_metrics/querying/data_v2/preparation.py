@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from snuba_sdk import MetricsQuery
 
 from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, UnitFamily
-from sentry.sentry_metrics.querying.errors import MultipleUnitFamiliesInFormulaError
+from sentry.sentry_metrics.querying.errors import NonNormalizableUnitsError
 from sentry.sentry_metrics.querying.types import QueryOrder
 from sentry.sentry_metrics.querying.visitors.query_expression import UnitsNormalizationVisitor
 
@@ -57,7 +57,7 @@ class UnitNormalizationStep(PreparationStep):
                 unit=reference_unit,
                 scaling_factor=scaling_factor,
             )
-        except MultipleUnitFamiliesInFormulaError:
+        except NonNormalizableUnitsError:
             return intermediate_query
 
     def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
