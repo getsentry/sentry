@@ -250,7 +250,7 @@ export class TraceTree {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
-      node.canFetchData = true;
+      node.canFetch = true;
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -822,7 +822,7 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<T extends TraceTree.NodeValue> {
-  canFetchData: boolean = false;
+  canFetch: boolean = false;
   fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode<TraceTree.NodeValue> | null = null;
   value: T;
@@ -889,7 +889,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
-    node.canFetchData = this.canFetchData;
+    node.canFetch = this.canFetch;
     node.space = this.space;
     node.metadata = this.metadata;
 
@@ -1013,7 +1013,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isSpanNode(this)) {
-      return this.canFetchData && !this.zoomedIn ? [] : this.spanChildren;
+      return this.canFetch && !this.zoomedIn ? [] : this.spanChildren;
     }
 
     if (isTransactionNode(this)) {
