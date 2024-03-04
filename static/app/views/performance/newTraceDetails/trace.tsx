@@ -727,14 +727,6 @@ function RenderRow(props: {
                   ? props.node.value.description.slice(0, 100).trim() + '\u2026'
                   : props.node.value.description}
             </span>
-            {props.node.canFetch ? (
-              <SpanButton
-                status={props.node.fetchStatus}
-                onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}
-              >
-                {props.node.zoomedIn ? '-' : '+'}
-              </SpanButton>
-            ) : null}
           </div>
         </div>
         <div
@@ -1296,22 +1288,6 @@ function TraceBar(props: TraceBarProps) {
   );
 }
 
-interface SpanButtonProps {
-  children: React.ReactNode;
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-  status: TraceTreeNode<any>['fetchStatus'] | undefined;
-}
-function SpanButton(props: SpanButtonProps) {
-  return (
-    <button className="TraceActionsButton" onClick={props.onClick}>
-      {props.children}
-      {props.status === 'loading' ? (
-        <LoadingIndicator className="TraceActionsLoadingIndicator" size={8} />
-      ) : null}
-    </button>
-  );
-}
-
 /**
  * This is a wrapper around the Trace component to apply styles
  * to the trace tree. It exists because we _do not_ want to trigger
@@ -1359,7 +1335,6 @@ const TraceStylingWrapper = styled('div')`
     position: absolute;
     right: 0;
     top: 0;
-    z-index: 1;
   }
 
   .TraceIndicator {
