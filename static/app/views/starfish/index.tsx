@@ -7,7 +7,7 @@ import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
 };
 
 const queryClient = new QueryClient();

@@ -805,7 +805,8 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           {({height, isScrolling, onChildScroll, scrollTop, registerChild}) => (
             <AutoSizer disableHeight>
               {({width}) => (
-                <div ref={el => registerChild(el)}>
+                // TODO(TS): registerChild expects a ReactNode instead of a HTML ref
+                <div ref={el => registerChild(el as any)}>
                   <ReactVirtualizedList
                     autoHeight
                     isScrolling={isScrolling}

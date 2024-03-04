@@ -49,8 +49,8 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     return (
       <FieldWrapper key={type}>
         <div>
-          <FieldLabel>{field.label}</FieldLabel>
-          <FieldHelp>{field.help}</FieldHelp>
+          <FieldLabel>{field.label as React.ReactNode}</FieldLabel>
+          <FieldHelp>{field.help as React.ReactNode}</FieldHelp>
         </div>
         <IconWrapper>
           <LinkButton

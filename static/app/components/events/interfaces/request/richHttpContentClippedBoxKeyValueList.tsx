@@ -52,7 +52,8 @@ export function RichHttpContentClippedBoxKeyValueList({
         />
       );
     } catch {
-      return <pre>{data}</pre>;
+      // TODO(TS): Types indicate that data might be an object
+      return <pre>{data as any}</pre>;
     }
   }
 

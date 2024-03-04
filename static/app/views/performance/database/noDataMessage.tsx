@@ -12,7 +12,7 @@ import {useDenylistedProjects} from 'sentry/views/performance/database/useDenyli
 import {useOutdatedSDKProjects} from 'sentry/views/performance/database/useOutdatedSDKProjects';
 
 interface Props {
-  Wrapper?: React.ComponentType;
+  Wrapper?: React.ComponentType<any>;
   isDataAvailable?: boolean;
 }
 

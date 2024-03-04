@@ -57,7 +57,8 @@ export default function Matrix<P extends RenderProps>({
   return (
     <div>
       <h4 style={{margin: 0}}>
-        <samp>{selectedProps[0]}</samp> vs <samp>{selectedProps[1]}</samp>
+        <samp>{selectedProps[0] as string | number}</samp> vs{' '}
+        <samp>{selectedProps[1] as string | number}</samp>
       </h4>
       <Grid
         style={{
