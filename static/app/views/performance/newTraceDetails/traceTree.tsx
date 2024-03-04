@@ -1221,6 +1221,24 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     }
     return this.tail.children;
   }
+
+  get errored(): boolean {
+    // We mark the node as errored if any child from head to and including tail has an error.
+    let currentNode: TraceTreeNode<TraceTree.Span> = this.head;
+    while (currentNode && currentNode !== this.tail.children[0]) {
+      if (currentNode.value.relatedErrors.length > 0) {
+        return true;
+      }
+
+      if (!isSpanNode(currentNode.children[0])) {
+        throw new TypeError('Expected child of autogrouped node to be a span node.');
+      }
+
+      currentNode = currentNode.children[0];
+    }
+
+    return false;
+  }
 }
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
@@ -1233,6 +1251,20 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   ) {
     super(parent, node, metadata);
     this.expanded = false;
+  }
+
+  get errored(): boolean {
+    for (const child of this.children) {
+      if (!isSpanNode(child)) {
+        throw new TypeError('Expected child of autogrouped node to be a span node.');
+      }
+
+      if (child.value.relatedErrors.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

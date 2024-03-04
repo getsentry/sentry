@@ -460,35 +460,6 @@ function RenderRow(props: {
   }
 
   if (isAutogroupedNode(props.node)) {
-    let errored = false;
-
-    if (isParentAutogroupedNode(props.node)) {
-      // We mark the node as errored if any child from head to and including tail has an error.
-      let currentNode: TraceTreeNode<TraceTree.Span> = props.node.head;
-      while (currentNode && currentNode !== props.node.tail.children[0]) {
-        if (currentNode.value.relatedErrors.length > 0) {
-          errored = true;
-          break;
-        }
-
-        if (!isSpanNode(currentNode.children[0])) {
-          throw new TypeError('Expected child of autogrouped node to be a span node.');
-        }
-
-        currentNode = currentNode.children[0];
-      }
-    } else {
-      for (const child of props.node.children) {
-        if (!isSpanNode(child)) {
-          throw new TypeError('Expected child of autogrouped node to be a span node.');
-        }
-
-        if (child.value.relatedErrors.length > 0) {
-          errored = true;
-          break;
-        }
-      }
-    }
     return (
       <div
         key={props.index}
@@ -516,7 +487,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
+            className={`TraceLeftColumnInner ${props.node.errored ? 'Errored' : ''}`}
             style={{
               paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
@@ -524,7 +495,7 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} viewManager={props.viewManager} />
               <ChildrenCountButton
-                errored={errored}
+                errored={props.node.errored}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
               >
