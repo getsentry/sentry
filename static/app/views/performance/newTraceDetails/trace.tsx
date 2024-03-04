@@ -18,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -131,6 +132,7 @@ function Trace({
   const {projects} = useProjects();
   const organization = useOrganization();
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [_rerender, setRender] = useState(0);
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
@@ -313,6 +315,18 @@ function Trace({
     [roving_dispatch, setDetailNode, search_state, search_dispatch]
   );
 
+  const onOutsideClick = useCallback(() => {
+    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: queryParamsWithoutNode,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useOnClickOutside(containerRef.current, onOutsideClick);
+
   const onRowKeyDown = useCallback(
     (
       event: React.KeyboardEvent,
@@ -416,7 +430,10 @@ function Trace({
 
   return (
     <TraceStylingWrapper
-      ref={r => manager.onContainerRef(r)}
+      ref={r => {
+          containerRef.current = r;
+          viewManager.onContainerRef(r);
+       }}
       className={trace.type === 'loading' ? 'Loading' : ''}
     >
       <TraceDivider className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
