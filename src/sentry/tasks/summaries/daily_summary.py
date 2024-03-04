@@ -76,7 +76,9 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             user_ids = {
                 user_id
                 for user_id in OrganizationMember.objects.filter(
-                    organization_id=organization.id, teams__projectteam__project__isnull=False
+                    organization_id=organization.id,
+                    teams__projectteam__project__isnull=False,
+                    user_id__isnull=False,
                 ).values_list("user_id", flat=True)
             }
             if not user_ids:
