@@ -26,7 +26,7 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import SnubaError, SnubaTSResult
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -347,9 +347,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         has_errors = len(error_results["data"]) > 0
                     except SnubaError:
                         has_errors = False
+                        error_results = None
 
                     original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
-                    if isinstance(original_results, SnubaTSResult):
+                    if original_results.get("data"):
                         dataset_meta = original_results.data.get("meta", {})
                     else:
                         dataset_meta = list(original_results.values())[0].data.get("meta", {})
