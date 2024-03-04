@@ -7,6 +7,7 @@ import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -86,8 +87,8 @@ function ReplayPreviewPlayer({
   replayRecord,
 }: {
   replayId: string;
+  replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
-  replayRecord?: ReplayRecord;
 }) {
   const routes = useRoutes();
   const location = useLocation();
@@ -120,8 +121,7 @@ function ReplayPreviewPlayer({
           replay={replayRecord}
           eventView={eventView}
           organization={organization}
-          referrer="replay-header"
-          referrer_table="main"
+          referrer="issue-details-replay-header"
         />
       )}
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
@@ -279,7 +279,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: 496px;
+  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`
@@ -294,7 +294,7 @@ const StaticPanel = styled(FluidHeight)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 480px;
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
 

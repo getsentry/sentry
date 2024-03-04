@@ -292,9 +292,9 @@ export function ReplayCell({
   eventView: EventView;
   organization: Organization;
   referrer: string;
-  referrer_table: ReferrerTableType;
   className?: string;
   isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
