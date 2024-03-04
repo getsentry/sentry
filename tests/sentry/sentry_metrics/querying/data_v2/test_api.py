@@ -11,16 +11,16 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
 from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
-from sentry.sentry_metrics.querying.data_v2.units import (
-    MeasurementUnit,
-    UnitFamily,
-    get_unit_family_and_unit,
-)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.units import (
+    MeasurementUnit,
+    UnitFamily,
+    get_unit_family_and_unit,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI

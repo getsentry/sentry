@@ -4,16 +4,16 @@ from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeser
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.data_v2.units import (
-    MeasurementUnit,
-    UnitFamily,
-    get_unit_family_and_unit,
-)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     NonNormalizableUnitsError,
 )
 from sentry.sentry_metrics.querying.types import QueryExpression
+from sentry.sentry_metrics.querying.units import (
+    MeasurementUnit,
+    UnitFamily,
+    get_unit_family_and_unit,
+)
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
