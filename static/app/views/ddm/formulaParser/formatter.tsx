@@ -98,11 +98,6 @@ export function FormularFormatter({formula, errors}: FormularFormatterProps) {
           </Token>
         );
       })}
-      {!hasActiveTooltip && findMatchingError(charCount) && (
-        <Tooltip title={findMatchingError(charCount)?.message} forceVisible>
-          &nbsp;
-        </Tooltip>
-      )}
     </Fragment>
   );
 
