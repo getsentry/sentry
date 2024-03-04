@@ -360,7 +360,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .apply_formula("$query_1", order=QueryOrder.DESC)
         )
 
-        results = run_metrics_queries_plan(
+        results = self.run_query(
             metrics_queries_plan=plan,
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
