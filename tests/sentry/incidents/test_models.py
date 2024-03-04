@@ -603,6 +603,9 @@ class CleanExpiredAlertsTest(TestCase):
     def test_clean_expired_alerts_active(self):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule.subscribe_projects(
+                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            )
             subscription = alert_rule.snuba_query.subscriptions.get()
 
             clean_expired_alerts(subscription)
@@ -611,6 +614,9 @@ class CleanExpiredAlertsTest(TestCase):
     def test_clean_expired_alerts_deactive(self):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule.subscribe_projects(
+                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            )
 
             subscription = alert_rule.snuba_query.subscriptions.get()
             subscription.date_added = timezone.now() - timedelta(days=21)
