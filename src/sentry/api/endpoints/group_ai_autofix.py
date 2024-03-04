@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -72,14 +72,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         return list(repos.values())
 
     def _get_event_entries(
-        self, group: Group, user: AbstractBaseUser | AnonymousUser
+        self, event_id: int, group: Group, user: AbstractBaseUser | AnonymousUser
     ) -> list | None:
-        latest_event = group.get_latest_event()
+        event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 
-        if not latest_event:
+        if not event:
             return None
 
-        serialized_event = serialize(latest_event, user, EventSerializer())
+        serialized_event = serialize(event, user, EventSerializer())
         return serialized_event["entries"]
 
     def _make_error_metadata(self, autofix: dict, reason: str):
@@ -141,6 +141,11 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
     def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
 
+        # This event_id is the event that the user is looking at when they click the "Fix" button
+        event_id = data.get("event_id", None)
+        if event_id is None:
+            raise ValueError("event_id is required")
+
         created_at = datetime.now().isoformat()
         metadata = group.data.get("metadata", {})
         metadata["autofix"] = {
@@ -161,7 +166,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 group, metadata, "AI Autofix is not enabled for this project.", 403
             )
 
-        event_entries = self._get_event_entries(group, request.user)
+        # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
+        event_entries = self._get_event_entries(event_id, group, request.user)
 
         if event_entries is None:
             return self._respond_with_error(

@@ -78,7 +78,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_called_with(
                 ANY,
                 group,
@@ -133,7 +135,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_not_called()
 
         group = Group.objects.get(id=group.id)
@@ -182,7 +186,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_not_called()
 
         group = Group.objects.get(id=group.id)
