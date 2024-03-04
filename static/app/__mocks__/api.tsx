@@ -230,7 +230,9 @@ class Client implements ApiNamespace.Client {
     if (!response || !mock) {
       const methodAndUrl = `${options.method || 'GET'} ${url}`;
       // Endpoints need to be mocked
-      const err = new Error(`No mocked response found for request: ${methodAndUrl}`);
+      const err = new Error(
+        `No mocked response found for request: ${methodAndUrl} ${JSON.stringify(options)}`
+      );
 
       // Mutate stack to drop frames since test file so that we know where in the test
       // this needs to be mocked
