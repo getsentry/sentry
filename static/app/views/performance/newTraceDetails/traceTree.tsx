@@ -250,7 +250,7 @@ export class TraceTree {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
-      node.canFetchData = true;
+      node.canFetch = true;
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -532,8 +532,12 @@ export class TraceTree {
       autoGroupedNode.groupCount = groupMatchCount + 1;
       autoGroupedNode.errored_children = erroredChildren;
       autoGroupedNode.space = [
-        head.value.start_timestamp * autoGroupedNode.multiplier,
-        (tail.value.timestamp - head.value.start_timestamp) * autoGroupedNode.multiplier,
+        Math.min(head.value.start_timestamp, tail.value.timestamp) *
+          autoGroupedNode.multiplier,
+        Math.max(
+          tail.value.timestamp - head.value.start_timestamp,
+          head.value.timestamp - tail.value.timestamp
+        ) * autoGroupedNode.multiplier,
       ];
 
       for (const c of tail.children) {
@@ -598,8 +602,29 @@ export class TraceTree {
 
           autoGroupedNode.groupCount = matchCount + 1;
           const start = index - matchCount;
+          let start_timestamp = Number.MAX_SAFE_INTEGER;
+          let timestamp = Number.MIN_SAFE_INTEGER;
+
           for (let j = start; j < start + matchCount + 1; j++) {
             const child = node.children[j];
+            if (
+              child.value &&
+              'timestamp' in child.value &&
+              typeof child.value.timestamp === 'number' &&
+              child.value.timestamp > timestamp
+            ) {
+              timestamp = child.value.timestamp;
+            }
+
+            if (
+              child.value &&
+              'start_timestamp' in child.value &&
+              typeof child.value.start_timestamp === 'number' &&
+              child.value.start_timestamp > start_timestamp
+            ) {
+              start_timestamp = child.value.start_timestamp;
+            }
+
             if (!isSpanNode(child)) {
               throw new TypeError(
                 'Expected child of autogrouped node to be a span node.'
@@ -609,10 +634,16 @@ export class TraceTree {
             if (child.value?.relatedErrors.length > 0) {
               autoGroupedNode.errored_children.push(child);
             }
-            autoGroupedNode.children.push(child);
+
+            autoGroupedNode.children.push(node.children[j]);
             autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
               autoGroupedNode;
           }
+
+          autoGroupedNode.space = [
+            start_timestamp * autoGroupedNode.multiplier,
+            (timestamp - start_timestamp) * autoGroupedNode.multiplier,
+          ];
 
           node.children.splice(start, matchCount + 1, autoGroupedNode);
           index = start + 1;
@@ -762,30 +793,38 @@ export class TraceTree {
         node.metadata.event_id!
       );
 
-    promise.then(data => {
-      const spans = data.entries.find(s => s.type === 'spans');
-      if (!spans) {
+    node.fetchStatus = 'loading';
+
+    promise
+      .then(data => {
+        node.fetchStatus = 'resolved';
+
+        const spans = data.entries.find(s => s.type === 'spans');
+        if (!spans) {
+          return data;
+        }
+
+        // Remove existing entries from the list
+        const index = this._list.indexOf(node);
+        if (node.expanded) {
+          const childrenCount = node.getVisibleChildrenCount();
+          this._list.splice(index + 1, childrenCount);
+        }
+
+        // Api response is not sorted
+        if (spans.data) {
+          spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+        }
+
+        TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
+
+        const spanChildren = node.getVisibleChildren();
+        this._list.splice(index + 1, 0, ...spanChildren);
         return data;
-      }
-
-      // Remove existing entries from the list
-      const index = this._list.indexOf(node);
-      if (node.expanded) {
-        const childrenCount = node.getVisibleChildrenCount();
-        this._list.splice(index + 1, childrenCount);
-      }
-
-      // Api response is not sorted
-      if (spans.data) {
-        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
-      }
-
-      TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
-
-      const spanChildren = node.getVisibleChildren();
-      this._list.splice(index + 1, 0, ...spanChildren);
-      return data;
-    });
+      })
+      .catch(_e => {
+        node.fetchStatus = 'error';
+      });
 
     this._spanPromises.set(key, promise);
     return promise;
@@ -838,11 +877,12 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<T extends TraceTree.NodeValue> {
+  canFetch: boolean = false;
+  fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode<TraceTree.NodeValue> | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
-  canFetchData: boolean = false;
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
@@ -904,7 +944,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
-    node.canFetchData = this.canFetchData;
+    node.canFetch = this.canFetch;
     node.space = this.space;
     node.metadata = this.metadata;
 
@@ -1028,7 +1068,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isSpanNode(this)) {
-      return this.canFetchData && !this.zoomedIn ? [] : this.spanChildren;
+      return this.canFetch && !this.zoomedIn ? [] : this.spanChildren;
     }
 
     if (isTransactionNode(this)) {
@@ -1244,6 +1284,8 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   groupCount: number = 0;
 
+  private _autogroupedSegments: [number, number][] | undefined;
+
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
     node: TraceTree.ChildrenAutogroup,
@@ -1268,11 +1310,31 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
   get has_error(): boolean {
     return this.errored_children.length > 0;
   }
+
+  get autogroupedSegments(): [number, number][] {
+    if (this._autogroupedSegments) {
+      return this._autogroupedSegments;
+    }
+
+    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    let start: TraceTreeNode<TraceTree.NodeValue> | undefined = this.head;
+
+    while (start && start !== this.tail) {
+      children.push(start);
+      start = start.children[0];
+    }
+
+    children.push(this.tail);
+
+    this._autogroupedSegments = computeAutogroupedBarSegments(children);
+    return this._autogroupedSegments;
+  }
 }
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
   errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+  private _autogroupedSegments: [number, number][] | undefined;
 
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -1285,6 +1347,15 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
 
   get has_error(): boolean {
     return this.errored_children.length > 0;
+  }
+
+  get autogroupedSegments(): [number, number][] {
+    if (this._autogroupedSegments) {
+      return this._autogroupedSegments;
+    }
+
+    this._autogroupedSegments = computeAutogroupedBarSegments(this.children);
+    return this._autogroupedSegments;
   }
 }
 
@@ -1413,6 +1484,59 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   }
 
   throw new Error('Not implemented');
+}
+
+export function computeAutogroupedBarSegments(
+  nodes: TraceTreeNode<TraceTree.NodeValue>[]
+): [number, number][] {
+  if (nodes.length === 0) {
+    return [];
+  }
+
+  if (nodes.length === 1) {
+    const space = nodes[0].space;
+    if (!space) {
+      throw new Error(
+        'Autogrouped node child has no defined space. This should not happen.'
+      );
+    }
+    return [space];
+  }
+
+  const first = nodes[0];
+  const multiplier = first.multiplier;
+
+  if (!isSpanNode(first)) {
+    throw new Error('Autogrouped node must have span children');
+  }
+
+  const segments: [number, number][] = [];
+
+  let start = first.value.start_timestamp;
+  let end = first.value.timestamp;
+  let i = 1;
+
+  while (i < nodes.length) {
+    const next = nodes[i];
+
+    if (!isSpanNode(next)) {
+      throw new Error('Autogrouped node must have span children');
+    }
+
+    if (next.value.start_timestamp > end) {
+      segments.push([start * multiplier, (end - start) * multiplier]);
+      start = next.value.start_timestamp;
+      end = next.value.timestamp;
+      i++;
+    } else {
+      end = next.value.timestamp;
+      i++;
+    }
+  }
+
+  segments.push([start * multiplier, (end - start) * multiplier]);
+
+  return segments;
 }
 
 // Returns a list of errors or performance issues related to the txn
