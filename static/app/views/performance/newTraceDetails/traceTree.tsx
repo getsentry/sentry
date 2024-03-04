@@ -250,7 +250,7 @@ export class TraceTree {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
-      node.canFetchData = true;
+      node.canFetch = true;
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -769,30 +769,38 @@ export class TraceTree {
         node.metadata.event_id!
       );
 
-    promise.then(data => {
-      const spans = data.entries.find(s => s.type === 'spans');
-      if (!spans) {
+    node.fetchStatus = 'loading';
+
+    promise
+      .then(data => {
+        node.fetchStatus = 'resolved';
+
+        const spans = data.entries.find(s => s.type === 'spans');
+        if (!spans) {
+          return data;
+        }
+
+        // Remove existing entries from the list
+        const index = this._list.indexOf(node);
+        if (node.expanded) {
+          const childrenCount = node.getVisibleChildrenCount();
+          this._list.splice(index + 1, childrenCount);
+        }
+
+        // Api response is not sorted
+        if (spans.data) {
+          spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+        }
+
+        TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
+
+        const spanChildren = node.getVisibleChildren();
+        this._list.splice(index + 1, 0, ...spanChildren);
         return data;
-      }
-
-      // Remove existing entries from the list
-      const index = this._list.indexOf(node);
-      if (node.expanded) {
-        const childrenCount = node.getVisibleChildrenCount();
-        this._list.splice(index + 1, childrenCount);
-      }
-
-      // Api response is not sorted
-      if (spans.data) {
-        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
-      }
-
-      TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
-
-      const spanChildren = node.getVisibleChildren();
-      this._list.splice(index + 1, 0, ...spanChildren);
-      return data;
-    });
+      })
+      .catch(_e => {
+        node.fetchStatus = 'error';
+      });
 
     this._spanPromises.set(key, promise);
     return promise;
@@ -845,11 +853,12 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<T extends TraceTree.NodeValue> {
+  canFetch: boolean = false;
+  fetchStatus: 'resolved' | 'error' | 'idle' | 'loading' = 'idle';
   parent: TraceTreeNode<TraceTree.NodeValue> | null = null;
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
-  canFetchData: boolean = false;
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
@@ -911,7 +920,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 
     node.expanded = this.expanded;
     node.zoomedIn = this.zoomedIn;
-    node.canFetchData = this.canFetchData;
+    node.canFetch = this.canFetch;
     node.space = this.space;
     node.metadata = this.metadata;
 
@@ -1035,7 +1044,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
 
     if (isSpanNode(this)) {
-      return this.canFetchData && !this.zoomedIn ? [] : this.spanChildren;
+      return this.canFetch && !this.zoomedIn ? [] : this.spanChildren;
     }
 
     if (isTransactionNode(this)) {
