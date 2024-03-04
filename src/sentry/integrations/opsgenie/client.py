@@ -20,13 +20,7 @@ OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 class OpsgenieClient(ApiClient):
     integration_name = "opsgenie"
 
-    def __init__(
-        self,
-        integration: RpcIntegration | Integration,
-        integration_key: str,
-        org_integration_id: int | None = None,  # deprecated but still passed by getsentry
-        keyid: str | None = None,  # deprecated but still passed by getsentry
-    ) -> None:
+    def __init__(self, integration: RpcIntegration | Integration, integration_key: str) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.integration_key = integration_key
