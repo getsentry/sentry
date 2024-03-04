@@ -2160,10 +2160,10 @@ register(
 )
 
 # killswitch for profiling ddm functions metrics.
-# If disabled, function metrics won't be stored
-# in the generic metrics platform anymore
+# Enable/Disable the ingestion of function metrics
+# in the generic metrics platform
 register(
-    "profiling.ddm.functions.enabled",
+    "profiling.generic_metrics.functions_ingestion.enabled",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2172,7 +2172,7 @@ register(
 # list of org IDs for which we'll write the function
 # metrics to the generic metrics platform
 register(
-    "profiling.ddm.functions.org_ids",
+    "profiling.generic_metrics.functions_ingestion.allowed_org_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
