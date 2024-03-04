@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class RenamePrioritySortToTrendsTest(TestMigrations):
-    migrate_from = "0658_projectkey_usecase"
-    migrate_to = "0659_fix_cron_monitor_invalid_orgs"
+    migrate_from = "0659_artifactbundleindex_cleanup"
+    migrate_to = "0660_fix_cron_monitor_invalid_orgs"
 
     def setup_initial_state(self):
         self.other_org = self.create_organization()

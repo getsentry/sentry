@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0658_projectkey_usecase"),
+        ("sentry", "0659_artifactbundleindex_cleanup"),
     ]
 
     operations = [
