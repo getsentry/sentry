@@ -468,7 +468,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 16) {
+      if (elapsed > 150) {
         this.onWheelEnd();
       } else {
         this.onWheelEndRaf = window.requestAnimationFrame(rafCallback);
@@ -693,20 +693,24 @@ export class VirtualizedViewManager {
     );
   }
 
+  readonly span_matrix: [number, number, number, number, number, number] = [
+    1, 0, 0, 1, 0, 0,
+  ];
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const scale = space[1] / this.trace_view.width;
 
-    return [
-      Math.max(scale, (1 * this.span_to_px[0]) / this.trace_view.width),
-      0,
-      0,
-      1,
+    this.span_matrix[0] = Math.max(
+      scale,
+      (1 * this.span_to_px[0]) / this.trace_view.width
+    );
+    this.span_matrix[3] = 1;
+    this.span_matrix[4] =
       (space[0] - this.to_origin) / this.span_to_px[0] -
-        this.trace_view.x / this.span_to_px[0],
-      0,
-    ];
+      this.trace_view.x / this.span_to_px[0];
+
+    return this.span_matrix;
   }
 
   scrollToPath(
@@ -907,12 +911,9 @@ export class VirtualizedViewManager {
     // allowing us to store negative indices. This sometimes happens as the list
     // virtualizes the rows and we end up with a negative index as they are being
     // rendered off screen.
-    const overscroll = this.list?.props.overscanRowCount ?? 0;
-    const start = -overscroll;
-    const end = this.columns.list.column_refs.length + overscroll;
-
-    for (let i = start; i < end; i++) {
-      while (this.span_bars[i] === undefined && i < end) i++;
+    for (let i = 0; i < this.columns.list.column_refs.length; i++) {
+      while (this.span_bars[i] === undefined && i < this.columns.list.column_refs.length)
+        i++;
 
       const list = this.columns.list.column_refs[i];
       if (list) list.style.width = listWidth;

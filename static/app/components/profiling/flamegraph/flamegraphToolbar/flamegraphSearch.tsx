@@ -147,7 +147,7 @@ function yieldingRafFrameSearch(
   spans: ReadonlyArray<SpanChartNode>,
   frames: ReadonlyArray<FlamegraphFrame>,
   cb: (results: FlamegraphSearchResults['results']) => void
-) {
+): {id: number} {
   const raf = {id: 0};
   const budget = 12; // ms
   const results: FlamegraphSearchResults['results'] = {
