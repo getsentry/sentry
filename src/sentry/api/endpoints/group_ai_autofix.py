@@ -124,7 +124,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "issue": {
                         "id": group.id,
                         "title": group.title,
-                        "short_id": group.short_id,
+                        "short_id": group.qualified_short_id,
                         "events": [{"entries": event_entries}],
                     },
                     "additional_context": additional_context,
