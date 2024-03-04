@@ -336,7 +336,7 @@ export function useMetricChartSamplesV2({
   }, [valueRect.yMin, valueRect.yMax]);
 
   const series = useMemo(() => {
-    if (operation === 'sum' || operation === 'count_unique') {
+    if (isCumulativeOp(operation)) {
       // TODO: for now we do not show samples for cumulative operations
       // figure out how should this be shown
       return [];
