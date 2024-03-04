@@ -265,6 +265,7 @@ def update_groups(
             priority=result["priority"],
             group_list=group_list,
             actor=acting_user,
+            project_lookup=project_lookup,
         )
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
@@ -780,12 +781,21 @@ def handle_has_seen(
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
 
 
-def handle_priority(priority: str, group_list: Sequence[Group], actor: User) -> None:
+def handle_priority(
+    priority: str, group_list: Sequence[Group], actor: User, project_lookup: dict[int, Project]
+) -> None:
     for group in group_list:
+        priority_value = PriorityLevel.from_str(priority) if priority else None
+
+        if priority_value is None or group.priority == priority_value:
+            continue
+
         update_priority(
             group=group,
-            priority=PriorityLevel.from_str(priority) if priority else None,
+            priority=priority_value,
+            sender="manual_update_priority",
             actor=actor,
+            project=project_lookup[group.project_id],
         )
         group.update(priority_locked_at=django_timezone.now())
 
