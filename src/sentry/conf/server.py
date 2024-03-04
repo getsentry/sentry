@@ -1721,6 +1721,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view-percentiles": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
+    # Enable backend overriding and always making a fresh split decision
+    "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Enable compressed assets performance issue type
