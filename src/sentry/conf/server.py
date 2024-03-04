@@ -1217,11 +1217,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute="0", hour="*/1"),
     },
-    "backfill-artifact-bundle-index": {
-        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
-    },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
@@ -1460,6 +1455,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
+    # Enables datadog buffering
+    "datadog:enable-buffering": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -1486,12 +1483,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enable the Commit Context feature
-    "organizations:commit-context": False,
+    "organizations:commit-context": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
+    # Enables detection and notification of severely broken monitors
+    "organizations:crons-broken-monitor-detection": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-disable-ingest-endpoints": False,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
@@ -1523,6 +1524,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enable the unit normalization in the metrics API
+    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
@@ -1545,10 +1548,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover-query": True,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
@@ -1582,6 +1581,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable increased issue_owners rate limit for auto-assignment
+    "organizations:increased-issue-owners-rate-limit": False,
     # Enable integration functionality to work with alert rules
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -1641,8 +1642,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable the trace timeline on issue details
-    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
@@ -1663,6 +1662,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-blocking": False,
     # Enables the new samples list experience
     "organizations:metrics-samples-list": False,
+    # Enables the search bar for metrics samples list
+    "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -2340,6 +2341,11 @@ SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
+
+# User Feedback Spam Detection
+SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
+SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
+
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -3450,6 +3456,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
@@ -3486,6 +3493,8 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default"},
+    # ingest-events DLQ
+    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
@@ -3791,10 +3800,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
-SENTRY_POST_PROCESS_CONFIGURATION: Mapping[str, Any] = {
-    "org_ids_with_increased_issue_owners_ratelimit": set()
-}
-
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 

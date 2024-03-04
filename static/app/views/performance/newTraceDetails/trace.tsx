@@ -7,13 +7,15 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -321,19 +323,25 @@ function Trace({
         <AutoSizer>
           {({width, height}) => (
             <Fragment>
-              {trace.indicators.length > 0
-                ? trace.indicators.map((indicator, i) => {
-                    return (
-                      <div
-                        key={i}
-                        ref={r => viewManager.registerIndicatorRef(r, i, indicator)}
-                        className="TraceIndicator"
-                      >
-                        <div className="TraceIndicatorLine" />
-                      </div>
-                    );
-                  })
-                : null}
+              <div
+                className="TraceIndicatorContainer"
+                ref={r => viewManager.registerIndicatorContainerRef(r)}
+              >
+                {trace.indicators.length > 0
+                  ? trace.indicators.map((indicator, i) => {
+                      return (
+                        <div
+                          key={i}
+                          ref={r => viewManager.registerIndicatorRef(r, i, indicator)}
+                          className="TraceIndicator"
+                        >
+                          <div className="TraceIndicatorLabel">{indicator.label}</div>
+                          <div className="TraceIndicatorLine" />
+                        </div>
+                      );
+                    })
+                  : null}
+              </div>
               <List
                 ref={r => viewManager.registerList(r)}
                 rowHeight={24}
@@ -364,6 +372,7 @@ function Trace({
                         (p.parent as unknown as {_rowStartIndex: number})
                           ._rowStartIndex ?? 0
                       }
+                      organization={organization}
                       previouslyFocusedIndexRef={previouslyFocusedIndexRef}
                       tabIndex={roving_state.index ?? -1}
                       index={p.index}
@@ -435,6 +444,7 @@ function RenderRow(props: {
     node: TraceTreeNode<TraceTree.NodeValue>,
     value: boolean
   ) => void;
+  organization: Organization;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   projects: Record<Project['slug'], Project>;
   startIndex: number;
@@ -513,21 +523,12 @@ function RenderRow(props: {
               props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
-          {isParentAutogroupedNode(props.node) ? (
-            <TraceBar
-              virtualizedIndex={virtualizedIndex}
-              viewManager={props.viewManager}
-              color={props.theme.blue300}
-              node_space={props.node.space}
-            />
-          ) : (
-            <SiblingAutogroupedBar
-              virtualizedIndex={virtualizedIndex}
-              viewManager={props.viewManager}
-              color={props.theme.blue300}
-              node={props.node}
-            />
-          )}
+          <AutogroupedTraceBar
+            virtualizedIndex={virtualizedIndex}
+            viewManager={props.viewManager}
+            color={props.theme.blue300}
+            node_space={props.node.autogroupedSegments}
+          />
         </div>
       </div>
     );
@@ -899,9 +900,16 @@ function RenderRow(props: {
               ) : null}
             </div>
 
-            <span className="TraceOperation">{t('Error')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.node.value.title}</span>
+            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+            <Link
+              className="Errored Link"
+              onClick={e => e.stopPropagation()}
+              to={generateIssueEventTarget(props.node.value, props.organization)}
+            >
+              <span className="TraceOperation">{t('Error')}</span>
+              <strong className="TraceEmDash"> — </strong>
+              <span className="TraceDescription">{props.node.value.title}</span>
+            </Link>
           </div>
         </div>
         <div
@@ -920,12 +928,18 @@ function RenderRow(props: {
               props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
-          {/* @TODO: figure out what to do with trace errors */}{' '}
-          {/* <TraceBar
-          space={props.space}
-          start_timestamp={props.node.value.start_timestamp}
-          timestamp={props.node.value.timestamp}
-        /> */}
+          {typeof props.node.value.timestamp === 'number' ? (
+            <div
+              className="ErrorIconBorder"
+              style={{
+                transform: `translateX(${props.viewManager.computeTransformXFromTimestamp(
+                  props.node.value.timestamp * 1000
+                )}px)`,
+              }}
+            >
+              <IconFire color="errorText" size="xs" />
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -1032,10 +1046,6 @@ function Connectors(props: {
 
   return (
     <Fragment>
-      {/*
-        @TODO count of rendered connectors could be % 3 as we can
-        have up to 3 connectors per node, 1 div, 1 before and 1 after
-      */}
       {props.node.connectors.map((c, i) => {
         return (
           <div
@@ -1092,76 +1102,6 @@ interface TraceBarProps {
   duration?: number;
 }
 
-type SiblingAutogroupedBarProps = Omit<TraceBarProps, 'node_space' | 'duration'> & {
-  node: TraceTreeNode<TraceTree.NodeValue>;
-};
-
-// Render collapsed representation of sibling autogrouping, using multiple bars for when
-// there are gaps between siblings.
-function SiblingAutogroupedBar(props: SiblingAutogroupedBarProps) {
-  const bars: React.ReactNode[] = [];
-
-  // Start and end represents the earliest start_timestamp and the latest
-  // end_timestamp for a set of overlapping siblings.
-  let start = isSpanNode(props.node.children[0])
-    ? props.node.children[0].value.start_timestamp
-    : Number.POSITIVE_INFINITY;
-
-  let end = isSpanNode(props.node.children[0])
-    ? props.node.children[0].value.timestamp
-    : Number.NEGATIVE_INFINITY;
-  let totalDuration = 0;
-
-  for (let i = 0; i < props.node.children.length; i++) {
-    const node = props.node.children[i];
-    if (!isSpanNode(node)) {
-      throw new TypeError('Invalid type of autogrouped child');
-    }
-
-    const hasGap = node.value.start_timestamp > end;
-
-    if (!(hasGap || node.isLastChild)) {
-      start = Math.min(start, node.value.start_timestamp);
-      end = Math.max(end, node.value.timestamp);
-      continue;
-    }
-
-    // Render a bar for already collapsed set.
-    totalDuration += end - start;
-    bars.push(
-      <TraceBar
-        virtualizedIndex={props.virtualizedIndex}
-        viewManager={props.viewManager}
-        color={props.color}
-        node_space={[start, end - start]}
-        duration={!hasGap ? totalDuration : undefined}
-      />
-    );
-
-    if (hasGap) {
-      // Start a new set.
-      start = node.value.start_timestamp;
-      end = node.value.timestamp;
-
-      // Render a bar if the sibling with a gap is the last sibling.
-      if (node.isLastChild) {
-        totalDuration += end - start;
-        bars.push(
-          <TraceBar
-            virtualizedIndex={props.virtualizedIndex}
-            viewManager={props.viewManager}
-            color={props.color}
-            duration={totalDuration}
-            node_space={[start, end - start]}
-          />
-        );
-      }
-    }
-  }
-
-  return <Fragment>{bars}</Fragment>;
-}
-
 function TraceBar(props: TraceBarProps) {
   if (!props.node_space) {
     return null;
@@ -1215,6 +1155,96 @@ function TraceBar(props: TraceBarProps) {
   );
 }
 
+interface AutogroupedTraceBarProps {
+  color: string;
+  node_space: [number, number][] | null;
+  viewManager: VirtualizedViewManager;
+  virtualizedIndex: number;
+  duration?: number;
+}
+
+function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
+  // if (props.node_space && props.node_space.length <= 1) {
+  //   return (
+  //     <TraceBar
+  //       color={props.color}
+  //       node_space={props.node_space[0]}
+  //       viewManager={props.viewManager}
+  //       virtualizedIndex={props.virtualizedIndex}
+  //       duration={props.duration}
+  //     />
+  //   );
+  // }
+
+  if (!props.node_space) {
+    return null;
+  }
+
+  const entire_space: [number, number] = [
+    props.node_space![0][0],
+    props.node_space![props.node_space.length - 1][1],
+  ];
+
+  const duration = getDuration(entire_space[1] / 1000, 2, true);
+  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(entire_space);
+  const [inside, textTransform] = props.viewManager.computeSpanTextPlacement(
+    entire_space,
+    duration
+  );
+
+  return (
+    <Fragment>
+      <div
+        ref={r =>
+          props.viewManager.registerSpanBarRef(r, entire_space, props.virtualizedIndex)
+        }
+        className="TraceBar Invisible"
+        style={{
+          transform: `matrix(${spanTransform.join(',')})`,
+          backgroundColor: props.color,
+        }}
+        onDoubleClick={e => {
+          e.stopPropagation();
+          props.viewManager.onZoomIntoSpace(entire_space);
+        }}
+      >
+        {props.node_space.map((node_space, i) => {
+          const width = node_space[1] / entire_space[1];
+          const left = (node_space[0] - entire_space[0]) / entire_space[1];
+          return (
+            <div
+              key={i}
+              className="TraceBar"
+              style={{
+                left: `${left * 1000}%`,
+                width: `${width * 100}%`,
+                backgroundColor: props.color,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div
+        ref={r =>
+          props.viewManager.registerSpanBarTextRef(
+            r,
+            duration,
+            entire_space,
+            props.virtualizedIndex
+          )
+        }
+        className="TraceBarDuration"
+        style={{
+          color: inside ? 'white' : '',
+          transform: `translate(${textTransform ?? 0}px, 0)`,
+        }}
+      >
+        {duration}
+      </div>
+    </Fragment>
+  );
+}
+
 /**
  * This is a wrapper around the Trace component to apply styles
  * to the trace tree. It exists because we _do not_ want to trigger
@@ -1226,6 +1256,18 @@ const TraceStylingWrapper = styled('div')`
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
+  padding-top: 24px;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 22px;
+    background-color: ${p => p.theme.backgroundSecondary};
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 
   &.Loading {
     .TraceRow {
@@ -1243,6 +1285,15 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  .TraceIndicatorContainer {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
   .TraceIndicator {
     z-index: 1;
     width: 3px;
@@ -1250,12 +1301,30 @@ const TraceStylingWrapper = styled('div')`
     top: 0;
     position: absolute;
 
+    .TraceIndicatorLabel {
+      min-width: 34px;
+      text-align: center;
+      position: absolute;
+      font-size: ${p => p.theme.fontSizeExtraSmall};
+      font-weight: bold;
+      color: ${p => p.theme.textColor};
+      background-color: ${p => p.theme.background};
+      border-radius: ${p => p.theme.borderRadius};
+      border: 1px solid ${p => p.theme.border};
+      padding: ${space(0.25)};
+      display: inline-block;
+      line-height: 1;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
     .TraceIndicatorLine {
       width: 1px;
       height: 100%;
+      top: 20px;
       position: absolute;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-2px);
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
@@ -1272,6 +1341,30 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
+
+    .Errored {
+      color: ${p => p.theme.error};
+    }
+
+    .Link {
+      &:hover {
+        color: ${p => p.theme.blue300};
+      }
+    }
+
+    .ErrorIconBorder {
+      position: absolute;
+      margin: ${space(0.25)};
+      left: -12px;
+      background: ${p => p.theme.background};
+      width: ${space(3)};
+      height: ${space(3)};
+      border: 1px solid ${p => p.theme.error};
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
     &:hover {
       background-color: ${p => p.theme.backgroundSecondary};
@@ -1331,6 +1424,14 @@ const TraceStylingWrapper = styled('div')`
     width: 100%;
     background-color: black;
     transform-origin: left center;
+
+    &.Invisible {
+      background-color: transparent !important;
+
+      > div {
+        height: 100%;
+      }
+    }
   }
 
   .TraceBarDuration {

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
 from unittest.mock import patch
@@ -983,6 +984,31 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         self.pull_request.save()
 
         self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_pr_info_level_issue(
+        self, get_jwt, mock_comment_workflow, mock_get_commit_context
+    ):
+        """No comment on pr that's has info level issue"""
+        mock_get_commit_context.return_value = [self.blame]
+        self.pull_request.date_added = before_now(days=1)
+        self.pull_request.save()
+
+        self.add_responses()
+        self.event.group.update(level=logging.INFO)
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
