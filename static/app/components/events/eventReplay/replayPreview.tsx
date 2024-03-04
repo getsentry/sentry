@@ -112,7 +112,7 @@ function ReplayPreview({
 }
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: 480px;
   margin-bottom: ${space(2)};
 `;
 

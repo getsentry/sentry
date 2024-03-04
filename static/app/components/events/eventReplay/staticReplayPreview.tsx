@@ -91,7 +91,7 @@ const PlayerContainer = styled(FluidHeight)`
   position: relative;
   background: ${p => p.theme.background};
   gap: ${space(1)};
-  max-height: 448px;
+  max-height: 496px;
 `;
 
 const StaticPanel = styled(FluidHeight)`

@@ -144,10 +144,10 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
 const ReplaySectionMinHeight = styled(EventReplaySection)`
-  min-height: 508px;
+  min-height: 557px;
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: 480px;
   margin-bottom: ${space(2)};
 `;
