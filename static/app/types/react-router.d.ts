@@ -8,6 +8,11 @@ declare module 'react-router' {
     children?: ReactNode;
   }
 
+  // React 18 removed children from ComponentType, this adds them back
+  interface RouteProps {
+    children?: ReactNode;
+  }
+
   interface InjectedRouter<P = Record<string, string>, Q = any> {
     location: Location<Q>;
     params: P;
