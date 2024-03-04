@@ -123,8 +123,15 @@ function Trace({
     });
   }, []);
 
-  const previouslyFocusedIndexRef = useRef<number | null>(null);
   const [_rerender, setRender] = useState(0);
+
+  const previouslyFocusedIndexRef = useRef<number | null>(null);
+  const treePromiseStatusRef =
+    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+
+  if (!treePromiseStatusRef.current) {
+    treePromiseStatusRef.current = new Map();
+  }
 
   const scrollQueue = useRef<TraceTree.NodePath[] | null>(null);
   const treeRef = useRef<TraceTree>(trace);
@@ -177,6 +184,7 @@ function Trace({
       }
 
       event.stopPropagation();
+      setRender(a => (a + 1) % 2);
 
       treeRef.current
         .zoomIn(node, value, {
@@ -185,6 +193,10 @@ function Trace({
         })
         .then(() => {
           setRender(a => (a + 1) % 2);
+          treePromiseStatusRef.current!.set(node, 'success');
+        })
+        .catch(_e => {
+          treePromiseStatusRef.current!.set(node, 'error');
         });
     },
     [api, organization]
@@ -404,8 +416,8 @@ const TraceDivider = styled('div')`
   height: 100%;
   background-color: transparent;
   top: 0;
-  z-index: 10;
   cursor: col-resize;
+  z-index: 10;
 
   &:before {
     content: '';
@@ -494,12 +506,14 @@ function RenderRow(props: {
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} viewManager={props.viewManager} />
-              <ChildrenCountButton
+              <ChildrenButton
+                icon={<IconChevron direction={props.node.expanded ? 'up' : 'down'} />}
+                status={props.node.fetchStatus}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
               >
-                {COUNT_FORMATTER.format(props.node.groupCount)}{' '}
-              </ChildrenCountButton>
+                {COUNT_FORMATTER.format(props.node.groupCount)}
+              </ChildrenButton>
             </div>
 
             <span className="TraceOperation">{t('Autogrouped')}</span>
@@ -573,24 +587,35 @@ function RenderRow(props: {
               }`}
             >
               <Connectors node={props.node} viewManager={props.viewManager} />
-              {props.node.children.length > 0 ? (
-                <ChildrenCountButton
+              {props.node.children.length > 0 || props.node.canFetch ? (
+                <ChildrenButton
+                  icon={
+                    props.node.canFetch && props.node.fetchStatus === 'idle' ? (
+                      '+'
+                    ) : props.node.canFetch && props.node.zoomedIn ? (
+                      <IconChevron direction="down" />
+                    ) : (
+                      '+'
+                    )
+                  }
+                  status={props.node.fetchStatus}
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
+                  onClick={e =>
+                    props.node.canFetch
+                      ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
+                      : props.onExpand(e, props.node, !props.node.expanded)
+                  }
                 >
-                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
-                </ChildrenCountButton>
+                  {props.node.children.length > 0
+                    ? COUNT_FORMATTER.format(props.node.children.length)
+                    : null}
+                </ChildrenButton>
               ) : null}
             </div>
             <ProjectBadge project={props.projects[props.node.value.project_slug]} />
             <span className="TraceOperation">{props.node.value['transaction.op']}</span>
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
-            {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
-            ) : null}
           </div>
         </div>
         <div
@@ -659,13 +684,29 @@ function RenderRow(props: {
               }`}
             >
               <Connectors node={props.node} viewManager={props.viewManager} />
-              {props.node.children.length > 0 ? (
-                <ChildrenCountButton
+              {props.node.children.length > 0 || props.node.canFetch ? (
+                <ChildrenButton
+                  icon={
+                    props.node.canFetch ? (
+                      '+'
+                    ) : props.node.expanded ? (
+                      <IconChevron direction="up" />
+                    ) : (
+                      <IconChevron direction="down" />
+                    )
+                  }
+                  status={props.node.fetchStatus}
                   expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
+                  onClick={e =>
+                    props.node.canFetch
+                      ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
+                      : props.onExpand(e, props.node, !props.node.expanded)
+                  }
                 >
-                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
-                </ChildrenCountButton>
+                  {props.node.children.length > 0
+                    ? COUNT_FORMATTER.format(props.node.children.length)
+                    : null}
+                </ChildrenButton>
               ) : null}
             </div>
             <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
@@ -677,11 +718,6 @@ function RenderRow(props: {
                   ? props.node.value.description.slice(0, 100).trim() + '\u2026'
                   : props.node.value.description}
             </span>
-            {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
-            ) : null}
           </div>
         </div>
         <div
@@ -812,13 +848,12 @@ function RenderRow(props: {
           >
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} viewManager={props.viewManager} />
-              {props.node.children.length > 0 ? (
-                <ChildrenCountButton
-                  expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                >
-                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
-                </ChildrenCountButton>
+              {props.node.children.length > 0 || props.node.canFetch ? (
+                <ChildrenButton icon={''} status={'idle'} expanded onClick={() => void 0}>
+                  {props.node.children.length > 0
+                    ? COUNT_FORMATTER.format(props.node.children.length)
+                    : null}
+                </ChildrenButton>
               ) : null}
             </div>
 
@@ -843,7 +878,6 @@ function RenderRow(props: {
               props.index % 2 === 0 ? props.theme.backgroundSecondary : undefined,
           }}
         >
-          {' '}
           <TraceBar
             virtualizedIndex={virtualizedIndex}
             viewManager={props.viewManager}
@@ -890,13 +924,17 @@ function RenderRow(props: {
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} viewManager={props.viewManager} />
-              {props.node.children.length > 0 ? (
-                <ChildrenCountButton
+              {props.node.children.length > 0 || props.node.canFetch ? (
+                <ChildrenButton
+                  icon={''}
+                  status={props.node.fetchStatus}
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
-                  {COUNT_FORMATTER.format(props.node.children.length)}{' '}
-                </ChildrenCountButton>
+                  {props.node.children.length > 0
+                    ? COUNT_FORMATTER.format(props.node.children.length)
+                    : null}
+                </ChildrenButton>
               ) : null}
             </div>
 
@@ -982,13 +1020,17 @@ function RenderPlaceholderRow(props: {
             className={`TraceChildrenCountWrapper ${isTraceNode(props.node) ? 'Root' : ''}`}
           >
             <Connectors node={props.node} viewManager={props.viewManager} />
-            {props.node.children.length > 0 ? (
-              <ChildrenCountButton
+            {props.node.children.length > 0 || props.node.canFetch ? (
+              <ChildrenButton
+                icon="+"
+                status={props.node.fetchStatus}
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onClick={() => void 0}
               >
-                {COUNT_FORMATTER.format(props.node.children.length)}{' '}
-              </ChildrenCountButton>
+                {props.node.children.length > 0
+                  ? COUNT_FORMATTER.format(props.node.children.length)
+                  : null}
+              </ChildrenButton>
             ) : null}
           </div>
           <Placeholder
@@ -1077,19 +1119,22 @@ function ProjectBadge(props: {project: Project}) {
   return <ProjectAvatar project={props.project} />;
 }
 
-function ChildrenCountButton(props: {
+function ChildrenButton(props: {
   children: React.ReactNode;
   expanded: boolean;
+  icon: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
+  status: TraceTreeNode<any>['fetchStatus'] | undefined;
 }) {
   return (
     <button className="TraceChildrenCount" onClick={props.onClick}>
-      {props.children}
-      <IconChevron
-        size="xs"
-        direction={props.expanded ? 'up' : 'down'}
-        style={{marginLeft: 2}}
-      />
+      <div className="TraceChildrenCountContent">{props.children}</div>
+      <div className="TraceChildrenCountAction">
+        {props.icon}
+        {props.status === 'loading' ? (
+          <LoadingIndicator className="TraceActionsLoadingIndicator" size={8} />
+        ) : null}
+      </div>
     </button>
   );
 }
@@ -1462,6 +1507,49 @@ const TraceStylingWrapper = styled('div')`
     font-size: 10px;
     box-shadow: ${p => p.theme.dropShadowLight};
     margin-right: ${space(1)};
+
+    .TraceChildrenCountContent {
+      + .TraceChildrenCountAction {
+        margin-left: 2px;
+      }
+    }
+
+    .TraceChildrenCountAction {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .TraceActionsLoadingIndicator {
+      margin: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: ${p => p.theme.background};
+
+      animation: show 0.1s ease-in-out forwards;
+
+      @keyframes show {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.86);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      .loading-indicator {
+        border-width: 2px;
+      }
+
+      .loading-message {
+        display: none;
+      }
+    }
 
     svg {
       width: 7px;
