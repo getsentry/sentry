@@ -12,7 +12,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {IconChevron, IconFire} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron, IconFire, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
@@ -595,12 +596,25 @@ function RenderRow(props: {
             <span className="TraceOperation">{props.node.value['transaction.op']}</span>
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
-            {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
-            ) : null}
           </div>
+          {props.node.canFetchData ? (
+            <Tooltip
+              title={
+                props.node.zoomedIn
+                  ? t('Hide the span waterfall for this transaction')
+                  : t('Load the span waterfall for this transaction')
+              }
+              position="top"
+              skipWrapper
+              delay={400}
+            >
+              <IconZoom
+                className="IconZoom"
+                isZoomIn={!props.node.zoomedIn}
+                onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}
+              />
+            </Tooltip>
+          ) : null}
         </div>
         <div
           ref={r =>
@@ -686,12 +700,25 @@ function RenderRow(props: {
                   ? props.node.value.description.slice(0, 100).trim() + '\u2026'
                   : props.node.value.description}
             </span>
-            {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
-            ) : null}
           </div>
+          {props.node.canFetchData ? (
+            <Tooltip
+              title={
+                props.node.zoomedIn
+                  ? t('Hide the span waterfall for this transaction')
+                  : t('Load the span waterfall for this transaction')
+              }
+              position="top"
+              skipWrapper
+              delay={400}
+            >
+              <IconZoom
+                className="IconZoom"
+                isZoomIn={!props.node.zoomedIn}
+                onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}
+              />
+            </Tooltip>
+          ) : null}
         </div>
         <div
           ref={r =>
@@ -1262,6 +1289,17 @@ const TraceStylingWrapper = styled('div')`
     border-bottom: 1px solid ${p => p.theme.border};
   }
 
+  .IconZoom {
+    height: 16px;
+    width: 18px;
+    background: ${p => p.theme.background};
+    padding: 1px;
+    border: 1px solid ${p => p.theme.border};
+    border-radius: ${space(0.5)};
+    position: absolute;
+    right: ${space(0.5)};
+  }
+
   &.Loading {
     .TraceRow {
       .TraceLeftColumnInner {
@@ -1389,6 +1427,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     overflow: hidden;
     will-change: width;
+    position: relative;
 
     .TraceLeftColumnInner {
       height: 100%;
