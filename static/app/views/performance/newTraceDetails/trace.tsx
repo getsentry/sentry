@@ -858,12 +858,7 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton
-                  icon={''}
-                  status={props.node.fetchStatus}
-                  expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                >
+                <ChildrenButton icon={''} status={'idle'} expanded onClick={() => void 0}>
                   {props.node.children.length > 0
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
