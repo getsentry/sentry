@@ -417,6 +417,7 @@ const TraceDivider = styled('div')`
   background-color: transparent;
   top: 0;
   cursor: col-resize;
+  z-index: 10;
 
   &:before {
     content: '';
@@ -1473,15 +1474,6 @@ const TraceStylingWrapper = styled('div')`
       transform-origin: left center;
       transform: translateX(var(--column-translate-x));
     }
-  }
-
-  .TraceCenterColumn {
-    position: relative;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
   }
 
   .TraceRightColumn {
