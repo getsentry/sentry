@@ -180,9 +180,11 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     if monitor_muted:
         return True
 
-    for previous_checkin in previous_checkins:
-        checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
-        create_issue_platform_occurrence(checkin_from_db, fingerprint)
+    # Do not create event/occurrence if we don't have a fingerprint
+    if fingerprint:
+        for previous_checkin in previous_checkins:
+            checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
+            create_issue_platform_occurrence(checkin_from_db, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -248,7 +250,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
 
 def create_issue_platform_occurrence(
     failed_checkin: MonitorCheckIn,
-    fingerprint=None,
+    fingerprint: str,
 ):
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -269,13 +271,7 @@ def create_issue_platform_occurrence(
         resource_id=None,
         project_id=monitor_env.monitor.project_id,
         event_id=uuid.uuid4().hex,
-        fingerprint=[
-            fingerprint
-            if fingerprint
-            else hash_from_values(
-                ["monitor", str(monitor_env.monitor.guid), occurrence_data["reason"]]
-            )
-        ],
+        fingerprint=[fingerprint],
         type=occurrence_data["group_type"],
         issue_title=f"Monitor failure: {monitor_env.monitor.name}",
         subtitle=occurrence_data["subtitle"],
@@ -305,13 +301,7 @@ def create_issue_platform_occurrence(
         "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
         "environment": monitor_env.get_environment().name,
         "event_id": occurrence.event_id,
-        "fingerprint": [fingerprint]
-        if fingerprint
-        else [
-            "monitor",
-            str(monitor_env.monitor.guid),
-            occurrence_data["reason"],
-        ],
+        "fingerprint": [fingerprint],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
         "received": current_timestamp.isoformat(),
