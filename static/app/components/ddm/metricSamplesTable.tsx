@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
@@ -12,7 +12,9 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
@@ -52,7 +54,7 @@ const fields: SelectedField[] = [
 
 export type Field = (typeof fields)[number];
 
-interface MetricSamplesTableProps {
+interface MetricsSamplesTableProps {
   focusArea?: SelectionRange;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
@@ -64,6 +66,65 @@ interface MetricSamplesTableProps {
   sortKey?: string;
 }
 
+export function SearchableMetricSamplesTable({
+  query: primaryQuery,
+  ...props
+}: MetricsSamplesTableProps) {
+  const [secondaryQuery, setSecondaryQuery] = useState('');
+  const handleSearch = useCallback(value => {
+    setSecondaryQuery(value);
+  }, []);
+
+  const query = useMemo(() => {
+    if (!secondaryQuery) {
+      return primaryQuery;
+    }
+
+    return `${primaryQuery} ${secondaryQuery}`;
+  }, [primaryQuery, secondaryQuery]);
+
+  return (
+    <Fragment>
+      <MetricsSamplesSearchBar query={secondaryQuery} handleSearch={handleSearch} />
+      <MetricSamplesTable query={query} {...props} />
+    </Fragment>
+  );
+}
+
+interface MetricsSamplesSearchBarProps {
+  handleSearch: (string) => void;
+  query: string;
+  mri?: MRI;
+}
+
+export function MetricsSamplesSearchBar({
+  handleSearch,
+  mri,
+  query,
+}: MetricsSamplesSearchBarProps) {
+  const parsedMRI = useMemo(() => {
+    if (!defined(mri)) {
+      return null;
+    }
+    return parseMRI(mri);
+  }, [mri]);
+
+  const enabled = useMemo(() => {
+    return parsedMRI?.useCase === 'transactions' || parsedMRI?.useCase === 'spans';
+  }, [parsedMRI]);
+
+  return (
+    <SearchBar
+      disabled={!enabled}
+      query={query}
+      onSearch={handleSearch}
+      placeholder={
+        enabled ? t('Filter by span tags') : t('Search not available for this metric')
+      }
+    />
+  );
+}
+
 export function MetricSamplesTable({
   focusArea,
   mri,
@@ -72,7 +133,7 @@ export function MetricSamplesTable({
   query,
   setMetricsSamples,
   sortKey = 'sort',
-}: MetricSamplesTableProps) {
+}: MetricsSamplesTableProps) {
   const location = useLocation();
 
   const enabled = defined(mri);
@@ -123,7 +184,7 @@ export function MetricSamplesTable({
     referrer: 'foo',
     enabled,
     sort: sortQuery,
-    limit: 10,
+    limit: 20,
   });
 
   // propagate the metrics samples up as needed
@@ -453,4 +514,8 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const SearchBar = styled(SmartSearchBar)`
+  margin-bottom: ${space(2)};
 `;

@@ -1,7 +1,11 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {type Field, MetricSamplesTable} from 'sentry/components/ddm/metricSamplesTable';
+import {
+  type Field,
+  MetricSamplesTable,
+  SearchableMetricSamplesTable,
+} from 'sentry/components/ddm/metricSamplesTable';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -142,14 +146,25 @@ export function MetricDetails({
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
               {organization.features.includes('metrics-samples-list') ? (
-                <MetricSamplesTable
-                  focusArea={focusArea?.selection?.range}
-                  mri={mri}
-                  onRowHover={onRowHover}
-                  op={op}
-                  query={queryWithFocusedSeries}
-                  setMetricsSamples={setMetricsSamples}
-                />
+                organization.features.includes('metrics-samples-list-search') ? (
+                  <SearchableMetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
+                    mri={mri}
+                    onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
+                  />
+                ) : (
+                  <MetricSamplesTable
+                    focusArea={focusArea?.selection?.range}
+                    mri={mri}
+                    onRowHover={onRowHover}
+                    op={op}
+                    query={queryWithFocusedSeries}
+                    setMetricsSamples={setMetricsSamples}
+                  />
+                )
               ) : (
                 <SampleTable
                   mri={mri}
