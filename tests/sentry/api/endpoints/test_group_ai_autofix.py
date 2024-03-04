@@ -83,7 +83,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             )
             mock_call.assert_called_with(
                 ANY,
-                ANY,
+                group,
                 [
                     {
                         "provider": "integrations:github",
@@ -95,7 +95,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "Yes",
             )
 
-            actual_group_arg = mock_call.call_args[0][0]
+            actual_group_arg = mock_call.call_args[0][1]
             assert actual_group_arg.id == group.id
 
             entries_arg = mock_call.call_args[0][3]
