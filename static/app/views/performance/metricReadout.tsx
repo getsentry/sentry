@@ -4,12 +4,8 @@ import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {
-  type CountUnit,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {CountUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
