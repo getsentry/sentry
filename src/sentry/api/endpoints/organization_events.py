@@ -347,9 +347,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         has_errors = len(error_results["data"]) > 0
                     except SnubaError:
                         has_errors = False
+                        error_results = None
 
                     original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
-                    if isinstance(original_results, SnubaTSResult):
+                    if original_results.get("data"):
                         dataset_meta = original_results.data.get("meta", {})
                     else:
                         dataset_meta = list(original_results.values())[0].data.get("meta", {})
