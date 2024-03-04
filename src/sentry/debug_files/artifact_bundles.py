@@ -142,13 +142,6 @@ def index_urls_in_bundle(
                         # metadata:
                         organization_id=organization_id,
                         date_added=artifact_bundle.date_added,
-                        # legacy:
-                        # TODO: We fill these in with empty-ish values before they are
-                        # dropped for good
-                        release_name="",
-                        dist_name="",
-                        date_last_modified=artifact_bundle.date_last_modified
-                        or artifact_bundle.date_added,
                     )
                 )
     finally:
