@@ -411,7 +411,9 @@ export class TraceTree {
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        relatedErrors: childTxn ? getRelatedErrorsOrIssues(span, childTxn.value) : [],
+        relatedErrors: childTxn
+          ? getSpanErrorsOrIssuesFromTransaction(span, childTxn.value)
+          : [],
         childTxn: childTxn?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
@@ -1346,20 +1348,39 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   throw new Error('Not implemented');
 }
 
-function getRelatedErrorsOrIssues(
+// Returns a list of errors or performance issues related to the txn
+// with ids matching the span id
+function getSpanErrorsOrIssuesFromTransaction(
   span: RawSpanType,
-  currentEvent: TraceTree.Transaction
+  txn: TraceTree.Transaction
 ): TraceErrorOrIssue[] {
-  const performanceIssues = currentEvent.performance_issues.filter(
-    issue =>
-      issue.span.some(id => id === span.span_id) ||
-      issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
-  );
+  if (!txn.performance_issues.length && !txn.errors.length) {
+    return [];
+  }
 
-  return [
-    ...currentEvent.errors.filter(error => error.span === span.span_id),
-    ...performanceIssues, // Spans can be shown when embedded in performance issues
-  ];
+  const errorsOrIssues: TraceErrorOrIssue[] = [];
+
+  for (const perfIssue of txn.performance_issues) {
+    for (const s of perfIssue.span) {
+      if (s === span.span_id) {
+        errorsOrIssues.push(perfIssue);
+      }
+    }
+
+    for (const suspect of perfIssue.suspect_spans) {
+      if (suspect === span.span_id) {
+        errorsOrIssues.push(perfIssue);
+      }
+    }
+  }
+
+  for (const error of txn.errors) {
+    if (error.span === span.span_id) {
+      errorsOrIssues.push(error);
+    }
+  }
+
+  return errorsOrIssues;
 }
 
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {

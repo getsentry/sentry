@@ -460,6 +460,35 @@ function RenderRow(props: {
   }
 
   if (isAutogroupedNode(props.node)) {
+    let errored = false;
+
+    if (isParentAutogroupedNode(props.node)) {
+      // We mark the node as errored if any child from head to and including tail has an error.
+      let currentNode: TraceTreeNode<TraceTree.Span> = props.node.head;
+      while (currentNode !== props.node.tail.children[0]) {
+        if (currentNode.value.relatedErrors.length > 0) {
+          errored = true;
+          break;
+        }
+
+        if (!isSpanNode(currentNode.children[0])) {
+          throw new TypeError('Child of autogrouped node must be a span');
+        }
+
+        currentNode = currentNode.children[0];
+      }
+    } else {
+      for (const child of props.node.children) {
+        if (!isSpanNode(child)) {
+          throw new TypeError('Child of autogrouped node must be a span');
+        }
+
+        if (child.value.relatedErrors.length > 0) {
+          errored = true;
+          break;
+        }
+      }
+    }
     return (
       <div
         key={props.index}
@@ -487,7 +516,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className="TraceLeftColumnInner"
+            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
             style={{
               paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
@@ -495,6 +524,7 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} viewManager={props.viewManager} />
               <ChildrenCountButton
+                errored={errored}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
               >
@@ -544,6 +574,9 @@ function RenderRow(props: {
   }
 
   if (isTransactionNode(props.node)) {
+    const errored =
+      props.node.value.errors.length > 0 ||
+      props.node.value.performance_issues.length > 0;
     return (
       <div
         key={props.index}
@@ -571,7 +604,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className="TraceLeftColumnInner"
+            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
             style={{
               paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
@@ -579,11 +612,13 @@ function RenderRow(props: {
             <div
               className={`TraceChildrenCountWrapper ${
                 props.node.isOrphaned ? 'Orphaned' : ''
-              }`}
+              }
+              `}
             >
               <Connectors node={props.node} viewManager={props.viewManager} />
               {props.node.children.length > 0 ? (
                 <ChildrenCountButton
+                  errored={errored}
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
@@ -595,12 +630,12 @@ function RenderRow(props: {
             <span className="TraceOperation">{props.node.value['transaction.op']}</span>
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
-            {props.node.canFetchData ? (
-              <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
-                {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-              </button>
-            ) : null}
           </div>
+          {props.node.canFetchData ? (
+            <button onClick={e => props.onZoomIn(e, props.node, !props.node.zoomedIn)}>
+              {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
+            </button>
+          ) : null}
         </div>
         <div
           ref={r =>
@@ -630,6 +665,7 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
+    const errored = props.node.value.relatedErrors.length > 0;
     return (
       <div
         key={props.index}
@@ -657,7 +693,7 @@ function RenderRow(props: {
           }}
         >
           <div
-            className="TraceLeftColumnInner"
+            className={`TraceLeftColumnInner ${errored ? 'Errored' : ''}`}
             style={{
               paddingLeft: props.node.depth * props.viewManager.row_depth_padding,
             }}
@@ -1094,9 +1130,13 @@ function ChildrenCountButton(props: {
   children: React.ReactNode;
   expanded: boolean;
   onClick: (e: React.MouseEvent) => void;
+  errored?: boolean;
 }) {
   return (
-    <button className="TraceChildrenCount" onClick={props.onClick}>
+    <button
+      className={`TraceChildrenCount ${props.errored ? 'Errored' : ''}`}
+      onClick={props.onClick}
+    >
       {props.children}
       <IconChevron
         size="xs"
@@ -1448,6 +1488,9 @@ const TraceStylingWrapper = styled('div')`
     box-shadow: ${p => p.theme.dropShadowLight};
     margin-right: ${space(1)};
 
+    &.Errored {
+      border: 2px solid ${p => p.theme.error};
+    }
     svg {
       width: 7px;
       transition: none;
