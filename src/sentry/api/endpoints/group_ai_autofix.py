@@ -112,6 +112,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         repos: list[dict],
         event_entries: list[dict],
         additional_context: str,
+        timeout_secs: int,
     ):
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
@@ -123,10 +124,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "issue": {
                         "id": group.id,
                         "title": group.title,
-                        "short_id": group.short_id,
+                        "short_id": group.qualified_short_id,
                         "events": [{"entries": event_entries}],
                     },
                     "additional_context": additional_context,
+                    "timeout_secs": timeout_secs,
+                    "last_updated": datetime.now().isoformat(),
                     "invoking_user": (
                         {
                             "id": user.id,
@@ -192,7 +195,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         try:
             self._call_autofix(
-                request.user, group, repos, event_entries, data.get("additional_context", "")
+                request.user,
+                group,
+                repos,
+                event_entries,
+                data.get("additional_context", ""),
+                TIMEOUT_SECONDS,
             )
 
             # Mark the task as completed after TIMEOUT_SECONDS
