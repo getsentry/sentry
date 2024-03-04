@@ -67,6 +67,7 @@ interface MetricsSamplesTableProps {
 }
 
 export function SearchableMetricSamplesTable({
+  mri,
   query: primaryQuery,
   ...props
 }: MetricsSamplesTableProps) {
@@ -85,8 +86,12 @@ export function SearchableMetricSamplesTable({
 
   return (
     <Fragment>
-      <MetricsSamplesSearchBar query={secondaryQuery} handleSearch={handleSearch} />
-      <MetricSamplesTable query={query} {...props} />
+      <MetricsSamplesSearchBar
+        mri={mri}
+        query={secondaryQuery}
+        handleSearch={handleSearch}
+      />
+      <MetricSamplesTable mri={mri} query={query} {...props} />
     </Fragment>
   );
 }
