@@ -10,6 +10,8 @@ import {formatRate} from 'sentry/utils/formatters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
+// TODO: Implement percentage units
+// TODO: Implement string units
 type Unit = DurationUnit | SizeUnit | RateUnit | CountUnit;
 
 interface Props {
