@@ -225,6 +225,16 @@ class Symbolicator:
         release_package,
         apply_source_context=True,
     ):
+        """
+        Process a JVM event by remapping its frames and exceptions with
+        ProGuard.
+
+        :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
+        :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+        :param modules: ProGuard modules to use for deobfuscation. They must contain a `uuid`.
+        :param release_package: The name of the release's package. This is optional.
+        :param apply_source_context: Whether to add source context to frames.
+        """
         source = get_internal_artifact_lookup_source(self.project)
 
         json = {
