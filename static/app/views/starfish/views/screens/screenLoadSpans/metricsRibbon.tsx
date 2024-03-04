@@ -1,19 +1,22 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery, Project} from 'sentry/types';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {
@@ -23,27 +26,15 @@ import {
 } from 'sentry/views/starfish/views/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
-import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
-
-const UNDEFINED_TEXT = '--';
-type BlockType = 'duration' | 'count' | 'change';
-
-interface BlockProps {
-  dataKey: string | ((data?: TableDataRow[]) => number | undefined);
-  title: string;
-  type: BlockType;
-  allowZero?: boolean;
-}
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 export function MetricsRibbon({
   filters,
   project,
-  blocks,
   fields,
   referrer,
   dataset,
 }: {
-  blocks: BlockProps[];
   dataset: DiscoverDatasets;
   fields: string[];
   referrer: string;
@@ -100,60 +91,61 @@ export function MetricsRibbon({
     referrer,
   });
 
+  const ribbonData = data?.data?.[0];
+
   return (
     <BlockContainer>
-      {blocks.map(({title, dataKey, type}) => (
-        <MetricsBlock
-          key={title}
-          title={title}
-          type={type}
-          dataKey={dataKey}
-          data={data}
-          isLoading={isLoading}
-        />
-      ))}
+      <MetricReadout
+        title={t('TTID (%s)', PRIMARY_RELEASE_ALIAS)}
+        unit={DurationUnit.MILLISECOND}
+        value={
+          ribbonData?.[
+            `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`
+          ]
+        }
+        isLoading={isLoading}
+      />
+
+      <MetricReadout
+        title={t('TTID (%s)', SECONDARY_RELEASE_ALIAS)}
+        unit={DurationUnit.MILLISECOND}
+        value={
+          ribbonData?.[
+            `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`
+          ]
+        }
+        isLoading={isLoading}
+      />
+
+      <MetricReadout
+        title={t('TTFD (%s)', PRIMARY_RELEASE_ALIAS)}
+        unit={DurationUnit.MILLISECOND}
+        value={
+          ribbonData?.[
+            `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
+          ]
+        }
+        isLoading={isLoading}
+      />
+
+      <MetricReadout
+        title={t('TTFD (%s)', SECONDARY_RELEASE_ALIAS)}
+        unit={DurationUnit.MILLISECOND}
+        value={
+          ribbonData?.[
+            `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
+          ]
+        }
+        isLoading={isLoading}
+      />
+
+      <MetricReadout
+        title={DataTitles.count}
+        unit={'count'}
+        value={ribbonData?.[`count()`]}
+        isLoading={isLoading}
+      />
     </BlockContainer>
-  );
-}
-
-function MetricsBlock({
-  title,
-  type,
-  data,
-  dataKey,
-  isLoading,
-  allowZero,
-}: {
-  isLoading: boolean;
-  title: string;
-  data?: TableData;
-  release?: string;
-} & BlockProps) {
-  const value =
-    typeof dataKey === 'function'
-      ? dataKey(data?.data)
-      : (data?.data?.[0]?.[dataKey] as number);
-
-  const hasData = (!isLoading && value && value !== 0) || (value === 0 && allowZero);
-
-  if (type === 'duration') {
-    return (
-      <Block title={title}>
-        {hasData ? <DurationCell milliseconds={value} /> : UNDEFINED_TEXT}
-      </Block>
-    );
-  }
-
-  if (type === 'change') {
-    return (
-      <Block title={title}>
-        {hasData ? <PercentChangeCell colorize deltaValue={value} /> : UNDEFINED_TEXT}
-      </Block>
-    );
-  }
-
-  return (
-    <Block title={title}>{hasData ? <CountCell count={value} /> : UNDEFINED_TEXT}</Block>
   );
 }
 
