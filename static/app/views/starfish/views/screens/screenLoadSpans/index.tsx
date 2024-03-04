@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -15,9 +14,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
@@ -58,10 +57,8 @@ function ScreenLoadSpans() {
   const organization = useOrganization();
   const router = useRouter();
 
-  const {projects} = useProjects();
-  const project = useMemo(() => {
-    return projects.find(p => p.id === location.query.project);
-  }, [location.query.project, projects]);
+  const {getById} = useAllProjectVisibility({});
+  const project = getById(String(location.query.project));
 
   const screenLoadModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,

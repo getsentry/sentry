@@ -1,4 +1,4 @@
-import type {AvatarProject} from 'sentry/types';
+import type {AvatarProject, ProjectVisibility} from 'sentry/types';
 
 const platforms = [
   'dotnet',
@@ -72,7 +72,7 @@ export function getConfigureTracingDocsLink(
 }
 
 export function getConfigureIntegrationsDocsLink(
-  project: AvatarProject | undefined
+  project: AvatarProject | ProjectVisibility | undefined
 ): string | null {
   const platform = project?.platform ?? null;
   const docsPlatform = platform ? getDocsPlatform(platform, true) : null;

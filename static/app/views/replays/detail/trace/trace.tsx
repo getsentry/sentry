@@ -10,10 +10,10 @@ import type {
   TraceError,
   TraceFullDetailed,
 } from 'sentry/utils/performance/quickTrace/types';
+import useProject from 'sentry/utils/project/useProject';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -78,7 +78,8 @@ type Props = {
 
 function Trace({replayRecord}: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const project = useProject({id: replayRecord?.project_id});
+
   const {
     state: {didInit, errors, isFetching, traces, orphanErrors},
     eventView,
@@ -107,7 +108,6 @@ function Trace({replayRecord}: Props) {
     );
   }
 
-  const project = projects.find(p => p.id === replayRecord.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;

@@ -11,8 +11,8 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getConfigureIntegrationsDocsLink} from 'sentry/utils/docs';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
@@ -104,8 +104,7 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
 
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
-  const fullProjects = useProjects();
-
+  const {getById} = useAllProjectVisibility({});
   const projects = pageFilters.selection.projects;
 
   const isMultiProject = getIsMultiProject(projects);
@@ -114,7 +113,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
     return <WidgetEmptyStateWarning />;
   }
 
-  const project = fullProjects.projects.find(p => p.id === '' + projects[0]);
+  const project = getById(String(projects[0]));
   const url = getConfigureIntegrationsDocsLink(project);
 
   if (!url) {

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -26,9 +26,10 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import useProject from 'sentry/utils/project/useProject';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
-import useProjects from 'sentry/utils/useProjects';
 
 export const feedbackClient = new BrowserClient({
   // feedback project under Sentry organization
@@ -86,7 +87,6 @@ export function FeedbackModal<T extends Data>({
   ...props
 }: FeedbackModalProps<T> & ModalRenderProps) {
   const {organization} = useLegacyStore(OrganizationStore);
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
 
   const theme = useTheme();
@@ -99,12 +99,7 @@ export function FeedbackModal<T extends Data>({
   );
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  const project = useMemo(() => {
-    if (projectsLoaded && location.query.project) {
-      return projects.find(p => p.id === location.query.project);
-    }
-    return undefined;
-  }, [projectsLoaded, projects, location.query.project]);
+  const project = useProject({id: decodeScalar(location.query.project)});
 
   const handleSubmit = useCallback(
     (submitEventData?: Event) => {

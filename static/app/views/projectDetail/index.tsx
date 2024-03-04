@@ -1,5 +1,5 @@
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';
@@ -10,8 +10,8 @@ function ProjectDetailContainer(
     'projects' | 'loadingProjects' | 'selection'
   >
 ) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.slug === props.params.projectId);
+  const {getBySlug} = useAllProjectVisibility({});
+  const project = getBySlug(props.params.projectId);
   useRouteAnalyticsParams(
     project
       ? {

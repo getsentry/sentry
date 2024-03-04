@@ -7,7 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization, ProjectVisibility} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
@@ -16,8 +16,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useProjects from 'sentry/utils/useProjects';
 import {
   getQueryParams,
   relativeChange,
@@ -33,7 +33,6 @@ import type {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 
 type FunctionsListProps = {
   breakpoint: number;
@@ -61,7 +60,7 @@ type NumberedFunctionsListProps = {
   organization: Organization;
   transactionName: string;
   functions?: ChangedSuspectFunction[];
-  project?: Project;
+  project?: ProjectVisibility;
 };
 
 const functionsFields = [
@@ -98,8 +97,8 @@ export function FunctionsList(props: FunctionsListProps) {
     [trendView.end]
   );
 
-  const {projects} = useProjects();
-  const projectID = getTrendProjectId(transaction, projects);
+  const {getBySlug} = useAllProjectVisibility({});
+  const project = getBySlug(transaction.project);
 
   const functionsSort: Sort<FunctionsField> = {key: 'sum()', order: 'desc'};
 
@@ -233,7 +232,7 @@ export function FunctionsList(props: FunctionsListProps) {
             ? functionList
             : functionList?.reverse()
         }
-        project={projects.find(project => project.id === projectID)}
+        project={project}
         organization={organization}
         transactionName={transaction.transaction}
         limit={4}

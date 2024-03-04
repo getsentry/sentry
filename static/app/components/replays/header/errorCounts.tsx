@@ -10,7 +10,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {ProjectVisibility} from 'sentry/types';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -24,7 +24,7 @@ export default function ErrorCounts({replayErrors, replayRecord}: Props) {
   const {pathname, query} = useLocation();
 
   const getLink = useCallback(
-    ({project}: {project?: Project}) => {
+    ({project}: {project?: ProjectVisibility}) => {
       return {
         pathname,
         query: {...query, t_main: TabKey.ERRORS, f_e_project: project?.slug},

@@ -231,17 +231,6 @@ export function transformDeltaSpread(from: number, to: number) {
   return {fromSeconds, toSeconds, showDigits};
 }
 
-export function getTrendProjectId(
-  trend: NormalizedTrendsTransaction,
-  projects?: Project[]
-): string | undefined {
-  if (!trend.project || !projects) {
-    return undefined;
-  }
-  const transactionProject = projects.find(project => project.slug === trend.project);
-  return transactionProject?.id;
-}
-
 export function modifyTrendView(
   trendView: TrendView,
   location: Location,

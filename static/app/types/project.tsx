@@ -18,7 +18,7 @@ export type AvatarProject = {
 /**
  * Minimal project representation for use with avatars, project selector, etc.
  */
-export interface ProjectVisibiliy {
+export interface ProjectVisibility {
   environments: string[];
   id: string;
   isMember: boolean;

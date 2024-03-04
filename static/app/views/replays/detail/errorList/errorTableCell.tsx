@@ -1,5 +1,5 @@
 import type {ComponentProps, CSSProperties} from 'react';
-import {forwardRef, useMemo} from 'react';
+import {forwardRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
@@ -12,10 +12,10 @@ import {
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {getShortEventId} from 'sentry/utils/events';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -55,11 +55,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
 
     const {eventId, groupId, groupShortId, projectSlug} = frame.data;
     const title = frame.message;
-    const {projects} = useProjects();
-    const project = useMemo(
-      () => projects.find(p => p.slug === projectSlug),
-      [projects, projectSlug]
-    );
+    const {getBySlug} = useAllProjectVisibility({});
+    const project = getBySlug(projectSlug);
 
     const eventUrl =
       groupId && eventId

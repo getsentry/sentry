@@ -19,9 +19,9 @@ import type {
   SuspectSpan,
   SuspectSpans,
 } from 'sentry/utils/performance/suspectSpans/types';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import type {SpanSortOption} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 import {
@@ -41,7 +41,6 @@ import type {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 
 type SpansListProps = {
   breakpoint: number;
@@ -96,8 +95,8 @@ export function SpansList(props: SpansListProps) {
     [trendView.end]
   );
 
-  const {projects} = useProjects();
-  const projectID = getTrendProjectId(transaction, projects);
+  const {getBySlug} = useAllProjectVisibility({});
+  const projectID = getBySlug(transaction.project)?.id;
 
   const beforeLocation = updateLocation(
     location,

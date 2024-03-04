@@ -8,9 +8,9 @@ import {getMetricsCorrelationSpanUrl, unescapeMetricsFormula} from 'sentry/utils
 import {MetricQueryType, type MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -62,7 +62,7 @@ export function MetricScratchpad() {
 
   const router = useRouter();
   const organization = useOrganization();
-  const {projects} = useProjects();
+  const {getById} = useAllProjectVisibility({});
   const getChartPalette = useGetCachedChartPalette();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -79,7 +79,7 @@ export function MetricScratchpad() {
 
   const handleSampleClick = useCallback(
     (sample: Sample) => {
-      const project = projects.find(p => parseInt(p.id, 10) === sample.projectId);
+      const project = getById(String(sample.projectId));
       router.push(
         getMetricsCorrelationSpanUrl(
           organization,
@@ -90,7 +90,7 @@ export function MetricScratchpad() {
         )
       );
     },
-    [projects, router, organization]
+    [getById, router, organization]
   );
 
   const handleSampleClickV2 = useCallback(

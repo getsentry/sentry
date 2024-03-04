@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject, Organization, Team} from 'sentry/types';
+import type {AvatarProject, Organization, ProjectVisibility, Team} from 'sentry/types';
 
 export interface BaseBadgeProps {
   displayName: React.ReactNode;
@@ -15,7 +15,7 @@ export interface BaseBadgeProps {
   hideAvatar?: boolean;
   hideName?: boolean;
   organization?: Organization;
-  project?: AvatarProject;
+  project?: AvatarProject | ProjectVisibility;
   team?: Team;
 }
 

@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, ProjectVisibility} from 'sentry/types';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -48,7 +48,7 @@ export function MetricsRibbon({
   fields: string[];
   referrer: string;
   filters?: string[];
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
 }) {
   const {selection} = usePageFilters();
   const organization = useOrganization();

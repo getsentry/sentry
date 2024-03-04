@@ -1,10 +1,10 @@
 import type BaseAvatar from 'sentry/components/avatar/baseAvatar';
 import PlatformList from 'sentry/components/platformList';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {AvatarProject} from 'sentry/types';
+import type {AvatarProject, ProjectVisibility} from 'sentry/types';
 
 type Props = {
-  project: AvatarProject;
+  project: AvatarProject | ProjectVisibility;
   direction?: 'left' | 'right';
 } & BaseAvatar['props'];
 

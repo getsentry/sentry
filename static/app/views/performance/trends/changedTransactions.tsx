@@ -30,6 +30,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -56,7 +57,6 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
-  getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
   transformDeltaSpread,
@@ -604,13 +604,15 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     organization,
     trendView: eventView,
     transaction,
-    projects,
     location,
     currentTrendFunction,
     onItemClicked: onTransactionSelection,
   } = props;
   const summaryView = eventView.clone();
-  const projectID = getTrendProjectId(transaction, projects);
+
+  const {getBySlug} = useAllProjectVisibility({});
+  const projectID = getBySlug(transaction.project)?.id;
+
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
     transaction: String(transaction.transaction),

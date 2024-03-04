@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import theme from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
@@ -28,7 +29,6 @@ import type {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
@@ -61,7 +61,6 @@ type ExplorerBodyProps = {
 
 type HeaderProps = {
   organization: Organization;
-  projects: Project[];
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
   trendFunction: string;
@@ -115,7 +114,6 @@ function ExplorerBody(props: ExplorerBodyProps) {
     isLoading,
     location,
     organization,
-    projects,
   } = props;
   const breakpointDate = transaction.breakpoint
     ? moment(transaction.breakpoint * 1000).format('ddd, DD MMM YYYY HH:mm:ss z')
@@ -129,7 +127,6 @@ function ExplorerBody(props: ExplorerBodyProps) {
         transaction={transaction}
         trendChangeType={trendChangeType}
         trendView={trendView}
-        projects={projects}
         organization={organization}
         trendFunction={trendFunction}
         trendParameter={trendParameter}
@@ -208,7 +205,6 @@ function Header(props: HeaderProps) {
     transaction,
     trendChangeType,
     trendView,
-    projects,
     organization,
     trendFunction,
     trendParameter,
@@ -218,7 +214,6 @@ function Header(props: HeaderProps) {
   const transactionSummaryLink = getTransactionSummaryLink(
     trendView,
     transaction,
-    projects,
     organization,
     trendFunction,
     trendParameter
@@ -258,13 +253,14 @@ function Header(props: HeaderProps) {
 function getTransactionSummaryLink(
   eventView: TrendView,
   transaction: NormalizedTrendsTransaction,
-  projects: Project[],
   organization: Organization,
   currentTrendFunction: string,
   trendParameter: TrendParameter
 ) {
   const summaryView = eventView.clone();
-  const projectID = getTrendProjectId(transaction, projects);
+  const {getBySlug} = useAllProjectVisibility({});
+  const projectID = getBySlug(transaction.project)?.id;
+
   const target = transactionSummaryRouteWithQuery({
     orgSlug: organization.slug,
     transaction: String(transaction.transaction),

@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import type {Project, ProjectVisibiliy} from 'sentry/types';
+import type {Project, ProjectVisibility} from 'sentry/types';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import projectToProjectVisibility from 'sentry/utils/project/projectToProjectVisibility';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -40,23 +40,31 @@ export default function useAllProjectsVisibility({
 
   const projects = useMemo(
     () =>
-      pages.flatMap((items): ProjectVisibiliy[] => items.map(projectToProjectVisibility)),
+      pages.flatMap((items): ProjectVisibility[] =>
+        items.map(projectToProjectVisibility)
+      ),
     [pages]
   );
 
-  const bySlug = useMemo(
-    () => Object.fromEntries(projects.map(project => [project.slug, project])),
+  const getBySlug = useCallback(
+    (slug: string | undefined): ProjectVisibility | undefined =>
+      slug
+        ? Object.fromEntries(projects.map(project => [project.slug, project]))[slug]
+        : undefined,
     [projects]
   );
-  const byId = useMemo(
-    () => Object.fromEntries(projects.map(project => [project.id, project])),
+  const getById = useCallback(
+    (id: string | undefined): ProjectVisibility | undefined =>
+      id
+        ? Object.fromEntries(projects.map(project => [project.id, project]))[id]
+        : undefined,
     [projects]
   );
 
   return {
     projects,
-    bySlug,
-    byId,
+    getBySlug,
+    getById,
     isFetching,
     getLastResponseHeader,
     isError,

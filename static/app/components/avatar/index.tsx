@@ -11,6 +11,7 @@ import type {
   AvatarSentryApp,
   DocIntegration,
   OrganizationSummary,
+  ProjectVisibility,
   Team,
 } from 'sentry/types';
 
@@ -25,7 +26,7 @@ type Props = {
    */
   isDefault?: boolean;
   organization?: OrganizationSummary;
-  project?: AvatarProject;
+  project?: AvatarProject | ProjectVisibility;
   sentryApp?: AvatarSentryApp;
   team?: Team;
 } & React.ComponentProps<typeof UserAvatar>;

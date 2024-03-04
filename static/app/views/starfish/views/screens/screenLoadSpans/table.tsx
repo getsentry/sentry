@@ -13,7 +13,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, ProjectVisibility} from 'sentry/types';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -55,7 +55,7 @@ const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
 
 type Props = {
   primaryRelease?: string;
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
   secondaryRelease?: string;
   transaction?: string;
 };

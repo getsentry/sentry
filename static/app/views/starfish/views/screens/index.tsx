@@ -11,7 +11,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, ProjectVisibility} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -110,7 +110,7 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
 };
 
 export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Props) {

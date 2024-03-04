@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
+import type {ProjectVisibility} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,7 +36,7 @@ type Props = {
   groupId: string;
   transactionName: string;
   additionalFilters?: Record<string, string>;
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
   release?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;

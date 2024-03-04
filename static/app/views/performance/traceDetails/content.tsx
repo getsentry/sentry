@@ -37,8 +37,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
@@ -425,9 +425,9 @@ type OnlyOrphanErrorWarningsProps = {
   orphanErrors: TraceError[];
 };
 function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
-  const {projects} = useProjects();
   const projectSlug = orphanErrors[0] ? orphanErrors[0].project_slug : '';
-  const project = projects.find(p => p.slug === projectSlug);
+  const {getBySlug} = useAllProjectVisibility({});
+  const project = getBySlug(projectSlug);
   const LOCAL_STORAGE_KEY = `${project?.id}:performance-orphan-error-onboarding-banner-hide`;
   const currentPlatform = project?.platform;
   const hasPerformanceOnboarding = currentPlatform

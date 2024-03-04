@@ -1,4 +1,4 @@
-import type {Project, ProjectVisibiliy} from 'sentry/types';
+import type {Project, ProjectVisibility} from 'sentry/types';
 
 export default function projectToProjectVisibility({
   id,
@@ -6,7 +6,7 @@ export default function projectToProjectVisibility({
   isMember,
   environments,
   platform,
-}: Project): ProjectVisibiliy {
+}: Project): ProjectVisibility {
   return {
     id,
     slug,

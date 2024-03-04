@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import type {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, ProjectVisibility} from 'sentry/types';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,7 +33,7 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
   showDeviceClassSelector?: boolean;
 };
 

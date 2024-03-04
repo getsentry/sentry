@@ -19,8 +19,8 @@ import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import type {SpanType} from './types';
@@ -42,8 +42,8 @@ export function SpanProfileDetails({
   onNoProfileFound,
 }: SpanProfileDetailsProps) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === event.projectID);
+  const {getById} = useAllProjectVisibility({});
+  const project = getById(event.projectID);
 
   const profileGroup = useProfileGroup();
 

@@ -19,6 +19,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types';
+import useProject from 'sentry/utils/project/useProject';
 import {
   setApiQueryData,
   useApiQuery,
@@ -29,7 +30,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -41,10 +41,8 @@ type DeleteTagVariables = {key: TagWithTopValues['key']};
 
 function ProjectTags(props: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
   const {projectId} = props.params;
-
-  const project = projects.find(p => p.id === projectId);
+  const project = useProject({id: projectId});
 
   const api = useApi();
   const queryClient = useQueryClient();

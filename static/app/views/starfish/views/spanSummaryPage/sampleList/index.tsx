@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -11,9 +11,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -65,12 +65,9 @@ export function SampleList({
 
   const organization = useOrganization();
   const {query} = useLocation();
-  const {projects} = useProjects();
 
-  const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
-  );
+  const {getById} = useAllProjectVisibility({});
+  const project = getById(String(query.project));
 
   const onOpenDetailPanel = useCallback(() => {
     if (query.transaction) {

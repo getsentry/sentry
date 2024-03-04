@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -14,9 +13,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
@@ -30,14 +29,9 @@ export default function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {selection} = usePageFilters();
-  const {projects} = useProjects();
 
-  const project = useMemo(() => {
-    if (selection.projects.length !== 1) {
-      return null;
-    }
-    return projects.find(p => p.id === String(selection.projects));
-  }, [projects, selection.projects]);
+  const {getById} = useAllProjectVisibility({});
+  const project = getById(String(selection.projects));
 
   return (
     <SentryDocumentTitle title={t('Screen Loads')} orgSlug={organization.slug}>

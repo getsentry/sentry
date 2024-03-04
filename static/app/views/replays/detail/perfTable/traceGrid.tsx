@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {ProjectVisibility} from 'sentry/types';
 import toPercent from 'sentry/utils/number/toPercent';
 import toPixels from 'sentry/utils/number/toPixels';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useProjects from 'sentry/utils/useProjects';
 import ResizeableContainer from 'sentry/views/replays/detail/perfTable/resizeableContainer';
 import type {FlattenedTrace} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import useVirtualScrolling from 'sentry/views/replays/detail/perfTable/useVirtualScrolling';
@@ -69,12 +69,12 @@ export default function TraceGrid({flattenedTrace, onDimensionChange}: Props) {
 }
 
 function SpanNameList({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
-  const {projects} = useProjects();
+  const {getById} = useAllProjectVisibility({});
 
   return (
     <Fragment>
       {flattenedTrace.map(flattened => {
-        const project = projects.find(p => p.id === String(flattened.trace.project_id));
+        const project = getById(String(flattened.trace.project_id));
 
         const labelStyle = {
           paddingLeft: `calc(${space(2)} * ${flattened.indent})`,
@@ -83,7 +83,7 @@ function SpanNameList({flattenedTrace}: {flattenedTrace: FlattenedTrace}) {
         return (
           <TxnCell key={flattened.trace.event_id + '_name'}>
             <TxnLabel style={labelStyle}>
-              <ProjectAvatar size={12} project={project as Project} />
+              <ProjectAvatar size={12} project={project as ProjectVisibility} />
               <strong>{flattened.trace['transaction.op']}</strong>
               <span>{EMDASH}</span>
               <span>{flattened.trace.transaction}</span>

@@ -10,7 +10,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {Project} from 'sentry/types/project';
+import type {ProjectVisibility} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
@@ -60,7 +60,7 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
-  project?: Project | null;
+  project?: ProjectVisibility | undefined;
 };
 
 export function ScreenCharts({yAxes, additionalFilters, project}: Props) {

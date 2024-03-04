@@ -3,11 +3,13 @@ import {useCallback, useEffect, useMemo} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Project} from 'sentry/types';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import useAllProjectsVisibility from 'sentry/utils/project/useAllProjectVisibility';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {slug: string; id?: undefined} | {id: string; slug?: undefined};
+type Props =
+  | {slug: string | undefined; id?: undefined}
+  | {id: string | undefined; slug?: undefined};
 
 type AggQueryKey = string;
 
@@ -26,7 +28,7 @@ function makeResponseReducer(fieldName: string) {
 
 export default function useProject({slug, id}: Props) {
   const organiation = useOrganization();
-  const {bySlug} = useAllProjectsVisibility({});
+  const {getBySlug} = useAllProjectVisibility({});
 
   const getQueryKey = useCallback(
     (ids: readonly AggQueryKey[]): ApiQueryKey => [
@@ -61,7 +63,7 @@ export default function useProject({slug, id}: Props) {
       if (bySlugCache.data?.[slug]) {
         bySlugCache.buffer([`slug:${slug}`]);
       } else {
-        const lookupId = bySlug[slug]?.id;
+        const lookupId = getBySlug(slug)?.id;
         if (lookupId) {
           byIdCache.buffer([`id:${lookupId}`]);
         } else if (slug) {
@@ -69,8 +71,10 @@ export default function useProject({slug, id}: Props) {
         }
       }
     }
-  }, [id, slug, byIdCache, bySlug, bySlugCache]);
+  }, [id, slug, byIdCache, getBySlug, bySlugCache]);
 
-  const lookupId = id ?? bySlug[slug]?.id ?? slug;
-  return byIdCache.data?.[lookupId] ?? bySlugCache.data?.[lookupId];
+  const lookupId = id ?? (slug ? getBySlug(slug)?.id : slug) ?? slug;
+  return lookupId
+    ? byIdCache.data?.[lookupId] ?? bySlugCache.data?.[lookupId]
+    : undefined;
 }

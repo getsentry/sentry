@@ -15,8 +15,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog, Organization, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import useAllProjectVisibility from 'sentry/utils/project/useAllProjectVisibility';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {
   projectDetectorSettingsId,
@@ -102,8 +102,8 @@ function AuditNote({
   entry: NonNullable<AuditLog>;
   orgSlug: Organization['slug'];
 }) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === String(entry.data.id));
+  const {getById} = useAllProjectVisibility({});
+  const project = getById(String(entry.data.id));
 
   if (entry.event.startsWith('rule.')) {
     return <Note>{entry.note.replace('rule', 'issue alert rule')}</Note>;
