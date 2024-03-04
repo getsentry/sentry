@@ -42,7 +42,7 @@ export function MetricBigNumberContainer({
 export function getBigNumberData(
   data: MetricsQueryApiResponse,
   queries: MetricsQueryApiQueryParams[]
-): any {
+): string {
   const filteredQueries = queries.filter(
     query => !isMetricFormula(query)
   ) as MetricsQueryApiRequestQuery[];
