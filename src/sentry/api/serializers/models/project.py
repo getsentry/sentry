@@ -102,12 +102,12 @@ def get_access_by_project(
     )
 
     project_to_teams = defaultdict(list)
-    project_teams = []
+    teams_list = []
     for project_id, team_id in project_teams:
         project_to_teams[project_id].append(team_id)
-        project_teams.append(project_id)
+        teams_list.append(team_id)
 
-    team_memberships = _get_team_memberships(project_teams, user)
+    team_memberships = _get_team_memberships(teams_list, user)
 
     org_ids = {i.organization_id for i in projects}
     org_roles = get_org_roles(org_ids, user)
