@@ -233,6 +233,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         "sentry:feedback_user_report_notification": bool(
             options.get("sentry:feedback_user_report_notification")
         ),
+        "sentry:feedback_ai_spam_detection": bool(options.get("sentry:feedback_ai_spam_detection")),
         "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
