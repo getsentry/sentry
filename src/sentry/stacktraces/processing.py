@@ -310,13 +310,13 @@ def normalize_stacktraces_for_grouping(
             if frames:
                 stacktrace_frames.append(frames)
                 stacktrace_containers.append(
-                    stacktrace_info.container if stacktrace_info.is_exception else None
+                    stacktrace_info.container if stacktrace_info.is_exception else {}
                 )
 
     if not stacktrace_frames:
         return
 
-    platform = data.get("platform")
+    platform = data.get("platform", "")
     sentry_sdk.set_tag("platform", platform)
 
     # Put the trimmed function names into the frames.  We only do this if

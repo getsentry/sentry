@@ -500,5 +500,5 @@ def test_sentinel_and_prefix(action, type):
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", None)
+    enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")
