@@ -432,7 +432,7 @@ function Trace({
     <TraceStylingWrapper
       ref={r => {
         containerRef.current = r;
-        viewManager.onContainerRef(r);
+        manager.onContainerRef(r);
       }}
       className={trace.type === 'loading' ? 'Loading' : ''}
     >
