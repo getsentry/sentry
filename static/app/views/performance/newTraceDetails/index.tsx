@@ -167,7 +167,14 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
 
     return TraceTree.Empty();
-  }, [props.traceSlug, props.trace, props.status, projects, rootEvent]);
+  }, [
+    props.traceSlug,
+    props.trace,
+    props.status,
+    projects,
+    rootEvent.data,
+    rootEvent.status,
+  ]);
 
   const traceType = useMemo(() => {
     if (props.status !== 'resolved' || !tree) {
