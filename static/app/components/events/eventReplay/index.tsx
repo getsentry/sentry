@@ -103,7 +103,7 @@ function EventReplayContent({
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-          <ReactLazyLoad debounce={50} height={448} offset={0} once>
+          <ReactLazyLoad debounce={50} height={620} offset={0} once>
             {hasReplayClipFeature ? (
               <LazyLoad
                 {...commonProps}

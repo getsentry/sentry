@@ -97,6 +97,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * variable for release string, useful if frontend is deployed separately
      * from backend.
      */
+    replaysSessionSampleRate: 1,
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(routes),

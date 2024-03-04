@@ -59,7 +59,6 @@ type Props = {
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
-  showReplayHeader?: boolean;
 };
 
 function getReplayAnalyticsStatus({
@@ -90,7 +89,6 @@ function ReplayPreviewPlayer({
   replayRecord,
   handleBackClick,
   handleForwardClick,
-  showReplayHeader,
   overlayText,
 }: {
   replayId: string;
@@ -99,7 +97,6 @@ function ReplayPreviewPlayer({
   handleForwardClick?: () => void;
   overlayText?: string;
   replayRecord?: ReplayRecord;
-  showReplayHeader?: boolean;
 }) {
   const routes = useRoutes();
   const location = useLocation();
@@ -127,7 +124,7 @@ function ReplayPreviewPlayer({
   return (
     <PlayerPanel>
       <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
-        {replayRecord && showReplayHeader && (
+        {replayRecord && (
           <ReplayCellNoPadding
             key="session"
             replay={replayRecord}
@@ -314,7 +311,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: 448px;
+  max-height: 620px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`
@@ -329,7 +326,7 @@ const StaticPanel = styled(FluidHeight)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: 520px;
   margin-bottom: ${space(2)};
 `;
 

@@ -140,7 +140,6 @@ function ReplayTable({
             eventTimestampMs={new Date(selectedReplay.started_at).getTime()}
             handleBackClick={handleBackClick}
             handleForwardClick={handleForwardClick}
-            showReplayHeader
             overlayText={nextReplayText}
           />
         </ReplayWrapper>
@@ -235,6 +234,7 @@ function ReplayTable({
                           referrer={referrer}
                           referrer_table="main"
                           handleClick={() => setSelectedReplayIndex(index)}
+                          hasCurrentlyPlayingTag={index === selectedReplayIndex}
                         />
                       );
 
@@ -284,7 +284,7 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: 620px;
   margin-bottom: ${space(2)};
 `;
 
@@ -292,8 +292,6 @@ const ReplayWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledLazyLoad = styled(LazyLoad)`
-  max-height: 800px;
-`;
+const StyledLazyLoad = styled(LazyLoad)``;
 
 export default ReplayTable;

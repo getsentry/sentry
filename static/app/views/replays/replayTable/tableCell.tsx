@@ -11,6 +11,7 @@ import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
+import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -289,6 +290,7 @@ export function ReplayCell({
   isWidget,
   className,
   handleClick,
+  hasCurrentlyPlayingTag,
 }: Props & {
   eventView: EventView;
   organization: Organization;
@@ -296,6 +298,7 @@ export function ReplayCell({
   referrer_table: ReferrerTableType;
   className?: string;
   handleClick?: () => void;
+  hasCurrentlyPlayingTag?: boolean;
   isWidget?: boolean;
 }) {
   const {projects} = useProjects();
@@ -394,6 +397,7 @@ export function ReplayCell({
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={subText}
       />
+      {hasCurrentlyPlayingTag && <Tag type="highlight">{t('Currently Playing')}</Tag>}
     </Item>
   );
 }
