@@ -2159,8 +2159,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# killswitch for profiling ddm functions metrics
-# if disabled, function metrics won't be stored
+# killswitch for profiling ddm functions metrics.
+# If disabled, function metrics won't be stored
 # in the generic metrics platform anymore
 register(
     "profiling.ddm.functions.enabled",
