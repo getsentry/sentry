@@ -7,10 +7,14 @@ from collections.abc import Mapping, Sequence
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaProducer
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.dlq import DlqLimit, DlqPolicy, KafkaDlqProducer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import (
@@ -380,10 +384,6 @@ def get_stream_processor(
     validate_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
-    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-    from arroyo.backends.kafka.consumer import KafkaConsumer
-    from arroyo.commit import ONCE_PER_SECOND
-    from arroyo.types import Topic as ArroyoTopic
     from django.conf import settings
 
     from sentry.utils import kafka_config
