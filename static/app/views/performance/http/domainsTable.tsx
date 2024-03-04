@@ -14,6 +14,7 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DomainCell} from 'sentry/views/performance/http/domainCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {MetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -135,6 +136,10 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  if (column.key === 'span.domain') {
+    return <DomainCell domain={row['span.domain']} projectId={row['project.id']} />;
+  }
+
   if (!meta?.fields) {
     return row[column.key];
   }

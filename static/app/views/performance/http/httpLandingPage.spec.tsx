@@ -168,7 +168,13 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '*.github.com'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/domain/?domain=%2A.sentry.io&statsPeriod=10d'
+    );
+    expect(screen.getByRole('link', {name: '*.github.com'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/http/domain/?domain=%2A.github.com&statsPeriod=10d'
+    );
   });
 });
