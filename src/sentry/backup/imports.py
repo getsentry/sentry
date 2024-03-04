@@ -162,7 +162,10 @@ def _import(
     # around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
     # each entry in this dict, please leave a TODO comment pointed to a github issue for removing
     # the shim, noting in the comment which self-hosted release will trigger the removal.
-    deleted_fields = {}
+    deleted_fields = {
+        # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
+        "sentry.team": {"org_role"}
+    }
     if len(deleted_fields) > 0:
         # Parse the content JSON and remove and fields that we have marked for deletion in the
         # function.
