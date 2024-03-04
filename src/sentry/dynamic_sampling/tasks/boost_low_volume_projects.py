@@ -24,7 +24,6 @@ from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
-from sentry.dynamic_sampling.rules.base import is_sliding_window_org_enabled
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -258,22 +257,16 @@ def adjust_sample_rates_of_projects(
         log_skipped_job(org_id, "boost_low_volume_projects")
         return
 
-    # By default, we use the blended sample rate.
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
-
-    # If we have the sliding window org enabled, we use that and fall back to the blended sample rate in case of issues.
-    if organization is not None and is_sliding_window_org_enabled(organization):
-        sample_rate, success = get_sliding_window_org_sample_rate(
-            org_id=org_id, default_sample_rate=sample_rate
+    # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
+    # issues.
+    sample_rate, success = get_sliding_window_org_sample_rate(
+        org_id=org_id,
+        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+    )
+    if success:
+        log_sample_rate_source(
+            org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
         )
-        if success:
-            log_sample_rate_source(
-                org_id, None, "boost_low_volume_projects", "sliding_window_org", sample_rate
-            )
-        else:
-            log_sample_rate_source(
-                org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate
-            )
     else:
         log_sample_rate_source(
             org_id, None, "boost_low_volume_projects", "blended_sample_rate", sample_rate

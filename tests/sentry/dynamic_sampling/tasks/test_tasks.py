@@ -216,7 +216,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_e)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @with_feature("organizations:dynamic-sampling")
-    @with_feature("organizations:ds-sliding-window-org")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
     @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
@@ -258,7 +257,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @with_feature("organizations:dynamic-sampling")
-    @with_feature("organizations:ds-sliding-window-org")
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
@@ -291,7 +289,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert schedule_invalidate_project_config.call_count == 2
 
     @with_feature("organizations:dynamic-sampling")
-    @with_feature("organizations:ds-sliding-window-org")
     @patch(
         "sentry.dynamic_sampling.tasks.boost_low_volume_projects.schedule_invalidate_project_config"
     )
@@ -450,7 +447,6 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                 assert global_rate == BLENDED_RATE
 
     @with_feature("organizations:dynamic-sampling")
-    @with_feature("organizations:ds-sliding-window-org")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window_org(self, get_blended_sample_rate):
         """
@@ -624,7 +620,6 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         computed_adjusted_factor.assert_not_called()
 
     @with_feature("organizations:dynamic-sampling")
-    @with_feature("organizations:ds-sliding-window-org")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_rebalance_orgs_with_sliding_window_org(self, get_blended_sample_rate):
         """
