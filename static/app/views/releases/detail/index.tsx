@@ -59,6 +59,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> &
   WithRouteAnalyticsProps & {
+    children: React.ReactNode;
     organization: Organization;
     releaseMeta: ReleaseMeta;
     selection: PageFilters;

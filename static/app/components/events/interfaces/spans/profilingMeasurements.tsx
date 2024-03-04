@@ -148,9 +148,9 @@ type ProfilingMeasurementsProps = {
     cursorGuideHeight: number;
     mouseLeft: number | undefined;
     showCursorGuide: boolean;
-  }) => void;
-  renderFog?: () => void;
-  renderWindowSelection?: () => void;
+  }) => React.ReactNode;
+  renderFog?: () => React.ReactNode;
+  renderWindowSelection?: () => React.ReactNode;
 };
 
 function ProfilingMeasurements({
