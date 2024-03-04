@@ -5,6 +5,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -132,6 +133,10 @@ class SeerRpcServiceEndpoint(Endpoint):
         except SerializableFunctionValueException as e:
             capture_exception()
             raise ParseError from e
+        except ObjectDoesNotExist as e:
+            # Let this fall through, this is normal.
+            capture_exception()
+            raise NotFound from e
         except Exception as e:
             if in_test_environment():
                 raise
