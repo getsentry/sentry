@@ -46,27 +46,29 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_repos_from_code_mapping(self, group: Group):
+    @staticmethod
+    def _get_repos_from_code_mapping(group: Group) -> list[dict]:
         repo_configs: list[
             RepositoryProjectPathConfig
         ] = RepositoryProjectPathConfig.objects.filter(project__in=[group.project])
 
-        repos = []
+        repos: dict[tuple, dict] = {}
         for repo_config in repo_configs:
             repo: Repository = repo_config.repository
             repo_name_sections = repo.name.split("/")
 
             # We expect a repository name to be in the format of "owner/name" for now.
-            if len(repo_name_sections) > 1:
-                repos.append(
-                    {
-                        "provider": repo.provider,
-                        "owner": repo_name_sections[0],
-                        "name": "/".join(repo_name_sections[1:]),
-                    }
-                )
+            if len(repo_name_sections) > 1 and repo.provider:
+                repo_dict = {
+                    "provider": repo.provider,
+                    "owner": repo_name_sections[0],
+                    "name": "/".join(repo_name_sections[1:]),
+                }
+                repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
-        return repos
+                repos[repo_key] = repo_dict
+
+        return list(repos.values())
 
     def _get_event_entries(
         self, group: Group, user: AbstractBaseUser | AnonymousUser
@@ -110,12 +112,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         additional_context: str,
         timeout_secs: int,
     ):
-        requests.post(
+        response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
             data=json.dumps(
                 {
-                    "organization": group.organization.id,
-                    "project": group.project.id,
+                    "organization_id": group.organization.id,
+                    "project_id": group.project.id,
                     "repos": repos,
                     "issue": {
                         "id": group.id,
@@ -129,6 +131,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
+
+        response.raise_for_status()
 
     def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
@@ -168,7 +172,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         repos = self._get_repos_from_code_mapping(group)
 
         if not repos:
-            return self._respond_with_error(group, metadata, "No valid repositories found.", 400)
+            return self._respond_with_error(
+                group, metadata, "Found no Github repositories linked to this project.", 400
+            )
 
         try:
             self._call_autofix(
