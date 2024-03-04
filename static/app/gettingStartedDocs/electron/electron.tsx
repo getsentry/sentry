@@ -280,6 +280,7 @@ const feedbackOnboarding: OnboardingConfig = {
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron/renderer";`,
                 dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],

@@ -1542,10 +1542,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover-query": True,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
@@ -2337,6 +2333,11 @@ SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
+
+# User Feedback Spam Detection
+SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
+SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
+
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)

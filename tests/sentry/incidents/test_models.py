@@ -14,6 +14,7 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -22,8 +23,12 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_callback_registry,
+    clean_expired_alerts,
+    register_alert_subscription_callback,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -553,3 +558,44 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
+
+
+class CleanExpiredAlertsTest(TestCase):
+    def test_clean_expired_alerts_active(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            subscription = alert_rule.snuba_query.subscriptions.get()
+
+            clean_expired_alerts(subscription)
+            assert QuerySubscription.objects.filter(id=subscription.id).exists()
+
+    def test_clean_expired_alerts_deactive(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+
+            subscription = alert_rule.snuba_query.subscriptions.get()
+            subscription.date_added = timezone.now() - timedelta(days=21)
+
+            result = clean_expired_alerts(subscription)
+
+            assert result is True
+            assert subscription.status == QuerySubscription.Status.DELETING.value
+            assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+
+    def test_clean_expired_alerts_add_processor(self):
+        @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
+        def mock_processor(_subscription):
+            return True
+
+        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_callback_registry
+        assert (
+            alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+        )
+
+    def test_clean_expired_alerts_execute_processor(self):
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        subscription = alert_rule.snuba_query.subscriptions.get()
+
+        callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
+        result = callback(subscription)
+        assert result is True
