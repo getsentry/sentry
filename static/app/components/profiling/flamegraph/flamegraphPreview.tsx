@@ -1,9 +1,11 @@
 import type {CSSProperties} from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
+import {type mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
+import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
+import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -106,6 +108,35 @@ export function FlamegraphPreview({
     return new FlamegraphTextRenderer(flamegraphCanvasRef, flamegraphTheme, flamegraph);
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
+  // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
+  // any of the children components effects actually run. This way we do not lose events
+  // when we register/unregister these top level listeners.
+  useLayoutEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView) {
+      return undefined;
+    }
+
+    const onTransformConfigView = (
+      mat: mat3,
+      sourceTransformConfigView: CanvasView<any>
+    ) => {
+      if (sourceTransformConfigView === flamegraphView) {
+        flamegraphView.transformConfigView(mat);
+      }
+      canvasPoolManager.draw();
+    };
+
+    /**
+     * There are other events that the scheduler can subscribe to but
+     * this is all that's supported on the preview.
+     */
+    scheduler.on('transform config view', onTransformConfigView);
+
+    return () => {
+      scheduler.off('transform config view', onTransformConfigView);
+    };
+  }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
+
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer || !textRenderer) {
       return undefined;
@@ -192,6 +223,19 @@ export function FlamegraphPreview({
     flamegraphCanvas,
     flamegraphView
   );
+
+  const onCanvasScroll = useCanvasScroll(
+    flamegraphCanvas,
+    flamegraphView,
+    canvasPoolManager,
+    true // disables x panning
+  );
+
+  useCanvasZoomOrScroll({
+    setConfigSpaceCursor,
+    handleScroll: onCanvasScroll,
+    canvas: flamegraphCanvasRef,
+  });
 
   return (
     <CanvasContainer>
