@@ -78,9 +78,12 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_called_with(
                 ANY,
+                group,
                 [
                     {
                         "provider": "integrations:github",
@@ -92,10 +95,10 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "Yes",
             )
 
-            actual_group_arg = mock_call.call_args[0][0]
+            actual_group_arg = mock_call.call_args[0][1]
             assert actual_group_arg.id == group.id
 
-            entries_arg = mock_call.call_args[0][2]
+            entries_arg = mock_call.call_args[0][3]
             assert any([entry.get("type") == "exception" for entry in entries_arg])
 
         group = Group.objects.get(id=group.id)
@@ -132,7 +135,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_not_called()
 
         group = Group.objects.get(id=group.id)
@@ -181,7 +186,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         with patch(
             "sentry.api.endpoints.group_ai_autofix.GroupAiAutofixEndpoint._call_autofix"
         ) as mock_call:
-            response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
+            response = self.client.post(
+                url, data={"additional_context": "Yes", "event_id": event.event_id}, format="json"
+            )
             mock_call.assert_not_called()
 
         group = Group.objects.get(id=group.id)
