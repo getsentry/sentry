@@ -478,6 +478,7 @@ export class TraceTree {
       const head = node;
       let tail = node;
       let groupMatchCount = 0;
+      const erroredChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
       while (
         tail &&
@@ -485,8 +486,18 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
+        if (tail.value?.relatedErrors.length > 0) {
+          erroredChildren.push(tail);
+        }
+
         groupMatchCount++;
         tail = tail.children[0];
+      }
+
+      // Checking the tail node for errors as it is not included in the grouping
+      // while loop, but is hidden when the autogrouped node is collapsed
+      if (tail.value?.relatedErrors.length > 0) {
+        erroredChildren.push(tail);
       }
 
       if (groupMatchCount < 1) {
@@ -517,6 +528,7 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
+      autoGroupedNode.errored_children = erroredChildren;
       autoGroupedNode.space = [
         head.value.start_timestamp * autoGroupedNode.multiplier,
         (tail.value.timestamp - head.value.start_timestamp) * autoGroupedNode.multiplier,
@@ -585,7 +597,17 @@ export class TraceTree {
           autoGroupedNode.groupCount = matchCount + 1;
           const start = index - matchCount;
           for (let j = start; j < start + matchCount + 1; j++) {
-            autoGroupedNode.children.push(node.children[j]);
+            const child = node.children[j];
+            if (!isSpanNode(child)) {
+              throw new TypeError(
+                'Expected child of autogrouped node to be a span node.'
+              );
+            }
+
+            if (child.value?.relatedErrors.length > 0) {
+              autoGroupedNode.errored_children.push(child);
+            }
+            autoGroupedNode.children.push(child);
             autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
               autoGroupedNode;
           }
@@ -1199,6 +1221,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
+  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   groupCount: number = 0;
 
   constructor(
@@ -1222,27 +1245,14 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     return this.tail.children;
   }
 
-  get errored(): boolean {
-    // We mark the node as errored if any child from head to and including tail has an error.
-    let currentNode: TraceTreeNode<TraceTree.Span> = this.head;
-    while (currentNode && currentNode !== this.tail.children[0]) {
-      if (currentNode.value.relatedErrors.length > 0) {
-        return true;
-      }
-
-      if (!isSpanNode(currentNode.children[0])) {
-        throw new TypeError('Expected child of autogrouped node to be a span node.');
-      }
-
-      currentNode = currentNode.children[0];
-    }
-
-    return false;
+  get has_error(): boolean {
+    return this.errored_children.length > 0;
   }
 }
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
+  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
@@ -1253,18 +1263,8 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     this.expanded = false;
   }
 
-  get errored(): boolean {
-    for (const child of this.children) {
-      if (!isSpanNode(child)) {
-        throw new TypeError('Expected child of autogrouped node to be a span node.');
-      }
-
-      if (child.value.relatedErrors.length > 0) {
-        return true;
-      }
-    }
-
-    return false;
+  get has_error(): boolean {
+    return this.errored_children.length > 0;
   }
 }
 
