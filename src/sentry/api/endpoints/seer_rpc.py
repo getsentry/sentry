@@ -5,6 +5,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -25,6 +26,7 @@ from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, Rp
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
 from sentry.utils import json
+from sentry.utils.env import in_test_environment
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -131,8 +133,13 @@ class SeerRpcServiceEndpoint(Endpoint):
         except SerializableFunctionValueException as e:
             capture_exception()
             raise ParseError from e
+        except ObjectDoesNotExist as e:
+            # Let this fall through, this is normal.
+            capture_exception()
+            raise NotFound from e
         except Exception as e:
-            # Produce more detailed log
+            if in_test_environment():
+                raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
             capture_exception()
@@ -174,7 +181,36 @@ def on_autofix_complete(*, issue_id: int, status: str, steps: list[dict], fix: d
     group.save()
 
 
+def get_autofix_state(*, issue_id: int) -> dict:
+    group: Group = Group.objects.get(id=issue_id)
+
+    metadata = group.data.get("metadata", {})
+    autofix_data = metadata.get("autofix", {})
+
+    return autofix_data
+
+
 seer_method_registry = {
     "on_autofix_step_update": on_autofix_step_update,
     "on_autofix_complete": on_autofix_complete,
+    "get_autofix_state": get_autofix_state,
 }
+
+
+def generate_request_signature(url_path: str, body: bytes) -> str:
+    """
+    Generate a signature for the request body
+    with the first shared secret. If there are other
+    shared secrets in the list they are only to be used
+    for verfication during key rotation.
+    """
+    if not settings.SEER_RPC_SHARED_SECRET:
+        raise RpcAuthenticationSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
+
+    signature_input = b"%s:%s" % (
+        url_path.encode("utf8"),
+        body,
+    )
+    secret = settings.SEER_RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"
