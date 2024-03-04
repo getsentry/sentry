@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
 import {getWidgetTitle} from 'sentry/utils/metrics';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
 import {
@@ -63,8 +64,6 @@ export function MetricWidgetCard({
 
   const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
 
-  const isTable = widget.displayType === DisplayType.TABLE;
-
   const {
     data: timeseriesData,
     isLoading,
@@ -73,6 +72,37 @@ export function MetricWidgetCard({
   } = useMetricsQuery(metricQueries, selection, {
     intervalLadder: widget.displayType === DisplayType.BAR ? 'bar' : 'dashboard',
   });
+
+  const vizualizationComponent = useMemo(() => {
+    if (widget.displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableContainer
+          metricQueries={metricQueries}
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+        />
+      );
+    }
+    if (widget.displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberContainer
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+          metricQueries={metricQueries}
+        />
+      );
+    }
+
+    return (
+      <MetricChartContainer
+        timeseriesData={timeseriesData}
+        isLoading={isLoading}
+        metricQueries={metricQueries}
+        displayType={toMetricDisplayType(widget.displayType)}
+        chartHeight={!showContextMenu ? 200 : undefined}
+      />
+    );
+  }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
 
   if (isError) {
     const errorMessage =
@@ -135,23 +165,8 @@ export function MetricWidgetCard({
           renderErrorMessage={renderErrorMessage}
           error={error}
         >
-          {!isTable ? (
-            <MetricChartContainer
-              timeseriesData={timeseriesData}
-              isLoading={isLoading}
-              metricQueries={metricQueries}
-              displayType={toMetricDisplayType(widget.displayType)}
-              chartHeight={!showContextMenu ? 200 : undefined}
-            />
-          ) : (
-            <MetricTableContainer
-              metricQueries={metricQueries}
-              timeseriesData={timeseriesData}
-              isLoading={isLoading}
-            />
-          )}
+          {vizualizationComponent}
         </WidgetCardBody>
-
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
