@@ -324,8 +324,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
 
-                    if does_widget_have_split:
+                    if does_widget_have_split and not has_override_feature:
                         # This is essentially cached behaviour and we skip the check
                         split_query = scoped_query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
