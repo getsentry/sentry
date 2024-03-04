@@ -465,14 +465,14 @@ function RenderRow(props: {
     if (isParentAutogroupedNode(props.node)) {
       // We mark the node as errored if any child from head to and including tail has an error.
       let currentNode: TraceTreeNode<TraceTree.Span> = props.node.head;
-      while (currentNode !== props.node.tail.children[0]) {
+      while (currentNode && currentNode !== props.node.tail.children[0]) {
         if (currentNode.value.relatedErrors.length > 0) {
           errored = true;
           break;
         }
 
         if (!isSpanNode(currentNode.children[0])) {
-          throw new TypeError('Child of autogrouped node must be a span');
+          throw new TypeError('Expected child of autogrouped node to be a span node.');
         }
 
         currentNode = currentNode.children[0];
@@ -480,7 +480,7 @@ function RenderRow(props: {
     } else {
       for (const child of props.node.children) {
         if (!isSpanNode(child)) {
-          throw new TypeError('Child of autogrouped node must be a span');
+          throw new TypeError('Expected child of autogrouped node to be a span node.');
         }
 
         if (child.value.relatedErrors.length > 0) {
