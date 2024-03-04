@@ -1,6 +1,6 @@
 from unittest.mock import ANY, patch
 
-from sentry.api.endpoints.group_ai_autofix import GroupAiAutofixEndpoint
+from sentry.api.endpoints.group_ai_autofix import TIMEOUT_SECONDS, GroupAiAutofixEndpoint
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -93,6 +93,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
                 ],
                 ANY,
                 "Yes",
+                TIMEOUT_SECONDS,
             )
 
             actual_group_arg = mock_call.call_args[0][1]
