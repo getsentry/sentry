@@ -11,6 +11,7 @@ import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 // TODO: Implement percentage units
+// TODO: Implement percentage change units
 // TODO: Implement string units
 type Unit = DurationUnit | SizeUnit | RateUnit | CountUnit;
 
