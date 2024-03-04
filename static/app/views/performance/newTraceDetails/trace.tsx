@@ -457,9 +457,14 @@ function Trace({
             })
           : null}
       </div>
-      <AutoSizer>
-        {({width, height}) => (
-          <List
+      <div
+        ref={r => {
+          manager.virtualizedList?.initialize(r);
+        }}
+      />
+
+
+      {/* <List
             ref={registerListRef}
             rowHeight={24}
             height={height}
@@ -507,9 +512,7 @@ function Trace({
                 />
               );
             }}
-          />
-        )}
-      </AutoSizer>
+          /> */}
     </TraceStylingWrapper>
   );
 }

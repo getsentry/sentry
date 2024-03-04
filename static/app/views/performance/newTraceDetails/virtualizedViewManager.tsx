@@ -131,6 +131,7 @@ export class VirtualizedViewManager {
 
   resize_observer: ResizeObserver | null = null;
   list: List | null = null;
+  virtualizedList: VirtualizedList | null = new VirtualizedList();
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -1175,6 +1176,42 @@ class TextMeasurer {
     const width = this.computeStringLength(string);
     this.cache.set(string, width);
     return width;
+  }
+}
+
+class VirtualizedList {
+  scrollContainer: HTMLElement | null = null;
+  resizeObserver: ResizeObserver | null = null;
+
+  scrollTop: number = 0;
+  scrollHeight: number = 0;
+
+  initialize(scrollContainer: HTMLElement | null) {
+    if (!scrollContainer) {
+      if (this.resizeObserver) {
+        this.resizeObserver.disconnect();
+      }
+      return;
+    }
+
+    this.scrollContainer = scrollContainer;
+    this.resizeObserver = new window.ResizeObserver(elements => {
+      // We only care about changes to the height of the scroll container,
+      // if it has not changed then do not update the scroll height.
+      if (elements[0]?.contentRect?.height !== this.scrollHeight) {
+        const height = elements[0]?.contentRect?.height ?? 0;
+
+        if (height > 0) {
+          this.scrollHeight = elements[0]?.contentRect?.height ?? 0;
+        } else {
+          console.log('ScrollHeight is <  0');
+        }
+      }
+    });
+  }
+
+  scrollToRow(index: number) {
+    console.log('scrolling to', index);
   }
 }
 
