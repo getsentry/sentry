@@ -17,6 +17,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -106,6 +107,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
     def _call_autofix(
         self,
+        user: User,
         group: Group,
         repos: list[dict],
         event_entries: list[dict],
@@ -121,9 +123,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "issue": {
                         "id": group.id,
                         "title": group.title,
+                        "short_id": group.short_id,
                         "events": [{"entries": event_entries}],
                     },
                     "additional_context": additional_context,
+                    "invoking_user": {
+                        "id": user.id,
+                        "display_name": user.get_display_name(),
+                    },
                 }
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -174,7 +181,9 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
         try:
-            self._call_autofix(group, repos, event_entries, data.get("additional_context", ""))
+            self._call_autofix(
+                request.user, group, repos, event_entries, data.get("additional_context", "")
+            )
 
             # Mark the task as completed after TIMEOUT_SECONDS
             ai_autofix_check_for_timeout.apply_async(

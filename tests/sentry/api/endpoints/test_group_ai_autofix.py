@@ -81,6 +81,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
             mock_call.assert_called_with(
                 ANY,
+                group,
                 [
                     {
                         "provider": "integrations:github",
@@ -95,7 +96,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             actual_group_arg = mock_call.call_args[0][0]
             assert actual_group_arg.id == group.id
 
-            entries_arg = mock_call.call_args[0][2]
+            entries_arg = mock_call.call_args[0][3]
             assert any([entry.get("type") == "exception" for entry in entries_arg])
 
         group = Group.objects.get(id=group.id)
