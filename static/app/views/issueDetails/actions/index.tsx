@@ -491,16 +491,14 @@ export function Actions(props: Props) {
         </ActionButton>
       ) : (
         <Fragment>
-          <GuideAnchor target="issue_details_archive_button" position="bottom">
-            <ArchiveActions
-              className="hidden-xs"
-              size="sm"
-              isArchived={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
-            />
-          </GuideAnchor>
+          <ArchiveActions
+            className="hidden-xs"
+            size="sm"
+            isArchived={isIgnored}
+            onUpdate={onUpdate}
+            disabled={disabled}
+            disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
+          />
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
               disableResolveInRelease={!resolveInReleaseCap.enabled}

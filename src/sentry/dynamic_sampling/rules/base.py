@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
@@ -42,12 +42,6 @@ def is_recently_added(model: Model) -> bool:
         return bool(model.date_added >= ten_minutes_ago)
 
     return False
-
-
-def is_sliding_window_org_enabled(organization: Organization) -> bool:
-    return features.has(
-        "organizations:ds-sliding-window-org", organization, actor=None
-    ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:

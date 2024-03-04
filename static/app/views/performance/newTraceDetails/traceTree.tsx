@@ -20,6 +20,7 @@ import {
   isRootNode,
   isSiblingAutogroupedNode,
   isSpanNode,
+  isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
@@ -136,7 +137,7 @@ export declare namespace TraceTree {
     | ChildrenAutogroup
     | null;
 
-  type NodePath = `${'txn' | 'span' | 'ag' | 'trace'}:${string}`;
+  type NodePath = `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error'}:${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -187,28 +188,29 @@ function maybeInsertMissingInstrumentationSpan(
   parent: TraceTreeNode<TraceTree.NodeValue>,
   node: TraceTreeNode<TraceTree.Span>
 ) {
-  const lastInsertedSpan = parent.spanChildren[parent.spanChildren.length - 1];
-  if (!lastInsertedSpan) {
+  const previousSpan = parent.spanChildren[parent.spanChildren.length - 1];
+  if (!previousSpan || !isSpanNode(previousSpan)) {
     return;
   }
 
-  if (node.value.start_timestamp - lastInsertedSpan.value.timestamp < 0.1) {
+  if (node.value.start_timestamp - previousSpan.value.timestamp < 0.1) {
     return;
   }
 
-  const missingInstrumentationSpan =
-    new TraceTreeNode<TraceTree.MissingInstrumentationSpan>(
-      parent,
-      {
-        type: 'missing_instrumentation',
-        start_timestamp: lastInsertedSpan.value.timestamp,
-        timestamp: node.value.start_timestamp,
-      },
-      {
-        event_id: undefined,
-        project_slug: undefined,
-      }
-    );
+  const missingInstrumentationSpan = new MissingInstrumentationNode(
+    parent,
+    {
+      type: 'missing_instrumentation',
+      start_timestamp: previousSpan.value.timestamp,
+      timestamp: node.value.start_timestamp,
+    },
+    {
+      event_id: undefined,
+      project_slug: undefined,
+    },
+    previousSpan,
+    node
+  );
 
   parent.spanChildren.push(missingInstrumentationSpan);
 }
@@ -1218,6 +1220,24 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
   }
 }
 
+export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
+  next: TraceTreeNode<TraceTree.Span>;
+  previous: TraceTreeNode<TraceTree.Span>;
+
+  constructor(
+    parent: TraceTreeNode<TraceTree.NodeValue>,
+    node: TraceTree.MissingInstrumentationSpan,
+    metadata: TraceTree.Metadata,
+    previous: TraceTreeNode<TraceTree.Span>,
+    next: TraceTreeNode<TraceTree.Span>
+  ) {
+    super(parent, node, metadata);
+
+    this.next = next;
+    this.previous = previous;
+  }
+}
+
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
@@ -1373,8 +1393,23 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     return `trace:root`;
   }
 
+  if (isTraceErrorNode(n)) {
+    return `error:${n.value.event_id}`;
+  }
+
   if (isRootNode(n)) {
     throw new Error('A path to root node does not exist as the node is virtual');
+  }
+
+  if (isMissingInstrumentationNode(n)) {
+    if (n.previous) {
+      return `ms:${n.previous.value.span_id}`;
+    }
+    if (n.next) {
+      return `ms:${n.next.value.span_id}`;
+    }
+
+    throw new Error('Missing instrumentation node must have a previous or next node');
   }
 
   throw new Error('Not implemented');
@@ -1443,6 +1478,10 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
   if (isTraceNode(t)) {
     return padding + 'Trace';
+  }
+
+  if (isTraceErrorNode(t)) {
+    return padding + t.value.event_id || 'unknown trace error';
   }
 
   return 'unknown node';
