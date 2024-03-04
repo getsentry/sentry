@@ -270,6 +270,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "consumer_type": "events",
         },
+        "dlq_topic": settings.KAFKA_INGEST_EVENTS_DLQ,
     },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,

@@ -2,12 +2,13 @@ import logging
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.types import Message
+from arroyo.dlq import InvalidMessage
+from arroyo.types import BrokerValue, Message
 
 from sentry.models.project import Project
 from sentry.utils import metrics
 
-from .processors import IngestMessage, process_event
+from .processors import IngestMessage, Retriable, process_event
 
 logger = logging.getLogger(__name__)
 
@@ -29,26 +30,43 @@ def process_simple_event_message(
       `symbolicate_event` or `process_event`.
     """
 
-    raw_payload = raw_message.payload.value
-    metrics.distribution(
-        "ingest_consumer.payload_size",
-        len(raw_payload),
-        tags={"consumer": consumer_type},
-        unit="byte",
-    )
-    message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
-
-    message_type = message["type"]
-    project_id = message["project_id"]
-
-    if message_type != "event":
-        raise ValueError(f"Unsupported message type: {message_type}")
-
     try:
-        with metrics.timer("ingest_consumer.fetch_project"):
-            project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
-        logger.exception("Project for ingested event does not exist: %s", project_id)
-        return
+        raw_payload = raw_message.payload.value
+        metrics.distribution(
+            "ingest_consumer.payload_size",
+            len(raw_payload),
+            tags={"consumer": consumer_type},
+            unit="byte",
+        )
+        message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
-    return process_event(message, project, reprocess_only_stuck_events)
+        message_type = message["type"]
+        project_id = message["project_id"]
+
+        if message_type != "event":
+            raise ValueError(f"Unsupported message type: {message_type}")
+
+        try:
+            try:
+                with metrics.timer("ingest_consumer.fetch_project"):
+                    project = Project.objects.get_from_cache(id=project_id)
+            except Project.DoesNotExist:
+                logger.exception("Project for ingested event does not exist: %s", project_id)
+                return
+
+            return process_event(message, project, reprocess_only_stuck_events)
+        except Exception as exc:
+            raise Retriable(exc)
+
+    except Exception as exc:
+        # Non retriable exceptions raise InvalidMessage, which Arroyo will DLQ.
+        # The consumer will crash on any potentially retriable exceptions.
+        # A better approach would be to instead validate the schema here and only
+        # DLQ messages that fail schema validation, but this topic has no schema
+        # defined currently.
+        if not isinstance(exc, Retriable):
+            raw_value = raw_message.value
+            assert isinstance(raw_value, BrokerValue)
+            raise InvalidMessage(raw_value.partition, raw_value.offset)
+        else:
+            raise
