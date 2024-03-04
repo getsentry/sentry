@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption} from 'echarts';
@@ -10,6 +10,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -19,13 +20,14 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {
-  formatMetricsFormula,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
   isCumulativeOp,
+  unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -47,12 +49,17 @@ import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
+import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import type {Series} from 'sentry/views/ddm/chart/types';
 import {useFocusArea} from 'sentry/views/ddm/chart/useFocusArea';
-import {useMetricChartSamples} from 'sentry/views/ddm/chart/useMetricChartSamples';
+import {
+  useMetricChartSamples,
+  useMetricChartSamplesV2,
+} from 'sentry/views/ddm/chart/useMetricChartSamples';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {FormularFormatter} from 'sentry/views/ddm/formulaParser/formatter';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
@@ -75,7 +82,9 @@ type MetricWidgetProps = {
   highlightedSampleId?: string;
   index?: number;
   isSelected?: boolean;
+  metricsSamples?: MetricsSamplesResults<Field>['data'];
   onSampleClick?: (sample: Sample) => void;
+  onSampleClickV2?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
   onSelect?: (index: number) => void;
   queryId?: number;
   showQuerySymbols?: boolean;
@@ -99,7 +108,11 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   if (filteredQueries.length === 1) {
     const firstQuery = filteredQueries[0];
     if (isMetricFormula(firstQuery)) {
-      return formatMetricsFormula(firstQuery.formula);
+      return (
+        <Fragment>
+          <FormularFormatter formula={unescapeMetricsFormula(firstQuery.formula)} />
+        </Fragment>
+      );
     }
     return getFormattedMQL(firstQuery);
   }
@@ -107,7 +120,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
   return filteredQueries
     .map(q =>
       isMetricFormula(q)
-        ? formatMetricsFormula(q.formula)
+        ? unescapeMetricsFormula(q.formula)
         : formatMRIField(MRIToField(q.mri, q.op))
     )
     .join(', ');
@@ -129,9 +142,11 @@ export const MetricWidget = memo(
     showQuerySymbols,
     focusAreaProps,
     onSampleClick,
+    onSampleClickV2,
     highlightedSampleId,
     chartHeight = 300,
     focusedSeries,
+    metricsSamples,
     context = 'ddm',
   }: MetricWidgetProps) => {
     const firstQuery = queries
@@ -175,6 +190,18 @@ export const MetricWidget = memo(
       firstQuery?.op,
       highlightedSampleId,
     ]);
+
+    const samplesV2 = useMemo(() => {
+      if (!defined(metricsSamples)) {
+        return undefined;
+      }
+      return {
+        data: metricsSamples,
+        onSampleClick: onSampleClickV2,
+        unit: parseMRI(firstQuery?.mri)?.unit ?? '',
+        operation: firstQuery?.op ?? '',
+      };
+    }, [metricsSamples, firstQuery?.mri, firstQuery?.op, onSampleClickV2]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -223,6 +250,7 @@ export const MetricWidget = memo(
                 onChange={handleChange}
                 focusAreaProps={focusAreaProps}
                 samples={samples}
+                samplesV2={samplesV2}
                 chartHeight={chartHeight}
                 chartGroup={DDM_CHART_GROUP}
                 queries={queries}
@@ -261,6 +289,7 @@ interface MetricWidgetBodyProps {
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   samples?: SamplesProps;
+  samplesV2?: SamplesV2Props;
   tableSort?: SortState;
 }
 
@@ -270,6 +299,14 @@ export interface SamplesProps {
   data?: MetricCorrelation[];
   higlightedId?: string;
   onClick?: (sample: Sample) => void;
+}
+
+export interface SamplesV2Props {
+  operation: string;
+  unit: string;
+  data?: MetricsSamplesResults<Field>['data'];
+  higlightedId?: string;
+  onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
 }
 
 const MetricWidgetBody = memo(
@@ -284,6 +321,7 @@ const MetricWidgetBody = memo(
     chartHeight,
     chartGroup,
     samples,
+    samplesV2,
     filters,
     queries,
     context,
@@ -324,6 +362,15 @@ const MetricWidgetBody = memo(
       highlightedSampleId: samples?.higlightedId,
       operation: samples?.operation,
       timeseries: chartSeries,
+    });
+
+    const samplesV2Prop = useMetricChartSamplesV2({
+      samples: samplesV2?.data,
+      highlightedSampleId: samples?.higlightedId,
+      operation: samplesV2?.operation,
+      onSampleClick: samplesV2?.onSampleClick,
+      timeseries: chartSeries,
+      unit: samplesV2?.unit,
     });
 
     const handleZoom = useCallback(
@@ -439,7 +486,7 @@ const MetricWidgetBody = memo(
           series={chartSeries}
           displayType={displayType}
           height={chartHeight}
-          samples={samplesProp}
+          samples={samplesV2Prop ?? samplesProp}
           focusArea={focusArea}
           group={chartGroup}
         />

@@ -103,12 +103,14 @@ function DefaultGroupEventDetailsContent({
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      <SuspectCommits
-        project={project}
-        eventId={event.id}
-        group={group}
-        commitRow={CommitRow}
-      />
+      <StyledDataSection>
+        <SuspectCommits
+          project={project}
+          eventId={event.id}
+          group={group}
+          commitRow={CommitRow}
+        />
+      </StyledDataSection>
       {event.userReport && (
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
@@ -291,6 +293,14 @@ function GroupEventDetailsContent({
 
 const NotFoundMessage = styled('div')`
   padding: ${space(2)} ${space(4)};
+`;
+
+const StyledDataSection = styled(DataSection)`
+  padding: ${space(0.5)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(4)};
+  }
 `;
 
 export default GroupEventDetailsContent;

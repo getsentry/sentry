@@ -4,8 +4,9 @@ import pytest
 from django.utils import timezone
 
 from sentry.models.group import GroupStatus
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (

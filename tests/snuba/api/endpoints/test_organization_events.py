@@ -1,6 +1,6 @@
 import math
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -4126,7 +4126,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
 
         # Don't quantize short time periods
         query = {"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]}
@@ -5898,7 +5898,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         event, _, group_info = self.store_search_issue(
@@ -5906,7 +5906,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group2"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None
@@ -5980,7 +5980,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             1,
             ["group1-fingerprint"],
             None,
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
             user=user_data,
         )
         assert group_info is not None

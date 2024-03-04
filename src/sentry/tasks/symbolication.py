@@ -40,7 +40,7 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 # burdened by aforementioned legacy concerns.
 
 
-def should_demote_symbolication(project_id: int) -> bool:
+def should_demote_symbolication(project_id: int, lpq_projects: set[int] | None = None) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
 
@@ -50,13 +50,10 @@ def should_demote_symbolication(project_id: int) -> bool:
         3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
 
     Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
+
+    If lpq projects is defined and the auto low priority queue is enabled, this function
+    will avoid making additional Redis calls for performance reasons.
     """
-    always_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-always",
-        {
-            "project_id": project_id,
-        },
-    )
     never_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-never",
         {
@@ -66,17 +63,27 @@ def should_demote_symbolication(project_id: int) -> bool:
 
     if never_lowpri:
         return False
-    elif always_lowpri:
+
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+    )
+
+    if always_lowpri:
         return True
-    else:
+    elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
-            return (
-                settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE
-                and realtime_metrics.is_lpq_project(project_id)
-            )
+            if lpq_projects:
+                return project_id in lpq_projects
+            else:
+                return realtime_metrics.is_lpq_project(project_id)
         # realtime_metrics is empty in getsentry
         except AttributeError:
             return False
+    else:
+        return False
 
 
 # This is f*** joke:

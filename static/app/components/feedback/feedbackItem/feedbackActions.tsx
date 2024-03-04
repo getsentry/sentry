@@ -37,6 +37,7 @@ export default function FeedbackActions({
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,
+    projectIds: [feedbackItem.project.id],
   });
 
   const mutationOptions = {

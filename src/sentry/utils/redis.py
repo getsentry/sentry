@@ -266,6 +266,17 @@ def get_dynamic_cluster_from_options(
     return False, cluster, config
 
 
+def get_cluster_routing_client(
+    cluster: RedisCluster | rb.Cluster, is_redis_cluster: bool
+) -> RedisCluster | rb.RoutingClient:
+    if is_instance_redis_cluster(cluster, is_redis_cluster):
+        return cluster
+    elif is_instance_rb_cluster(cluster, is_redis_cluster):
+        return cluster.get_routing_client()
+    else:
+        raise AssertionError("unreachable")
+
+
 def is_instance_redis_cluster(
     val: rb.Cluster | RedisCluster, is_redis_cluster: bool
 ) -> TypeGuard[RedisCluster]:

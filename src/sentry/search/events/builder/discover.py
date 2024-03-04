@@ -316,20 +316,21 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
-            # Has to be done early, since other conditions depend on start and end
-            self.resolve_time_conditions()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
-            self.where, self.having = self.resolve_conditions(query)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
-            # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
-            self.where += self.resolve_params()
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
-            self.columns = self.resolve_select(selected_columns, equations)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
-            self.orderby = self.resolve_orderby(orderby)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby(groupby_columns)
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_query"):
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+                # Has to be done early, since other conditions depend on start and end
+                self.resolve_time_conditions()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
+                self.where, self.having = self.resolve_conditions(query)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
+                # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
+                self.where += self.resolve_params()
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_columns"):
+                self.columns = self.resolve_select(selected_columns, equations)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+                self.orderby = self.resolve_orderby(orderby)
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
+                self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
