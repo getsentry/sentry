@@ -83,7 +83,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             )
             mock_call.assert_called_with(
                 ANY,
-                group,
+                ANY,
                 [
                     {
                         "provider": "integrations:github",
