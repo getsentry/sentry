@@ -28,7 +28,7 @@ import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetrics
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -161,7 +161,7 @@ function SpanSummaryPage({params}: Props) {
 
             <MetricsRibbon>
               <MetricReadout
-                title={t('Queries Per Minute')}
+                title={getThroughputTitle('db')}
                 value={spanMetrics?.[`${SpanFunction.SPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areSpanMetricsLoading}
