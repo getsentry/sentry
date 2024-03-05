@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
+from functools import lru_cache
 from time import time
 from typing import Any
 
@@ -143,10 +144,7 @@ def process_profile_task(
         allowed_orgs := options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
     ):
         try:
-            project_key, _ = ProjectKey.objects.get_or_create(
-                project_id=project.id, use_case=UseCase.PROFILING.value, label="Aggregate Functions"
-            )
-            dsn = project_key.get_dsn()
+            dsn = get_metrics_dsn(project.id)
             profile["options"] = {
                 "profiling.generic_metrics.functions_ingestion.enabled": enabled,
                 "profiling.generic_metrics.functions_ingestion.allowed_org_ids": allowed_orgs,
@@ -917,3 +915,11 @@ def clean_android_js_profile(profile: Profile):
     del p["event_id"]
     del p["release"]
     del p["dist"]
+
+
+@lru_cache(maxsize=100)
+def get_metrics_dsn(project_id: int) -> str:
+    project_key, _ = ProjectKey.objects.get_or_create(
+        project_id=project_id, use_case=UseCase.PROFILING.value
+    )
+    return project_key.get_dsn(public=True)
