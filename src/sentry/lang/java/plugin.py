@@ -7,6 +7,7 @@ from sentry.lang.java.utils import (
     get_jvm_images,
     get_proguard_images,
     has_proguard_file,
+    should_use_symbolicator_for_proguard,
 )
 from sentry.lang.javascript.utils import get_source_context, trim_line
 from sentry.models.artifactbundle import ArtifactBundleArchive
@@ -290,6 +291,9 @@ class JavaPlugin(Plugin2):
         return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        if should_use_symbolicator_for_proguard(data.get("project")):
+            return []
+
         if "java" in platforms:
             return [JavaSourceLookupStacktraceProcessor]
 
