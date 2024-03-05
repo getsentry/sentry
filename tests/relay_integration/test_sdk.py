@@ -2,9 +2,8 @@ import uuid
 from unittest import mock
 
 import pytest
-import sentry_sdk
 from django.test.utils import override_settings
-from sentry_sdk import Hub
+from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -35,22 +34,38 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     settings.SENTRY_PROJECT = 1
 
     configure_sdk()
+    hub = Hub.current  # XXX: Hub.current gets reset, this is a workaround
 
-    wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+    def bind_client(self, new, *, _orig=Hub.bind_client):
+        if new is None:
+            import sys
+            import traceback
 
-    def inner(*args, **kwargs):
-        event_id = sentry_sdk.capture_event(*args, **kwargs)
-        sentry_sdk.Scope.get_client().flush()
+            print("!!! Hub client was reset to None !!!", file=sys.stderr)  # noqa: S002
+            traceback.print_stack()
+            print("!!!", file=sys.stderr)  # noqa: S002
 
-        with sentry_sdk.new_scope():
-            return wait_for_ingest_consumer(
-                lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
-            )
+        return _orig(self, new)
 
-    yield inner
+    # XXX: trying to figure out why it gets reset
+    with mock.patch.object(Hub, "bind_client", bind_client):
+        wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+
+        def inner(*args, **kwargs):
+            assert Hub.current.client is not None
+
+            event_id = hub.capture_event(*args, **kwargs)
+            assert hub.client is not None
+            hub.client.flush()
+
+            with push_scope():
+                return wait_for_ingest_consumer(
+                    lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+                )
+
+        yield inner
 
 
-@pytest.mark.skip(reason="Deactivate to test SDK 2.0")
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
@@ -62,7 +77,6 @@ def test_simple(settings, post_event_with_sdk):
     assert event.data["logentry"]["formatted"] == "internal client test"
 
 
-@pytest.mark.skip(reason="Deactivate to test SDK 2.0")
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
@@ -81,7 +95,6 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
-@pytest.mark.skip(reason="Deactivate to test SDK 2.0")
 @no_silo_test
 @django_db_all
 @override_settings(SENTRY_PROJECT=1)
@@ -89,7 +102,7 @@ def test_encoding(settings, post_event_with_sdk):
     class NotJSONSerializable:
         pass
 
-    with sentry_sdk.new_scope() as scope:
+    with push_scope() as scope:
         scope.set_extra("request", NotJSONSerializable())
         event = post_event_with_sdk({"message": "check the req"})
 
