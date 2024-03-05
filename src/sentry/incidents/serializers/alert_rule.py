@@ -477,13 +477,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         ).count()
 
         if org_subscription_count >= settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG:
-            # NOTE: if we want to bump atlassians' slow alert rule limit, ^ look at these variables
             raise serializers.ValidationError(
                 f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
-            # Here's where alert rule is being created
             alert_rule = create_alert_rule(
                 user=self.context.get("user", None),
                 organization=self.context["organization"],
