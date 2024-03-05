@@ -2028,12 +2028,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.score.fid": "metrics_distributions",
         "measurements.score.cls": "metrics_distributions",
         "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.inp": "metrics_distributions",
         "measurements.score.total": "metrics_distributions",
         "measurements.score.weight.lcp": "metrics_distributions",
         "measurements.score.weight.fcp": "metrics_distributions",
         "measurements.score.weight.fid": "metrics_distributions",
         "measurements.score.weight.cls": "metrics_distributions",
         "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.score.weight.inp": "metrics_distributions",
         "measurements.app_start_cold": "metrics_distributions",
         "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
@@ -3079,7 +3081,7 @@ class MonitorTestCase(APITestCase):
             monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
-    def _create_issue_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3087,13 +3089,16 @@ class MonitorTestCase(APITestCase):
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
         ]
+        if not exclude_slug_filter:
+            conditions.append(
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",

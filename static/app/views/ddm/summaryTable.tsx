@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -154,7 +154,7 @@ export const SummaryTable = memo(function SummaryTable({
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="sum" right>
         {t('Sum')}
       </SortableHeaderCell>
-      <HeaderCell disabled right />
+      {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
       <TableBodyWrapper
         hasActions={hasActions}
@@ -172,7 +172,6 @@ export const SummaryTable = memo(function SummaryTable({
             color,
             hidden,
             unit,
-            operation,
             transaction,
             release,
             avg,
@@ -229,46 +228,40 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
-                  </NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(sum, unit)}</NumberCell>
 
-                  <CenterCell>
-                    <ButtonBar gap={0.5}>
-                      {transaction && (
-                        <div>
-                          <Tooltip title={t('Open Transaction Summary')}>
-                            <LinkButton
-                              to={transactionTo(transaction)}
-                              size="zero"
-                              borderless
-                            >
-                              <IconLightning size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
+                  {hasActions && (
+                    <CenterCell>
+                      <ButtonBar gap={0.5}>
+                        {transaction && (
+                          <div>
+                            <Tooltip title={t('Open Transaction Summary')}>
+                              <LinkButton
+                                to={transactionTo(transaction)}
+                                size="zero"
+                                borderless
+                              >
+                                <IconLightning size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
 
-                      {release && (
-                        <div>
-                          <Tooltip title={t('Open Release Details')}>
-                            <LinkButton to={releaseTo(release)} size="zero" borderless>
-                              <IconReleases size="sm" />
-                            </LinkButton>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </ButtonBar>
-                  </CenterCell>
+                        {release && (
+                          <div>
+                            <Tooltip title={t('Open Release Details')}>
+                              <LinkButton to={releaseTo(release)} size="zero" borderless>
+                                <IconReleases size="sm" />
+                              </LinkButton>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </ButtonBar>
+                    </CenterCell>
+                  )}
 
                   <PaddingCell />
                 </Row>
@@ -379,9 +372,9 @@ function getValues(seriesData: Series['data']) {
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
   display: grid;
   /* padding | color dot | name | avg | min | max | sum | actions | padding */
-  grid-template-columns: ${space(0.75)} ${space(3)} 8fr repeat(5, max-content) ${space(
-      0.75
-    )};
+  grid-template-columns:
+    ${space(0.75)} ${space(3)} 8fr repeat(${p => (p.hasActions ? 5 : 4)}, max-content)
+    ${space(0.75)};
 
   max-height: 200px;
   overflow-x: hidden;
@@ -414,6 +407,10 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   background-color: ${p => p.theme.backgroundSecondary};
   border-radius: 0;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  top: 0;
+  position: sticky;
+  z-index: 1;
 
   &:hover {
     cursor: ${p => (p.disabled ? 'default' : 'pointer')};
