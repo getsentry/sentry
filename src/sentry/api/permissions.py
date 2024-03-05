@@ -79,9 +79,10 @@ class StaffPermissionMixin:
 
     def has_permission(self, request, *args, **kwargs) -> bool:
         """
-        Calls the parent class's has_permission method. If it returns False or raises
-        an exception, we then check if the request is from an active staff. Raised
-        exceptions are not caught if the request is not from an active staff.
+        Calls the parent class's has_permission method. If it returns False or
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
         """
         try:
             if super().has_permission(request, *args, **kwargs):
@@ -95,8 +96,9 @@ class StaffPermissionMixin:
     def has_object_permission(self, request, *args, **kwargs) -> bool:
         """
         Calls the parent class's has_object_permission method. If it returns False or
-        raises an exception, we then check if the request is from an active staff.
-        Raised exceptions are not caught if the request is not from an active staff.
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
         """
         try:
             if super().has_object_permission(request, *args, **kwargs):
