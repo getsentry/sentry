@@ -66,7 +66,9 @@ class BaseAuthIndexEndpoint(Endpoint):
         if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
-        organization_context = organization_service.get_organization_by_id(id=org_id)
+        organization_context = organization_service.get_organization_by_id(
+            id=org_id, include_teams=False, include_projects=False
+        )
         assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
@@ -242,7 +244,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
                 if Superuser.org_id:
-                    superuser_org = organization_service.get_organization_by_id(id=Superuser.org_id)
+                    superuser_org = organization_service.get_organization_by_id(
+                        id=Superuser.org_id, include_teams=False, include_projects=False
+                    )
 
                     verify_authenticator = (
                         False
