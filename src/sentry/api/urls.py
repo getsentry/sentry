@@ -16,6 +16,9 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
+from sentry.api.endpoints.organization_lightweight_projects import (
+    OrganizationLightweightProjectsEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
@@ -1687,6 +1690,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/lightweight-projects/$",
+        OrganizationLightweightProjectsEndpoint.as_view(),
+        name="sentry-api-0-organization-lightweight-projects",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/experimental/projects/$",
