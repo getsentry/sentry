@@ -50,15 +50,23 @@ function getSentryIntegrations(routes?: Function) {
       depth: 6,
     }),
     Sentry.metrics.metricsAggregatorIntegration(),
-    Sentry.reactRouterV3BrowserTracingIntegration({
-      history: browserHistory as any,
-      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
-      match,
-      _experiments: {
-        enableInteractions: true,
-      },
-    }),
-    new Sentry.BrowserProfilingIntegration(),
+    typeof routes === 'function'
+      ? Sentry.reactRouterV3BrowserTracingIntegration({
+          history: browserHistory as any,
+          routes: createRoutes(routes()),
+          match,
+          _experiments: {
+            enableInteractions: true,
+          },
+          enableInp: true,
+        })
+      : Sentry.browserTracingIntegration({
+          _experiments: {
+            enableInteractions: true,
+          },
+          enableInp: true,
+        }),
+    Sentry.browserProfilingIntegration(),
   ];
 
   return integrations;
