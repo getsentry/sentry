@@ -245,15 +245,9 @@ def get_metrics_meta(
     if not projects:
         return []
 
-    has_custom_use_case_id = False
-    for use_case_id in use_case_ids:
-        if use_case_id == UseCaseID.CUSTOM:
-            has_custom_use_case_id = True
-            break
-
     stored_metrics = get_stored_metrics_of_projects(projects, use_case_ids, start, end)
     metrics_blocking_state = (
-        get_metrics_blocking_state_of_projects(projects) if has_custom_use_case_id else {}
+        get_metrics_blocking_state_of_projects(projects) if UseCaseID.CUSTOM in use_case_ids else {}
     )
 
     metrics_metas = []
