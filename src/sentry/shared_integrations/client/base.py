@@ -253,6 +253,7 @@ class BaseApiClient(TrackResponseMixin):
                     resp.raise_for_status()
                 except HTTPError as e:
                     if \"ConversationBlockedByUser\" in str(e):
+                        sentry_sdk.capture_message(f\"ConversationBlockedByUserError: User ID and relevant info.\", level='error')
                         raise ConversationBlockedByUserError from e
                     else:
                         raise
