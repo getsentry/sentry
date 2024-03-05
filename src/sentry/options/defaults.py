@@ -921,6 +921,15 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
 # needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Override to set a list of limits into passive mode by organization.
+#
+# In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
+#
+# Example: `{1: ["transactions"]}`
+# Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
+register(
+    "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 # Sample rate for Cardinality Limiter Sentry errors.
 #
 # Rate needs to be between `0.0` and `1.0`.
