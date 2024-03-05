@@ -42,15 +42,13 @@ def delete_file_control(path, checksum, **kwargs):
 
 
 def delete_file(file_blob_model, path, checksum, **kwargs):
-    from sentry.models.files.utils import get_storage, lock_blob
+    from sentry.models.files.utils import get_storage
 
-    lock = lock_blob(checksum, "fileblob_upload")
-    with lock:
-        # check that the fileblob with *this* path exists, as its possible
-        # that a concurrent re-upload added the same chunk once again, with a
-        # different path that time
-        if not file_blob_model.objects.filter(checksum=checksum, path=path).exists():
-            get_storage().delete(path)
+    # check that the fileblob with *this* path exists, as its possible
+    # that a concurrent re-upload added the same chunk once again, with a
+    # different path that time
+    if not file_blob_model.objects.filter(checksum=checksum, path=path).exists():
+        get_storage().delete(path)
 
 
 @instrumented_task(
