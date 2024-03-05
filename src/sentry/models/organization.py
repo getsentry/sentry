@@ -313,7 +313,8 @@ class Organization(
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
-            self._default_owner = self.get_owners()[0]
+            owners = self.get_owners()
+                self._default_owner = owners[0] if owners else None
         return self._default_owner
 
     @property
