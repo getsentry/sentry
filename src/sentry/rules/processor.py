@@ -17,7 +17,7 @@ from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
-from sentry.rules.actions.base import EventAction
+from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
@@ -268,15 +268,7 @@ class RuleProcessor:
     def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
-            action_cls = rules.get(action["id"])
-            if action_cls is None:
-                self.logger.warning("Unregistered action %r", action["id"])
-                continue
-
-            action_inst = action_cls(self.project, data=action, rule=rule)
-            if not isinstance(action_inst, EventAction):
-                self.logger.warning("Unregistered action %r", action["id"])
-                continue
+            action_inst = instantiate_action(rule, action)
 
             results = safe_execute(
                 action_inst.after,

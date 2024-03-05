@@ -11,6 +11,22 @@ from sentry.rules.base import CallbackFuture, EventState, RuleBase
 logger = logging.getLogger("sentry.rules")
 
 
+def instantiate_action(rule: Rule, action):
+    from sentry.rules import rules
+
+    action_cls = rules.get(action["id"])
+    if action_cls is None:
+        logger.warning("Unregistered action %r", action["id"])
+        return None
+
+    action_inst = action_cls(rule.project, data=action, rule=rule)
+    if not isinstance(action_inst, EventAction):
+        logger.warning("Unregistered action %r", action["id"])
+        return None
+
+    return action_inst
+
+
 class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
