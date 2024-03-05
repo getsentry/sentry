@@ -53,6 +53,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         :qparam bool full: if this is set to true then the event payload will
                            include the full event body, including the stacktrace.
                            Set to 1 to enable.
+        :qparam bool random: if this is set to true then the events will be presented
+                             in a random order. Set to 1 to enable.
 
         :pparam string issue_id: the ID of the issue to retrieve.
 
