@@ -196,16 +196,16 @@ _INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
 # string. We support both currently for backward compatibility.
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
-        "topic": settings.KAFKA_PROFILES,
+        "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
     },
     "ingest-replay-recordings": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
     "ingest-replay-recordings-buffered": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
         "click_options": ingest_replay_recordings_buffered_options(),
     },

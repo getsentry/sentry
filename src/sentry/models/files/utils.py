@@ -2,29 +2,20 @@ from __future__ import annotations
 
 import os
 import time
-from contextlib import contextmanager
 from datetime import timedelta
 from hashlib import sha1
+from typing import Any
 
 from django.conf import settings
 from django.utils import timezone
-from rediscluster import RedisCluster
 
-from sentry import options
-from sentry.locks import locks
-from sentry.utils import redis
 from sentry.utils.imports import import_string
-from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 HALF_DAY = timedelta(hours=12)
 
-UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
-
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
-CHUNK_STATE_HEADER = "__state"
-
 MAX_FILE_SIZE = 2**31  # 2GB is the maximum offset supported by fileblob
 
 
@@ -54,65 +45,23 @@ def get_size_and_checksum(fileobj, logger=nooplogger):
     return size, checksum.hexdigest()
 
 
-@contextmanager
-def lock_blob(checksum: str, name: str, metric_instance: str | None = None):
-    if not options.get("fileblob.upload.use_lock"):
-        yield
-        return
+def get_and_optionally_update_blob(file_blob_model: Any, checksum: str):
+    """
+    Returns the `FileBlob` (actually generic `file_blob_model`) identified by its `checksum`.
+    This will also bump its `timestamp` in a debounced fashion,
+    in order to prevent it from being cleaned up.
+    """
+    try:
+        existing = file_blob_model.objects.get(checksum=checksum)
 
-    lock = locks.get(f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME, name=name)
-    with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance=metric_instance)(lock.acquire):
-        yield
+        now = timezone.now()
+        threshold = now - HALF_DAY
+        if existing.timestamp <= threshold:
+            existing.update(timestamp=now)
+    except file_blob_model.DoesNotExist:
+        existing = None
 
-
-def _get_redis_for_blobs() -> RedisCluster:
-    cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
-
-
-def _redis_key_for_blob(file_blob_model, checksum):
-    return f"fileblob:{file_blob_model.__name__}:{checksum}"
-
-
-def _get_cached_blob_id(file_blob_model, checksum):
-    if not options.get("fileblob.upload.use_blobid_cache"):
-        return None
-    redis = _get_redis_for_blobs()
-    if id := redis.get(_redis_key_for_blob(file_blob_model, checksum)):
-        return int(id)
-    return None
-
-
-def cache_blob_id(file_blob_model, checksum, id):
-    if not options.get("fileblob.upload.use_blobid_cache"):
-        return
-    redis = _get_redis_for_blobs()
-    redis.set(_redis_key_for_blob(file_blob_model, checksum), str(id), ex=HALF_DAY.seconds)
-
-
-@contextmanager
-def locked_blob(file_blob_model, size, checksum, logger=nooplogger):
-    if cached_id := _get_cached_blob_id(file_blob_model, checksum):
-        yield file_blob_model(id=cached_id, size=size, checksum=checksum)
-        return
-
-    logger.debug("locked_blob.start", extra={"checksum": checksum})
-    lock = lock_blob(checksum, "fileblob_upload_model", metric_instance="lock.fileblob.upload")
-    with lock:
-        logger.debug("locked_blob.acquired", extra={"checksum": checksum})
-        # test for presence
-        try:
-            existing = file_blob_model.objects.get(checksum=checksum)
-            cache_blob_id(file_blob_model, checksum, existing.id)
-
-            now = timezone.now()
-            threshold = now - HALF_DAY
-            if existing.timestamp <= threshold:
-                existing.update(timestamp=now)
-        except file_blob_model.DoesNotExist:
-            existing = None
-        yield existing
-    logger.debug("locked_blob.end", extra={"checksum": checksum})
+    return existing
 
 
 class AssembleChecksumMismatch(Exception):
