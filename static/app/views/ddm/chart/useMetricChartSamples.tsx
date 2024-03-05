@@ -157,7 +157,7 @@ export function useMetricChartSamples({
 
       return {
         seriesName: sample.transactionId,
-        id: sample.transactionId,
+        id: sample.spanId,
         operation: '',
         unit: '',
         symbolSize: isHighlighted ? 20 : 10,
