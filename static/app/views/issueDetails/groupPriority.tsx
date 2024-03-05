@@ -44,10 +44,16 @@ function GroupPriority({group}: GroupDetailsPriorityProps) {
     );
   };
 
+  // We can assume that when there is not `priorityLockedAt`, there were no
+  // user edits to the priority.
+  const lastEditedBy = !group.priorityLockedAt ? 'system' : undefined;
+
   return (
     <GroupPriorityDropdown
+      groupId={group.id}
       onChange={onChange}
       value={group.priority ?? PriorityLevel.MEDIUM}
+      lastEditedBy={lastEditedBy}
     />
   );
 }

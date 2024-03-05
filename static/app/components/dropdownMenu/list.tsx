@@ -58,6 +58,10 @@ export interface DropdownMenuListProps
    */
   closeOnSelect?: boolean;
   /**
+   * To be displayed below the menu items
+   */
+  menuFooter?: React.ReactChild;
+  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactChild;
@@ -74,6 +78,7 @@ function DropdownMenuList({
   minMenuWidth,
   size,
   menuTitle,
+  menuFooter,
   overlayState,
   overlayPositionProps,
   ...props
@@ -249,6 +254,7 @@ function DropdownMenuList({
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
+            {menuFooter}
           </StyledOverlay>
         </DropdownMenuContext.Provider>
       </PositionWrapper>
