@@ -16,9 +16,9 @@ import type {
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import {MetaData} from './styles';
+import {TraceLink} from './traceLink';
 
 interface Props
   extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
