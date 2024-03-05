@@ -240,7 +240,7 @@ function ReplayClipPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge>
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge={isLarge}>
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
