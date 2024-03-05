@@ -1444,12 +1444,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.CUSTOM,
             )
 
-        for formula, expected_result in (
-            ("$query_1 * $query_2", 300.0),
-            ("$query_1 / 2", 10.0),
-            ("$query_1 * $query_2 + 25", 325.0)
+        for formula, expected_result, expected_unit_family in (
+            ("$query_1 * $query_2", 300.0, None),
+            ("$query_1 * $query_2 + 25", 325.0, None),
+            ("$query_1 * $query_2 / 1", 300.0, None),
+            ("$query_1 * 2", 40.0, UnitFamily.DURATION.value),
+            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value)
             # disabled since the layer fails validation of the use cases used when nested formulas have only scalars
-            # ("$query_1 + (100 / 1)", 21.0)
+            # ("$query_1 * (100 / 1)", 21.0)
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
@@ -1477,6 +1479,4 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert data[0][0]["totals"] == expected_result
             meta = results["meta"]
             assert len(meta) == 1
-            assert meta[0][1]["unit_family"] is None
-            assert meta[0][1]["unit"] is None
-            assert meta[0][1]["scaling_factor"] is None
+            assert meta[0][1]["unit_family"] == expected_unit_family
