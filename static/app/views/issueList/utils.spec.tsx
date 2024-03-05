@@ -16,10 +16,12 @@ describe('getTabs', () => {
     ]);
   });
 
-  it('should add inbox tab for issue-priority-ui feature', () => {
-    expect(getTabs(OrganizationFixture({features: ['issue-priority-ui']}))[0]).toEqual([
+  it('should replace "unresolved" with "prioritized" for issue-priority-ui feature', () => {
+    const tabs = getTabs(OrganizationFixture({features: ['issue-priority-ui']}));
+
+    expect(tabs[0]).toEqual([
       'is:unresolved issue.priority:[high, medium]',
-      expect.objectContaining({name: 'Inbox'}),
+      expect.objectContaining({name: 'Prioritized'}),
     ]);
   });
 });
