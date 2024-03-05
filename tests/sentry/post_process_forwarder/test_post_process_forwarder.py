@@ -5,9 +5,9 @@ import uuid
 from typing import Any
 from unittest.mock import patch
 
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.utils import metrics
-from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
@@ -66,7 +66,7 @@ class PostProcessForwarderTest(TestCase):
             KAFKA_TOPIC_OVERRIDES={
                 "events": self.events_topic,
                 "transactions": self.events_topic,
-            }
+            },
         )
 
         self.override_settings_cm.__enter__()
