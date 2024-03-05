@@ -12,3 +12,7 @@ class LatestReleaseNotFoundError(Exception):
 
 class CorrelationsQueryExecutionError(Exception):
     pass
+
+
+class NonNormalizableUnitsError(Exception):
+    pass

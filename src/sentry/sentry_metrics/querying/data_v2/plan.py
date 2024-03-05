@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, replace
 
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
-from sentry.sentry_metrics.querying.data_v2.transformation.base import (
+from sentry.sentry_metrics.querying.data_v2.transformation import (
     QueryTransformer,
     QueryTransformerResult,
 )
