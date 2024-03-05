@@ -112,10 +112,7 @@ class CodeLocationsFetcher:
         for project in self._projects:
             for metric_mri in self._metric_mris:
                 for timestamp in self._timestamps:
-                    if current_step == step_size:
-                        current_step = 0
-
-                    if current_step == 0:
+                    if current_step % step_size == 0:
                         yield CodeLocationQuery(
                             organization_id=self._organization.id,
                             project_id=project.id,
