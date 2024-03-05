@@ -11,8 +11,14 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.features.rollout import in_random_rollout
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.java.processing import process_jvm_stacktraces
+from sentry.lang.java.utils import should_use_symbolicator_for_proguard
 from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import (
+    Symbolicator,
+    SymbolicatorTaskKind,
+    SymbolicatorPlatform,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.processing import realtime_metrics
@@ -104,6 +110,8 @@ def get_symbolication_function(
 ) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
+    elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data):
+        return SymbolicatorPlatform.jvm, process_jvm_event
     else:
         return SymbolicatorPlatform.native, get_native_symbolication_function(data)
 
@@ -187,6 +195,8 @@ def _do_symbolicate_event(
 
     if task_kind.platform == SymbolicatorPlatform.js:
         symbolication_function = process_js_stacktraces
+    elif task_kind.platform == SymbolicatorPlatform.jvm:
+        symbolication_function = process_jvm_stacktraces
     else:
         symbolication_function = get_native_symbolication_function(data)
 
@@ -325,6 +335,8 @@ def get_kind_from_task(task: Any) -> SymbolicatorTaskKind:
     ]
     if task in [symbolicate_js_event, symbolicate_js_event_low_priority]:
         platform = SymbolicatorPlatform.js
+    elif task in [symbolicate_jvm_event, symbolicate_jvm_event_low_priority]:
+        platform = SymbolicatorPlatform.jvm
     else:
         platform = SymbolicatorPlatform.native
 
@@ -437,6 +449,42 @@ def symbolicate_js_event(
     )
 
 
+# NOTE: Intentionally uses the same queue as `symbolicate_event`.
+@instrumented_task(
+    name="sentry.tasks.symbolicate_jvm_event",
+    queue="events.symbolicate_event",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+def symbolicate_jvm_event(
+    cache_key: str,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
+    queue_switches: int = 0,
+    has_attachments: bool = False,
+    **kwargs: Any,
+) -> None:
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_jvm_event,
+        data=data,
+        queue_switches=queue_switches,
+        has_attachments=has_attachments,
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event_low_priority",
     queue="events.symbolicate_event_low_priority",
@@ -507,6 +555,45 @@ def symbolicate_js_event_low_priority(
         start_time=start_time,
         event_id=event_id,
         symbolicate_task=symbolicate_js_event_low_priority,
+        data=data,
+        queue_switches=queue_switches,
+        has_attachments=has_attachments,
+    )
+
+
+# NOTE: Intentionally uses the same queue as `symbolicate_event_low_priority`.
+@instrumented_task(
+    name="sentry.tasks.symbolicate_jvm_event_low_priority",
+    queue="events.symbolicate_event_low_priority",
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+def symbolicate_jvm_event_low_priority(
+    cache_key: str,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
+    queue_switches: int = 0,
+    has_attachments: bool = False,
+    **kwargs: Any,
+) -> None:
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    This puts the task on the low priority queue. Projects whose symbolication
+    events misbehave get sent there to protect the main queue.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    return _do_symbolicate_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_jvm_event_low_priority,
         data=data,
         queue_switches=queue_switches,
         has_attachments=has_attachments,
