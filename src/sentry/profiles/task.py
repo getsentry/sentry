@@ -21,6 +21,7 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature, format_signature
 from sentry.profiles.utils import get_from_profiling_service
@@ -135,6 +136,24 @@ def process_profile_task(
         set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
+
+    if (
+        enabled := options.get("profiling.generic_metrics.functions_ingestion.enabled")
+    ) and project.organization_id in (
+        allowed_orgs := options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+    ):
+        try:
+            project_key, _ = ProjectKey.objects.get_or_create(
+                project_id=project.id, use_case=UseCase.PROFILING.value, label="Aggregate Functions"
+            )
+            dsn = project_key.get_dsn()
+            profile["options"] = {
+                "profiling.generic_metrics.functions_ingestion.enabled": enabled,
+                "profiling.generic_metrics.functions_ingestion.allowed_org_ids": allowed_orgs,
+                "dsn": dsn,
+            }
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     if not _push_profile_to_vroom(profile, project):
         return
