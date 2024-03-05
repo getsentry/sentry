@@ -27,7 +27,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
-        self.__producer_topic = output_topic
+        self.__producer_topic = snuba_metrics["real_topic_name"]
         self.__commit_function = commit_function
 
         self.__closed = False
