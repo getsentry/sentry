@@ -26,7 +26,12 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
     update_alert_rule,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleMonitorType,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -195,6 +200,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Invalid threshold type, valid values are %s"
                 % [item.value for item in AlertRuleThresholdType]
             )
+
+    def validate_monitor_type(self, monitor_type):
+        if monitor_type > 0 and not features.has(
+            "organizations:activated-alert-rules",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError("Invalid monitor type")
+
+        return AlertRuleMonitorType(monitor_type)
 
     def validate(self, data):
         """
@@ -462,11 +477,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         ).count()
 
         if org_subscription_count >= settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG:
+            # NOTE: if we want to bump atlassians' slow alert rule limit, ^ look at these variables
             raise serializers.ValidationError(
                 f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
             )
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
+            # Here's where alert rule is being created
             alert_rule = create_alert_rule(
                 user=self.context.get("user", None),
                 organization=self.context["organization"],
