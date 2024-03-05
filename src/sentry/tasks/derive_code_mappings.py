@@ -94,9 +94,16 @@ def derive_code_mappings(
 
     if (
         not features.has("organizations:derive-code-mappings", org)
+        or not data.get("platform")
         or not data["platform"] in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
+        return
+
+    # php automatic code mappings currently in LA
+    if data["platform"].startswith("php") and not features.has(
+        "organizations:derive-php-code-mappings", org
+    ):
         return
 
     stacktrace_paths: list[str] = identify_stacktrace_paths(data)

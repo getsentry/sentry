@@ -1123,12 +1123,6 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
 
-            # php automatic code mappings currently in LA
-            if event.data["platform"].startswith("php") and not features.has(
-                "organizations:derive-php-code-mappings", org
-            ):
-                return
-
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
                     "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
