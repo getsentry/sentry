@@ -474,10 +474,6 @@ def get_stream_processor(
     validate_schema = consumer_definition.get("validate_schema") or False
 
     if validate_schema:
-        # TODO: Remove this later but for now we can only validate if `topic_def` is
-        # the logical topic and not the legacy override topic
-        assert isinstance(consumer_topic, Topic)
-
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
             consumer_topic.value, validate_schema, strategy_factory
         )
