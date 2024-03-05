@@ -180,6 +180,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.LOW
 
@@ -192,6 +193,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
         assert group.priority == PriorityLevel.HIGH
 
