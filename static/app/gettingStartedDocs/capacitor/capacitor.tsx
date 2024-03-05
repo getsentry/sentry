@@ -83,7 +83,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
       ? `
         Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
-colorScheme: "light",
+colorScheme: "system",
 ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
@@ -446,7 +446,10 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: getSetupConfiguration({
         params,
