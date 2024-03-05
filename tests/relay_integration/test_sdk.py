@@ -2,8 +2,9 @@ import uuid
 from unittest import mock
 
 import pytest
+import sentry_sdk
 from django.test.utils import override_settings
-from sentry_sdk import Hub, push_scope
+from sentry_sdk import Hub
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -34,31 +35,14 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     settings.SENTRY_PROJECT = 1
 
     configure_sdk()
-    hub = Hub.current  # XXX: Hub.current gets reset, this is a workaround
 
-    # def bind_client(self, new, *, _orig=Hub.bind_client):
-    #     if new is None:
-    #         import sys
-    #         import traceback
-
-    #         print("!!! Hub client was reset to None !!!", file=sys.stderr)  # noqa: S002
-    #         traceback.print_stack()
-    #         print("!!!", file=sys.stderr)  # noqa: S002
-
-    #     return _orig(self, new)
-
-    # XXX: trying to figure out why it gets reset
-    # with mock.patch.object(Hub, "bind_client", bind_client):
     wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
     def inner(*args, **kwargs):
-        assert Hub.current.client is not None
+        event_id = sentry_sdk.capture_event(*args, **kwargs)
+        sentry_sdk.Scope.get_client().flush()
 
-        event_id = hub.capture_event(*args, **kwargs)
-        assert hub.client is not None
-        hub.client.flush()
-
-        with push_scope():
+        with sentry_sdk.new_scope():
             return wait_for_ingest_consumer(
                 lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
             )
@@ -102,7 +86,7 @@ def test_encoding(settings, post_event_with_sdk):
     class NotJSONSerializable:
         pass
 
-    with push_scope() as scope:
+    with sentry_sdk.new_scope() as scope:
         scope.set_extra("request", NotJSONSerializable())
         event = post_event_with_sdk({"message": "check the req"})
 
