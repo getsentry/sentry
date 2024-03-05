@@ -138,8 +138,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
-        monitor_env.last_state_change = monitor_env.last_checkin
-        monitor_env.save(update_fields=("status", "last_state_change"))
+        monitor_env.save(update_fields=("status",))
 
         # Do not create incident if monitor is muted
         if not monitor_muted:
