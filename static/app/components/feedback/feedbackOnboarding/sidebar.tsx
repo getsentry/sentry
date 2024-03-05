@@ -34,6 +34,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
@@ -147,6 +148,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }>(jsFrameworkSelectOptions[0]);
 
   const defaultTab = 'npm';
+  const {location} = useRouteContext();
+  const crashReportOnboarding = location.hash === '#crashreport-sidequest';
 
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
@@ -168,9 +171,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     .filter(p => p !== 'javascript')
     .includes(currentPlatform.id);
 
-  const showRadioButtons = replayJsLoaderInstructionsPlatformList.includes(
-    currentPlatform.id
-  );
+  const showRadioButtons =
+    replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
+    !crashReportOnboarding;
 
   function getJsFramework() {
     return (
@@ -197,7 +200,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
-  if (webApiPlatform) {
+  if (webApiPlatform && !crashReportOnboarding) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
@@ -245,7 +248,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         />
       ) : (
         newDocs?.platformOptions &&
-        widgetPlatform && (
+        widgetPlatform &&
+        !crashReportOnboarding && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -295,6 +299,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   function getConfig() {
+    if (crashReportOnboarding) {
+      return 'crashReportOnboarding';
+    }
     if (crashApiPlatform) {
       return 'feedbackOnboardingCrashApi';
     }

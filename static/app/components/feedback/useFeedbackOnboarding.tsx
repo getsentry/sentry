@@ -24,8 +24,12 @@ export function useFeedbackOnboardingSidebarPanel() {
   const organization = useOrganization();
 
   useEffect(() => {
-    if (location.hash === '#feedback-sidequest') {
+    if (
+      location.hash === '#feedback-sidequest' ||
+      location.hash === '#crashreport-sidequest'
+    ) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+      // this tracks clicks from both feedback index and issue details feedback tab
       trackAnalytics('feedback.list-view-setup-sidebar', {
         organization,
       });
@@ -38,5 +42,14 @@ export function useFeedbackOnboardingSidebarPanel() {
     SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
   }, []);
 
-  return {activateSidebar};
+  const activateSidebarIssueDetails = useCallback(
+    (event: {preventDefault: () => void}) => {
+      event.preventDefault();
+      window.location.hash = '#crashreport-sidequest';
+      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+    },
+    []
+  );
+
+  return {activateSidebar, activateSidebarIssueDetails};
 }

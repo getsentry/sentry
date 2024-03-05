@@ -7,6 +7,7 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -27,6 +28,8 @@ export function UserFeedbackEmpty({projectIds}: Props) {
     : projects;
 
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
+  const hasNewOnboarding = organization.features.includes('user-feedback-onboarding');
+  const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
   useEffect(() => {
     window.sentryEmbedCallback = function (embed) {
@@ -84,14 +87,25 @@ export function UserFeedbackEmpty({projectIds}: Props) {
         )}
       </p>
       <ButtonList gap={1}>
-        <Button
-          external
-          priority="primary"
-          onClick={() => trackAnalyticsInternal('user_feedback.docs_clicked')}
-          href="https://docs.sentry.io/product/user-feedback/"
-        >
-          {t('Read the docs')}
-        </Button>
+        {hasNewOnboarding ? (
+          <Button
+            priority="primary"
+            onClick={activateSidebarIssueDetails}
+            analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+            analyticsEventKey="feedback.issue-details-click-onboarding-setup"
+          >
+            {t('Set up now')}
+          </Button>
+        ) : (
+          <Button
+            external
+            priority="primary"
+            onClick={() => trackAnalyticsInternal('user_feedback.docs_clicked')}
+            href="https://docs.sentry.io/product/user-feedback/"
+          >
+            {t('Read the docs')}
+          </Button>
+        )}
         <Button
           onClick={() => {
             Sentry.showReportDialog({
