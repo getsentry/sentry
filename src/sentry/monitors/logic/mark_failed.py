@@ -181,9 +181,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     # Do not create event/occurrence if we don't have a fingerprint
     if fingerprint:
-        for previous_checkin in previous_checkins:
-            checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
-            create_issue_platform_occurrence(checkin_from_db, fingerprint)
+        checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
+        for previous_checkin in checkins:
+            create_issue_platform_occurrence(previous_checkin, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
