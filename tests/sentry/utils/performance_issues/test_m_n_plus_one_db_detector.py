@@ -5,7 +5,10 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -28,8 +31,10 @@ class MNPlusOneDBDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = MNPlusOneDBSpanDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = MNPlusOneDBSpanDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -106,6 +111,80 @@ class MNPlusOneDBDetectorTest(TestCase):
             )
         ]
         assert problems[0].title == "N+1 Query"
+
+    def test_detects_parallel_m_n_plus_one_with_experimental_type(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+
+        problems = self.find_problems(event, use_experimental_type=True)
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1019-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",
+                op="db",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
+                desc="SELECT id, name FROM authors INNER JOIN book_authors ON author_id = id WHERE book_id = $1",
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "9c5049407f37a364",
+                    "ad1453eb469473f5",
+                    "9ac8fee795f25a28",
+                    "aacda642ff6787c0",
+                    "b231fb2367a40bb2",
+                    "9abcfbac864d1b09",
+                    "a4acb0c08f6c5392",
+                    "a1dbea4273c7a8cf",
+                    "b8467be28b0edef0",
+                    "9677584719fa33f9",
+                    "8c6aa95b24d15772",
+                    "be7d04a1731d5d10",
+                    "baa57006cb44092a",
+                    "a383cd625dff4809",
+                    "9c48fda36f28cb0a",
+                    "82253694a3a68c93",
+                    "8831cccebb865893",
+                    "a2339eabb5c4cf07",
+                    "8ea362c64d8b9fd9",
+                    "b8f8a99b783f7b48",
+                    "87a6041001b4e8f6",
+                    "ab99c67643fd85cf",
+                    "a96783f2f544024a",
+                    "8e110c4aa54e4aa0",
+                ],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "9c5049407f37a364",
+                        "ad1453eb469473f5",
+                        "9ac8fee795f25a28",
+                        "aacda642ff6787c0",
+                        "b231fb2367a40bb2",
+                        "9abcfbac864d1b09",
+                        "a4acb0c08f6c5392",
+                        "a1dbea4273c7a8cf",
+                        "b8467be28b0edef0",
+                        "9677584719fa33f9",
+                        "8c6aa95b24d15772",
+                        "be7d04a1731d5d10",
+                        "baa57006cb44092a",
+                        "a383cd625dff4809",
+                        "9c48fda36f28cb0a",
+                        "82253694a3a68c93",
+                        "8831cccebb865893",
+                        "a2339eabb5c4cf07",
+                        "8ea362c64d8b9fd9",
+                        "b8f8a99b783f7b48",
+                        "87a6041001b4e8f6",
+                        "ab99c67643fd85cf",
+                        "a96783f2f544024a",
+                        "8e110c4aa54e4aa0",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
+        assert problems[0].title == "Streamed Spans (Experimental)"
 
     def test_does_not_detect_truncated_m_n_plus_one(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")

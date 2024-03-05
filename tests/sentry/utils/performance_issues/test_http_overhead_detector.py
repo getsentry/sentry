@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
+from sentry.issues.grouptype import (
+    PerformanceHTTPOverheadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
@@ -61,8 +64,10 @@ def _valid_http_overhead_event(url: str) -> dict[str, Any]:
     }
 
 
-def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
-    detector = HTTPOverheadDetector(settings, event)
+def find_problems(
+    settings, event: dict[str, Any], use_experimental_type: bool = False
+) -> list[PerformanceProblem]:
+    detector = HTTPOverheadDetector(settings, event, use_experimental_type)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
 
@@ -74,8 +79,8 @@ class HTTPOverheadDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event):
-        return find_problems(self._settings, event)
+    def find_problems(self, event, use_experimental_type: bool = False):
+        return find_problems(self._settings, event, use_experimental_type)
 
     def test_detects_http_overhead(self):
         event = _valid_http_overhead_event("/api/endpoint/123")
@@ -85,6 +90,39 @@ class HTTPOverheadDetectorTest(TestCase):
                 op="http",
                 desc="/api/endpoint/123",
                 type=PerformanceHTTPOverheadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "op": "http",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_http_overhead_with_experimental_type(self):
+        event = _valid_http_overhead_event("/api/endpoint/123")
+        assert self.find_problems(event, use_experimental_type=True) == [
+            PerformanceProblem(
+                fingerprint="1-1019-/",
+                op="http",
+                desc="/api/endpoint/123",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=[

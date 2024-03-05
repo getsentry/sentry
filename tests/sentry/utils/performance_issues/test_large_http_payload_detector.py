@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
+from sentry.issues.grouptype import (
+    PerformanceLargeHTTPPayloadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import create_event, create_span
@@ -26,8 +29,10 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = LargeHTTPPayloadDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = LargeHTTPPayloadDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -54,6 +59,42 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceLargeHTTPPayloadGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_large_http_payload_issue_with_experimental_type(self):
+
+        spans = [
+            create_span(
+                "http.client",
+                1000,
+                "GET /api/0/organizations/endpoint1",
+                "hash1",
+                data={
+                    "http.response_transfer_size": 50_000_000,
+                    "http.response_content_length": 50_000_000,
+                    "http.decoded_response_content_length": 50_000_000,
+                },
+            )
+        ]
+
+        event = create_event(spans)
+        assert self.find_problems(event, use_experimental_type=True) == [
+            PerformanceProblem(
+                fingerprint="1-1019-5e5543895c0f1f12c2d468da8c7f2d9e4dca81dc",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],

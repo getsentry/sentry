@@ -325,13 +325,13 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project
+    data: dict[str, Any], sdk_span: Any, project: Project, use_experimental_detector: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
     detection_settings = get_detection_settings(project.id)
     detectors: list[PerformanceDetector] = [
-        detector_class(detection_settings, data)
+        detector_class(detection_settings, data, use_experimental_detector)
         for detector_class in DETECTOR_CLASSES
         if detector_class.is_detector_enabled()
     ]

@@ -5,7 +5,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
+from sentry.issues.grouptype import (
+    PerformanceHTTPOverheadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -136,7 +139,10 @@ class HTTPOverheadDetector(PerformanceDetector):
         # Remove any offending spans below 100ms for display purposes
         location_spans = [indicator.span for indicator in chain if indicator.delay > 100]
 
-        fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
+        if self.use_experimental_detector:
+            fingerprint = f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{location}"
+        else:
+            fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
         example_span = location_spans[-1]
         desc: str = example_span.get("description", None)
 
@@ -146,7 +152,11 @@ class HTTPOverheadDetector(PerformanceDetector):
             fingerprint,
             "http",
             desc=desc,
-            type=PerformanceHTTPOverheadGroupType,
+            type=(
+                PerformanceStreamedSpansGroupTypeExperimental
+                if self.use_experimental_detector
+                else PerformanceHTTPOverheadGroupType
+            ),
             cause_span_ids=[],
             parent_span_ids=None,
             offender_span_ids=location_span_ids,

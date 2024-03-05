@@ -3,7 +3,10 @@ from __future__ import annotations
 import re
 
 from sentry import features
-from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.grouptype import (
+    PerformanceStreamedSpansGroupTypeExperimental,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -99,7 +102,11 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 op=op,
                 desc=description,
                 parent_span_ids=[],
-                type=PerformanceUncompressedAssetsGroupType,
+                type=(
+                    PerformanceStreamedSpansGroupTypeExperimental
+                    if self.use_experimental_detector
+                    else PerformanceUncompressedAssetsGroupType
+                ),
                 cause_span_ids=[],
                 offender_span_ids=[span.get("span_id", None)],
                 evidence_data={
@@ -127,6 +134,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def _fingerprint(self, span) -> str:
         resource_span = fingerprint_resource_span(span)
+        if self.use_experimental_detector:
+            return f"1-{PerformanceStreamedSpansGroupTypeExperimental.type_id}-{resource_span}"
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:

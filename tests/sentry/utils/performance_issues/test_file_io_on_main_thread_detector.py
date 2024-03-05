@@ -7,7 +7,10 @@ from zipfile import ZipFile
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
+from sentry.issues.grouptype import (
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
@@ -49,8 +52,10 @@ class FileIOMainThreadDetectorTest(TestCase):
             f.writestr(f"proguard/{uuid}.txt", PROGUARD_SOURCE)
             create_files_from_dif_zip(f, project=self.project)
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = FileIOMainThreadDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = FileIOMainThreadDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -84,6 +89,28 @@ class FileIOMainThreadDetectorTest(TestCase):
                 op="file.write",
                 desc="1669031858711_file.txt (4.0 kB)",
                 type=PerformanceFileIOMainThreadGroupType,
+                parent_span_ids=["b93d2be92cd64fd5"],
+                cause_span_ids=[],
+                offender_span_ids=["054ba3a374d543eb"],
+                evidence_data={
+                    "op": "file.write",
+                    "parent_span_ids": ["b93d2be92cd64fd5"],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["054ba3a374d543eb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_file_io_main_thread_with_experimental_type(self):
+        event = get_event("file-io-on-main-thread")
+
+        assert self.find_problems(event, use_experimental_type=True) == [
+            PerformanceProblem(
+                fingerprint="1-1019-153198dd61706844cf3d9a922f6f82543df8125f",
+                op="file.write",
+                desc="1669031858711_file.txt (4.0 kB)",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],

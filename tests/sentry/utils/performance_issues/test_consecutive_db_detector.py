@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -33,8 +36,10 @@ class ConsecutiveDbDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = ConsecutiveDBSpanDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = ConsecutiveDBSpanDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -76,6 +81,37 @@ class ConsecutiveDbDetectorTest(TestCase):
                 op="db",
                 desc="SELECT `order`.`id` FROM `books_author`",
                 type=PerformanceConsecutiveDBQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_consecutive_db_spans_with_experimental_type(self):
+        span_duration = 1 * SECOND
+        spans = [
+            create_span("db", span_duration, "SELECT `customer`.`id` FROM `customers`"),
+            create_span("db", span_duration, "SELECT `order`.`id` FROM `books_author`"),
+            create_span("db", span_duration, "SELECT `product`.`id` FROM `products`"),
+        ]
+        spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
+        event = create_event(spans)
+
+        problems = self.find_problems(event, use_experimental_type=True)
+
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1019-e6a9fc04320a924f46c7c737432bb0389d9dd095",
+                op="db",
+                desc="SELECT `order`.`id` FROM `books_author`",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],

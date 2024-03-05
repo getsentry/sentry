@@ -90,7 +90,16 @@ class SearchingForMNPlusOne(MNPlusOneState):
             if self._equivalent(span, recent_span):
                 pattern = recent_span_list[i:]
                 if self._is_valid_pattern(pattern):
-                    return (ContinuingMNPlusOne(self.settings, self.event, pattern, span), None)
+                    return (
+                        ContinuingMNPlusOne(
+                            self.settings,
+                            self.event,
+                            pattern,
+                            span,
+                            use_experimental_detector=self.use_experimental_detector,
+                        ),
+                        None,
+                    )
 
         # We haven't found a pattern yet, so remember this span and keep
         # looking.
@@ -164,7 +173,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
         start_index = len(self.pattern) * times_occurred
         remaining_spans = self.spans[start_index:] + [span]
         return (
-            SearchingForMNPlusOne(self.settings, self.event, remaining_spans),
+            SearchingForMNPlusOne(
+                self.settings,
+                self.event,
+                remaining_spans,
+                use_experimental_detector=self.use_experimental_detector,
+            ),
             self._maybe_performance_problem(),
         )
 
@@ -283,7 +297,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(
-            self.settings, self.event(), self.use_experimental_detector
+            self.settings, self.event(), use_experimental_detector=self.use_experimental_detector
         )
 
     def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:

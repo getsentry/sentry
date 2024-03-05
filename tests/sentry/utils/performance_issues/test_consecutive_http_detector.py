@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceStreamedSpansGroupTypeExperimental,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase
@@ -33,8 +36,10 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = ConsecutiveHTTPSpanDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = ConsecutiveHTTPSpanDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -70,6 +75,37 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+                evidence_data={
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                        "bbbbbbbbbbbbbbbb",
+                    ],
+                    "op": "http",
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_consecutive_http_issue_with_experimental_type(self):
+        event = self.create_issue_event()
+        problems = self.find_problems(event, use_experimental_type=True)
+
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1019-00b8644b56309c8391aa365783145162ab9c589a",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=[

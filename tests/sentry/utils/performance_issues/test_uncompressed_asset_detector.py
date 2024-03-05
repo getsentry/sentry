@@ -4,7 +4,10 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issues.grouptype import (
+    PerformanceStreamedSpansGroupTypeExperimental,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import PROJECT_ID, create_span, get_event
@@ -48,8 +51,10 @@ class UncompressedAssetsDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = UncompressedAssetSpanDetector(self._settings, event)
+    def find_problems(
+        self, event: dict[str, Any], use_experimental_type: bool = False
+    ) -> list[PerformanceProblem]:
+        detector = UncompressedAssetSpanDetector(self._settings, event, use_experimental_type)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -114,6 +119,43 @@ class UncompressedAssetsDetectorTest(TestCase):
                 op="resource.script",
                 desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
                 type=PerformanceUncompressedAssetsGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_detects_uncompressed_asset_with_experimental_type(self):
+        event = {
+            "event_id": "a" * 16,
+            "project": PROJECT_ID,
+            "tags": [["browser.name", "chrome"]],
+            "spans": [
+                create_asset_span(
+                    duration=1000.0,
+                    data={
+                        "http.response_transfer_size": 1_000_000,
+                        "http.response_content_length": 1_000_000,
+                        "http.decoded_response_content_length": 1_000_000,
+                    },
+                ),
+                create_compressed_asset_span(),
+            ],
+        }
+
+        assert self.find_problems(event, use_experimental_type=True) == [
+            PerformanceProblem(
+                fingerprint="1-1019-6893fb5a8a875d692da96590f40dc6bddd6fcabc",
+                op="resource.script",
+                desc="https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+                type=PerformanceStreamedSpansGroupTypeExperimental,
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
