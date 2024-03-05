@@ -7,10 +7,14 @@ from collections.abc import Mapping, Sequence
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaProducer
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.dlq import DlqLimit, DlqPolicy, KafkaDlqProducer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import (
@@ -192,16 +196,16 @@ _INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
 # string. We support both currently for backward compatibility.
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
-        "topic": settings.KAFKA_PROFILES,
+        "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
     },
     "ingest-replay-recordings": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
     "ingest-replay-recordings-buffered": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
         "click_options": ingest_replay_recordings_buffered_options(),
     },
@@ -380,6 +384,10 @@ def get_stream_processor(
     validate_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
+    from django.conf import settings
+
+    from sentry.utils import kafka_config
+
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
@@ -417,14 +425,6 @@ def get_stream_processor(
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
-
-    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-    from arroyo.backends.kafka.consumer import KafkaConsumer
-    from arroyo.commit import ONCE_PER_SECOND
-    from arroyo.types import Topic as ArroyoTopic
-    from django.conf import settings
-
-    from sentry.utils import kafka_config
 
     topic_def = settings.KAFKA_TOPICS[real_topic]
     assert topic_def is not None

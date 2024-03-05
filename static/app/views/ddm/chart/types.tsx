@@ -6,13 +6,13 @@ export type Series = {
   color: string;
   data: {name: number; value: number}[];
   id: string;
-  operation: string;
   seriesName: string;
   unit: string;
   groupBy?: Record<string, string>;
   hidden?: boolean;
   paddingIndices?: Set<number>;
   release?: string;
+  scalingFactor?: number;
   transaction?: string;
 };
 

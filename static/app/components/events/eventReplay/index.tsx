@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -144,10 +145,10 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 
 // The min-height here is due to max-height that is set in replayPreview.tsx
 const ReplaySectionMinHeight = styled(EventReplaySection)`
-  min-height: 508px;
+  min-height: 557px;
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
