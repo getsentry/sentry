@@ -90,7 +90,6 @@ default_manager.add("organizations:dashboards-mep", OrganizationFeature, Feature
 default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:default-inbound-filters", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ddm-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:ddm-formulas", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ddm-dashboard-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ddm-metrics-api-unit-normalization", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
