@@ -9,7 +9,8 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportModalInstallDescription,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalInstallDescriptionJavaScript,
   getCrashReportModalIntroduction,
   getCrashReportModalSnippetJavaScript,
   getFeedbackConfigOptions,
@@ -250,14 +251,21 @@ const crashReportOnboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportModalInstallDescription(),
+      description: getCrashReportModalInstallDescriptionJavaScript(),
       configurations: getCrashReportModalSnippetJavaScript(params),
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#crash-report-modal',
+      }),
       additionalInfo: widgetCallout({
         link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
       }),
     },
   ],
-  configure: () => [],
   verify: () => [],
   nextSteps: () => [],
 };
