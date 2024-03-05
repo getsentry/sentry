@@ -17,7 +17,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
 
 from sentry import options
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 from sentry.sentry_metrics.consumers.indexer.common import (
     BrokerMeta,
@@ -66,7 +66,7 @@ class IndexerBatchMetrics:
     max_tags_len: int = 0
     max_value_len: int = 0
 
-    def add_metric(self, num_bytes: int, tags_len: int, value_len: int):
+    def add_metric(self, num_bytes: int, tags_len: int, value_len: int) -> None:
         self.message_count += 1
         self.total_bytes += num_bytes
         self.total_tags_len += tags_len
@@ -75,13 +75,13 @@ class IndexerBatchMetrics:
         self.max_tags_len = max(self.max_tags_len, tags_len)
         self.max_value_len = max(self.max_value_len, value_len)
 
-    def avg_bytes(self):
+    def avg_bytes(self) -> float:
         return self.total_bytes / self.message_count
 
-    def avg_tags_len(self):
+    def avg_tags_len(self) -> float:
         return self.total_tags_len / self.message_count
 
-    def avg_value_len(self):
+    def avg_value_len(self) -> float:
         return self.total_value_len / self.message_count
 
 
@@ -487,8 +487,11 @@ class IndexerBatch:
                         "value": old_payload_value["value"],
                         "sentry_received_timestamp": sentry_received_timestamp,
                     }
-                    if aggregation_option := get_aggregation_option(old_payload_value["name"]):
-                        new_payload_v2["aggregation_option"] = aggregation_option.value
+                    if aggregation_options := get_aggregation_options(old_payload_value["name"]):
+                        # TODO: This should eventually handle multiple aggregation options
+                        option = list(aggregation_options.items())[0][0]
+                        assert option is not None
+                        new_payload_v2["aggregation_option"] = option.value
 
                     new_payload_value = new_payload_v2
 

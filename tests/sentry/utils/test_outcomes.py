@@ -161,9 +161,7 @@ def test_track_outcome_billing_cluster(settings, setup):
     Checks that outcomes are routed to the dedicated cluster and topic.
     """
 
-    with mock.patch.dict(
-        settings.KAFKA_TOPICS, {settings.KAFKA_OUTCOMES_BILLING: {"cluster": "different"}}
-    ):
+    with mock.patch.dict(settings.KAFKA_TOPIC_TO_CLUSTER, {"outcomes-billing": "different"}):
         track_outcome(
             org_id=1,
             project_id=1,

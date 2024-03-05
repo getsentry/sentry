@@ -45,6 +45,7 @@ class UnitFamily(Enum):
 
     DURATION = "duration"
     INFORMATION = "information"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True)
@@ -122,10 +123,10 @@ FAMILY_TO_UNITS = {
 
 def get_unit_family_and_unit(
     unit: MeasurementUnit,
-) -> tuple[UnitFamily, MeasurementUnit, Unit] | None:
+) -> tuple[UnitFamily, MeasurementUnit | None, Unit | None]:
     for unit_family, units_spec in FAMILY_TO_UNITS.items():
         for inner_unit in units_spec.units:
             if inner_unit.name == unit:
                 return unit_family, units_spec.reference_unit, inner_unit
 
-    return None
+    return UnitFamily.UNKNOWN, None, None
