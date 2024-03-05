@@ -26,6 +26,7 @@ import {
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
+import ReplayTableV2 from 'sentry/views/replays/replayTableV2';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -215,4 +216,12 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
-export default ReplayTable;
+// Temporary controller to switch between ReplayTable and ReplayTableV2
+function ReplayTableController(props: Props) {
+  const organization = useOrganization();
+  if (organization.features.includes('replay-play-from-replay-tab')) {
+    return <ReplayTableV2 {...props} />;
+  }
+  return <ReplayTable {...props} />;
+}
+export default ReplayTableController;

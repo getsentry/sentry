@@ -3,11 +3,14 @@ import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {
+  REPLAY_LOADING_HEIGHT,
+  REPLAY_LOADING_HEIGHT_LARGE,
+} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -25,7 +28,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconDelete} from 'sentry/icons';
+import {IconDelete, IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -57,6 +60,7 @@ type Props = {
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  isLarge?: boolean;
 };
 
 function getReplayAnalyticsStatus({
@@ -85,16 +89,22 @@ function ReplayPreviewPlayer({
   replayId,
   fullReplayButtonProps,
   replayRecord,
+  handleBackClick,
+  handleForwardClick,
+  overlayText,
 }: {
   replayId: string;
   replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  handleBackClick?: () => void;
+  handleForwardClick?: () => void;
+  overlayText?: string;
 }) {
   const routes = useRoutes();
   const location = useLocation();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay, currentTime} = useReplayContext();
+  const {replay, currentTime, isFinished, isPlaying} = useReplayContext();
   const eventView = EventView.fromLocation(location);
 
   const fullscreenRef = useRef(null);
@@ -138,14 +148,34 @@ function ReplayPreviewPlayer({
               </ContextContainer>
             ) : null}
             <StaticPanel>
-              <ReplayPlayer />
+              <ReplayPlayer overlayText={overlayText} />
             </StaticPanel>
           </PlayerContextContainer>
           {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
         </PlayerBreadcrumbContainer>
         <ErrorBoundary mini>
           <ButtonGrid>
-            <ReplayPlayPauseButton priority="default" />
+            {handleBackClick && (
+              <Button
+                size="sm"
+                title={t('Back')}
+                icon={<IconPrevious />}
+                onClick={() => handleBackClick()}
+                aria-label={t('Back')}
+              />
+            )}
+            <ReplayPlayPauseButton
+              priority={isFinished || isPlaying ? 'primary' : 'default'}
+            />
+            {handleForwardClick && (
+              <Button
+                size="sm"
+                title={t('Next')}
+                icon={<IconNext />}
+                onClick={() => handleForwardClick()}
+                aria-label={t('Next')}
+              />
+            )}
             <Container>
               <TimeAndScrubberGrid />
             </Container>
@@ -169,6 +199,7 @@ function ReplayClipPreview({
   orgSlug,
   replaySlug,
   fullReplayButtonProps,
+  isLarge,
 }: Props) {
   const clipWindow = useMemo(
     () => ({
@@ -205,7 +236,7 @@ function ReplayClipPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge>
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
@@ -231,7 +262,7 @@ function ReplayClipPreview({
       prefsStrategy={StaticReplayPreferences}
       replay={replay}
     >
-      <PlayerContainer data-test-id="player-container">
+      <PlayerContainer data-test-id="player-container" isLarge={isLarge}>
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError processingErrors={replay.processingErrors()} />
         ) : (
@@ -277,9 +308,10 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   }
 `;
 
-const PlayerContainer = styled(FluidHeight)`
+const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
   position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+  max-height: ${p =>
+    p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT + 16}px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`
@@ -293,8 +325,8 @@ const StaticPanel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: ${REPLAY_LOADING_HEIGHT}px;
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
+  height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
   margin-bottom: ${space(2)};
 `;
 
