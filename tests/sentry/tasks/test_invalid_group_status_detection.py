@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from sentry.models.group import GroupStatus
@@ -18,7 +18,6 @@ class DetectInvalidGroupStatusTest(TestCase):
         self.regressed_grouphistory = GroupHistory.objects.create(
             group=self.regressed_group,
             status=GroupHistoryStatus.REGRESSED,
-            date_added=datetime.now() - timedelta(days=3),
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -27,7 +26,6 @@ class DetectInvalidGroupStatusTest(TestCase):
         self.escalating_grouphistory = GroupHistory.objects.create(
             group=self.escalating_group,
             status=GroupHistoryStatus.ESCALATING,
-            date_added=datetime.now() - timedelta(days=3),
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -40,7 +38,8 @@ class DetectInvalidGroupStatusTest(TestCase):
     @patch("sentry.tasks.invalid_group_status_detection.logger.error")
     def test_bad_new_group(self, mock_logger):
         self.new_group.update(
-            first_seen=datetime.now() - timedelta(days=8), substatus=GroupSubStatus.NEW
+            first_seen=datetime.now(tz=timezone.utc) - timedelta(days=8),
+            substatus=GroupSubStatus.NEW,
         )
         detect_invalid_group_status()
         assert mock_logger.called
@@ -51,7 +50,7 @@ class DetectInvalidGroupStatusTest(TestCase):
     @patch("sentry.tasks.invalid_group_status_detection.logger.error")
     def test_bad_regressed_group(self, mock_logger):
         self.regressed_grouphistory.update(
-            date_added=datetime.now() - timedelta(days=8),
+            date_added=datetime.now(tz=timezone.utc) - timedelta(days=8),
         )
         detect_invalid_group_status()
         assert mock_logger.called
@@ -61,7 +60,7 @@ class DetectInvalidGroupStatusTest(TestCase):
     @patch("sentry.tasks.invalid_group_status_detection.logger.error")
     def test_bad_escalating_group(self, mock_logger):
         self.escalating_grouphistory.update(
-            date_added=datetime.now() - timedelta(days=8),
+            date_added=datetime.now(tz=timezone.utc) - timedelta(days=8),
         )
         detect_invalid_group_status()
         assert mock_logger.called
@@ -71,10 +70,11 @@ class DetectInvalidGroupStatusTest(TestCase):
     @patch("sentry.tasks.invalid_group_status_detection.logger.error")
     def test_multiple_bad_groups(self, mock_logger):
         self.new_group.update(
-            first_seen=datetime.now() - timedelta(days=8), substatus=GroupSubStatus.NEW
+            first_seen=datetime.now(tz=timezone.utc) - timedelta(days=8),
+            substatus=GroupSubStatus.NEW,
         )
         self.escalating_grouphistory.update(
-            date_added=datetime.now() - timedelta(days=8),
+            date_added=datetime.now(tz=timezone.utc) - timedelta(days=8),
         )
         detect_invalid_group_status()
         assert mock_logger.called
