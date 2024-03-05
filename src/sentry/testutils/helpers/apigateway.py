@@ -4,6 +4,7 @@ from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
+from django.http import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import re_path
 from rest_framework.permissions import AllowAny
@@ -31,6 +32,9 @@ class RegionEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         return Response({"proxy": False})
+
+    def post(self, request, organization):
+        return HttpResponseRedirect("https://zombo.com")
 
 
 @region_silo_endpoint

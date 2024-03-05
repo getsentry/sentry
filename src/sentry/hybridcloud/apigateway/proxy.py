@@ -1,6 +1,7 @@
 """
 Utilities related to proxying a request to a region silo
 """
+
 from __future__ import annotations
 
 import logging
@@ -166,6 +167,10 @@ def proxy_region_request(
                 data=_body_with_length(request),
                 stream=True,
                 timeout=timeout,
+                # By default, external_request will resolve any redirects for any verb except for HEAD.
+                # We explicitly disable this behavior to avoid misrepresenting the original sentry.io request with the
+                # body response of the redirect.
+                allow_redirects=False,
             )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
