@@ -1013,9 +1013,7 @@ function RenderRow(props: {
                   expanded={props.node.expanded || props.node.zoomedIn}
                   onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
                 >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  0
                 </ChildrenButton>
               ) : null}
             </div>
