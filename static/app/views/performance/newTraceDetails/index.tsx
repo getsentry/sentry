@@ -148,7 +148,7 @@ type TraceViewContentProps = {
 function TraceViewContent(props: TraceViewContentProps) {
   const {projects} = useProjects();
 
-  const rootEvent = useRootEvent(props.trace?.transactions);
+  const rootEvent = useRootEvent(props.trace);
 
   const viewManager = useMemo(() => {
     return new VirtualizedViewManager({
@@ -394,7 +394,13 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.trace}
             traceEventView={props.traceEventView}
           />
-          {<TraceDetailPanel node={detailNode} onClose={onDetailClose} />}
+          <TraceDetailPanel
+            organization={props.organization}
+            rootEvent={rootEvent.data}
+            traceType={traceType}
+            node={detailNode}
+            onClose={onDetailClose}
+          />
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -436,8 +442,8 @@ function useQueryParamSync(query: Record<string, string | undefined>) {
   }, [query]);
 }
 
-function useRootEvent(trace: TraceFullDetailed[] | undefined) {
-  const root = trace?.[0];
+function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
+  const root = trace?.transactions[0] || trace?.orphan_errors[0];
   const organization = useOrganization();
 
   return useApiQuery<EventTransaction>(

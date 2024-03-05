@@ -121,7 +121,7 @@ export declare namespace TraceTree {
     };
   }
 
-  interface ChildrenAutogroup {
+  interface ChildrenAutogroup extends RawSpanType {
     autogrouped_by: {
       op: string;
     };

@@ -7,11 +7,9 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
-import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron, IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -1023,15 +1021,11 @@ function RenderRow(props: {
             </div>
 
             <ProjectBadge project={props.projects[props.node.value.project_slug]} />
-            <Link
-              className="Errored Link"
-              onClick={e => e.stopPropagation()}
-              to={generateIssueEventTarget(props.node.value, props.organization)}
-            >
+            <span className="Errored">
               <span className="TraceOperation">{t('Error')}</span>
               <strong className="TraceEmDash"> — </strong>
               <span className="TraceDescription">{props.node.value.title}</span>
-            </Link>
+            </span>
           </div>
         </div>
         <div
@@ -1467,12 +1461,6 @@ const TraceStylingWrapper = styled('div')`
 
     .Errored {
       color: ${p => p.theme.error};
-    }
-
-    .Link {
-      &:hover {
-        color: ${p => p.theme.blue300};
-      }
     }
 
     .ErrorIconBorder {
