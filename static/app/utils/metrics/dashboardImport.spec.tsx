@@ -47,6 +47,7 @@ const mockAvailableMetrics = (mris: MRI[]): MetricMeta[] => {
     mri,
     operations: [],
     blockingStatus: [],
+    projectIds: [],
   })) as MetricMeta[];
 };
 
