@@ -8,7 +8,7 @@ from uuid import UUID
 import jsonschema
 import sentry_sdk
 from django.utils import timezone
-from sentry_sdk.tracing import NoOpSpan, Transaction
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry import nodestore
 from sentry.event_manager import GroupInfo
@@ -52,7 +52,7 @@ def save_event_from_occurrence(
 
 
 def lookup_event(project_id: int, event_id: str) -> Event:
-    data = nodestore.get(Event.generate_node_id(project_id, event_id))
+    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
     event = Event(event_id=event_id, project_id=project_id)
@@ -214,8 +214,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_occurrence_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan
-) -> tuple[IssueOccurrence, GroupInfo | None]:
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
+) -> tuple[IssueOccurrence, GroupInfo | None] | None:
     with metrics.timer("occurrence_consumer._process_message._get_kwargs"):
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
@@ -260,7 +260,9 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
-def _process_message(message: Mapping[str, Any]) -> tuple[IssueOccurrence, GroupInfo | None] | None:
+def _process_message(
+    message: Mapping[str, Any]
+) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
     """
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
@@ -275,6 +277,9 @@ def _process_message(message: Mapping[str, Any]) -> tuple[IssueOccurrence, Group
             payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
             if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)
+                if not group:
+                    return None
+
                 return None, GroupInfo(group=group, is_new=False, is_regression=False)
             elif payload_type == PayloadType.OCCURRENCE.value:
                 return process_occurrence_message(message, txn)
@@ -287,4 +292,4 @@ def _process_message(message: Mapping[str, Any]) -> tuple[IssueOccurrence, Group
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
-    return
+    return None

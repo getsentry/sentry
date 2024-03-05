@@ -33,7 +33,6 @@ class HandleStatusChangeTest(TestCase):
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unignored.called
@@ -59,7 +58,6 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unresolved.called
@@ -85,7 +83,6 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
@@ -111,7 +108,6 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called

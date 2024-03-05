@@ -597,7 +597,6 @@ def update_groups(
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
                 sender=update_groups,
-                activity_type=activity_type,
             )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
