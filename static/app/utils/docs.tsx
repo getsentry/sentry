@@ -61,7 +61,7 @@ export function getDocsPlatform(
   return null;
 }
 
-export function getConfigureTracingDocsLink(
+export function getConfigurePerformanceDocsLink(
   project: AvatarProject | undefined
 ): string | null {
   const platform = project?.platform ?? null;

@@ -10,7 +10,7 @@ import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
+import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
@@ -45,7 +45,7 @@ export default function QuickTraceMeta({
 
   const noFeatureMessage = t('Requires performance monitoring.');
 
-  const docsLink = getConfigureTracingDocsLink(project);
+  const docsLink = getConfigurePerformanceDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
   let body: React.ReactNode;
