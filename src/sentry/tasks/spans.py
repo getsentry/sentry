@@ -97,6 +97,7 @@ def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping
         performance_problems = job.pop("performance_problems")
         for performance_problem in performance_problems:
             performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
+            performance_problem.fingerprint = f"{performance_problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
             updated_problems.append(performance_problem)
 
         job["performance_problems"] = updated_problems
@@ -178,7 +179,7 @@ def _process_segment(project_id, segment_id):
 
     _pull_out_data(jobs, projects)
     _calculate_span_grouping(jobs, projects)
-    _detect_performance_problems(jobs, projects)
+    _detect_performance_problems(jobs, projects, is_standalone_spans=True)
     _update_occurrence_group_type(jobs, projects)
 
     return jobs
