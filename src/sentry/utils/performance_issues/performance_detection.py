@@ -110,7 +110,9 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: dict[str, Any], project: Project) -> list[PerformanceProblem]:
+def detect_performance_problems(
+    data: dict[str, Any], project: Project, streamed_spans: bool = False
+) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -121,7 +123,7 @@ def detect_performance_problems(data: dict[str, Any], project: Project) -> list[
             ), sentry_sdk.start_span(
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
-                return _detect_performance_problems(data, sdk_span, project)
+                return _detect_performance_problems(data, sdk_span, project, streamed_spans)
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -323,16 +325,39 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     HTTPOverheadDetector,
 ]
 
+# Explict allow list of detector classes for standalone
+# span ingestion while we double write and test. The detectors
+# in this list know to handle updating fingerprint and detector calss
+# if it's detected on standlone spans.
+STREAMED_SPANS_DETECTOR_CLASS_ALLOWLIST: list[type[PerformanceDetector]] = [
+    ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
+    DBMainThreadDetector,
+    SlowDBQueryDetector,
+    RenderBlockingAssetSpanDetector,
+    NPlusOneDBSpanDetector,
+    NPlusOneDBSpanDetectorExtended,
+    FileIOMainThreadDetector,
+    NPlusOneAPICallsDetector,
+    MNPlusOneDBSpanDetector,
+    UncompressedAssetSpanDetector,
+    LargeHTTPPayloadDetector,
+    HTTPOverheadDetector,
+]
+
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project, use_experimental_detector: bool = False
+    data: dict[str, Any], sdk_span: Any, project: Project, streamed_spans: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
     detection_settings = get_detection_settings(project.id)
+    detector_classes = (
+        STREAMED_SPANS_DETECTOR_CLASS_ALLOWLIST if streamed_spans else DETECTOR_CLASSES
+    )
     detectors: list[PerformanceDetector] = [
-        detector_class(detection_settings, data, use_experimental_detector)
-        for detector_class in DETECTOR_CLASSES
+        detector_class(detection_settings, data, use_experimental_detector=streamed_spans)
+        for detector_class in detector_classes
         if detector_class.is_detector_enabled()
     ]
 

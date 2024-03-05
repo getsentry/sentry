@@ -37,9 +37,9 @@ class ConsecutiveDbDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = ConsecutiveDBSpanDetector(self._settings, event, use_experimental_type)
+        detector = ConsecutiveDBSpanDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -104,7 +104,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
         event = create_event(spans)
 
-        problems = self.find_problems(event, use_experimental_type=True)
+        problems = self.find_problems(event, use_experimental_detector=True)
 
         assert problems == [
             PerformanceProblem(

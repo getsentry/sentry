@@ -59,9 +59,9 @@ def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
 
 
 def find_problems(
-    settings, event: dict[str, Any], use_experimental_type: bool = False
+    settings, event: dict[str, Any], use_experimental_detector: bool | None = None
 ) -> list[PerformanceProblem]:
-    detector = RenderBlockingAssetSpanDetector(settings, event, use_experimental_type)
+    detector = RenderBlockingAssetSpanDetector(settings, event, use_experimental_detector)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
 
@@ -73,8 +73,8 @@ class RenderBlockingAssetDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event, use_experimental_type: bool = False):
-        return find_problems(self._settings, event, use_experimental_type)
+    def find_problems(self, event, use_experimental_detector: bool | None = None):
+        return find_problems(self._settings, event, use_experimental_detector)
 
     def test_detects_render_blocking_asset(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
@@ -99,7 +99,7 @@ class RenderBlockingAssetDetectorTest(TestCase):
 
     def test_detects_render_blocking_asset_with_experimental(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-ba43281143a88ba902029356cb543dd0bff8f41c",
                 op="resource.script",

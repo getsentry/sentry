@@ -53,9 +53,9 @@ class FileIOMainThreadDetectorTest(TestCase):
             create_files_from_dif_zip(f, project=self.project)
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = FileIOMainThreadDetector(self._settings, event, use_experimental_type)
+        detector = FileIOMainThreadDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -105,7 +105,7 @@ class FileIOMainThreadDetectorTest(TestCase):
     def test_detects_file_io_main_thread_with_experimental_type(self):
         event = get_event("file-io-on-main-thread")
 
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-153198dd61706844cf3d9a922f6f82543df8125f",
                 op="file.write",

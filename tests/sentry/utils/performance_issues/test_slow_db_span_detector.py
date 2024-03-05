@@ -32,9 +32,9 @@ class SlowDBQueryDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = SlowDBQueryDetector(self._settings, event, use_experimental_type)
+        detector = SlowDBQueryDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -69,9 +69,11 @@ class SlowDBQueryDetectorTest(TestCase):
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
 
-        assert self.find_problems(no_slow_span_event, use_experimental_type=True) == []
-        assert self.find_problems(slow_not_allowed_op_span_event, use_experimental_type=True) == []
-        assert self.find_problems(slow_span_event, use_experimental_type=True) == [
+        assert self.find_problems(no_slow_span_event, use_experimental_detector=True) == []
+        assert (
+            self.find_problems(slow_not_allowed_op_span_event, use_experimental_detector=True) == []
+        )
+        assert self.find_problems(slow_span_event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-da39a3ee5e6b4b0d3255bfef95601890afd80709",
                 op="db",

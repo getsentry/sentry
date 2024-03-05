@@ -32,9 +32,9 @@ class MNPlusOneDBDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = MNPlusOneDBSpanDetector(self._settings, event, use_experimental_type)
+        detector = MNPlusOneDBSpanDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -115,7 +115,7 @@ class MNPlusOneDBDetectorTest(TestCase):
     def test_detects_parallel_m_n_plus_one_with_experimental_type(self):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
 
-        problems = self.find_problems(event, use_experimental_type=True)
+        problems = self.find_problems(event, use_experimental_detector=True)
         assert problems == [
             PerformanceProblem(
                 fingerprint="1-1019-6807a9d5bedb6fdb175b006448cddf8cdf18fbd8",

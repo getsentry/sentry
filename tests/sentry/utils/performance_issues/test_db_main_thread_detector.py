@@ -28,9 +28,9 @@ class DBMainThreadDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = DBMainThreadDetector(self._settings, event, use_experimental_type)
+        detector = DBMainThreadDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -59,7 +59,7 @@ class DBMainThreadDetectorTest(TestCase):
     def test_detects_db_main_thread_with_experimental_type(self):
         event = get_event("db-on-main-thread")
 
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-86f1961bdc10a14809866c6a6ec0033797123ba9",
                 op="db",

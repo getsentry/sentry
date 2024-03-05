@@ -52,9 +52,9 @@ class UncompressedAssetsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = UncompressedAssetSpanDetector(self._settings, event, use_experimental_type)
+        detector = UncompressedAssetSpanDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -150,7 +150,7 @@ class UncompressedAssetsDetectorTest(TestCase):
             ],
         }
 
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-6893fb5a8a875d692da96590f40dc6bddd6fcabc",
                 op="resource.script",

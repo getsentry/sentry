@@ -36,13 +36,13 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         self,
         event: dict[str, Any],
         setting_overides: dict[str, Any] | None = None,
-        use_experimental_type: bool = False,
+        use_experimental_detector: bool | None = None,
     ) -> list[PerformanceProblem]:
         if setting_overides:
             for option_name, value in setting_overides.items():
                 self._settings[DetectorType.N_PLUS_ONE_DB_QUERIES][option_name] = value
 
-        detector = NPlusOneDBSpanDetector(self._settings, event, use_experimental_type)
+        detector = NPlusOneDBSpanDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -110,7 +110,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
         self,
     ):
         event = get_event("n-plus-one-in-django-index-view-unparameterized")
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",

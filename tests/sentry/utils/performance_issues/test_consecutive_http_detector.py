@@ -37,9 +37,9 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = ConsecutiveHTTPSpanDetector(self._settings, event, use_experimental_type)
+        detector = ConsecutiveHTTPSpanDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -98,7 +98,7 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
     def test_detects_consecutive_http_issue_with_experimental_type(self):
         event = self.create_issue_event()
-        problems = self.find_problems(event, use_experimental_type=True)
+        problems = self.find_problems(event, use_experimental_detector=True)
 
         assert problems == [
             PerformanceProblem(

@@ -37,9 +37,9 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self._settings, event, use_experimental_type)
+        detector = NPlusOneAPICallsDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -154,7 +154,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     def test_detects_problems_with_many_concurrent_calls_to_same_url_with_experimental_type(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
 
-        problems = self.find_problems(event, use_experimental_type=True)
+        problems = self.find_problems(event, use_experimental_detector=True)
         assert problems == [
             PerformanceProblem(
                 fingerprint="1-1019-d750ce46bb1b13dd5780aac48098d5e20eea682c",

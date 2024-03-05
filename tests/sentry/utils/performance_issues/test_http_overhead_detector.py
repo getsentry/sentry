@@ -65,9 +65,9 @@ def _valid_http_overhead_event(url: str) -> dict[str, Any]:
 
 
 def find_problems(
-    settings, event: dict[str, Any], use_experimental_type: bool = False
+    settings, event: dict[str, Any], use_experimental_detector: bool | None = None
 ) -> list[PerformanceProblem]:
-    detector = HTTPOverheadDetector(settings, event, use_experimental_type)
+    detector = HTTPOverheadDetector(settings, event, use_experimental_detector)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
 
@@ -79,8 +79,8 @@ class HTTPOverheadDetectorTest(TestCase):
         super().setUp()
         self._settings = get_detection_settings()
 
-    def find_problems(self, event, use_experimental_type: bool = False):
-        return find_problems(self._settings, event, use_experimental_type)
+    def find_problems(self, event, use_experimental_detector: bool | None = None):
+        return find_problems(self._settings, event, use_experimental_detector)
 
     def test_detects_http_overhead(self):
         event = _valid_http_overhead_event("/api/endpoint/123")
@@ -117,7 +117,7 @@ class HTTPOverheadDetectorTest(TestCase):
 
     def test_detects_http_overhead_with_experimental_type(self):
         event = _valid_http_overhead_event("/api/endpoint/123")
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-/",
                 op="http",

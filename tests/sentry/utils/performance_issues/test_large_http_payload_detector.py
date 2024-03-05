@@ -30,9 +30,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: dict[str, Any], use_experimental_type: bool = False
+        self, event: dict[str, Any], use_experimental_detector: bool | None = None
     ) -> list[PerformanceProblem]:
-        detector = LargeHTTPPayloadDetector(self._settings, event, use_experimental_type)
+        detector = LargeHTTPPayloadDetector(self._settings, event, use_experimental_detector)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -89,7 +89,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
 
         event = create_event(spans)
-        assert self.find_problems(event, use_experimental_type=True) == [
+        assert self.find_problems(event, use_experimental_detector=True) == [
             PerformanceProblem(
                 fingerprint="1-1019-5e5543895c0f1f12c2d468da8c7f2d9e4dca81dc",
                 op="http",

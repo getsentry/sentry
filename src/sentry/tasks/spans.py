@@ -11,12 +11,10 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.event_manager import (
     Job,
-    ProjectsMapping,
     _calculate_span_grouping,
     _detect_performance_problems,
     _pull_out_data,
 )
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.models.project import Project
 from sentry.spans.buffer.redis import RedisSpansBuffer
 from sentry.tasks.base import instrumented_task
@@ -89,17 +87,6 @@ def flatten_tree(tree, root_span_id):
             dfs(visited, flattened_spans, tree, span_id)
 
     return flattened_spans
-
-
-def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    for job in jobs:
-        updated_problems = []
-        performance_problems = job.pop("performance_problems")
-        for performance_problem in performance_problems:
-            performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
-            updated_problems.append(performance_problem)
-
-        job["performance_problems"] = updated_problems
 
 
 def transform_spans_to_event_dict(spans):
@@ -178,8 +165,7 @@ def _process_segment(project_id, segment_id):
 
     _pull_out_data(jobs, projects)
     _calculate_span_grouping(jobs, projects)
-    _detect_performance_problems(jobs, projects)
-    _update_occurrence_group_type(jobs, projects)
+    _detect_performance_problems(jobs, projects, streamed_spans=True)
 
     return jobs
 
