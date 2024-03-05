@@ -317,18 +317,23 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
         "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
         50,
     )
-    def test_get_locations_with_too_many_combinations(self):
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._in_batches"
+    )
+    def test_get_locations_with_too_many_combinations(self, _in_batches):
         project = self.create_project(name="project_1")
         mri = "d:custom/sentry.process_profile.track_outcome@second"
 
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=400,
             codeLocations="true",
         )
+
+        args, *_ = _in_batches.call_args
+        assert len(list(args[0])) == 46
 
     @patch(
         "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAX_SET_SIZE",
