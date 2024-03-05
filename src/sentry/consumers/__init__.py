@@ -408,12 +408,15 @@ def get_stream_processor(
     if isinstance(consumer_topic, Topic):
         default_topic = consumer_topic.value
         real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
+        cluster = get_topic_definition(consumer_topic)["cluster"]
     else:
         # TODO: Deprecated, remove once this way is no longer used
         if not isinstance(consumer_topic, str):
             real_topic = consumer_topic()
         else:
             real_topic = consumer_topic
+
+        cluster = settings.KAFKA_TOPICS[real_topic]["cluster"]
 
     if topic is None:
         topic = real_topic
@@ -425,11 +428,6 @@ def get_stream_processor(
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
-
-    topic_defn = get_topic_definition(Topic(consumer_topic))
-
-    if cluster is None:
-        cluster = topic_defn["cluster"]
 
     def build_consumer_config(group_id: str):
         assert cluster is not None
