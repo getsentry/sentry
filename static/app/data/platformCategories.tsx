@@ -421,6 +421,7 @@ export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
   'cordova',
   'ruby-rack',
   'ruby',
+  'rust',
   'native',
   'native-qt',
   'native',
