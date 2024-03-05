@@ -342,7 +342,7 @@ def get_stored_metrics_of_projects(
 
     # We reverse resolve all the metric ids by bulking together all the resolutions of the same use case id to maximize
     # the parallelism.
-    resolved_metric_ids = {}
+    resolved_metric_ids = defaultdict(dict)
     for use_case_id, results_indexes in use_case_id_to_index.items():
         metrics_ids = []
         for result_index in results_indexes:
@@ -350,16 +350,20 @@ def get_stored_metrics_of_projects(
             for row in data or ():
                 metrics_ids.append(row["metric_id"])
 
-        resolved_metric_ids.update(
+        # We have to partition the resolved metric ids per use case id, since the indexer values might clash across
+        # use cases.
+        resolved_metric_ids[use_case_id].update(
             bulk_reverse_resolve(use_case_id, org_id, [metric_id for metric_id in metrics_ids])
         )
 
     # We iterate over each result and compute a map of `metric_id -> project_id`.
     grouped_stored_metrics = defaultdict(list)
-    for result in results:
-        data = result["data"]
-        for row in data or ():
-            grouped_stored_metrics[resolved_metric_ids[row["metric_id"]]].append(row["project_id"])
+    for use_case_id, results_indexes in use_case_id_to_index.items():
+        for result_index in results_indexes:
+            data = results[result_index]["data"]
+            for row in data or ():
+                resolved_metric_id = resolved_metric_ids[use_case_id][row["metric_id"]]
+                grouped_stored_metrics[resolved_metric_id].append(row["project_id"])
 
     return grouped_stored_metrics
 
