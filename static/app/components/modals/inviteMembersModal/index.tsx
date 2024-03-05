@@ -1,6 +1,8 @@
+import {useState} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,6 +28,8 @@ function InviteMembersModal({
 }: InviteMembersModalProps) {
   const organization = useOrganization();
 
+  const [error, setError] = useState<string | null>(null);
+
   const {
     addInviteRow,
     invites,
@@ -46,6 +50,7 @@ function InviteMembersModal({
     initialData,
     organization,
     source,
+    setError,
   });
 
   if (memberResult.isLoading) {
@@ -61,6 +66,18 @@ function InviteMembersModal({
     );
   }
 
+  // Render an Alert component based on the error state
+  const renderErrorAlert = () => {
+    if (error) {
+      return (
+        <Alert type="error" showIcon>
+          {error}
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <ErrorBoundary>
       <InviteModalHook
@@ -70,32 +87,35 @@ function InviteMembersModal({
       >
         {({sendInvites: _sendInvites, canSend, headerInfo}) => {
           return (
-            <InviteMembersModalView
-              addInviteRow={addInviteRow}
-              canSend={canSend}
-              closeModal={() => {
-                trackAnalytics('invite_modal.closed', {
-                  organization,
-                  modal_session: sessionId,
-                });
-                closeModal();
-              }}
-              complete={complete}
-              Footer={Footer}
-              headerInfo={headerInfo}
-              invites={invites}
-              inviteStatus={inviteStatus}
-              member={memberResult.data}
-              pendingInvites={pendingInvites}
-              removeInviteRow={removeInviteRow}
-              reset={reset}
-              sendingInvites={sendingInvites}
-              sendInvites={sendInvites}
-              setEmails={setEmails}
-              setRole={setRole}
-              setTeams={setTeams}
-              willInvite={willInvite}
-            />
+            <div>
+              {renderErrorAlert()}
+              <InviteMembersModalView
+                addInviteRow={addInviteRow}
+                canSend={canSend}
+                closeModal={() => {
+                  trackAnalytics('invite_modal.closed', {
+                    organization,
+                    modal_session: sessionId,
+                  });
+                  closeModal();
+                }}
+                complete={complete}
+                Footer={Footer}
+                headerInfo={headerInfo}
+                invites={invites}
+                inviteStatus={inviteStatus}
+                member={memberResult.data}
+                pendingInvites={pendingInvites}
+                removeInviteRow={removeInviteRow}
+                reset={reset}
+                sendingInvites={sendingInvites}
+                sendInvites={sendInvites}
+                setEmails={setEmails}
+                setRole={setRole}
+                setTeams={setTeams}
+                willInvite={willInvite}
+              />
+            </div>
           );
         }}
       </InviteModalHook>

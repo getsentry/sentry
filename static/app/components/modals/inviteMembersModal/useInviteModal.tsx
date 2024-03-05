@@ -14,6 +14,7 @@ import useApi from 'sentry/utils/useApi';
 interface Props {
   organization: Organization;
   initialData?: Partial<InviteRow>[];
+  setError?: (error: string | null) => void;
   source?: string;
 }
 function defaultInvite(): InviteRow {
@@ -43,7 +44,12 @@ function useLogInviteModalOpened({
   }, [organization, sessionId, source]);
 }
 
-export default function useInviteModal({organization, initialData, source}: Props) {
+export default function useInviteModal({
+  organization,
+  initialData,
+  source,
+  setError,
+}: Props) {
   const api = useApi();
   const willInvite = organization.access?.includes('member:write');
 
@@ -91,6 +97,9 @@ export default function useInviteModal({organization, initialData, source}: Prop
       complete: false,
       sendingInvites: false,
     });
+    if (setError) {
+      setError(null);
+    }
     trackAnalytics('invite_modal.add_more', {
       organization,
       modal_session: sessionId.current,
@@ -121,7 +130,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
         await api.requestPromise(endpoint, {method: 'POST', data});
       } catch (err) {
         const errorResponse = err.responseJSON;
-
         // Use the email error message if available. This inconsistently is
         // returned as either a list of errors for the field, or a single error.
         const emailError =
@@ -131,8 +139,11 @@ export default function useInviteModal({organization, initialData, source}: Prop
               ? errorResponse.email[0]
               : errorResponse.email;
 
-        const error = emailError || t('Could not invite user');
-
+        const orgLevelError = errorResponse?.organization || null;
+        const error = orgLevelError || emailError || t('Could not invite user');
+        if (setError) {
+          setError(orgLevelError);
+        }
         setState(prev => ({
           ...prev,
           inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: false, error}},

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -111,6 +111,7 @@ type Props = {
    * Controls whether the dropdown allows to create a new team
    */
   allowCreate?: boolean;
+  defaultUseIfOnlyOne?: boolean;
   includeUnassigned?: boolean;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
@@ -143,6 +144,7 @@ function TeamSelector(props: Props) {
     includeUnassigned,
     styles: stylesProp,
     onChange,
+    defaultUseIfOnlyOne,
     ...extraProps
   } = props;
   const {teamFilter, organization, project, multiple, value, useId} = props;
@@ -343,7 +345,7 @@ function TeamSelector(props: Props) {
     createTeamOutsideProjectOption,
   ]);
 
-  const handleInputCHange = useMemo(
+  const handleInputChange = useMemo(
     () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
     [onSearch]
   );
@@ -357,11 +359,28 @@ function TeamSelector(props: Props) {
     [includeUnassigned, multiple, stylesProp]
   );
 
+  useEffect(() => {
+    // Only take action after we've finished loading the teams
+    if (fetching) {
+      return;
+    }
+
+    // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
+    if (options.length === 1 && defaultUseIfOnlyOne) {
+      const castedValue = multiple
+        ? (options as TeamOption[])
+        : (options[0] as TeamOption);
+      handleChange(castedValue);
+    }
+    // We only want to do this once when the component is finished loading for teams and mounted
+    // If the user decides they do not want the default, we should not add the default value back
+  }, [fetching, defaultUseIfOnlyOne]);
+
   return (
     <SelectControl
       ref={selectRef}
       options={options}
-      onInputChange={handleInputCHange}
+      onInputChange={handleInputChange}
       getOptionValue={getOptionValue}
       filterOption={filterOption}
       styles={styles}
