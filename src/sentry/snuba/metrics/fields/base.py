@@ -105,6 +105,52 @@ PostQueryFuncReturnType = Optional[Union[tuple[Any, ...], ClickhouseHistogram, i
 MetricOperationParams = Mapping[str, Union[str, int, float]]
 
 
+def build_metrics_query(
+    *,
+    entity_key: EntityKey,
+    select: list[Column],
+    where: list[Condition],
+    groupby: list[Column],
+    project_ids: Sequence[int],
+    org_id: int,
+    use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> Request:
+    if end is None:
+        end = datetime.now()
+    if start is None:
+        start = end - timedelta(hours=24)
+
+    end = end.replace(second=0, microsecond=0)
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    query = Query(
+        match=Entity(entity_key.value),
+        select=select,
+        groupby=groupby,
+        where=[
+            Condition(Column("org_id"), Op.EQ, org_id),
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column(get_timestamp_column_name()), Op.GTE, start),
+            Condition(Column(get_timestamp_column_name()), Op.LT, end),
+        ]
+        + where,
+        granularity=Granularity(GRANULARITY),
+    )
+
+    request = Request(
+        dataset=Dataset.Metrics.value
+        if use_case_id == UseCaseID.SESSIONS
+        else Dataset.PerformanceMetrics.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": org_id, "use_case_id": use_case_id.value},
+    )
+
+    return request
+
+
 def run_metrics_query(
     *,
     entity_key: EntityKey,
