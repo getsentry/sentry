@@ -230,34 +230,42 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events"},
+        "static_args": {
+            "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "transactions-subscription-results": {
         "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "transactions"},
+        "static_args": {
+            "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "generic-metrics-subscription-results": {
         "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
         "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "generic_metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "sessions-subscription-results": {
         "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(),
         "static_args": {
-            "dataset": "events",
+            "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         },
     },
     "metrics-subscription-results": {
         "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
@@ -290,7 +298,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "release-health",
         },
-        "dlq_topic": Topic.INGEST_METRICS_DLQ,
+        "dlq_topic": settings.KAFKA_INGEST_METRICS_DLQ,
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
     },
@@ -301,7 +309,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "performance",
         },
-        "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
+        "dlq_topic": settings.KAFKA_INGEST_GENERIC_METRICS_DLQ,
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
     },
@@ -509,8 +517,7 @@ def get_stream_processor(
                 f"Cannot enable DLQ for consumer: {consumer_name}, no DLQ topic has been defined for it"
             ) from e
         try:
-            dlq_topic_defn = get_topic_definition(dlq_topic)
-            cluster_setting = dlq_topic_defn["cluster"]
+            cluster_setting = get_topic_definition(dlq_topic)["cluster"]
         except ValueError as e:
             raise click.BadParameter(
                 f"Cannot enable DLQ for consumer: {consumer_name}, DLQ topic {dlq_topic} is not configured in this environment"
@@ -520,7 +527,7 @@ def get_stream_processor(
         dlq_producer = KafkaProducer(producer_config)
 
         dlq_policy = DlqPolicy(
-            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
+            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic)),
             DlqLimit(
                 max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
                 max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],

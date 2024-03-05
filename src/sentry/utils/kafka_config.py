@@ -3,7 +3,6 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.conf.types.topic_definition import TopicDefinition
 
 SUPPORTED_KAFKA_CONFIGURATION = (
@@ -97,8 +96,9 @@ def get_kafka_admin_cluster_options(
     )
 
 
-def get_topic_definition(topic: Topic) -> TopicDefinition:
-    return {
-        "cluster": settings.KAFKA_TOPIC_TO_CLUSTER[topic.value],
-        "real_topic_name": settings.KAFKA_TOPIC_OVERRIDES.get(topic.value, topic.value),
-    }
+def get_topic_definition(topic: str) -> TopicDefinition:
+    defn = settings.KAFKA_TOPICS.get(topic)
+    if defn is not None:
+        return defn
+    else:
+        raise ValueError(f"Unknown {topic=}")
