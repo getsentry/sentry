@@ -328,16 +328,23 @@ class _ClientConfig:
         has membership on any single-tenant regions those will also be included.
         """
         user = self.user
+
+        # Only expose visible regions.
+        # When new regions are added they can take some work to get working correctly.
+        # Before they are working we need ways to bring parts of the region online without
+        # exposing the region to customers.
         region_names = find_all_multitenant_region_names()
+
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # No logged in user.
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account
         if not user or not user.id:
-            return [get_region_by_name(region).api_serialize() for region in region_names]
+            return [get_region_by_name(name).api_serialize() for name in region_names]
 
         # Ensure all regions the current user is in are included as there
-        # could be single tenants as well.
+        # could be single tenants or hidden regions
         memberships = user_service.get_organizations(user_id=user.id)
         unique_regions = set(region_names) | {membership.region_name for membership in memberships}
 

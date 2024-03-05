@@ -41,7 +41,7 @@ pytestmark = [requires_kafka]
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
-        topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
+        self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
@@ -49,15 +49,18 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        topic_defn = kafka_config.get_topic_definition(topic)
-        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+        topic_defn = kafka_config.get_topic_definition(self.topic)
+        self.real_topic = topic_defn["real_topic_name"]
+        self.cluster = topic_defn["cluster"]
+
+        create_topics(self.cluster, [self.real_topic])
 
     def tearDown(self):
         super().tearDown()
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-        self.admin_client.delete_topics([self.topic])
+        self.admin_client.delete_topics([self.real_topic])
         metrics._metrics_backend = None
 
     @cached_property
@@ -94,9 +97,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @cached_property
     def producer(self):
-        cluster_name = kafka_config.get_topic_definition(self.topic)["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[self.cluster]["common"][
                 "bootstrap.servers"
             ],
             "session.timeout.ms": 6000,
@@ -130,7 +132,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
-        self.producer.produce(self.topic, json.dumps(message))
+        self.producer.produce(self.real_topic, json.dumps(message))
         self.producer.flush()
 
         def active_incident():
