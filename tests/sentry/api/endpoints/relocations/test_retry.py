@@ -22,7 +22,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
@@ -112,45 +111,6 @@ class RetryRelocationTest(APITestCase):
         assert response.data["latestUnclaimedEmailsSentAt"] is None
         assert response.data["scheduledPauseAtStep"] is None
         assert response.data["wantUsernames"] is None
-
-        assert (
-            Relocation.objects.filter(owner_id=self.owner.id)
-            .exclude(uuid=self.relocation.uuid)
-            .exists()
-        )
-        assert Relocation.objects.count() == relocation_count + 1
-        assert RelocationFile.objects.count() == relocation_file_count + 1
-        assert File.objects.count() == file_count
-
-        assert uploading_complete_mock.call_count == 1
-
-        analytics_record_mock.assert_called_with(
-            "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
-            uuid=response.data["uuid"],
-        )
-
-    @with_feature("auth:enterprise-staff-cookie")
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_good_staff_when_feature_disabled(
-        self, uploading_complete_mock: Mock, analytics_record_mock: Mock
-    ):
-        self.login_as(user=self.staff_user, staff=True)
-        relocation_count = Relocation.objects.count()
-        relocation_file_count = RelocationFile.objects.count()
-        file_count = File.objects.count()
-
-        response = self.get_success_response(self.relocation.uuid, status_code=201)
-
-        assert response.data["uuid"] != self.relocation.uuid
-        assert response.data["creatorId"] == str(self.staff_user.id)
-        assert response.data["creatorEmail"] == str(self.staff_user.email)
-        assert response.data["creatorUsername"] == str(self.staff_user.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
 
         assert (
             Relocation.objects.filter(owner_id=self.owner.id)
@@ -295,22 +255,6 @@ class RetryRelocationTest(APITestCase):
 
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0
-
-    @with_feature("auth:enterprise-staff-cookie")
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_bad_staff_owner_not_found(
-        self, uploading_complete_mock: Mock, analytics_record_mock: Mock
-    ):
-        self.login_as(user=self.staff_user, staff=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            User.objects.filter(id=self.owner.id).delete()
-
-        response = self.get_error_response(self.relocation.uuid, status_code=400)
-
-        assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
-        assert uploading_complete_mock.call_count == 0
-        analytics_record_mock.assert_not_called()
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
