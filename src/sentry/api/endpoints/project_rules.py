@@ -31,9 +31,11 @@ from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.processor import is_condition_slow
+from sentry.rules.processor import RuleProcessor, is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils.safe import safe_execute
+from sentry.utils.samples import create_sample_event
 
 
 def clean_rule_data(data):
@@ -829,5 +831,14 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+
+        test_event = create_sample_event(
+            project, platform=project.platform, default="javascript", tagged=True
+        )
+        rp = RuleProcessor(test_event, False, False, False, False)
+        rp.activate_downstream_actions(rule, new=True)
+
+        for callback, futures in rp.grouped_futures.values():
+            safe_execute(callback, test_event, futures, _with_transaction=False)
 
         return Response(serialize(rule, request.user))
