@@ -366,11 +366,12 @@ Alternatively, run without --workers.
 
         from sentry.conf.types.kafka_definition import Topic
         from sentry.utils.batching_kafka_consumer import create_topics
-        from sentry.utils.kafka_config import get_topic_definition
 
         for topic in Topic:
-            topic_defn = get_topic_definition(topic)
-            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+            default_name = topic.value
+            physical_name = settings.KAFKA_TOPIC_OVERRIDES.get(default_name, default_name)
+            cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[default_name]
+            create_topics(cluster_name, [physical_name])
 
         if dev_consumer:
             daemons.append(

@@ -21,6 +21,7 @@ from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
+from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
@@ -1454,6 +1455,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
+    # Enables activated alert rules
+    "organizations:activated-alert-rules": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -3526,16 +3529,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
 }
 
-from typing import TypedDict
-
-
-class LegacyTopicDefinition(TypedDict):
-    cluster: str
-
-
 # Cluster configuration for each Kafka topic by name.
 # DEPRECATED
-KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
+KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3840,7 +3836,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 

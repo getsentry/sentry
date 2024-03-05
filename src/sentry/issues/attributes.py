@@ -6,7 +6,7 @@ from typing import cast
 
 import requests
 import urllib3
-from arroyo import Topic as ArroyoTopic
+from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 from django.db.models import F, Window
@@ -16,7 +16,6 @@ from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -45,7 +44,7 @@ class GroupValues:
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.GROUP_ATTRIBUTES)["cluster"]
+    cluster_name = get_topic_definition(settings.KAFKA_GROUP_ATTRIBUTES)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
@@ -123,7 +122,7 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        _attribute_snapshot_producer.produce(ArroyoTopic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
+        _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:
