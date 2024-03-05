@@ -134,7 +134,7 @@ class AuthIdentityHandler:
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
         with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
+            scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
             scope.set_extra("chosen_user", chosen_user.id)
