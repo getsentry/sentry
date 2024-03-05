@@ -454,8 +454,6 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
-        self.response = self.finalize_response(request, response, *args, **kwargs)
-
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
             if request.method.lower() == "get":
