@@ -7,7 +7,7 @@ from typing import Any, cast
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
 from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
-from sentry.sentry_metrics.querying.data_v2.utils import nan_to_none
+from sentry.sentry_metrics.querying.data_v2.utils import undefined_value_to_none
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Totals
 
@@ -86,7 +86,7 @@ def _generate_full_series(
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
-        full_series[index] = nan_to_none(value)
+        full_series[index] = undefined_value_to_none(value)
 
     return full_series
 
@@ -213,7 +213,7 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
                         "series": _generate_full_series(
                             int(start.timestamp()), len(intervals), interval, group_value.series
                         ),
-                        "totals": nan_to_none(group_value.totals),
+                        "totals": undefined_value_to_none(group_value.totals),
                     }
                 )
 

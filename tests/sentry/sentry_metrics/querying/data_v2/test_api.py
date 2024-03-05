@@ -160,6 +160,31 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_infinite_value(self) -> None:
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1 / 0")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            None,
+            None,
+        ]
+        assert data[0][0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
