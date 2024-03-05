@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {shouldDisplayTagsTree} from 'sentry/components/events/eventTags/util';
+import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -99,7 +99,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   const streamPath = `/organizations/${orgSlug}/issues/`;
   return (
     <StyledClippedBox clipHeight={150}>
-      {shouldDisplayTagsTree() ? (
+      {shouldUseNewTagsUI() ? (
         <EventTagsTree
           tags={tags}
           meta={meta}

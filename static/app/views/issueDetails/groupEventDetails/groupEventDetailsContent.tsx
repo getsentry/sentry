@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
+import ContextSummary from 'sentry/components/events/contextSummary';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
@@ -123,6 +124,13 @@ function DefaultGroupEventDetailsContent({
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection event={event} organization={organization} />
       )}
+      <EventDataSection
+        title="Context Summary"
+        type="context-summary"
+        help="A summary of useful contexts"
+      >
+        <ContextSummary event={event} />
+      </EventDataSection>
       <EventTagsAndScreenshot
         event={event}
         organization={organization}
