@@ -364,7 +364,10 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+            id=installation.organization_id,
+            user_id=request.user.id,
+            include_teams=False,
+            include_projects=False,
         )
         if (
             org_context.member is None

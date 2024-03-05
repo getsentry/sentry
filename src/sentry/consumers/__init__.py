@@ -7,13 +7,21 @@ from collections.abc import Mapping, Sequence
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaProducer
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.commit import ONCE_PER_SECOND
 from arroyo.dlq import DlqLimit, DlqPolicy, KafkaDlqProducer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 
-from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
+from sentry.conf.types.kafka_definition import (
+    ConsumerDefinition,
+    Topic,
+    validate_consumer_definition,
+)
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -184,22 +192,20 @@ _INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
 ]
 
 # consumer name -> consumer definition
-# XXX: default_topic is needed to lookup the schema even if the actual topic name has been
-# overridden. This is because the current topic override mechanism means the default topic name
-# is no longer available anywhere in code. We should probably fix this later so we don't need both
-#  "topic" and "default_topic" here though.
+# TODO: `topic` should gradually be migrated to the logical topic rather than the overridden
+# string. We support both currently for backward compatibility.
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
-        "topic": settings.KAFKA_PROFILES,
+        "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
     },
     "ingest-replay-recordings": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
     "ingest-replay-recordings-buffered": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
         "click_options": ingest_replay_recordings_buffered_options(),
     },
@@ -237,8 +243,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "generic-metrics-subscription-results": {
-        "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-        "default_topic": "generic-metrics-subscription-results",
+        "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -378,6 +384,10 @@ def get_stream_processor(
     validate_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
+    from django.conf import settings
+
+    from sentry.utils import kafka_config
+
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
     except KeyError:
@@ -394,12 +404,19 @@ def get_stream_processor(
         ) from e
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-    logical_topic = consumer_definition["topic"]
-    if not isinstance(logical_topic, str):
-        logical_topic = logical_topic()
+    consumer_topic = consumer_definition["topic"]
+    if isinstance(consumer_topic, Topic):
+        default_topic = consumer_topic.value
+        real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
+    else:
+        # TODO: Deprecated, remove once this way is no longer used
+        if not isinstance(consumer_topic, str):
+            real_topic = consumer_topic()
+        else:
+            real_topic = consumer_topic
 
     if topic is None:
-        topic = logical_topic
+        topic = real_topic
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -409,16 +426,9 @@ def get_stream_processor(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
 
-    from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-    from arroyo.backends.kafka.consumer import KafkaConsumer
-    from arroyo.commit import ONCE_PER_SECOND
-    from arroyo.types import Topic
-    from django.conf import settings
-
-    from sentry.utils import kafka_config
-
-    topic_def = settings.KAFKA_TOPICS[logical_topic]
+    topic_def = settings.KAFKA_TOPICS[real_topic]
     assert topic_def is not None
+
     if cluster is None:
         cluster = topic_def["cluster"]
 
@@ -474,7 +484,7 @@ def get_stream_processor(
         consumer = SynchronizedConsumer(
             consumer=consumer,
             commit_log_consumer=commit_log_consumer,
-            commit_log_topic=Topic(synchronize_commit_log_topic),
+            commit_log_topic=ArroyoTopic(synchronize_commit_log_topic),
             commit_log_groups={synchronize_commit_group},
         )
     elif consumer_definition.get("require_synchronization"):
@@ -482,11 +492,16 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
-    # Validate schema if "default_topic" is set
-    default_topic = consumer_definition.get("default_topic")
-    if default_topic:
+    # Validate schema if "validate_schema" is set
+    validate_schema = consumer_definition.get("validate_schema") or False
+
+    if validate_schema:
+        # TODO: Remove this later but for now we can only validate if `topic_def` is
+        # the logical topic and not the legacy override topic
+        assert isinstance(consumer_topic, Topic)
+
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
-            default_topic, validate_schema, strategy_factory
+            consumer_topic.value, validate_schema, strategy_factory
         )
 
     if healthcheck_file_path is not None:
@@ -512,7 +527,7 @@ def get_stream_processor(
         dlq_producer = KafkaProducer(producer_config)
 
         dlq_policy = DlqPolicy(
-            KafkaDlqProducer(dlq_producer, Topic(dlq_topic)),
+            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic)),
             DlqLimit(
                 max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
                 max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
@@ -524,7 +539,7 @@ def get_stream_processor(
 
     return StreamProcessor(
         consumer=consumer,
-        topic=Topic(topic),
+        topic=ArroyoTopic(topic),
         processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,

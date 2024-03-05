@@ -12,9 +12,9 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery
-from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder
+from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
     QueriedMetricsVisitor,
     TimeseriesConditionInjectionVisitor,

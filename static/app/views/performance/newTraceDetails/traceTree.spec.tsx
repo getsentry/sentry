@@ -316,6 +316,173 @@ describe('TreeNode', () => {
     });
   });
 
+  describe('parent autogrouped node segments', () => {
+    it('collapses durations', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      let parent = root;
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(
+          parent,
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            start_timestamp: i,
+            timestamp: i + 1,
+            span_id: i.toString(),
+            parent_span_id: parent.value.span_id,
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        parent.children.push(node);
+        parent = node;
+      }
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      const autogroupedNode = root.children[0];
+      assertParentAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual([[0, 5000]]);
+    });
+
+    it('does not collapse durations when there is a gap', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      let parent = root;
+
+      const ts = [
+        [0, 1],
+        [1.5, 2],
+        [2.5, 3],
+        [3.5, 4],
+        [4.5, 5],
+      ];
+
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(
+          parent,
+          makeSpan({
+            description: 'span',
+            op: 'db',
+            start_timestamp: ts[i][0],
+            timestamp: ts[i][1],
+            span_id: i.toString(),
+            parent_span_id: parent.value.span_id,
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        parent.children.push(node);
+        parent = node;
+      }
+
+      for (let i = 1; i < ts.length; i++) {
+        ts[i][0] *= 1000;
+        ts[i][1] = 0.5 * 1000;
+      }
+
+      ts[0][0] = 0;
+      ts[0][1] = 1 * 1000;
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      const autogroupedNode = root.children[0];
+      assertParentAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual(ts);
+    });
+  });
+
+  describe('sibling autogrouped node segments', () => {
+    it('collapses durations', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(
+            root,
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: i,
+              timestamp: i + 1,
+            }),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
+        );
+      }
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      const autogroupedNode = root.children[0];
+
+      assertAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual([[0, 5000]]);
+    });
+
+    it('does not collapse durations when there is a gap', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      const ts = [
+        [0, 1],
+        [1.5, 2],
+        [2.5, 3],
+        [3.5, 4],
+        [4.5, 5],
+      ];
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(
+            root,
+            makeSpan({
+              description: 'span',
+              op: 'db',
+              start_timestamp: ts[i][0],
+              timestamp: ts[i][1],
+            }),
+            {
+              project_slug: '',
+              event_id: '',
+            }
+          )
+        );
+      }
+
+      for (let i = 0; i < ts.length; i++) {
+        ts[i][0] *= 1000;
+        ts[i][1] = 0.5 * 1000;
+      }
+
+      ts[0][0] = 0;
+      ts[0][1] = 1 * 1000;
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+      const autogroupedNode = root.children[0];
+
+      assertAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.autogroupedSegments).toEqual(ts);
+    });
+  });
+
   describe('path', () => {
     describe('nested transactions', () => {
       let child: any = null;
@@ -1551,6 +1718,31 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
+    it('collects errored children for sibling autogrouped node', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
+          project_slug: '',
+          event_id: '',
+        });
+        node.value.relatedErrors = [makeTraceError()];
+        root.children.push(node);
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(5);
+    });
+
     it('adds autogrouped siblings as children under autogrouped node', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
@@ -1656,6 +1848,59 @@ describe('TraceTree', () => {
       expect((root.children[0].children[0].value as RawSpanType).description).toBe(
         'span0'
       );
+    });
+
+    it('collects errored children for parent autogrouped node', () => {
+      // db             db                           db
+      //  http    ->     parent autogroup (3) ->      parent autogroup (3)
+      //   http                                        http
+      //    http                                        http
+      //                                                 http
+
+      const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
+        null,
+        makeSpan({
+          description: `span1`,
+          span_id: `1`,
+          op: 'db',
+        }),
+        {project_slug: '', event_id: ''}
+      );
+
+      let last: TraceTreeNode<any> = root;
+
+      for (let i = 0; i < 3; i++) {
+        const node = new TraceTreeNode(
+          last,
+          makeSpan({
+            description: `span${i}`,
+            span_id: `${i}`,
+            op: 'http',
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        node.value.relatedErrors = [makeTraceError()];
+        last.children.push(node);
+        last = node;
+      }
+
+      if (!root) {
+        throw new Error('root is null');
+      }
+
+      expect(root.children.length).toBe(1);
+      expect(root.children[0].children.length).toBe(1);
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {

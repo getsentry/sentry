@@ -559,6 +559,7 @@ function TraceDetailPanel(props: TraceDetailPanelProps) {
         detailKey={props.node ? 'open' : undefined}
         onClose={props.onClose}
         skipCloseOnOutsideClick
+        startingPositionOnLoad="bottom"
       >
         {props.node &&
           (isTransactionNode(props.node) ? (

@@ -14,5 +14,5 @@ class CorrelationsQueryExecutionError(Exception):
     pass
 
 
-class TooManyCodeLocationsRequestedError(Exception):
+class NonNormalizableUnitsError(Exception):
     pass
