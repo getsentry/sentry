@@ -40,5 +40,9 @@ class memoize(Generic[T]):
         return value
 
 
-def cache_key_for_event(data: Mapping[str, Any]) -> str:
-    return "e:{}:{}".format(data["event_id"], data["project"])
+        def cache_key_for_event(data: Mapping[str, Any]) -> str:
+            event_id = data.get('event_id', 'unknown_event_id')
+            project = data.get('project', 'unknown_project')
+            if event_id == 'unknown_event_id' or project == 'unknown_project':
+                logger.error(f\"cache_key_for_event called with missing data. event_id: {event_id}, project: {project}\")
+            return \"e:{}:{}'.format(event_id, project)
