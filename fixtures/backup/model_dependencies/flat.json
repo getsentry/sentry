@@ -106,9 +106,6 @@
     "sentry.file",
     "sentry.organization"
   ],
-  "sentry.artifactbundleflatfileindex": [
-    "sentry.project"
-  ],
   "sentry.artifactbundleindex": [
     "sentry.artifactbundle",
     "sentry.organization"
@@ -290,10 +287,6 @@
   "sentry.fileblobowner": [
     "sentry.fileblob",
     "sentry.organization"
-  ],
-  "sentry.flatfileindexstate": [
-    "sentry.artifactbundle",
-    "sentry.artifactbundleflatfileindex"
   ],
   "sentry.group": [
     "sentry.project",
