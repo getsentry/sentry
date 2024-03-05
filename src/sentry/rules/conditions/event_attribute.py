@@ -164,10 +164,12 @@ class EventAttributeCondition(EventCondition):
             if stacktrace:
                 stacks = [stacktrace]
             else:
-if not event.interfaces.get(\"exception\") or not event.interfaces[\"exception\"].values:
-    stacks = []
+if \"exception\" in event.interfaces and event.interfaces[\"exception\"].values is not None:
+    stacks = [
+        e.stacktrace for e in event.interfaces[\"exception\"].values if e.stacktrace
+    ]
 else:
-    stacks = getExceptionFrames(event, inAppOnly=False)
+    stacks = []
             result = []
             for st in stacks:
                 for frame in st.frames:
