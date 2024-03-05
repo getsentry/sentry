@@ -1,6 +1,14 @@
 from collections.abc import Sequence
 
-from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
+from snuba_sdk import (
+    AliasedExpression,
+    ArithmeticOperator,
+    Column,
+    Condition,
+    Formula,
+    Op,
+    Timeseries,
+)
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
@@ -274,6 +282,10 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
     case units are incompatible.
     """
 
+    UNITLESS_FORMULA_FUNCTIONS = {
+        ArithmeticOperator.DIVIDE.value,
+        ArithmeticOperator.MULTIPLY.value,
+    }
     UNITLESS_AGGREGATES = {"count", "count_unique"}
 
     def __init__(self):
@@ -285,7 +297,24 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
         self._is_formula = True
-        return super()._visit_formula(formula)
+
+        contains_timeseries = False
+        parameters = []
+        for parameter in formula.parameters:
+            if isinstance(parameter, Timeseries):
+                contains_timeseries = True
+
+            parameters.append(self.visit(parameter))
+
+        # If we have a division or multiplication being performed on at least one timeseries, we want to unwind and not
+        # apply any units normalization.
+        if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and contains_timeseries:
+            raise NonNormalizableUnitsError(
+                "A unitless formula function is being used and has at least one "
+                "timeseries in one of its operands"
+            )
+
+        return formula.set_parameters(parameters)
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         extracted_unit = self._extract_unit(timeseries=timeseries)
