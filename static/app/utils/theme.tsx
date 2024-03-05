@@ -141,7 +141,6 @@ export const darkColors = {
 
 const prismLight = {
   '--prism-base': '#332B3B',
-  '--prism-selected': '#F5F3F7',
   '--prism-inline-code': '#332B3B',
   '--prism-inline-code-background': '#F5F3F7',
   '--prism-highlight-background': '#5C78A31C',
@@ -158,7 +157,6 @@ const prismLight = {
 
 const prismDark = {
   '--prism-base': '#D6D0DC',
-  '--prism-selected': '#393041',
   '--prism-inline-code': '#D6D0DC',
   '--prism-inline-code-background': '#18121C',
   '--prism-highlight-background': '#A8A2C31C',
