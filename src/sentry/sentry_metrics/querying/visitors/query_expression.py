@@ -295,7 +295,6 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
 
         self._is_formula = False
 
-    # 2 * (a * b)
     def _visit_formula(self, formula: Formula) -> QueryExpression:
         self._is_formula = True
 
