@@ -123,7 +123,9 @@ def update_snuba_query(
         )
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
+def bulk_create_snuba_subscriptions(
+    projects, subscription_type, snuba_query, query_extra: str | None = None
+):
     """
     Creates a subscription to a snuba query for each project.
 
@@ -136,11 +138,15 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
+        subscriptions.append(
+            create_snuba_subscription(project, subscription_type, snuba_query, query_extra)
+        )
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query) -> QuerySubscription:
+def create_snuba_subscription(
+    project, subscription_type, snuba_query, query_extra: str | None = None
+) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 
@@ -149,14 +155,13 @@ def create_snuba_subscription(project, subscription_type, snuba_query) -> QueryS
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
-
-    TODO: construct QuerySubscription with query_extra
     """
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
+        query_extra=query_extra,
     )
 
     create_subscription_in_snuba.apply_async(
