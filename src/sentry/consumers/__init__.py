@@ -390,15 +390,8 @@ def get_stream_processor(
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
-    if isinstance(consumer_topic, Topic):
-        default_topic = consumer_topic.value
-        real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
-    else:
-        # TODO: Deprecated, remove once this way is no longer used
-        if not isinstance(consumer_topic, str):
-            real_topic = consumer_topic()
-        else:
-            real_topic = consumer_topic
+    default_topic = consumer_topic.value
+    real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
 
     if topic is None:
         topic = real_topic
