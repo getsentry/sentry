@@ -7,13 +7,11 @@ from functools import lru_cache
 
 import msgpack
 import sentry_sdk
-from arroyo import Partition
-from arroyo import Topic as ArroyoTopic
+from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
@@ -52,7 +50,7 @@ MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 
 
 def _get_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(Topic.INGEST_MONITORS)["cluster"]
+    cluster_name = get_topic_definition(settings.KAFKA_INGEST_MONITORS)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
@@ -64,10 +62,10 @@ _checkin_producer = SingletonProducer(_get_producer)
 
 @lru_cache(maxsize=None)
 def _get_partitions() -> Mapping[int, PartitionMetadata]:
-    topic_defn = get_topic_definition(Topic.INGEST_MONITORS)
-    topic = topic_defn["real_topic_name"]
+    topic = settings.KAFKA_INGEST_MONITORS
+    cluster_name = get_topic_definition(topic)["cluster"]
 
-    conf = get_kafka_admin_cluster_options(topic_defn["cluster"])
+    conf = get_kafka_admin_cluster_options(cluster_name)
     admin_client = AdminClient(conf)
     result = admin_client.list_topics(topic)
     topic_metadata = result.topics.get(topic)
@@ -205,7 +203,7 @@ def clock_pulse(current_datetime=None):
     # topic. This is a requirement to ensure that none of the partitions stall,
     # since the global clock is tied to the slowest partition.
     for partition in _get_partitions().values():
-        dest = Partition(ArroyoTopic(settings.KAFKA_INGEST_MONITORS), partition.id)
+        dest = Partition(Topic(settings.KAFKA_INGEST_MONITORS), partition.id)
         _checkin_producer.produce(dest, payload)
 
 
