@@ -94,8 +94,7 @@ def derive_code_mappings(
 
     if not (
         features.has("organizations:derive-code-mappings", org)
-        and data.get("platform")
-        and data["platform"] in SUPPORTED_LANGUAGES
+        and data.get("platform") in SUPPORTED_LANGUAGES
     ):
         logger.info("Event should not be processed.", extra=extra)
         return
