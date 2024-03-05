@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -52,7 +52,15 @@ span_duration = Function(
 
 
 @pytest.mark.parametrize(
-    ["field", "expected"], [pytest.param("span.duration", span_duration, id="span.duration")]
+    ["field", "expected"],
+    [
+        pytest.param("span.duration", span_duration, id="span.duration"),
+        pytest.param(
+            "profile.id",
+            AliasedExpression(Column("profile_id"), alias="profile.id"),
+            id="profile.id",
+        ),
+    ],
 )
 @django_db_all
 def test_field_alias(params, field, expected):
