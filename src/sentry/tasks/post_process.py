@@ -1174,10 +1174,7 @@ def process_commits(job: PostProcessJob) -> None:
                     # Cache the integrations check for 4 hours
                     cache.set(integration_cache_key, has_integrations, 14400)
 
-                if (
-                    features.has("organizations:commit-context", event.project.organization)
-                    and has_integrations
-                ):
+                if has_integrations:
                     if not job["group_state"]["is_new"]:
                         return
 

@@ -16,7 +16,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:advanced-search",
         "organizations:app-store-connect-multiple",
         "organizations:change-alerts",
-        "organizations:commit-context",
         "organizations:codecov-integration",
         "organizations:crash-rate-alerts",
         "organizations:custom-symbol-sources",

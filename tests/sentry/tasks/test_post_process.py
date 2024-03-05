@@ -1459,7 +1459,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             )
         ]
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
         return_value=github_blame_return_value,
@@ -1481,7 +1480,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
         assert not mock_get_commit_context.called
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context_all_frames",
     )
@@ -1517,7 +1515,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    @with_feature("organizations:commit-context")
     @patch("sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames")
     def test_skip_when_not_is_new(self, mock_get_commit_context):
         """
@@ -1538,7 +1535,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         ).exists()
 
-    @with_feature("organizations:commit-context")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context_all_frames",
     )
