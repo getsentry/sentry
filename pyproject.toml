@@ -627,6 +627,7 @@ disable_error_code = [
 module = [
     "sentry.buffer.base",
     "sentry.buffer.redis",
+    "sentry.eventstore.reprocessing.redis",
     "sentry.utils.redis",
     "sentry.utils.redis_metrics",
     "sentry.utils.locking.backends.redis",

@@ -97,6 +97,7 @@ from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
@@ -139,6 +140,8 @@ CannotReprocessReason = Union[
     # A required attachment, such as the original minidump, is missing.
     Literal["attachment.not_found"],
 ]
+
+use_store_option = "reprocessing.use_store"
 
 
 class CannotReprocess(Exception):
@@ -265,10 +268,15 @@ def _send_delete_old_primary_hash_messages(
     # Events for a group are split and bucketed by their primary hashes. If flushing is to be
     # performed on a per-group basis, the event count needs to be summed up across all buckets
     # belonging to a single group.
-    event_count = 0
-    for primary_hash in old_primary_hashes:
-        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
-        event_count += client.llen(key)
+    if options.get(use_store_option):
+        event_count = reprocessing_store.event_count_for_hashes(
+            project_id, group_id, old_primary_hashes
+        )
+    else:
+        event_count = 0
+        for primary_hash in old_primary_hashes:
+            key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+            event_count += client.llen(key)
 
     if (
         not force_flush_batch
@@ -277,8 +285,13 @@ def _send_delete_old_primary_hash_messages(
         return
 
     for primary_hash in old_primary_hashes:
-        event_key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
-        event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
+        if options.get(use_store_option):
+            event_ids, from_date, to_date = reprocessing_store.pop_batched_events(
+                project_id, group_id, primary_hash
+            )
+        else:
+            event_key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+            event_ids, from_date, to_date = pop_batched_events_from_redis(event_key)
 
         # Racing might be happening between two different tasks. Give up on the
         # task that's lagging behind by prematurely terminating flushing.
@@ -366,21 +379,33 @@ def buffered_delete_old_primary_hash(
 
     client = _get_sync_redis_client()
 
-    # This is a meta key that contains old primary hashes. These hashes are then
-    # combined with other values to construct a key that points to a list of
-    # tombstonable events.
-    primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
-    old_primary_hashes = client.smembers(primary_hash_set_key)
+    if options.get(use_store_option):
+        old_primary_hashes = reprocessing_store.get_old_primary_hashes(project_id, group_id)
+    else:
+        # This is a meta key that contains old primary hashes. These hashes are then
+        # combined with other values to construct a key that points to a list of
+        # tombstonable events.
+        primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
+        old_primary_hashes = client.smembers(primary_hash_set_key)
 
     if old_primary_hash is not None and old_primary_hash != current_primary_hash:
-        event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
-        client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
-        client.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
+        if options.get(use_store_option):
+            reprocessing_store.expire_hash(
+                project_id, group_id, event_id, datetime, old_primary_hash
+            )
+        else:
+            event_key = _get_old_primary_hash_subset_key(project_id, group_id, old_primary_hash)
+            client.lpush(event_key, f"{to_timestamp(datetime)};{event_id}")
+            client.expire(event_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
         if old_primary_hash not in old_primary_hashes:
             old_primary_hashes.add(old_primary_hash)
-            client.sadd(primary_hash_set_key, old_primary_hash)
-            client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
+            if options.get(use_store_option):
+                reprocessing_store.add_hash(project_id, group_id, old_primary_hash)
+            else:
+                primary_hash_set_key = f"re2:tombstone-primary-hashes:{project_id}:{group_id}"
+                client.sadd(primary_hash_set_key, old_primary_hash)
+                client.expire(primary_hash_set_key, settings.SENTRY_REPROCESSING_TOMBSTONES_TTL)
 
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("project_id", project_id)
@@ -474,32 +499,49 @@ def buffered_handle_remaining_events(
     more than counters.
     """
 
+    key = None
     client = _get_sync_redis_client()
-    # We explicitly cluster by only project_id and group_id here such that our
-    # RENAME command later succeeds.
-    key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
 
-    if datetime_to_event:
-        llen = client.lpush(
-            key,
-            *(f"{to_timestamp(datetime)};{event_id}" for datetime, event_id in datetime_to_event),
+    if options.get(use_store_option):
+        llen = reprocessing_store.get_remaining_event_count(
+            project_id, old_group_id, datetime_to_event
         )
-        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
     else:
-        llen = client.llen(key)
+        # We explicitly cluster by only project_id and group_id here such that our
+        # RENAME command later succeeds.
+        key = f"re2:remaining:{{{project_id}:{old_group_id}}}"
+
+        if datetime_to_event:
+            llen = client.lpush(
+                key,
+                *(
+                    f"{to_timestamp(datetime)};{event_id}"
+                    for datetime, event_id in datetime_to_event
+                ),
+            )
+            client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+        else:
+            llen = client.llen(key)
 
     if force_flush_batch or llen > settings.SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE:
-        new_key = f"{key}:{uuid.uuid4().hex}"
 
-        try:
-            # Rename `key` to a new temp key that is passed to celery task. We
-            # use `renamenx` instead of `rename` only to detect UUID collisions.
-            assert client.renamenx(key, new_key), "UUID collision for new_key?"
-        except redis.exceptions.ResponseError:
-            # `key` does not exist in Redis. `ResponseError` is a bit too broad
-            # but it seems we'd have to do string matching on error message
-            # otherwise.
-            return
+        if options.get(use_store_option):
+            new_key = reprocessing_store.rename_key(project_id, old_group_id)
+            if not new_key:
+                return
+        else:
+            assert key, "Key must exist in this branch"
+            new_key = f"{key}:{uuid.uuid4().hex}"
+
+            try:
+                # Rename `key` to a new temp key that is passed to celery task. We
+                # use `renamenx` instead of `rename` only to detect UUID collisions.
+                assert client.renamenx(key, new_key), "UUID collision for new_key?"
+            except redis.exceptions.ResponseError:
+                # `key` does not exist in Redis. `ResponseError` is a bit too broad
+                # but it seems we'd have to do string matching on error message
+                # otherwise.
+                return
 
         from sentry.tasks.reprocessing2 import handle_remaining_events
 
@@ -555,15 +597,22 @@ def mark_event_reprocessed(data=None, group_id=None, project_id=None, num_events
 
         project_id = data["project"]
 
-    client = _get_sync_redis_client()
-    # refresh the TTL of the metadata:
-    client.expire(_get_info_reprocessed_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL)
-    key = _get_sync_counter_key(group_id)
-    client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
-    if client.decrby(key, num_events) == 0:
-        from sentry.tasks.reprocessing2 import finish_reprocessing
+    if options.get(use_store_option):
+        result = reprocessing_store.mark_event_reprocessed(group_id, num_events)
+        if result:
+            from sentry.tasks.reprocessing2 import finish_reprocessing
 
-        finish_reprocessing.delay(project_id=project_id, group_id=group_id)
+            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
+    else:
+        client = _get_sync_redis_client()
+        # refresh the TTL of the metadata:
+        client.expire(_get_info_reprocessed_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL)
+        key = _get_sync_counter_key(group_id)
+        client.expire(key, settings.SENTRY_REPROCESSING_SYNC_TTL)
+        if client.decrby(key, num_events) == 0:
+            from sentry.tasks.reprocessing2 import finish_reprocessing
+
+            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
 
 def start_group_reprocessing(
@@ -647,15 +696,20 @@ def start_group_reprocessing(
     # New Activity Timestamp
     date_created = new_activity.datetime
 
-    client = _get_sync_redis_client()
-    client.setex(_get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count)
-    client.setex(
-        _get_info_reprocessed_key(group_id),
-        settings.SENTRY_REPROCESSING_SYNC_TTL,
-        json.dumps(
-            {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
-        ),
-    )
+    if options.get(use_store_option):
+        reprocessing_store.start_reprocessing(group_id, date_created, sync_count, event_count)
+    else:
+        client = _get_sync_redis_client()
+        client.setex(
+            _get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count
+        )
+        client.setex(
+            _get_info_reprocessed_key(group_id),
+            settings.SENTRY_REPROCESSING_SYNC_TTL,
+            json.dumps(
+                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
+            ),
+        )
 
     return new_group.id
 
@@ -670,11 +724,15 @@ def is_group_finished(group_id):
 
 
 def get_progress(group_id, project_id=None):
-    client = _get_sync_redis_client()
-    pending_key = _get_sync_counter_key(group_id)
-    pending = client.get(pending_key)
-    ttl = client.ttl(pending_key)
-    info = client.get(_get_info_reprocessed_key(group_id))
+    if options.get(use_store_option):
+        pending, ttl = reprocessing_store.get_pending(group_id)
+        info = reprocessing_store.get_progress(group_id)
+    else:
+        client = _get_sync_redis_client()
+        pending_key = _get_sync_counter_key(group_id)
+        pending = client.get(pending_key)
+        ttl = client.ttl(pending_key)
+        info = client.get(_get_info_reprocessed_key(group_id))
     if pending is None:
         logger.error("reprocessing2.missing_counter")
         return 0, None
