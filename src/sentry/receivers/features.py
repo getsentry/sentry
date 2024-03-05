@@ -179,7 +179,8 @@ def record_issue_assigned(project, group, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
     analytics.record(
         "issue.assigned",
         user_id=user_id,
@@ -210,7 +211,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "issue.resolved",
@@ -231,7 +233,8 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "issue.unresolved",
@@ -279,7 +282,8 @@ def record_save_search_created(project, user, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "search.saved",
@@ -326,7 +330,8 @@ def record_alert_rule_created(
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "alert.created",
@@ -358,7 +363,8 @@ def record_alert_rule_edited(
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "alert.edited",
@@ -468,7 +474,8 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     for group in group_list:
         analytics.record(
@@ -491,7 +498,8 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     for group in group_list:
         analytics.record(
@@ -521,7 +529,8 @@ def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
     if user_id is not None:
         default_user_id = user_id
     else:
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "issue.unignored",
@@ -539,7 +548,8 @@ def record_issue_reviewed(project, user, group, **kwargs):
         user_id = default_user_id = user.id
     else:
         user_id = None
-        default_user_id = project.organization.get_default_owner().id
+        default_owner = project.organization.get_default_owner()
+        default_user_id = default_owner.id if default_owner else None
 
     analytics.record(
         "issue.mark_reviewed",
