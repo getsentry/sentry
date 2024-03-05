@@ -102,7 +102,7 @@ def derive_code_mappings(
 
     # php automatic code mappings currently in LA
     if data["platform"].startswith("php") and not features.has(
-        "organizations:derive-php-code-mappings", org
+        "organizations:derive-code-mappings-php", org
     ):
         return
 

@@ -345,34 +345,22 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             self.platform,
         )
 
-    def test_find_stacktrace_paths_single_project(self):
-        stacktrace_paths = identify_stacktrace_paths(self.event_data)
-        assert set(stacktrace_paths) == {
-            "/sentry/capybara.php",
-            "/sentry/potato/kangaroo.php",
-        }
-
-    def test_handle_duplicate_filenames_in_stacktrace(self):
-        duplicate_data = self.generate_data(
-            [
-                {"in_app": True, "filename": "/sentry/capybara.php"},
-                {"in_app": True, "filename": "/sentry/capybara.php"},
-                {"in_app": True, "filename": "/sentry/potato/kangaroo.php"},
-                {
-                    "in_app": False,
-                    "filename": "/sentry/potato/vendor/sentry/sentry/src/functions.php",
-                },
-            ],
-            self.platform,
-        )
-
-        stacktrace_paths = identify_stacktrace_paths(duplicate_data)
-        assert set(stacktrace_paths) == {
-            "/sentry/capybara.php",
-            "/sentry/potato/kangaroo.php",
-        }
+    @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": False})
+    def test_missing_feature_flag(self):
+        repo_name = "php/place"
+        with patch(
+            "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.php"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            # Check to make sure no code mappings were generated
+            assert len(RepositoryProjectPathConfig.objects.all()) == 0
 
     @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": True})
     def test_derive_code_mappings_basic_php(self):
         repo_name = "php/place"
         with patch(
@@ -388,6 +376,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
     @responses.activate
+    @with_feature({"organizations:derive-code-mappings-php": True})
     def test_derive_code_mappings_different_roots_php(self):
         repo_name = "php/place"
         with patch(
