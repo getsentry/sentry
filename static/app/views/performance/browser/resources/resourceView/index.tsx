@@ -61,12 +61,14 @@ function ResourceView() {
 
   return (
     <Fragment>
-      <SpanTimeCharts
-        moduleName={ModuleName.RESOURCE}
-        appliedFilters={spanTimeChartsFilters}
-        throughputUnit={RESOURCE_THROUGHPUT_UNIT}
-        extraQuery={extraQuery}
-      />
+      <SpanTimeChartsContainer>
+        <SpanTimeCharts
+          moduleName={ModuleName.RESOURCE}
+          appliedFilters={spanTimeChartsFilters}
+          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+          extraQuery={extraQuery}
+        />
+      </SpanTimeChartsContainer>
 
       <FilterOptionsContainer columnCount={3}>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
@@ -199,6 +201,10 @@ export function TransactionSelector({
     />
   );
 }
+
+export const SpanTimeChartsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   display: grid;
