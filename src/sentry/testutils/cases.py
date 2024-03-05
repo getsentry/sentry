@@ -637,8 +637,12 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
-        def detect_performance_problems_interceptor(data: Event, project: Project):
-            perf_problems = detect_performance_problems(data, project)
+        def detect_performance_problems_interceptor(
+            data: Event, project: Project, is_standalone_spans: bool = False
+        ):
+            perf_problems = detect_performance_problems(
+                data, project, is_standalone_spans=is_standalone_spans
+            )
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
