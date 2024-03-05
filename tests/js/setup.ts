@@ -124,6 +124,9 @@ jest.mock('@sentry/react', function sentryReact() {
     },
     BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
+    browserTracingIntegration: jest.fn().mockReturnValue({}),
+    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
       captureEvent: jest.fn(),
