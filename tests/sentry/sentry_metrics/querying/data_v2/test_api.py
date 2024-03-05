@@ -1374,8 +1374,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 35.0, None]
-        assert data[0][0]["totals"] == 35.0
+        assert data[0][0]["series"] == [None, 21.0, None]
+        assert data[0][0]["totals"] == 21.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] is None
@@ -1420,8 +1420,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 300.0, None]
-        assert data[0][0]["totals"] == 300.0
+        assert data[0][0]["series"] == [None, 35.0, None]
+        assert data[0][0]["totals"] == 35.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] == UnitFamily.UNKNOWN.value

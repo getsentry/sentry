@@ -298,21 +298,20 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
     def _visit_formula(self, formula: Formula) -> QueryExpression:
         self._is_formula = True
 
-        contains_timeseries = False
         parameters = []
         for parameter in formula.parameters:
-            if isinstance(parameter, Timeseries):
-                contains_timeseries = True
+            # If we have a division or multiplication being performed on at least one timeseries, we want to
+            # unwind and not apply any units normalization.
+            if (
+                isinstance(parameter, Timeseries)
+                and formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS
+            ):
+                raise NonNormalizableUnitsError(
+                    "A unitless formula function is being used and has at least one "
+                    "timeseries in one of its operands"
+                )
 
             parameters.append(self.visit(parameter))
-
-        # If we have a division or multiplication being performed on at least one timeseries, we want to unwind and not
-        # apply any units normalization.
-        if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and contains_timeseries:
-            raise NonNormalizableUnitsError(
-                "A unitless formula function is being used and has at least one "
-                "timeseries in one of its operands"
-            )
 
         return formula.set_parameters(parameters)
 
