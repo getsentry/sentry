@@ -62,6 +62,9 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
+    visible: bool = True
+    """Whether the region is visible in API responses"""
+
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
 
@@ -134,6 +137,9 @@ class RegionDirectory:
 
     def get_by_name(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
+
+    def get_regions(self, category: RegionCategory | None = None) -> Iterable[Region]:
+        return (r for r in self.regions if (category is None or r.category == category))
 
     def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
         return (r.name for r in self.regions if (category is None or r.category == category))
@@ -335,7 +341,11 @@ def find_all_region_names() -> Iterable[str]:
 
 
 def find_all_multitenant_region_names() -> list[str]:
-    return list(get_global_directory().get_region_names(RegionCategory.MULTI_TENANT))
+    """
+    Return all visible multi_tenant regions.
+    """
+    regions = get_global_directory().get_regions(RegionCategory.MULTI_TENANT)
+    return list([r.name for r in regions if r.visible])
 
 
 def find_all_region_addresses() -> Iterable[str]:
