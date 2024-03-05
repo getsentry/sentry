@@ -520,9 +520,13 @@ export function getChartTimeseries(
     const query = filteredQueries[index];
     const meta = data.meta[index];
     const lastMetaEntry = meta[meta.length - 1];
-    const unit = ('unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
+    const unit =
+      (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
     const scalingFactor =
-      ('scaling_factor' in lastMetaEntry && lastMetaEntry.scaling_factor) || 1;
+      (lastMetaEntry &&
+        'scaling_factor' in lastMetaEntry &&
+        lastMetaEntry.scaling_factor) ||
+      1;
     const operation = isMetricFormula(query) ? 'count' : query.op;
     const isMultiQuery = filteredQueries.length > 1;
 
