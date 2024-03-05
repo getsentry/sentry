@@ -339,6 +339,10 @@ def handle_invalid_group_owners(group):
     )
     for owner in invalid_group_owners:
         owner.delete()
+        logger.info(
+            "handle_invalid_group_owners.delete_group_owner",
+            extra={"group": group.id, "group_owner_id": owner.id, "project": group.project_id},
+        )
 
 
 def handle_group_owners(
