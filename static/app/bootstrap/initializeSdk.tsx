@@ -89,7 +89,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `allowUrls`
      */
-    dsn: 'https://3a1d75310b29262eb763b5c966c0d1b2@o640453.ingest.us.sentry.io/4506788654743552',
+    dsn: SPA_DSN || sentryConfig?.dsn,
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
      * variable for release string, useful if frontend is deployed separately
