@@ -1,8 +1,10 @@
+import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.producer import PayloadType
 from sentry.models.group import GroupStatus
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -103,7 +105,7 @@ class MarkOkTestCase(TestCase):
             monitor_environment=monitor_environment,
             starting_checkin=first_checkin,
             starting_timestamp=first_checkin.date_added,
-            grouphash=monitor_environment.incident_grouphash,
+            grouphash=hash_from_values([uuid.uuid4()]),
         )
 
         # Create OK check-ins
