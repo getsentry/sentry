@@ -1207,9 +1207,10 @@ export const useVirtualizedList = (
 ): UseVirtualizedListResult => {
   const list = useRef<VirtualizedList | null>();
 
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
   const scrollTopRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+
   const renderCache = useRef<Map<number, React.ReactNode>>();
   const styleCache = useRef<Map<number, React.CSSProperties>>();
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -1237,58 +1238,50 @@ export const useVirtualizedList = (
   itemsRef.current = props.items;
 
   useLayoutEffect(() => {
-    if (!props.container || !list.current) {
+    if (!props.container) {
       return;
     }
-
     const scrollContainer = props.container.children[0] as HTMLElement | null;
     if (!scrollContainer) {
       throw new Error(
         'Virtualized list container has to render a scroll container as its first child.'
       );
     }
+  }, [props.container, props.items.length]);
+
+  useLayoutEffect(() => {
+    if (!props.container || !list.current) {
+      return;
+    }
 
     list.current.container = props.container;
 
-    props.container.style.height = '100%';
-    props.container.style.overflow = 'auto';
-    props.container.style.position = 'relative';
-    props.container.style.willChange = 'transform';
-
-    scrollContainer.style.overflow = 'hidden';
-    scrollContainer.style.position = 'relative';
-    scrollContainerRef.current = scrollContainer;
-
     if (resizeObserverRef.current) {
-      // console.log('Disconnect');
       resizeObserverRef.current.disconnect();
     }
 
     const resizeObserver = new ResizeObserver(elements => {
       // We only care about changes to the height of the scroll container,
       // if it has not changed then do not update the scroll height.
-      const containerContentRect = elements[0]?.contentRect;
-      if (containerContentRect?.height !== scrollHeightRef.current) {
-        const height = containerContentRect?.height ?? 0;
+      styleCache.current?.clear();
+      renderCache.current?.clear();
 
-        if (height > 0) {
-          scrollHeightRef.current = height;
-          const recomputedItems = findRenderedItems({
-            scrollTop: scrollTopRef.current,
-            items: itemsRef.current,
-            overscroll: 5,
-            rowHeight: 24,
-            scrollHeight: scrollHeightRef.current,
-            styleCache: styleCache.current!,
-            renderCache: renderCache.current!,
-            render: renderRef.current,
-          });
-          setItems(recomputedItems);
-        }
-      }
+      scrollHeightRef.current = elements[0].contentRect.height;
+
+      const recomputedItems = findRenderedItems({
+        scrollTop: scrollTopRef.current,
+        items: itemsRef.current,
+        overscroll: 5,
+        rowHeight: 24,
+        scrollHeight: scrollHeightRef.current,
+        styleCache: styleCache.current!,
+        renderCache: renderCache.current!,
+        render: renderRef.current,
+      });
+      setItems(recomputedItems);
     });
 
-    resizeObserver.observe(scrollContainer);
+    resizeObserver.observe(props.container);
     resizeObserverRef.current = resizeObserver;
   }, [props.container]);
 
@@ -1296,9 +1289,23 @@ export const useVirtualizedList = (
   const pointerEventsRaf = useRef<{id: number} | null>(null);
 
   useLayoutEffect(() => {
-    if (!list.current || scrollContainerRef.current || !props.container) {
+    if (!list.current || !props.container) {
       return undefined;
     }
+
+    if (props.container && !scrollContainerRef.current) {
+      scrollContainerRef.current = props.container.children[0] as HTMLElement | null;
+    }
+
+    props.container.style.height = '100%';
+    props.container.style.overflow = 'auto';
+    props.container.style.position = 'relative';
+    props.container.style.willChange = 'transform';
+
+    scrollContainerRef.current!.style.overflow = 'hidden';
+    scrollContainerRef.current!.style.position = 'relative';
+    scrollContainerRef.current!.style.willChange = 'transform';
+    scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
 
     const onScroll = event => {
       if (!list.current) {
@@ -1330,7 +1337,6 @@ export const useVirtualizedList = (
 
       if (pointerEventsRaf.current) {
         window.cancelAnimationFrame(pointerEventsRaf.current.id);
-        pointerEventsRaf.current = null;
       }
 
       pointerEventsRaf.current = requestAnimationTimeout(() => {
@@ -1355,14 +1361,17 @@ export const useVirtualizedList = (
       return;
     }
 
+    styleCache.current.clear();
+    renderCache.current.clear();
+
     const recomputedItems = findRenderedItems({
       scrollTop: scrollTopRef.current,
       items: props.items,
       overscroll: 5,
       rowHeight: 24,
       scrollHeight: scrollHeightRef.current,
-      styleCache: new Map(),
-      renderCache: new Map(),
+      styleCache: styleCache.current!,
+      renderCache: renderCache.current,
       render: props.render,
     });
 
