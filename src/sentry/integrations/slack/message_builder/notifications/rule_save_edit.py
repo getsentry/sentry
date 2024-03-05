@@ -10,14 +10,12 @@ from sentry.utils.http import absolute_uri
 class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
-        rules: list[Rule],
+        rule: Rule,
         new: bool,
-        edited: bool,
     ) -> None:
         super().__init__()
-        self.rule = rules[0]
+        self.rule = rule
         self.new = new
-        self.edited = edited
 
     def linkify_rule(self):
         org_slug = self.rule.project.organization.slug

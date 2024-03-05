@@ -31,11 +31,12 @@ from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.processor import RuleProcessor, is_condition_slow
+from sentry.rules.actions.base import EventAction
+from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
-from sentry.utils.samples import create_sample_event
 
 
 def clean_rule_data(data):
@@ -832,13 +833,28 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             wizard_v3=wizard_v3,
         )
 
-        test_event = create_sample_event(
-            project, platform=project.platform, default="javascript", tagged=True
-        )
-        rp = RuleProcessor(test_event, False, False, False, False)
-        rp.activate_downstream_actions(rule, new=True)
+        # TODO add msteams and discord
+        SUPPORTED_ACTIONS_MAP = {
+            "sentry.integrations.slack.notify_action.SlackNotifyServiceAction": "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction"
+        }
 
-        for callback, futures in rp.grouped_futures.values():
-            safe_execute(callback, test_event, futures, _with_transaction=False)
+        # TODO put this in a function that takes 'rule' and 'new' to be shared with project_rule_index
+        for action in rule.data.get("actions", ()):
+            action_cls_id = action.get("id")
+            action_cls = import_string(SUPPORTED_ACTIONS_MAP[action_cls_id])
+            if action_cls is None:
+                self.logger.warning("Unregistered action %r", action["id"])
+                continue
+
+            action_inst = action_cls(project, data=action, rule=rule)
+            if not isinstance(action_inst, EventAction):
+                self.logger.warning("Unregistered action %r", action["id"])
+                continue
+
+            safe_execute(
+                action_inst.send_confirmation_notification,
+                rule=rule,
+                new=True,
+            )
 
         return Response(serialize(rule, request.user))

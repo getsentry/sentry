@@ -265,13 +265,7 @@ class RuleProcessor:
         history.record(rule, self.group, self.event.event_id, notification_uuid)
         self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(
-        self,
-        rule: Rule,
-        notification_uuid: str | None = None,
-        new: bool = False,
-        edited: bool = False,
-    ) -> None:
+    def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
@@ -283,14 +277,13 @@ class RuleProcessor:
             if not isinstance(action_inst, EventAction):
                 self.logger.warning("Unregistered action %r", action["id"])
                 continue
+
             results = safe_execute(
                 action_inst.after,
                 event=self.event,
                 state=state,
                 _with_transaction=False,
                 notification_uuid=notification_uuid,
-                new=new,
-                edited=edited,
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
