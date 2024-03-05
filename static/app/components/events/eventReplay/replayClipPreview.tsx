@@ -60,6 +60,8 @@ type Props = {
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  handleBackClick?: () => void;
+  handleForwardClick?: () => void;
   isLarge?: boolean;
 };
 
@@ -200,6 +202,8 @@ function ReplayClipPreview({
   replaySlug,
   fullReplayButtonProps,
   isLarge,
+  handleForwardClick,
+  handleBackClick,
 }: Props) {
   const clipWindow = useMemo(
     () => ({
@@ -270,6 +274,8 @@ function ReplayClipPreview({
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
             replayRecord={replayRecord}
+            handleBackClick={handleBackClick}
+            handleForwardClick={handleForwardClick}
           />
         )}
       </PlayerContainer>
