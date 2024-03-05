@@ -35,7 +35,6 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
-    TooManyCodeLocationsRequestedError,
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
@@ -585,8 +584,6 @@ class OrganizationMetricsMetadataEndpoint(OrganizationEndpoint):
                     )
             except LatestReleaseNotFoundError as e:
                 return Response(status=404, data={"detail": str(e)})
-            except TooManyCodeLocationsRequestedError as e:
-                return Response(status=400, data={"detail": str(e)})
 
             response[meta_type.value] = serialize(
                 data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]
