@@ -1230,6 +1230,14 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
     },
+    "detect_broken_monitor_envs": {
+        "task": "sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": crontab(
+            minute="0",
+            hour="12",  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 15 * 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
