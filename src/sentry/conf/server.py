@@ -1517,8 +1517,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-rh-widget": False,
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
-    # Enables ddm formula features
-    "organizations:ddm-formulas": False,
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
