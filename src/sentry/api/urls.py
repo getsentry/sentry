@@ -108,10 +108,6 @@ from sentry.issues.endpoints import (
 from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
     MonitorIngestCheckinAttachmentEndpoint,
 )
-from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
-    MonitorIngestCheckInDetailsEndpoint,
-)
-from sentry.monitors.endpoints.monitor_ingest_checkin_index import MonitorIngestCheckInIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
     OrganizationMonitorCheckInAttachmentEndpoint,
 )
@@ -1594,28 +1590,8 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-        # XXX(epurkhiser): When removing method dispatch (once the legacy
-        # ingest endpoints are removed) we need to update apidocs/hooks.py to
-        # remove these from the explicit endpoints
-        method_dispatch(
-            GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
-            OPTIONS=OrganizationMonitorCheckInIndexEndpoint.as_view(),
-            POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
-            csrf_exempt=True,
-        ),
+        OrganizationMonitorCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-index",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        # XXX(epurkhiser): When removing method dispatch (once the legacy
-        # ingest endpoints are removed) we need to update apidocs/hooks.py to
-        # remove these from the explicit endpoints
-        method_dispatch(
-            PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
-            OPTIONS=MonitorIngestCheckInDetailsEndpoint.as_view(),
-            csrf_exempt=True,
-        ),
-        name="sentry-api-0-organization-monitor-check-in-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
@@ -3075,18 +3051,6 @@ urlpatterns = [
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
-    ),
-    # Top-level monitor checkin APIs. NOTE that there are also organization
-    # level checkin ingest APIs.
-    re_path(
-        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-        MonitorIngestCheckInIndexEndpoint.as_view(),
-        name="sentry-api-0-monitor-ingest-check-in-index",
-    ),
-    re_path(
-        r"^monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        MonitorIngestCheckInDetailsEndpoint.as_view(),
-        name="sentry-api-0-monitor-ingest-check-in-details",
     ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.

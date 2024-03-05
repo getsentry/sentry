@@ -3135,14 +3135,6 @@ class MonitorIngestTestCase(MonitorTestCase):
     """
 
     @property
-    def endpoint_with_org(self):
-        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
-
-    @property
-    def dsn_auth_headers(self):
-        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
-
-    @property
     def token_auth_headers(self):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
 
@@ -3160,17 +3152,6 @@ class MonitorIngestTestCase(MonitorTestCase):
             slug=sentry_app.slug, organization=self.organization
         )
         self.token = self.create_internal_integration_token(install=app, user=self.user)
-
-    def _get_path_functions(self):
-        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
-        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
-        # decision to permanently remove either path schema is a TODO.
-        return (
-            lambda monitor_slug: reverse(self.endpoint, args=[monitor_slug]),
-            lambda monitor_slug: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
-            ),
-        )
 
 
 class IntegratedApiTestCase(BaseTestCase):
