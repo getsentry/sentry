@@ -15,10 +15,9 @@ from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, Model
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
+    get_and_optionally_update_blob,
     get_size_and_checksum,
     get_storage,
-    lock_blob,
-    locked_blob,
     nooplogger,
 )
 from sentry.utils import metrics
@@ -68,10 +67,9 @@ class AbstractFileBlob(Model):
 
         checksums_seen = set()
         blobs_to_save = []
-        locks = set()
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
-        def _upload_and_pend_chunk(fileobj, size, checksum, lock):
+        def _upload_and_pend_chunk(fileobj, size, checksum):
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.start",
                 extra={"checksum": checksum, "size": size},
@@ -80,7 +78,7 @@ class AbstractFileBlob(Model):
             blob.path = cls.generate_unique_path()
             storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
-            blobs_to_save.append((blob, lock))
+            blobs_to_save.append(blob)
             metrics.distribution(
                 "filestore.blob-size", size, tags={"function": "from_files"}, unit="byte"
             )
@@ -123,13 +121,11 @@ class AbstractFileBlob(Model):
         def _flush_blobs():
             while True:
                 try:
-                    blob, lock = blobs_to_save.pop()
+                    blob = blobs_to_save.pop()
                 except IndexError:
                     break
 
                 _save_blob(blob)
-                lock.__exit__(None, None, None)
-                locks.discard(lock)
                 semaphore.release()
 
         try:
@@ -152,18 +148,12 @@ class AbstractFileBlob(Model):
                         continue
                     checksums_seen.add(checksum)
 
-                    # Check if we need to lock the blob.  If we get a result back
+                    # Check if we need to upload the blob.  If we get a result back
                     # here it means the blob already exists.
-                    lock = locked_blob(cls, size, checksum, logger=logger)
-                    existing = lock.__enter__()
+                    existing = get_and_optionally_update_blob(cls, checksum)
                     if existing is not None:
-                        lock.__exit__(None, None, None)
                         _ensure_blob_owned(existing)
                         continue
-
-                    # Remember the lock to force unlock all at the end if we
-                    # encounter any difficulties.
-                    locks.add(lock)
 
                     # Otherwise we leave the blob locked and submit the task.
                     # We use the semaphore to ensure we never schedule too
@@ -172,16 +162,11 @@ class AbstractFileBlob(Model):
                     # `_flush_blobs` call will take all those uploaded
                     # blobs and associate them with the database.
                     semaphore.acquire()
-                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
+                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum))
                     logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
 
             _flush_blobs()
         finally:
-            for lock in locks:
-                try:
-                    lock.__exit__(None, None, None)
-                except Exception:
-                    pass
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
@@ -194,24 +179,22 @@ class AbstractFileBlob(Model):
 
         size, checksum = get_size_and_checksum(fileobj)
 
-        # TODO(dcramer): the database here is safe, but if this lock expires
-        # and duplicate files are uploaded then we need to prune one
-        with locked_blob(cls, size, checksum, logger=logger) as existing:
-            if existing is not None:
-                return existing
+        existing = get_and_optionally_update_blob(cls, checksum)
+        if existing is not None:
+            return existing
 
-            blob = cls(size=size, checksum=checksum)
-            blob.path = cls.generate_unique_path()
-            storage = get_storage(cls._storage_config())
-            storage.save(blob.path, fileobj)
-            try:
-                blob.save()
-            except IntegrityError:
-                # see `_save_blob` above
-                metrics.incr("filestore.upload_race", sample_rate=1.0)
-                saved_path = blob.path
-                blob = cls.objects.get(checksum=checksum)
-                storage.delete(saved_path)
+        blob = cls(size=size, checksum=checksum)
+        blob.path = cls.generate_unique_path()
+        storage = get_storage(cls._storage_config())
+        storage.save(blob.path, fileobj)
+        try:
+            blob.save()
+        except IntegrityError:
+            # see `_save_blob` above
+            metrics.incr("filestore.upload_race", sample_rate=1.0)
+            saved_path = blob.path
+            blob = cls.objects.get(checksum=checksum)
+            storage.delete(saved_path)
 
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
@@ -235,11 +218,7 @@ class AbstractFileBlob(Model):
             self.DELETE_FILE_TASK.apply_async(
                 kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
             )
-        lock = lock_blob(
-            self.checksum, "fileblob_upload_delete", metric_instance="lock.fileblob.delete"
-        )
-        with lock:
-            super().delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def getfile(self):
         """
