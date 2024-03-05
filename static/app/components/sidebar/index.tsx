@@ -11,6 +11,7 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
+import SidebarSmallScreen from 'sentry/components/sidebar/sidebarSmallScreen';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
@@ -57,7 +58,7 @@ import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
-import {SidebarAccordion} from './sidebarAccordion';
+import {ExpandedContextProvider, SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import type {SidebarOrientation} from './types';
@@ -509,137 +510,144 @@ function Sidebar() {
 
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
-      <SidebarSectionGroupPrimary>
-        <DropdownSidebarSection isSuperuser={showSuperuserWarning() && !isExcludedOrg()}>
-          <SidebarDropdown orientation={orientation} collapsed={collapsed} />
+      <ExpandedContextProvider>
+        <SidebarSmallScreen sidebarCollapsed={collapsed} />
+        <SidebarSectionGroupPrimary>
+          <DropdownSidebarSection
+            isSuperuser={showSuperuserWarning() && !isExcludedOrg()}
+          >
+            <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
-          {showSuperuserWarning() && !isExcludedOrg() && (
-            <Hook name="component:superuser-warning" organization={organization} />
-          )}
-        </DropdownSidebarSection>
+            {showSuperuserWarning() && !isExcludedOrg() && (
+              <Hook name="component:superuser-warning" organization={organization} />
+            )}
+          </DropdownSidebarSection>
 
-        <PrimaryItems>
-          {hasOrganization && (
-            <Fragment>
-              <SidebarSection>
-                {issues}
-                {projects}
-              </SidebarSection>
+          <PrimaryItems>
+            {hasOrganization && (
+              <Fragment>
+                <SidebarSection>
+                  {issues}
+                  {projects}
+                </SidebarSection>
 
-              <SidebarSection>
-                {performance}
-                {starfish}
-                {profiling}
-                {ddm}
-                {replays}
-                {feedback}
-                {monitors}
-                {alerts}
-              </SidebarSection>
+                <SidebarSection>
+                  {performance}
+                  {starfish}
+                  {profiling}
+                  {ddm}
+                  {replays}
+                  {feedback}
+                  {monitors}
+                  {alerts}
+                </SidebarSection>
 
-              <SidebarSection>
-                {discover2}
-                {dashboards}
-                {releases}
-                {userFeedback}
-              </SidebarSection>
+                <SidebarSection>
+                  {discover2}
+                  {dashboards}
+                  {releases}
+                  {userFeedback}
+                </SidebarSection>
 
-              <SidebarSection>
-                {stats}
-                {settings}
-              </SidebarSection>
-            </Fragment>
-          )}
-        </PrimaryItems>
-      </SidebarSectionGroupPrimary>
+                <SidebarSection>
+                  {stats}
+                  {settings}
+                </SidebarSection>
+              </Fragment>
+            )}
+          </PrimaryItems>
+        </SidebarSectionGroupPrimary>
 
-      {hasOrganization && (
-        <SidebarSectionGroup>
-          <PerformanceOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
-            hidePanel={() => hidePanel('performance-sidequest')}
-            {...sidebarItemProps}
-          />
-          <FeedbackOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <ReplaysOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <ProfilingOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <MetricsOnboardingSidebar
-            currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
-            hidePanel={hidePanel}
-            {...sidebarItemProps}
-          />
-          <SidebarSection noMargin noPadding>
-            <OnboardingStatus
-              org={organization}
+        {hasOrganization && (
+          <SidebarSectionGroup>
+            <PerformanceOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING)}
+              hidePanel={() => hidePanel('performance-sidequest')}
+              {...sidebarItemProps}
+            />
+            <FeedbackOnboardingSidebar
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.FEEDBACK_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
-          </SidebarSection>
-
-          <SidebarSection>
-            {HookStore.get('sidebar:bottom-items').length > 0 &&
-              HookStore.get('sidebar:bottom-items')[0]({
-                orientation,
-                collapsed,
-                hasPanel,
-                organization,
-              })}
-            <SidebarHelp
-              orientation={orientation}
-              collapsed={collapsed}
-              hidePanel={hidePanel}
-              organization={organization}
-            />
-            <Broadcasts
-              orientation={orientation}
-              collapsed={collapsed}
+            <ReplaysOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
               hidePanel={hidePanel}
-              organization={organization}
+              {...sidebarItemProps}
             />
-            <ServiceIncidents
-              orientation={orientation}
-              collapsed={collapsed}
+            <ProfilingOnboardingSidebar
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
               hidePanel={hidePanel}
+              {...sidebarItemProps}
             />
-          </SidebarSection>
-
-          {!horizontal && (
-            <SidebarSection>
-              <SidebarCollapseItem
-                id="collapse"
-                data-test-id="sidebar-collapse"
+            <MetricsOnboardingSidebar
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
+              hidePanel={hidePanel}
+              {...sidebarItemProps}
+            />
+            <SidebarSection noMargin noPadding>
+              <OnboardingStatus
+                org={organization}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                hidePanel={hidePanel}
                 {...sidebarItemProps}
-                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
-                label={collapsed ? t('Expand') : t('Collapse')}
-                onClick={toggleCollapse}
               />
             </SidebarSection>
-          )}
-        </SidebarSectionGroup>
-      )}
+
+            <SidebarSection>
+              {HookStore.get('sidebar:bottom-items').length > 0 &&
+                HookStore.get('sidebar:bottom-items')[0]({
+                  orientation,
+                  collapsed,
+                  hasPanel,
+                  organization,
+                })}
+              <SidebarHelp
+                orientation={orientation}
+                collapsed={collapsed}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <Broadcasts
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                hidePanel={hidePanel}
+                organization={organization}
+              />
+              <ServiceIncidents
+                orientation={orientation}
+                collapsed={collapsed}
+                currentPanel={activePanel}
+                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                hidePanel={hidePanel}
+              />
+            </SidebarSection>
+
+            {!horizontal && (
+              <SidebarSection>
+                <SidebarCollapseItem
+                  id="collapse"
+                  data-test-id="sidebar-collapse"
+                  {...sidebarItemProps}
+                  icon={
+                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
+                  }
+                  label={collapsed ? t('Expand') : t('Collapse')}
+                  onClick={toggleCollapse}
+                />
+              </SidebarSection>
+            )}
+          </SidebarSectionGroup>
+        )}
+      </ExpandedContextProvider>
     </SidebarWrapper>
   );
 }

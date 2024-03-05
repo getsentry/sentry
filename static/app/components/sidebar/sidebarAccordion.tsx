@@ -1,4 +1,12 @@
-import {Children, isValidElement, useCallback} from 'react';
+import {
+  Children,
+  createContext,
+  isValidElement,
+  useCallback,
+  useContext,
+  useState,
+} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,6 +14,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMedia from 'sentry/utils/useMedia';
 
 import type {SidebarItemProps} from './sidebarItem';
 import SidebarItem, {isItemActive} from './sidebarItem';
@@ -14,8 +23,28 @@ type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
 };
 
+export const ExpandedContext = createContext<{
+  items: React.ReactNode;
+  setItems: (items: React.ReactNode) => void;
+}>({items: null, setItems: (_: React.ReactNode) => {}});
+
+export function ExpandedContextProvider(props) {
+  const [items, setItems] = useState<React.ReactNode>(null);
+
+  return (
+    <ExpandedContext.Provider value={{items, setItems}}>
+      {props.children}
+    </ExpandedContext.Provider>
+  );
+}
+
 function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
+  const {items, setItems} = useContext(ExpandedContext);
+  const theme = useTheme();
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+
   const {id, collapsed: sidebarCollapsed} = itemProps;
+
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
     true
@@ -44,6 +73,23 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
     [expanded, setExpanded]
   );
 
+  const handleMainItemClick = (
+    _: string,
+    e: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+  ) => {
+    if (!horizontal && !sidebarCollapsed) {
+      setItems(null);
+      return;
+    }
+
+    e.preventDefault();
+    if (items === children) {
+      setItems(null);
+    } else {
+      setItems(children);
+    }
+  };
+
   return (
     <SidebarAccordionWrapper>
       <SidebarAccordionHeaderWrap>
@@ -53,6 +99,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
           id={mainItemId}
           aria-expanded={expanded}
           aria-owns={contentId}
+          onClick={handleMainItemClick}
           trailingItems={
             <SidebarAccordionExpandButton
               size="zero"
@@ -71,7 +118,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
           }
         />
       </SidebarAccordionHeaderWrap>
-      {expanded && (
+      {expanded && !horizontal && !sidebarCollapsed && (
         <SidebarAccordionSubitemsWrap id={contentId}>
           {children}
         </SidebarAccordionSubitemsWrap>
