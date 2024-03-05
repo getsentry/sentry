@@ -1,10 +1,11 @@
-import type {List} from 'react-virtualized';
+import {useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import clamp from 'sentry/utils/number/clamp';
+import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   isAutogroupedNode,
@@ -130,8 +131,7 @@ export class VirtualizedViewManager {
   text_measurer: TextMeasurer = new TextMeasurer();
 
   resize_observer: ResizeObserver | null = null;
-  list: List | null = null;
-  virtualizedList: VirtualizedList | null = new VirtualizedList();
+  list: VirtualizedList | null = null;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -271,7 +271,7 @@ export class VirtualizedViewManager {
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
-  registerList(list: List | null) {
+  registerList(list: VirtualizedList | null) {
     this.list = list;
   }
 
@@ -593,7 +593,7 @@ export class VirtualizedViewManager {
     let max = Number.NEGATIVE_INFINITY;
     let innerMostNode: TraceTreeNode<any> | undefined;
 
-    const offset = this.list?.Grid?.props.overscanRowCount ?? 0;
+    const offset = 5;
     const renderCount = this.columns.span_list.column_refs.length;
 
     for (let i = offset + 1; i < renderCount - offset; i++) {
@@ -1180,39 +1180,310 @@ class TextMeasurer {
 }
 
 class VirtualizedList {
-  scrollContainer: HTMLElement | null = null;
-  resizeObserver: ResizeObserver | null = null;
-
-  scrollTop: number = 0;
-  scrollHeight: number = 0;
-
-  initialize(scrollContainer: HTMLElement | null) {
-    if (!scrollContainer) {
-      if (this.resizeObserver) {
-        this.resizeObserver.disconnect();
-      }
+  container: HTMLElement | null = null;
+  scrollToRow(index: number, rowHeight: number = 24) {
+    if (!this.container) {
       return;
     }
 
-    this.scrollContainer = scrollContainer;
-    this.resizeObserver = new window.ResizeObserver(elements => {
+    this.container.scrollTop = index * rowHeight;
+  }
+}
+
+interface UseVirtualizedListProps {
+  container: HTMLElement | null;
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  manager: VirtualizedViewManager;
+  render: (item: VirtualizedRow) => React.ReactNode;
+}
+interface UseVirtualizedListResult {
+  list: VirtualizedList;
+  rendered: React.ReactNode[];
+  virtualized: VirtualizedRow[];
+}
+
+export const useVirtualizedList = (
+  props: UseVirtualizedListProps
+): UseVirtualizedListResult => {
+  const list = useRef<VirtualizedList | null>();
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const scrollTopRef = useRef<number>(0);
+  const scrollHeightRef = useRef<number>(0);
+  const renderCache = useRef<Map<number, React.ReactNode>>();
+  const styleCache = useRef<Map<number, React.CSSProperties>>();
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
+  if (!styleCache.current) {
+    styleCache.current = new Map();
+  }
+  if (!renderCache.current) {
+    renderCache.current = new Map();
+  }
+
+  const [items, setItems] = useState<{
+    rendered: React.ReactNode[];
+    virtualized: VirtualizedRow[];
+  }>({rendered: [], virtualized: []});
+
+  if (!list.current) {
+    list.current = new VirtualizedList();
+    props.manager.registerList(list.current);
+  }
+
+  const renderRef = useRef<(item: VirtualizedRow) => React.ReactNode>(props.render);
+  renderRef.current = props.render;
+  const itemsRef = useRef<ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>>(props.items);
+  itemsRef.current = props.items;
+
+  useLayoutEffect(() => {
+    if (!props.container || !list.current) {
+      return;
+    }
+
+    const scrollContainer = props.container.children[0] as HTMLElement | null;
+    if (!scrollContainer) {
+      throw new Error(
+        'Virtualized list container has to render a scroll container as its first child.'
+      );
+    }
+
+    list.current.container = props.container;
+
+    props.container.style.height = '100%';
+    props.container.style.overflow = 'auto';
+    props.container.style.position = 'relative';
+    props.container.style.willChange = 'transform';
+
+    scrollContainer.style.overflow = 'hidden';
+    scrollContainer.style.position = 'relative';
+    scrollContainerRef.current = scrollContainer;
+
+    if (resizeObserverRef.current) {
+      // console.log('Disconnect');
+      resizeObserverRef.current.disconnect();
+    }
+
+    const resizeObserver = new ResizeObserver(elements => {
       // We only care about changes to the height of the scroll container,
       // if it has not changed then do not update the scroll height.
-      if (elements[0]?.contentRect?.height !== this.scrollHeight) {
-        const height = elements[0]?.contentRect?.height ?? 0;
+      const containerContentRect = elements[0]?.contentRect;
+      if (containerContentRect?.height !== scrollHeightRef.current) {
+        const height = containerContentRect?.height ?? 0;
 
         if (height > 0) {
-          this.scrollHeight = elements[0]?.contentRect?.height ?? 0;
-        } else {
-          console.log('ScrollHeight is <  0');
+          scrollHeightRef.current = height;
+          const recomputedItems = findRenderedItems({
+            scrollTop: scrollTopRef.current,
+            items: itemsRef.current,
+            overscroll: 5,
+            rowHeight: 24,
+            scrollHeight: scrollHeightRef.current,
+            styleCache: styleCache.current!,
+            renderCache: renderCache.current!,
+            render: renderRef.current,
+          });
+          setItems(recomputedItems);
         }
       }
     });
+
+    resizeObserver.observe(scrollContainer);
+    resizeObserverRef.current = resizeObserver;
+  }, [props.container]);
+
+  const rafId = useRef<number | null>(null);
+  const pointerEventsRaf = useRef<{id: number} | null>(null);
+
+  useLayoutEffect(() => {
+    if (!list.current || scrollContainerRef.current || !props.container) {
+      return undefined;
+    }
+
+    const onScroll = event => {
+      if (!list.current) {
+        return;
+      }
+
+      if (rafId.current !== null) {
+        window.cancelAnimationFrame(rafId.current);
+      }
+
+      rafId.current = window.requestAnimationFrame(() => {
+        scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
+        const recomputedItems = findRenderedItems({
+          scrollTop: scrollTopRef.current,
+          items: props.items,
+          overscroll: 5,
+          rowHeight: 24,
+          scrollHeight: scrollHeightRef.current,
+          styleCache: styleCache.current!,
+          renderCache: renderCache.current!,
+          render: props.render,
+        });
+        setItems(recomputedItems);
+      });
+
+      if (!pointerEventsRaf.current && scrollContainerRef.current) {
+        scrollContainerRef.current.style.pointerEvents = 'none';
+      }
+
+      if (pointerEventsRaf.current) {
+        window.cancelAnimationFrame(pointerEventsRaf.current.id);
+        pointerEventsRaf.current = null;
+      }
+
+      pointerEventsRaf.current = requestAnimationTimeout(() => {
+        styleCache.current?.clear();
+        renderCache.current?.clear();
+
+        if (list.current && scrollContainerRef.current) {
+          scrollContainerRef.current.style.pointerEvents = 'auto';
+          pointerEventsRaf.current = null;
+        }
+      }, 150);
+    };
+    props.container.addEventListener('scroll', onScroll, {passive: true});
+
+    return () => {
+      props.container?.removeEventListener('scroll', onScroll);
+    };
+  }, [props.container, props.render, props.items, props.items.length]);
+
+  useLayoutEffect(() => {
+    if (!list.current || !styleCache.current || !renderCache.current) {
+      return;
+    }
+
+    const recomputedItems = findRenderedItems({
+      scrollTop: scrollTopRef.current,
+      items: props.items,
+      overscroll: 5,
+      rowHeight: 24,
+      scrollHeight: scrollHeightRef.current,
+      styleCache: new Map(),
+      renderCache: new Map(),
+      render: props.render,
+    });
+
+    setItems(recomputedItems);
+  }, [props.items, props.render, props.items.length]);
+
+  return {
+    virtualized: items.virtualized,
+    rendered: items.rendered,
+    list: list.current!,
+  };
+};
+
+interface VirtualizedRow {
+  item: TraceTreeNode<TraceTree.NodeValue>;
+  key: number;
+  ref: HTMLElement | null;
+  style: React.CSSProperties;
+}
+
+function findRenderedItems({
+  items,
+  overscroll,
+  rowHeight,
+  scrollHeight,
+  scrollTop,
+  styleCache,
+  render,
+  renderCache,
+}: {
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  overscroll: number;
+  render: (arg: VirtualizedRow) => React.ReactNode;
+  renderCache: Map<number, React.ReactNode>;
+  rowHeight: number;
+  scrollHeight: number;
+  scrollTop: number;
+  styleCache: Map<number, React.CSSProperties>;
+}): {rendered: React.ReactNode[]; virtualized: VirtualizedRow[]} {
+  // This is overscroll height for single direction, when computing the total,
+  // we need to multiply this by 2 because we overscroll in both directions.
+  const OVERSCROLL_HEIGHT = overscroll * rowHeight;
+  const virtualized: VirtualizedRow[] = [];
+  const rendered: React.ReactNode[] = [];
+
+  // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
+  // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)
+  const viewport = {
+    top: Math.max(scrollTop - OVERSCROLL_HEIGHT, 0),
+    bottom: Math.min(
+      scrollTop + scrollHeight + OVERSCROLL_HEIGHT,
+      items.length * rowHeight
+    ),
+  };
+
+  // Points to the position inside the visible array
+  let visibleItemIndex = 0;
+  // Points to the currently iterated item
+  let indexPointer = findOptimisticStartIndex({
+    items,
+    viewport,
+    scrollTop,
+    rowHeight,
+    overscroll,
+  });
+
+  // Max number of visible items in our list
+  const MAX_VISIBLE_ITEMS = Math.ceil((scrollHeight + OVERSCROLL_HEIGHT * 2) / rowHeight);
+  const ALL_ITEMS = items.length;
+
+  // While number of visible items is less than max visible items, and we haven't reached the end of the list
+  while (visibleItemIndex < MAX_VISIBLE_ITEMS && indexPointer < ALL_ITEMS) {
+    const elementTop = indexPointer * rowHeight;
+    const elementBottom = elementTop + rowHeight;
+
+    // An element is inside a viewport if the top of the element is below the top of the viewport
+    // and the bottom of the element is above the bottom of the viewport
+    if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
+      let style = styleCache.get(indexPointer);
+      if (!style) {
+        style = {position: 'absolute', top: elementTop};
+        styleCache.set(indexPointer, style);
+      }
+
+      const virtualizedRow: VirtualizedRow = {
+        key: indexPointer,
+        ref: null,
+        style,
+        item: items[indexPointer],
+      };
+
+      virtualized[visibleItemIndex] = virtualizedRow;
+
+      const renderedRow = renderCache.get(indexPointer) || render(virtualizedRow);
+      rendered[visibleItemIndex] = renderedRow;
+      renderCache.set(indexPointer, renderedRow);
+      visibleItemIndex++;
+    }
+    indexPointer++;
   }
 
-  scrollToRow(index: number) {
-    console.log('scrolling to', index);
+  return {rendered, virtualized};
+}
+
+export function findOptimisticStartIndex({
+  items,
+  overscroll,
+  rowHeight,
+  scrollTop,
+  viewport,
+}: {
+  items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
+  overscroll: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewport: {bottom: number; top: number};
+}): number {
+  if (!items.length || viewport.top === 0) {
+    return 0;
   }
+  return Math.max(Math.floor(scrollTop / rowHeight) - overscroll, 0);
 }
 
 function findInTreeFromSegment(

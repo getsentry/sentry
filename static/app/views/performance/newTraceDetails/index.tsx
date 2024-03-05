@@ -270,6 +270,9 @@ function TraceViewContent(props: TraceViewContentProps) {
       return;
     }
 
+    if (typeof searchState.resultIndex !== 'number') {
+      return;
+    }
     viewManager.list.scrollToRow(searchState.resultIndex);
     previousIndexRef.current = searchState.resultIndex;
   }, [searchState.resultIndex, viewManager.list]);
@@ -394,7 +397,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             traces={props.trace}
             traceEventView={props.traceEventView}
           />
-          {<TraceDetailPanel node={detailNode} onClose={onDetailClose} />}
+          <TraceDetailPanel node={detailNode} onClose={onDetailClose} />
         </Layout.Main>
       </Layout.Body>
     </Fragment>

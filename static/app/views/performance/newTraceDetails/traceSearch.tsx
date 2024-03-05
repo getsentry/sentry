@@ -154,7 +154,7 @@ export function searchInTraceTree(
 
   let i = 0;
   let matchCount = 0;
-  const count = tree.list.length - 1;
+  const count = tree.list.length;
 
   function search() {
     const ts = performance.now();

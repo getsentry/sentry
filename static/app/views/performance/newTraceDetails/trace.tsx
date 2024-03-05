@@ -1,20 +1,18 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {AutoSizer, List} from 'react-virtualized';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {IconChevron, IconFire} from 'sentry/icons';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
@@ -41,7 +39,23 @@ import {
   isTransactionNode,
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
-import type {VirtualizedViewManager} from './virtualizedViewManager';
+import {useVirtualizedList, type VirtualizedViewManager} from './virtualizedViewManager';
+
+function Chevron(props: {direction: 'up' | 'down'}) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      style={{
+        fill: 'currentcolor',
+        color: 'currentcolor',
+        transition: 'transform 120ms ease-in-out',
+        transform: `rotate(${props.direction === 'up' ? 90 : 0}deg)`,
+      }}
+    >
+      <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
+    </svg>
+  );
+}
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
@@ -133,7 +147,7 @@ function Trace({
   const organization = useOrganization();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [_rerender, setRender] = useState(0);
+  const [rerender, setRender] = useState(0);
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
   const treePromiseStatusRef =
@@ -413,20 +427,78 @@ function Trace({
   // }, []);
 
   const projectLookup = useMemo(() => {
-    return projects.reduce<Record<Project['slug'], Project>>((acc, project) => {
-      acc[project.slug] = project;
-      return acc;
-    }, {});
+    return projects.reduce<Record<Project['slug'], Project['platform']>>(
+      (acc, project) => {
+        acc[project.slug] = project.platform;
+        return acc;
+      },
+      {}
+    );
   }, [projects]);
 
-  const registerListRef = useCallback(
-    (r: List | null) => {
-      if (r) {
-        manager.registerList(r);
-      }
+  const render = useCallback(
+    n => {
+      return trace.type === 'loading' ? (
+        <RenderPlaceholderRow
+          index={n.key}
+          key={n.key}
+          style={n.style}
+          node={n.item}
+          theme={theme}
+          projects={projectLookup}
+          manager={manager}
+        />
+      ) : (
+        <RenderRow
+          key={n.key}
+          index={n.key}
+          organization={organization}
+          previouslyFocusedIndexRef={previouslyFocusedIndexRef}
+          tabIndex={roving_state.index ?? -1}
+          isSearchResult={searchResultsMap.has(n.item)}
+          searchResultsIteratorIndex={searchResultsIteratorIndex}
+          style={n.style}
+          trace_id={trace_id}
+          projects={projectLookup}
+          node={n.item}
+          manager={manager}
+          theme={theme}
+          onExpand={handleExpandNode}
+          onZoomIn={handleZoomIn}
+          onRowClick={onRowClick}
+          onRowKeyDown={onRowKeyDown}
+        />
+      );
     },
-    [manager]
+    // The linter complains about rerender being a unnecessary dependency, but it's not
+    // because we do in fact want to rerender when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      handleExpandNode,
+      handleZoomIn,
+      manager,
+      onRowClick,
+      onRowKeyDown,
+      organization,
+      previouslyFocusedIndexRef,
+      projectLookup,
+      roving_state.index,
+      searchResultsIteratorIndex,
+      searchResultsMap,
+      theme,
+      trace_id,
+      trace.type,
+      rerender,
+    ]
   );
+
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
+  const virtualizedList = useVirtualizedList({
+    manager,
+    items: trace.list,
+    container: scrollContainer,
+    render,
+  });
 
   return (
     <TraceStylingWrapper
@@ -436,7 +508,7 @@ function Trace({
       }}
       className={trace.type === 'loading' ? 'Loading' : ''}
     >
-      <TraceDivider className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
+      <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
       {trace.type === 'loading' ? <TraceLoading /> : null}
       <div
         className="TraceIndicatorContainer"
@@ -457,93 +529,19 @@ function Trace({
             })
           : null}
       </div>
-      <div
-        ref={r => {
-          manager.virtualizedList?.initialize(r);
-        }}
-      />
-
-
-      {/* <List
-            ref={registerListRef}
-            rowHeight={24}
-            height={height}
-            width={width}
-            scrollToAlignment="center"
-            overscanRowCount={5}
-            rowCount={treeRef.current.list.length ?? 0}
-            rowRenderer={p => {
-              const node = treeRef.current.list[p.index];
-              return trace.type === 'loading' ? (
-                <RenderPlaceholderRow
-                  style={p.style}
-                  node={node}
-                  index={p.index}
-                  theme={theme}
-                  projects={projectLookup}
-                  manager={manager}
-                  startIndex={
-                    (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ?? 0
-                  }
-                />
-              ) : (
-                <RenderRow
-                  key={p.key}
-                  theme={theme}
-                  startIndex={
-                    (p.parent as unknown as {_rowStartIndex: number})._rowStartIndex ?? 0
-                  }
-                  overscroll={5}
-                  organization={organization}
-                  previouslyFocusedIndexRef={previouslyFocusedIndexRef}
-                  tabIndex={roving_state.index ?? -1}
-                  isSearchResult={searchResultsMap.has(node)}
-                  searchResultsIteratorIndex={searchResultsIteratorIndex}
-                  index={p.index}
-                  style={p.style}
-                  trace_id={trace_id}
-                  projects={projectLookup}
-                  node={node}
-                  manager={manager}
-                  onExpand={handleExpandNode}
-                  onZoomIn={handleZoomIn}
-                  onRowClick={onRowClick}
-                  onRowKeyDown={onRowKeyDown}
-                />
-              );
-            }}
-          /> */}
+      <div ref={r => setScrollContainer(r)}>
+        <div>{virtualizedList.rendered}</div>
+      </div>
     </TraceStylingWrapper>
   );
 }
 
 export default Trace;
 
-const TraceDivider = styled('div')`
-  position: absolute;
-  height: 100%;
-  background-color: transparent;
-  top: 0;
-  cursor: col-resize;
-  z-index: 10;
-
-  &:before {
-    content: '';
-    position: absolute;
-    width: 1px;
-    height: 100%;
-    background-color: ${p => p.theme.border};
-    left: 50%;
-  }
-
-  &:hover&:before {
-    background-color: ${p => p.theme.purple300};
-  }
-`;
-
 function RenderRow(props: {
   index: number;
   isSearchResult: boolean;
+  key: number;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpand: (
@@ -567,17 +565,14 @@ function RenderRow(props: {
     value: boolean
   ) => void;
   organization: Organization;
-  overscroll: number;
   previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
-  projects: Record<Project['slug'], Project>;
+  projects: Record<Project['slug'], Project['platform']>;
   searchResultsIteratorIndex: number | undefined;
-  startIndex: number;
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
   trace_id: string;
 }) {
-  const virtualizedIndex = props.index - props.startIndex + props.overscroll;
   if (!props.node.value) {
     return null;
   }
@@ -587,7 +582,7 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -604,9 +599,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -620,7 +613,13 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
               <ChildrenButton
-                icon={<IconChevron direction={props.node.expanded ? 'up' : 'down'} />}
+                icon={
+                  props.node.expanded ? (
+                    <Chevron direction="up" />
+                  ) : (
+                    <Chevron direction="down" />
+                  )
+                }
                 status={props.node.fetchStatus}
                 expanded={!props.node.expanded}
                 onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
@@ -638,14 +637,14 @@ function RenderRow(props: {
         <div
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
         >
           <AutogroupedTraceBar
-            virtualizedIndex={virtualizedIndex}
+            index={props.index}
             viewManager={props.manager}
             color={props.theme.blue300}
             node_space={props.node.autogroupedSegments}
@@ -661,7 +660,7 @@ function RenderRow(props: {
       props.node.value.performance_issues.length > 0;
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -678,9 +677,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -704,7 +701,7 @@ function RenderRow(props: {
                     props.node.canFetch && props.node.fetchStatus === 'idle' ? (
                       '+'
                     ) : props.node.canFetch && props.node.zoomedIn ? (
-                      <IconChevron direction="down" />
+                      <Chevron direction="down" />
                     ) : (
                       '+'
                     )
@@ -724,7 +721,9 @@ function RenderRow(props: {
                 </ChildrenButton>
               ) : null}
             </div>
-            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+            <PlatformIcon
+              platform={props.projects[props.node.value.project_slug] ?? 'default'}
+            />
             <span className="TraceOperation">{props.node.value['transaction.op']}</span>
             <strong className="TraceEmDash"> — </strong>
             <span>{props.node.value.transaction}</span>
@@ -732,7 +731,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -740,7 +739,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            virtualizedIndex={virtualizedIndex}
+            index={props.index}
             manager={props.manager}
             color={pickBarColor(props.node.value['transaction.op'])}
             node_space={props.node.space}
@@ -754,7 +753,7 @@ function RenderRow(props: {
     const errored = props.node.value.relatedErrors.length > 0;
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -771,9 +770,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -796,9 +793,9 @@ function RenderRow(props: {
                     props.node.canFetch ? (
                       '+'
                     ) : props.node.expanded ? (
-                      <IconChevron direction="up" />
+                      <Chevron direction="up" />
                     ) : (
-                      <IconChevron direction="down" />
+                      <Chevron direction="down" />
                     )
                   }
                   status={props.node.fetchStatus}
@@ -829,7 +826,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -837,7 +834,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            virtualizedIndex={virtualizedIndex}
+            index={props.index}
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
@@ -850,7 +847,7 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -867,9 +864,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -888,7 +883,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -897,7 +892,7 @@ function RenderRow(props: {
         >
           {' '}
           <TraceBar
-            virtualizedIndex={virtualizedIndex}
+            index={props.index}
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
@@ -910,7 +905,7 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -927,9 +922,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -958,7 +951,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -966,7 +959,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            virtualizedIndex={virtualizedIndex}
+            index={props.index}
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
@@ -979,7 +972,7 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
-        key={props.index}
+        key={props.key}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -996,9 +989,7 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r =>
-            props.manager.registerColumnRef('list', r, virtualizedIndex, props.node)
-          }
+          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -1024,8 +1015,10 @@ function RenderRow(props: {
                 </ChildrenButton>
               ) : null}
             </div>
-
-            <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+            <PlatformIcon
+              platform={props.projects[props.node.value.project_slug] ?? 'default'}
+            />
+            ;
             <Link
               className="Errored Link"
               onClick={e => e.stopPropagation()}
@@ -1039,7 +1032,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, virtualizedIndex, props.node)
+            props.manager.registerColumnRef('span_list', r, props.index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -1070,8 +1063,7 @@ function RenderPlaceholderRow(props: {
   index: number;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
-  projects: Record<Project['slug'], Project>;
-  startIndex: number;
+  projects: Record<Project['slug'], Project['platform']>;
   style: React.CSSProperties;
   theme: Theme;
 }) {
@@ -1083,7 +1075,7 @@ function RenderPlaceholderRow(props: {
         height: props.style.height,
         pointerEvents: 'none',
         color: props.theme.subText,
-        paddingLeft: space(1),
+        paddingLeft: 8,
       }}
     >
       <div
@@ -1193,10 +1185,6 @@ function Connectors(props: {
   );
 }
 
-function ProjectBadge(props: {project: Project}) {
-  return <ProjectAvatar project={props.project} />;
-}
-
 function ChildrenButton(props: {
   children: React.ReactNode;
   expanded: boolean;
@@ -1223,9 +1211,9 @@ function ChildrenButton(props: {
 
 interface TraceBarProps {
   color: string;
+  index: number;
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  virtualizedIndex: number;
   duration?: number;
 }
 
@@ -1244,9 +1232,7 @@ function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div
-        ref={r =>
-          props.manager.registerSpanBarRef(r, props.node_space!, props.virtualizedIndex)
-        }
+        ref={r => props.manager.registerSpanBarRef(r, props.node_space!, props.index)}
         className="TraceBar"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
@@ -1263,7 +1249,7 @@ function TraceBar(props: TraceBarProps) {
             r,
             duration,
             props.node_space!,
-            props.virtualizedIndex
+            props.index
           )
         }
         className="TraceBarDuration"
@@ -1280,9 +1266,9 @@ function TraceBar(props: TraceBarProps) {
 
 interface AutogroupedTraceBarProps {
   color: string;
+  index: number;
   node_space: [number, number][] | null;
   viewManager: VirtualizedViewManager;
-  virtualizedIndex: number;
   duration?: number;
 }
 
@@ -1293,7 +1279,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   //       color={props.color}
   //       node_space={props.node_space[0]}
   //       manager={props.manager}
-  //       virtualizedIndex={props.virtualizedIndex}
+  //       index={props.index}
   //       duration={props.duration}
   //     />
   //   );
@@ -1318,9 +1304,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   return (
     <Fragment>
       <div
-        ref={r =>
-          props.viewManager.registerSpanBarRef(r, entire_space, props.virtualizedIndex)
-        }
+        ref={r => props.viewManager.registerSpanBarRef(r, entire_space, props.index)}
         className="TraceBar Invisible"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
@@ -1349,12 +1333,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
       </div>
       <div
         ref={r =>
-          props.viewManager.registerSpanBarTextRef(
-            r,
-            duration,
-            entire_space,
-            props.virtualizedIndex
-          )
+          props.viewManager.registerSpanBarTextRef(r, duration, entire_space, props.index)
         }
         className="TraceBarDuration"
         style={{
@@ -1381,7 +1360,7 @@ const TraceStylingWrapper = styled('div')`
   overflow: hidden;
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
-  border-radius: ${space(0.5)};
+  border-radius: 4px;
   padding-top: 24px;
 
   &:before {
@@ -1411,6 +1390,28 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  .TraceDivider {
+    position: absolute;
+    height: 100%;
+    background-color: transparent;
+    top: 0;
+    cursor: col-resize;
+    z-index: 10;
+
+    &:before {
+      content: '';
+      position: absolute;
+      width: 1px;
+      height: 100%;
+      background-color: ${p => p.theme.border};
+      left: 50%;
+    }
+
+    &:hover&:before {
+      background-color: ${p => p.theme.purple300};
+    }
+  }
+
   .TraceIndicatorContainer {
     overflow: hidden;
     width: 100%;
@@ -1437,7 +1438,7 @@ const TraceStylingWrapper = styled('div')`
       background-color: ${p => p.theme.background};
       border-radius: ${p => p.theme.borderRadius};
       border: 1px solid ${p => p.theme.border};
-      padding: ${space(0.25)};
+      padding: 2px;
       display: inline-block;
       line-height: 1;
       margin-top: 2px;
@@ -1464,6 +1465,7 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
     position: absolute;
+    height: 24px;
     width: 100%;
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
@@ -1480,11 +1482,11 @@ const TraceStylingWrapper = styled('div')`
 
     .ErrorIconBorder {
       position: absolute;
-      margin: ${space(0.25)};
+      margin: 2px;
       left: -12px;
       background: ${p => p.theme.background};
-      width: ${space(3)};
-      height: ${space(3)};
+      width: 20px;
+      height: 20px;
       border: 1px solid ${p => p.theme.error};
       border-radius: 50%;
       display: flex;
@@ -1565,6 +1567,11 @@ const TraceStylingWrapper = styled('div')`
       will-change: transform;
       transform-origin: left center;
       transform: translateX(var(--column-translate-x));
+
+      img {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 
@@ -1613,7 +1620,7 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     justify-content: center;
     border-radius: 99px;
-    padding: 0px ${space(0.5)};
+    padding: 0px 4px;
     transition: all 0.15s ease-in-out;
     background: ${p => p.theme.background};
     border: 2px solid ${p => p.theme.border};
@@ -1621,7 +1628,7 @@ const TraceStylingWrapper = styled('div')`
     z-index: 1;
     font-size: 10px;
     box-shadow: ${p => p.theme.dropShadowLight};
-    margin-right: ${space(1)};
+    margin-right: 8px;
 
     &.Errored {
       border: 2px solid ${p => p.theme.error};
@@ -1767,15 +1774,15 @@ const TraceStylingWrapper = styled('div')`
   }
 
   .TraceOperation {
-    margin-left: ${space(0.5)};
+    margin-left: 4px;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: bold;
   }
 
   .TraceEmDash {
-    margin-left: ${space(0.5)};
-    margin-right: ${space(0.5)};
+    margin-left: 4px;
+    margin-right: 4px;
   }
 
   .TraceDescription {
