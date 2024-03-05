@@ -328,7 +328,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 # Explict allow list of detector classes for standalone
 # span ingestion while we double write and test. The detectors
 # in this list know to handle updating fingerprint and detector
-# class if it's detected on standlone spans.
+# class to experimental if it's detected on standlone spans.
 STREAMED_SPANS_DETECTOR_CLASS_ALLOWLIST: list[type[PerformanceDetector]] = [
     ConsecutiveDBSpanDetector,
     ConsecutiveHTTPSpanDetector,
