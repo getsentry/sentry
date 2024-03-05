@@ -18,9 +18,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.relocation import RelocationSerializer
-from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import MAX_USERNAME_LENGTH
@@ -64,11 +64,9 @@ def should_throttle_relocation(relocation_bucket_size: str) -> bool:
         date_added__gte=(timezone.now() - timedelta(days=1))
     )
     num_recent_same_size_relocation_files = reduce(
-        lambda acc, relocation_file: (
-            acc + 1
-            if get_relocation_size_category(relocation_file.file.size) == relocation_bucket_size
-            else acc
-        ),
+        lambda acc, relocation_file: acc + 1
+        if get_relocation_size_category(relocation_file.file.size) == relocation_bucket_size
+        else acc,
         recent_relocation_files,
         0,
     )
@@ -91,18 +89,16 @@ class RelocationsPostSerializer(serializers.Serializer):
 def validate_new_relocation_request(
     request: Request, owner_username: str, org_slugs: list[str], file_size: int
 ) -> Response | None:
-    # TODO(schew2381): Remove all superuser references in function after feature flag is removed.
-
-    # We only honor the `relocation.enabled` flag for non-superusers/staff.
-    elevated_user = has_elevated_mode(request)
-    if not options.get("relocation.enabled") and not elevated_user:
+    # We only honor the `relocation.enabled` flag for non-superusers.
+    is_superuser = SuperuserPermission().has_permission(request, None)
+    if not options.get("relocation.enabled") and not is_superuser:
         return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
-    # Only superuser/staff can start relocations for other users.
+    # Only superusers can start relocations for other users.
     creator = user_service.get_user(user_id=request.user.id)
     if creator is None:
         raise RuntimeError("Could not ascertain request user's username")
-    if not elevated_user and creator.username != owner_username:
+    if not is_superuser and creator.username != owner_username:
         return Response(
             {"detail": ERR_INVALID_OWNER.substitute(creator_username=creator.username)},
             status=status.HTTP_400_BAD_REQUEST,
@@ -116,9 +112,9 @@ def validate_new_relocation_request(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # Regular users may be throttled, but superuser/staff never are.
+    # Regular users may be throttled, but superusers never are.
     relocation_size_category = get_relocation_size_category(file_size)
-    if not elevated_user and should_throttle_relocation(relocation_size_category):
+    if not is_superuser and should_throttle_relocation(relocation_size_category):
         return Response(
             {"detail": ERR_THROTTLED_RELOCATION},
             status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -168,11 +164,14 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.get.start", extra={"caller": request.user.id})
 
+        # Non-superusers can only see their own relocations.
         queryset = Relocation.objects.all()
-
-        # TODO(schew2381): Remove the superuser reference below after feature flag is removed.
-        # Non-superuser/staff can only see their own relocations.
-        if not has_elevated_mode(request):
+        is_superuser = False
+        try:
+            is_superuser = SuperuserPermission().has_permission(request, None)
+        except Exception:
+            pass
+        if not is_superuser:
             queryset = queryset.filter(owner_id=request.user.id)
 
         query = request.GET.get("query")
