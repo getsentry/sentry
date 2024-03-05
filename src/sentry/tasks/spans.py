@@ -180,6 +180,9 @@ def _process_segment(project_id, segment_id):
     _pull_out_data(jobs, projects)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects, is_standalone_spans=True)
+
+    # Updates group type and fingerprint of all performance problems
+    # so they don't double write occurrences as we test.
     _update_occurrence_group_type(jobs, projects)
 
     return jobs
