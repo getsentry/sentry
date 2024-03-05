@@ -5,11 +5,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-
-const DEFAULT_LIMIT = 10;
 
 interface Filters {
   [key: string]: string;
@@ -17,21 +14,21 @@ interface Filters {
 
 export const useIndexedSpans = ({
   filters,
-  sorts = [{field: 'timestamp', kind: 'desc'}],
-  limit = DEFAULT_LIMIT,
+  sorts,
+  limit,
   enabled = true,
-  referrer = 'use-indexed-spans',
-  fields = undefined,
+  referrer,
+  fields,
 }: {
+  fields: SpanIndexedField[];
   filters: Filters;
+  limit: number;
+  referrer: string;
+  sorts: Sort[];
   enabled?: boolean;
-  fields?: string[];
-  limit?: number;
-  referrer?: string;
-  sorts?: Sort[];
 }) => {
   const location = useLocation();
-  const eventView = getEventView(filters, location, sorts, fields);
+  const eventView = getEventView(filters, location, fields, sorts);
 
   return useSpansQuery<SpanIndexedFieldTypes[]>({
     eventView,
@@ -45,8 +42,8 @@ export const useIndexedSpans = ({
 function getEventView(
   filters: Filters,
   location: Location,
-  sorts?: Sort[],
-  fields?: string[]
+  fields: SpanIndexedField[],
+  sorts?: Sort[]
 ) {
   // TODO: Add a `MutableSearch` constructor that accept a key-value mapping
   const search = new MutableSearch([]);
@@ -59,7 +56,7 @@ function getEventView(
     {
       name: '',
       query: search.formatString(),
-      fields: fields ?? Object.values(SpanIndexedField),
+      fields,
       dataset: DiscoverDatasets.SPANS_INDEXED,
       version: 2,
     },

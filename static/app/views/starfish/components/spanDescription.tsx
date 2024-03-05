@@ -10,7 +10,8 @@ import {
 } from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 interface Props {
@@ -35,10 +36,16 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
+  // TODO: we're using all SpanIndexedFields here, but maybe we should only use what we need?
+  // Truncate to 20 fields otherwise discover will complain.
+  const fields = Object.values(SpanIndexedField);
+
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans({
     filters: {'span.group': groupId},
     sorts: [INDEXED_SPAN_SORT],
     limit: 1,
+    fields,
+    referrer: 'api.starfish.span-description',
   });
   const indexedSpan = indexedSpans?.[0];
 
