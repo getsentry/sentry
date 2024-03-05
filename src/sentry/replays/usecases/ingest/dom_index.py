@@ -8,8 +8,9 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict, cast
 
+from django.conf import settings
+
 from sentry import features
-from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -218,7 +219,7 @@ def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
-        config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
+        config = kafka_config.get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )

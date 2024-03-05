@@ -8,7 +8,6 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
     generate_incident_trigger_email_context,
@@ -41,7 +40,7 @@ pytestmark = [requires_kafka]
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
+        self.topic = "metrics-subscription-results"
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
@@ -49,18 +48,15 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        topic_defn = kafka_config.get_topic_definition(self.topic)
-        self.real_topic = topic_defn["real_topic_name"]
-        self.cluster = topic_defn["cluster"]
-
-        create_topics(self.cluster, [self.real_topic])
+        kafka_cluster = kafka_config.get_topic_definition(self.topic)["cluster"]
+        create_topics(kafka_cluster, [self.topic])
 
     def tearDown(self):
         super().tearDown()
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
 
-        self.admin_client.delete_topics([self.real_topic])
+        self.admin_client.delete_topics([self.topic])
         metrics._metrics_backend = None
 
     @cached_property
@@ -97,8 +93,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @cached_property
     def producer(self):
+        cluster_name = kafka_config.get_topic_definition(self.topic)["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[self.cluster]["common"][
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
             ],
             "session.timeout.ms": 6000,
@@ -132,7 +129,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
-        self.producer.produce(self.real_topic, json.dumps(message))
+        self.producer.produce(self.topic, json.dumps(message))
         self.producer.flush()
 
         def active_incident():
