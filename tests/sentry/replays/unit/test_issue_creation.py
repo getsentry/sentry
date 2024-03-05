@@ -54,12 +54,34 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
     )
 
     assert issue_occurence_call["extra_event_data"] == {
-        "contexts": {"replay": {"replay_id": "b58a67446c914f44a4e329763420047b"}},
+        "contexts": {
+            "browser": {"name": "Chrome", "version": "103.0.38"},
+            "device": {
+                "brand": "Apple",
+                "family": "iPhone",
+                "model": "13 Pro",
+                "name": "iPhone 13 Pro",
+            },
+            "os": {"name": "iOS", "version": "16.2"},
+            "replay": {"replay_id": "b58a67446c914f44a4e329763420047b"},
+            "trace": {
+                "op": "pageload",
+                "span_id": "affa5649681a1eeb",
+                "trace_id": "23eda6cd4b174ef8a51f0096df3bfdd1",
+            },
+        },
+        "dist": "abc123",
         "level": "error",
-        "tags": {"replayId": "b58a67446c914f44a4e329763420047b", "url": "https://www.sentry.io"},
+        "release": "version@1.3",
+        "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+        "tags": {
+            "replayId": "b58a67446c914f44a4e329763420047b",
+            "transaction": "Title",
+            "url": "https://www.sentry.io",
+        },
         "user": {
-            "id": "1",
             "email": "test@test.com",
+            "id": "1",
             "ip_address": "127.0.0.1",
             "username": "username",
         },
