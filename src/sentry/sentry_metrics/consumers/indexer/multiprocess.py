@@ -10,6 +10,7 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from confluent_kafka import Producer
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import kafka_config, metrics
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def __init__(
         self,
-        output_topic: str,
+        output_topic: Topic,
         commit_function: Commit,
         producer: AbstractProducer[KafkaPayload] | None = None,
     ) -> None:

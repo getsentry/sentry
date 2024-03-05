@@ -10,6 +10,8 @@ from typing import Any
 
 import sentry_sdk
 
+from sentry.conf.types.kafka_definition import Topic
+
 # The maximum length of a column that is indexed in postgres. It is important to keep this in
 # sync between the consumers and the models defined in src/sentry/sentry_metrics/models.py
 MAX_INDEXED_COLUMN_LENGTH = 200
@@ -46,7 +48,7 @@ class MetricsIngestConfiguration:
     db_backend: IndexerStorage
     db_backend_options: Mapping[str, Any]
     input_topic: str
-    output_topic: str
+    output_topic: Topic
     use_case_id: UseCaseKey
     internal_metrics_tag: str | None
     writes_limiter_cluster_options: Mapping[str, Any]
@@ -79,7 +81,7 @@ def get_ingest_config(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
                 input_topic=settings.KAFKA_INGEST_METRICS,
-                output_topic=settings.KAFKA_SNUBA_METRICS,
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
@@ -96,7 +98,7 @@ def get_ingest_config(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
