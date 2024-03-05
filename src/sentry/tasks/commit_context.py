@@ -294,7 +294,17 @@ def process_commit_context(
                         "github.pr_comment.incorrect_repo_config",
                         extra={"organization_id": project.organization_id},
                     )
-
+            # Invalidate ownership cache to allow handle_auto_assignment to find new GroupOwner
+            ownership = ProjectOwnership.get_ownership_cached(project_id=project.id)
+            if ownership:
+                auto_assignment_types = ProjectOwnership._get_autoassignment_types(
+                    ownership=ownership
+                )
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    project_id=project.id,
+                    autoassignment_types=auto_assignment_types,
+                    group_id=group_id,
+                )
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,
                 organization_id=project.organization_id,
