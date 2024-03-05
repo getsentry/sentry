@@ -1718,6 +1718,31 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
     });
 
+    it('collects errored children for sibling autogrouped node', () => {
+      const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        const node = new TraceTreeNode(root, makeSpan({description: 'span', op: 'db'}), {
+          project_slug: '',
+          event_id: '',
+        });
+        node.value.relatedErrors = [makeTraceError()];
+        root.children.push(node);
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(5);
+    });
+
     it('adds autogrouped siblings as children under autogrouped node', () => {
       const root = new TraceTreeNode(null, makeSpan({description: 'span1'}), {
         project_slug: '',
@@ -1823,6 +1848,59 @@ describe('TraceTree', () => {
       expect((root.children[0].children[0].value as RawSpanType).description).toBe(
         'span0'
       );
+    });
+
+    it('collects errored children for parent autogrouped node', () => {
+      // db             db                           db
+      //  http    ->     parent autogroup (3) ->      parent autogroup (3)
+      //   http                                        http
+      //    http                                        http
+      //                                                 http
+
+      const root: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(
+        null,
+        makeSpan({
+          description: `span1`,
+          span_id: `1`,
+          op: 'db',
+        }),
+        {project_slug: '', event_id: ''}
+      );
+
+      let last: TraceTreeNode<any> = root;
+
+      for (let i = 0; i < 3; i++) {
+        const node = new TraceTreeNode(
+          last,
+          makeSpan({
+            description: `span${i}`,
+            span_id: `${i}`,
+            op: 'http',
+          }),
+          {
+            project_slug: '',
+            event_id: '',
+          }
+        );
+        node.value.relatedErrors = [makeTraceError()];
+        last.children.push(node);
+        last = node;
+      }
+
+      if (!root) {
+        throw new Error('root is null');
+      }
+
+      expect(root.children.length).toBe(1);
+      expect(root.children[0].children.length).toBe(1);
+
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      assertAutogroupedNode(root.children[0]);
+      expect(root.children[0].has_error).toBe(true);
+      expect(root.children[0].errored_children).toHaveLength(3);
     });
 
     it('autogrouping direct children skips rendering intermediary nodes', () => {
