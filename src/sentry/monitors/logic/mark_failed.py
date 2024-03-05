@@ -86,12 +86,11 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    use_issue_platform = False
     try:
         organization = Organization.objects.get_from_cache(id=monitor_env.monitor.organization_id)
         use_issue_platform = features.has("organizations:issue-platform", organization=organization)
     except Organization.DoesNotExist:
-        pass
+        use_issue_platform = False
 
     if use_issue_platform:
         return mark_failed_threshold(failed_checkin, failure_issue_threshold)
@@ -110,24 +109,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
-        # evaluation logic for multiple check-ins
-        if failure_issue_threshold > 1:
-            # reverse the list after slicing in order to start with oldest check-in
-            # use .values() to speed up query
-            previous_checkins = list(
-                reversed(
-                    MonitorCheckIn.objects.filter(
-                        monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
-                    )
-                    .order_by("-date_added")
-                    .values("id", "date_added", "status")[:failure_issue_threshold]
-                )
-            )
-            # check for any successful previous check-in
-            if any([checkin["status"] == CheckInStatus.OK for checkin in previous_checkins]):
-                return False
-        # if threshold is 1, just use the most recent check-in
-        else:
+        if failure_issue_threshold == 1:
             previous_checkins = [
                 {
                     "id": failed_checkin.id,
@@ -135,6 +117,23 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
                     "status": failed_checkin.status,
                 }
             ]
+        else:
+            previous_checkins = (
+                # Using .values for performance reasons
+                MonitorCheckIn.objects.filter(
+                    monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+                )
+                .order_by("-date_added")
+                .values("id", "date_added", "status")
+            )
+
+            # reverse the list after slicing in order to start with oldest check-in
+            previous_checkins = list(reversed(previous_checkins[:failure_issue_threshold]))
+
+            # If we have any successful check-ins within the threshold of
+            # commits we have NOT reached an incident state
+            if any([checkin["status"] == CheckInStatus.OK for checkin in previous_checkins]):
+                return False
 
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
