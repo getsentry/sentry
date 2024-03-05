@@ -38,6 +38,9 @@ class EventProcessingStore(Service):
         return self.get(key) is not None
 
     def store(self, event: Event, unprocessed: bool = False) -> str:
+    if not event.get('event_id') or not event.get('project'):
+        logger.error(f\"store method called with event missing 'event_id' or 'project'. Event data: {event}\")
+        return
         with sentry_sdk.start_span(op="eventstore.processing.store"):
             key = cache_key_for_event(event)
             if unprocessed:
