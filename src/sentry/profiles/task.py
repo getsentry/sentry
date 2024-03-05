@@ -138,16 +138,15 @@ def process_profile_task(
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
-    if (
-        enabled := options.get("profiling.generic_metrics.functions_ingestion.enabled")
-    ) and project.organization_id in (
-        allowed_orgs := options.get("profiling.generic_metrics.functions_ingestion.allowed_org_ids")
+    if options.get(
+        "profiling.generic_metrics.functions_ingestion.enabled"
+    ) and project.organization_id in options.get(
+        "profiling.generic_metrics.functions_ingestion.allowed_org_ids"
     ):
         try:
-            dsn = get_metrics_dsn(project.id)
+            with metrics.timer("process_profile.get_metrics_dsn"):
+                dsn = get_metrics_dsn(project.id)
             profile["options"] = {
-                "profiling.generic_metrics.functions_ingestion.enabled": enabled,
-                "profiling.generic_metrics.functions_ingestion.allowed_org_ids": allowed_orgs,
                 "dsn": dsn,
             }
         except Exception as e:
