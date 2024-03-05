@@ -27,6 +27,6 @@ def is_undefined(value: ResultValue) -> bool:
         return math.isnan(inner_value) or math.isinf(inner_value)
 
     if isinstance(value, list):
-        return any(map(lambda e: e is not None and _is_undefined(value), value))
+        return any(map(lambda e: e is not None and _is_undefined(e), value))
 
     return _is_undefined(value)
