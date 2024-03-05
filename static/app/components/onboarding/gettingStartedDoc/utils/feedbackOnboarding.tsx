@@ -104,9 +104,9 @@ export const getCrashReportModalSnippetJavaScript = params => [
   {
     code: [
       {
-        label: 'JavaScript',
-        value: 'javascript',
-        language: 'javascript',
+        label: 'HTML',
+        value: 'html',
+        language: 'html',
         code: `<script>
   Sentry.init({
     dsn: "${params.dsn}",
