@@ -426,11 +426,10 @@ def get_stream_processor(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
 
-    topic_def = settings.KAFKA_TOPICS[real_topic]
-    assert topic_def is not None
+    topic_defn = get_topic_definition(Topic(consumer_topic))
 
     if cluster is None:
-        cluster = topic_def["cluster"]
+        cluster = topic_defn["cluster"]
 
     def build_consumer_config(group_id: str):
         assert cluster is not None
