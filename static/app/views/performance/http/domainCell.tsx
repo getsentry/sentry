@@ -8,22 +8,20 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 
 interface Props {
   domain?: string;
-  projectId?: number;
 }
 
-export function DomainCell({domain, projectId}: Props) {
+export function DomainCell({domain}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
   // NOTE: This is for safety only, the product should not fetch or render rows with missing domains or project IDs
-  if (!domain || !projectId) {
+  if (!domain) {
     return NULL_DESCRIPTION;
   }
 
   const queryString = {
     ...location.query,
     domain,
-    project: projectId,
   };
 
   return (
