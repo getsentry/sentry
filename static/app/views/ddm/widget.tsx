@@ -12,6 +12,7 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {Field} from 'sentry/components/ddm/metricSamplesTable';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -240,22 +241,24 @@ export const MetricWidget = memo(
           </MetricWidgetHeader>
           <MetricWidgetBodyWrapper>
             {queriesAreComplete ? (
-              <MetricWidgetBody
-                widgetIndex={index}
-                getChartPalette={getChartPalette}
-                onChange={handleChange}
-                focusAreaProps={focusAreaProps}
-                samples={samples}
-                samplesV2={samplesV2}
-                chartHeight={chartHeight}
-                chartGroup={DDM_CHART_GROUP}
-                queries={queries}
-                filters={filters}
-                displayType={displayType}
-                tableSort={tableSort}
-                focusedSeries={focusedSeries}
-                context={context}
-              />
+              <ErrorBoundary mini>
+                <MetricWidgetBody
+                  widgetIndex={index}
+                  getChartPalette={getChartPalette}
+                  onChange={handleChange}
+                  focusAreaProps={focusAreaProps}
+                  samples={samples}
+                  samplesV2={samplesV2}
+                  chartHeight={chartHeight}
+                  chartGroup={DDM_CHART_GROUP}
+                  queries={queries}
+                  filters={filters}
+                  displayType={displayType}
+                  tableSort={tableSort}
+                  focusedSeries={focusedSeries}
+                  context={context}
+                />
+              </ErrorBoundary>
             ) : (
               <StyledMetricWidgetBody>
                 <EmptyMessage
@@ -515,8 +518,15 @@ export function getChartTimeseries(
 
   const series = data.data.flatMap((group, index) => {
     const query = filteredQueries[index];
-    const unit = data.meta[index]?.[1]?.unit;
-    const scalingFactor = data.meta[index]?.[1]?.scaling_factor ?? 1;
+    const meta = data.meta[index];
+    const lastMetaEntry = meta[meta.length - 1];
+    const unit =
+      (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
+    const scalingFactor =
+      (lastMetaEntry &&
+        'scaling_factor' in lastMetaEntry &&
+        lastMetaEntry.scaling_factor) ||
+      1;
     const operation = isMetricFormula(query) ? 'count' : query.op;
     const isMultiQuery = filteredQueries.length > 1;
 
