@@ -520,6 +520,8 @@ class IndexerBatch:
         with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
             for use_case_id, metrics_by_type in self._message_metrics.items():
                 for metric_type, batch_metric in metrics_by_type.items():
+                    if batch_metric.message_count == 0:
+                        continue
                     metrics.incr(
                         "metrics_consumer.process_message.messages_seen",
                         amount=batch_metric.message_count,
@@ -566,33 +568,34 @@ class IndexerBatch:
                 for use_case_metrics in self._message_metrics.values()
                 for type_metrics in use_case_metrics.values()
             )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_size_in_batch",
-                sum(
-                    type_metrics.total_bytes
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+            if not num_messages == 0:
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_size_in_batch",
+                    sum(
+                        type_metrics.total_bytes
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                sum(
-                    type_metrics.total_tags_len
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                    sum(
+                        type_metrics.total_tags_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                sum(
-                    type_metrics.total_value_len
-                    for use_case_metrics in self._message_metrics.values()
-                    for type_metrics in use_case_metrics.values()
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                    sum(
+                        type_metrics.total_value_len
+                        for use_case_metrics in self._message_metrics.values()
+                        for type_metrics in use_case_metrics.values()
+                    )
+                    / num_messages,
                 )
-                / num_messages,
-            )
 
         return IndexerOutputMessageBatch(
             new_messages,
