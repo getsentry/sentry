@@ -202,9 +202,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         assert isinstance(extra_data, tuple)
 
+        real_topic = get_topic_definition(topic)["real_topic_name"]
+
         try:
             producer.produce(
-                topic=topic,
+                topic=real_topic,
                 key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
