@@ -562,21 +562,20 @@ def check_current_scope_transaction(
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
     been set maunually.
     """
+    scope = sentry_sdk.Scope.get_current_scope()
+    transaction_from_request = get_transaction_name_from_request(request)
 
-    with configure_scope() as scope:
-        transaction_from_request = get_transaction_name_from_request(request)
-
-        if (
-            scope._transaction is not None
-            and scope._transaction != transaction_from_request
-            and scope._transaction_info.get("source") != "custom"
-        ):
-            return {
-                "scope_transaction": scope._transaction,
-                "request_transaction": transaction_from_request,
-            }
-        else:
-            return None
+    if (
+        scope._transaction is not None
+        and scope._transaction != transaction_from_request
+        and scope._transaction_info.get("source") != "custom"
+    ):
+        return {
+            "scope_transaction": scope._transaction,
+            "request_transaction": transaction_from_request,
+        }
+    else:
+        return None
 
 
 def capture_exception_with_scope_check(
@@ -674,7 +673,7 @@ def bind_ambiguous_org_context(
 
 def set_measurement(measurement_name, value, unit=None):
     try:
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_measurement(measurement_name, value, unit)
     except Exception:
