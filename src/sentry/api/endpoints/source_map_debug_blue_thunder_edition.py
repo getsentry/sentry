@@ -152,15 +152,6 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         Return a list of source map errors for a given event.
         """
 
-        if not features.has(
-            "organizations:source-maps-debugger-blue-thunder-edition",
-            project.organization,
-            actor=request.user,
-        ):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
-            )
-
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
