@@ -87,10 +87,10 @@ class StaffPermissionMixin:
             if super().has_permission(request, *args, **kwargs):
                 return True
         except Exception:
-            if not is_active_staff(request):
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
                 raise
             return True
-        return is_active_staff(request)
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
 
     def has_object_permission(self, request, *args, **kwargs) -> bool:
         """
@@ -102,10 +102,10 @@ class StaffPermissionMixin:
             if super().has_object_permission(request, *args, **kwargs):
                 return True
         except Exception:
-            if not is_active_staff(request):
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
                 raise
             return True
-        return is_active_staff(request)
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
 
     def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
         return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
