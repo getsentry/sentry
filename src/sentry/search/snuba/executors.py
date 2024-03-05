@@ -246,9 +246,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
-        for h in having:
-            alias = h[0]
-            required_aggregations.add(alias)
+for h in having:
+    alias = tuple(h)
+    required_aggregations.add(alias[0])
 
         aggregations = []
         for alias in required_aggregations:
