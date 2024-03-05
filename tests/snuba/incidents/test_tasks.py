@@ -8,6 +8,7 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
     generate_incident_trigger_email_context,
@@ -40,7 +41,7 @@ pytestmark = [requires_kafka]
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.topic = "metrics-subscription-results"
+        topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
 
         cluster_options = kafka_config.get_kafka_admin_cluster_options(
@@ -48,8 +49,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
         )
         self.admin_client = AdminClient(cluster_options)
 
-        kafka_cluster = kafka_config.get_topic_definition(self.topic)["cluster"]
-        create_topics(kafka_cluster, [self.topic])
+        topic_defn = kafka_config.get_topic_definition(topic)
+        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
     def tearDown(self):
         super().tearDown()
