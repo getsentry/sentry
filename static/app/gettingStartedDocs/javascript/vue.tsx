@@ -308,7 +308,10 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
