@@ -821,6 +821,7 @@ class BaseQueryBuilder:
         represent direction, construct a list of Snql Orderbys
         """
         validated: list[OrderBy] = []
+        orderby_no_columns: set[str] = {"random_number"}
 
         if orderby is None:
             return validated
@@ -860,6 +861,10 @@ class BaseQueryBuilder:
                 or isinstance(resolved_orderby, AliasedExpression)
             ):
                 bare_orderby = resolved_orderby.alias
+
+            if resolved_orderby.alias in orderby_no_columns:
+                validated.append(OrderBy(resolved_orderby, direction))
+                break
 
             for selected_column in self.columns:
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:

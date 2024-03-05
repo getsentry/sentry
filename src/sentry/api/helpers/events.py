@@ -52,7 +52,12 @@ def get_direct_hit_response(
 
 
 def get_query_builder_for_group(
-    query: str, snuba_params: ParamsType, group: Group, limit: int, offset: int
+    query: str,
+    snuba_params: ParamsType,
+    group: Group,
+    limit: int,
+    offset: int,
+    orderby: str | list[str] | None = None,
 ) -> QueryBuilder:
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
@@ -62,7 +67,7 @@ def get_query_builder_for_group(
         query=f"issue:{group.qualified_short_id} {query}",
         params=snuba_params,
         selected_columns=["id", "project.id", "issue.id", "timestamp"],
-        orderby=["-timestamp"],
+        orderby=orderby or ["-timestamp"],
         limit=limit,
         offset=offset,
     )
