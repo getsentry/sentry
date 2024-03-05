@@ -15,6 +15,7 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
 )
+from sentry.api.utils import generate_region_url
 from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
@@ -48,7 +49,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
-        assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["url"] == generate_region_url() + self.url
         assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
 
         options.set("system.upload-url-prefix", "test")
@@ -113,7 +114,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/1.70.0",
             format="json",
         )
-        assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["url"] == generate_region_url() + self.url
 
         response = self.client.get(
             self.url,
@@ -121,7 +122,7 @@ class ChunkUploadTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/0.69.3",
             format="json",
         )
-        assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["url"] == generate_region_url() + self.url
 
         # user overridden upload url prefix has priority, even when calling from sentry-cli that supports relative urls
         options.set("system.upload-url-prefix", "test")
