@@ -726,7 +726,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     const domainmatch = hostname.match(domainpattern);
     if (domainmatch) {
       hostname = '';
-      path = `/region/us${path}`;
+      path = `/region/${domainmatch[1]}${path}`;
     }
   }
   if (hostname) {
