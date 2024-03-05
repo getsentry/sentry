@@ -230,34 +230,42 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events"},
+        "static_args": {
+            "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "transactions-subscription-results": {
         "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "transactions"},
+        "static_args": {
+            "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "generic-metrics-subscription-results": {
         "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
         "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "generic_metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "sessions-subscription-results": {
         "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(),
         "static_args": {
-            "dataset": "events",
+            "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         },
     },
     "metrics-subscription-results": {
         "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,

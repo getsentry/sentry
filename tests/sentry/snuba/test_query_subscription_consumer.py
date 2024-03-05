@@ -32,10 +32,6 @@ pytestmark = [requires_snuba]
 @pytest.mark.snuba_ci
 class BaseQuerySubscriptionTest:
     @cached_property
-    def dataset(self):
-        return Dataset.Metrics
-
-    @cached_property
     def topic(self):
         return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
 
@@ -101,7 +97,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
         strategy = QuerySubscriptionStrategyFactory(
-            self.dataset.value,
+            self.topic,
             1,
             1,
             1,
