@@ -1,4 +1,5 @@
 import type {ReactText} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
@@ -22,81 +23,74 @@ interface Props {
   tooltip?: React.ReactNode;
 }
 
-export function MetricReadout({
-  unit,
-  value,
-  title,
-  tooltip,
-  align = 'right',
-  isLoading,
-}: Props) {
+export function MetricReadout(props: Props) {
   return (
-    <Block title={title} alignment={align}>
-      {(() => {
-        if (isLoading) {
-          return <LoadingIndicator mini />;
-        }
-
-        if (!defined(value)) {
-          return '--';
-        }
-
-        let renderedValue: React.ReactNode;
-
-        if (isARateUnit(unit)) {
-          renderedValue = (
-            <NumberContainer align={align}>
-              {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
-            </NumberContainer>
-          );
-        }
-
-        if (unit === DurationUnit.MILLISECOND) {
-          // TODO: Implement other durations
-          renderedValue = (
-            <NumberContainer align={align}>
-              <Duration
-                seconds={typeof value === 'string' ? parseFloat(value) : value / 1000}
-                fixedDigits={2}
-                abbreviation
-              />
-            </NumberContainer>
-          );
-        }
-
-        if (unit === SizeUnit.BYTE) {
-          // TODO: Implement other sizes
-          renderedValue = (
-            <NumberContainer align={align}>
-              <FileSize bytes={typeof value === 'string' ? parseInt(value, 10) : value} />
-            </NumberContainer>
-          );
-        }
-
-        if (unit === 'count') {
-          renderedValue = (
-            <NumberContainer align={align}>
-              {formatAbbreviatedNumber(
-                typeof value === 'string' ? parseInt(value, 10) : value
-              )}
-            </NumberContainer>
-          );
-        }
-
-        if (tooltip) {
-          return (
-            <NumberContainer align={align}>
-              <Tooltip title={tooltip} isHoverable showUnderline>
-                {renderedValue}
-              </Tooltip>
-            </NumberContainer>
-          );
-        }
-
-        return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
-      })()}
+    <Block title={props.title} alignment={props.align}>
+      <ReadoutContent {...props} />
     </Block>
   );
+}
+
+function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Props) {
+  if (isLoading) {
+    return <LoadingIndicator mini />;
+  }
+
+  if (!defined(value)) {
+    return <Fragment>--</Fragment>;
+  }
+
+  let renderedValue: React.ReactNode;
+
+  if (isARateUnit(unit)) {
+    renderedValue = (
+      <NumberContainer align={align}>
+        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
+      </NumberContainer>
+    );
+  }
+
+  if (unit === DurationUnit.MILLISECOND) {
+    // TODO: Implement other durations
+    renderedValue = (
+      <NumberContainer align={align}>
+        <Duration
+          seconds={typeof value === 'string' ? parseFloat(value) : value / 1000}
+          fixedDigits={2}
+          abbreviation
+        />
+      </NumberContainer>
+    );
+  }
+
+  if (unit === SizeUnit.BYTE) {
+    // TODO: Implement other sizes
+    renderedValue = (
+      <NumberContainer align={align}>
+        <FileSize bytes={typeof value === 'string' ? parseInt(value, 10) : value} />
+      </NumberContainer>
+    );
+  }
+
+  if (unit === 'count') {
+    renderedValue = (
+      <NumberContainer align={align}>
+        {formatAbbreviatedNumber(typeof value === 'string' ? parseInt(value, 10) : value)}
+      </NumberContainer>
+    );
+  }
+
+  if (tooltip) {
+    return (
+      <NumberContainer align={align}>
+        <Tooltip title={tooltip} isHoverable showUnderline>
+          {renderedValue}
+        </Tooltip>
+      </NumberContainer>
+    );
+  }
+
+  return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
 }
 
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
