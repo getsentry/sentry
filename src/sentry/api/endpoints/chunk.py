@@ -82,8 +82,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 url = relative_url.lstrip(API_PREFIX)
             # Otherwise, if we do not support them, return an absolute, versioned endpoint with a default, system-wide prefix
             else:
-                region_base_url = generate_region_url()
-                url = absolute_uri(relative_url, region_base_url)
+                # We need to generate region specific upload URLs when possible to avoid hitting the API proxy
+                # which tends to cause timeouts and performance issues for uploads.
+                base_url = None
+                if options.get("hybrid_cloud.use_region_specific_upload_url"):
+                    base_url = generate_region_url()
+                url = absolute_uri(relative_url, base_url)
         else:
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
