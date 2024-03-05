@@ -70,15 +70,6 @@ def mark_failed(
         "next_checkin_latest": next_checkin_latest,
     }
 
-    # Additionally update status when not using thresholds. The threshold based
-    # failure will only update status once it has passed the threshold.
-    if not failure_issue_threshold:
-        failed_status_map = {
-            CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
-            CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
-        }
-        field_updates["status"] = failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR)
-
     affected = monitors_to_update.update(**field_updates)
 
     # If we did not update the monitor environment it means there was a newer
