@@ -3,8 +3,6 @@ from typing import Any
 from datadog import initialize
 from datadog.dogstatsd.base import statsd
 
-from sentry import features
-
 from .base import MetricsBackend, Tags
 
 __all__ = ["DogStatsdMetricsBackend"]
@@ -16,8 +14,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         self.tags = kwargs.pop("tags", None)
         initialize(**kwargs)
         statsd.disable_telemetry()
-        if features.has("datadog:enable-buffering"):
-            statsd.disable_buffering = False
+        statsd.disable_buffering = False
         super().__init__(prefix=prefix)
 
     def incr(

@@ -1907,38 +1907,37 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:session-replay-event-linking": True}):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
-            assert kafka_producer.return_value.publish.call_count == 1
-            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert kafka_producer.return_value.publish.call_count == 1
+        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
 
-            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
 
-            assert ret_value["type"] == "replay_event"
-            assert ret_value["start_time"]
-            assert ret_value["replay_id"] == replay_id
-            assert ret_value["project_id"] == self.project.id
-            assert ret_value["segment_id"] is None
-            assert ret_value["retention_days"] == 90
+        assert ret_value["type"] == "replay_event"
+        assert ret_value["start_time"]
+        assert ret_value["replay_id"] == replay_id
+        assert ret_value["project_id"] == self.project.id
+        assert ret_value["segment_id"] is None
+        assert ret_value["retention_days"] == 90
 
-            # convert ret_value_payload which is a list of bytes to a string
-            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+        # convert ret_value_payload which is a list of bytes to a string
+        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
 
-            assert ret_value_payload == {
-                "type": "event_link",
-                "replay_id": replay_id,
-                "error_id": event.event_id,
-                "timestamp": int(event.datetime.timestamp()),
-                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
-            }
+        assert ret_value_payload == {
+            "type": "event_link",
+            "replay_id": replay_id,
+            "error_id": event.event_id,
+            "timestamp": int(event.datetime.timestamp()),
+            "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+        }
 
-            incr.assert_any_call("post_process.process_replay_link.id_sampled")
-            incr.assert_any_call("post_process.process_replay_link.id_exists")
+        incr.assert_any_call("post_process.process_replay_link.id_sampled")
+        incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag(self, incr, kafka_producer, kafka_publisher):
         replay_id = uuid.uuid4().hex
@@ -1947,38 +1946,37 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:session-replay-event-linking": True}):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
-            assert kafka_producer.return_value.publish.call_count == 1
-            assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert kafka_producer.return_value.publish.call_count == 1
+        assert kafka_producer.return_value.publish.call_args[0][0] == "ingest-replay-events"
 
-            ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
+        ret_value = json.loads(kafka_producer.return_value.publish.call_args[0][1])
 
-            assert ret_value["type"] == "replay_event"
-            assert ret_value["start_time"]
-            assert ret_value["replay_id"] == replay_id
-            assert ret_value["project_id"] == self.project.id
-            assert ret_value["segment_id"] is None
-            assert ret_value["retention_days"] == 90
+        assert ret_value["type"] == "replay_event"
+        assert ret_value["start_time"]
+        assert ret_value["replay_id"] == replay_id
+        assert ret_value["project_id"] == self.project.id
+        assert ret_value["segment_id"] is None
+        assert ret_value["retention_days"] == 90
 
-            # convert ret_value_payload which is a list of bytes to a string
-            ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
+        # convert ret_value_payload which is a list of bytes to a string
+        ret_value_payload = json.loads(bytes(ret_value["payload"]).decode("utf-8"))
 
-            assert ret_value_payload == {
-                "type": "event_link",
-                "replay_id": replay_id,
-                "error_id": event.event_id,
-                "timestamp": int(event.datetime.timestamp()),
-                "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
-            }
+        assert ret_value_payload == {
+            "type": "event_link",
+            "replay_id": replay_id,
+            "error_id": event.event_id,
+            "timestamp": int(event.datetime.timestamp()),
+            "event_hash": str(uuid.UUID(md5((event.event_id).encode("utf-8")).hexdigest())),
+        }
 
-            incr.assert_any_call("post_process.process_replay_link.id_sampled")
-            incr.assert_any_call("post_process.process_replay_link.id_exists")
+        incr.assert_any_call("post_process.process_replay_link.id_sampled")
+        incr.assert_any_call("post_process.process_replay_link.id_exists")
 
     def test_replay_linkage_with_tag_pii_scrubbed(self, incr, kafka_producer, kafka_publisher):
         event = self.create_event(
@@ -1986,14 +1984,13 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:session-replay-event-linking": True}):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
-            assert kafka_producer.return_value.publish.call_count == 0
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert kafka_producer.return_value.publish.call_count == 0
 
     def test_no_replay(self, incr, kafka_producer, kafka_publisher):
         event = self.create_event(
@@ -2001,15 +1998,14 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:session-replay-event-linking": True}):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
-            assert kafka_producer.return_value.publish.call_count == 0
-            incr.assert_any_call("post_process.process_replay_link.id_sampled")
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert kafka_producer.return_value.publish.call_count == 0
+        incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
     def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
         event = self.create_event(
@@ -2017,16 +2013,15 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        with self.feature({"organizations:session-replay-event-linking": False}):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
-            assert kafka_producer.return_value.publish.call_count == 0
-            for args, _ in incr.call_args_list:
-                self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        assert kafka_producer.return_value.publish.call_count == 0
+        for args, _ in incr.call_args_list:
+            self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):

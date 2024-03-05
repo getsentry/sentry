@@ -43,7 +43,9 @@ class Migration(CheckedMigration):
                 (
                     "environment",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Environment",
+                        db_constraint=False,
                     ),
                 ),
                 (

@@ -21,7 +21,6 @@ from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
-from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
@@ -1455,8 +1454,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
-    # Enables datadog buffering
-    "datadog:enable-buffering": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -1519,8 +1516,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-rh-widget": False,
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
-    # Enables ddm formula features
-    "organizations:ddm-formulas": False,
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
@@ -1707,6 +1702,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
+    # Deprecate fid from performance score calculation
+    "organizations:deprecate-fid-from-performance-score": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1721,6 +1718,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view-percentiles": False,
     # Enable UI sending a discover split for widget
     "organizations:performance-discover-widget-split-ui": False,
+    # Enable backend overriding and always making a fresh split decision
+    "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Enable compressed assets performance issue type
@@ -1847,8 +1846,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
     "organizations:session-replay-enable-canvas-replayer": False,
-    # Enable replay event linking in event processing
-    "organizations:session-replay-event-linking": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
@@ -1908,6 +1905,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable INP in the browser starfish webvitals module
+    "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
@@ -3529,9 +3528,16 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
 }
 
+from typing import TypedDict
+
+
+class LegacyTopicDefinition(TypedDict):
+    cluster: str
+
+
 # Cluster configuration for each Kafka topic by name.
 # DEPRECATED
-KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
+KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3658,6 +3664,10 @@ SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
+
+# Configure service wrapper for reprocessing2 state
+SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.

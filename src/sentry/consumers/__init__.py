@@ -196,16 +196,16 @@ _INGEST_SPANS_OPTIONS = multiprocessing_options(default_max_batch_size=100) + [
 # string. We support both currently for backward compatibility.
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
-        "topic": settings.KAFKA_PROFILES,
+        "topic": Topic.PROFILES,
         "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
     },
     "ingest-replay-recordings": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
     "ingest-replay-recordings-buffered": {
-        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
         "click_options": ingest_replay_recordings_buffered_options(),
     },
@@ -298,7 +298,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "release-health",
         },
-        "dlq_topic": settings.KAFKA_INGEST_METRICS_DLQ,
+        "dlq_topic": Topic.INGEST_METRICS_DLQ,
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
     },
@@ -309,7 +309,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "performance",
         },
-        "dlq_topic": settings.KAFKA_INGEST_GENERIC_METRICS_DLQ,
+        "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
     },
@@ -517,7 +517,8 @@ def get_stream_processor(
                 f"Cannot enable DLQ for consumer: {consumer_name}, no DLQ topic has been defined for it"
             ) from e
         try:
-            cluster_setting = get_topic_definition(dlq_topic)["cluster"]
+            dlq_topic_defn = get_topic_definition(dlq_topic)
+            cluster_setting = dlq_topic_defn["cluster"]
         except ValueError as e:
             raise click.BadParameter(
                 f"Cannot enable DLQ for consumer: {consumer_name}, DLQ topic {dlq_topic} is not configured in this environment"
@@ -527,7 +528,7 @@ def get_stream_processor(
         dlq_producer = KafkaProducer(producer_config)
 
         dlq_policy = DlqPolicy(
-            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic)),
+            KafkaDlqProducer(dlq_producer, ArroyoTopic(dlq_topic_defn["real_topic_name"])),
             DlqLimit(
                 max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
                 max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],

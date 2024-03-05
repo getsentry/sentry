@@ -23,8 +23,8 @@ export function FeedbackOnboardingLayout({
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
 
-  const [email, setEmail] = useState(true);
-  const [name, setName] = useState(true);
+  const [email, setEmail] = useState(false);
+  const [name, setName] = useState(false);
 
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);

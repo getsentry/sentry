@@ -1008,12 +1008,6 @@ def process_replay_link(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    if not features.has(
-        "organizations:session-replay-event-linking", job["event"].project.organization
-    ):
-        metrics.incr("post_process.process_replay_link.feature_not_enabled")
-        return
-
     metrics.incr("post_process.process_replay_link.id_sampled")
 
     group_event = job["event"]

@@ -413,7 +413,9 @@ export class TraceTree {
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        relatedErrors: childTxn ? getRelatedErrorsOrIssues(span, childTxn.value) : [],
+        relatedErrors: childTxn
+          ? getSpanErrorsOrIssuesFromTransaction(span, childTxn.value)
+          : [],
         childTxn: childTxn?.value,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
@@ -478,6 +480,7 @@ export class TraceTree {
       const head = node;
       let tail = node;
       let groupMatchCount = 0;
+      const erroredChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
       while (
         tail &&
@@ -485,8 +488,18 @@ export class TraceTree {
         isSpanNode(tail.children[0]) &&
         tail.children[0].value.op === head.value.op
       ) {
+        if (tail.value?.relatedErrors.length > 0) {
+          erroredChildren.push(tail);
+        }
+
         groupMatchCount++;
         tail = tail.children[0];
+      }
+
+      // Checking the tail node for errors as it is not included in the grouping
+      // while loop, but is hidden when the autogrouped node is collapsed
+      if (tail.value?.relatedErrors.length > 0) {
+        erroredChildren.push(tail);
       }
 
       if (groupMatchCount < 1) {
@@ -517,6 +530,7 @@ export class TraceTree {
       }
 
       autoGroupedNode.groupCount = groupMatchCount + 1;
+      autoGroupedNode.errored_children = erroredChildren;
       autoGroupedNode.space = [
         Math.min(head.value.start_timestamp, tail.value.timestamp) *
           autoGroupedNode.multiplier,
@@ -609,6 +623,16 @@ export class TraceTree {
               child.value.start_timestamp > start_timestamp
             ) {
               start_timestamp = child.value.start_timestamp;
+            }
+
+            if (!isSpanNode(child)) {
+              throw new TypeError(
+                'Expected child of autogrouped node to be a span node.'
+              );
+            }
+
+            if (child.value?.relatedErrors.length > 0) {
+              autoGroupedNode.errored_children.push(child);
             }
 
             autoGroupedNode.children.push(node.children[j]);
@@ -1257,6 +1281,7 @@ export class MissingInstrumentationNode extends TraceTreeNode<TraceTree.MissingI
 export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
+  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   groupCount: number = 0;
 
   private _autogroupedSegments: [number, number][] | undefined;
@@ -1282,6 +1307,10 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
     return this.tail.children;
   }
 
+  get has_error(): boolean {
+    return this.errored_children.length > 0;
+  }
+
   get autogroupedSegments(): [number, number][] {
     if (this._autogroupedSegments) {
       return this._autogroupedSegments;
@@ -1304,6 +1333,7 @@ export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogro
 
 export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
   groupCount: number = 0;
+  errored_children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _autogroupedSegments: [number, number][] | undefined;
 
   constructor(
@@ -1313,6 +1343,10 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
   ) {
     super(parent, node, metadata);
     this.expanded = false;
+  }
+
+  get has_error(): boolean {
+    return this.errored_children.length > 0;
   }
 
   get autogroupedSegments(): [number, number][] {
@@ -1505,20 +1539,39 @@ export function computeAutogroupedBarSegments(
   return segments;
 }
 
-function getRelatedErrorsOrIssues(
+// Returns a list of errors or performance issues related to the txn
+// with ids matching the span id
+function getSpanErrorsOrIssuesFromTransaction(
   span: RawSpanType,
-  currentEvent: TraceTree.Transaction
+  txn: TraceTree.Transaction
 ): TraceErrorOrIssue[] {
-  const performanceIssues = currentEvent.performance_issues.filter(
-    issue =>
-      issue.span.some(id => id === span.span_id) ||
-      issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
-  );
+  if (!txn.performance_issues.length && !txn.errors.length) {
+    return [];
+  }
 
-  return [
-    ...currentEvent.errors.filter(error => error.span === span.span_id),
-    ...performanceIssues, // Spans can be shown when embedded in performance issues
-  ];
+  const errorsOrIssues: TraceErrorOrIssue[] = [];
+
+  for (const perfIssue of txn.performance_issues) {
+    for (const s of perfIssue.span) {
+      if (s === span.span_id) {
+        errorsOrIssues.push(perfIssue);
+      }
+    }
+
+    for (const suspect of perfIssue.suspect_spans) {
+      if (suspect === span.span_id) {
+        errorsOrIssues.push(perfIssue);
+      }
+    }
+  }
+
+  for (const error of txn.errors) {
+    if (error.span === span.span_id) {
+      errorsOrIssues.push(error);
+    }
+  }
+
+  return errorsOrIssues;
 }
 
 function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): string {
