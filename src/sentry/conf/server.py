@@ -3661,6 +3661,10 @@ SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
 
+# Configure service wrapper for reprocessing2 state
+SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
+
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
