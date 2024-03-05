@@ -76,9 +76,14 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             user_ids = {
                 user_id
                 for user_id in OrganizationMember.objects.filter(
-                    organization_id=organization.id, teams__projectteam__project__isnull=False
+                    organization_id=organization.id,
+                    teams__projectteam__project__isnull=False,
+                    user_id__isnull=False,
                 ).values_list("user_id", flat=True)
             }
+            if not user_ids:
+                continue
+
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
             users_with_tz = user_option_service.get_many(
@@ -199,7 +204,7 @@ def build_summary_data(
                 project=project, substatus__in=(GroupSubStatus.ESCALATING, GroupSubStatus.REGRESSED)
             ).using_replica()
             regressed_or_escalated_groups_today = Activity.objects.filter(
-                group__in=(regressed_or_escalated_groups),
+                group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
             if regressed_or_escalated_groups_today:
