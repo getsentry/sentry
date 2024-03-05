@@ -1,4 +1,5 @@
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -8,6 +9,9 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
+  getCrashReportModalInstallDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportModalSnippetJavaScript,
   getFeedbackConfigOptions,
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -241,12 +245,30 @@ const feedbackOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportModalInstallDescription(),
+      configurations: getCrashReportModalSnippetJavaScript(params),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
 };
 
 export default docs;

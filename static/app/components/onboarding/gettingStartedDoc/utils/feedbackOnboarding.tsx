@@ -82,3 +82,39 @@ export const getFeedbackConfigOptions = ({
   }
   return options.join('\n');
 };
+
+export const getCrashReportModalIntroduction = () =>
+  tct(
+    "Our embeddable, JavaScript-based, crash-report modal is useful when you would typically render a plain error page on your website. [break] [break] To collect feedback, the crash-report modal requests and collects the user's name, email address, and a description of what occurred. When feedback is provided, Sentry pairs the feedback with the original event, giving you additional insights into issues.",
+    {break: <br />}
+  );
+
+export const getCrashReportModalInstallDescription = () =>
+  tct(
+    "The modal authenticates with your public DSN, then passes in the Event ID that was generated on your backend. [break] [break] If you're using a framework like React or Angular, the best place to collect user feedback is in your error-handling component. If you're not using a framework, you can collect feedback right before the event is sent, using [code:beforeSend].",
+    {break: <br />, code: <code />}
+  );
+
+export const getCrashReportModalSnippetJavaScript = params => [
+  {
+    code: [
+      {
+        label: 'JavaScript',
+        value: 'javascript',
+        language: 'javascript',
+        code: `<script>
+  Sentry.init({
+    dsn: "${params.dsn}",
+    beforeSend(event, hint) {
+      // Check if it is an exception, and if so, show the report dialog
+      if (event.exception && event.event_id) {
+        Sentry.showReportDialog({ eventId: event.event_id });
+      }
+      return event;
+    },
+  });
+</script>`,
+      },
+    ],
+  },
+];
