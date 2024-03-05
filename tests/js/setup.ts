@@ -28,12 +28,10 @@ SVGElement.prototype.getTotalLength ??= () => 1;
 configureRtl({testIdAttribute: 'data-test-id'});
 
 /**
- * Always reset mock date to avoid changes between tests
- * Also see mock api reset in static/app/__mocks__/api.tsx
+ * Mock (current) date to always be National Pasta Day
+ * 2017-10-17T02:41:20.000Z
  */
-afterEach(() => {
-  resetMockDate();
-});
+resetMockDate();
 
 /**
  * Global testing configuration
