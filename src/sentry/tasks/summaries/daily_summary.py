@@ -267,6 +267,10 @@ def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
     for user_id in user_ids:
         top_projects_context_map = build_top_projects_map(ctx, user_id)
         user = cast(RpcActor, user_service.get_user(user_id=user_id))
+        logger.info(
+            "daily_summary.delivering_summary",
+            extra={"user": user_id, "organization": ctx.organization.id},
+        )
         DailySummaryNotification(
             organization=ctx.organization,
             recipient=user,
