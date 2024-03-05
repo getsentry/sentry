@@ -303,17 +303,11 @@ def get_stored_metrics_of_projects(
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
-    # We compute for each use case, the entities that we want to query.
-    entity_keys = defaultdict(set)
-    for use_case_id in use_case_ids:
-        entity_keys[use_case_id] = entity_keys[use_case_id].union(
-            get_entity_keys_of_use_case_id(use_case_id=use_case_id)
-        )
-
     # We compute a list of all the queries that we want to run in parallel across entities and use cases.
     requests = []
     use_case_id_to_index = defaultdict(list)
-    for use_case_id, entity_keys in entity_keys.items():
+    for use_case_id in use_case_ids:
+        entity_keys = get_entity_keys_of_use_case_id(use_case_id=use_case_id)
         for entity_key in entity_keys:
             requests.append(
                 _get_metrics_by_project_for_entity_query(
