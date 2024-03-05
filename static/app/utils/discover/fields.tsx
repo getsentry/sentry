@@ -119,6 +119,38 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
+export type CountUnit = 'count';
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
