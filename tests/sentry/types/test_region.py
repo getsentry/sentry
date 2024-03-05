@@ -204,6 +204,24 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_find_all_multitenant_region_names_non_visible(self):
+        inputs = [
+            *self._INPUTS,
+            {
+                "name": "ja",
+                "snowflake_id": 4,
+                "address": "https://ja.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+                "visible": False,
+            },
+        ]
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(inputs)
+        with self._in_global_state(directory):
+            result = find_all_multitenant_region_names()
+            assert set(result) == {"us", "eu"}
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_subdomain_is_region(self):
         regions = [
             Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
