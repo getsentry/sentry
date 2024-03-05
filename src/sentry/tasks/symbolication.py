@@ -101,11 +101,11 @@ def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any]
 
 def get_symbolication_function(
     data: Any,
-) -> tuple[bool, Callable[[Symbolicator, Any], Any] | None]:
+) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
     if data["platform"] in ("javascript", "node"):
-        return True, process_js_stacktraces
+        return SymbolicatorPlatform.js, process_js_stacktraces
     else:
-        return False, get_native_symbolication_function(data)
+        return SymbolicatorPlatform.native, get_native_symbolication_function(data)
 
 
 class SymbolicationTimeout(Exception):
@@ -163,11 +163,11 @@ def _do_symbolicate_event(
         # After JS processing, we check `get_native_symbolication_function`,
         # because maybe we need to feed it to another round of
         # `symbolicate_event`, but for *native* that time.
-        if not was_killswitched and task_kind.is_js:
+        if not was_killswitched and task_kind.platform == SymbolicatorPlatform.js:
             symbolication_function = get_native_symbolication_function(data)
             if symbolication_function:
                 submit_symbolicate(
-                    task_kind=task_kind.with_js(False),
+                    task_kind=task_kind.with_platform(SymbolicatorPlatform.native),
                     cache_key=cache_key,
                     event_id=event_id,
                     start_time=start_time,
@@ -185,10 +185,10 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    if not task_kind.is_js:
-        symbolication_function = get_native_symbolication_function(data)
-    else:
+    if task_kind.platform == SymbolicatorPlatform.js:
         symbolication_function = process_js_stacktraces
+    else:
+        symbolication_function = get_native_symbolication_function(data)
 
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -323,12 +323,16 @@ def get_kind_from_task(task: Any) -> SymbolicatorTaskKind:
         symbolicate_js_event_low_priority,
         symbolicate_event_from_reprocessing_low_priority,
     ]
-    is_js = task in [symbolicate_js_event, symbolicate_js_event_low_priority]
+    if task in [symbolicate_js_event, symbolicate_js_event_low_priority]:
+        platform = SymbolicatorPlatform.js
+    else:
+        platform = SymbolicatorPlatform.native
+
     is_reprocessing = task in [
         symbolicate_event_from_reprocessing,
         symbolicate_event_from_reprocessing_low_priority,
     ]
-    return SymbolicatorTaskKind(is_js, is_low_priority, is_reprocessing)
+    return SymbolicatorTaskKind(platform, is_low_priority, is_reprocessing)
 
 
 def submit_symbolicate(
@@ -341,7 +345,7 @@ def submit_symbolicate(
 ) -> None:
     # oh how I miss a real `match` statement...
     task = symbolicate_event
-    if task_kind.is_js:
+    if task_kind.platform == SymbolicatorPlatform.js:
         if task_kind.is_low_priority:
             task = symbolicate_js_event_low_priority
         else:

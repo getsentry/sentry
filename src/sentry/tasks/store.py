@@ -169,7 +169,7 @@ def _do_preprocess_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    is_js, symbolication_function = get_symbolication_function(data)
+    platform, symbolication_function = get_symbolication_function(data)
     if symbolication_function:
         symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
@@ -186,7 +186,7 @@ def _do_preprocess_event(
 
             is_low_priority = should_demote_symbolication(project_id)
             task_kind = SymbolicatorTaskKind(
-                is_js=is_js, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
+                platform=platform, is_low_priority=is_low_priority, is_reprocessing=from_reprocessing
             )
             submit_symbolicate(
                 task_kind,

@@ -16,7 +16,7 @@ from sentry.constants import DataCategory
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind, SymbolicatorPlatform
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
@@ -480,9 +480,12 @@ def run_symbolicate(
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
 
-    is_js = platform in SHOULD_SYMBOLICATE_JS
+    if platform in SHOULD_SYMBOLICATE_JS:
+        symbolicator_platform = SymbolicatorPlatform.js
+    else:
+        symbolicator_platform = SymbolicatorPlatform.native
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(is_js=is_js),
+        task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
         on_request=on_symbolicator_request,
         project=project,
         event_id=profile["event_id"],
