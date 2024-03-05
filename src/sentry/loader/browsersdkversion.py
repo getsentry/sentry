@@ -37,6 +37,7 @@ def get_highest_browser_sdk_version(versions):
 
 
 def get_all_browser_sdk_version_versions():
+    # todo: v8 add version
     return ["latest", "7.x", "6.x", "5.x", "4.x"]
 
 
