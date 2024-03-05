@@ -45,6 +45,10 @@ class BadPaginationError(Exception):
     pass
 
 
+class MissingPaginationError(Exception):
+    pass
+
+
 class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None

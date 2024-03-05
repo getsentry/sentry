@@ -57,7 +57,7 @@ from .authentication import (
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
 )
-from .paginator import BadPaginationError, Paginator
+from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
     NoPermission,
     StaffPermission,
@@ -365,6 +365,10 @@ class Endpoint(APIView):
                 rv.user = orig_user
         return rv
 
+    def has_pagination(self, response: Response) -> bool:
+        # If response is paginated, it will have a "Link" header
+        return response.headers.get("Link") is not None
+
     @csrf_exempt
     @allow_cors_options
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
@@ -450,6 +454,20 @@ class Endpoint(APIView):
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+
+        # Only enforced in dev environment
+        if settings.ENFORCE_PAGINATION:
+            if request.method.lower() == "get":
+                # Response can either be Response or HttpResponse, check if it's value an array
+                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                    # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
+                    if (
+                        not self.has_pagination(self.response)
+                        and handler.__self__.__class__.__name__
+                        not in settings.SENTRY_API_PAGINATION_ALLOWLIST
+                    ):
+                        raise MissingPaginationError("Response is not paginated")
         return self.response
 
     def add_cors_headers(self, request: Request, response):

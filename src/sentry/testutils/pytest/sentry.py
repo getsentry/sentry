@@ -114,6 +114,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sentry.conf.server")
 
+    # add "ENFORCE_PAGINATION" to the list of environment variables
+    settings.ENFORCE_PAGINATION = True
+
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
     from sentry.utils import integrationdocs
