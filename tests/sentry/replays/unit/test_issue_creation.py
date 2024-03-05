@@ -5,11 +5,11 @@ import pytest
 
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.group import Group
+from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.replays.unit.test_ingest_dom_index import mock_replay_event
 
 pytestmark = [requires_snuba]
 
@@ -60,6 +60,8 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
         "user": {
             "id": "1",
             "email": "test@test.com",
+            "ip_address": "127.0.0.1",
+            "username": "username",
         },
     }
 
