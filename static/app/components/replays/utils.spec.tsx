@@ -5,6 +5,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {
   countColumns,
   divide,
+  findVideoSegmentIndex,
   flattenFrames,
   formatTime,
   getFramesByColumn,
@@ -277,5 +278,65 @@ describe('flattenFrames', () => {
     it('dividing by zero returns zero', () => {
       expect(divide(81, 0)).toEqual(0);
     });
+  });
+
+  describe('findVideoSegmentIndex', () => {
+    const segments = [
+      {
+        timestamp: 0,
+        duration: 5000,
+        uri: '/_assets/test1.mp4',
+      },
+      // no gap
+      {
+        timestamp: 5000,
+        duration: 5000,
+        uri: '/_assets/test2.mp4',
+      },
+      {
+        timestamp: 10_001,
+        duration: 5000,
+        uri: '/_assets/test3.mp4',
+      },
+      // 5 second gap
+      {
+        timestamp: 20_000,
+        duration: 5000,
+        uri: '/_assets/test4.mp4',
+      },
+      // 5 second gap
+      {
+        timestamp: 30_000,
+        duration: 5000,
+        uri: '/_assets/test5.mp4',
+      },
+      {
+        timestamp: 35_002,
+        duration: 5000,
+        uri: '/_assets/test6.mp4',
+      },
+    ];
+    const trackList = segments.map(({timestamp}, index) => [timestamp, index]);
+
+    it.each([
+      ['matches starting timestamp', 0, 0],
+      ['matches ending timestamp', 5000, 0],
+      ['is inside of a segment (between timestamps)', 7500, 1],
+      ['matches ending timestamp', 15_001, 2],
+      ['is not inside of a segment', 16_000, 2],
+      ['matches starting timestamp', 20_000, 3],
+      ['is not inside of a segment', 27_500, 3],
+      ['is not inside of a segment', 29_000, 3],
+      ['is inside of a segment', 34_999, 4],
+      ['is inside of a segment', 40_002, 5],
+      ['is not inside of a segment', 50_000, 5],
+    ])(
+      'should find correct segment when target timestamp %s (%s)',
+      (_desc, targetTimestamp, expected) => {
+        expect(findVideoSegmentIndex(trackList, segments, targetTimestamp)).toEqual(
+          expected
+        );
+      }
+    );
   });
 });
