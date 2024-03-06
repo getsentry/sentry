@@ -30,17 +30,19 @@ from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.rules import rules as rule_registry
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processor import is_condition_slow
+from sentry.rules.registry import RuleRegistry
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils.safe import safe_execute
 
 
-def send_confirmation_notification(rule: Rule, new: bool):
+def send_confirmation_notification(rule: Rule, new: bool, rules: RuleRegistry):
     for action in rule.data.get("actions", ()):
-        action_inst = instantiate_action(rule, action)
+        action_inst = instantiate_action(rule, action, rules)
         safe_execute(
             action_inst.send_confirmation_notification,
             rule=rule,
@@ -844,6 +846,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         if features.has(
             "organizations:rule-create-edit-confirm-notification", project.organization
         ):
-            send_confirmation_notification(rule=rule, new=True)
+            send_confirmation_notification(rule=rule, new=True, rules=rule_registry)
 
         return Response(serialize(rule, request.user))

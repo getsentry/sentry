@@ -41,6 +41,7 @@ from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.rules import rules as rule_registry
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
@@ -367,7 +368,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             if features.has(
                 "organizations:rule-create-edit-confirm-notification", project.organization
             ):
-                send_confirmation_notification(rule=rule, new=False)
+                send_confirmation_notification(rule=rule, new=False, rules=rule_registry)
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
