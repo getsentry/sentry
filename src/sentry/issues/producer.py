@@ -77,8 +77,9 @@ def produce_occurrence_to_kafka(
         logger.exception(
             "Failed to send occurrence to issue platform",
             extra={
-                "total_size": sys.getsizeof(payload),
-                "key_sizes": {k: sys.getsizeof(v) for k, v in payload.items()},
+                "total_payload_size": sys.getsizeof(payload),
+                "total_payload_data_size": sys.getsizeof(payload_data),
+                "payload_data_key_sizes": {k: sys.getsizeof(v) for k, v in payload_data.items()},
             },
         )
 
