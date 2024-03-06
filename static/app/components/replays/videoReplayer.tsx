@@ -17,6 +17,17 @@ interface VideoReplayerOptions {
   videoApiPrefix: string;
 }
 
+interface VideoReplayerConfig {
+  /**
+   * Not supported, only here to maintain compat w/ rrweb player
+   */
+  skipInactive: false;
+  /**
+   * Video playback speed
+   */
+  speed: number;
+}
+
 /**
  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
  */
@@ -24,12 +35,15 @@ export class VideoReplayer {
   private _attachments: VideoAttachment[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
-  private _playbackSpeed: number = 1.0;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
   private _videos: HTMLVideoElement[];
   private _videoApiPrefix: string;
+  public config: VideoReplayerConfig = {
+    skipInactive: false,
+    speed: 1.0,
+  };
   public wrapper: HTMLElement;
   public iframe = {};
 
@@ -73,7 +87,8 @@ export class VideoReplayer {
     });
     // TODO: Only preload when necessary
     el.preload = 'auto';
-    el.playbackRate = this._playbackSpeed;
+    // TODO: Timer needs to also account for playback speed
+    el.playbackRate = this.config.speed;
 
     // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
@@ -106,11 +121,7 @@ export class VideoReplayer {
     // This function will return the prior segment index if no valid segments
     // were found, so we will need to double check if the result was an exact
     // match or not
-    const result = findVideoSegmentIndex(
-      this._trackList,
-      this._attachments,
-      timestamp,
-    );
+    const result = findVideoSegmentIndex(this._trackList, this._attachments, timestamp);
     const resultSegment = this.getSegment(result)!;
     const isExactSegment =
       timestamp >= resultSegment.timestamp &&
@@ -161,7 +172,7 @@ export class VideoReplayer {
     if (!video) {
       return undefined;
     }
-    video.playbackRate = this._playbackSpeed;
+    video.playbackRate = this.config.speed;
     return video.play();
   }
 
@@ -346,18 +357,20 @@ export class VideoReplayer {
   /**
    * Equivalent to rrweb's `setConfig()`, but here we only support the `speed` configuration
    */
-  public setConfig({speed}: Partial<{skipInactive: boolean; speed: number}>): void {
-    if (typeof speed === 'undefined') {
-      return;
+  public setConfig(config: Partial<VideoReplayerConfig>): void {
+    Object.entries(config)
+      .filter(([, value]) => value !== undefined)
+      .forEach(([key, value]) => {
+        this.config[key] = value;
+      });
+
+    if (config.speed !== undefined) {
+      const currentVideo = this.getVideo(this._currentIndex);
+
+      if (!currentVideo) {
+        return;
+      }
+      currentVideo.playbackRate = this.config.speed;
     }
-
-    this._playbackSpeed = speed;
-    const currentVideo = this.getVideo(this._currentIndex);
-
-    if (!currentVideo) {
-      return;
-    }
-
-    currentVideo.playbackRate = this._playbackSpeed;
   }
 }
