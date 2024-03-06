@@ -32,6 +32,7 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -216,6 +217,8 @@ def make_performance_event(project: Project, sample_name: str):
             occurrence_data,
             perf_data,
         )
+        produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
+
     assert group_info is not None
     generic_group = group_info.group
     group_event = generic_group.get_latest_event()
