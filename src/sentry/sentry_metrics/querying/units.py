@@ -147,3 +147,5 @@ def get_reference_unit_for_unit_family(unit_family: UnitFamily) -> Unit | None:
     for unit in units_spec.units:
         if unit.name == reference_unit:
             return unit
+
+    return None
