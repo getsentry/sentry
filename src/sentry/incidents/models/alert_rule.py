@@ -273,9 +273,9 @@ class AlertRule(Model):
         if self.owner_id is not None and self.team_id is None and self.user_id is None:
             raise ValueError("AlertRule with owner requires either team_id or user_id")
 
-    def save(self, **kwargs: Any) -> None:
+    def save(self, *args, **kwargs: Any) -> None:
         self._validate_actor()
-        return super().save(**kwargs)
+        return super().save(*args, **kwargs)
 
     @property
     def created_by_id(self):
@@ -474,7 +474,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    _type_registrations = {}
+    _type_registrations: dict[ActionService, TypeRegistration] = {}
 
     INTEGRATION_TYPES = frozenset(
         (
