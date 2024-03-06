@@ -17,6 +17,9 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.api_pagination_allowlist_do_not_modify import (
+    SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
+)
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -1525,8 +1528,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
-    # Enable inbound filters to be turned on by default for new Javascript Projects
-    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
     # Enables automatically deriving of PHP code mappings
@@ -2405,6 +2406,8 @@ SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
 OPENAI_API_KEY: str | None = None
+
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
 SENTRY_SCOPES = {
     "org:read",
