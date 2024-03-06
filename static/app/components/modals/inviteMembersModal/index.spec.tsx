@@ -216,7 +216,7 @@ describe('InviteMembersModal', function () {
       2,
       `/organizations/${org.slug}/members/`,
       expect.objectContaining({
-        data: {email: 'test2@test.com', role: 'member', teams: []},
+        data: {email: 'test2@test.com', role: 'member', teams: ['team-slug']},
       })
     );
 
@@ -284,7 +284,7 @@ describe('InviteMembersModal', function () {
     expect(createMemberMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/members/`,
       expect.objectContaining({
-        data: {email: initialEmail, role: 'member', teams: []},
+        data: {email: initialEmail, role: 'member', teams: ['team-slug']},
       })
     );
 
