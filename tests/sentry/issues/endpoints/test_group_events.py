@@ -522,3 +522,29 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+    def test_random_true(self):
+        """Test that random=true doesn't blow up. We can't really test if they're in random order."""
+        self.login_as(user=self.user)
+
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event_1.group.id}/events/?random=true"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
