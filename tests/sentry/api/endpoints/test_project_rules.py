@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import parse_qs
 from uuid import uuid4
 
 import responses
@@ -11,6 +12,9 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
+    SlackRuleSaveEditMessageBuilder,
+)
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -56,6 +60,16 @@ class ProjectRuleBaseTestCase(APITestCase):
                 "targetIdentifier": "",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
                 "uuid": str(uuid4()),
+            }
+        ]
+        self.channel_id = "CSVK0921"
+        self.slack_actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "input_channel_id": self.channel_id,
             }
         ]
 
@@ -336,26 +350,19 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     @responses.activate
-    def test_slack_channel_id_saved(self):
-        channel_id = "CSVK0921"
+    @patch(
+        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
+    )
+    def test_slack_channel_id_saved(self, mock_send_confirmation_notification):
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
             body=json.dumps(
-                {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
+                {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
-        actions = [
-            {
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
-                "channel": "#team-team-team",
-                "input_channel_id": channel_id,
-            }
-        ]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -364,11 +371,64 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             environment=None,
             actionMatch="any",
             frequency=5,
-            actions=actions,
+            actions=self.slack_actions,
             conditions=self.first_seen_condition,
             status_code=status.HTTP_200_OK,
         )
-        assert response.data["actions"][0]["channel_id"] == channel_id
+        assert response.data["actions"][0]["channel_id"] == self.channel_id
+        assert mock_send_confirmation_notification.call_count == 1
+
+    @responses.activate
+    def test_slack_confirmation_notification_contents(self):
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
+            ),
+        )
+
+        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
+        payload = {
+            "text": blocks.get("text"),
+            "blocks": json.dumps(blocks.get("blocks")),
+            "channel": self.channel_id,
+            "unfurl_links": False,
+            "unfurl_media": False,
+        }
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(payload),
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=self.slack_actions,
+            conditions=self.first_seen_condition,
+            status_code=status.HTTP_200_OK,
+        )
+        rule_id = response.data["id"]
+        rule_label = response.data["name"]
+        assert response.data["actions"][0]["channel_id"] == self.channel_id
+        data = parse_qs(responses.calls[1].request.body)
+        message = f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
+        assert data["text"][0] == message
+        blocks = json.loads(data["blocks"][0])
+        assert blocks[0]["text"]["text"] == message
+        assert (
+            blocks[1]["elements"][0]["text"]
+            == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
+        )
 
     def test_missing_name(self):
         self.get_error_response(

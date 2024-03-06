@@ -4,11 +4,15 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import parse_qs
 
 import responses
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
+    SlackRuleSaveEditMessageBuilder,
+)
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
@@ -941,7 +945,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
-    def test_update_channel_slack(self):
+    @patch(
+        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
+    )
+    def test_update_channel_slack(self, mock_send_confirmation_notification):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [
             {
@@ -989,7 +996,84 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
+        assert mock_send_confirmation_notification.call_count == 1
         assert_rule_from_payload(self.rule, payload)
+
+    @responses.activate
+    def test_slack_confirmation_notification_contents(self):
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        actions = [
+            {
+                "channel_id": "old_channel_id",
+                "workspace": str(self.slack_integration.id),
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#old_channel_name",
+            }
+        ]
+        self.rule.update(data={"conditions": conditions, "actions": actions})
+
+        actions[0]["channel"] = "#new_channel_name"
+        actions[0]["channel_id"] = "new_channel_id"
+        channels = {
+            "ok": "true",
+            "channels": [
+                {"name": "old_channel_name", "id": "old_channel_id"},
+                {"name": "new_channel_name", "id": "new_channel_id"},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
+        )
+        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
+        payload = {
+            "text": blocks.get("text"),
+            "blocks": json.dumps(blocks.get("blocks")),
+            "channel": "new_channel_id",
+            "unfurl_links": False,
+            "unfurl_media": False,
+        }
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(payload),
+        )
+        payload = {
+            "name": "#new_channel_name",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": conditions,
+            "frequency": 30,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        rule_id = response.data["id"]
+        rule_label = response.data["name"]
+        assert response.data["actions"][0]["channel_id"] == "new_channel_id"
+        data = parse_qs(responses.calls[1].request.body)
+        message = f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
+        assert data["text"][0] == message
+        blocks = json.loads(data["blocks"][0])
+        assert blocks[0]["text"]["text"] == message
+        assert (
+            blocks[1]["elements"][0]["text"]
+            == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
+        )
 
     @responses.activate
     def test_update_channel_slack_workspace_fail(self):
