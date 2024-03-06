@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import pickBy from 'lodash/pickBy';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -55,7 +54,6 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: ['spm()'],
-    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-landing-throughput-chart',
   });
 
@@ -66,12 +64,11 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`avg(span.self_time)`],
-    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-landing-duration-chart',
   });
 
   const domainsListResponse = useSpanMetrics({
-    filters: pickBy(tableFilters, value => value !== undefined),
+    filters: tableFilters,
     fields: [
       'project.id',
       'span.domain',

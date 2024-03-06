@@ -59,6 +59,9 @@ function SpanSummaryPage({params}: Props) {
 
   if (endpoint) {
     filters.transaction = endpoint;
+  }
+
+  if (endpointMethod) {
     filters['transaction.method'] = endpointMethod;
   }
 
@@ -78,7 +81,7 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
-    enabled: Object.values(filters).every(value => Boolean(value)),
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 
@@ -102,7 +105,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
-    enabled: Object.values(filters).every(value => Boolean(value)),
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -113,7 +116,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    enabled: Object.values(filters).every(value => Boolean(value)),
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
