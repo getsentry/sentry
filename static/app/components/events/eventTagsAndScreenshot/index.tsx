@@ -31,11 +31,7 @@ const SCREENSHOT_NAMES = [
   'screenshot-2.png',
 ];
 
-type Props = Omit<
-  React.ComponentProps<typeof Tags>,
-  'projectSlug' | 'hasEventContext'
-> & {
-  projectSlug: string;
+type Props = React.ComponentProps<typeof Tags> & {
   isShare?: boolean;
 };
 
@@ -126,14 +122,7 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       <TagWrapper>
-        {showTags && (
-          <Tags
-            organization={organization}
-            event={event}
-            projectSlug={projectSlug}
-            location={location}
-          />
-        )}
+        {showTags && <Tags event={event} projectSlug={projectSlug} />}
       </TagWrapper>
       {showScreenshot && (
         <div>

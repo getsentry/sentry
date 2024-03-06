@@ -22,6 +22,7 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
+import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -42,7 +43,6 @@ import {IssueCategory, IssueType} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
 
@@ -83,7 +83,6 @@ function DefaultGroupEventDetailsContent({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
-  const location = useLocation();
   const projectSlug = project.slug;
   const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -113,7 +112,7 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title="User Feedback" type="user-feedback">
+        <EventDataSection title={t('User Feedback')} type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
             orgSlug={organization.slug}
@@ -125,19 +124,16 @@ function DefaultGroupEventDetailsContent({
         <CronTimelineSection event={event} organization={organization} />
       )}
       {/* TODO(Leander): Hide this behind new UI flag */}
-      <EventDataSection
-        title="Context Summary"
-        type="context-summary"
-        help="A summary of useful contexts"
-      >
-        <ContextSummary event={event} />
-      </EventDataSection>
-      <EventTagsAndScreenshot
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      {shouldUseNewTagsUI() && (
+        <EventDataSection
+          title={t('Context Summary')}
+          type="context-summary"
+          help={t('A summary some useful context')}
+        >
+          <ContextSummary event={event} />
+        </EventDataSection>
+      )}
+      <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
       {showMaybeSolutionsHigher && (
         <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
       )}
