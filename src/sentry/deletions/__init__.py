@@ -78,7 +78,6 @@ registered Group task. It will instead take a more efficient approach of batch d
 descendants, such as Event, so it can more efficiently bulk delete rows.
 """
 
-
 from .base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation  # NOQA
 from .defaults.artifactbundle import ArtifactBundleDeletionTask
 from .manager import DeletionTaskManager
@@ -89,7 +88,7 @@ default_manager = DeletionTaskManager(default_task=ModelDeletionTask)
 def load_defaults():
     from sentry import models
     from sentry.discover.models import DiscoverSavedQuery
-    from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+    from sentry.incidents.temp_model import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.monitors import models as monitor_models
 

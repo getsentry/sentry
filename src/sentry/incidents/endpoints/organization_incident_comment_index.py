@@ -13,7 +13,7 @@ from sentry.api.serializers.rest_framework.mentions import (
     extract_user_ids_from_mentions,
 )
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
+from sentry.incidents.temp_model import IncidentActivityType
 
 
 class CommentSerializer(serializers.Serializer, MentionsMixin):

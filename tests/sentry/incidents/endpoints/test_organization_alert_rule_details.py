@@ -15,7 +15,8 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.models import (
+from sentry.incidents.serializers import AlertRuleSerializer
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -23,7 +24,6 @@ from sentry.incidents.models import (
     Incident,
     IncidentStatus,
 )
-from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

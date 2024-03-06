@@ -1,7 +1,7 @@
 import logging
 
 from sentry.api.serializers import Serializer, register
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.temp_model import AlertRuleTriggerAction
 
 logger = logging.getLogger(__name__)
 

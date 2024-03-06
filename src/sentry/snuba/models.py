@@ -52,7 +52,7 @@ class SnubaQuery(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.temp_model import AlertRule
         from sentry.models.actor import Actor
         from sentry.models.organization import Organization
         from sentry.models.project import Project

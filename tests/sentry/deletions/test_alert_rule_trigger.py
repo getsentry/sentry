@@ -1,4 +1,4 @@
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.temp_model import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

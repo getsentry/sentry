@@ -1,4 +1,4 @@
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.temp_model import AlertRuleTriggerAction
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 

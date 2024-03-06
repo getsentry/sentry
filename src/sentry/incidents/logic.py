@@ -18,7 +18,7 @@ from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleActivationCondition,
     AlertRuleActivity,

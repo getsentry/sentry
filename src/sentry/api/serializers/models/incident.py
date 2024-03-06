@@ -4,7 +4,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     Incident,
     IncidentActivity,
     IncidentProject,

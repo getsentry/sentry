@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     INCIDENT_STATUS,
     AlertRule,
     AlertRuleThresholdType,

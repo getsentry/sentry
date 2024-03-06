@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,

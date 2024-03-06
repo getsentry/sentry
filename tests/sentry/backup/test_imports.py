@@ -29,7 +29,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.temp_model import AlertRule, AlertRuleThresholdType
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
@@ -1031,9 +1031,10 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert User.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_user_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1048,9 +1049,10 @@ class DecryptionTests(ImportTestCase):
             (tmp_tarball_path, tmp_priv_key_path) = self.encrypt_json_fixture(tmp_dir)
             assert Organization.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_organization_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1065,9 +1067,10 @@ class DecryptionTests(ImportTestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_config_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),
@@ -1086,9 +1089,10 @@ class DecryptionTests(ImportTestCase):
                 assert User.objects.count() == 0
                 assert UserRole.objects.count() == 0
 
-            with open(tmp_tarball_path, "rb") as tmp_tarball_file, open(
-                tmp_priv_key_path, "rb"
-            ) as tmp_priv_key_file:
+            with (
+                open(tmp_tarball_path, "rb") as tmp_tarball_file,
+                open(tmp_priv_key_path, "rb") as tmp_priv_key_file,
+            ):
                 import_in_global_scope(
                     tmp_tarball_file,
                     decryptor=LocalFileDecryptor(tmp_priv_key_file),

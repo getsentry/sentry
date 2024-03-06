@@ -15,7 +15,7 @@ from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.temp_model import AlertRule, Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.user import User

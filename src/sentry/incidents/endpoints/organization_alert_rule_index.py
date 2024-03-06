@@ -34,8 +34,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
-from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
+from sentry.incidents.temp_model import AlertRule, Incident
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

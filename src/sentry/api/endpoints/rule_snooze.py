@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.temp_model import AlertRule
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import Rule

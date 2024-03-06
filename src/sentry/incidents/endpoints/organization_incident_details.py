@@ -9,7 +9,7 @@ from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.temp_model import IncidentStatus, IncidentStatusMethod
 
 
 class IncidentSerializer(serializers.Serializer):

@@ -22,7 +22,8 @@ from sentry.incidents.logic import (
     deduplicate_trigger_actions,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.tasks import handle_trigger_action
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
@@ -36,7 +37,6 @@ from sentry.incidents.models import (
     TriggerStatus,
     invoke_alert_subscription_callback,
 )
-from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset

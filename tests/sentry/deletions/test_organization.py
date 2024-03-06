@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.incidents.models import AlertRule, AlertRuleStatus
+from sentry.incidents.temp_model import AlertRule, AlertRuleStatus
 from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor

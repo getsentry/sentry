@@ -26,7 +26,7 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,

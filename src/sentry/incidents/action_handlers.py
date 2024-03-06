@@ -13,7 +13,7 @@ from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,

@@ -8,7 +8,7 @@ import sentry_sdk
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.temp_model import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,

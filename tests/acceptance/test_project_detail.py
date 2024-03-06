@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.temp_model import IncidentStatus
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 

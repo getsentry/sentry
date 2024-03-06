@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from sentry.incidents.models import AlertRule, Incident, IncidentStatus
+from sentry.incidents.temp_model import AlertRule, Incident, IncidentStatus
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed

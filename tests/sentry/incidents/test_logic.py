@@ -50,7 +50,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleStatus,

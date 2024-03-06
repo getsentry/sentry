@@ -7,7 +7,7 @@ class ProjectDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
-        from sentry.incidents.models import AlertRule, IncidentProject
+        from sentry.incidents.temp_model import AlertRule, IncidentProject
         from sentry.models.projectteam import ProjectTeam
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment

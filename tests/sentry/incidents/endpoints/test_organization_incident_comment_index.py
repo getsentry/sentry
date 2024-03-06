@@ -1,7 +1,7 @@
 from functools import cached_property
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
+from sentry.incidents.temp_model import IncidentActivity, IncidentActivityType, IncidentSubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 

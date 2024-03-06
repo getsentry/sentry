@@ -9,7 +9,7 @@ from django.db.models import Q
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.incidents.models import AlertRule
+from sentry.incidents.temp_model import AlertRule
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,

@@ -1,5 +1,5 @@
 from sentry import eventstore
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.temp_model import AlertRule, Incident
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile

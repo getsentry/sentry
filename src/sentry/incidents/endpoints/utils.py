@@ -1,5 +1,5 @@
 from sentry.api.helpers.teams import get_teams
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.incidents.temp_model import AlertRule, AlertRuleThresholdType
 
 
 def parse_team_params(request, organization, teams):

@@ -17,7 +17,6 @@ from sentry.incidents.logic import (
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
     QUERY_TYPE_VALID_DATASETS,
@@ -27,6 +26,7 @@ from sentry.incidents.serializers import (
     AlertRuleTriggerActionSerializer,
     AlertRuleTriggerSerializer,
 )
+from sentry.incidents.temp_model import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.user import User

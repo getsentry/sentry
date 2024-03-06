@@ -14,19 +14,19 @@ from sentry.incidents.logic import (
     create_incident_activity,
     subscribe_to_incident,
 )
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleTriggerAction,
-    IncidentActivityType,
-    IncidentStatus,
-    IncidentSubscription,
-)
 from sentry.incidents.tasks import (
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
+)
+from sentry.incidents.temp_model import (
+    INCIDENT_STATUS,
+    AlertRuleTriggerAction,
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentSubscription,
 )
 from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey

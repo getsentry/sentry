@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
+from sentry.incidents.temp_model import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test

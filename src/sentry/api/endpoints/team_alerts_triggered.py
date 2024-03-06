@@ -14,7 +14,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.utils import get_date_range_from_params
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     IncidentActivity,
     IncidentActivityType,

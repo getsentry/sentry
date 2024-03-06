@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRuleTrigger,
     Incident,
     IncidentStatus,

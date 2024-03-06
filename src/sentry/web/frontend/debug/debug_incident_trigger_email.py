@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleTrigger,
     Incident,

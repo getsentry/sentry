@@ -7,7 +7,7 @@ class AlertRuleDeletionTask(ModelDeletionTask):
     manager_name = "objects_with_snapshots"
 
     def get_child_relations(self, instance):
-        from sentry.incidents.models import AlertRuleTrigger
+        from sentry.incidents.temp_model import AlertRuleTrigger
 
         return [
             ModelRelation(AlertRuleTrigger, {"alert_rule_id": instance.id}),

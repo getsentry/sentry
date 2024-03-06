@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
+from sentry.incidents.temp_model import AlertRule
 from sentry.integrations.slack.utils import RedisRuleStatus
 
 

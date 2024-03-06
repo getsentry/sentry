@@ -4,7 +4,7 @@ import responses
 
 from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.temp_model import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time

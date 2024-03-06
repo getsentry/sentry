@@ -14,7 +14,7 @@ from sentry_relay.processing import validate_sampling_condition
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
-from sentry.incidents.models import AlertRule, AlertRuleStatus
+from sentry.incidents.temp_model import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
     DashboardWidgetQuery,

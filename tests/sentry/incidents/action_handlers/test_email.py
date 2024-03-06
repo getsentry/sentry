@@ -14,7 +14,7 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,

@@ -31,7 +31,7 @@ from sentry.api.paginator import (
     SequencePaginator,
     reverse_bisect_left,
 )
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.temp_model import AlertRule, Incident
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase

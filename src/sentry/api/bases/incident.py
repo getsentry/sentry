@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import Incident
+from sentry.incidents.temp_model import Incident
 
 
 class IncidentPermission(OrganizationPermission):

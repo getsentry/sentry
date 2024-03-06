@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
-from sentry.incidents.models import (
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,

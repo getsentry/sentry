@@ -7,7 +7,7 @@ from django.http import Http404
 
 from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.temp_model import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time

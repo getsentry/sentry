@@ -4,7 +4,7 @@ import sentry_sdk
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.temp_model import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,

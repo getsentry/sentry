@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from logging import Logger, getLogger
 
-from sentry.incidents.models import AlertRuleTriggerAction, Incident
+from sentry.incidents.temp_model import AlertRuleTriggerAction, Incident
 from sentry.integrations.repository.base import BaseNewNotificationMessage, BaseNotificationMessage
 from sentry.models.notificationmessage import NotificationMessage
 
@@ -22,9 +22,11 @@ class MetricAlertNotificationMessage(BaseNotificationMessage):
             error_code=instance.error_code,
             error_details=instance.error_details,
             message_identifier=instance.message_identifier,
-            parent_notification_message_id=instance.parent_notification_message.id
-            if instance.parent_notification_message
-            else None,
+            parent_notification_message_id=(
+                instance.parent_notification_message.id
+                if instance.parent_notification_message
+                else None
+            ),
             incident=instance.incident,
             trigger_action=instance.trigger_action,
             date_added=instance.date_added,

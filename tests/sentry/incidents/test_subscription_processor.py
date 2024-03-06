@@ -16,7 +16,17 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.subscription_processor import (
+    SubscriptionProcessor,
+    build_alert_rule_stat_keys,
+    build_alert_rule_trigger_stat_key,
+    build_trigger_stat_keys,
+    get_alert_rule_stats,
+    get_redis_client,
+    partition,
+    update_alert_rule_stats,
+)
+from sentry.incidents.temp_model import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
@@ -29,16 +39,6 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
     alert_subscription_callback_registry,
-)
-from sentry.incidents.subscription_processor import (
-    SubscriptionProcessor,
-    build_alert_rule_stat_keys,
-    build_alert_rule_trigger_stat_key,
-    build_trigger_stat_keys,
-    get_alert_rule_stats,
-    get_redis_client,
-    partition,
-    update_alert_rule_stats,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
@@ -280,9 +280,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             processor.process_update(message)
         return processor
 
@@ -2272,9 +2273,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2286,9 +2288,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {
@@ -2781,9 +2783,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2798,9 +2801,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {"project_id": 8, session_status: tag_value_init, "value": denominator},
