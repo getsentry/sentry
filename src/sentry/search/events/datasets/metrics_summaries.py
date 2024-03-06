@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from snuba_sdk import And, Condition, Direction, Function, Op, OrderBy
+from snuba_sdk import And, Column, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder, constants
@@ -41,18 +41,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             for function in [
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        [
-                            "group",
-                            "end_timestamp",
-                            "span_id",
-                            "min",
-                            "max",
-                            "sum",
-                            "count",
-                        ],
-                        alias,
-                    ),
+                    snql_aggregate=self._resolve_random_sample,
                     private=True,
                 ),
                 SnQLFunction(
@@ -98,4 +87,26 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             "divide",
             [self.builder.column("sum_metric"), self.builder.column("count_metric")],
             alias,
+        )
+
+    def _resolve_random_sample(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_sample(
+            [
+                "group",
+                "end_timestamp",
+                "span_id",
+                "min",
+                "max",
+                "sum",
+                "count",
+            ],
+            alias,
+            offset,
+            limit,
         )
