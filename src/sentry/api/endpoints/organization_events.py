@@ -26,7 +26,7 @@ from sentry.snuba import discover, metrics_enhanced_performance, metrics_perform
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import SnubaError, SnubaTSResult
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -324,8 +324,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
+                    has_override_feature = features.has(
+                        "organizations:performance-discover-widget-split-override-save",
+                        organization,
+                        actor=request.user,
+                    )
 
-                    if does_widget_have_split:
+                    if does_widget_have_split and not has_override_feature:
                         # This is essentially cached behaviour and we skip the check
                         split_query = scoped_query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
@@ -347,12 +352,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         has_errors = len(error_results["data"]) > 0
                     except SnubaError:
                         has_errors = False
+                        error_results = None
 
                     original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
-                    if isinstance(original_results, SnubaTSResult):
-                        dataset_meta = original_results.data.get("meta", {})
+                    if original_results.get("data"):
+                        dataset_meta = original_results.get("data").get("meta", {})
                     else:
-                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                        dataset_meta = (
+                            list(original_results.values())[0].get("data").get("meta", {})
+                        )
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False
                     )
