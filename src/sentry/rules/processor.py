@@ -269,6 +269,8 @@ class RuleProcessor:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_inst = instantiate_action(rule, action)
+            if not action_inst:
+                continue
 
             results = safe_execute(
                 action_inst.after,
