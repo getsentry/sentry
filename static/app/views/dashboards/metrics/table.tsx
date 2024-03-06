@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -99,14 +98,12 @@ export function MetricTable({
             key={index}
             type={column.type}
             onClick={() => handleCellClick(column)}
-            disabled={column.type !== 'field'}
+            disabled={column.type !== 'field' || !onOrderChange}
           >
-            <TextOverflow>
-              {column.order && (
-                <IconArrow direction={column.order === 'asc' ? 'up' : 'down'} size="xs" />
-              )}
-              <span>{header}</span>
-            </TextOverflow>
+            {column.order && (
+              <IconArrow direction={column.order === 'asc' ? 'up' : 'down'} size="xs" />
+            )}
+            <TextOverflow>{header}</TextOverflow>
           </HeaderCell>
         );
       })}
@@ -247,7 +244,9 @@ function sortRows(rows: Row[], headers: TableData['headers']) {
 }
 
 const Cell = styled('div')<{type?: string}>`
-  text-align: ${p => (p.type === 'field' ? 'right' : 'left')};
+  display: flex;
+  flex-direction: row;
+  justify-content: ${p => (p.type === 'field' ? ' flex-end' : ' flex-start')};
 `;
 
 const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
@@ -272,11 +271,14 @@ const StyledPanelTable = styled(PanelTable)<{borderless?: boolean}>`
   }
 `;
 
-const HeaderCell = styled(Cell)<{disabled: boolean}>`
-  display: flex;
-  gap: ${space(0.5)};
+const HeaderCell = styled('div')<{disabled: boolean; type?: string}>`
   padding: 0 ${space(0.5)};
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: ${space(0.5)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+  justify-content: ${p => (p.type === 'field' ? ' flex-end' : ' flex-start')};
 `;
 
 export const TableCell = styled(Cell)<{noValue?: boolean}>`
