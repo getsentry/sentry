@@ -124,7 +124,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
 
 
 @region_silo_test
-class CreateOrganizationSearchesPostTest(APITestCase):
+class CreateOrganizationSearchesTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"
 
@@ -348,7 +348,7 @@ class CreateOrganizationSearchesPostTest(APITestCase):
 
 
 @region_silo_test
-class OrgLevelOrganizationSearchesGetTest(APITestCase):
+class OrganizationSearchesGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "get"
 
