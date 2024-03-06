@@ -8,6 +8,7 @@ import jsonschema
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,6 +23,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import generate_region_url
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -46,6 +48,7 @@ from sentry.tasks.assemble import (
 )
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
@@ -368,6 +371,29 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
         checksums = request.GET.getlist("checksums")
         missing = ProjectDebugFile.objects.find_missing(checksums, project=project)
         return Response({"missing": missing})
+
+
+@region_silo_endpoint
+class DebugFilesConfigEndpoint(ProjectEndpoint):
+    owner = ApiOwner.HYBRID_CLOUD
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    permission_classes = (ProjectReleasePermission,)
+
+    def get(self, request: Request, project) -> Response:
+        org = request.organization
+        dsym_file_url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={"organization_slug": org.slug, "project_slug": project.slug},
+        )
+
+        return Response(
+            {
+                "region_url": absolute_uri(
+                    dsym_file_url,
+                    generate_region_url(),
+                )
+            }
+        )
 
 
 @region_silo_endpoint

@@ -5,13 +5,16 @@ from uuid import uuid4
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry import options
+from sentry.api.utils import generate_region_url
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import no_silo_test, region_silo_test
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -540,3 +543,54 @@ class DebugFilesUploadTest(APITestCase):
         # accessing foreign files should not work
         response = self.client.get(f"{url}?id={download_id}")
         assert response.status_code == 404
+
+
+@no_silo_test
+class DebugFilesConfigEndpointTest(APITestCase):
+    def test_get_config(self):
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-dsym-file-config",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        self.login_as(user=self.user)
+
+        base_url = options.get("system.url-prefix")
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            base_url = generate_region_url()
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data == {"region_url": base_url + "/api/0/projects/baz/foo/files/dsyms/"}
+
+    def test_no_auth(self):
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-dsym-file-config",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 401
+
+    def test_no_project_access(self):
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-dsym-file-config",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        other_user = self.create_user()
+        self.login_as(user=other_user)
+
+        response = self.client.get(url)
+        assert response.status_code == 403
+
+
+@region_silo_test
+class DebugFilesConfigRegionEndpointTest(DebugFilesConfigEndpointTest):
+    pass

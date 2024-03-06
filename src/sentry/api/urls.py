@@ -200,6 +200,7 @@ from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
+    DebugFilesConfigEndpoint,
     DebugFilesEndpoint,
     DifAssembleEndpoint,
     ProguardArtifactReleasesEndpoint,
@@ -2221,6 +2222,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
         DebugFilesEndpoint.as_view(),
         name="sentry-api-0-dsym-files",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/config$",
+        DebugFilesConfigEndpoint.as_view(),
+        name="sentry-api-0-dsym-file-config",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/source-maps/$",
