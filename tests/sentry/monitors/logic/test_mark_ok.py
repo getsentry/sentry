@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -103,7 +102,6 @@ class MarkOkTestCase(TestCase):
             monitor_environment=monitor_environment,
             starting_checkin=first_checkin,
             starting_timestamp=first_checkin.date_added,
-            grouphash=uuid.uuid4().hex,
         )
 
         # Create OK check-ins
