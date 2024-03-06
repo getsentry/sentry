@@ -43,9 +43,7 @@ export default function ProjectKeyDetails({organization, params, project}: Props
     setApiQueryData<ProjectKey>(
       queryClient,
       [`/projects/${organization.slug}/${projectId}/keys/${keyId}/`],
-      oldData => {
-        return {...oldData, data};
-      }
+      data
     );
   }
 
