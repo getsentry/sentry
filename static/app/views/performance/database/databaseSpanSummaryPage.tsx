@@ -78,6 +78,7 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 

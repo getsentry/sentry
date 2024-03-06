@@ -53,6 +53,7 @@ export function HTTPDomainSummaryPage() {
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
   });
 
