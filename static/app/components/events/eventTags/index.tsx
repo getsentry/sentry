@@ -1,18 +1,18 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import Pills from 'sentry/components/pills';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {AnnotatedText} from '../meta/annotatedText';
 
@@ -20,21 +20,15 @@ import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
-  location: Location;
-  organization: Organization;
   projectSlug: string;
   tagFilter?: TagFilter;
 };
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
-export function EventTags({
-  event,
-  organization,
-  projectSlug,
-  location,
-  tagFilter = TagFilter.ALL,
-}: Props) {
+export function EventTags({event, projectSlug, tagFilter = TagFilter.ALL}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
   const meta = event._meta?.tags;
   const projectId = event.projectID;
 

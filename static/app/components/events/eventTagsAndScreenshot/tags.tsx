@@ -14,8 +14,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventTags} from '../eventTags';
 
@@ -33,8 +31,6 @@ export enum TagFilter {
 }
 
 function Tags({event, projectSlug}: Props) {
-  const location = useLocation();
-  const organization = useOrganization();
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
   const handleTagFilterChange = useCallback((value: TagFilter) => {
     setTagFilter(value);
@@ -69,13 +65,7 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewUI && <EventContextSummary event={event} />}
-      <EventTags
-        event={event}
-        tagFilter={tagFilter}
-        organization={organization}
-        projectSlug={projectSlug}
-        location={location}
-      />
+      <EventTags event={event} projectSlug={projectSlug} tagFilter={tagFilter} />
     </StyledEventDataSection>
   );
 }

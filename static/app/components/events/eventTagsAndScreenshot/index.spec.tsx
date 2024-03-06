@@ -118,7 +118,7 @@ describe('EventTagsAndScreenshot', function () {
 
   const event = EventFixture({user});
 
-  const {organization, project, router} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {
       orgRole: 'member',
       attachmentsRole: 'member',
@@ -189,9 +189,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -236,9 +234,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />,
         {organization}
@@ -255,9 +251,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />
       );
@@ -284,9 +278,7 @@ describe('EventTagsAndScreenshot', function () {
           <GlobalModal />
           <EventTagsAndScreenshot
             event={EventFixture({user: {}, contexts: {}})}
-            organization={organization}
             projectSlug={project.slug}
-            location={router.location}
           />
         </Fragment>,
         {organization}
@@ -339,9 +331,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -396,9 +386,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -439,9 +427,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -473,9 +459,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -502,12 +486,7 @@ describe('EventTagsAndScreenshot', function () {
 
     it('has tags and attachments only', async function () {
       render(
-        <EventTagsAndScreenshot
-          event={{...event, tags}}
-          organization={organization}
-          projectSlug={project.slug}
-          location={router.location}
-        />,
+        <EventTagsAndScreenshot event={{...event, tags}} projectSlug={project.slug} />,
         {organization}
       );
 

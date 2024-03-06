@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {EventTags} from 'sentry/components/events/eventTags';
 
 describe('EventTagsTree', function () {
-  const {organization, project, router} = initializeOrg();
+  const {organization, project} = initializeOrg();
   const tags = [
     {key: 'tree', value: 'maple'},
     {key: 'tree.branch', value: 'jagged'},
@@ -47,15 +47,7 @@ describe('EventTagsTree', function () {
   const event = EventFixture({tags});
 
   it('avoids tag tree without query param', function () {
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
     tags.forEach(({key: fullTagKey, value}) => {
       expect(screen.getByText(fullTagKey)).toBeInTheDocument();
       expect(screen.getByText(value)).toBeInTheDocument();
@@ -63,15 +55,7 @@ describe('EventTagsTree', function () {
   });
 
   it('renders tag tree with query param', function () {
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={{...router.location, query: {tagsTree: '1'}}}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     tags.forEach(({value}) => {
       expect(screen.getByText(value)).toBeInTheDocument();
@@ -88,15 +72,9 @@ describe('EventTagsTree', function () {
 
   it("renders tag tree with the 'event-tags-tree-ui' feature", function () {
     const featuredOrganization = OrganizationFixture({features: ['event-tags-tree-ui']});
-    render(
-      <EventTags
-        organization={featuredOrganization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization: featuredOrganization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {
+      organization: featuredOrganization,
+    });
 
     tags.forEach(({value}) => {
       expect(screen.getByText(value)).toBeInTheDocument();

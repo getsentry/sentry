@@ -15,21 +15,13 @@ describe('event tags', function () {
       },
     });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
@@ -60,21 +52,13 @@ describe('event tags', function () {
       },
     });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     expect(screen.getByText('device.family')).toBeInTheDocument();
     expect(screen.getByText('iOS')).toBeInTheDocument();
@@ -97,21 +81,13 @@ describe('event tags', function () {
       tags,
     });
 
-    const {organization, project, router} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         relayPiiConfig: null,
       },
     });
 
-    render(
-      <EventTags
-        organization={organization}
-        projectSlug={project.slug}
-        location={router.location}
-        event={event}
-      />,
-      {organization}
-    );
+    render(<EventTags projectSlug={project.slug} event={event} />, {organization});
 
     expect(screen.getByText('mytransaction')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
