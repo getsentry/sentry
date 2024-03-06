@@ -1126,7 +1126,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
-            if event.data["platform"] not in SUPPORTED_LANGUAGES:
+            if event.data.get("platform") not in SUPPORTED_LANGUAGES:
                 return
 
             # To limit the overall number of tasks, only process one issue per project per hour. In
