@@ -17,6 +17,9 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.api_pagination_allowlist_do_not_modify import (
+    SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
+)
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
@@ -2513,89 +2516,7 @@ SENTRY_SCOPE_SETS = (
     (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
-"""
-    This list is tracking old api endpoints that don't correctly implement pagination.
-    The goal is to eventually add pagination for all and shrink this list.
-    DO NOT ADD ANY NEW APIS
-"""
-SENTRY_API_PAGINATION_ALLOWLIST = {
-    "GroupTagsEndpoint",
-    "GroupIntegrationsEndpoint",
-    "ProjectServiceHookStatsEndpoint",
-    "OrganizationProcessingIssuesEndpoint",
-    "OrganizationEnvironmentsEndpoint",
-    "OrganizationMetricsTagDetailsEndpoint",
-    "OrganizationProjectsEndpoint",
-    "SentryInternalAppTokensEndpoint",
-    "ProjectPlatformsEndpoint",
-    "UserRolesEndpoint",
-    "AuthenticatorIndexEndpoint",
-    "OrganizationUserTeamsEndpoint",
-    "GroupParticipantsEndpoint",
-    "AssistantEndpoint",
-    "ApiTokensEndpoint",
-    "UserPermissionsConfigEndpoint",
-    "ProjectFiltersEndpoint",
-    "InternalQueueTasksEndpoint",
-    "TeamStatsEndpoint",
-    "OrganizationPluginsConfigsEndpoint",
-    "ProjectIssuesResolvedInReleaseEndpoint",
-    "OrganizationUsersEndpoint",
-    "ProjectEnvironmentsEndpoint",
-    "ProjectUserStatsEndpoint",
-    "ProjectUsersEndpoint",
-    "OrganizationEventsRootCauseAnalysisEndpoint",
-    "UserAuthenticatorIndexEndpoint",
-    "OrganizationDeriveCodeMappingsEndpoint",
-    "UserUserRolesEndpoint",
-    "UserSocialIdentitiesIndexEndpoint",
-    "OrganizationEventsNewTrendsStatsEndpoint",
-    "OrganizationMetricsTagsEndpoint",
-    "OrganizationIntegrationServerlessFunctionsEndpoint",
-    "OrganizationRepositoriesEndpoint",
-    "OrganizationSentryFunctionEndpoint",
-    "GroupSimilarIssuesEmbeddingsEndpoint",
-    "OrganizationMissingMembersEndpoint",
-    "OrganizationSdkUpdatesEndpoint",
-    "OrganizationUserReportsEndpoint",
-    "OrganizationReleasesEndpoint",
-    "ProjectGroupingConfigsEndpoint",
-    "OrganizationAccessRequestDetailsEndpoint",
-    "OrganizationIndexEndpoint",
-    "ProjectPluginsEndpoint",
-    "TeamGroupsOldEndpoint",
-    "UserPermissionsEndpoint",
-    "ReleaseThresholdEndpoint",
-    "UserIdentityConfigEndpoint",
-    "UserSubscriptionsEndpoint",
-    "BuiltinSymbolSourcesEndpoint",
-    "OrganizationRelayUsage",
-    "OrganizationApiKeyIndexEndpoint",
-    "OrganizationMetricsDetailsEndpoint",
-    "GroupStatsEndpoint",
-    "ProjectMemberIndexEndpoint",
-    "ProjectReleaseSetupCompletionEndpoint",
-    "OrganizationPluginsEndpoint",
-    "SentryAppRequestsEndpoint",
-    "ProjectSymbolSourcesEndpoint",
-    "SentryAppsStatsEndpoint",
-    "OrganizationStatsEndpoint",
-    "ProjectArtifactLookupEndpoint",
-    "UserNotificationSettingsProvidersEndpoint",
-    "IntegrationFeaturesEndpoint",
-    "OrganizationAuthProvidersEndpoint",
-    "UserEmailsEndpoint",
-    "ProjectCodeOwnersEndpoint",
-    "OrganizationUserDetailsEndpoint",
-    "OrgAuthTokensEndpoint",
-    "OrganizationProfilingFiltersEndpoint",
-    "GroupingConfigsEndpoint",
-    "ProjectStatsEndpoint",
-    "OrganizationRecentSearchesEndpoint",
-    "UserNotificationSettingsOptionsEndpoint",
-    "ProjectAgnosticRuleConditionsEndpoint",
-    "JiraServerSearchEndpointTest",
-}
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
 SENTRY_DEFAULT_ROLE = "member"
 
