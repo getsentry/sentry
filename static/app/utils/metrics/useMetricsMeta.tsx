@@ -53,7 +53,8 @@ function useMetaUseCase(
 export function useMetricsMeta(
   pageFilters: Partial<PageFilters>,
   useCases?: UseCase[],
-  filterBlockedMetrics = true
+  filterBlockedMetrics = true,
+  enabled: boolean = true
 ): {data: MetricMeta[]; isLoading: boolean} {
   const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
@@ -61,17 +62,17 @@ export function useMetricsMeta(
     'sessions',
     pageFilters,
     {
-      enabled: enabledUseCases.includes('sessions'),
+      enabled: enabled && enabledUseCases.includes('sessions'),
     }
   );
   const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', pageFilters, {
-    enabled: enabledUseCases.includes('transactions'),
+    enabled: enabled && enabledUseCases.includes('transactions'),
   });
   const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', pageFilters, {
-    enabled: enabledUseCases.includes('custom'),
+    enabled: enabled && enabledUseCases.includes('custom'),
   });
   const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', pageFilters, {
-    enabled: enabledUseCases.includes('spans'),
+    enabled: enabled && enabledUseCases.includes('spans'),
   });
 
   const isLoading =

@@ -8,7 +8,10 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getFeedbackConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
@@ -80,8 +83,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
       ? `
         Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
-colorScheme: "light",
-}),`
+colorScheme: "system",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
     params.isReplaySelected
@@ -443,7 +446,10 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: getSetupConfiguration({
         params,

@@ -93,8 +93,7 @@ class UserPermissionTest(DRFPermissionTestCase):
 @all_silo_test
 class UserAndStaffPermissionTest(DRFPermissionTestCase):
     def test_allows_active_staff(self):
-        # The user passed in and the user on the request must be different to
-        # check staff.
+        # The user passed in and the user on the request must be different to check staff.
         assert UserAndStaffPermission().has_object_permission(
             self.staff_request, None, self.create_user()
         )

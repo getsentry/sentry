@@ -80,10 +80,7 @@ class SystemOptionsEndpoint(Endpoint):
             return True
         if not request.access.has_permission("options.admin"):
             # We ignore options.admin permission is all keys in the update match the allowlist.
-            if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):
-                return True
-
-            return False
+            return all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()])
 
         return True
 

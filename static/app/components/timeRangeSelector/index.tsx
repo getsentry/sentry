@@ -189,7 +189,7 @@ export function TimeRangeSelector({
               value: item.value,
               // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
               // TODO: Remove SelectorItemLabel & OptionLabel
-              label: <OptionLabel>{item.label}</OptionLabel>,
+              label: <OptionLabel>{item.label as string}</OptionLabel>,
               details:
                 start && end ? (
                   <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
@@ -207,7 +207,7 @@ export function TimeRangeSelector({
 
           return {
             value: item.value,
-            label: <OptionLabel>{item.label}</OptionLabel>,
+            label: <OptionLabel>{item.label as string}</OptionLabel>,
             textValue: item.searchKey,
           };
         });
@@ -222,9 +222,9 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map(item => ({
+      return filteredItems.map<SelectOption<string>>(item => ({
         value: item.value,
-        label: item.label,
+        label: item.label as string,
         textValue: item.searchKey,
       }));
     },
@@ -362,7 +362,7 @@ export function TimeRangeSelector({
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>
-                {!showAbsoluteSelector && menuBody}
+                {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
                   <AbsoluteDateRangeWrap>
                     <StyledDateRangeHook
@@ -429,7 +429,7 @@ export function TimeRangeSelector({
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
                     )}
                     <FooterWrap>
-                      <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+                      <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
                         <AbsoluteSelectorFooter>
                           {showRelative && (

@@ -30,7 +30,8 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -119,7 +120,8 @@ SPAN_COLUMN_MAP = {
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
-    "span.duration": "duration",
+    # DO NOT directly expose span.duration, we should always use the alias
+    # "span.duration": "duration",
     "span.group": "group",
     "span.module": "module",
     "span.op": "op",
@@ -132,7 +134,8 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
-    "profile_id": "profile_id",
+    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
+    "profile.id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -145,6 +148,9 @@ SPAN_COLUMN_MAP = {
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
+    "replay.id": "sentry_tags[replay_id]",
+    "browser.name": "sentry_tags[browser.name]",
+    "origin.transaction": "sentry_tags[transaction]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -154,7 +160,7 @@ METRICS_SUMMARIES_COLUMN_MAP = {
     "metric": "metric_mri",
     "timestamp": "end_timestamp",
     "segment.id": "segment_id",
-    "span.duration": "duration",
+    "span.duration": "duration_ms",
     "span.group": "group",
     "min_metric": "min",
     "max_metric": "max",

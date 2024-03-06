@@ -71,15 +71,16 @@ describe('useProfileFunctions', function () {
     );
     expect(hook.result.current.isLoading).toEqual(true);
     expect(hook.result.current.isFetched).toEqual(false);
-    await hook.waitForNextUpdate();
-    expect(hook.result.current).toMatchObject(
-      expect.objectContaining({
-        isLoading: false,
-        isFetched: true,
-        data: expect.objectContaining({
-          data: expect.any(Array),
-        }),
-      })
+    await hook.waitFor(() =>
+      expect(hook.result.current).toMatchObject(
+        expect.objectContaining({
+          isLoading: false,
+          isFetched: true,
+          data: expect.objectContaining({
+            data: expect.any(Array),
+          }),
+        })
+      )
     );
   });
 });

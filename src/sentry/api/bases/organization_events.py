@@ -22,6 +22,7 @@ from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSeria
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -222,6 +223,33 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
 
         return use_on_demand_metrics, on_demand_metric_type
+
+    def get_split_decision(self, has_errors, has_transactions_data):
+        """This can be removed once the discover dataset has been fully split"""
+        if has_errors and not has_transactions_data:
+            decision = DashboardWidgetTypes.ERROR_EVENTS
+        elif not has_errors and has_transactions_data:
+            decision = DashboardWidgetTypes.TRANSACTION_LIKE
+        elif has_errors and has_transactions_data:
+            decision = DashboardWidgetTypes.DISCOVER
+        else:
+            # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
+            # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
+            decision = None
+        sentry_sdk.set_tag("split_decision", decision)
+        return decision
+
+    def save_split_decision(self, widget, has_errors, has_transactions_data):
+        """This can be removed once the discover dataset has been fully split"""
+        new_discover_widget_split = self.get_split_decision(has_errors, has_transactions_data)
+        if (
+            new_discover_widget_split is not None
+            and widget.discover_widget_split != new_discover_widget_split
+        ):
+            widget.discover_widget_split = new_discover_widget_split
+            widget.save()
+
+        return new_discover_widget_split
 
     def handle_unit_meta(
         self, meta: dict[str, str]

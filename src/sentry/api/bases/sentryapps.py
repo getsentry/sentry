@@ -14,6 +14,7 @@ from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
@@ -97,6 +98,12 @@ class SentryAppsPermission(SentryPermission):
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
 
+class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
+    """Allows staff to access the GET method of sentry apps endpoints."""
+
+    staff_allowed_methods = {"GET"}
+
+
 class IntegrationPlatformEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         add_request_metric_tags(request, integration_platform=True)
@@ -104,7 +111,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request):
         organization_slug = request.json_body.get("organization")
@@ -113,7 +120,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
             raise ValidationError({"organization": to_single_line_str(error_message)})
         return organization_slug
 
-    def _get_organization_for_superuser(
+    def _get_organization_for_superuser_or_staff(
         self, user: RpcUser, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_organization_by_slug(
@@ -139,8 +146,8 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
-        if is_active_superuser(request):
-            return self._get_organization_for_superuser(request.user, organization_slug)
+        if is_active_superuser(request) or is_active_staff(request):
+            return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
         else:
             return self._get_organization_for_user(request.user, organization_slug)
 
@@ -357,7 +364,10 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+            id=installation.organization_id,
+            user_id=request.user.id,
+            include_teams=False,
+            include_projects=False,
         )
         if (
             org_context.member is None

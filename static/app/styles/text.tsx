@@ -10,8 +10,8 @@ const textStyles = () => css`
   h6,
   p,
   /* Exclude ol/ul elements inside interactive selectors/menus */
-  ul:not([role='listbox'], [role='grid']),
-  ol:not([role='listbox'], [role='grid']),
+  ul:not([role='listbox'], [role='grid'], [role='menu']),
+  ol:not([role='listbox'], [role='grid'], [role='menu']),
   table,
   dl,
   blockquote,

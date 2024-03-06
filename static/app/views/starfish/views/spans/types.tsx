@@ -18,7 +18,8 @@ export type DataKey =
   | 'count'
   | 'avg(http.response_content_length)'
   | 'avg(http.decoded_response_content_length)'
-  | 'avg(http.response_transfer_size)';
+  | 'avg(http.response_transfer_size)'
+  | 'bundleSize';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -34,6 +35,7 @@ export const DataTitles: Record<DataKey, string> = {
   slowFrames: t('Slow Frames %'),
   ttid: t('Time To Initial Display'),
   ttfd: t('Time To Full Display'),
+  bundleSize: t('Bundle size'),
   'avg(http.response_content_length)': t('Avg Encoded Size'),
   'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
   'avg(http.response_transfer_size)': t('Avg Transfer Size'),

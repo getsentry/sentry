@@ -69,8 +69,8 @@ class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
 
 class SimilarIssuesEmbeddingsData(TypedDict):
     parent_group_id: int
-    stacktrace_similarity: float
-    message_similarity: float
+    stacktrace_distance: float
+    message_distance: float
     should_group: bool
 
 

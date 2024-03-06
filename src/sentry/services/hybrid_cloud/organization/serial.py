@@ -97,7 +97,6 @@ def serialize_rpc_team(team: Team) -> RpcTeam:
         status=team.status,
         organization_id=team.organization_id,
         slug=team.slug,
-        org_role=team.org_role,
         name=team.name,
     )
 

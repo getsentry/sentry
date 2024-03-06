@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 
 type FormProps = {
   cancelLabel?: string;
+  children?: React.ReactNode;
   className?: string;
   errorMessage?: React.ReactNode;
   extraButton?: React.ReactNode;
@@ -148,7 +149,8 @@ class Form<
                   </p>
                   <ul>
                     {nonFieldErrors.map((e, i) => (
-                      <li key={i}>{e}</li>
+                      // TODO(TS): Objects cannot be rendered to dom
+                      <li key={i}>{e as any}</li>
                     ))}
                   </ul>
                 </div>

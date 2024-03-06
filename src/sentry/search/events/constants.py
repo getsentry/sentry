@@ -20,6 +20,8 @@ PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_DOT_ID_ALIAS = "project.id"
 PROJECT_ID_ALIAS = "project_id"
+PRECISE_START_TS = "precise.start_ts"
+PRECISE_FINISH_TS = "precise.finish_ts"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -280,6 +282,9 @@ METRICS_MAP = {
     "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
     "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
     "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
+    "measurements.inp": "d:spans/webvital.inp@millisecond",
+    "measurements.score.inp": "d:spans/webvital.score.inp@ratio",
+    "measurements.score.weight.inp": "d:spans/webvital.score.weight.inp@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",

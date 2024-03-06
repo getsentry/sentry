@@ -40,7 +40,9 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 # burdened by aforementioned legacy concerns.
 
 
-def should_demote_symbolication(project_id: int, lpq_projects: set[int] | None = None) -> bool:
+def should_demote_symbolication(
+    project_id: int, lpq_projects: set[int] | None = None, emit_metrics=True
+) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
 
@@ -54,22 +56,26 @@ def should_demote_symbolication(project_id: int, lpq_projects: set[int] | None =
     If lpq projects is defined and the auto low priority queue is enabled, this function
     will avoid making additional Redis calls for performance reasons.
     """
-    always_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-always",
-        {
-            "project_id": project_id,
-        },
-    )
     never_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-never",
         {
             "project_id": project_id,
         },
+        emit_metrics=emit_metrics,
     )
 
     if never_lowpri:
         return False
-    elif always_lowpri:
+
+    always_lowpri = killswitch_matches_context(
+        "store.symbolicate-event-lpq-always",
+        {
+            "project_id": project_id,
+        },
+        emit_metrics=emit_metrics,
+    )
+
+    if always_lowpri:
         return True
     elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
@@ -249,12 +255,15 @@ def _do_symbolicate_event(
         event_id=event_id,
     )
 
-    with metrics.timer(
-        "tasks.store.symbolicate_event.symbolication",
-        tags={"symbolication_function": symbolication_function_name},
-    ), sentry_sdk.start_span(
-        op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
-    ) as span:
+    with (
+        metrics.timer(
+            "tasks.store.symbolicate_event.symbolication",
+            tags={"symbolication_function": symbolication_function_name},
+        ),
+        sentry_sdk.start_span(
+            op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
+        ) as span,
+    ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
             span.set_data("symbolicated_data", bool(symbolicated_data))

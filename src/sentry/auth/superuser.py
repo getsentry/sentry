@@ -68,7 +68,9 @@ SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [
 
 UNSET = object()
 
-ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
+    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
+)
 
 SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
@@ -177,7 +179,7 @@ class Superuser(ElevatedMode):
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+        if is_self_hosted() or DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 

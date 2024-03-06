@@ -417,8 +417,8 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.models.projectteam import ProjectTeam
-        from sentry.models.release import ReleaseProject
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
         from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor

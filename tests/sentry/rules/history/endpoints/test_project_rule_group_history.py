@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sentry.api.serializers import serialize
 from sentry.models.rule import Rule
@@ -61,7 +61,7 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             start=iso_format(before_now(days=6)),
             end=iso_format(before_now(days=0)),
         )
-        base_triggered_date = before_now(days=1).replace(tzinfo=timezone.utc)
+        base_triggered_date = before_now(days=1)
         assert resp.data == serialize(
             [
                 RuleGroupHistory(self.group, 3, base_triggered_date),

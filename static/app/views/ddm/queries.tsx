@@ -13,7 +13,6 @@ import {
   type MetricQueryWidgetParams,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -36,7 +35,6 @@ export function Queries() {
   } = useDDMContext();
 
   const {selection} = usePageFilters();
-  const organization = useOrganization();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -72,7 +70,8 @@ export function Queries() {
             {widget.type === MetricQueryType.QUERY ? (
               <Query
                 widget={widget}
-                onChange={data => handleChange(index, data)}
+                onChange={handleChange}
+                index={index}
                 projects={selection.projects}
                 symbol={
                   showQuerySymbols && (
@@ -130,17 +129,15 @@ export function Queries() {
           icon={<IconAdd isCircled />}
           onClick={() => addWidget(MetricQueryType.QUERY)}
         >
-          Add query
+          {t('Add query')}
         </Button>
-        {organization.features.includes('ddm-formulas') && (
-          <Button
-            size="sm"
-            icon={<IconAdd isCircled />}
-            onClick={() => addWidget(MetricQueryType.FORMULA)}
-          >
-            Add formula
-          </Button>
-        )}
+        <Button
+          size="sm"
+          icon={<IconAdd isCircled />}
+          onClick={() => addWidget(MetricQueryType.FORMULA)}
+        >
+          {t('Add equation')}
+        </Button>
         <SwitchWrapper>
           {t('One chart per query')}
           <SwitchButton
@@ -154,25 +151,45 @@ export function Queries() {
 }
 
 interface QueryProps {
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  index: number;
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   widget: MetricQueryWidgetParams;
   contextMenu?: React.ReactNode;
   symbol?: React.ReactNode;
 }
 
-export function Query({widget, projects, onChange, contextMenu, symbol}: QueryProps) {
+export function Query({
+  widget,
+  projects,
+  onChange,
+  contextMenu,
+  symbol,
+  index,
+}: QueryProps) {
+  const metricsQuery = useMemo(
+    () => ({
+      mri: widget.mri,
+      op: widget.op,
+      groupBy: widget.groupBy,
+      query: widget.query,
+    }),
+    [widget.groupBy, widget.mri, widget.op, widget.query]
+  );
+
+  const handleChange = useCallback(
+    (data: Partial<MetricWidgetQueryParams>) => {
+      onChange(index, data);
+    },
+    [index, onChange]
+  );
+
   return (
     <QueryWrapper hasSymbol={!!symbol}>
       {symbol}
       <QueryBuilder
-        onChange={onChange}
-        metricsQuery={{
-          mri: widget.mri,
-          op: widget.op,
-          groupBy: widget.groupBy,
-          query: widget.query,
-        }}
+        onChange={handleChange}
+        metricsQuery={metricsQuery}
         displayType={widget.displayType}
         isEdit
         projects={projects}

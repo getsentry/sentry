@@ -105,7 +105,7 @@ def test_track_outcome_default(setup):
 
 def test_track_outcome_billing(setup):
     """
-    Checks that outcomes are routed to the SHARED topic within the same cluster
+    Checks that outcomes are routed to the DEDICATED topic within the same cluster
     in default configuration.
     """
 
@@ -121,7 +121,7 @@ def test_track_outcome_billing(setup):
 
     assert outcomes.outcomes_publisher
     (topic_name, _), _ = setup.mock_publisher.return_value.publish.call_args
-    assert topic_name == settings.KAFKA_OUTCOMES
+    assert topic_name == settings.KAFKA_OUTCOMES_BILLING
 
     assert outcomes.billing_publisher is None
 
