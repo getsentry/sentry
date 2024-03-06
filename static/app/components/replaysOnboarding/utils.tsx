@@ -1,6 +1,8 @@
+import partition from 'lodash/partition';
+
 import {replayFrontendPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
   const platformKey = platform.startsWith('javascript')
@@ -13,6 +15,16 @@ export function generateDocKeys(platform: PlatformKey): string[] {
 
 export function isPlatformSupported(platform: undefined | PlatformIntegration) {
   return platform?.id ? replayPlatforms.includes(platform?.id) : false;
+}
+
+export function splitProjectsByReplaySupport(projects: Project[]) {
+  const [supported, unsupported] = partition(projects, project =>
+    replayPlatforms.includes(project.platform!)
+  );
+  return {
+    supported,
+    unsupported,
+  };
 }
 
 export const replayJsFrameworkOptions: PlatformIntegration[] = platforms.filter(p =>

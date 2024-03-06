@@ -517,17 +517,17 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: readonly PlatformKey[] = [
+export const customMetricPlatforms: Set<PlatformKey> = new Set([
   ...customMetricFrontendPlatforms,
   ...customMetricBackendPlatforms,
-];
+]);
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
-  customMetricPlatforms.filter(
+export const customMetricOnboardingPlatforms = new Set(
+  [...customMetricPlatforms].filter(
     p =>
       // Legacy platforms that do not have in-product docs
       ![
@@ -537,4 +537,5 @@ export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
         'python-pylons',
         'python-tryton',
       ].includes(p)
-  );
+  )
+);
