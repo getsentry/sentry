@@ -17,7 +17,7 @@ class APIPaginationCheckTestCase(TestCase):
                 self.access = "read"
 
             # Required to go through the dispatch method
-            def initialize_request(self, request: HttpRequest, *args, **kwargs) -> HttpRequest:
+            def initialize_request(self, request, *args, **kwargs) -> Request:
                 return request
 
             # Required to go through the dispatch method
