@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
-from confluent_kafka import KafkaException
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -2763,12 +2762,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 detection_time=event.datetime,
                 level=job["level"],
             )
-            try:
-                produce_occurrence_to_kafka(
-                    payload_type=PayloadType.OCCURRENCE, occurrence=occurrence
-                )
-            except KafkaException:
-                logger.exception("Failed to send occurrence to issue platform")
+
+            produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
