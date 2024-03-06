@@ -56,7 +56,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const theme = useTheme();
-  const segmentColors = theme.charts.getColorPalette(3);
+  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5), theme.gray200];
 
   const pageFilters = usePageFilters();
 
@@ -234,6 +234,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         preserveIncompletePoints
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
+            if (shouldReplaceFidWithInp && name === 'FID') {
+              return `${name} Score </strong>(${t('Deprecated')})</strong>`;
+            }
             const timestamp = seriesParams?.data[0];
             const weights = weightsSeries.find(
               series => series.name === timestamp
