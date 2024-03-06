@@ -100,6 +100,7 @@ export type MetricMeta = {
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
+  projectIds: number[];
   type: MetricType;
   unit: string;
 };
