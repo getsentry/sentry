@@ -371,7 +371,7 @@ class OrganizationSearchesGetTest(APITestCase):
             name="Manager's Issue Search",
             query="is:unresolved",
             type=SearchType.ISSUE.value,
-            visibility=Visibility.ORGANIZATION,
+            visibility=Visibility.OWNER,
             owner_id=self.manager.id,
         )
         self.issue_search_manager_2 = SavedSearch.objects.create(
@@ -379,7 +379,7 @@ class OrganizationSearchesGetTest(APITestCase):
             name="Manager's Issue Search 2",
             query="is:unresolved",
             type=SearchType.ISSUE.value,
-            visibility=Visibility.ORGANIZATION,
+            visibility=Visibility.OWNER_PINNED,
             owner_id=self.manager.id,
         )
         self.issue_search_member = SavedSearch.objects.create(
