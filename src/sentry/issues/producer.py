@@ -7,6 +7,7 @@ from typing import Any, cast
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.types import Message, Value
+from confluent_kafka import KafkaException
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
@@ -69,7 +70,10 @@ def produce_occurrence_to_kafka(
         process_message(Message(Value(payload=payload, committable={})))
         return
 
-    _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+    try:
+        _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+    except KafkaException:
+        logger.exception("Failed to send occurrence to issue platform")
 
 
 def _prepare_occurrence_message(
