@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
+from functools import lru_cache
 from time import time
 from typing import Any
 
@@ -21,6 +22,7 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.profiles.device import classify_device
 from sentry.profiles.java import deobfuscate_signature, format_signature
 from sentry.profiles.utils import get_from_profiling_service
@@ -135,6 +137,20 @@ def process_profile_task(
         set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
+
+    if options.get(
+        "profiling.generic_metrics.functions_ingestion.enabled"
+    ) and project.organization_id in options.get(
+        "profiling.generic_metrics.functions_ingestion.allowed_org_ids"
+    ):
+        try:
+            with metrics.timer("process_profile.get_metrics_dsn"):
+                dsn = get_metrics_dsn(project.id)
+            profile["options"] = {
+                "dsn": dsn,
+            }
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     if not _push_profile_to_vroom(profile, project):
         return
@@ -898,3 +914,11 @@ def clean_android_js_profile(profile: Profile):
     del p["event_id"]
     del p["release"]
     del p["dist"]
+
+
+@lru_cache(maxsize=100)
+def get_metrics_dsn(project_id: int) -> str:
+    project_key, _ = ProjectKey.objects.get_or_create(
+        project_id=project_id, use_case=UseCase.PROFILING.value
+    )
+    return project_key.get_dsn(public=True)
