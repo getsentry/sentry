@@ -209,21 +209,14 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
         )
 
         cardinality_limits: list[CardinalityLimit] = []
-        cardinality_options = {
-            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-        }
-        cardinality_options.update(
-            (namespace.value, option)
-            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
-        )
-        for namespace, option_name in cardinality_options.items():
+        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
             option = options.get(option_name)
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
 
             quota = option[0]
-            id = namespace
+            id = namespace.value
 
             limit: CardinalityLimit = {
                 "id": id,
@@ -233,7 +226,7 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
                 },
                 "limit": quota["limit"],
                 "scope": "organization",
-                "namespace": namespace,
+                "namespace": namespace.value,
             }
             if id in passive_limits:
                 limit["passive"] = True
