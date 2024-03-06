@@ -3,6 +3,7 @@ import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 
@@ -36,7 +37,7 @@ export function getMetricQueries(
 ): MetricsQueryApiRequestQuery[] {
   return widget.queries.map((query, index) => {
     const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
+    const orderBy = query.orderby ? query.orderby : undefined;
     return {
       type: MetricQueryType.QUERY,
       id: NO_QUERY_ID,
@@ -45,6 +46,7 @@ export function getMetricQueries(
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       name: query.name || getQuerySymbol(index),
+      orderBy: orderBy as Order,
     };
   });
 }

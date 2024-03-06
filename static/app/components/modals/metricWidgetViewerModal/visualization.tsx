@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import {getWidgetTitle} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
@@ -20,6 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
+import {Order} from 'sentry/views/dashboards/metrics/types';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -111,12 +112,14 @@ interface MetricVisualizationProps {
   displayType: DisplayType;
   onDisplayTypeChange: (displayType: DisplayType) => void;
   queries: MetricsQueryApiRequestQuery[];
+  onOrderChange?: (order: Order, index: number) => void;
 }
 
 export function MetricVisualization({
   queries,
   displayType,
   onDisplayTypeChange,
+  onOrderChange,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
 
@@ -141,6 +144,7 @@ export function MetricVisualization({
           isLoading={isLoading}
           timeseriesData={timeseriesData}
           queries={queries}
+          onOrderChange={onOrderChange}
         />
       );
     }
@@ -162,7 +166,7 @@ export function MetricVisualization({
         displayType={displayType}
       />
     );
-  }, [displayType, isLoading, queries, timeseriesData]);
+  }, [displayType, isLoading, queries, timeseriesData, onOrderChange]);
 
   if (!timeseriesData || isError) {
     return (
@@ -208,21 +212,41 @@ interface MetricTableVisualizationProps {
   isLoading: boolean;
   queries: MetricsQueryApiRequestQuery[];
   timeseriesData: MetricsQueryApiResponse;
+  onOrderChange?: (order: Order, index: number) => void;
 }
 
 function MetricTableVisualization({
   timeseriesData,
   queries,
   isLoading,
+  onOrderChange,
 }: MetricTableVisualizationProps) {
   const tableData = useMemo(() => {
     return getTableData(timeseriesData, queries);
   }, [timeseriesData, queries]);
 
+  const handleOrderChange = useCallback(
+    (column: any) => {
+      if (!onOrderChange) {
+        return;
+      }
+      const queryIdx = queries.findIndex(q => q.name === column.name);
+      if (queryIdx < 0) {
+        return;
+      }
+      onOrderChange?.(column.order, queryIdx);
+    },
+    [onOrderChange, queries]
+  );
+
   return (
     <Fragment>
       <TransparentLoadingMask visible={isLoading} />
-      <MetricTable isLoading={isLoading} data={tableData} />
+      <MetricTable
+        isLoading={isLoading}
+        data={tableData}
+        onOrderChange={handleOrderChange}
+      />
     </Fragment>
   );
 }
