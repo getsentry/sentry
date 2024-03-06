@@ -110,7 +110,9 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: dict[str, Any], project: Project) -> list[PerformanceProblem]:
+def detect_performance_problems(
+    data: dict[str, Any], project: Project, is_standalone_spans: bool = False
+) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -121,7 +123,9 @@ def detect_performance_problems(data: dict[str, Any], project: Project) -> list[
             ), sentry_sdk.start_span(
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
-                return _detect_performance_problems(data, sdk_span, project)
+                return _detect_performance_problems(
+                    data, sdk_span, project, is_standalone_spans=is_standalone_spans
+                )
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -325,7 +329,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project
+    data: dict[str, Any], sdk_span: Any, project: Project, is_standalone_spans: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
@@ -340,7 +344,14 @@ def _detect_performance_problems(
         run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(data, event_id, detectors, sdk_span, project.organization)
+    report_metrics_for_detectors(
+        data,
+        event_id,
+        detectors,
+        sdk_span,
+        project.organization,
+        is_standalone_spans=is_standalone_spans,
+    )
 
     organization = project.organization
     if project is None or organization is None:
@@ -396,6 +407,7 @@ def report_metrics_for_detectors(
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,
+    is_standalone_spans: bool = False,
 ):
     all_detected_problems = [i for d in detectors for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
@@ -410,10 +422,11 @@ def report_metrics_for_detectors(
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
         set_tag("_pi_sdk_name", sdk_name or "")
+        set_tag("is_standalone_spans", is_standalone_spans)
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
-            tags={"sdk_name": sdk_name},
+            tags={"sdk_name": sdk_name, "is_standalone_spans": is_standalone_spans},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
@@ -444,6 +457,7 @@ def report_metrics_for_detectors(
     detected_tags = {
         "sdk_name": sdk_name,
         "is_early_adopter": organization.flags.early_adopter.is_set,
+        "is_standalone_spans": is_standalone_spans,
     }
 
     event_integrations = event.get("sdk", {}).get("integrations", []) or []

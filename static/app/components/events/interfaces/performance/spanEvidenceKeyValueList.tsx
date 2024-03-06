@@ -475,7 +475,7 @@ const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug?: str
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][],
+  value: KeyValueListDataItem['value'],
   actionButton?: ReactNode
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);

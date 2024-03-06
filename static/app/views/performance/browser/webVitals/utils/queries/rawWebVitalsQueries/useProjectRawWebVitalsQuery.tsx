@@ -25,6 +25,7 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
         'p75(transaction.duration)',
         'count_web_vitals(measurements.lcp, any)',
         'count_web_vitals(measurements.fcp, any)',
@@ -35,7 +36,9 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
       ],
       name: 'Web Vitals',
       query: [
-        'transaction.op:pageload',
+        // TODO: inp spans don't have a transaction.op.
+        // Plan to update this filter to also check span.op:ui.interaction.click once we have the ability.
+        'transaction.op:[pageload,""]',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(tag ? [`{tag.key}:"${tag.name}"`] : []),
       ].join(' '),
@@ -57,13 +60,5 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project',
   });
-  // Fake INP data with FID data
-  // TODO(edwardgou): Remove this once INP is queryable in discover
-  if (result.data?.data[0]) {
-    result.data.data[0]['count_web_vitals(measurements.inp, any)'] =
-      result.data.data[0]['count_web_vitals(measurements.fid, any)'];
-    result.data.data[0]['p75(measurements.inp)'] =
-      result.data.data[0]['p75(measurements.fid)'];
-  }
   return result;
 };

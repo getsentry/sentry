@@ -40,7 +40,7 @@ Sentry.init({
       ? `
         Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
-colorScheme: "light",
+colorScheme: "system",
 ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }
@@ -214,7 +214,10 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/ember/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/ember/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {

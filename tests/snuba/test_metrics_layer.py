@@ -848,3 +848,27 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = run_query(request)
         assert len(result["data"]) == 1
+
+    def test_formulas_with_scalar_formulas(self) -> None:
+        query = MetricsQuery(
+            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="generic_metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = run_query(request)
+        assert len(result["data"]) == 10
+        for row in result["data"]:
+            assert row["aggregate_value"] >= 86400

@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import logging
 import os
-import random
 import zlib
 from collections.abc import Sequence
 from hashlib import md5
@@ -19,8 +18,7 @@ from parsimonious.nodes import NodeVisitor
 from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
-from sentry import options, projectoptions
-from sentry.features.rollout import in_random_rollout
+from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
@@ -150,37 +148,25 @@ def merge_rust_enhancements(
 
 
 def parse_rust_enhancements(
-    source: Literal["config_structure", "config_string"], input: str | bytes, force_parsing=False
+    source: Literal["config_structure", "config_string"], input: str | bytes
 ) -> RustEnhancements | None:
     """
     Parses ``RustEnhancements`` from either a msgpack-encoded `config_structure`,
     or from the text representation called `config_string`.
-
-    Parsing itself is controlled via an option, but can be forced via `force_parsing`.
     """
     rust_enhancements = None
 
-    parse_rust_enhancements = force_parsing
-    if not force_parsing:
-        try:
-            parse_rust_enhancements = random.random() < options.get(
-                "grouping.rust_enhancers.parse_rate"
-            )
-        except Exception:
-            parse_rust_enhancements = False
+    try:
+        if source == "config_structure":
+            assert isinstance(input, bytes)
+            rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
+        else:
+            assert isinstance(input, str)
+            rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
 
-    if parse_rust_enhancements:
-        try:
-            if source == "config_structure":
-                assert isinstance(input, bytes)
-                rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
-            else:
-                assert isinstance(input, str)
-                rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
-
-            metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
-        except Exception:
-            logger.exception("failed parsing Rust Enhancements from `%s`", source)
+        metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
+    except Exception:
+        logger.exception("failed parsing Rust Enhancements from `%s`", source)
 
     return rust_enhancements
 
@@ -199,13 +185,6 @@ def apply_rust_enhancements(
     returning a tuple of `(modified category, modified in_app)` for each frame.
     """
     if not rust_enhancements:
-        return None
-
-    try:
-        use_rust_enhancements = in_random_rollout("grouping.rust_enhancers.modify_frames_rate")
-    except Exception:
-        use_rust_enhancements = False
-    if not use_rust_enhancements:
         return None
 
     try:
@@ -247,13 +226,6 @@ def compare_rust_enhancers(
                 scope.set_extra("python_frames", python_frames)
                 scope.set_extra("rust_enhanced_frames", rust_enhanced_frames)
                 sentry_sdk.capture_message("Rust Enhancements mismatch")
-
-
-def prefer_rust_enhancers():
-    try:
-        return in_random_rollout("grouping.rust_enhancers.prefer_rust_result")
-    except Exception:
-        return False
 
 
 class Enhancements:
@@ -299,13 +271,15 @@ class Enhancements:
             self.rust_enhancements, match_frames, exception_data
         )
 
-        if rust_enhanced_frames and prefer_rust_enhancers():
+        if rust_enhanced_frames:
             for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
                 if in_app is not None:
                     set_in_app(frame, in_app)
                 if category is not None:
                     set_path(frame, "data", "category", value=category)
             return
+        else:
+            logger.error("Rust enhancements were not applied successfully")
 
         in_memory_cache: dict[str, str] = {}
 
@@ -476,8 +450,8 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None, force_rust_parsing=False) -> Enhancements:
-        rust_enhancements = parse_rust_enhancements("config_string", s, force_rust_parsing)
+    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+        rust_enhancements = parse_rust_enhancements("config_string", s)
 
         try:
             tree = enhancements_grammar.parse(s)
@@ -815,9 +789,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 fn = fn.replace("@", ":")
                 # NOTE: we want to force parsing the `RustEnhancements` here, as the base rules
                 # are required for inheritance, and because they are well tested.
-                enhancements = Enhancements.from_config_string(
-                    f.read(), id=fn[:-4], force_rust_parsing=True
-                )
+                enhancements = Enhancements.from_config_string(f.read(), id=fn[:-4])
                 rv[fn[:-4]] = enhancements
     return rv
 
