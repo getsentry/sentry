@@ -97,10 +97,14 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
   const disableEnableBtnParams = {
     operation: {status: shouldDisable ? 'disabled' : 'active'} as BulkEditOperation,
     actionText: shouldDisable ? t('Disable') : t('Enable'),
+    analyticsEventKey: 'crons_bulk_edit_modal.disable_enable_click',
+    analyticsEventName: 'Crons Bulk Edit Modal: Disable Enable Click',
   };
   const muteUnmuteBtnParams = {
     operation: {isMuted: shouldMute ? true : false},
     actionText: shouldMute ? t('Mute') : t('Unmute'),
+    analyticsEventKey: 'crons_bulk_edit_modal.mute_unmute_click',
+    analyticsEventName: 'Crons Bulk Edit Modal: Mute Unmute Click',
   };
 
   return (
@@ -112,7 +116,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Actions>
           <ActionButtons gap={1}>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
-              ({operation, actionText}, i) => (
+              ({operation, actionText, ...analyticsProps}, i) => (
                 <Button
                   key={i}
                   size="sm"
@@ -123,6 +127,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                     tct('Please select monitors to [actionText]', {actionText})
                   }
                   aria-label={actionText}
+                  {...analyticsProps}
                 >
                   {selectedMonitors.length > 0
                     ? `${actionText} ${tn(
