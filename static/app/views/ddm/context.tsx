@@ -164,7 +164,7 @@ export function useMetricWidgets() {
         let newWidgets = [...currentWidgets];
         newWidgets.splice(index, 1);
 
-        // Ensure that there remains a visible widget
+        // Ensure that a visible widget remains
         if (!newWidgets.find(w => !w.isHidden)) {
           newWidgets = newWidgets.map(w => ({...w, isHidden: false}));
         }
