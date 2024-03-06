@@ -48,7 +48,7 @@ class ConsumersDefinitionTest(TestCase):
     def test_exception_on_invalid_consumer_definition(self):
         invalid_definitions: list[ConsumerDefinition] = [
             {
-                "topic": "topic",
+                "topic": Topic.INGEST_METRICS,
                 "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
                 "static_args": {
                     "ingest_profile": "release-health",
