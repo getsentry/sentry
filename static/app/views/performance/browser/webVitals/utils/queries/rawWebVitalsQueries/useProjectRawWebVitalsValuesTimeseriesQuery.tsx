@@ -30,14 +30,15 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
         'count()',
-        // TODO: Remove this once we can query for INP.
-        // Currently using this to fake INP count data.
-        'count_web_vitals(measurements.fid,any)',
+        'count_scores(measurements.score.inp)',
       ],
       name: 'Web Vitals',
       query: [
-        'transaction.op:pageload',
+        // TODO: inp spans don't have a transaction.op.
+        // Plan to update this filter to also check span.op:ui.interaction.click once we have the ability.
+        'transaction.op:[pageload,""]',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
       ].join(' '),
       version: 2,
@@ -104,8 +105,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       {key: 'p75(measurements.fcp)', series: data.fcp},
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
+      {key: 'p75(measurements.inp)', series: data.inp},
       {key: 'count()', series: data.count},
-      {key: 'count_web_vitals(measurements.fid,any)', series: data.countInp},
+      {key: 'count_scores(measurements.score.inp)', series: data.countInp},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {
@@ -116,10 +118,6 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       }
     });
   });
-
-  // Fake INP data with FID data
-  // TODO(edwardgou): Remove this once INP is queryable in discover
-  data.inp = data.fid;
 
   return {data, isLoading: result.isLoading};
 };
