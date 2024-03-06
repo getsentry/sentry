@@ -118,6 +118,8 @@ export const SummaryTable = memo(function SummaryTable({
         ...getValues(s.data),
       };
     })
+    // Filter series with no data
+    .filter(s => s.min !== Infinity)
     .sort((a, b) => {
       const {name, order} = sort;
       if (!name) {
