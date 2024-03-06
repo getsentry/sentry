@@ -358,9 +358,11 @@ def handle_group_owners(
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
-        with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
-            op="post_process.handle_group_owners"
-        ), lock.acquire():
+        with (
+            metrics.timer("post_process.handle_group_owners"),
+            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            lock.acquire(),
+        ):
             current_group_owners = GroupOwner.objects.filter(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
@@ -439,6 +441,15 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
+                logger.info(
+                    "group_owners.bulk_create",
+                    extra={
+                        "group_id": group.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "count": len(new_group_owners),
+                    },
+                )
 
     except UnableToAcquireLock:
         pass
@@ -737,14 +748,17 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with metrics.timer(
-                "tasks.post_process.run_post_process_job.pipeline.duration",
-                tags={
-                    "pipeline": pipeline_step.__name__,
-                    "issue_category": issue_category_metric,
-                    "is_reprocessed": job["is_reprocessed"],
-                },
-            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with (
+                metrics.timer(
+                    "tasks.post_process.run_post_process_job.pipeline.duration",
+                    tags={
+                        "pipeline": pipeline_step.__name__,
+                        "issue_category": issue_category_metric,
+                        "is_reprocessed": job["is_reprocessed"],
+                    },
+                ),
+                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+            ):
                 pipeline_step(job)
         except Exception:
             metrics.incr(
@@ -1008,12 +1022,6 @@ def process_replay_link(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    if not features.has(
-        "organizations:session-replay-event-linking", job["event"].project.organization
-    ):
-        metrics.incr("post_process.process_replay_link.feature_not_enabled")
-        return
-
     metrics.incr("post_process.process_replay_link.id_sampled")
 
     group_event = job["event"]
@@ -1180,10 +1188,7 @@ def process_commits(job: PostProcessJob) -> None:
                     # Cache the integrations check for 4 hours
                     cache.set(integration_cache_key, has_integrations, 14400)
 
-                if (
-                    features.has("organizations:commit-context", event.project.organization)
-                    and has_integrations
-                ):
+                if has_integrations:
                     if not job["group_state"]["is_new"]:
                         return
 

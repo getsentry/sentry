@@ -56,7 +56,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
         {displayAiSuggestedSolution && (
           <AiSuggestedSolution event={event} projectSlug={project.slug} />
         )}
-        {displayAiAutofix && <AiAutofix group={group} />}
+        {displayAiAutofix && <AiAutofix event={event} group={group} />}
       </Content>
     </Wrapper>
   );

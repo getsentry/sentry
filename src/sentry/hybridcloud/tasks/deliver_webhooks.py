@@ -25,13 +25,16 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-MAX_MAILBOX_DRAIN = 100
+MAX_MAILBOX_DRAIN = 300
 """
-The maximum number of records that will be delivered in a scheduled delivery
+The maximum number of records that will be updated when scheduling a mailbox
 
-There is a balance here between clearing big backlogs and having races when
-a batch is slow but not timeout slow.
+More messages than this could be delivered if delivery is fast. We also limit
+the runtime of any drain_mailbox operation to BATCH_SCHEDULE_OFFSET so that
+a deep backlog doesn't soak up a worker indefinetly, and that slow but not timeout
+slow forwarding yields to other tasks
 """
+
 
 BATCH_SCHEDULE_OFFSET = datetime.timedelta(minutes=BACKOFF_INTERVAL)
 """
@@ -83,7 +86,7 @@ def schedule_webhook_delivery(**kwargs) -> None:
     )
     for record in scheduled_mailboxes[:BATCH_SIZE]:
         # Reschedule the records that we will attempt to deliver next.
-        # We reschedule in an attempt to minimize races for potentially in-flight batches.
+        # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
             WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
@@ -122,17 +125,38 @@ def drain_mailbox(payload_id: int) -> None:
         )
         return
 
-    # Drain up to a max number of records. This helps ensure that one slow mailbox doesn't
-    # cause backups for other mailboxes
-    query = WebhookPayload.objects.filter(
-        id__gte=payload.id, mailbox_name=payload.mailbox_name
-    ).order_by("id")
-    for record in query[:MAX_MAILBOX_DRAIN]:
-        try:
-            deliver_message(record)
-        except DeliveryFailed:
-            metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-            return
+    deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
+    while True:
+        # We have run until the end of our batch schedule delay. Break the loop so this worker can take another
+        # task.
+        if timezone.now() >= deadline:
+            logger.info(
+                "deliver_webhook.delivery_deadline",
+                extra={
+                    "mailbox_name": payload.mailbox_name,
+                },
+            )
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+            )
+            break
+
+        # Fetch records from the batch in slices of 100. This avoids reading
+        # redundant data should we hit an error and should help keep query duration low.
+        query = WebhookPayload.objects.filter(
+            id__gte=payload.id, mailbox_name=payload.mailbox_name
+        ).order_by("id")
+
+        # No more messages to deliver
+        if query.count() < 1:
+            break
+
+        for record in query[:100]:
+            try:
+                deliver_message(record)
+            except DeliveryFailed:
+                metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+                return
 
 
 def deliver_message(payload: WebhookPayload) -> None:

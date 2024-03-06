@@ -32,7 +32,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
-from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
@@ -606,11 +605,6 @@ class MonitorEnvironment(Model):
     auto-generated missed check-ins.
     """
 
-    last_state_change = models.DateTimeField(null=True)
-    """
-    The last time that the monitor changed state. Used for issue fingerprinting.
-    """
-
     objects: ClassVar[MonitorEnvironmentManager] = MonitorEnvironmentManager()
 
     class Meta:
@@ -642,8 +636,10 @@ class MonitorEnvironment(Model):
 
     @property
     def incident_grouphash(self):
-        # TODO(rjo100): Check to see if there's an active incident
-        # if not, use last_state_change as fallback
+        """
+        Retrieve the grouphash for the current active incident. If there is no
+        active incident None will be returned.
+        """
         active_incident = (
             MonitorIncident.objects.filter(
                 monitor_environment_id=self.id, resolving_checkin__isnull=True
@@ -654,18 +650,7 @@ class MonitorEnvironment(Model):
         if active_incident:
             return active_incident.grouphash
 
-        # XXX(rjo100): While we migrate monitor issues to using the
-        # Incident stored grouphash we still may have some active issues
-        # that are using the old hashes. We can remove this in the
-        # future once all existing issues are resolved.
-        return hash_from_values(
-            [
-                "monitor",
-                str(self.monitor.guid),
-                self.get_environment().name,
-                str(self.last_state_change),
-            ]
-        )
+        return None
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

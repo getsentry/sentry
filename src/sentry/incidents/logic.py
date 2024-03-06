@@ -21,7 +21,6 @@ from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivationCondition,
-    AlertRuleActivationConditionType,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -42,6 +41,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -69,7 +69,6 @@ from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
-    bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
@@ -586,8 +585,8 @@ def create_alert_rule(
             AlertRuleProjects.objects.bulk_create(arps)
 
         # NOTE: This constructs the query in snuba
-        # TODO: only construct `CONTINUOUS` monitor type AlertRule queries in snuba
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        # NOTE: Will only subscribe if AlertRule.monitor_type === 'CONTINUOUS'
+        alert_rule.subscribe_projects(projects=projects)
 
         # Activity is an audit log of what's happened with this alert rule
         AlertRuleActivity.objects.create(
@@ -828,7 +827,7 @@ def update_alert_rule(
             ]
 
         if new_projects:
-            subscribe_projects_to_alert_rule(alert_rule, new_projects)
+            alert_rule.subscribe_projects(projects=new_projects)
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
@@ -846,19 +845,6 @@ def update_alert_rule(
     schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
-
-
-def subscribe_projects_to_alert_rule(alert_rule: AlertRule, projects: list[Project]):
-    """
-    Subscribes a list of projects to an alert rule
-    :return: The list of created subscriptions
-
-    TODO: consolidate `bulk_create_snuba_subscriptions` with this in between method
-    TODO: only create subscription if AlertRule.monitor_type === 'CONTINUOUS'
-    """
-    return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
-    )
 
 
 def enable_alert_rule(alert_rule):

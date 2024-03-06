@@ -25,7 +25,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time

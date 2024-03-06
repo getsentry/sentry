@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -27,6 +28,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_callback_registry,
 )
 from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
@@ -205,6 +207,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
+            monitor_type=AlertRuleMonitorType.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -2179,6 +2182,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         new_incident = self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
+
+    def test_invoke_alert_subscription_callback(self):
+        mock = Mock()
+        alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] = mock
+
+        self.send_update(self.rule, 1, subscription=self.sub)
+
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.sub
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):

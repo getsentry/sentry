@@ -6,7 +6,8 @@ from typing import Any, cast
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
-from sentry.sentry_metrics.querying.data_v2.utils import nan_to_none
+from sentry.sentry_metrics.querying.data_v2.transformation import QueryTransformer
+from sentry.sentry_metrics.querying.data_v2.utils import undefined_value_to_none
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
 from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Totals
 
@@ -85,15 +86,13 @@ def _generate_full_series(
     for time, value in series:
         time_seconds = parse_datetime_string(time).timestamp()
         index = int((time_seconds - start_seconds) / interval)
-        full_series[index] = nan_to_none(value)
+        full_series[index] = undefined_value_to_none(value)
 
     return full_series
 
 
-class QueryTransformer:
-    def __init__(self, query_results: Sequence[QueryResult]):
-        self._query_results = query_results
-
+class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
+    def __init__(self):
         self._start: datetime | None = None
         self._end: datetime | None = None
         self._interval: int | None = None
@@ -103,7 +102,7 @@ class QueryTransformer:
         return self._start, self._end, self._interval
 
     def _build_intermediate_results(
-        self,
+        self, query_results: list[QueryResult]
     ) -> tuple[list[OrderedDict[GroupKey, GroupValue]], list[list[QueryMeta]]]:
         """
         Builds a tuple of intermediate groups and metadata which is used to efficiently transform the query results.
@@ -126,7 +125,7 @@ class QueryTransformer:
                 group_value = query_groups.setdefault(tuple(grouped_values), GroupValue.empty())
                 add_to_group(row, group_value)
 
-        for query_result in self._query_results:
+        for query_result in query_results:
             # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
             if self._start is None:
                 self._start = query_result.modified_start
@@ -185,16 +184,16 @@ class QueryTransformer:
 
         return queries_groups, queries_meta
 
-    def transform(self) -> Mapping[str, Any]:
+    def transform(self, query_results: list[QueryResult]) -> Mapping[str, Any]:
         """
         Transforms the query results into the Sentry's API format.
         """
         # If we have not run any queries, we won't return anything back.
-        if not self._query_results:
+        if not query_results:
             return {}
 
         # We first build intermediate results that we can work efficiently with.
-        queries_groups, queries_meta = self._build_intermediate_results()
+        queries_groups, queries_meta = self._build_intermediate_results(query_results)
 
         # We assert that all the data we require for the transformation has been found during the building of
         # intermediate results.
@@ -214,7 +213,7 @@ class QueryTransformer:
                         "series": _generate_full_series(
                             int(start.timestamp()), len(intervals), interval, group_value.series
                         ),
-                        "totals": nan_to_none(group_value.totals),
+                        "totals": undefined_value_to_none(group_value.totals),
                     }
                 )
 
