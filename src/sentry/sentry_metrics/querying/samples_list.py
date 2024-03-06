@@ -39,6 +39,7 @@ class AbstractSamplesListExecutor(ABC):
         params: ParamsType,
         snuba_params: SnubaParams,
         fields: list[str],
+        operation: str | None,
         query: str | None,
         min: float | None,
         max: float | None,
@@ -50,6 +51,7 @@ class AbstractSamplesListExecutor(ABC):
         self.params = params
         self.snuba_params = snuba_params
         self.fields = fields
+        self.operation = operation
         self.query = query
         self.min = min
         self.max = max
@@ -596,6 +598,12 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         "timestamp": "timestamp",
     }
 
+    MIN_MAX_CONDITION_COLUMN = {
+        "min": "min_metric",
+        "max": "max_metric",
+        "count": "count_metric",
+    }
+
     @classmethod
     def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
@@ -660,7 +668,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         )
 
         additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions()
+        min_max_conditions = self.get_min_max_conditions(builder)
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
         query_results = builder.run_query(self.referrer.value)
@@ -720,7 +728,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         )
 
         additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions()
+        min_max_conditions = self.get_min_max_conditions(builder)
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
         query_results = builder.run_query(self.referrer.value)
@@ -762,13 +770,17 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             )
         ]
 
-    def get_min_max_conditions(self) -> list[Condition]:
+    def get_min_max_conditions(self, builder: QueryBuilder) -> list[Condition]:
         conditions = []
 
+        column = builder.resolve_column(
+            self.MIN_MAX_CONDITION_COLUMN.get(self.operation or "", "avg_metric")
+        )
+
         if self.min is not None:
-            conditions.append(Condition(Column("min"), Op.GTE, self.min))
+            conditions.append(Condition(column, Op.GTE, self.min))
         if self.max is not None:
-            conditions.append(Condition(Column("max"), Op.LTE, self.max))
+            conditions.append(Condition(column, Op.LTE, self.max))
 
         return conditions
 

@@ -31,6 +31,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            "avg_metric": self._resolve_avg_alias,
         }
 
     @property
@@ -91,3 +92,10 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_avg_alias(self, alias: str) -> SelectType:
+        return Function(
+            "divide",
+            [self.builder.column("sum_metric"), self.builder.column("count_metric")],
+            alias,
+        )
