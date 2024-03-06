@@ -291,7 +291,7 @@ class IncidentActivity(Model):
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
-    type: models.Field[int | IncidentActivityType, int] = models.IntegerField()
+    type: models.Field = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
