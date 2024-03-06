@@ -457,7 +457,7 @@ class ActivatedAlertRuleResults(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertruleactivationresults"
-        unique_together = (("alert_rule", "label"),)
+        unique_together = (("alert_rule", "date_added"),)
 
 
 @region_silo_only_model
