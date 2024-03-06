@@ -117,6 +117,7 @@ function maybeFocusRow(
 interface TraceProps {
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
+  previousResultIndexRef: React.MutableRefObject<number | undefined>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   searchResultsIteratorIndex: number | undefined;
@@ -140,6 +141,7 @@ function Trace({
   searchResultsIteratorIndex,
   searchResultsMap,
   onTraceSearch,
+  previousResultIndexRef,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -304,6 +306,8 @@ function Trace({
       index: number,
       node: TraceTreeNode<TraceTree.NodeValue>
     ) => {
+      previousResultIndexRef.current = index;
+      previouslyFocusedIndexRef.current = index;
       browserHistory.push({
         pathname: location.pathname,
         query: {
@@ -326,7 +330,13 @@ function Trace({
         search_dispatch({type: 'clear iterator index'});
       }
     },
-    [roving_dispatch, setDetailNode, search_state, search_dispatch]
+    [
+      roving_dispatch,
+      setDetailNode,
+      search_state,
+      search_dispatch,
+      previousResultIndexRef,
+    ]
   );
 
   const onOutsideClick = useCallback(() => {
@@ -642,10 +652,18 @@ function RenderRow(props: {
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
+          onDoubleClick={e => {
+            const autogrouped_space: [number, number] = [
+              props.node.space![0][0],
+              props.node.space![props.node.space!.length - 1][1],
+            ];
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(autogrouped_space);
+          }}
         >
           <AutogroupedTraceBar
             index={props.index}
-            viewManager={props.manager}
+            manager={props.manager}
             color={props.theme.blue300}
             node_space={props.node.autogroupedSegments}
           />
@@ -736,6 +754,10 @@ function RenderRow(props: {
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
           <TraceBar
@@ -832,6 +854,10 @@ function RenderRow(props: {
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(props.node.space!);
+          }}
         >
           <TraceBar
             index={props.index}
@@ -888,6 +914,10 @@ function RenderRow(props: {
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
           {' '}
@@ -956,6 +986,10 @@ function RenderRow(props: {
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
           <TraceBar
@@ -1037,6 +1071,10 @@ function RenderRow(props: {
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
+          }}
+          onDoubleClick={e => {
+            e.stopPropagation();
+            props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
           {typeof props.node.value.timestamp === 'number' ? (
@@ -1238,10 +1276,6 @@ function TraceBar(props: TraceBarProps) {
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
         }}
-        onDoubleClick={e => {
-          e.stopPropagation();
-          props.manager.onZoomIntoSpace(props.node_space!);
-        }}
       />
       <div
         ref={r =>
@@ -1267,23 +1301,23 @@ function TraceBar(props: TraceBarProps) {
 interface AutogroupedTraceBarProps {
   color: string;
   index: number;
+  manager: VirtualizedViewManager;
   node_space: [number, number][] | null;
-  viewManager: VirtualizedViewManager;
   duration?: number;
 }
 
 function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
-  // if (props.node_space && props.node_space.length <= 1) {
-  //   return (
-  //     <TraceBar
-  //       color={props.color}
-  //       node_space={props.node_space[0]}
-  //       manager={props.manager}
-  //       index={props.index}
-  //       duration={props.duration}
-  //     />
-  //   );
-  // }
+  if (props.node_space && props.node_space.length <= 1) {
+    return (
+      <TraceBar
+        color={props.color}
+        node_space={props.node_space[0]}
+        manager={props.manager}
+        index={props.index}
+        duration={props.duration}
+      />
+    );
+  }
 
   if (!props.node_space) {
     return null;
@@ -1295,8 +1329,8 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   ];
 
   const duration = getDuration(entire_space[1] / 1000, 2, true);
-  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(entire_space);
-  const [inside, textTransform] = props.viewManager.computeSpanTextPlacement(
+  const spanTransform = props.manager.computeSpanCSSMatrixTransform(entire_space);
+  const [inside, textTransform] = props.manager.computeSpanTextPlacement(
     entire_space,
     duration
   );
@@ -1304,15 +1338,11 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   return (
     <Fragment>
       <div
-        ref={r => props.viewManager.registerSpanBarRef(r, entire_space, props.index)}
+        ref={r => props.manager.registerSpanBarRef(r, entire_space, props.index)}
         className="TraceBar Invisible"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
           backgroundColor: props.color,
-        }}
-        onDoubleClick={e => {
-          e.stopPropagation();
-          props.viewManager.onZoomIntoSpace(entire_space);
         }}
       >
         {props.node_space.map((node_space, i) => {
@@ -1333,7 +1363,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
       </div>
       <div
         ref={r =>
-          props.viewManager.registerSpanBarTextRef(r, duration, entire_space, props.index)
+          props.manager.registerSpanBarTextRef(r, duration, entire_space, props.index)
         }
         className="TraceBarDuration"
         style={{
@@ -1407,8 +1437,10 @@ const TraceStylingWrapper = styled('div')`
       left: 50%;
     }
 
-    &:hover&:before {
-      background-color: ${p => p.theme.purple300};
+    &:hover {
+      &:before {
+        background-color: ${p => p.theme.purple300};
+      }
     }
   }
 

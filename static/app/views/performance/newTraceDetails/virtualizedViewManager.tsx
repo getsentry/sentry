@@ -1181,8 +1181,24 @@ class TextMeasurer {
 
 class VirtualizedList {
   container: HTMLElement | null = null;
+
+  scrollHeight: number = 0;
+  scrollTop: number = 0;
+
   scrollToRow(index: number, rowHeight: number = 24) {
     if (!this.container) {
+      return;
+    }
+
+    const top = this.container.scrollTop;
+    const height = this.scrollHeight;
+    const position = index * rowHeight;
+
+    if (position < top) {
+      // above view
+    } else if (position > top + height) {
+      // under view
+    } else {
       return;
     }
 
@@ -1267,6 +1283,9 @@ export const useVirtualizedList = (
       renderCache.current?.clear();
 
       scrollHeightRef.current = elements[0].contentRect.height;
+      if (list.current) {
+        list.current.scrollHeight = scrollHeightRef.current;
+      }
 
       const recomputedItems = findRenderedItems({
         scrollTop: scrollTopRef.current,
@@ -1318,6 +1337,7 @@ export const useVirtualizedList = (
 
       rafId.current = window.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
+
         const recomputedItems = findRenderedItems({
           scrollTop: scrollTopRef.current,
           items: props.items,

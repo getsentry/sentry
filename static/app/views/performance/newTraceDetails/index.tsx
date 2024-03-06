@@ -1,4 +1,5 @@
-import React, {
+import type React from 'react';
+import {
   Fragment,
   useCallback,
   useEffect,
@@ -261,9 +262,9 @@ function TraceViewContent(props: TraceViewContentProps) {
     [tree]
   );
 
-  const previousIndexRef = React.useRef<number | undefined>(searchState.resultIndex);
+  const previousResultIndexRef = useRef<number | undefined>(searchState.resultIndex);
   useLayoutEffect(() => {
-    if (previousIndexRef.current === searchState.resultIndex) {
+    if (previousResultIndexRef.current === searchState.resultIndex) {
       return;
     }
     if (!viewManager.list) {
@@ -274,7 +275,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       return;
     }
     viewManager.list.scrollToRow(searchState.resultIndex);
-    previousIndexRef.current = searchState.resultIndex;
+    previousResultIndexRef.current = searchState.resultIndex;
   }, [searchState.resultIndex, viewManager.list]);
 
   const onSearchChange = useCallback(
@@ -387,6 +388,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             setDetailNode={onSetDetailNode}
             searchResultsIteratorIndex={searchState.resultIndex}
             searchResultsMap={searchState.resultsLookup}
+            previousResultIndexRef={previousResultIndexRef}
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
