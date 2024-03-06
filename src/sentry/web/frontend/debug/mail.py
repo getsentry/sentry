@@ -30,7 +30,11 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
 from sentry.http import get_server_hostname
-from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    NoiseConfig,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.mail.notifications import get_builder_args
@@ -212,6 +216,8 @@ def make_performance_event(project: Project, sample_name: str):
 
     with mock.patch.object(
         PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
+    ), mock.patch.object(
+        PerformanceSlowDBQueryGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
     ):
         occurrence, group_info = process_event_and_issue_occurrence(
             occurrence_data,
