@@ -60,8 +60,9 @@ export const useTransactionWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: [
-        'transaction.op:pageload OR span.op:ui.interaction.click',
-        'avg(measurements.score.total):>=0',
+        'transaction.op:[pageload,""]',
+        'span.op:[ui.interaction.click,""]',
+        'has:measurements.score.total',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(query ? [query] : []),
       ].join(' '),

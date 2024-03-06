@@ -56,7 +56,8 @@ export const useProjectWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: [
-        'transaction.op:pageload OR span.op:ui.interaction.click',
+        'transaction.op:[pageload,""]',
+        'span.op:[ui.interaction.click,""]',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
       ].join(' '),
