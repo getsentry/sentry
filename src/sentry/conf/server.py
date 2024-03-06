@@ -1528,8 +1528,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
-    # Enable inbound filters to be turned on by default for new Javascript Projects
-    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
     # Enables automatically deriving of PHP code mappings
