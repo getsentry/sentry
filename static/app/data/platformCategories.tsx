@@ -424,7 +424,6 @@ export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
   'rust',
   'native',
   'native-qt',
-  'native',
   'node-awslambda',
   'node-azurefunctions',
   'node-connect',
