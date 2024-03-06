@@ -22,9 +22,22 @@ interface Props {
 }
 
 export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
-  const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
   const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
-  const tooltip = tct(
+  const tooltip = percentage ? getTimeSpentExplanation(percentage, op) : undefined;
+
+  return (
+    <NumberContainer {...containerProps}>
+      <Tooltip isHoverable title={tooltip} showUnderline>
+        {defined(total) ? formattedTotal : '--'}
+      </Tooltip>
+    </NumberContainer>
+  );
+}
+
+export function getTimeSpentExplanation(percentage: number, op?: string) {
+  const formattedPercentage = formatPercentage(clamp(percentage ?? 0, 0, 1));
+
+  return tct(
     'The application spent [percentage] of its total time on this [span]. Read more about Time Spent in our [documentation:documentation].',
     {
       percentage: formattedPercentage,
@@ -33,13 +46,5 @@ export function TimeSpentCell({percentage, total, op, containerProps}: Props) {
         <ExternalLink href="https://docs.sentry.io/product/performance/queries/#what-is-time-spent" />
       ),
     }
-  );
-
-  return (
-    <NumberContainer {...containerProps}>
-      <Tooltip isHoverable title={tooltip} showUnderline>
-        {defined(total) ? formattedTotal : '--'}
-      </Tooltip>
-    </NumberContainer>
   );
 }

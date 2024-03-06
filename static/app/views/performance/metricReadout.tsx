@@ -33,7 +33,11 @@ export function MetricReadout(props: Props) {
 
 function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Props) {
   if (isLoading) {
-    return <LoadingIndicator mini />;
+    return (
+      <LoadingContainer align={align}>
+        <LoadingIndicator mini />
+      </LoadingContainer>
+    );
   }
 
   if (!defined(value)) {
@@ -96,6 +100,12 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
   text-align: ${p => p.align};
   font-variant-numeric: tabular-nums;
+`;
+
+const LoadingContainer = styled('div')<{align: 'left' | 'right'}>`
+  display: flex;
+  justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+  align-items: center;
 `;
 
 function isARateUnit(unit: string): unit is RateUnit {
