@@ -223,6 +223,8 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
+  const [detailPanelRef, setDetailPanelRef] =
+    useState<React.MutableRefObject<HTMLDivElement | null> | null>(null);
   const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
   );
@@ -368,6 +370,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           />
           <Trace
             trace={tree}
+            detailPanelRef={detailPanelRef}
             trace_id={props.traceSlug}
             roving_dispatch={rovingTabIndexDispatch}
             roving_state={rovingTabIndexState}
@@ -380,6 +383,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             manager={viewManager}
           />
           <BottomNodePanel
+            setDetailPanelRef={setDetailPanelRef}
             traceType={traceType}
             node={detailNode}
             rootEventResults={rootEvent}

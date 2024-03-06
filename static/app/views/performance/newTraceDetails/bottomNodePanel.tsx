@@ -1,4 +1,13 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {
+  createRef,
+  type Dispatch,
+  Fragment,
+  type MutableRefObject,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -785,15 +794,44 @@ type PanelProps = {
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  setDetailPanelRef: Dispatch<
+    SetStateAction<MutableRefObject<HTMLDivElement | null> | null>
+  >;
   traceEventView: EventView;
   traceType: TraceType | null;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
+const MIN_PANEL_HEIGHT = 100;
+const INITIAL_PANEL_HEIGHT = 200;
+
 function BottomNodePanel(props: PanelProps) {
   const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>(
     props.node ? 'node_detail' : 'trace_data'
   );
+
+  const [size, setSize] = useState(INITIAL_PANEL_HEIGHT);
+
+  const [isResizing, setIsResizing] = useState(false);
+
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleMouseMove = e => {
+      if (!isResizing) return;
+      const newSize = Math.max(MIN_PANEL_HEIGHT, size + e.movementY * -1);
+      setSize(newSize);
+    };
+
+    const handleMouseUp = () => setIsResizing(false);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [size, isResizing]);
 
   useEffect(() => {
     if (props.node) {
@@ -801,9 +839,19 @@ function BottomNodePanel(props: PanelProps) {
     }
   }, [props.node]);
 
+  useEffect(() => {
+    props.setDetailPanelRef(panelRef);
+  }, [panelRef, props]);
+
+  const handleMouseDown = e => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
   return (
-    <PanelWrapper>
-      <TabsContainer>
+    <PanelWrapper size={size} ref={panelRef}>
+      <TabsContainer onMouseDown={handleMouseDown}>
         <Tab
           active={activeTab === 'node_detail'}
           onClick={() => setActiveTab('node_detail')}
@@ -851,11 +899,11 @@ const NoDetail = styled('div')`
   height: 100%;
 `;
 
-const PanelWrapper = styled('div')`
+const PanelWrapper = styled('div')<{size: number}>`
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 50vh;
+  height: ${p => p.size}px;
   position: sticky;
   border: 1px solid ${p => p.theme.border};
   bottom: 0;
@@ -876,6 +924,7 @@ const TabsContainer = styled('div')`
   justify-content: left;
   padding-left: ${space(2)};
   gap: ${space(2)};
+  cursor: row-resize;
 `;
 
 const Tab = styled('div')<{active: boolean}>`
