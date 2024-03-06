@@ -3463,7 +3463,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
-KAFKA_INGEST_FEEDBACKS = "ingest-feedbacks"
+KAFKA_INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
 KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -3516,7 +3516,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "sessions-subscription-results": "default",
     "metrics-subscription-results": "default",
     "ingest-events": "default",
-    "ingest-feedbacks": "default",
+    "ingest-feedback-events": "default",
     "ingest-attachments": "default",
     "ingest-transactions": "default",
     "ingest-metrics": "default",
