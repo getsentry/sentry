@@ -46,9 +46,8 @@ import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/v
 
 import Breadcrumb from '../breadcrumb';
 
-import TraceDetailPanel from './newTraceDetailPanel';
+import BottomNodePanel from './bottomNodePanel';
 import Trace from './trace';
-import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
@@ -228,16 +227,9 @@ function TraceViewContent(props: TraceViewContentProps) {
     null
   );
 
-  const onDetailClose = useCallback(() => {
-    setDetailNode(null);
-    maybeFocusRow();
-  }, []);
-
   const onSetDetailNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      setDetailNode(prevNode => {
-        return prevNode === node ? null : node;
-      });
+      setDetailNode(node);
       maybeFocusRow();
     },
     []
@@ -387,19 +379,14 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
-          <TraceFooter
+          <BottomNodePanel
+            traceType={traceType}
+            node={detailNode}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
             traces={props.trace}
             traceEventView={props.traceEventView}
-          />
-          <TraceDetailPanel
-            organization={props.organization}
-            rootEvent={rootEvent.data}
-            traceType={traceType}
-            node={detailNode}
-            onClose={onDetailClose}
           />
         </Layout.Main>
       </Layout.Body>

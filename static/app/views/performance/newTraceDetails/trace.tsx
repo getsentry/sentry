@@ -320,6 +320,8 @@ function Trace({
       pathname: location.pathname,
       query: queryParamsWithoutNode,
     });
+
+    setDetailNode(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

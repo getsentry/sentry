@@ -53,7 +53,7 @@ function NoWebVitals() {
   );
 }
 
-function TraceFooterLoading() {
+function TraceDataLoading() {
   return (
     <TraceFooterWrapper>
       <div style={{flex: 1}}>
@@ -81,9 +81,9 @@ function TraceFooterLoading() {
   );
 }
 
-export function TraceFooter(props: TraceFooterProps) {
+export function TraceData(props: TraceFooterProps) {
   if (!props.traces) {
-    return <TraceFooterLoading />;
+    return <TraceDataLoading />;
   }
 
   const {data: rootEvent} = props.rootEventResults;
@@ -131,7 +131,6 @@ export function TraceFooter(props: TraceFooterProps) {
 const TraceFooterWrapper = styled('div')`
   display: flex;
   gap: ${space(2)};
-  margin-top: ${space(2)};
 `;
 
 const StyledPlaceholderTag = styled(Placeholder)`
