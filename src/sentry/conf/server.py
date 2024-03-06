@@ -21,7 +21,6 @@ from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
-from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
@@ -3531,9 +3530,16 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
 }
 
+from typing import TypedDict
+
+
+class LegacyTopicDefinition(TypedDict):
+    cluster: str
+
+
 # Cluster configuration for each Kafka topic by name.
 # DEPRECATED
-KAFKA_TOPICS: Mapping[str, TopicDefinition] = {
+KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
