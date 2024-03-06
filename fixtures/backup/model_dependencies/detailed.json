@@ -3237,6 +3237,24 @@
       ]
     ]
   },
+  "sentry.monitorenvbrokendetection": {
+    "dangling": false,
+    "foreign_keys": {
+      "monitor_incident": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.monitorincident",
+        "nullable": false
+      }
+    },
+    "model": "sentry.monitorenvbrokendetection",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_monitorenvbrokendetection",
+    "uniques": []
+  },
   "sentry.monitorenvironment": {
     "dangling": false,
     "foreign_keys": {

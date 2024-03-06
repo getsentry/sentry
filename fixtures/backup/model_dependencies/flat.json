@@ -449,6 +449,9 @@
     "sentry.monitorlocation",
     "sentry.project"
   ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
+  ],
   "sentry.monitorenvironment": [
     "sentry.environment",
     "sentry.monitor"
