@@ -23,7 +23,11 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.DeleteModel(
-            name="MonitorEnvBrokenDetection",
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.DeleteModel(
+                    name="MonitorEnvBrokenDetection",
+                )
+            ]
+        )
     ]
