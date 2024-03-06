@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
+import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -34,6 +35,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, SelectValue} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
@@ -152,6 +154,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }>(jsFrameworkSelectOptions[0]);
 
   const defaultTab = 'npm';
+  const {location} = useRouteContext();
+  const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
 
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
@@ -173,9 +177,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     .filter(p => p !== 'javascript')
     .includes(currentPlatform.id);
 
-  const showRadioButtons = replayJsLoaderInstructionsPlatformList.includes(
-    currentPlatform.id
-  );
+  const showRadioButtons =
+    replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
+    !crashReportOnboarding;
 
   function getJsFramework() {
     return (
@@ -202,7 +206,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
-  if (webApiPlatform) {
+  if (webApiPlatform && !crashReportOnboarding) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
@@ -250,7 +254,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         />
       ) : (
         newDocs?.platformOptions &&
-        widgetPlatform && (
+        widgetPlatform &&
+        !crashReportOnboarding && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -300,6 +305,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   function getConfig() {
+    if (crashReportOnboarding) {
+      return 'crashReportOnboarding';
+    }
     if (crashApiPlatform) {
       return 'feedbackOnboardingCrashApi';
     }
