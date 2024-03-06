@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.monitors.models import Monitor
 from sentry.testutils.cases import TestMigrations
 
@@ -20,9 +22,26 @@ class RenamePrioritySortToTrendsTest(TestMigrations):
             slug="invalid-monitor",
             name="invalid-monitor",
         )
+        self.slug_already_exists = Monitor.objects.create(
+            organization_id=self.other_org.id,
+            project_id=self.project.id,
+            slug="already-exists",
+            name="already-exists",
+        )
+        self.existing_monitor = Monitor.objects.create(
+            organization_id=self.project.organization_id,
+            project_id=self.project.id,
+            slug="already-exists",
+            name="already-exists",
+        )
 
     def test(self):
         self.valid_monitor.refresh_from_db()
         self.invalid_monitor.refresh_from_db()
+        self.existing_monitor.refresh_from_db()
         assert self.valid_monitor.organization_id == self.project.organization_id
         assert self.invalid_monitor.organization_id == self.project.organization_id
+        assert self.existing_monitor.organization_id == self.project.organization_id
+        assert self.existing_monitor.organization_id == self.project.organization_id
+        with pytest.raises(Monitor.DoesNotExist):
+            self.slug_already_exists.refresh_from_db()

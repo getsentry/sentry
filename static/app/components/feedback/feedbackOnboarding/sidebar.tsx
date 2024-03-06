@@ -8,12 +8,12 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
-import useCurrentProjectState from 'sentry/components/feedback/feedbackOnboarding/useCurrentProjectState';
 import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -44,12 +44,15 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
   const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const {projects, currentProject, setCurrentProject} = useCurrentProjectState({
+  const {allProjects, currentProject, setCurrentProject} = useCurrentProjectState({
     currentPanel,
+    targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
+    onboardingPlatforms: feedbackOnboardingPlatforms,
+    allPlatforms: feedbackOnboardingPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = projects
+    const supportedProjectItems: SelectValue<string>[] = allProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
@@ -74,7 +77,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
         options: supportedProjectItems,
       },
     ];
-  }, [projects]);
+  }, [allProjects]);
 
   if (!isActive || !hasProjectAccess || !currentProject) {
     return null;
@@ -113,7 +116,9 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
                 )
               }
               value={currentProject?.id}
-              onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
               triggerProps={{'aria-label': currentProject?.slug}}
               options={projectSelectOptions}
               position="bottom-end"
