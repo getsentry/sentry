@@ -194,9 +194,12 @@ export function findVideoSegmentIndex(
   trackList: [ts: number, index: number][],
   segments: VideoAttachment[],
   targetTimestamp: number,
-  start: number,
-  end: number
+  optionalStart?: number,
+  optionalEnd?: number
 ) {
+  const start = optionalStart ?? 0;
+  const end = optionalEnd ?? segments.length - 1;
+
   if (start > end) {
     // XXX: This means we are not returning "exact" segments, but the prior
     // segment if it doesn't not satisfy the exact time constraints

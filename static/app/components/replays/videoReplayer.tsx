@@ -110,8 +110,6 @@ export class VideoReplayer {
       this._trackList,
       this._attachments,
       timestamp,
-      0,
-      this._trackList.length - 1
     );
     const resultSegment = this.getSegment(result)!;
     const isExactSegment =
