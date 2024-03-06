@@ -1179,7 +1179,7 @@ class TextMeasurer {
   }
 }
 
-class VirtualizedList {
+export class VirtualizedList {
   container: HTMLElement | null = null;
 
   scrollHeight: number = 0;
