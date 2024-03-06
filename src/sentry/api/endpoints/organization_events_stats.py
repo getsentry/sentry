@@ -16,7 +16,6 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
-    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
@@ -214,7 +213,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if dataset
                     in [
                         discover,
-                        errors,
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
