@@ -150,7 +150,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         renderer: 'canvas' as const,
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 5, bottom: 0, left: 0, right: 0},
+        grid: {
+          top: 5,
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
         tooltip: {
           formatter: (params, asyncTicket) => {
             // Only show the tooltip if the current chart is hovered
@@ -217,7 +222,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         yAxes: [
-          ...uniqueUnits.map(unit =>
+          ...uniqueUnits.map((unit, index) =>
             unit === firstUnit
               ? {
                   // used to find and convert datapoint to pixel position
@@ -230,13 +235,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                 }
               : {
                   id: unit,
-                  show: false,
+                  show: index === 1,
                   axisLabel: {
-                    formatter: () => {
-                      return '';
+                    formatter: (value: number) => {
+                      return index === 1 ? formatMetricUsingUnit(value, unit) : '';
                     },
                   },
-                  position: 'left' as const,
+                  position: 'right' as const,
                   axisPointer: {
                     type: 'none' as const,
                   },
