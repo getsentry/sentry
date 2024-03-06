@@ -339,6 +339,10 @@ def handle_invalid_group_owners(group):
     )
     for owner in invalid_group_owners:
         owner.delete()
+        logger.info(
+            "handle_invalid_group_owners.delete_group_owner",
+            extra={"group": group.id, "group_owner_id": owner.id, "project": group.project_id},
+        )
 
 
 def handle_group_owners(
@@ -358,9 +362,11 @@ def handle_group_owners(
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
-        with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
-            op="post_process.handle_group_owners"
-        ), lock.acquire():
+        with (
+            metrics.timer("post_process.handle_group_owners"),
+            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            lock.acquire(),
+        ):
             current_group_owners = GroupOwner.objects.filter(
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
@@ -377,6 +383,12 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
+                logging_params = {
+                    "group": group.id,
+                    "project": project.id,
+                    "organization": project.organization_id,
+                    "group_owner_id": group_owner.id,
+                }
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -391,6 +403,10 @@ def handle_group_owners(
                 lookup_key_value = None
                 if lookup_key not in new_owners:
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "assignment_deleted"},
+                    )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
                 # Old groupowner assignment from outdated rules get deleted
@@ -399,6 +415,10 @@ def handle_group_owners(
                     and (group_owner.context or {}).get("rule") not in lookup_key_value
                 ):
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "outdated_rule"},
+                    )
                 else:
                     keeping_owners.add(lookup_key)
 
@@ -439,6 +459,15 @@ def handle_group_owners(
                         instance=go,
                         created=True,
                     )
+                logger.info(
+                    "group_owners.bulk_create",
+                    extra={
+                        "group_id": group.id,
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "count": len(new_group_owners),
+                    },
+                )
 
     except UnableToAcquireLock:
         pass
@@ -737,14 +766,17 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with metrics.timer(
-                "tasks.post_process.run_post_process_job.pipeline.duration",
-                tags={
-                    "pipeline": pipeline_step.__name__,
-                    "issue_category": issue_category_metric,
-                    "is_reprocessed": job["is_reprocessed"],
-                },
-            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with (
+                metrics.timer(
+                    "tasks.post_process.run_post_process_job.pipeline.duration",
+                    tags={
+                        "pipeline": pipeline_step.__name__,
+                        "issue_category": issue_category_metric,
+                        "is_reprocessed": job["is_reprocessed"],
+                    },
+                ),
+                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+            ):
                 pipeline_step(job)
         except Exception:
             metrics.incr(

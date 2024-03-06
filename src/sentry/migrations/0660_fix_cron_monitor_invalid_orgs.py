@@ -17,8 +17,13 @@ def fix_cron_monitor_invalid_orgs(apps, schema_editor) -> None:
             continue
 
         if project.organization_id != monitor.organization_id:
-            monitor.organization_id = project.organization_id
-            monitor.save(update_fields=["organization_id"])
+            if Monitor.objects.filter(organization_id=project.organization_id, slug=monitor.slug):
+                # There are a small number of these and due to the way ingest works they can't
+                # receive checkins, so they're totally broken. Just delete.
+                monitor.delete()
+            else:
+                monitor.organization_id = project.organization_id
+                monitor.save(update_fields=["organization_id", "slug"])
 
 
 class Migration(CheckedMigration):

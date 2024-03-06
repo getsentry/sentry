@@ -1,10 +1,10 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {setMockDate} from 'sentry-test/utils';
 
 import localStorage from 'sentry/utils/localStorage';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 jest.mock('sentry/utils/localStorage');
-jest.useFakeTimers();
 
 const mockSetItem = jest.mocked(localStorage.setItem);
 const mockGetItem = jest.mocked(localStorage.getItem);
@@ -14,7 +14,7 @@ const now = new Date('2020-01-01');
 
 describe('useDismissAlert', () => {
   beforeEach(() => {
-    jest.setSystemTime(now);
+    setMockDate(now);
 
     mockSetItem.mockReset();
     mockGetItem.mockReset();
@@ -53,25 +53,26 @@ describe('useDismissAlert', () => {
     expect(result.current.isDismissed).toBeTruthy();
   });
 
-  it('should set the current timestamp into localstorage when an alert is dismissed', () => {
-    const {result} = reactHooks.renderHook(useDismissAlert, {
+  it('should set the current timestamp into localstorage when an alert is dismissed', async () => {
+    const {result, waitFor} = reactHooks.renderHook(useDismissAlert, {
       initialProps: {key},
     });
 
     reactHooks.act(() => {
       result.current.dismiss();
-      jest.runAllTicks();
     });
 
-    expect(mockSetItem).toHaveBeenCalledWith(
-      key,
-      JSON.stringify(now.getTime().toString())
+    await waitFor(() =>
+      expect(mockSetItem).toHaveBeenCalledWith(
+        key,
+        JSON.stringify(now.getTime().toString())
+      )
     );
   });
 
   it('should be dismissed if the timestamp in localStorage is older than the expiration', () => {
     const today = new Date('2020-01-01');
-    jest.setSystemTime(today);
+    setMockDate(today);
 
     // Dismissed on christmas
     const christmas = new Date('2019-12-25').getTime();

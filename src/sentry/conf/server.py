@@ -1454,6 +1454,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
+    # Enables activated alert rules
+    "organizations:activated-alert-rules": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -3840,7 +3842,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
