@@ -257,12 +257,13 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                         id=Superuser.org_id, include_teams=False, include_projects=False
                     )
 
-                    has_u2f_flag = features.has(
-                        "organizations:u2f-superuser-form",
-                        superuser_org.organization,
-                        actor=request.user,
-                    )
-                    verify_authenticator = False if superuser_org is None else has_u2f_flag
+                    if superuser_org is not None:
+                        has_u2f_flag = features.has(
+                            "organizations:u2f-superuser-form",
+                            superuser_org.organization,
+                            actor=request.user,
+                        )
+                        verify_authenticator = has_u2f_flag
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
