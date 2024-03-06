@@ -33,6 +33,21 @@ def call_endpoint(client, relay, private_key):
 @pytest.mark.django_db
 def test_global_config():
     config = get_global_config()
+    # Set options to Relay's non-default values to avoid Relay skipping deserialization
+    config["options"]["relay.cardinality-limiter.error-sample-rate"] = 1.0
+    config["options"]["profiling.profile_metrics.unsampled_profiles.enabled"] = True
+    config["options"]["profiling.profile_metrics.unsampled_profiles.platforms"] = ["fake-platform"]
+    config["options"]["profiling.profile_metrics.unsampled_profiles.sample_rate"] = 1.0
+    config["options"]["relay.metric-bucket-encodings"] = {
+        "sessions": "array",
+        "transactions": "array",
+        "spans": "array",
+        "custom": "array",
+        "unsupported": "array",
+    }
+    config["options"]["relay.span-usage-metric"] = True
+    config["options"]["relay.cardinality-limiter.mode"] = "passive"
+
     normalized = normalize_global_config(config)
     assert normalized == config
 
