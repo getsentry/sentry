@@ -339,6 +339,10 @@ def handle_invalid_group_owners(group):
     )
     for owner in invalid_group_owners:
         owner.delete()
+        logger.info(
+            "handle_invalid_group_owners.delete_group_owner",
+            extra={"group": group.id, "group_owner_id": owner.id, "project": group.project_id},
+        )
 
 
 def handle_group_owners(
@@ -379,6 +383,12 @@ def handle_group_owners(
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for group_owner in current_group_owners:
+                logging_params = {
+                    "group": group.id,
+                    "project": project.id,
+                    "organization": project.organization_id,
+                    "group_owner_id": group_owner.id,
+                }
                 owner_rule_type = (
                     OwnerRuleType.CODEOWNERS.value
                     if group_owner.type == GroupOwnerType.CODEOWNERS.value
@@ -393,6 +403,10 @@ def handle_group_owners(
                 lookup_key_value = None
                 if lookup_key not in new_owners:
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "assignment_deleted"},
+                    )
                 else:
                     lookup_key_value = new_owners.get(lookup_key)
                 # Old groupowner assignment from outdated rules get deleted
@@ -401,6 +415,10 @@ def handle_group_owners(
                     and (group_owner.context or {}).get("rule") not in lookup_key_value
                 ):
                     group_owner.delete()
+                    logger.info(
+                        "handle_group_owners.delete_group_owner",
+                        extra={**logging_params, "reason": "outdated_rule"},
+                    )
                 else:
                     keeping_owners.add(lookup_key)
 
