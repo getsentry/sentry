@@ -5,10 +5,12 @@ from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
+from sentry import options
 from sentry.event_manager import (
     Job,
     ProjectsMapping,
@@ -154,13 +156,11 @@ def transform_spans_to_event_dict(spans):
     return event
 
 
-def _process_segment(project_id, segment_id):
-    client = RedisSpansBuffer()
-    spans = client.read_segment(project_id, segment_id)
-
+def _process_segment(spans: list[str | bytes]):
     with sentry_sdk.start_span(op="sentry.tasks.spans.transform_spans_to_event_dict"):
         event = transform_spans_to_event_dict(spans)
 
+    project_id = event["project_id"]
     with metrics.timer("tasks.spans.project.get_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
 
@@ -184,15 +184,61 @@ def _process_segment(project_id, segment_id):
     return jobs
 
 
+def _process_segments(keys):
+    client = RedisSpansBuffer()
+    segments = client.read_many_segments(keys)
+
+    # TODO: check how long we think this is going to take
+    try:
+        for i, segment in enumerate(segments):
+            _, spans = segment
+            if len(spans) > 0:
+                _process_segment(spans)
+
+    except SoftTimeLimitExceeded as err:
+        metrics.incr("performance_issue.standalone_spans.processing.error", len(segments) - i)
+        sentry_sdk.capture_exception(err)
+
+    client.expire_many_segments(keys)
+
+
 @instrumented_task(
-    name="sentry.tasks.spans.process_segment",
-    queue="spans.process_segment",
+    name="sentry.tasks.spans.process_segments",
+    queue="spans.process_segments",
+    soft_time_limit=5,
     max_retries=0,
 )
-def process_segment(project_id, segment_id):
+def process_segments(keys):
     mark_scope_as_unsafe()
     try:
-        _process_segment(project_id, segment_id)
+        _process_segments(keys)
     except Exception as err:
         if random.random() < 0.05:
             sentry_sdk.capture_exception(err)
+
+
+@instrumented_task(
+    name="sentry.tasks.spans.run_performnance_issue_detection",
+    queue="spans.run_performnance_issue_detection",
+    max_retries=0,
+)
+def run_performnance_issue_detection() -> None:
+    if not options.get("standalone-spans.performance-issue-detection.enable"):
+        return
+
+    client = RedisSpansBuffer()
+
+    batch_size = options.get("standalone-spans.process-segments.batch-size")
+    max_batches = options.get("standalone-spans.process-segments.max-batches")
+
+    drain = options.get("standalone-spans.process-segments.drain.enable")
+
+    for _ in range(max_batches):
+        keys = client.get_segment_keys_and_prune(batch_size)
+        if len(keys) == 0:
+            break
+
+        if drain:
+            continue
+
+        process_segments.delay(keys)

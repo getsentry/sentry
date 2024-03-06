@@ -938,7 +938,11 @@ CELERY_QUEUES_REGION = [
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
-    Queue("spans.process_segment", routing_key="spans.process_segment"),
+    Queue("spans.process_segments", routing_key="spans.process_segments"),
+    Queue(
+        "spans.run_performnance_issue_detection",
+        routing_key="spans.run_performnance_issue_detection",
+    ),
 ]
 
 from celery.schedules import crontab
@@ -1225,6 +1229,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab(minute="*/5"),
+    },
+    "standalone-spans-run-performance-issue-detection": {
+        "task": "sentry.tasks.spans.run_performnance_issue_detection",
+        "schedule": timedelta(seconds=5),
+        "options": {"expires": 5},
     },
 }
 
