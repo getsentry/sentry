@@ -1,20 +1,23 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import localStorage from 'sentry/utils/localStorage';
 
 import PlayerDOMAlert from './playerDOMAlert';
 
 jest.mock('sentry/utils/localStorage');
-jest.useFakeTimers();
 
 const mockGetItem = jest.mocked(localStorage.getItem);
 
 const now = new Date('2020-01-01');
-jest.setSystemTime(now);
 
 describe('PlayerDOMAlert', () => {
   beforeEach(() => {
     mockGetItem.mockReset();
+    setMockDate(now);
+  });
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('should render the alert when local storage key is not set', () => {
@@ -30,18 +33,19 @@ describe('PlayerDOMAlert', () => {
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
   });
 
-  it('should be dismissable', () => {
+  it('should be dismissable', async () => {
     render(<PlayerDOMAlert />);
 
     expect(screen.getByTestId('player-dom-alert')).toBeVisible();
 
     screen.getByLabelText('Close Alert').click();
-    jest.runAllTicks();
 
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      'replay-player-dom-alert-dismissed',
-      '"1577836800000"'
+    await waitFor(() =>
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'replay-player-dom-alert-dismissed',
+        '"1577836800000"'
+      )
     );
   });
 });
