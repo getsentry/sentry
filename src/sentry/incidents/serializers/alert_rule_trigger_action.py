@@ -8,7 +8,7 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule_trigger_action,
 )
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import (
     ACTION_TARGET_TYPE_TO_STRING,
     STRING_TO_ACTION_TARGET_TYPE,

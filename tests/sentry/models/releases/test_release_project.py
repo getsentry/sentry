@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.dynamic_sampling import ProjectBoostedReleases
-from sentry.incidents.models import AlertRule, AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
@@ -94,7 +94,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         # models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
 
     @patch(
-        "sentry.incidents.models.AlertRule.objects.conditionally_subscribe_project_to_alert_rules"
+        "sentry.incidents.models.alert_rule.AlertRule.objects.conditionally_subscribe_project_to_alert_rules"
     )
     def test_subscribe_project_to_alert_rule_constructs_query(self, mock_conditionally_subscribe):
         project = self.create_project(name="foo")
@@ -126,7 +126,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
 
         subscribe_project = AlertRule.objects.conditionally_subscribe_project_to_alert_rules
         with patch(
-            "sentry.incidents.models.AlertRule.objects.conditionally_subscribe_project_to_alert_rules",
+            "sentry.incidents.models.alert_rule.AlertRule.objects.conditionally_subscribe_project_to_alert_rules",
             wraps=subscribe_project,
         ) as wrapped_subscribe_project:
             with self.tasks():

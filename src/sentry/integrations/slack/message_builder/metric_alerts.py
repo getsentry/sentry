@@ -1,4 +1,5 @@
-from sentry.incidents.models import AlertRule, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import metric_alert_attachment_info
 from sentry.integrations.slack.message_builder import (
     INCIDENT_COLOR_MAPPING,

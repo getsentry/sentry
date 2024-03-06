@@ -1,7 +1,7 @@
 from functools import cached_property
 
 from sentry.incidents.logic import subscribe_to_incident
-from sentry.incidents.models import IncidentSubscription
+from sentry.incidents.models.incident import IncidentSubscription
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test

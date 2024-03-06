@@ -1,8 +1,8 @@
 from datetime import timezone
 
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleThresholdType,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,

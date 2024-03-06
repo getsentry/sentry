@@ -35,10 +35,12 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,

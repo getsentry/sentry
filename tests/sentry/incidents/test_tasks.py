@@ -14,9 +14,9 @@ from sentry.incidents.logic import (
     create_incident_activity,
     subscribe_to_incident,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
     IncidentSubscription,

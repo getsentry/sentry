@@ -10,7 +10,7 @@ from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -122,8 +122,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -157,12 +158,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             assert "projects" in response_data
 
     def test_status_filter(self):
-        with outbox_runner(), self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:metric-alert-ignore-archived",
-            ]
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:metric-alert-ignore-archived",
+                ]
+            ),
         ):
             data = deepcopy(self.alert_rule_dict)
             data["query"] = "is:unresolved"
@@ -536,8 +540,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 404
 
     def test_no_perms(self):
-        with assume_test_silo_mode(SiloMode.REGION), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationMember))
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
         with self.feature("organizations:incidents"):
@@ -879,8 +884,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
         alert_rule_dict = self.alert_rule_dict
         alert_rule_dict["name"] = char_256_name
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -894,8 +900,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         char_257_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFOK"
         alert_rule_dict = self.alert_rule_dict
         alert_rule_dict["name"] = char_257_name
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **alert_rule_dict

@@ -2,7 +2,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
     RedisRuleStatus,

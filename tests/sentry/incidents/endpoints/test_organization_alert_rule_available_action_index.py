@@ -5,7 +5,7 @@ from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.organization_integration import OrganizationIntegration

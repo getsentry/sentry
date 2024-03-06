@@ -1,7 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.incidents.models import Incident, IncidentActivity, IncidentActivityType
+from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentActivityType
 from sentry.incidents.tasks import generate_incident_activity_email
 from sentry.models.organization import Organization
 from sentry.models.user import User

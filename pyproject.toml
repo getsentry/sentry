@@ -287,7 +287,6 @@ module = [
     "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
     "sentry.incidents.logic",
-    "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
     "sentry.integrations.aws_lambda.integration",

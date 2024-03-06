@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):

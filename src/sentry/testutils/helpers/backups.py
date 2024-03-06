@@ -42,8 +42,8 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models import (
-    AlertRuleMonitorType,
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
     IncidentSubscription,

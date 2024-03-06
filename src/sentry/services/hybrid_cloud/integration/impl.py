@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
-from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
 from sentry.models.integrations import Integration, OrganizationIntegration

@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 import responses
 
-from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
