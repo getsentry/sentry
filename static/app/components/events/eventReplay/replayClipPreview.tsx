@@ -31,6 +31,7 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconDelete, IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -49,13 +50,23 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+type AdditionalProps =
+  | {
+      group: Group;
+      clipOffsets?: undefined;
+      eventTimestampMs?: undefined;
+    }
+  | {
+      clipOffsets: {
+        durationAfterMs: number;
+        durationBeforeMs: number;
+      };
+      eventTimestampMs: number;
+      group?: undefined;
+    };
+
 type Props = {
   analyticsContext: string;
-  clipOffsets: {
-    durationAfterMs: number;
-    durationBeforeMs: number;
-  };
-  eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   focusTab?: TabKey;
@@ -63,7 +74,7 @@ type Props = {
   handleBackClick?: () => void;
   handleForwardClick?: () => void;
   isLarge?: boolean;
-};
+} & AdditionalProps;
 
 function getReplayAnalyticsStatus({
   fetchError,
@@ -204,19 +215,24 @@ function ReplayClipPreview({
   isLarge,
   handleForwardClick,
   handleBackClick,
+  group,
 }: Props) {
   const clipWindow = useMemo(
-    () => ({
-      startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
-      endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
-    }),
-    [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
+    () =>
+      clipOffsets && eventTimestampMs
+        ? {
+            startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
+            endTimestampMs: eventTimestampMs + clipOffsets.durationAfterMs,
+          }
+        : undefined,
+    [clipOffsets, eventTimestampMs]
   );
 
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,
+    group,
   });
 
   useRouteAnalyticsParams({

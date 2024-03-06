@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -216,8 +217,18 @@ const StyledAlert = styled(Alert)`
   margin-bottom: 0;
 `;
 
+type AdditionalProps =
+  | {
+      group: Group;
+      showReplayPlayer: true;
+    }
+  | {
+      group?: undefined;
+      showReplayPlayer?: false;
+    };
+
 // Temporary controller to switch between ReplayTable and ReplayTableV2
-function ReplayTableController(props: Props) {
+function ReplayTableController(props: Props & AdditionalProps) {
   const organization = useOrganization();
   if (organization.features.includes('replay-play-from-replay-tab')) {
     return <ReplayTableV2 {...props} />;

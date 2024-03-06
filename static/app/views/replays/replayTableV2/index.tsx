@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 // import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -33,6 +34,16 @@ import {
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
+type AdditionalProps =
+  | {
+      group: Group;
+      showReplayPlayer: true;
+    }
+  | {
+      group?: undefined;
+      showReplayPlayer?: false;
+    };
+
 type Props = {
   fetchError: undefined | Error;
   isFetching: boolean;
@@ -42,12 +53,7 @@ type Props = {
   emptyMessage?: ReactNode;
   gridRows?: string;
   showDropdownFilters?: boolean;
-};
-
-const CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+} & AdditionalProps;
 
 function ReplayTable({
   fetchError,
@@ -58,6 +64,8 @@ function ReplayTable({
   emptyMessage,
   gridRows,
   showDropdownFilters,
+  group,
+  showReplayPlayer,
 }: Props) {
   const routes = useRoutes();
   const location = useLocation();
@@ -131,18 +139,17 @@ function ReplayTable({
 
   return (
     <div>
-      {selectedReplay && (
+      {selectedReplay && showReplayPlayer && (
         <ReplayWrapper>
           <StyledLazyLoad
             {...commonProps}
             component={replayClipPreview}
-            clipOffsets={CLIP_OFFSETS}
             replaySlug={selectedReplay.id}
-            eventTimestampMs={new Date(selectedReplay.started_at).getTime()}
             handleBackClick={handleBackClick}
             handleForwardClick={handleForwardClick}
             overlayText={nextReplayText}
             isLarge
+            group={group}
           />
         </ReplayWrapper>
       )}
@@ -235,8 +242,12 @@ function ReplayTable({
                           organization={organization}
                           referrer={referrer}
                           referrer_table="main"
-                          handleClick={() => setSelectedReplayIndex(index)}
-                          hasCurrentlyPlayingTag={index === selectedReplayIndex}
+                          handleClick={() =>
+                            showReplayPlayer && setSelectedReplayIndex(index)
+                          }
+                          hasCurrentlyPlayingTag={
+                            showReplayPlayer && index === selectedReplayIndex
+                          }
                         />
                       );
 

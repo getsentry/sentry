@@ -114,6 +114,8 @@ function GroupReplaysTable({
         sort={undefined}
         visibleColumns={visibleColumns}
         showDropdownFilters={false}
+        group={group}
+        showReplayPlayer
       />
     </StyledLayoutPage>
   );
