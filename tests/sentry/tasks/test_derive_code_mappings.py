@@ -357,7 +357,7 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             }
             derive_code_mappings(self.project.id, self.event_data)
             # Check to make sure no code mappings were generated
-            assert len(RepositoryProjectPathConfig.objects.all()) == 0
+            assert not RepositoryProjectPathConfig.objects.exists()
 
     @responses.activate
     @with_feature({"organizations:derive-code-mappings-php": True})
