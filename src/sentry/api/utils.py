@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError
 
 from sentry import options
 from sentry.auth.staff import is_active_staff
@@ -424,6 +425,7 @@ def handle_query_errors() -> Generator[None, None, None]:
             error,
             (
                 RateLimitExceeded,
+                ReadTimeoutError,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
@@ -446,6 +448,12 @@ def handle_query_errors() -> Generator[None, None, None]:
             ),
         ):
             sentry_sdk.capture_exception(error)
+            message = "Internal error. Your query failed to run."
+        elif isinstance(
+            error,
+            (MaxRetryError),
+        ):
+            sentry_sdk.capture_message(str(error), level="warning")
             message = "Internal error. Your query failed to run."
         else:
             sentry_sdk.capture_exception(error)
