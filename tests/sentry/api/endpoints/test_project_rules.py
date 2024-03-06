@@ -350,6 +350,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     @responses.activate
+    @with_feature("organizations:rule-save-edit-confirm-notification")
     @patch(
         "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
     )
@@ -379,6 +380,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert mock_send_confirmation_notification.call_count == 1
 
     @responses.activate
+    @with_feature("organizations:rule-save-edit-confirm-notification")
     def test_slack_confirmation_notification_contents(self):
         responses.add(
             method=responses.GET,

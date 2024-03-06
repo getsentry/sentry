@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
@@ -364,7 +364,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-            send_confirmation_notification(rule=rule, new=False)
+            if features.has(
+                "organizations:rule-save-edit-confirm-notification", project.organization
+            ):
+                send_confirmation_notification(rule=rule, new=False)
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

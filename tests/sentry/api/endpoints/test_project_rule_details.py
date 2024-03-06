@@ -22,6 +22,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -945,6 +946,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
+    @with_feature("organizations:rule-save-edit-confirm-notification")
     @patch(
         "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
     )
@@ -1000,6 +1002,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
 
     @responses.activate
+    @with_feature("organizations:rule-save-edit-confirm-notification")
     def test_slack_confirmation_notification_contents(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [
