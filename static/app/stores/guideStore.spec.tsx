@@ -120,7 +120,7 @@ describe('GuideStore', function () {
   it('hides when a modal is open', function () {
     expect(GuideStore.getState().forceHide).toBe(false);
 
-    ModalStore.openModal(() => {}, {});
+    ModalStore.openModal(() => <div />, {});
 
     expect(GuideStore.getState().forceHide).toBe(true);
 
