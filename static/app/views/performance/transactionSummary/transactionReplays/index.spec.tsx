@@ -3,6 +3,7 @@ import {ReplayListFixture} from 'sentry-fixture/replayList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
@@ -126,6 +127,7 @@ describe('TransactionReplays', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    resetMockDate();
   });
 
   it('should query the events endpoint for replayIds of a transaction', async () => {
@@ -239,7 +241,7 @@ describe('TransactionReplays', () => {
     });
 
     // Mock the system date to be 2022-09-28
-    jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
+    setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
     renderComponent();
 

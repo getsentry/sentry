@@ -1,3 +1,5 @@
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
 import type {MetricsOperation} from 'sentry/types';
 import {
   getAbsoluteDateTimeRange,
@@ -121,9 +123,11 @@ describe('isFormattedMQL', () => {
 });
 
 describe('getAbsoluteDateTimeRange', () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+  beforeEach(() => {
+    setMockDate(new Date('2024-01-01T00:00:00Z'));
+  });
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('should return the correct object with "start" and "end" when period is not provided', () => {
@@ -149,9 +153,5 @@ describe('getAbsoluteDateTimeRange', () => {
       start: '2023-12-25T00:00:00.000Z',
       end: '2024-01-01T00:00:00.000Z',
     });
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
   });
 });
