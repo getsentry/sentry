@@ -40,6 +40,27 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"] is True
 
     @responses.activate
+    def test_proxy_does_not_resolve_redirect(self):
+        responses.add(
+            responses.POST,
+            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
+            headers={"Location": "https://zombo.com"},
+            status=302,
+        )
+
+        url = reverse("region-endpoint", kwargs={"organization_slug": self.organization.slug})
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.post(url)
+        assert resp.status_code == 302
+        assert resp["Location"] == "https://zombo.com"
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert resp.content == b""
+        else:
+            response_payload = close_streaming_response(resp)
+            assert response_payload == b""
+
+    @responses.activate
     def test_region_pinned_urls_are_defined(self):
         resolver = get_resolver()
         # Ensure that all urls in REGION_PINNED_URL_NAMES exist in api/urls.py

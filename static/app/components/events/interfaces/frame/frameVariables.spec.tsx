@@ -106,6 +106,9 @@ describe('Frame Variables', function () {
         data={{
           null: 'None',
           bool: 'True',
+          str: "'string'",
+          number: '123.45',
+          other: '<Class at 0x12345>',
         }}
         platform="python"
       />
@@ -117,6 +120,15 @@ describe('Frame Variables', function () {
     expect(
       within(screen.getByTestId('value-boolean')).getByText('True')
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-string')).getByText('"string"')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('<Class at 0x12345>')
+    ).toBeInTheDocument();
   });
 
   it('renders node variables correctly', function () {
@@ -126,6 +138,8 @@ describe('Frame Variables', function () {
           null: '<null>',
           undefined: '<undefined>',
           bool: true,
+          number: 123.45,
+          str: 'string',
         }}
         platform="node"
       />
@@ -138,6 +152,12 @@ describe('Frame Variables', function () {
     expect(
       within(screen.getByTestId('value-boolean')).getByText('true')
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-number')).getByText('123.45')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
   });
 
   it('renders ruby variables correctly', function () {
@@ -146,6 +166,7 @@ describe('Frame Variables', function () {
         data={{
           null: 'nil',
           bool: 'true',
+          str: 'string',
         }}
         platform="ruby"
       />
@@ -155,6 +176,9 @@ describe('Frame Variables', function () {
     expect(
       within(screen.getByTestId('value-boolean')).getByText('true')
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
+    ).toBeInTheDocument();
   });
 
   it('renders php variables correctly', function () {
@@ -163,6 +187,7 @@ describe('Frame Variables', function () {
         data={{
           null: 'null',
           bool: 'true',
+          str: 'string',
         }}
         platform="php"
       />
@@ -173,6 +198,9 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('value-boolean')).getByText('true')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('value-unformatted')).getByText('string')
     ).toBeInTheDocument();
   });
 });

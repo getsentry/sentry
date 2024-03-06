@@ -171,7 +171,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development') {
+    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
       import('@spotlightjs/spotlight').then(Spotlight => {
         /* #__PURE__ */ Spotlight.init();
       });

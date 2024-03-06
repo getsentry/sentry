@@ -784,6 +784,7 @@ export interface BaseGroup {
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
+  priorityLockedAt: string | null;
   project: Project;
   seenBy: User[];
   shareId: string;

@@ -1,35 +1,42 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import isNumber from 'lodash/isNumber';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isUrl} from 'sentry/utils';
 
-import Toggle from './toggle';
-import {analyzeStringForRepr, naturalCaseInsensitiveSort} from './utils';
+import {
+  looksLikeMultiLineString,
+  looksLikeStrippedValue,
+  naturalCaseInsensitiveSort,
+} from './utils';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
+  isNumber?: (value: unknown) => boolean;
+  isString?: (value: unknown) => boolean;
   renderBoolean?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
+  renderObjectKeys?: (value: string) => string;
+  renderString?: (value: string) => string;
 };
 
-type StructedEventDataProps = {
+export type StructuredEventDataProps = {
   children?: React.ReactNode;
   className?: string;
   /**
    * Allows customization of how values are rendered
    */
   config?: StructedEventDataConfig;
-  data?: React.ReactNode;
+  // TODO(TS): What possible types can `data` be?
+  data?: any;
   'data-test-id'?: string;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
-  preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
 };
 
@@ -61,38 +68,57 @@ function LinkHint({value}: {value: string}) {
   );
 }
 
-function StructedData({
+function StructuredData({
   config,
   depth,
   value = null,
   maxDefaultDepth,
-  preserveQuotes,
   withAnnotatedText,
   meta,
+  objectKey,
 }: {
   config: StructedEventDataConfig | undefined;
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
-  preserveQuotes: boolean;
   withAnnotatedText: boolean;
-  value?: React.ReactNode;
+  objectKey?: string;
+  // TODO(TS): What possible types can `value` be?
+  value?: any;
 }) {
   let i = 0;
 
-  const children: React.ReactNode[] = [];
+  const formattedObjectKey = objectKey ? (
+    <Fragment>
+      <ValueObjectKey>
+        {config?.renderObjectKeys?.(objectKey) ?? objectKey}
+      </ValueObjectKey>
+      <span>{': '}</span>
+    </Fragment>
+  ) : null;
+
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <Fragment>
+        {formattedObjectKey}
+        {children}
+      </Fragment>
+    );
+  }
 
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
 
     return (
-      <ValueNull data-test-id="value-null">
-        <AnnotatedValue
-          value={nullValue}
-          meta={meta}
-          withAnnotatedText={withAnnotatedText}
-        />
-      </ValueNull>
+      <Wrapper>
+        <ValueNull data-test-id="value-null">
+          <AnnotatedValue
+            value={nullValue}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueNull>
+      </Wrapper>
     );
   }
 
@@ -100,89 +126,127 @@ function StructedData({
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
 
     return (
-      <ValueBoolean data-test-id="value-boolean">
-        <AnnotatedValue
-          value={booleanValue}
-          meta={meta}
-          withAnnotatedText={withAnnotatedText}
-        />
-      </ValueBoolean>
+      <Wrapper>
+        <ValueBoolean data-test-id="value-boolean">
+          <AnnotatedValue
+            value={booleanValue}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueBoolean>
+      </Wrapper>
+    );
+  }
+
+  if (typeof value === 'number' || config?.isNumber?.(value)) {
+    return (
+      <Wrapper>
+        <ValueNumber data-test-id="value-number">
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueNumber>
+      </Wrapper>
     );
   }
 
   if (typeof value === 'string') {
-    const valueInfo = analyzeStringForRepr(value);
+    if (config?.isString?.(value)) {
+      const stringValue = config.renderString?.(value) ?? value;
 
-    const annotatedValue = withAnnotatedText ? (
-      <AnnotatedValue
-        value={valueInfo.repr}
-        meta={meta}
-        withAnnotatedText={withAnnotatedText}
-      />
-    ) : (
-      valueInfo.repr
-    );
-
-    const printedValue = preserveQuotes ? `"${annotatedValue}"` : annotatedValue;
-
-    if (valueInfo.isStripped) {
-      return <ValueStrippedString>{printedValue}</ValueStrippedString>;
+      return (
+        <Wrapper>
+          <ValueString data-test-id="value-string">
+            {'"'}
+            <AnnotatedValue
+              value={stringValue}
+              meta={meta}
+              withAnnotatedText={withAnnotatedText}
+            />
+            {'"'}
+            <LinkHint value={stringValue} />
+          </ValueString>
+        </Wrapper>
+      );
     }
 
-    if (valueInfo.isMultiLine) {
+    if (looksLikeStrippedValue(value)) {
       return (
-        <ValueMultiLineString>
-          {printedValue}
-          <LinkHint value={value} />
-        </ValueMultiLineString>
+        <Wrapper>
+          <ValueStrippedString>
+            <AnnotatedValue
+              value={value}
+              meta={meta}
+              withAnnotatedText={withAnnotatedText}
+            />
+          </ValueStrippedString>
+        </Wrapper>
       );
+    }
+
+    if (looksLikeMultiLineString(value)) {
+      <Wrapper>
+        <ValueMultiLineString>
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+        </ValueMultiLineString>
+      </Wrapper>;
     }
 
     return (
-      <span>
-        {printedValue}
-        <LinkHint value={value} />
-      </span>
+      <Wrapper>
+        <span data-test-id="value-unformatted">
+          <AnnotatedValue
+            value={value}
+            meta={meta}
+            withAnnotatedText={withAnnotatedText}
+          />
+          <LinkHint value={value} />
+        </span>
+      </Wrapper>
     );
   }
 
-  if (isNumber(value)) {
-    const valueToBeReturned =
-      withAnnotatedText && meta ? (
-        <AnnotatedValue value={value} meta={meta} withAnnotatedText={withAnnotatedText} />
-      ) : (
-        value
-      );
-    return <span>{valueToBeReturned}</span>;
-  }
+  const children: React.ReactNode[] = [];
+
   if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
-          <StructedData
+          <StructuredData
             config={config}
             value={value[i]}
             depth={depth + 1}
-            preserveQuotes={preserveQuotes}
             withAnnotatedText={withAnnotatedText}
             meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
           />
-          {i < value.length - 1 ? <span>{', '}</span> : null}
+          {i < value.length - 1 ? <span>{','}</span> : null}
         </div>
       );
     }
     return (
-      <span>
-        <span>{'['}</span>
-        <Toggle highUp={depth <= maxDefaultDepth}>{children}</Toggle>
-        <span>{']'}</span>
-      </span>
+      <CollapsibleValue
+        openTag="["
+        closeTag="]"
+        prefix={formattedObjectKey}
+        maxDefaultDepth={maxDefaultDepth}
+        depth={depth}
+      >
+        {children}
+      </CollapsibleValue>
     );
   }
+
   if (isValidElement(value)) {
     return value;
   }
+
   const keys = Object.keys(value);
   keys.sort(naturalCaseInsensitiveSort);
   for (i = 0; i < keys.length; i++) {
@@ -190,30 +254,30 @@ function StructedData({
 
     children.push(
       <div key={key}>
-        <ValueObjectKey>{preserveQuotes ? `"${key}"` : key}</ValueObjectKey>
-        <span>{': '}</span>
-        <span>
-          <StructedData
-            config={config}
-            value={value[key]}
-            depth={depth + 1}
-            preserveQuotes={preserveQuotes}
-            withAnnotatedText={withAnnotatedText}
-            meta={meta?.[key]}
-            maxDefaultDepth={maxDefaultDepth}
-          />
-          {i < keys.length - 1 ? <span>{', '}</span> : null}
-        </span>
+        <StructuredData
+          config={config}
+          value={value[key]}
+          depth={depth + 1}
+          withAnnotatedText={withAnnotatedText}
+          meta={meta?.[key]}
+          maxDefaultDepth={maxDefaultDepth}
+          objectKey={key}
+        />
+        {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
     );
   }
 
   return (
-    <span>
-      <span>{'{'}</span>
-      <Toggle highUp={depth <= maxDefaultDepth - 1}>{children}</Toggle>
-      <span>{'}'}</span>
-    </span>
+    <CollapsibleValue
+      openTag="{"
+      closeTag="}"
+      prefix={formattedObjectKey}
+      maxDefaultDepth={maxDefaultDepth}
+      depth={depth}
+    >
+      {children}
+    </CollapsibleValue>
   );
 }
 
@@ -223,20 +287,18 @@ function StructuredEventData({
   meta,
   maxDefaultDepth = 2,
   data = null,
-  preserveQuotes = false,
   withAnnotatedText = false,
   ...props
-}: StructedEventDataProps) {
+}: StructuredEventDataProps) {
   return (
     <pre {...props}>
-      <StructedData
+      <StructuredData
         config={config}
         value={data}
         depth={0}
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
-        preserveQuotes={preserveQuotes}
       />
       {children}
     </pre>
@@ -260,6 +322,10 @@ const ValueBoolean = styled('span')`
   color: var(--prism-property);
 `;
 
+const ValueString = styled('span')`
+  color: var(--prism-selector);
+`;
+
 const ValueMultiLineString = styled('span')`
   display: block;
   overflow: auto;
@@ -270,6 +336,10 @@ const ValueMultiLineString = styled('span')`
 const ValueStrippedString = styled('span')`
   font-weight: bold;
   color: var(--prism-keyword);
+`;
+
+const ValueNumber = styled('span')`
+  color: var(--prism-property);
 `;
 
 const ValueObjectKey = styled('span')`

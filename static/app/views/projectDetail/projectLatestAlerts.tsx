@@ -42,7 +42,7 @@ function AlertRow({alert, orgSlug}: AlertRowProps) {
       aria-label={title}
       to={`/organizations/${orgSlug}/alerts/${identifier}/`}
     >
-      <AlertBadgeWrapper {...statusProps} icon={<Icon />}>
+      <AlertBadgeWrapper icon={Icon}>
         <AlertBadge status={status} />
       </AlertBadgeWrapper>
       <AlertDetails>
@@ -208,7 +208,7 @@ type StatusColorProps = {
 const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
   isResolved ? 'successText' : isWarning ? 'warningText' : 'errorText';
 
-const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
+const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;
   align-items: center;
   justify-content: center;

@@ -251,15 +251,19 @@ def normalize_value(
     return rv
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context) -> bool:
+def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
     option_value = options.get(killswitch_name)
     rv = _value_matches(killswitch_name, option_value, context)
-    metrics.incr(
-        "killswitches.run",
-        tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
-    )
+
+    if emit_metrics:
+        # metrics can have a meaningful performance impact, so allow caller to opt out
+        # TODO: re-evaluate after we make metric collection aysnc.
+        metrics.incr(
+            "killswitches.run",
+            tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
+        )
 
     return rv
 

@@ -321,6 +321,7 @@ const BASE_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',

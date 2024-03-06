@@ -14,6 +14,7 @@ from sentry.incidents.models import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleMonitorType,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -22,8 +23,13 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
+    alert_subscription_callback_registry,
+    clean_expired_alerts,
+    register_alert_subscription_callback,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -389,6 +395,44 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
+class AlertRuleTest(TestCase):
+    @patch("sentry.incidents.models.bulk_create_snuba_subscriptions")
+    def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
+        # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        assert mock_bulk_create_snuba_subscriptions.call_count == 0
+
+        alert_rule.subscribe_projects(
+            projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        )
+        assert mock_bulk_create_snuba_subscriptions.call_count == 1
+
+    def test_conditionally_subscribe_project_to_alert_rules(self):
+        query_extra = "foo:bar"
+        project = self.create_project(name="foo")
+        alert_rule = self.create_alert_rule(
+            projects=[project], monitor_type=AlertRuleMonitorType.ACTIVATED
+        )
+        self.create_alert_rule_activation_condition(
+            alert_rule=alert_rule,
+            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION,
+        )
+        with self.tasks():
+            created_subscriptions = (
+                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
+                    project=project,
+                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+                    query_extra=query_extra,
+                    trigger="test",
+                )
+            )
+            assert len(created_subscriptions) == 1
+
+            sub = created_subscriptions[0]
+            fetched_sub = QuerySubscription.objects.get(id=sub.id)
+            assert fetched_sub.subscription_id is not None
+
+
 @region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
@@ -553,3 +597,50 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
+
+
+class CleanExpiredAlertsTest(TestCase):
+    def test_clean_expired_alerts_active(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule.subscribe_projects(
+                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            )
+            subscription = alert_rule.snuba_query.subscriptions.get()
+
+            clean_expired_alerts(subscription)
+            assert QuerySubscription.objects.filter(id=subscription.id).exists()
+
+    def test_clean_expired_alerts_deactive(self):
+        with self.tasks():
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule.subscribe_projects(
+                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            )
+
+            subscription = alert_rule.snuba_query.subscriptions.get()
+            subscription.date_added = timezone.now() - timedelta(days=21)
+
+            result = clean_expired_alerts(subscription)
+
+            assert result is True
+            assert subscription.status == QuerySubscription.Status.DELETING.value
+            assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+
+    def test_clean_expired_alerts_add_processor(self):
+        @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
+        def mock_processor(_subscription):
+            return True
+
+        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_callback_registry
+        assert (
+            alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+        )
+
+    def test_clean_expired_alerts_execute_processor(self):
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        subscription = alert_rule.snuba_query.subscriptions.get()
+
+        callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
+        result = callback(subscription)
+        assert result is True
