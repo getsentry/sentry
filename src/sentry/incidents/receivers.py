@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from sentry.incidents.models import AlertRule, IncidentTrigger
+from sentry.incidents.models.alert_rule import AlertRule, IncidentTrigger
 from sentry.models.project import Project
 
 

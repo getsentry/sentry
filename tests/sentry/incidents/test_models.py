@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
@@ -18,14 +18,16 @@ from sentry.incidents.models import (
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
+    alert_subscription_callback_registry,
+    clean_expired_alerts,
+    register_alert_subscription_callback,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentStatus,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
-    alert_subscription_callback_registry,
-    clean_expired_alerts,
-    register_alert_subscription_callback,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.services.hybrid_cloud.user.service import user_service

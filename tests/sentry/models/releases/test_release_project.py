@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.dynamic_sampling import ProjectBoostedReleases
-from sentry.incidents.models import AlertRule, AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
