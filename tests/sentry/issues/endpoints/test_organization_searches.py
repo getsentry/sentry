@@ -124,7 +124,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
 
 
 @region_silo_test
-class CreateOrganizationSearchesTest(APITestCase):
+class CreateOrganizationSearchesPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"
 
@@ -345,3 +345,84 @@ class CreateOrganizationSearchesTest(APITestCase):
         )
         assert resp.status_code == 400
         assert "This field may not be blank." == resp.data["query"][0]
+
+
+@region_silo_test
+class OrgLevelOrganizationSearchesGetTest(APITestCase):
+    endpoint = "sentry-api-0-organization-searches"
+    method = "get"
+
+    @cached_property
+    def manager(self):
+        user = self.create_user("manager@test.com")
+        self.create_member(organization=self.organization, user=user, role="manager")
+        return user
+
+    @cached_property
+    def member(self):
+        user = self.create_user("member@test.com")
+        self.create_member(organization=self.organization, user=user)
+        return user
+
+    def setUp(self):
+        super().setUp()
+        self.issue_search_manager_1 = SavedSearch.objects.create(
+            organization=self.organization,
+            name="Manager's Issue Search",
+            query="is:unresolved",
+            type=SearchType.ISSUE.value,
+            visibility=Visibility.ORGANIZATION,
+            owner_id=self.manager.id,
+        )
+        self.issue_search_manager_2 = SavedSearch.objects.create(
+            organization=self.organization,
+            name="Manager's Issue Search 2",
+            query="is:unresolved",
+            type=SearchType.ISSUE.value,
+            visibility=Visibility.ORGANIZATION,
+            owner_id=self.manager.id,
+        )
+        self.issue_search_member = SavedSearch.objects.create(
+            organization=self.organization,
+            name="Member's Issue Search",
+            query="is:resolved",
+            type=SearchType.ISSUE.value,
+            visibility=Visibility.OWNER,
+            owner_id=self.member.id,
+        )
+        self.event_search_global = SavedSearch.objects.create(
+            name="Global Event Search",
+            query="error.unhandled:true",
+            type=SearchType.EVENT.value,
+            visibility=Visibility.ORGANIZATION,
+            is_global=True,
+            owner_id=self.manager.id,
+        )
+
+    def test_manager_filters_by_issue_type(self):
+        self.login_as(user=self.manager)
+        response = self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
+        assert len(response.data) == 2
+        search_ids = {search["id"] for search in response.data}
+        assert search_ids == {
+            str(self.issue_search_manager_1.id),
+            str(self.issue_search_manager_2.id),
+        }
+
+    def test_member_filters_by_issue_type(self):
+        self.login_as(user=self.member)
+        response = self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.issue_search_member.id)
+
+    def test_manager_sees_global_searches(self):
+        self.login_as(user=self.manager)
+        response = self.get_success_response(self.organization.slug, type=SearchType.EVENT.value)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.event_search_global.id)
+
+    def test_member_sees_global_searches(self):
+        self.login_as(user=self.member)
+        response = self.get_success_response(self.organization.slug, type=SearchType.EVENT.value)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.event_search_global.id)
