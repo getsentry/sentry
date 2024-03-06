@@ -79,7 +79,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "OrganizationRecentSearchesEndpoint",
     "UserNotificationSettingsOptionsEndpoint",
     "ProjectAgnosticRuleConditionsEndpoint",
-    "JiraServerSearchEndpointTest",
+    "JiraServerSearchEndpoint",
     "GroupEventsEndpoint",
     "PluginGroupEndpoint",
     "KeyTransactionEndpoint",
