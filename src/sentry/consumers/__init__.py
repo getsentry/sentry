@@ -223,34 +223,42 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events"},
+        "static_args": {
+            "topic": settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "transactions-subscription-results": {
         "topic": Topic.TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "transactions"},
+        "static_args": {
+            "topic": settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "generic-metrics-subscription-results": {
         "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
         "validate_schema": True,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "generic_metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "sessions-subscription-results": {
         "topic": Topic.SESSIONS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(),
         "static_args": {
-            "dataset": "events",
+            "topic": settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
         },
     },
     "metrics-subscription-results": {
         "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "metrics"},
+        "static_args": {
+            "topic": settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+        },
     },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
@@ -388,6 +396,7 @@ def get_stream_processor(
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
+
     topic_defn = get_topic_definition(consumer_topic)
     real_topic = topic_defn["real_topic_name"]
     cluster = topic_defn["cluster"]
@@ -467,10 +476,6 @@ def get_stream_processor(
     validate_schema = consumer_definition.get("validate_schema") or False
 
     if validate_schema:
-        # TODO: Remove this later but for now we can only validate if `topic_def` is
-        # the logical topic and not the legacy override topic
-        assert isinstance(consumer_topic, Topic)
-
         strategy_factory = ValidateSchemaStrategyFactoryWrapper(
             consumer_topic.value, validate_schema, strategy_factory
         )

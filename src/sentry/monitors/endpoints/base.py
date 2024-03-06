@@ -24,6 +24,8 @@ from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
+DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
+
 
 class OrganizationMonitorPermission(OrganizationPermission):
     scope_map = {

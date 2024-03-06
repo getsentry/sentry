@@ -85,7 +85,7 @@ class TestSpansTask(TestCase):
 
         assert (
             job["performance_problems"][0].fingerprint
-            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67"
+            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
         )
 
         assert job["performance_problems"][0].type == PerformanceStreamedSpansGroupTypeExperimental
