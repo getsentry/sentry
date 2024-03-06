@@ -46,12 +46,9 @@ export type InteractionSpanSampleRow = {
   'profile.id': string;
   projectSlug: string;
   replayId: string;
-  'segment.id': string;
-  'span.description': string;
   'span.op': string;
   'span.self_time': number;
   timestamp: string;
-  totalScore: number;
   'user.display': string;
 };
 
