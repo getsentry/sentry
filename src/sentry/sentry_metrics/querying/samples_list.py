@@ -598,6 +598,12 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         "timestamp": "timestamp",
     }
 
+    MIN_MAX_CONDITION_COLUMN = {
+        "min": "min_metric",
+        "max": "max_metric",
+        "count": "count_metric",
+    }
+
     @classmethod
     def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
@@ -767,24 +773,14 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     def get_min_max_conditions(self, builder: QueryBuilder) -> list[Condition]:
         conditions = []
 
-        if self.operation == "min":
-            min_column = Column("min")
-            max_column = Column("min")
-        elif self.operation == "max":
-            min_column = Column("max")
-            max_column = Column("max")
-        elif self.operation == "count":
-            min_column = Column("count")
-            max_column = Column("count")
-        else:
-            avg_column = builder.resolve_column("avg_metric")
-            min_column = avg_column
-            max_column = avg_column
+        column = builder.resolve_column(
+            self.MIN_MAX_CONDITION_COLUMN.get(self.operation, "avg_metric")
+        )
 
         if self.min is not None:
-            conditions.append(Condition(min_column, Op.GTE, self.min))
+            conditions.append(Condition(column, Op.GTE, self.min))
         if self.max is not None:
-            conditions.append(Condition(max_column, Op.LTE, self.max))
+            conditions.append(Condition(column, Op.LTE, self.max))
 
         return conditions
 
