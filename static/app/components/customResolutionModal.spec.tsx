@@ -1,10 +1,10 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
@@ -43,7 +43,7 @@ describe('CustomResolutionModal', () => {
     );
     expect(releasesMock).toHaveBeenCalled();
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 
@@ -70,7 +70,7 @@ describe('CustomResolutionModal', () => {
     );
     expect(releasesMock).toHaveBeenCalled();
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText(/You committed/)).toBeInTheDocument();
   });
 
@@ -120,7 +120,7 @@ describe('CustomResolutionModal', () => {
       />
     );
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(
       await screen.findByRole('menuitemradio', {name: 'abcdef (non-semver)'})
     ).toBeInTheDocument();

@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -15,6 +14,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';

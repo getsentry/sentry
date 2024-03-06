@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -10,6 +9,7 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import TeamStore from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types';

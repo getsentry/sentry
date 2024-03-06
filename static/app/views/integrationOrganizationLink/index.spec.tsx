@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,6 +5,7 @@ import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {generateOrgSlugUrl} from 'sentry/utils';

@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -6,6 +5,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
@@ -221,10 +221,10 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows application data', function () {
+    it('shows application data', async function () {
       renderComponent();
 
-      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 

@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {t} from 'sentry/locale';
 import type {Organization, Project, ProjectKey} from 'sentry/types';
@@ -124,7 +124,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Toggle performance option
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: t('Enable Performance Monitoring'),
       })

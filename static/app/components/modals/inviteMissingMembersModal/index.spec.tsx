@@ -1,10 +1,10 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {InviteMissingMembersModalProps} from 'sentry/components/modals/inviteMissingMembersModal';

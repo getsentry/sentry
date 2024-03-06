@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -15,6 +14,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -1154,8 +1154,6 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not wipe column changes when filters are modified', async function () {
-    jest.useFakeTimers();
-
     // widgetIndex: undefined means creating a new widget
     renderTestComponent({params: {widgetIndex: undefined}});
 

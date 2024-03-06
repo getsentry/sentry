@@ -102,7 +102,7 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />);
     await screen.findAllByText('Interactions');
-    userEvent.click(screen.getAllByText('Interactions')[0]);
+    await userEvent.click(screen.getAllByText('Interactions')[0]);
     await waitFor(() =>
       expect(eventsMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events/',

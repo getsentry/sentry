@@ -1,10 +1,10 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverLanding} from 'sentry/views/discover/landing';
@@ -84,7 +84,7 @@ describe('Discover > Landing', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('has the right sorts', function () {
+  it('has the right sorts', async function () {
     const org = OrganizationFixture({features});
 
     render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
@@ -101,7 +101,7 @@ describe('Discover > Landing', function () {
     ];
 
     // Open menu
-    selectEvent.openMenu(screen.getByRole('button', {name: 'Sort By My Queries'}));
+    await selectEvent.openMenu(screen.getByRole('button', {name: 'Sort By My Queries'}));
 
     // Check that all sorts are there
     expectedSorts.forEach(sort =>

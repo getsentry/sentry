@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -10,6 +9,7 @@ import {
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -63,7 +63,7 @@ describe('SentryAppExternalIssueForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
       expect(externalIssueRequest).not.toHaveBeenCalled();
 
-      selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
       await userEvent.type(screen.getByRole('textbox', {name: 'Numbers'}), '1');
       await userEvent.click(screen.getByText('one'));
 
@@ -191,7 +191,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       />
     );
 
-    selectEvent.openMenu(screen.getByText('Numbers'));
+    await selectEvent.openMenu(screen.getByText('Numbers'));
     await userEvent.type(screen.getByRole('textbox'), 'I');
 
     expect(mockGetOptions).toHaveBeenCalled();
