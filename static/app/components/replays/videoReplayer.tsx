@@ -1,7 +1,7 @@
 import {Timer} from 'sentry/utils/replays/timer';
-import type { MobileAttachment } from 'sentry/utils/replays/types';
+import type {VideoAttachment} from 'sentry/utils/replays/types';
 
-import { findMobileSegmentIndex } from './utils';
+import {findVideoSegmentIndex} from './utils';
 
 type RootElem = HTMLDivElement | null;
 
@@ -9,7 +9,7 @@ interface OffsetOptions {
   segmentOffsetMs?: number;
 }
 
-interface MobileReplayerOptions {
+interface VideoReplayerOptions {
   onFinished: () => void;
   onLoaded: (event: any) => void;
   root: RootElem;
@@ -18,10 +18,10 @@ interface MobileReplayerOptions {
 }
 
 /**
-  * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
-  */
-export class MobileReplayer {
-  private _attachments: MobileAttachment[];
+ * A special replayer that is specific to mobile replays. Should replicate rrweb's player interface.
+ */
+export class VideoReplayer {
+  private _attachments: VideoAttachment[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
   private _playbackSpeed: number = 1.0;
@@ -33,7 +33,10 @@ export class MobileReplayer {
   public wrapper: HTMLElement;
   public iframe = {};
 
-  constructor(attachments: MobileAttachment[], { root, start, videoApiPrefix, onFinished, onLoaded}: MobileReplayerOptions) {
+  constructor(
+    attachments: VideoAttachment[],
+    {root, start, videoApiPrefix, onFinished, onLoaded}: VideoReplayerOptions
+  ) {
     this._attachments = attachments;
     this._startTimestamp = start;
     this._trackList = [];
@@ -48,29 +51,31 @@ export class MobileReplayer {
       root.appendChild(this.wrapper);
     }
 
-    this._videos = attachments.map((attachment, index) => this.createVideo(attachment, index));
-    this._trackList = attachments.map(({ timestamp }, i) => [timestamp, i]);
+    this._videos = attachments.map((attachment, index) =>
+      this.createVideo(attachment, index)
+    );
+    this._trackList = attachments.map(({timestamp}, i) => [timestamp, i]);
     this.loadSegment(0);
   }
 
-  private createVideo(segmentData: MobileAttachment, index: number) {
+  private createVideo(segmentData: VideoAttachment, index: number) {
     const el = document.createElement('video');
     el.src = `${this._videoApiPrefix}${segmentData.id}/`;
-    el.style.display = "none";
+    el.style.display = 'none';
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
-    el.addEventListener('loadedmetadata', (event) => {
+    el.addEventListener('loadedmetadata', event => {
       // Only call this for current segment?
       if (index === this._currentIndex) {
         this._callbacks.onLoaded(event);
       }
     });
     // TODO: Only preload when necessary
-    el.preload = "auto";
+    el.preload = 'auto';
     el.playbackRate = this._playbackSpeed;
 
-      // Append the video element to the mobile player wrapper element
+    // Append the video element to the mobile player wrapper element
     this.wrapper.appendChild(el);
 
     return el;
@@ -92,24 +97,35 @@ export class MobileReplayer {
   /**
    * Given a relative time offset, get the segment number where the time offset would be contained in
    */
-  protected getSegmentIndexForTime(relativeOffsetMs: number): {previousSegment: number|undefined, segment: number|undefined} {
+  protected getSegmentIndexForTime(relativeOffsetMs: number): {
+    previousSegment: number | undefined;
+    segment: number | undefined;
+  } {
     const timestamp = this._startTimestamp + relativeOffsetMs;
 
     // This function will return the prior segment index if no valid segments
     // were found, so we will need to double check if the result was an exact
     // match or not
-    const result = findMobileSegmentIndex(this._trackList, this._attachments, timestamp, 0, this._trackList.length - 1);
+    const result = findVideoSegmentIndex(
+      this._trackList,
+      this._attachments,
+      timestamp,
+      0,
+      this._trackList.length - 1
+    );
     const resultSegment = this.getSegment(result)!;
-    const isExactSegment = (timestamp >= resultSegment.timestamp && timestamp <= (resultSegment.timestamp + resultSegment.duration));
+    const isExactSegment =
+      timestamp >= resultSegment.timestamp &&
+      timestamp <= resultSegment.timestamp + resultSegment.duration;
 
     // TODO: Handle the case where relativeOffsetMs > length of the replay/seekbar (shouldn't happen)
     return {
       segment: isExactSegment ? result : undefined,
       previousSegment: !isExactSegment ? result : undefined,
-    }
+    };
   }
 
-  protected getSegment(index?: number | undefined): MobileAttachment | null {
+  protected getSegment(index?: number | undefined): VideoAttachment | null {
     if (typeof index === 'undefined') {
       return null;
     }
@@ -144,10 +160,11 @@ export class MobileReplayer {
   }
 
   protected playVideo(video: HTMLVideoElement | null): Promise<void> | undefined {
-    if (!video) {return undefined; }
+    if (!video) {
+      return undefined;
+    }
     video.playbackRate = this._playbackSpeed;
     return video.play();
-
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
@@ -161,7 +178,10 @@ export class MobileReplayer {
    * do not show videos before the timer has reached the segment's current
    * starting timestamp.
    */
-  protected async loadSegment(index: number | undefined, {segmentOffsetMs = 0}: OffsetOptions = {}): Promise<number> {
+  protected async loadSegment(
+    index: number | undefined,
+    {segmentOffsetMs = 0}: OffsetOptions = {}
+  ): Promise<number> {
     // Check if index is valid
     if (index === undefined || index < 0 || index >= this._attachments.length) {
       return -1;
@@ -186,7 +206,9 @@ export class MobileReplayer {
       // There should not be the case where this is called and we need to
       // display the previous segment. `loadSegmentAtTime` handles showing the
       // previous segment when you seek.
-      await new Promise((resolve) => this._timer.addNotificationAtTime(currentSegmentOffset, () => resolve(true)));
+      await new Promise(resolve =>
+        this._timer.addNotificationAtTime(currentSegmentOffset, () => resolve(true))
+      );
     }
 
     // TODO: This shouldn't be needed? previous video shouldn't be displayed?
@@ -209,7 +231,7 @@ export class MobileReplayer {
       this._currentIndex = index;
     } else {
       // eslint-disable-next-line no-console
-      console.error(new Error('Loading invalid video'))
+      console.error(new Error('Loading invalid video'));
       return -1;
     }
 
@@ -233,8 +255,11 @@ export class MobileReplayer {
    * segment's timestamp and duration. Displays the closest prior segment if
    * offset exists in a gap where there is no recorded segment.
    */
-  protected async loadSegmentAtTime(videoOffsetMs: number = 0): Promise<number|undefined> {
-    const {segment: segmentIndex, previousSegment: previousSegmentIndex} = this.getSegmentIndexForTime(videoOffsetMs)
+  protected async loadSegmentAtTime(
+    videoOffsetMs: number = 0
+  ): Promise<number | undefined> {
+    const {segment: segmentIndex, previousSegment: previousSegmentIndex} =
+      this.getSegmentIndexForTime(videoOffsetMs);
 
     let nextSegmentIndex = segmentIndex;
 
@@ -245,7 +270,9 @@ export class MobileReplayer {
     if (segmentIndex === undefined && previousSegmentIndex !== undefined) {
       const previousSegment = this.getSegment(previousSegmentIndex)!;
       // Load the last frame of the previous segment
-      await this.loadSegment(previousSegmentIndex, {segmentOffsetMs: previousSegment.duration});
+      await this.loadSegment(previousSegmentIndex, {
+        segmentOffsetMs: previousSegment.duration,
+      });
 
       // segmentIndex is undefined because user has seeked into a gap where
       // there is no segment, because we have the previous index, we know what
@@ -262,9 +289,9 @@ export class MobileReplayer {
 
     // We are given an offset based on all videos combined, so we have to
     // calculate the individual video segment's offset
-    const segmentOffsetMs = (this._startTimestamp + videoOffsetMs) - segment.timestamp;
+    const segmentOffsetMs = this._startTimestamp + videoOffsetMs - segment.timestamp;
 
-    return this.loadSegment(nextSegmentIndex, {segmentOffsetMs})
+    return this.loadSegment(nextSegmentIndex, {segmentOffsetMs});
   }
 
   /**
@@ -319,10 +346,10 @@ export class MobileReplayer {
   }
 
   /**
-  * Equivalent to rrweb's `setConfig()`, but here we only support the `speed` configuration
-  */
-  public setConfig({speed}: Partial<{skipInactive: boolean; speed: number;}>): void {
-    if (typeof speed === "undefined") {
+   * Equivalent to rrweb's `setConfig()`, but here we only support the `speed` configuration
+   */
+  public setConfig({speed}: Partial<{skipInactive: boolean; speed: number}>): void {
+    if (typeof speed === 'undefined') {
       return;
     }
 
@@ -333,6 +360,6 @@ export class MobileReplayer {
       return;
     }
 
-    currentVideo.playbackRate = this._playbackSpeed;;
+    currentVideo.playbackRate = this._playbackSpeed;
   }
 }

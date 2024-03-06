@@ -24,12 +24,12 @@ import type {
   ErrorFrame,
   fullSnapshotEvent,
   MemoryFrame,
-  MobileFrameEvent,
   OptionFrame,
   RecordingFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
+  VideoFrameEvent,
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
@@ -420,11 +420,11 @@ export default class ReplayReader {
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 
-  getMobileAttachments = memoize(() =>
+  getVideoAttachments = memoize(() =>
     (
       this._sortedRRWebEvents.filter(
         event => event.type === EventType.Custom && event.data.tag === 'video'
-      ) as MobileFrameEvent[]
+      ) as VideoFrameEvent[]
     ).map(event => ({
       duration: event.data.payload.duration,
       id: event.data.payload.segmentId,
@@ -444,8 +444,7 @@ export default class ReplayReader {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
 
-  // TODO(mobile-replay): might not be needed
-  isMobileReplay = memoize(() => this.getMobileAttachments().length > 0);
+  isVideoReplay = memoize(() => this.getVideoAttachments().length > 0);
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();

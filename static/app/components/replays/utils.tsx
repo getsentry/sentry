@@ -1,5 +1,5 @@
 import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {MobileAttachment, ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame, VideoAttachment} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -190,9 +190,9 @@ export function divide(numerator: number, denominator: number | undefined) {
 /**
  * Finds the index of the mobile replay segment that is neared
  */
-export function findMobileSegmentIndex(
+export function findVideoSegmentIndex(
   trackList: [ts: number, index: number][],
-  segments: MobileAttachment[],
+  segments: VideoAttachment[],
   targetTimestamp: number,
   start: number,
   end: number
@@ -215,9 +215,9 @@ export function findMobileSegmentIndex(
 
   // Search higher half
   if (targetTimestamp > ts) {
-    return findMobileSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
+    return findVideoSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
   }
 
   // Search lower half
-  return findMobileSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
+  return findVideoSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
 }

@@ -280,7 +280,7 @@ export type ErrorFrame = Overwrite<
 
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
 
-interface MobileFrame {
+interface VideoFrame {
   container: string;
   duration: number;
   encoding: string;
@@ -295,16 +295,16 @@ interface MobileFrame {
   width: number;
 }
 
-export interface MobileFrameEvent {
+export interface VideoFrameEvent {
   data: {
-    payload: MobileFrame;
+    payload: VideoFrame;
     tag: 'video';
   };
   timestamp: number;
   type: EventType.Custom;
 }
 
-export interface MobileAttachment {
+export interface VideoAttachment {
   duration: number;
   id: number;
   timestamp: number;

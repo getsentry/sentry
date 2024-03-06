@@ -18,7 +18,7 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-import {MobileReplayer} from './mobileReplayer';
+import {VideoReplayer} from './videoReplayer';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -93,6 +93,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   isSkippingInactive: boolean;
 
   /**
+   * Whether the replay is considered a video replay
+   */
+  isVideoReplay: boolean;
+
+  /**
    * The core replay data
    */
   replay: ReplayReader | null;
@@ -160,6 +165,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isFetching: false,
   isFinished: false,
   isPlaying: false,
+  isVideoReplay: false,
   isSkippingInactive: true,
   removeHighlight: () => {},
   replay: null,
@@ -250,8 +256,12 @@ export function Provider({
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
-  const mobileAttachments = replay?.getMobileAttachments();
+  const videoAttachments = replay?.getVideoAttachments();
   const startTimestampMs = replay?.getStartTimestampMs();
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') &&
+      videoAttachments?.length
+  );
 
   const forceDimensions = useCallback(
     (dimension: Dimensions) => {
@@ -384,9 +394,9 @@ export function Provider({
         }
       }
 
-      // check if this is a mobile replay and use the mobile replayer
-      if (mobileAttachments?.length && startTimestampMs) {
-        const inst = new MobileReplayer(mobileAttachments, {
+      // check if this is a video replay and if we can use the video replayer
+      if (isVideoReplay && videoAttachments && startTimestampMs) {
+        const inst = new VideoReplayer(videoAttachments, {
           videoApiPrefix: `/api/0/projects/${
             organization.slug
           }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
@@ -447,7 +457,8 @@ export function Provider({
       forceDimensions,
       hasNewEvents,
       isFetching,
-      mobileAttachments,
+      isVideoReplay,
+      videoAttachments,
       organization.features,
       organization.slug,
       projectSlug,
@@ -515,7 +526,7 @@ export function Provider({
       }
     };
 
-    if (replayerRef.current && (events || mobileAttachments)) {
+    if (replayerRef.current && (events || videoAttachments)) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
@@ -523,7 +534,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [initRoot, events, mobileAttachments, togglePlayPause]);
+  }, [initRoot, events, videoAttachments, togglePlayPause]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
@@ -590,6 +601,7 @@ export function Provider({
         initRoot,
         isBuffering,
         isFetching,
+        isVideoReplay,
         isFinished,
         isPlaying,
         isSkippingInactive,
