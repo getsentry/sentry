@@ -7,6 +7,9 @@ import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjec
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+export const CRASH_REPORT_HASH = '#crashreport-sidequest';
+export const FEEDBACK_HASH = '#feedback-sidequest';
+
 export default function useHaveSelectedProjectsSetupFeedback() {
   const {hasField: hasSetupOneFeedback, fetching} =
     useSelectedProjectsHaveField('hasFeedbacks');
@@ -24,8 +27,9 @@ export function useFeedbackOnboardingSidebarPanel() {
   const organization = useOrganization();
 
   useEffect(() => {
-    if (location.hash === '#feedback-sidequest') {
+    if (location.hash === FEEDBACK_HASH || location.hash === CRASH_REPORT_HASH) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+      // this tracks clicks from both feedback index and issue details feedback tab
       trackAnalytics('feedback.list-view-setup-sidebar', {
         organization,
       });
@@ -34,9 +38,18 @@ export function useFeedbackOnboardingSidebarPanel() {
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
-    window.location.hash = 'feedback-sidequest';
+    window.location.hash = FEEDBACK_HASH;
     SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
   }, []);
 
-  return {activateSidebar};
+  const activateSidebarIssueDetails = useCallback(
+    (event: {preventDefault: () => void}) => {
+      event.preventDefault();
+      window.location.hash = CRASH_REPORT_HASH;
+      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+    },
+    []
+  );
+
+  return {activateSidebar, activateSidebarIssueDetails};
 }
