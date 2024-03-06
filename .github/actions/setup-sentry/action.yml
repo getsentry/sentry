@@ -27,6 +27,10 @@ inputs:
     description: 'Is bigtable required?'
     required: false
     default: 'false'
+  redis_cluster:
+    description: 'Is redis cluster required?'
+    required: false
+    default: 'false'
   symbolicator:
     description: 'Is symbolicator required?'
     required: false
@@ -140,6 +144,7 @@ runs:
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
         NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
+        NEED_REDIS_CLUSTER: ${{ inputs.redis_cluster }}
         NEED_SYMBOLICATOR: ${{ inputs.symbolicator }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
@@ -165,6 +170,10 @@ runs:
 
         if [ "$NEED_CHARTCUTERIE" = "true" ]; then
           services+=(chartcuterie)
+        fi
+
+        if [ "$NEED_REDIS_CLUSTER" = "true" ]; then
+          services+=(redis-cluster)
         fi
 
         if [ "$NEED_SYMBOLICATOR" = "true" ]; then

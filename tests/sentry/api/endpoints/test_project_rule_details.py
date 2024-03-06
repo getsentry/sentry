@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -168,7 +168,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     def test_neglected_rule(self):
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
         NeglectedRule.objects.create(
             rule=self.rule,
             organization=self.organization,
@@ -357,7 +357,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, expand=["lastTriggered"]
         )
-        assert response.data["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
+        assert response.data["lastTriggered"] == datetime.now(UTC)
 
     @responses.activate
     def test_with_jira_action_error(self):
@@ -832,7 +832,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "filter_match": "all",
             },
         )
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
         NeglectedRule.objects.create(
             rule=rule,
             organization=self.organization,
@@ -874,7 +874,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 "filter_match": "all",
             },
         )
-        now = datetime.now().replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
         NeglectedRule.objects.create(
             rule=rule,
             organization=self.organization,

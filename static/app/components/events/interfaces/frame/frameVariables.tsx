@@ -12,6 +12,9 @@ type Props = {
   platform?: PlatformKey;
 };
 
+const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
+const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;
+
 const renderPythonBoolean = (value: unknown) => {
   if (typeof value === 'string') {
     return value;
@@ -45,6 +48,14 @@ const getStructuredDataConfig = ({
         isNull: value => value === null || value === 'None',
         renderBoolean: renderPythonBoolean,
         renderNull: () => 'None',
+        // Python SDK wraps string values in single quotes
+        isString: value => typeof value === 'string' && PYTHON_STRING_REGEX.test(value),
+        // Strip single quotes from python strings for display purposes
+        renderString: value => value.replace(PYTHON_STRING_REGEX, '$1'),
+        // Python SDK returns numbers as strings, but we can assume they are numbers if they look like one
+        isNumber: value =>
+          typeof value === 'number' ||
+          (typeof value === 'string' && NUMERIC_STRING_REGEX.test(value)),
       };
     case 'ruby':
       return {

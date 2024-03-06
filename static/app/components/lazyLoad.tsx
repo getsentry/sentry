@@ -66,7 +66,7 @@ interface ErrorBoundaryState {
 }
 
 // Error boundaries currently have to be classes.
-class ErrorBoundary extends Component<{}, ErrorBoundaryState> {
+class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundaryState> {
   static getDerivedStateFromError(error: Error) {
     return {
       hasError: true,

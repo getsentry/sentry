@@ -4,12 +4,13 @@ import type {
   AutofixData,
   GroupWithAutofix,
 } from 'sentry/components/events/aiAutofix/types';
+import type {Event} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 const POLL_INTERVAL = 2500;
 
-export const useAiAutofix = (group: GroupWithAutofix) => {
+export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const api = useApi();
 
   const [overwriteData, setOverwriteData] = useState<AutofixData | 'reset' | null>(null);
@@ -59,6 +60,7 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
         await api.requestPromise(`/issues/${group.id}/ai-autofix/`, {
           method: 'POST',
           data: {
+            event_id: event.id,
             additional_context: additionalContext,
           },
         });
@@ -68,7 +70,7 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
 
       dataRefetch();
     },
-    [api, group.id, dataRefetch]
+    [api, group.id, event.id, dataRefetch]
   );
 
   const reset = useCallback(() => {

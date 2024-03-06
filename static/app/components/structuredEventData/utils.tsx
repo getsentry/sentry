@@ -1,3 +1,5 @@
+const STRIPPED_VALUE_REGEX = /^['"]?\*{8,}['"]?$/;
+
 export function looksLikeObjectRepr(value: string) {
   const a = value[0];
   const z = value[value.length - 1];
@@ -48,25 +50,6 @@ export function naturalCaseInsensitiveSort(a: string, b: string) {
   return a === b ? 0 : a < b ? -1 : 1;
 }
 
-export function analyzeStringForRepr(value: string) {
-  const rv = {
-    repr: value,
-    isString: true,
-    isMultiLine: false,
-    isStripped: false,
-  };
-
-  // stripped for security reasons
-  if (value.match(/^['"]?\*{8,}['"]?$/)) {
-    rv.isStripped = true;
-    return rv;
-  }
-
-  if (looksLikeObjectRepr(value)) {
-    rv.isString = false;
-    return rv;
-  }
-
-  rv.isMultiLine = looksLikeMultiLineString(value);
-  return rv;
+export function looksLikeStrippedValue(value: string) {
+  return STRIPPED_VALUE_REGEX.test(value);
 }

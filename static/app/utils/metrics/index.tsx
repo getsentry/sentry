@@ -224,7 +224,7 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function formatMetricsFormula(formula: string) {
+export function unescapeMetricsFormula(formula: string) {
   // Remove the $ from variable names
   return formula.replaceAll('$', '');
 }
@@ -236,7 +236,7 @@ export function getMetricsSeriesName(
 ) {
   let name = '';
   if (isMetricFormula(query)) {
-    name = formatMetricsFormula(query.formula);
+    name = unescapeMetricsFormula(query.formula);
   } else {
     name = formatMRIField(MRIToField(query.mri, query.op));
   }

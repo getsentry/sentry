@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
 import pytest
 from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from django.utils.timezone import make_aware
 from snuba_sdk import (
     Column,
     Condition,
@@ -660,7 +659,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             rule_ids.append(rule.id)
 
         rules = Rule.objects.all()
-        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         rules = rules.annotate(date_triggered=far_past_date)
         incident_status_value = Value(-2, output_field=IntegerField())
         rules = rules.annotate(incident_status=incident_status_value)
@@ -704,7 +703,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             alert_rule_ids.append(alert_rule.id)
 
         rules = AlertRule.objects.all()
-        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         rules = rules.annotate(
             date_triggered=Coalesce(
                 Subquery(
@@ -770,7 +769,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         metric_alert_rules = AlertRule.objects.all()
         issue_alert_rules = Rule.objects.all()
 
-        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
         metric_alert_rules = metric_alert_rules.annotate(
             date_triggered=Coalesce(

@@ -201,13 +201,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             self.organization.slug,
             metric=mris,
             project=[project.id for project in projects],
-            statsPeriod="90d",
+            statsPeriod="30d",
             codeLocations="true",
         )
 
-        # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
+        # With a window of 30 days, it means that we are actually requesting 31 days, thus we have 4 batches of 10
         # elements each.
-        assert len(get_code_locations_mock.mock_calls) == 10
+        assert len(get_code_locations_mock.mock_calls) == 4
 
     def test_get_locations_with_incomplete_location(self):
         project = self.create_project(name="project_1")
@@ -315,23 +315,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         frame = code_locations[0]["frames"][0]
         assert frame["preContext"] == []
         assert frame["postContext"] == []
-
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
-        50,
-    )
-    def test_get_locations_with_too_many_combinations(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self.get_error_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="90d",
-            status_code=400,
-            codeLocations="true",
-        )
 
     @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans(self):

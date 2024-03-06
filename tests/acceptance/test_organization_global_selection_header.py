@@ -10,7 +10,7 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+event_time = before_now(days=3)
 
 
 @no_silo_test

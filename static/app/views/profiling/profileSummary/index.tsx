@@ -514,7 +514,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
                   <ProfileDigestScrollContainer>
-                    <ProfileDigest onViewChange={onSetView} />
+                    <ProfileDigest onViewChange={onSetView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
                   </ProfileDigestScrollContainer>
@@ -713,12 +713,19 @@ const percentiles = ['p75()', 'p95()', 'p99()'] as const;
 
 interface ProfileDigestProps {
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
+  transaction: string;
 }
 
 function ProfileDigest(props: ProfileDigestProps) {
   const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
+
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [props.transaction]);
+    return conditions.formatString();
+  }, [props.transaction]);
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
@@ -728,7 +735,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const profiles = useProfileEvents<ProfilingFieldType>({
     cursor: profilesCursor,
     fields: PROFILE_DIGEST_FIELDS,
-    query: '',
+    query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
   });

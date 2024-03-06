@@ -194,7 +194,10 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
@@ -206,6 +209,7 @@ const feedbackOnboarding: OnboardingConfig = {
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
                 dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],

@@ -11,9 +11,10 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
+from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery
 from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
-from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
+from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection, QueryOrder
+from sentry.sentry_metrics.querying.units import MeasurementUnit, UnitFamily
 from sentry.sentry_metrics.querying.visitors import (
     QueriedMetricsVisitor,
     TimeseriesConditionInjectionVisitor,
@@ -145,6 +146,9 @@ class ScheduledQuery:
     next: Union["ScheduledQuery", None] = None
     order: QueryOrder | None = None
     limit: int | None = None
+    unit_family: UnitFamily | None = None
+    unit: MeasurementUnit | None = None
+    scaling_factor: float | None = None
 
     def initialize(
         self,
@@ -221,7 +225,7 @@ class ScheduledQuery:
         for queried_metric in QueriedMetricsVisitor().visit(metrics_query.query):
             blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
             if blocked_for_projects:
-                metrics.incr(key="ddm.metrics_api.blocked_metric_queried", amount=1)
+                metrics.incr(key="ddm.metrics_api.execution.blocked_metric_queried")
                 intersected_projects -= blocked_for_projects
 
         return metrics_query.set_scope(
@@ -249,30 +253,33 @@ class ScheduledQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
-    series_executable_query: MetricsQuery | None
-    totals_executable_query: MetricsQuery | None
+    series_query: ScheduledQuery | None
+    totals_query: ScheduledQuery | None
     result: Mapping[str, Any]
 
     def __post_init__(self):
-        assert self.series_executable_query or self.totals_executable_query
+        if not self.series_query and not self.totals_query:
+            raise MetricsQueryExecutionError(
+                "A query result must contain at least one series or totals query"
+            )
 
     @classmethod
     def empty_from(cls, scheduled_query: ScheduledQuery) -> "QueryResult":
-        series_metrics_query = None
-        totals_metrics_query = None
+        series_query = None
+        totals_query = None
 
         if scheduled_query.next is not None:
-            totals_metrics_query = scheduled_query.metrics_query
-            series_metrics_query = scheduled_query.next.metrics_query
+            totals_query = scheduled_query
+            series_query = scheduled_query.next
         else:
             if scheduled_query.type == ScheduledQueryType.SERIES:
-                series_metrics_query = scheduled_query.metrics_query
+                series_query = scheduled_query
             elif scheduled_query.type == ScheduledQueryType.TOTALS:
-                totals_metrics_query = scheduled_query.metrics_query
+                totals_query = scheduled_query
 
         return QueryResult(
-            series_executable_query=series_metrics_query,
-            totals_executable_query=totals_metrics_query,
+            series_query=series_query,
+            totals_query=totals_query,
             result={
                 "series": {"data": {}, "meta": {}},
                 "totals": {"data": {}, "meta": {}},
@@ -283,35 +290,43 @@ class QueryResult:
         )
 
     @classmethod
-    def from_query_type(
-        cls, query_type: ScheduledQueryType, query: MetricsQuery, query_result: Mapping[str, Any]
+    def from_scheduled_query(
+        cls, scheduled_query: ScheduledQuery, query_result: Mapping[str, Any]
     ) -> "QueryResult":
+        # We add these fields as top level, so that when merging `QueryResult`(s) we are able to do that easily.
         extended_result = {
             "modified_start": query_result["modified_start"],
             "modified_end": query_result["modified_end"],
         }
 
-        if query_type == ScheduledQueryType.SERIES:
+        if scheduled_query.type == ScheduledQueryType.SERIES:
             extended_result["series"] = query_result
             return QueryResult(
-                series_executable_query=query,
-                totals_executable_query=None,
+                series_query=scheduled_query,
+                totals_query=None,
                 result=extended_result,
             )
-        elif query_type == ScheduledQueryType.TOTALS:
+        elif scheduled_query.type == ScheduledQueryType.TOTALS:
             extended_result["totals"] = query_result
             return QueryResult(
-                series_executable_query=None,
-                totals_executable_query=query,
+                series_query=None,
+                totals_query=scheduled_query,
                 result=extended_result,
             )
 
-        raise MetricsQueryExecutionError(f"Can't build query result from query type {query_type}")
+        raise MetricsQueryExecutionError(
+            f"Can't build query result from query type {scheduled_query.type}"
+        )
+
+    def _any_query(self) -> ScheduledQuery:
+        return cast(ScheduledQuery, self.series_query or self.totals_query)
 
     def merge(self, other: "QueryResult") -> "QueryResult":
         return QueryResult(
-            series_executable_query=self.series_executable_query or other.series_executable_query,
-            totals_executable_query=self.totals_executable_query or other.totals_executable_query,
+            series_query=self.series_query or other.series_query,
+            totals_query=self.totals_query or other.totals_query,
+            # We merge the dictionaries and in case of duplicated keys, the ones from `other` will be used, as per
+            # Python semantics.
             result={**self.result, **other.result},
         )
 
@@ -322,15 +337,6 @@ class QueryResult:
     @property
     def modified_end(self) -> datetime:
         return self.result["modified_end"]
-
-    @property
-    def interval(self) -> int:
-        if not self.series_executable_query:
-            raise MetricsQueryExecutionError(
-                "You have to run a timeseries query in order to use the interval"
-            )
-
-        return self.series_executable_query.rollup.interval
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
@@ -348,51 +354,46 @@ class QueryResult:
         return self.result[meta_source]["meta"]
 
     @property
-    def groups(self) -> GroupsCollection:
-        # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
-        # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
-        return _extract_groups_from_seq(self.totals or self.series)
-
-    @property
     def group_bys(self) -> list[str]:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
         # that we can correctly render groups in case they are not returned from the db because of missing data.
         #
         # Sorting of the groups is done to maintain consistency across function calls.
-        if self.series_executable_query:
-            return sorted(UsedGroupBysVisitor().visit(self.series_executable_query.query))
+        return sorted(UsedGroupBysVisitor().visit(self._any_query().metrics_query.query))
 
-        if self.totals_executable_query:
-            return sorted(UsedGroupBysVisitor().visit(self.totals_executable_query.query))
+    @property
+    def interval(self) -> int | None:
+        if self.series_query:
+            return self.series_query.metrics_query.rollup.interval
 
-        return []
+        return None
 
     @property
     def order(self) -> Direction | None:
-        if self.totals_executable_query:
-            return self.totals_executable_query.rollup.orderby
+        if self.totals_query:
+            return self.totals_query.metrics_query.rollup.orderby
 
         return None
 
     @property
     def limit(self) -> int | None:
         # The totals limit is the only one that controls the number of groups that are returned.
-        if self.totals_executable_query:
-            return self.totals_executable_query.limit.limit
+        if self.totals_query:
+            return self.totals_query.metrics_query.limit.limit
 
         return None
 
     @property
-    def length(self) -> int:
-        # We try to see how many series results we got, since that is the query which is likely to surpass the limit.
-        if "series" in self.result:
-            return len(self.series)
+    def unit_family(self) -> UnitFamily | None:
+        return self._any_query().unit_family
 
-        # If we have no series, totals will give us a hint of the size of the dataset.
-        if "totals" in self.result:
-            return len(self.totals)
+    @property
+    def unit(self) -> MeasurementUnit | None:
+        return self._any_query().unit
 
-        return 0
+    @property
+    def scaling_factor(self) -> float | None:
+        return self._any_query().scaling_factor
 
     def align_series_to_totals(self) -> "QueryResult":
         """
@@ -430,9 +431,8 @@ class PartialQueryResult:
     executed_result: Mapping[str, Any]
 
     def to_query_result(self) -> QueryResult:
-        return QueryResult.from_query_type(
-            query_type=self.scheduled_query.type,
-            query=self.scheduled_query.metrics_query,
+        return QueryResult.from_scheduled_query(
+            scheduled_query=self.scheduled_query,
             query_result=self.executed_result,
         )
 
@@ -445,14 +445,14 @@ class QueryExecutor:
 
         # List of queries scheduled for execution.
         self._scheduled_queries: list[ScheduledQuery] = []
-        # Tracks the number of queries that have been executed (for measuring purposes).
-        self._number_of_executed_queries = 0
         # Tracks the pending query results that have been run by the executor. The list will contain both the final
         # `QueryResult` objects and the partial `PartialQueryResult` objects that still have to be executed.
         self._pending_query_results: list[QueryResult | PartialQueryResult] = []
-
         # We load the blocked metrics for the supplied projects.
         self._blocked_metrics_for_projects = self._load_blocked_metrics_for_projects()
+
+        # Tracks the number of queries that have been executed (for measuring purposes).
+        self._number_of_executed_queries = 0
 
     def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
         """
@@ -509,10 +509,14 @@ class QueryExecutor:
         return self._build_request(next_metrics_query)
 
     def _bulk_run_query(self, requests: list[Request]) -> list[Mapping[str, Any]]:
+        self._number_of_executed_queries += len(requests)
+
         try:
-            return bulk_run_query(requests)
+            with metrics.timer(key="ddm.metrics_api.execution.bulk_execution_time"):
+                return bulk_run_query(requests)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
+            metrics.incr(key="ddm.metrics_api.execution.error")
             raise MetricsQueryExecutionError("An error occurred while executing the query") from e
 
     def _bulk_execute(self) -> Sequence[QueryResult]:
@@ -549,9 +553,8 @@ class QueryExecutor:
                 )
             else:
                 self._pending_query_results.append(
-                    QueryResult.from_query_type(
-                        query_type=scheduled_query.type,
-                        query=scheduled_query.metrics_query,
+                    QueryResult.from_scheduled_query(
+                        scheduled_query=scheduled_query,
                         query_result=query_result,
                     )
                 )
@@ -581,14 +584,16 @@ class QueryExecutor:
 
                 # If there is a next query, we will merge the first and second queries into a single `QueryResult`.
                 first_query_result = partial_query_result.to_query_result()
-                second_query_result = QueryResult.from_query_type(
-                    query_type=next_scheduled_query.type,
-                    query=next_scheduled_query.metrics_query,
+                second_query_result = QueryResult.from_scheduled_query(
+                    scheduled_query=next_scheduled_query,
                     query_result=query_result,
                 )
-                self._pending_query_results[query_index] = first_query_result.merge(
-                    second_query_result
-                )
+                merged_query_result = first_query_result.merge(second_query_result)
+                # We run the alignment of series and totals when merging two query results. We do this since we want
+                # data to be correctly ordered when returned to the user as if series were already ordered by the
+                # database.
+                merged_query_result.align_series_to_totals()
+                self._pending_query_results[query_index] = merged_query_result
 
         # For now, we naively cast to a list of `QueryResult` since we assume that the chaining is used with at most
         # a depth of 2 (e.g., query_1 -> query_2), so by this point we should NOT have anymore `PartialQueryResult`(s)
@@ -602,14 +607,17 @@ class QueryExecutor:
         if not self._scheduled_queries:
             return []
 
-        return self._bulk_execute()
+        with metrics.timer(key="ddm.metrics_api.execution.total_execution_time"):
+            results = self._bulk_execute()
 
-    def schedule(
-        self,
-        query: MetricsQuery,
-        order: QueryOrder | None,
-        limit: int | None,
-    ):
+        metrics.distribution(
+            key="ddm.metrics_api.execution.number_of_executed_queries",
+            value=self._number_of_executed_queries,
+        )
+
+        return results
+
+    def schedule(self, intermediate_query: IntermediateQuery):
         """
         Lazily schedules a query for execution.
 
@@ -617,21 +625,20 @@ class QueryExecutor:
         """
         # For now, we are always building a (totals -> series) query, but the execution engine is fully capable of
         # supporting either a single totals or series query.
-        executable_query = ScheduledQuery(
-            type=ScheduledQueryType.TOTALS,
-            metrics_query=query,
-            next=ScheduledQuery(
-                type=ScheduledQueryType.SERIES,
-                metrics_query=query,
-                order=order,
-                limit=limit,
-            ),
-            order=order,
-            limit=limit,
+        series_query = ScheduledQuery(
+            type=ScheduledQueryType.SERIES,
+            metrics_query=intermediate_query.metrics_query,
+            order=intermediate_query.order,
+            limit=intermediate_query.limit,
+            unit_family=intermediate_query.unit_family,
+            unit=intermediate_query.unit,
+            scaling_factor=intermediate_query.scaling_factor,
         )
+        totals_query = replace(series_query, type=ScheduledQueryType.TOTALS, next=series_query)
+
         # We initialize the query by performing type-aware mutations that prepare the query to be executed correctly
         # (e.g., adding `totals` to a totals query...).
-        executable_query = executable_query.initialize(
+        executable_query = totals_query.initialize(
             self._organization, self._projects, self._blocked_metrics_for_projects
         )
         self._scheduled_queries.append(executable_query)
