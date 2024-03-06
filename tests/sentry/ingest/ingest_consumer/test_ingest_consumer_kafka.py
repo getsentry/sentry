@@ -9,14 +9,15 @@ import pytest
 from django.conf import settings
 
 from sentry import eventstore
+from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
-from sentry.ingest.types import ConsumerType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.kafka_config import get_topic_definition
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -101,7 +102,9 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     get_test_message,
     random_group_id,
 ):
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+
+    topic = Topic.INGEST_EVENTS
+    topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
     admin = kafka_admin(settings)
     admin.delete_topic(topic_event_name)
@@ -157,7 +160,8 @@ def test_ingest_consumer_gets_event_unstuck(
     get_test_message,
     random_group_id,
 ):
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+    topic = Topic.INGEST_EVENTS
+    topic_event_name = get_topic_definition(topic)["real_topic_name"]
 
     admin = kafka_admin(settings)
     admin.delete_topic(topic_event_name)
