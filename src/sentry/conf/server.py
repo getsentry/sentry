@@ -103,6 +103,8 @@ DEFAULT_EXCEPTION_REPORTER_FILTER = (
     "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
 )
 
+ENFORCE_PAGINATION = True if DEBUG else False
+
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
