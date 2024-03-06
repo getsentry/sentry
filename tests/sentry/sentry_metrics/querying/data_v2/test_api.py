@@ -1287,15 +1287,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
         for formula, expected_result, expected_unit_family in (
-            ("10 + $query_2", 30000.0, UnitFamily.DURATION.value),
-            # Normalization of $query_2
-            # ("$query_1 + $query_2", 20015.0, UnitFamily.DURATION.value),
-            # # No normalization
-            # ("$query_1 + 1", 16.0, UnitFamily.DURATION.value),
-            # # Normalization of $query_2 and 1
-            # ("$query_2 + 1", 21000.0, UnitFamily.DURATION.value),
-            # Support this
-            # ("100 - 90 + $query_2", 21000.0, UnitFamily.DURATION.value),
+            # (($query_2 * 1000) + 10000.0)
+            ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # ($query_2 * 1000 + 10000.0) + ($query_2 * 1000)
+            ("($query_2 + 10) + $query_2", 50000.0, UnitFamily.DURATION.value),
+            # ($query_2 * 1000 + 10000.0) + $query_1
+            ("($query_2 + 10) + $query_1", 30015.0, UnitFamily.DURATION.value),
+            # ($query_1 + 10) + ($query_2 * 1000)
+            ("($query_1 + 10) + $query_2", 20025.0, UnitFamily.DURATION.value),
+            # TODO: add tests with formulas containing only numeric scalars.
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
@@ -1324,6 +1324,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             meta = results["meta"]
             assert len(meta) == 1
             assert meta[0][1]["unit_family"] == expected_unit_family
+            assert meta[0][1]["unit"] == "nanosecond"
+            assert meta[0][1]["scaling_factor"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_non_coercible_units(self):
@@ -1484,9 +1486,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("$query_1 * $query_2 + 25", 325.0, None),
             ("$query_1 * $query_2 / 1", 300.0, None),
             ("$query_1 * 2", 40.0, UnitFamily.DURATION.value),
-            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value)
-            # disabled since the layer fails validation of the use cases used when nested formulas have only scalars
-            # ("$query_1 * (100 / 1)", 21.0)
+            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)

@@ -295,7 +295,7 @@ class UnitsNormalizationV2Visitor(
         self._unit_family = None
 
     def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata | None, QueryExpression]:
-        current_metadata = None
+        last_metadata = None
         future_units = []
 
         has_all_timeseries_params = True
@@ -317,12 +317,10 @@ class UnitsNormalizationV2Visitor(
                 parameters.append(query_expression)
             else:
                 has_all_futures = False
-                if current_metadata is not None and (
-                    unit_family is None or unit_family != current_metadata[0]
-                ):
-                    return None, formula
+                if last_metadata is not None and unit_family != last_metadata[0]:  # type:ignore
+                    return None, formula  # type:ignore
 
-                current_metadata = unit_metadata
+                last_metadata = unit_metadata
                 parameters.append(query_expression)
 
         # If we have only future unit types, we know that the formula will be a future itself.
@@ -331,7 +329,7 @@ class UnitsNormalizationV2Visitor(
             return (UnitFamily.FUTURE, None, None), formula
 
         # If we have no metadata here, it means that all parameters of the formula can't be normalized.
-        if current_metadata is None:
+        if last_metadata is None:
             return None, formula
 
         # If we have all timeseries as parameters of a formula and the function belongs to `*` or `/` we will
@@ -339,22 +337,24 @@ class UnitsNormalizationV2Visitor(
         if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and has_all_timeseries_params:
             return None, formula
 
+        last_unit_family, last_reference_unit, last_unit = last_metadata
+
         # We convert all scalars in the formula using the last seen scaling factor. Since we are always working with
         # two operands, this means that if we found at least one numeric scalar, the scaling factor will belong to the
         # other operand.
-        if future_units:
+        if future_units and last_unit is not None:
             for index, future_unit in future_units:
-                parameters[index] = self._normalize_future_units(current_metadata[2], future_unit)
+                parameters[index] = self._normalize_future_units(last_unit, future_unit)
 
         # We want to find the reference unit of the unit family in the formula.
-        formula_reference_unit = get_reference_unit_for_unit_family(current_metadata[0])
+        formula_reference_unit = get_reference_unit_for_unit_family(last_unit_family)
         if formula_reference_unit is None:
             return None, formula
 
         # The new formula unit is the reference unit, since we know that all of its operands have been converted to
         # the reference unit at this point.
         return (
-            current_metadata[0],
+            last_unit_family,
             formula_reference_unit.name,
             formula_reference_unit,
         ), formula.set_parameters(parameters)
@@ -396,10 +396,15 @@ class UnitsNormalizationV2Visitor(
         return isinstance(value, int) or isinstance(value, float)
 
     def _normalize_future_units(self, unit: Unit, value: QueryExpression) -> QueryExpression:
-        return FutureUnitsNormalizationVisitor(unit).visit(value)
+        """
+        Normalizes all future units, which in our case are just numeric scalars, using a common unit. This assumes
+        that such numbers are used in the context of the unit and as such they need to be scaled by a certain factor
+        to be normalized to the reference unit.
+        """
+        return NumericScalarsNormalizationVisitor(unit).visit(value)
 
 
-class FutureUnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
+class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
     """
     Visitor that recursively applies a unit transformation on all the numeric scalars in a `QueryExpression`.
     """

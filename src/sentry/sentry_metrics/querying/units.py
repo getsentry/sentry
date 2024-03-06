@@ -47,6 +47,9 @@ class UnitFamily(Enum):
 
     DURATION = "duration"
     INFORMATION = "information"
+
+    # Special family used to represent a family of units that will be resolved in the future.
+    # TODO: we might want to move this directly into the UnitsNormalizationV2Visitor.
     FUTURE = "future"
 
 
