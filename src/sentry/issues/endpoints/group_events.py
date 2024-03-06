@@ -40,7 +40,7 @@ class GroupEventsError(Exception):
 @region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ISSUES
 
