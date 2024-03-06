@@ -2,7 +2,6 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {extraErrorDataIntegration} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
 
@@ -51,20 +50,14 @@ function getSentryIntegrations(routes?: Function) {
       depth: 6,
     }),
     Sentry.metrics.metricsAggregatorIntegration(),
-    new BrowserTracing({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              browserHistory as any,
-              createRoutes(routes()),
-              match
-            ),
-          }
-        : {}),
+    Sentry.reactRouterV3BrowserTracingIntegration({
+      history: browserHistory as any,
+      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
+      match,
       _experiments: {
         enableInteractions: true,
-        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
+      enableInp: true,
     }),
     new Sentry.BrowserProfilingIntegration(),
   ];
