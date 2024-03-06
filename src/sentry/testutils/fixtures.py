@@ -8,7 +8,8 @@ import pytest
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models import AlertRuleMonitorType, IncidentActivityType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
