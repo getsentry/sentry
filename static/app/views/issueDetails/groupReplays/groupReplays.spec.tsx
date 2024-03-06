@@ -22,6 +22,8 @@ type InitializeOrgProps = {
 };
 import {ReplayListFixture} from 'sentry-fixture/replayList';
 
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
@@ -60,6 +62,9 @@ describe('GroupReplays', () => {
       url: `/organizations/org-slug/sdk-updates/`,
       body: [],
     });
+  });
+  afterEach(() => {
+    resetMockDate();
   });
 
   describe('Replay Feature Disabled', () => {
@@ -330,7 +335,7 @@ describe('GroupReplays', () => {
       });
 
       // Mock the system date to be 2022-09-28
-      jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
+      setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
       render(<GroupReplays group={mockGroup} />, {
         context: routerContext,
