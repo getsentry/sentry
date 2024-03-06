@@ -283,37 +283,37 @@ describe('flattenFrames', () => {
   describe('findVideoSegmentIndex', () => {
     const segments = [
       {
+        id: 0,
         timestamp: 0,
         duration: 5000,
-        uri: '/_assets/test1.mp4',
       },
       // no gap
       {
+        id: 1,
         timestamp: 5000,
         duration: 5000,
-        uri: '/_assets/test2.mp4',
       },
       {
+        id: 2,
         timestamp: 10_001,
         duration: 5000,
-        uri: '/_assets/test3.mp4',
       },
       // 5 second gap
       {
+        id: 3,
         timestamp: 20_000,
         duration: 5000,
-        uri: '/_assets/test4.mp4',
       },
       // 5 second gap
       {
+        id: 4,
         timestamp: 30_000,
         duration: 5000,
-        uri: '/_assets/test5.mp4',
       },
       {
+        id: 5,
         timestamp: 35_002,
         duration: 5000,
-        uri: '/_assets/test6.mp4',
       },
     ];
     const trackList = segments.map(
