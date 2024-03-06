@@ -2595,6 +2595,7 @@ SENTRY_API_PAGINATION_ALLOWLIST = {
     "OrganizationRecentSearchesEndpoint",
     "UserNotificationSettingsOptionsEndpoint",
     "ProjectAgnosticRuleConditionsEndpoint",
+    "JiraServerSearchEndpointTest",
 }
 
 SENTRY_DEFAULT_ROLE = "member"
