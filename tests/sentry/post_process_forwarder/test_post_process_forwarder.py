@@ -62,6 +62,7 @@ class PostProcessForwarderTest(TestCase):
             KAFKA_TOPICS={
                 self.events_topic: {"cluster": "default"},
             },
+            KAFKA_TOPIC_OVERRIDES={"events": self.events_topic, "transactions": self.events_topic},
         )
 
         self.override_settings_cm.__enter__()
