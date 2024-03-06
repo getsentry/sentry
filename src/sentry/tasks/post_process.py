@@ -1409,7 +1409,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return True
 
     should_notify_on_old_feedbacks = job["event"].project.get_option(
-        "sentry:replay_rage_click_issues"
+        "sentry:feedback_user_report_notifications"
     )
 
     if (

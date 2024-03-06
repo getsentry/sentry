@@ -403,11 +403,12 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
-        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
-            "sentry.rules.processor.rules", init_registry()
-        ) as rules:
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
+            patch("sentry.rules.processor.rules", init_registry()) as rules,
+        ):
             MockAction = mock.Mock()
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value = mock.Mock(spec=EventAction)
@@ -1683,8 +1684,9 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.rules.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
         redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.backend.incr", redis_buffer.incr
+        with (
+            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -2750,7 +2752,7 @@ class PostProcessGroupFeedbackTest(
         return cache_key
 
     def test_not_ran_if_crash_report_option_disabled(self):
-        self.project.update_option("sentry:replay_rage_click_issues", False)
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
             data={},
             project_id=self.project.id,
@@ -2776,7 +2778,7 @@ class PostProcessGroupFeedbackTest(
         assert mock_process_func.call_count == 0
 
     def test_not_ran_if_crash_report_project_option_enabled(self):
-        self.project.update_option("sentry:replay_rage_click_issues", True)
+        self.project.update_option("sentry:feedback_user_report_notifications", True)
 
         event = self.create_event(
             data={},

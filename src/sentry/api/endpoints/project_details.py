@@ -817,10 +817,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
                 )
-            if "sentry:feedback_user_report_notification" in options:
+            if "sentry:feedback_user_report_notifications" in options:
                 project.update_option(
-                    "sentry:feedback_user_report_notification",
-                    bool(options["sentry:feedback_user_report_notification"]),
+                    "sentry:feedback_user_report_notifications",
+                    bool(options["sentry:feedback_user_report_notifications"]),
                 )
             if "sentry:feedback_ai_spam_detection" in options:
                 project.update_option(
