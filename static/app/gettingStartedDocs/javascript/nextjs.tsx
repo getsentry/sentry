@@ -206,7 +206,10 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {

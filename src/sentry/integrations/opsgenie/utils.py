@@ -4,7 +4,8 @@ import logging
 from typing import Any, cast
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration

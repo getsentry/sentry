@@ -62,11 +62,11 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
             # Only send an occurrence if we have an active incident
             for grouphash in active_incidents.values_list("grouphash", flat=True):
                 resolve_incident_group(grouphash, checkin.monitor.project_id)
-            if active_incidents.update(
+
+            active_incidents.update(
                 resolving_checkin=checkin,
                 resolving_timestamp=checkin.date_added,
-            ):
-                params["last_state_change"] = ts
+            )
         else:
             # Don't update status if incident isn't recovered
             params.pop("status", None)

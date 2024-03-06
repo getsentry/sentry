@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from confluent_kafka import KafkaException
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -1492,12 +1493,10 @@ def _save_aggregate(
         ):
             raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
@@ -2696,10 +2695,12 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 
 
 @metrics.wraps("save_event.detect_performance_problems")
-def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _detect_performance_problems(
+    jobs: Sequence[Job], projects: ProjectsMapping, is_standalone_spans: bool = False
+) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
+            job["data"], projects[job["project_id"]], is_standalone_spans=is_standalone_spans
         )
 
 
@@ -2762,8 +2763,12 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 detection_time=event.datetime,
                 level=job["level"],
             )
-
-            produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
+            try:
+                produce_occurrence_to_kafka(
+                    payload_type=PayloadType.OCCURRENCE, occurrence=occurrence
+                )
+            except KafkaException:
+                logger.exception("Failed to send occurrence to issue platform")
 
 
 @metrics.wraps("event_manager.save_transaction_events")
