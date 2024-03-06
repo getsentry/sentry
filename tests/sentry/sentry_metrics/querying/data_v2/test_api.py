@@ -1481,12 +1481,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.CUSTOM,
             )
 
-        for formula, expected_result, expected_unit_family in (
-            ("$query_1 * $query_2", 300.0, None),
-            ("$query_1 * $query_2 + 25", 325.0, None),
-            ("$query_1 * $query_2 / 1", 300.0, None),
-            ("$query_1 * 2", 40.0, UnitFamily.DURATION.value),
-            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value),
+        for formula, expected_result, expected_unit_family, expected_unit in (
+            ("$query_1 * $query_2", 300.0, None, None),
+            ("$query_1 * $query_2 + 25", 325.0, None, None),
+            ("$query_1 * $query_2 / 1", 300.0, None, None),
+            ("$query_1 * 2", 40.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
@@ -1515,3 +1515,5 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             meta = results["meta"]
             assert len(meta) == 1
             assert meta[0][1]["unit_family"] == expected_unit_family
+            assert meta[0][1]["unit"] == expected_unit
+            assert meta[0][1]["scaling_factor"] is None
