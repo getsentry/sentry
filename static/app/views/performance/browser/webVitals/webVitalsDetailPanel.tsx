@@ -178,7 +178,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'count') {
       if (webVital === 'inp') {
-        return <AlignRight>{`Interactions`}</AlignRight>;
+        return <AlignRight>{t('Interactions')}</AlignRight>;
       }
     }
     return <AlignRight>{col.name}</AlignRight>;
