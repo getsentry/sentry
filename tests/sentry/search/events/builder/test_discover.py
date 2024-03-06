@@ -837,3 +837,25 @@ class QueryBuilderTest(TestCase):
                 selected_columns=["count()"],
                 orderby="equation|",
             )
+
+    def test_orderby_salted_column_hash(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=["salted_column_hash('salt', transaction) as sample"],
+            orderby=["sample"],
+            config=QueryBuilderConfig(
+                functions_acl=["salted_column_hash"],
+            ),
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.orderby,
+            [
+                OrderBy(
+                    Function("farmFingerprint64", ["'salt'", Column("transaction")], "sample"),
+                    Direction.ASC,
+                )
+            ],
+        )

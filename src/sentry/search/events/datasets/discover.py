@@ -200,9 +200,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
@@ -224,9 +226,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         },
                         {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
                     ],
@@ -1018,6 +1022,18 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
                         args["interval"], alias
                     ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "salted_column_hash",
+                    # TODO: figure out how to make this take arbitrary number of arbirary type arguemnts
+                    required_args=[SnQLStringArg("salt"), ColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
+                        [args["salt"], args["column"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
                     private=True,
                 ),
             ]

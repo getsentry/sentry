@@ -106,11 +106,22 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             params["environment"] = [env.name for env in environments]
 
         full = request.GET.get("full") in ("1", "true")
+        sample = request.GET.get("sample") in ("1", "true")
+
+        if sample:
+            orderby = "sample"
+        else:
+            orderby = None
 
         def data_fn(offset: int, limit: int) -> Any:
             try:
                 snuba_query = get_query_builder_for_group(
-                    request.GET.get("query", ""), params, group, limit=limit, offset=offset
+                    request.GET.get("query", ""),
+                    params,
+                    group,
+                    limit=limit,
+                    offset=offset,
+                    orderby=orderby,
                 )
             except InvalidSearchQuery as e:
                 raise ParseError(detail=str(e))
