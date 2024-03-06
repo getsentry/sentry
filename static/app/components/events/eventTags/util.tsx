@@ -1,8 +1,7 @@
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(Leander): Update once the docs have been added
-export const TAGS_DOCS_LINK = `https://docs.sentry.io`;
+export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
 export function shouldUseNewTagsUI() {
   const location = useLocation();

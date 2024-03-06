@@ -4,9 +4,13 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {
+  shouldUseNewTagsUI,
+  TAGS_DOCS_LINK,
+} from 'sentry/components/events/eventTags/util';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -55,7 +59,10 @@ function Tags({event, projectSlug}: Props) {
   return (
     <StyledEventDataSection
       title={t('Tags')}
-      help={t('The default and custom tags associated with this event.')}
+      help={tct('The searchable tags associated with this event. [link:Learn more]', {
+        link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
+      })}
+      isHelpHoverable
       actions={actions}
       data-test-id="event-tags"
       guideTarget="tags"
