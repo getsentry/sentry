@@ -10,6 +10,7 @@ import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -228,9 +229,20 @@ export default function PageOverview() {
                   <AlertContent>
                     <span>
                       {tct(
-                        `Starting on [fidDeprecationTimestampString], First Input Delay will no longer be included in Performance Scores, and will be replaced by Interaction to Next Paint. Users should update their Sentry SDKs to the latest version (7.105.0+) and enable the INP option to start receiving updated Performance Scores.`,
+                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will be replacing [fidStrong:FID] (First Input Delay) in Performance Score.`,
                         {
                           fidDeprecationTimestampString,
+                          inpStrong: <strong />,
+                          fidStrong: <strong />,
+                        }
+                      )}
+                      <br />
+                      {tct(
+                        `Users should update their Sentry SDKs to the [link:latest version (7.105.0+)] and enable the INP option to start receiving updated Performance Scores.`,
+                        {
+                          link: (
+                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.105.0" />
+                          ),
                         }
                       )}
                     </span>
