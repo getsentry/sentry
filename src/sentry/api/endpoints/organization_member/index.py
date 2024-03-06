@@ -35,6 +35,34 @@ from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
+# has the wrong descriptions, includes deprecated admin, and excludes billing
+ROLE_CHOICES = [
+    ("billing", "Can manage payment and compliance details."),
+    (
+        "member",
+        "Can view and act on events, as well as view most other data within the organization.",
+    ),
+    (
+        "manager",
+        """Has full management access to all teams and projects. Can also manage
+        the organization's membership.""",
+    ),
+    (
+        "owner",
+        """Has unrestricted access to the organization, its data, and its
+        settings. Can add, modify, and delete projects and members, as well as
+        make billing and plan changes.""",
+    ),
+    (
+        "admin",
+        """Can edit global integrations, manage projects, and add/remove teams.
+        They automatically assume the Team Admin role for teams they join.
+        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
+        """,
+    ),
+]
+
 
 class MemberConflictValidationError(serializers.ValidationError):
     pass
@@ -45,16 +73,16 @@ class MemberConflictValidationError(serializers.ValidationError):
 )
 class OrganizationMemberRequestSerializer(serializers.Serializer):
     email = AllowedEmailField(
-        max_length=75, required=True, help_text="The email address to send the invitation to"
+        max_length=75, required=True, help_text="The email address to send the invitation to."
     )
     role = serializers.ChoiceField(
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
-        choices=roles.get_choices(),
+        choices=ROLE_CHOICES,
         default=organization_roles.get_default().id,
         required=False,
-        help_text="The org-role of the new member",
+        help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
         required=False, allow_null=False, default=[]
@@ -64,17 +92,19 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         allow_null=True,
         default=[],
         child=serializers.JSONField(),
-        help_text="The team and team-roles assigned to the member",
+        help_text="""The team and team-roles assigned to the member. Team roles can be either:
+        - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
+        - `admin` - Has full management access to their team's membership and projects.""",
     )
     sendInvite = serializers.BooleanField(
         required=False,
         default=True,
         write_only=True,
-        help_text="Should send invite notification through email",
+        help_text="Whether or not to send an invite notification through email. Defaults to True.",
     )
     reinvite = serializers.BooleanField(
         required=False,
-        help_text="Set to true to re-invite someone who have already been invited to the organization",
+        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
     )
     regenerate = serializers.BooleanField(required=False)
 
@@ -170,7 +200,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         List all organization members.
 
-        Response includes pending invites as long as they're already approved.
+        Response includes pending invites that are approved by organization admins but waiting to be accepted by the invitee.
         """
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
