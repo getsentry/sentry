@@ -1,7 +1,7 @@
-from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 import sentry.options
+from sentry.relay.config import GenericFiltersConfig
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
@@ -15,21 +15,6 @@ RELAY_OPTIONS: list[str] = [
     "relay.cardinality-limiter.error-sample-rate",
     "relay.metric-bucket-encodings",
 ]
-
-
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: Mapping[str, str] | None
-    """A rule condition in the DSL compatible with Relay.
-
-    See https://github.com/getsentry/relay/blob/d4b8402e6853eb62b2402f8f8c8482adae518474/relay-protocol/src/condition.rs#L341.
-    """
-
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
 
 
 class GlobalConfig(TypedDict, total=False):

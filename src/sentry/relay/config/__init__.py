@@ -32,7 +32,6 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
-from sentry.relay.globalconfig import GenericFiltersConfig
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
@@ -182,6 +181,21 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["generic"] = generic_filters
 
     return filter_settings
+
+
+class GenericFilter(TypedDict):
+    id: str
+    isEnabled: bool
+    condition: Mapping[str, str] | None
+    """A rule condition in the DSL compatible with Relay.
+
+    See https://github.com/getsentry/relay/blob/d4b8402e6853eb62b2402f8f8c8482adae518474/relay-protocol/src/condition.rs#L341.
+    """
+
+
+class GenericFiltersConfig(TypedDict):
+    version: int
+    filters: Sequence[GenericFilter]
 
 
 def _get_generic_project_filters() -> GenericFiltersConfig:
