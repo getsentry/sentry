@@ -436,6 +436,31 @@ class AlertRuleActivationCondition(Model):
 
 
 @region_silo_only_model
+class ActivatedAlertRuleResults(Model):
+    """
+    This model represents the monitor results for an activated Alert Rule.
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_results")
+    # date_added timestamp indicates when this particular run was activated
+    date_added = models.DateTimeField(default=timezone.now)
+    # If triggered_ts is null, this indicates the run has not breached the set threshold
+    triggered_ts = models.DateTimeField(null=True)
+    # If finished_ts is null, this indicates whether the run is ongoing or completed
+    finished_ts = models.DateTimeField(null=True)
+    threshold_value = models.FloatField()
+    metric_value = models.FloatField()
+    window_length = models.IntegerField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivationresults"
+        unique_together = (("alert_rule", "label"),)
+
+
+@region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
     """
     Allows us to define a specific trigger to be excluded from a query subscription
