@@ -73,3 +73,19 @@ def hash_values(
     for value in values:
         hash_value(_hash, value)
     return _hash.hexdigest()
+
+
+def fnv1a_32(data: bytes) -> int:
+    """
+    Fowler–Noll–Vo hash function 32 bit implementation.
+    """
+    fnv_init = 0x811C9DC5
+    fnv_prime = 0x01000193
+    fnv_size = 2**32
+
+    result_hash = fnv_init
+    for byte in data:
+        result_hash ^= byte
+        result_hash = (result_hash * fnv_prime) % fnv_size
+
+    return result_hash

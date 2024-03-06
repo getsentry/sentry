@@ -5,8 +5,9 @@ from datetime import datetime
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_metrics_meta
+from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.utils import json, metrics
+from sentry.utils.hashlib import fnv1a_32
 
 DAY_IN_SECONDS = 86400
 

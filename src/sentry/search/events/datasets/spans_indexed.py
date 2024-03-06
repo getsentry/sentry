@@ -196,9 +196,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["group", "timestamp", "span_id"], alias
-                    ),
+                    snql_aggregate=self._resolve_random_sample,
                     private=True,
                 ),
                 SnQLFunction(
@@ -339,4 +337,18 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 [args["column"]],
                 alias,
             )
+        )
+
+    def _resolve_random_sample(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_sample(
+            ["group", "timestamp", "span_id"],
+            alias,
+            offset,
+            limit,
         )
