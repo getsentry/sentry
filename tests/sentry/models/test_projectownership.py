@@ -11,6 +11,7 @@ from sentry.models.user import User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -651,6 +652,81 @@ class ProjectOwnershipTestCase(TestCase):
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
+
+    def test_force_handle_auto_assignment_cache_check(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # check cache
+        cache_key = GroupOwner.get_autoassigned_owner_cache_key(
+            self.event.group.id, self.project.id, [1, 2]
+        )
+        assert cache.get(cache_key) is not None
+
+    @with_feature("organizations:post-process-skip-groupowner-cache")
+    def test_force_handle_auto_assignment_no_cache(self):
+        # Run auto-assignment first
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_a])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+        assert self.event.group is not None
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # check cache
+        cache_key = GroupOwner.get_autoassigned_owner_cache_key(
+            self.event.group.id, self.project.id, [1, 2]
+        )
+        assert cache.get(cache_key) is None
 
     @patch("sentry.models.groupowner.GroupOwner")
     def test_update_modifies_cache(self, mock_group_owner):

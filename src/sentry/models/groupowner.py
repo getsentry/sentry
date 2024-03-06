@@ -117,13 +117,8 @@ class GroupOwner(Model):
         cache_key = cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
         issue_owner = cache.get(cache_key)
         if issue_owner is None:
-            issue_owner = (
-                cls.objects.filter(
-                    group_id=group_id, project_id=project_id, type__in=autoassignment_types
-                )
-                .exclude(user_id__isnull=True, team_id__isnull=True)
-                .order_by("type")
-                .first()
+            issue_owner = cls.get_autoassigned_owner_no_cache(
+                group_id, project_id, autoassignment_types
             )
             if issue_owner is None:
                 issue_owner = False
@@ -131,6 +126,20 @@ class GroupOwner(Model):
             cache.set(cache_key, issue_owner, READ_CACHE_DURATION)
 
         return issue_owner
+
+    @classmethod
+    def get_autoassigned_owner_no_cache(cls, group_id, project_id, autoassignment_types):
+        """
+        Non-cached read access to find the autoassigned GroupOwner.
+        """
+        return (
+            cls.objects.filter(
+                group_id=group_id, project_id=project_id, type__in=autoassignment_types
+            )
+            .exclude(user_id__isnull=True, team_id__isnull=True)
+            .order_by("type")
+            .first()
+        )
 
     @classmethod
     def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
