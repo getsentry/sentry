@@ -58,7 +58,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 status=403,
             )
         owner_context = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=None
+            id=sentry_app.owner_id, user_id=None, include_projects=False, include_teams=False
         )
         if (
             owner_context

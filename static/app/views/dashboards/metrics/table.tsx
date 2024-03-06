@@ -138,7 +138,10 @@ export function getTableData(
 
   const normalizedResults = filteredQueries.map((query, index) => {
     const queryResults = data.data[index];
-    const metaUnit = data.meta[index]?.[1]?.unit;
+    const meta = data.meta[index];
+    const lastMetaEntry = data.meta[index]?.[meta.length - 1];
+    const metaUnit =
+      (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';
     const normalizedGroupResults = queryResults.map(group => {
       return {
         by: {...getEmptyGroup(tags), ...group.by},

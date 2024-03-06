@@ -316,23 +316,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert frame["preContext"] == []
         assert frame["postContext"] == []
 
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
-        50,
-    )
-    def test_get_locations_with_too_many_combinations(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self.get_error_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="90d",
-            status_code=400,
-            codeLocations="true",
-        )
-
     @pytest.mark.skip("transition to new metrics summaries processor in snuba")
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"

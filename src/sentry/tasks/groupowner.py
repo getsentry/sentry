@@ -92,6 +92,15 @@ def _process_suspect_commits(
                                     pass
                                 else:
                                     owner.delete()
+                                    logger.info(
+                                        "process_suspect_commits.group_owner_removed",
+                                        extra={
+                                            "event": event_id,
+                                            "group": group_id,
+                                            "owner_id": owner.user_id,
+                                            "project": project_id,
+                                        },
+                                    )
                     except GroupOwner.MultipleObjectsReturned:
                         GroupOwner.objects.filter(
                             group_id=group_id,
@@ -100,6 +109,15 @@ def _process_suspect_commits(
                             project=project,
                             organization_id=project.organization_id,
                         )[0].delete()
+                        logger.info(
+                            "process_suspect_commits.multiple_owners_removed",
+                            extra={
+                                "event": event_id,
+                                "group": group_id,
+                                "owner_id": owner_id,
+                                "project": project_id,
+                            },
+                        )
 
                 cache.set(
                     cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
