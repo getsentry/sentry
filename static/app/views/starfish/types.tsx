@@ -131,6 +131,7 @@ export enum SpanMeasurements {
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  TOTAL_SCORE = 'measurements.score.total',
 }
 
 export type SpanIndexedFieldTypes = {
