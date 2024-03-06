@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from snuba_sdk import And, Condition, Direction, Function, Op, OrderBy
+from snuba_sdk import And, Column, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events import builder, constants
@@ -31,6 +31,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+            "avg_metric": self._resolve_avg_alias,
         }
 
     @property
@@ -40,18 +41,7 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             for function in [
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        [
-                            "group",
-                            "end_timestamp",
-                            "span_id",
-                            "min",
-                            "max",
-                            "sum",
-                            "count",
-                        ],
-                        alias,
-                    ),
+                    snql_aggregate=self._resolve_random_sample,
                     private=True,
                 ),
                 SnQLFunction(
@@ -91,3 +81,32 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_avg_alias(self, alias: str) -> SelectType:
+        return Function(
+            "divide",
+            [self.builder.column("sum_metric"), self.builder.column("count_metric")],
+            alias,
+        )
+
+    def _resolve_random_sample(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_sample(
+            [
+                "group",
+                "end_timestamp",
+                "span_id",
+                "min",
+                "max",
+                "sum",
+                "count",
+            ],
+            alias,
+            offset,
+            limit,
+        )

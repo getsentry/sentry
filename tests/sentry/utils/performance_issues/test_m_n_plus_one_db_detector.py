@@ -127,6 +127,7 @@ class MNPlusOneDBDetectorTest(TestCase):
             [
                 call("_pi_all_issue_count", 1),
                 call("_pi_sdk_name", "sentry.javascript.node"),
+                call("is_standalone_spans", False),
                 call("_pi_transaction", "3818ae4f54ba4fa6ac6f68c9e32793c4"),
                 call(
                     "_pi_m_n_plus_one_db_fp",
