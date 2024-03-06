@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
+import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -154,7 +155,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const defaultTab = 'npm';
   const {location} = useRouteContext();
-  const crashReportOnboarding = location.hash === '#crashreport-sidequest';
+  const crashReportOnboarding = location.hash === CRASH_REPORT_HASH;
 
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',

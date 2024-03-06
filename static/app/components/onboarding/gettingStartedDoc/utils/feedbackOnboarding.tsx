@@ -90,7 +90,7 @@ export const getCrashReportModalIntroduction = () =>
 
 export const getCrashReportModalInstallDescriptionJavaScript = () =>
   tct(
-    'You can collect feedback right before the event is sent, using [code:beforeSend].',
+    'You can collect feedback at the time the event is sent, using [code:beforeSend].',
     {code: <code />}
   );
 
