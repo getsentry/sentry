@@ -60,9 +60,7 @@ export const useTransactionWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query: [
-        // TODO: inp spans don't have a transaction.op.
-        // Plan to update this filter to also check span.op:ui.interaction.click once we have the ability.
-        'transaction.op:[pageload,""]',
+        'transaction.op:pageload OR span.op:ui.interaction.click',
         'avg(measurements.score.total):>=0',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(query ? [query] : []),

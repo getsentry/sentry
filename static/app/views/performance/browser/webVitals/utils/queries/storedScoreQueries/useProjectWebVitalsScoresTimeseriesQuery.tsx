@@ -54,9 +54,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
       ],
       name: 'Web Vitals',
       query: [
-        // TODO: inp spans don't have a transaction.op.
-        // Plan to update this filter to also check span.op:ui.interaction.click once we have the ability.
-        'transaction.op:[pageload,""] has:measurements.score.total',
+        'transaction.op:pageload OR span.op:ui.interaction.click has:measurements.score.total',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
       ].join(' '),
