@@ -76,9 +76,14 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
             user_ids = {
                 user_id
                 for user_id in OrganizationMember.objects.filter(
-                    organization_id=organization.id, teams__projectteam__project__isnull=False
+                    organization_id=organization.id,
+                    teams__projectteam__project__isnull=False,
+                    user_id__isnull=False,
                 ).values_list("user_id", flat=True)
             }
+            if not user_ids:
+                continue
+
             # TODO: convert timezones to UTC offsets and group
             users_by_tz = defaultdict(list)
             users_with_tz = user_option_service.get_many(
@@ -199,7 +204,7 @@ def build_summary_data(
                 project=project, substatus__in=(GroupSubStatus.ESCALATING, GroupSubStatus.REGRESSED)
             ).using_replica()
             regressed_or_escalated_groups_today = Activity.objects.filter(
-                group__in=(regressed_or_escalated_groups),
+                group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
             if regressed_or_escalated_groups_today:
@@ -262,6 +267,10 @@ def deliver_summary(ctx: OrganizationReportContext, users: list[int]):
     for user_id in user_ids:
         top_projects_context_map = build_top_projects_map(ctx, user_id)
         user = cast(RpcActor, user_service.get_user(user_id=user_id))
+        logger.info(
+            "daily_summary.delivering_summary",
+            extra={"user": user_id, "organization": ctx.organization.id},
+        )
         DailySummaryNotification(
             organization=ctx.organization,
             recipient=user,

@@ -160,6 +160,31 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_infinite_value(self) -> None:
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1 / 0")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            None,
+            None,
+        ]
+        assert data[0][0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -1266,7 +1291,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("$query_1 * $query_2")
+            .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
@@ -1282,8 +1307,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 300000.0, None]
-        assert data[0][0]["totals"] == 300000.0
+        assert data[0][0]["series"] == [None, 20015.0, None]
+        assert data[0][0]["totals"] == 20015.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] == UnitFamily.DURATION.value
@@ -1312,7 +1337,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("$query_1 * $query_2")
+            .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
@@ -1328,8 +1353,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 300.0, None]
-        assert data[0][0]["totals"] == 300.0
+        assert data[0][0]["series"] == [None, 35.0, None]
+        assert data[0][0]["totals"] == 35.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] is None
@@ -1358,7 +1383,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("$query_1 * $query_2")
+            .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
@@ -1374,8 +1399,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 20.0, None]
-        assert data[0][0]["totals"] == 20.0
+        assert data[0][0]["series"] == [None, 21.0, None]
+        assert data[0][0]["totals"] == 21.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] is None
@@ -1404,7 +1429,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             MetricsQueriesPlan()
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
-            .apply_formula("$query_1 * $query_2")
+            .apply_formula("$query_1 + $query_2")
         )
 
         results = self.run_query(
@@ -1420,10 +1445,63 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 1
         assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 300.0, None]
-        assert data[0][0]["totals"] == 300.0
+        assert data[0][0]["series"] == [None, 35.0, None]
+        assert data[0][0]["totals"] == 35.0
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][1]["unit_family"] == UnitFamily.UNKNOWN.value
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_unitless_formula_functions(self):
+        mri_1 = "d:custom/page_load@nanosecond"
+        mri_2 = "d:custom/load_time@microsecond"
+        for mri, value in ((mri_1, 20), (mri_2, 15)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        for formula, expected_result, expected_unit_family in (
+            ("$query_1 * $query_2", 300.0, None),
+            ("$query_1 * $query_2 + 25", 325.0, None),
+            ("$query_1 * $query_2 / 1", 300.0, None),
+            ("$query_1 * 2", 40.0, UnitFamily.DURATION.value),
+            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value)
+            # disabled since the layer fails validation of the use cases used when nested formulas have only scalars
+            # ("$query_1 * (100 / 1)", 21.0)
+        ):
+            query_1 = self.mql("avg", mri_1)
+            query_2 = self.mql("sum", mri_2)
+            plan = (
+                MetricsQueriesPlan()
+                .declare_query("query_1", query_1)
+                .declare_query("query_2", query_2)
+                .apply_formula(formula)
+            )
+
+            results = self.run_query(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {}
+            assert data[0][0]["series"] == [None, expected_result, None]
+            assert data[0][0]["totals"] == expected_result
+            meta = results["meta"]
+            assert len(meta) == 1
+            assert meta[0][1]["unit_family"] == expected_unit_family

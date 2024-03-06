@@ -42,6 +42,7 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
 
         self.occurrence = result[0]
+        assert self.occurrence is not None
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         self.fingerprint = ["touch-id"]
 
@@ -168,7 +169,9 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
 
-        self.occurrence = result[0]
+        occurrence = result[0]
+        assert occurrence is not None
+        self.occurrence = occurrence
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         self.fingerprint = ["touch-id"]
 
@@ -188,6 +191,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
+        assert occurrence2 is not None
         group2 = Group.objects.get(grouphash__hash=occurrence2.fingerprint[0])
 
         # get groups by fingerprint
@@ -211,7 +215,9 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
         assert result is not None
-        assert Group.objects.filter(grouphash__hash=result[0].fingerprint[0]).exists()
+        occurrence2 = result[0]
+        assert occurrence2 is not None
+        assert Group.objects.filter(grouphash__hash=occurrence2.fingerprint[0]).exists()
 
         # get groups by fingerprint
         groups_by_fingerprint = bulk_get_groups_from_fingerprints(
@@ -241,7 +247,8 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
-        group2 = Group.objects.get(grouphash__hash=result[0].fingerprint[0], project=project2)
+        assert occurrence2 is not None
+        group2 = Group.objects.get(grouphash__hash=occurrence2.fingerprint[0], project=project2)
 
         assert occurrence2.fingerprint[0] == self.occurrence.fingerprint[0]
 

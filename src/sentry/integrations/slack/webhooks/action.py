@@ -776,7 +776,7 @@ class SlackActionEndpoint(Endpoint):
         use_block_kit = False
         if len(org_integrations):
             org_context = organization_service.get_organization_by_id(
-                id=org_integrations[0].organization_id
+                id=org_integrations[0].organization_id, include_projects=False, include_teams=False
             )
             if org_context:
                 use_block_kit = any(

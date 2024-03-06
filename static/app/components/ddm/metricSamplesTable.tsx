@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -525,7 +525,13 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
   const organization = useOrganization();
 
   if (!defined(profileId)) {
-    return <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+    return (
+      <Container>
+        <Button href={undefined} disabled size="xs">
+          <IconProfiling size="xs" />
+        </Button>
+      </Container>
+    );
   }
 
   const target = generateProfileFlamechartRoute({
@@ -542,11 +548,6 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
     </Container>
   );
 }
-
-const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
-  ${p => p.theme.overflowEllipsis};
-`;
 
 const SearchBar = styled(SmartSearchBar)`
   margin-bottom: ${space(2)};

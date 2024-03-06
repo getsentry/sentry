@@ -19,7 +19,6 @@ from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.committers import (
     _get_commit_file_changes,
@@ -739,7 +738,6 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    @with_feature("organizations:commit-context")
     def test_no_author(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
@@ -926,7 +924,6 @@ class GetEventFileCommitters(CommitTestCase):
         with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
 
-    @with_feature("organizations:commit-context")
     def test_commit_context_fallback(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             Integration.objects.all().delete()
