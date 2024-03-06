@@ -57,10 +57,10 @@ export function structuralSharing<T>(oldValue: T, newValue: T): T {
 }
 
 export function useStructuralSharing<T>(value: T): T {
-  const previeousValue = useRef<T>(value);
+  const previousValue = useRef<T>(value);
   return useMemo(() => {
-    const newValue = structuralSharing(previeousValue.current, value);
-    previeousValue.current = newValue;
+    const newValue = structuralSharing(previousValue.current, value);
+    previousValue.current = newValue;
     return newValue;
   }, [value]);
 }
