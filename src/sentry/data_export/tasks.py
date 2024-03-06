@@ -77,7 +77,7 @@ def assemble_download(
         with sentry_sdk.configure_scope() as scope:
             if data_export.user_id:
                 user = dict(id=data_export.user_id)
-                scope.set_user(user)
+                scope.user = user
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
@@ -309,7 +309,7 @@ def merge_export_blobs(data_export_id, **kwargs):
         with sentry_sdk.configure_scope() as scope:
             if data_export.user_id:
                 user = dict(id=data_export.user_id)
-                scope.set_user(user)
+                scope.user = user
             scope.set_tag("organization.slug", data_export.organization.slug)
             scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
             scope.set_extra("export.query", data_export.query_info)
