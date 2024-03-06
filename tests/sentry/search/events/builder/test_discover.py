@@ -837,3 +837,17 @@ class QueryBuilderTest(TestCase):
                 selected_columns=["count()"],
                 orderby="equation|",
             )
+
+    def test_orderby_random_number(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=[],
+            orderby=["random_number()"],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.orderby,
+            [OrderBy(Function("rand", [], "random_number"), Direction.ASC)],
+        )
