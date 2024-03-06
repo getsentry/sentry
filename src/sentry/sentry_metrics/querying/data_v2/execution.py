@@ -436,6 +436,9 @@ class PartialQueryResult:
         return self
 
     def to_query_result(self) -> QueryResult:
+        # For now, we naively return the first scheduled query and result, but this is just because
+        # we currently support only the chaining of at most two queries, meaning that a partial result
+        # can accumulate only one query.
         return QueryResult.from_scheduled_query(
             scheduled_query=self.scheduled_queries[0],
             query_result=self.executed_results[0],
@@ -541,7 +544,7 @@ class QueryExecutor:
         if not bulk_requests:
             return False
 
-        bulk_results = bulk_run_query(bulk_requests)
+        bulk_results = self._bulk_run_query(bulk_requests)
         for query_index, query_result in zip(mappings, bulk_results):
             scheduled_query = self._scheduled_queries[query_index]
             if scheduled_query is None:
