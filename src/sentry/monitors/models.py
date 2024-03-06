@@ -697,8 +697,8 @@ class MonitorIncident(Model):
 
     grouphash = models.CharField(max_length=32, default=default_grouphash)
     """
-    Used for issue occurances generation. Failed check-ins produce occurance
-    associated to this grouphash.
+    Used for issue occurrences generation. Failed check-ins produce an
+    occurrence associated to this grouphash.
     """
 
     date_added = models.DateTimeField(default=timezone.now)
