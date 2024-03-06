@@ -7,10 +7,9 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -240,7 +239,7 @@ def handle_trigger_action(
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
-    from sentry.incidents.models import AlertRule
+    from sentry.incidents.models.alert_rule import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
