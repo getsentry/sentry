@@ -29,6 +29,52 @@ type EventBreakpointChartProps = {
   event: Event;
 };
 
+type BreakpointChartData = {
+  event: Event;
+  eventStatsReponse:
+    | {
+        data: EventsStatsData;
+        meta: MetaType;
+      }
+    | undefined;
+};
+function getBreakPointChartPropsFromData(chartData: BreakpointChartData) {
+  const event = chartData.event;
+  const {breakpoint} = event?.occurrence?.evidenceData ?? {};
+  const datetime = getDateTimeFromBreakPoint(breakpoint);
+
+  // The evidence data keys are returned to us in camelCase, but we need to
+  // convert them to snake_case to match the NormalizedTrendsTransaction type
+  const normalizedOccurrenceEvent = Object.keys(
+    event?.occurrence?.evidenceData ?? []
+  ).reduce((acc, key) => {
+    acc[camelToUnderscore(key)] = event?.occurrence?.evidenceData?.[key];
+    return acc;
+  }, {}) as NormalizedTrendsTransaction;
+
+  const p95Series = useMemo(
+    () =>
+      transformEventStats(
+        chartData.eventStatsReponse?.['p95(transaction.duration)']?.data ?? [],
+        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
+      ),
+    [chartData.eventStatsReponse]
+  );
+
+  return {
+    datetime,
+    normalizedOccurrenceEvent,
+    p95Series,
+  };
+}
+
+function getDateTimeFromBreakPoint(breakpoint: number) {
+  return useRelativeDateTime({
+    anchor: breakpoint,
+    relativeDays: RELATIVE_DAYS_WINDOW,
+  });
+}
+
 function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -39,24 +85,12 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
   eventView.dataset = DiscoverDatasets.METRICS;
 
-  const datetime = useRelativeDateTime({
-    anchor: breakpoint,
-    relativeDays: RELATIVE_DAYS_WINDOW,
-  });
+  const datetime = getDateTimeFromBreakPoint(breakpoint);
   const {start: beforeDateTime, end: afterDateTime} = datetime;
 
   eventView.start = (beforeDateTime as Date).toISOString();
   eventView.end = (afterDateTime as Date).toISOString();
   eventView.statsPeriod = undefined;
-
-  // The evidence data keys are returned to us in camelCase, but we need to
-  // convert them to snake_case to match the NormalizedTrendsTransaction type
-  const normalizedOccurrenceEvent = Object.keys(
-    event?.occurrence?.evidenceData ?? []
-  ).reduce((acc, key) => {
-    acc[camelToUnderscore(key)] = event?.occurrence?.evidenceData?.[key];
-    return acc;
-  }, {}) as NormalizedTrendsTransaction;
 
   const {data, isLoading} = useGenericDiscoverQuery<
     {
@@ -77,14 +111,10 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     }),
   });
 
-  const p95Series = useMemo(
-    () =>
-      transformEventStats(
-        data?.['p95(transaction.duration)']?.data ?? [],
-        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
-      ),
-    [data]
-  );
+  const {p95Series, normalizedOccurrenceEvent} = getBreakPointChartPropsFromData({
+    event,
+    eventStatsReponse: data,
+  });
 
   return (
     <DataSection>
