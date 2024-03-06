@@ -71,6 +71,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
       inviteStatus: {},
       complete: false,
       sendingInvites: false,
+      error: undefined,
     };
   });
 
@@ -90,6 +91,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
       inviteStatus: {},
       complete: false,
       sendingInvites: false,
+      error: undefined,
     });
     trackAnalytics('invite_modal.add_more', {
       organization,
@@ -131,11 +133,13 @@ export default function useInviteModal({organization, initialData, source}: Prop
               ? errorResponse.email[0]
               : errorResponse.email;
 
-        const error = emailError || t('Could not invite user');
+        const orgLevelError = errorResponse?.organization || null;
+        const error = orgLevelError || emailError || t('Could not invite user');
 
         setState(prev => ({
           ...prev,
           inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: false, error}},
+          error: orgLevelError ? orgLevelError : undefined,
         }));
         return;
       }
@@ -220,5 +224,6 @@ export default function useInviteModal({organization, initialData, source}: Prop
     inviteStatus: state.inviteStatus,
     pendingInvites: state.pendingInvites,
     sendingInvites: state.sendingInvites,
+    error: state.error,
   };
 }
