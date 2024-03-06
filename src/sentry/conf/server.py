@@ -1092,15 +1092,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule-daily-organization-reports": {
-        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
-        "schedule": crontab(
-            minute=0,
-            hour="*/1",  # Run every hour
-            day_of_week="mon-fri",
-        ),
-        "options": {"expires": 60 * 60 * 3},
-    },
+    # "schedule-daily-organization-reports": {
+    #     "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+    #     "schedule": crontab(
+    #         minute=0,
+    #         hour="*/1",  # Run every hour
+    #         day_of_week="mon-fri",
+    #     ),
+    #     "options": {"expires": 60 * 60 * 3},
+    # },
     # "schedule-monthly-invite-missing-org-members": {
     #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
     #     "schedule": crontab(
