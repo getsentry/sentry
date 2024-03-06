@@ -35,6 +35,7 @@ export enum MetricQueryType {
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
+  isHidden: boolean;
   type: MetricQueryType;
   focusedSeries?: FocusedMetricsSeries[];
   sort?: SortState;

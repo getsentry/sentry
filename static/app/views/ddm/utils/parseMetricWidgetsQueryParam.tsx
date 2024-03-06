@@ -214,6 +214,7 @@ export function parseMetricWidgetsQueryParam(
           : MetricDisplayType.LINE,
         focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
         sort: parseSortParam(widget, 'sort'),
+        isHidden: parseBooleanParam(widget, 'isHidden') ?? false,
       };
 
       switch (type) {

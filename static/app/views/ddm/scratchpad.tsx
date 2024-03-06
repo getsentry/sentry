@@ -42,7 +42,7 @@ function widgetToQuery(
         op: widget.op,
         groupBy: widget.groupBy,
         query: widget.query,
-        isQueryOnly: isQueryOnly,
+        isQueryOnly: isQueryOnly || widget.isHidden,
       };
 }
 
@@ -172,40 +172,42 @@ export function MetricScratchpad() {
   return (
     <Wrapper>
       {isMultiChartMode ? (
-        filteredWidgets.map((widget, index) => (
-          <MultiChartWidgetQueries
-            formulaDependencies={formulaDependencies}
-            widget={widget}
-            key={widget.id}
-          >
-            {queries => (
-              <MetricWidget
-                queryId={widget.id}
-                index={index}
-                getChartPalette={getChartPalette}
-                onSelect={setSelectedWidgetIndex}
-                displayType={widget.displayType}
-                focusedSeries={widget.focusedSeries}
-                tableSort={widget.sort}
-                queries={queries}
-                isSelected={selectedWidgetIndex === index}
-                hasSiblings={widgets.length > 1}
-                onChange={handleChange}
-                filters={selection}
-                focusAreaProps={focusArea}
-                showQuerySymbols={showQuerySymbols}
-                onSampleClick={handleSampleClick}
-                onSampleClickV2={handleSampleClickV2}
-                chartHeight={200}
-                highlightedSampleId={
-                  selectedWidgetIndex === index ? highlightedSampleId : undefined
-                }
-                metricsSamples={metricsSamples}
-                context="ddm"
-              />
-            )}
-          </MultiChartWidgetQueries>
-        ))
+        filteredWidgets.map((widget, index) =>
+          widget.isHidden ? null : (
+            <MultiChartWidgetQueries
+              formulaDependencies={formulaDependencies}
+              widget={widget}
+              key={widget.id}
+            >
+              {queries => (
+                <MetricWidget
+                  queryId={widget.id}
+                  index={index}
+                  getChartPalette={getChartPalette}
+                  onSelect={setSelectedWidgetIndex}
+                  displayType={widget.displayType}
+                  focusedSeries={widget.focusedSeries}
+                  tableSort={widget.sort}
+                  queries={queries}
+                  isSelected={selectedWidgetIndex === index}
+                  hasSiblings={widgets.length > 1}
+                  onChange={handleChange}
+                  filters={selection}
+                  focusAreaProps={focusArea}
+                  showQuerySymbols={showQuerySymbols}
+                  onSampleClick={handleSampleClick}
+                  onSampleClickV2={handleSampleClickV2}
+                  chartHeight={200}
+                  highlightedSampleId={
+                    selectedWidgetIndex === index ? highlightedSampleId : undefined
+                  }
+                  metricsSamples={metricsSamples}
+                  context="ddm"
+                />
+              )}
+            </MultiChartWidgetQueries>
+          )
+        )
       ) : (
         <MetricWidget
           index={0}
@@ -214,7 +216,9 @@ export function MetricScratchpad() {
           displayType={firstWidget.displayType}
           focusedSeries={firstWidget.focusedSeries}
           tableSort={firstWidget.sort}
-          queries={filteredWidgets.map(w => widgetToQuery(w))}
+          queries={filteredWidgets
+            .filter(w => !(w.type === MetricQueryType.FORMULA && w.isHidden))
+            .map(w => widgetToQuery(w))}
           isSelected
           hasSiblings={false}
           onChange={handleChange}

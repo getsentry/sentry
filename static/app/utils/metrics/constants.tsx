@@ -40,6 +40,7 @@ export const emptyMetricsQueryWidget: MetricQueryWidgetParams = {
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
+  isHidden: false,
 };
 
 export const emptyMetricsFormulaWidget: MetricFormulaWidgetParams = {
@@ -48,4 +49,5 @@ export const emptyMetricsFormulaWidget: MetricFormulaWidgetParams = {
   formula: '',
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
+  isHidden: false,
 };

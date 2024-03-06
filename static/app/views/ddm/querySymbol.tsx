@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -15,7 +16,7 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-const Symbol = styled('div')<{isSelected: boolean}>`
+const Symbol = styled('span')<{isSelected: boolean; isHidden?: boolean}>`
   display: flex;
   width: 16px;
   height: 16px;
@@ -32,24 +33,34 @@ const Symbol = styled('div')<{isSelected: boolean}>`
 
   ${p =>
     p.isSelected &&
+    !p.isHidden &&
     `
   background: ${p.theme.purple300};
   color: ${p.theme.white};
   `}
+
+  ${p =>
+    p.isHidden &&
+    `
+  background: ${p.theme.gray300};
+  color: ${p.theme.white};
+  `}
 `;
 
-export function QuerySymbol({
-  queryId,
-  isSelected,
-  ...props
-}: React.ComponentProps<typeof Symbol> & {isSelected: boolean; queryId: number}) {
-  const {showQuerySymbols, isMultiChartMode} = useDDMContext();
-  if (!showQuerySymbols || queryId < 0) {
-    return null;
-  }
-  return (
-    <Symbol isSelected={isMultiChartMode && isSelected} {...props}>
-      <span>{getQuerySymbol(queryId)}</span>
-    </Symbol>
-  );
+interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
+  queryId: number;
 }
+
+export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
+  function QuerySymbol({queryId, isSelected, ...props}, ref) {
+    const {showQuerySymbols, isMultiChartMode} = useDDMContext();
+    if (!showQuerySymbols || queryId < 0) {
+      return null;
+    }
+    return (
+      <Symbol ref={ref} isSelected={isMultiChartMode && isSelected} {...props}>
+        <span>{getQuerySymbol(queryId)}</span>
+      </Symbol>
+    );
+  }
+);

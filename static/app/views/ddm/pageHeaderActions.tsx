@@ -119,6 +119,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
                   <QuerySymbol
                     key="icon"
                     queryId={widget.id}
+                    isHidden={widget.isHidden}
                     isSelected={index === selectedWidgetIndex}
                   />,
                 ]

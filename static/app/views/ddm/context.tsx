@@ -52,6 +52,7 @@ interface DDMContextValue {
   >;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
+  toggleWidgetVisibility: (index: number) => void;
   updateWidget: (
     index: number,
     data: Partial<Omit<MetricWidgetQueryParams, 'type'>>
@@ -80,6 +81,7 @@ export const DDMContext = createContext<DDMContextValue>({
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
+  toggleWidgetVisibility: () => {},
 });
 
 export function useDDMContext() {
@@ -159,8 +161,13 @@ export function useMetricWidgets() {
   const removeWidget = useCallback(
     (index: number) => {
       setWidgets(currentWidgets => {
-        const newWidgets = [...currentWidgets];
+        let newWidgets = [...currentWidgets];
         newWidgets.splice(index, 1);
+
+        // Ensure that a visible widget remains
+        if (!newWidgets.find(w => !w.isHidden)) {
+          newWidgets = newWidgets.map(w => ({...w, isHidden: false}));
+        }
         return newWidgets;
       });
     },
@@ -186,6 +193,7 @@ export function useMetricWidgets() {
     addWidget,
     removeWidget,
     duplicateWidget,
+    setWidgets,
   };
 }
 
@@ -334,16 +342,32 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     (value: boolean) => {
       updateQuery({multiChartMode: value ? 1 : 0}, {replace: true});
       updateWidget(0, {focusedSeries: undefined});
-      setSelectedWidgetIndex(0);
+      const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+      setSelectedWidgetIndex(firstVisibleWidgetIndex);
     },
-    [updateQuery, updateWidget]
+    [updateQuery, updateWidget, widgets]
   );
+
+  const toggleWidgetVisibility = useCallback(
+    (index: number) => {
+      if (index === selectedWidgetIndex) {
+        const firstVisibleWidgetIndex = widgets.findIndex(w => !w.isHidden);
+        setSelectedWidgetIndex(firstVisibleWidgetIndex);
+      }
+      updateWidget(index, {isHidden: !widgets[index].isHidden});
+    },
+    [selectedWidgetIndex, updateWidget, widgets]
+  );
+
+  const selectedWidget = widgets[selectedWidgetIndex];
+  const isSelectionValid = selectedWidget && !selectedWidget.isHidden;
 
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
-      selectedWidgetIndex:
-        selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
+      selectedWidgetIndex: isSelectionValid
+        ? selectedWidgetIndex
+        : widgets.findIndex(w => !w.isHidden),
       setSelectedWidgetIndex: handleSetSelectedWidgetIndex,
       updateWidget: handleUpdateWidget,
       removeWidget,
@@ -360,9 +384,11 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setIsMultiChartMode: handleSetIsMultiChartMode,
       metricsSamples,
       setMetricsSamples,
+      toggleWidgetVisibility,
     }),
     [
       handleAddWidget,
+      isSelectionValid,
       selectedWidgetIndex,
       widgets,
       handleSetSelectedWidgetIndex,
@@ -377,6 +403,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       isMultiChartMode,
       handleSetIsMultiChartMode,
       metricsSamples,
+      toggleWidgetVisibility,
     ]
   );
 
