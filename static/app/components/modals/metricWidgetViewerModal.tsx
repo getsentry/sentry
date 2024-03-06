@@ -16,7 +16,7 @@ import {convertToDashboardWidget, toDisplayType} from 'sentry/utils/metrics/dash
 import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {Order} from 'sentry/views/dashboards/metrics/types';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {getMetricQueries} from 'sentry/views/dashboards/metrics/utils';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';

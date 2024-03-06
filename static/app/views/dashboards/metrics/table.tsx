@@ -15,7 +15,7 @@ import {
   type MetricsQueryApiQueryParams,
   type MetricsQueryApiRequestQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
-import {Order} from 'sentry/views/dashboards/metrics/types';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 
 interface MetricTableContainerProps {

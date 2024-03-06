@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types';
 import {getWidgetTitle} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import {
   type MetricsQueryApiRequestQuery,
   useMetricsQuery,
@@ -20,7 +20,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
-import {Order} from 'sentry/views/dashboards/metrics/types';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
