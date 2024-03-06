@@ -365,7 +365,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 is_api_token=request.auth is not None,
             )
             if features.has(
-                "organizations:rule-save-edit-confirm-notification", project.organization
+                "organizations:rule-create-edit-confirm-notification", project.organization
             ):
                 send_confirmation_notification(rule=rule, new=False)
             return Response(serialize(updated_rule, request.user))

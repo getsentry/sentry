@@ -1827,8 +1827,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
-    # Enable post save/edit rule confirmation notifications
-    "organizations:rule-save-edit-confirm-notification": False,
+    # Enable post create/edit rule confirmation notifications
+    "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing

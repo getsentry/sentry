@@ -841,7 +841,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
-        if features.has("organizations:rule-save-edit-confirm-notification", project.organization):
+        if features.has(
+            "organizations:rule-create-edit-confirm-notification", project.organization
+        ):
             send_confirmation_notification(rule=rule, new=True)
 
         return Response(serialize(rule, request.user))
