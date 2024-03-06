@@ -706,8 +706,8 @@ class MonitorEnvBrokenDetection(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
-    detection_timestamp = models.DateTimeField()
-    user_notified_timestamp = models.DateTimeField(null=True)
+    detection_timestamp = models.DateTimeField(auto_now_add=True)
+    user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"
