@@ -64,6 +64,7 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
             # Add release info if we have it
             if context.new_in_release:
+                fields = []
                 for release_id, errors in context.new_in_release.items():
                     try:
                         release = Release.objects.get(id=release_id)
@@ -72,9 +73,20 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
                     release_text = self.linkify_release(release, project.organization)
                     for error in errors[0:3]:
-                        linked_title = self.linkify_error_title(error)
-                        release_text += f"• :new: {linked_title}\n"
-                blocks.append(self.get_markdown_block(release_text))
+                        linked_issue_title = self.linkify_error_title(error)
+                        release_text += f"• :new: {linked_issue_title}\n"
+                        fields.append(
+                            {
+                                "type": "mrkdwn",
+                                "text": release_text,
+                            },
+                        )
+                blocks.append(
+                    {
+                        "type": "section",
+                        "fields": fields,
+                    }
+                )
 
             # Calculate today's event count percentage against 14 day avg
             if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
