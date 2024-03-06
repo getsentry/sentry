@@ -210,11 +210,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
 
-        user = self.get_interface("user")
-        if user is not None:
-            user._data.pop("sentry_user", None)
-            return user
-        return None
+        return self.get_interface("user")
 
     def get_event_type(self) -> str:
         """
