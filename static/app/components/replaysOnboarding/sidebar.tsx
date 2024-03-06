@@ -10,10 +10,10 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
+import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {
   generateDocKeys,
@@ -30,7 +30,6 @@ import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
-  replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -60,9 +59,6 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     unsupportedProjects,
   } = useCurrentProjectState({
     currentPanel,
-    targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
-    onboardingPlatforms: replayOnboardingPlatforms,
-    allPlatforms: replayPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
