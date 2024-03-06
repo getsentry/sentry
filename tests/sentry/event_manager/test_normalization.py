@@ -42,7 +42,7 @@ def test_interface_is_relabeled():
     manager.normalize()
     data = manager.get_data()
 
-    assert data["user"] == {"id": "1"}
+    assert data["user"] == {"id": "1", "sentry_user": "id:1"}
 
 
 @pytest.mark.parametrize("user", ["missing", None, {}, {"ip_address": None}])
