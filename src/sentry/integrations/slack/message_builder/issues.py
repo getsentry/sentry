@@ -35,7 +35,7 @@ from sentry.integrations.slack.message_builder import (
     SlackBlock,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
@@ -576,6 +576,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
         self.commits = commits
+        self.use_improved_block_kit = features.has(
+            "organizations:slack-block-kit-improvements", group.project.organization
+        )
 
     @property
     def escape_text(self) -> bool:
@@ -587,7 +590,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-        if self.escape_text:
+        text = text.strip(" \n")
+
+        if self.use_improved_block_kit:
+            text = escape_slack_markdown_text(text)
+        if not self.use_improved_block_kit and self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
             # If we figure out why this is required we should note it here because it's quite strange
@@ -659,21 +666,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build title block
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
-        use_improved_block_kit = features.has(
-            "organizations:slack-block-kit-improvements", self.group.project.organization
-        )
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
                     level_text = k
 
-            if use_improved_block_kit:
+            if self.use_improved_block_kit:
                 title_emoji = LEVEL_TO_EMOJI_V2.get(level_text)
             else:
                 title_emoji = LEVEL_TO_EMOJI.get(level_text)
         else:
-            if use_improved_block_kit:
+            if self.use_improved_block_kit:
                 title_emoji = CATEGORY_TO_EMOJI_V2.get(self.group.issue_category)
             else:
                 title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)

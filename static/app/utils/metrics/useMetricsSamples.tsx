@@ -1,12 +1,41 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {MRI, PageFilters} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import type {DateString, MRI, PageFilters} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-interface UseMetricSamplesOptions<F extends string> {
+/**
+ * This type is incomplete as there are other fields available.
+ */
+type FieldTypes = {
+  id: string;
+  profile_id: string | undefined;
+  project: string;
+  'project.id': number;
+  'span.description': string;
+  'span.duration': number;
+  'span.op': string;
+  'span.self_time': number;
+  timestamp: DateString;
+  trace: string;
+  'transaction.id': string;
+};
+
+export type Summary = {
+  count: number;
+  max: number;
+  min: number;
+  sum: number;
+};
+
+type ResultFieldTypes = FieldTypes & {
+  summary: Summary;
+};
+
+export type Field = keyof FieldTypes;
+export type ResultField = keyof ResultFieldTypes;
+
+interface UseMetricSamplesOptions<F extends Field> {
   fields: F[];
   referrer: string;
   datetime?: PageFilters['datetime'];
@@ -15,17 +44,17 @@ interface UseMetricSamplesOptions<F extends string> {
   max?: number;
   min?: number;
   mri?: MRI;
+  op?: string;
   query?: string;
+  sort?: string;
 }
 
-export interface MetricsSamplesResults<F extends string> {
-  data: {
-    [K in F]: string[] | string | number | null;
-  }[];
+export interface MetricsSamplesResults<F extends Field> {
+  data: Pick<ResultFieldTypes, F | 'summary'>[];
   meta: any; // not going to type this yet
 }
 
-export function useMetricsSamples<F extends string>({
+export function useMetricsSamples<F extends Field>({
   datetime,
   enabled,
   fields,
@@ -33,8 +62,10 @@ export function useMetricsSamples<F extends string>({
   max,
   min,
   mri,
+  op,
   referrer,
   query,
+  sort,
 }: UseMetricSamplesOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -50,9 +81,11 @@ export function useMetricsSamples<F extends string>({
       max,
       min,
       mri,
+      operation: op,
       query,
       referrer,
       per_page: limit,
+      sort,
     },
   };
 
@@ -64,35 +97,18 @@ export function useMetricsSamples<F extends string>({
   });
 }
 
-export function isSupportedMRI(mri: MRI): boolean {
-  // extracted transaction metrics
-  if (mri === 'd:transactions/duration@millisecond') {
-    return true;
+export function getSummaryValueForOp(summary: Summary, op?: string) {
+  switch (op) {
+    case 'count':
+      return summary.count;
+    case 'min':
+      return summary.min;
+    case 'max':
+      return summary.max;
+    case 'sum':
+      return summary.sum;
+    case 'avg':
+    default:
+      return summary.sum / summary.count;
   }
-
-  // extracted span metrics
-  if (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'd:spans/duration@millisecond'
-  ) {
-    return true;
-  }
-
-  const parsedMRI = parseMRI(mri);
-  if (defined(parsedMRI)) {
-    // extracted measurement metrics
-    if (
-      parsedMRI.useCase === 'transactions' &&
-      parsedMRI.name.startsWith('measurements.')
-    ) {
-      return true;
-    }
-
-    // user defined custom metrics
-    if (parsedMRI.useCase === 'custom') {
-      return true;
-    }
-  }
-
-  return false;
 }

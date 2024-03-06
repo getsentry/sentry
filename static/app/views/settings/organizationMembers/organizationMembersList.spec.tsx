@@ -448,7 +448,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
 
-    it('disable buttons for no access', function () {
+    it('disable buttons for no access', async function () {
       const org = OrganizationFixture({
         status: {
           id: 'active',
@@ -469,7 +469,7 @@ describe('OrganizationMembersList', function () {
         context: RouterContextFixture([{organization: org}]),
       });
 
-      expect(screen.getByText('Pending Members')).toBeInTheDocument();
+      expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
     });
 

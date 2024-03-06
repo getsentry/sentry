@@ -109,6 +109,7 @@ export type ProjectKey = {
     window: number;
   } | null;
   secret: string;
+  useCase?: string;
 };
 
 export type ProjectSdkUpdates = {

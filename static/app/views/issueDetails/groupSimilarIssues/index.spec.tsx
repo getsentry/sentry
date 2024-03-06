@@ -211,8 +211,8 @@ describe('Issues Similar Embeddings View', function () {
   ]);
 
   const similarEmbeddingsScores = [
-    {exception: 0.9987, message: 0.3748, shouldBeGrouped: 'Yes'},
-    {exception: 0.9985, message: 0.3738, shouldBeGrouped: 'Yes'},
+    {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
+    {exception: 0.005, message: 0.3738, shouldBeGrouped: 'Yes'},
     {exception: 0.7384, message: 0.3743, shouldBeGrouped: 'No'},
     {exception: 0.3849, message: 0.4738, shouldBeGrouped: 'No'},
   ];
@@ -228,7 +228,7 @@ describe('Issues Similar Embeddings View', function () {
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
       body: mockData.simlarEmbeddings,
     });
   });
@@ -368,7 +368,7 @@ describe('Issues Similar Embeddings View', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=5&threshold=0.99',
+      url: '/organizations/org-slug/issues/group-id/similar-issues-embeddings/?k=10&threshold=0.01',
       body: [],
     });
 

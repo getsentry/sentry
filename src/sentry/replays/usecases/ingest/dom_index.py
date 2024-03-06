@@ -6,17 +6,12 @@ import time
 import uuid
 from collections.abc import Generator
 from hashlib import md5
-from typing import Any, Literal, TypedDict, cast
-
-from django.conf import settings
+from typing import Any, Literal, TypedDict
 
 from sentry import features
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
-from sentry.replays.usecases.ingest.events import SentryEvent
-from sentry.replays.usecases.ingest.issue_creation import (
-    report_rage_click_issue,
-    report_rage_click_issue_with_replay_event,
-)
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue_with_replay_event
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -219,7 +214,7 @@ def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
-        config = kafka_config.get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
+        config = kafka_config.get_topic_definition(Topic.INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
@@ -314,31 +309,33 @@ def _handle_resource_metric_event(event: dict[str, Any]) -> None:
     if not isinstance(event_payload_data, dict):
         event_payload_data = {}
 
-    if event_payload_data.get("requestBodySize"):  # 7.44 and 7.45
+    if "requestBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.request_body_size",
             event_payload_data["requestBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("request", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.request_body_size",
-            event_payload_data["request"]["size"],
-            unit="byte",
-        )
+    elif request := event_payload_data.get("request"):
+        if isinstance(request, dict) and "size" in request:
+            metrics.distribution(
+                "replays.usecases.ingest.request_body_size",
+                request["size"],
+                unit="byte",
+            )
 
-    if event_payload_data.get("responseBodySize"):  # 7.44 and 7.45
+    if "responseBodySize" in event_payload_data:  # 7.44 and 7.45
         metrics.distribution(
             "replays.usecases.ingest.response_body_size",
             event_payload_data["responseBodySize"],
             unit="byte",
         )
-    elif event_payload_data.get("response", {}).get("size"):
-        metrics.distribution(
-            "replays.usecases.ingest.response_body_size",
-            event_payload_data["response"]["size"],
-            unit="byte",
-        )
+    elif response := event_payload_data.get("response"):
+        if isinstance(response, dict) and "size" in response:
+            metrics.distribution(
+                "replays.usecases.ingest.response_body_size",
+                response["size"],
+                unit="byte",
+            )
 
 
 def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
@@ -400,10 +397,6 @@ def _handle_breadcrumb(
                                 payload["data"]["url"],
                                 payload["data"]["node"],
                                 replay_event,
-                            )
-                        else:
-                            report_rage_click_issue.delay(
-                                project_id, replay_id, cast(SentryEvent, event)
                             )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()

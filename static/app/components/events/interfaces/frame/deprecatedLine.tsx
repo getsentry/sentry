@@ -480,6 +480,7 @@ export class DeprecatedLine extends Component<Props, State> {
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
+          platform={this.props.platform}
         />
       </StyledLi>
     );

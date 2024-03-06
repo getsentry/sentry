@@ -164,6 +164,40 @@ def test_client_config_with_region_data():
     assert {r["name"] for r in regions} == {"eu", "us"}
 
 
+multiregion_client_config_test = control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+
+hidden_regions = [
+    region.Region(
+        name="us",
+        snowflake_id=1,
+        address="https//us.testserver",
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+    region.Region(
+        name="eu",
+        snowflake_id=5,
+        address="https//eu.testserver",
+        visible=False,
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+]
+
+
+@control_silo_test(regions=hidden_regions, include_monolith_run=True)
+@django_db_all
+def test_client_config_with_hidden_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"us"}
+
+
 @multiregion_client_config_test
 @django_db_all
 def test_client_config_with_single_tenant_membership():

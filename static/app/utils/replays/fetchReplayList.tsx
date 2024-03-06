@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-started_at';
 
@@ -25,7 +25,7 @@ type Props = {
   location: Location;
   organization: Organization;
   perPage?: number;
-  queryReferrer?: 'issueReplays';
+  queryReferrer?: ReplayListQueryReferrer;
 };
 
 async function fetchReplayList({
@@ -59,7 +59,10 @@ async function fetchReplayList({
         // when queryReferrer === 'issueReplays' we override the global view check on the backend
         // we also require a project param otherwise we won't yield results
         queryReferrer,
-        project: queryReferrer === 'issueReplays' ? ALL_ACCESS_PROJECTS : payload.project,
+        project:
+          queryReferrer === 'issueReplays' || queryReferrer === 'transactionReplays'
+            ? ALL_ACCESS_PROJECTS
+            : payload.project,
       },
     });
 

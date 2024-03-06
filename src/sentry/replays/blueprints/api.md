@@ -31,7 +31,7 @@ This document is structured by resource with each resource having actions that c
   - offset (optional, number)
     Default: 0
   - query (optional, string) - Search query with space-separated field/value pairs. ie: `?query=count_errors:>2 AND duration:<1h`.
-  - queryReferrer(optional, string) - Specify the page which this query is being made from. Used for cross project query on issue replays page. Pass `queryReferrer=issueReplays` for this query.
+  - queryReferrer(optional, string) - Specify the page which this query is being made from.
     Some fields in the API response have their own dedicated parameters, or are otherwide not supported in the `query` param. They are:
 
     | Response Field      | Parameter       |
@@ -487,6 +487,18 @@ With download query argument.
 - Response 200
 
   Content-Type application/octet-stream
+
+## Replay Video [/projects/<organization_slug>/<project_slug>/replays/<replay_id>/videos/<segment_id>/]
+
+### Fetch Replay Video [GET]
+
+Returns the bytes of a replay-segment video.
+
+- Response 200
+
+  ```
+  \x00\x00\x00
+  ```
 
 ## Replay Tag Keys [/projects/<organization_slug>/<project_slug>/replays/tags/]
 

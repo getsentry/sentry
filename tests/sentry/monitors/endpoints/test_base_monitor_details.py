@@ -384,6 +384,43 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 
+    def test_existing_issue_alert_rule_add_slug_condition(self):
+        monitor = self._create_monitor()
+        rule = self._create_issue_alert_rule(monitor, exclude_slug_filter=True)
+        new_environment = self.create_environment(name="jungle")
+        new_user = self.create_user()
+        self.create_team_membership(user=new_user, team=self.team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "name": "new-name",
+                "slug": "new-slug",
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": new_user.id, "targetType": "Member"}],
+                    "environment": new_environment.name,
+                },
+            },
+        )
+        assert resp.data["slug"] == "new-slug"
+        monitor = Monitor.objects.get(id=monitor.id)
+        monitor_rule = monitor.get_issue_alert_rule()
+        assert monitor_rule.id == rule.id
+
+        # Verify we added the slug filter
+        assert monitor_rule.data["conditions"] == [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": "new-slug",
+            },
+        ]
+
     def test_without_existing_issue_alert_rule(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(

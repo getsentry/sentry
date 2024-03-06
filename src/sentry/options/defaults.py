@@ -106,9 +106,8 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
-# See eventstore.processing.multiredis
+# See getsentry.processingstore
 register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("eventstore.processing.readold", type=Bool, default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Processing worker caches
 register(
@@ -965,6 +964,9 @@ register(
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Switch to use service wrapper for reprocessing redis operations
+register("reprocessing.use_store", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # BEGIN ABUSE QUOTAS
 
 # Example:
@@ -1651,6 +1653,10 @@ register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMAT
 register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+register(
+    "hybrid_cloud.use_region_specific_upload_url", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2158,4 +2164,23 @@ register(
     "store.experimental-dsn-double-write.sample-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# killswitch for profiling ddm functions metrics.
+# Enable/Disable the ingestion of function metrics
+# in the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of org IDs for which we'll write the function
+# metrics to the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.allowed_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

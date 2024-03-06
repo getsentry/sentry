@@ -6,6 +6,7 @@ from enum import IntEnum
 
 from django.conf import settings
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.dates import to_datetime
@@ -72,11 +73,10 @@ def track_outcome(
     assert isinstance(category, (type(None), DataCategory))
     assert isinstance(quantity, int)
 
-    outcomes_config = kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES)
-    billing_config = kafka_config.get_topic_definition(settings.KAFKA_OUTCOMES_BILLING)
-    use_billing = (
-        outcome.is_billing() and settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES_BILLING] is not None
-    )
+    outcomes_config = kafka_config.get_topic_definition(Topic.OUTCOMES)
+    billing_config = kafka_config.get_topic_definition(Topic.OUTCOMES_BILLING)
+
+    use_billing = outcome.is_billing()
 
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.

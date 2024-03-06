@@ -33,10 +33,13 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def _use_monolith_dbs() -> bool:
+    return os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+
+
 def configure_split_db() -> None:
-    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     already_configured = "control" in settings.DATABASES
-    if already_configured or SENTRY_USE_MONOLITH_DBS:
+    if already_configured or _use_monolith_dbs():
         return
 
     # Add connections for the region & control silo databases.
@@ -50,14 +53,12 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
-DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+def get_default_silo_mode_for_test_cases() -> SiloMode:
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
 
 
 def _configure_test_env_regions() -> None:
-    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
-    settings.SILO_MODE = (
-        DEFAULT_SILO_MODE_FOR_TEST_CASES if not SENTRY_USE_MONOLITH_DBS else SiloMode.MONOLITH
-    )
+    settings.SILO_MODE = get_default_silo_mode_for_test_cases()
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that

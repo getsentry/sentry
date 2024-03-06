@@ -1,11 +1,27 @@
 from collections.abc import Sequence
 
-from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
+from snuba_sdk import (
+    AliasedExpression,
+    ArithmeticOperator,
+    Column,
+    Condition,
+    Formula,
+    Op,
+    Timeseries,
+)
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    NonNormalizableUnitsError,
+)
 from sentry.sentry_metrics.querying.types import QueryExpression
+from sentry.sentry_metrics.querying.units import (
+    MeasurementUnit,
+    UnitFamily,
+    get_unit_family_and_unit,
+)
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
@@ -211,7 +227,10 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
 
         return {timeseries.metric.mri}
 
-    def _visit_number(self, number: float) -> set[str]:
+    def _visit_int(self, int_number: float):
+        return set()
+
+    def _visit_float(self, float_number: float) -> set[str]:
         return set()
 
     def _visit_string(self, string: str) -> set[str]:
@@ -234,7 +253,10 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     def _visit_timeseries(self, timeseries: Timeseries) -> set[str]:
         return self._group_bys_as_string(timeseries.groupby)
 
-    def _visit_number(self, number: float) -> set[str]:
+    def _visit_int(self, int_number: float):
+        return set()
+
+    def _visit_float(self, float_number: float) -> set[str]:
         return set()
 
     def _visit_string(self, string: str) -> set[str]:
@@ -252,3 +274,94 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
                 string_group_bys.add(group_by.name)
 
         return string_group_bys
+
+
+class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively transforms the `QueryExpression` components to have the same unit. Throws an error in
+    case units are incompatible.
+    """
+
+    UNITLESS_FORMULA_FUNCTIONS = {
+        ArithmeticOperator.DIVIDE.value,
+        ArithmeticOperator.MULTIPLY.value,
+    }
+    UNITLESS_AGGREGATES = {"count", "count_unique"}
+
+    def __init__(self):
+        self._unit_family = None
+        self._reference_unit = None
+        self._scaling_factor = None
+
+        self._is_formula = False
+
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        self._is_formula = True
+
+        has_all_timeseries_params = True
+        parameters = []
+        for parameter in formula.parameters:
+            if not isinstance(parameter, Timeseries):
+                has_all_timeseries_params = False
+
+            parameters.append(self.visit(parameter))
+
+        # If we have all timeseries as parameters of a formula and the function is belonging to `*` or `/` we will
+        # not perform any units normalization.
+        # TODO: we might want to implement units normalization following a more mathematical approach like `ms^2` or
+        #  `byte/s` but this is going to come at a later point.
+        if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and has_all_timeseries_params:
+            raise NonNormalizableUnitsError(
+                "A unitless formula function is being used and has at least one "
+                "timeseries in one of its operands"
+            )
+
+        return formula.set_parameters(parameters)
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        extracted_unit = self._extract_unit(timeseries=timeseries)
+        if extracted_unit is not None:
+            unit_family, reference_unit, unit = get_unit_family_and_unit(extracted_unit)
+            # If we encounter multiple unit families in a `QueryExpression`, we want to unwind and not apply any
+            # units normalization.
+            if self._unit_family is not None and unit_family != self._unit_family:
+                raise NonNormalizableUnitsError("Multiple unit families are found in the formula")
+
+            # We set the first seen unit family, irrespectively if a unit is found, since if it's not found, the family
+            # will be unknown.
+            self._unit_family = unit_family
+
+            if reference_unit is not None and unit is not None:
+                self._reference_unit = reference_unit
+                self._scaling_factor = unit.scaling_factor
+                return unit.apply_on_timeseries(timeseries)
+
+        return timeseries
+
+    def _extract_unit(self, timeseries: Timeseries) -> str | None:
+        # If the aggregate doesn't support unit normalization, we will skip it.
+        if timeseries.aggregate in self.UNITLESS_AGGREGATES:
+            raise NonNormalizableUnitsError(
+                f"The aggregate {timeseries.aggregate} doesn't need unit normalization"
+            )
+
+        parsed_mri = parse_mri(timeseries.metric.mri)
+        if parsed_mri is not None:
+            return parsed_mri.unit
+
+        raise NonNormalizableUnitsError(
+            "Units normalization can't be run if not all components have a metric mri"
+        )
+
+    def get_units_metadata(
+        self,
+    ) -> tuple[UnitFamily | None, MeasurementUnit | None, float | int | None]:
+        """
+        Returns metadata of the units that were encountered during the traversal.
+        """
+        # If we have a formula, we do not return the scaling factor, since a formula technically has multiple scaling
+        # factors, but they won't be of use to the frontend.
+        if self._is_formula:
+            return self._unit_family, self._reference_unit, None
+
+        return self._unit_family, self._reference_unit, self._scaling_factor

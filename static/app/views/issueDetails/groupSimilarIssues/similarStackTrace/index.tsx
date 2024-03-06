@@ -62,8 +62,8 @@ function SimilarStackTrace({params, location, project}: Props) {
       reqs.push({
         endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
           {
-            k: 5,
-            threshold: 0.99,
+            k: 10,
+            threshold: 0.01,
           }
         )}`,
         dataKey: 'similar',

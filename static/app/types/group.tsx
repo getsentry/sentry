@@ -391,7 +391,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -414,7 +414,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -784,6 +784,7 @@ export interface BaseGroup {
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
+  priorityLockedAt: string | null;
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -911,7 +912,7 @@ export type KeyValueListDataItem = {
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode;
+  value?: React.ReactNode | Record<string, string | number>;
 };
 
 export type KeyValueListData = KeyValueListDataItem[];

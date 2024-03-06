@@ -27,11 +27,11 @@ const createSearchMap = ({
     ? formGroups.flatMap(formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
-  return listOfFields.map(field => ({
+  return listOfFields.map<FormSearchField>(field => ({
     ...other,
     route,
-    title: typeof field !== 'function' ? field.label : undefined,
-    description: typeof field !== 'function' ? field.help : undefined,
+    title: typeof field !== 'function' ? (field.label as string) : undefined,
+    description: typeof field !== 'function' ? (field.help as string) : undefined,
     field,
   }));
 };

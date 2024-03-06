@@ -56,7 +56,8 @@ function DeviceClassBreakdownBarChart({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
   const yAxis =
     YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);

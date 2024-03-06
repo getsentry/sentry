@@ -1,5 +1,16 @@
-import {Fragment, useMemo, useState} from 'react';
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import * as qs from 'query-string';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -12,7 +23,6 @@ import {t} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery, {
   type TraceMetaQueryChildrenProps,
 } from 'sentry/utils/performance/quickTrace/traceMetaQuery';
@@ -26,16 +36,37 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {rovingTabIndexReducer} from 'sentry/views/performance/newTraceDetails/rovingTabIndex';
+import {
+  searchInTraceTree,
+  traceSearchReducer,
+} from 'sentry/views/performance/newTraceDetails/traceSearch';
+import {TraceSearchInput} from 'sentry/views/performance/newTraceDetails/traceSearchInput';
+import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import Breadcrumb from '../breadcrumb';
 
+import TraceDetailPanel from './newTraceDetailPanel';
 import Trace from './trace';
 import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
-import {TraceTree} from './traceTree';
+import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
+import {useTrace} from './useTrace';
 
 const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+
+function maybeFocusRow() {
+  const focused_node = document.querySelector(".TraceRow[tabIndex='0']");
+
+  if (
+    focused_node &&
+    'focus' in focused_node &&
+    typeof focused_node.focus === 'function'
+  ) {
+    focused_node.focus();
+  }
+}
 
 export function TraceView() {
   const location = useLocation();
@@ -44,19 +75,19 @@ export function TraceView() {
 
   const traceSlug = params.traceSlug?.trim() ?? '';
 
-  const dateSelection = useMemo(() => {
-    const queryParams = normalizeDateTimeParams(location.query, {
+  const queryParams = useMemo(() => {
+    const normalizedParams = normalizeDateTimeParams(location.query, {
       allowAbsolutePageDatetime: true,
     });
-    const start = decodeScalar(queryParams.start);
-    const end = decodeScalar(queryParams.end);
-    const statsPeriod = decodeScalar(queryParams.statsPeriod);
+    const start = decodeScalar(normalizedParams.start);
+    const end = decodeScalar(normalizedParams.end);
+    const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-    return {start, end, statsPeriod};
+    return {start, end, statsPeriod, useSpans: 1};
   }, [location.query]);
 
-  const _traceEventView = useMemo(() => {
-    const {start, end, statsPeriod} = dateSelection;
+  const traceEventView = useMemo(() => {
+    const {start, end, statsPeriod} = queryParams;
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -70,48 +101,34 @@ export function TraceView() {
       end,
       range: statsPeriod,
     });
-  }, [dateSelection, traceSlug]);
+  }, [queryParams, traceSlug]);
 
-  const [_limit, _setLimit] = useState<number>();
-  // const _handleLimithange = useCallback((newLimit: number) => {
-  //   setLimit(newLimit);
-  // }, []);
+  const trace = useTrace();
 
   return (
     <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
       <Layout.Page>
         <NoProjectMessage organization={organization}>
-          <TraceFullDetailedQuery
-            type="spans"
+          <TraceMetaQuery
             location={location}
             orgSlug={organization.slug}
             traceId={traceSlug}
-            start={dateSelection.start}
-            end={dateSelection.end}
-            statsPeriod={dateSelection.statsPeriod}
+            start={queryParams.start}
+            end={queryParams.end}
+            statsPeriod={queryParams.statsPeriod}
           >
-            {trace => (
-              <TraceMetaQuery
+            {metaResults => (
+              <TraceViewContent
+                status={trace.status}
+                trace={trace.data}
+                traceSlug={traceSlug}
+                organization={organization}
                 location={location}
-                orgSlug={organization.slug}
-                traceId={traceSlug}
-                start={dateSelection.start}
-                end={dateSelection.end}
-                statsPeriod={dateSelection.statsPeriod}
-              >
-                {metaResults => (
-                  <TraceViewContent
-                    traceSplitResult={trace?.traces}
-                    traceSlug={traceSlug}
-                    organization={organization}
-                    location={location}
-                    traceEventView={_traceEventView}
-                    metaResults={metaResults}
-                  />
-                )}
-              </TraceMetaQuery>
+                traceEventView={traceEventView}
+                metaResults={metaResults}
+              />
             )}
-          </TraceFullDetailedQuery>
+          </TraceMetaQuery>
         </NoProjectMessage>
       </Layout.Page>
     </SentryDocumentTitle>
@@ -122,49 +139,194 @@ type TraceViewContentProps = {
   location: Location;
   metaResults: TraceMetaQueryChildrenProps;
   organization: Organization;
+  status: 'pending' | 'resolved' | 'error' | 'initial';
+  trace: TraceSplitResults<TraceFullDetailed> | null;
   traceEventView: EventView;
   traceSlug: string;
-  traceSplitResult: TraceSplitResults<TraceFullDetailed> | null;
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const rootEvent = props.traceSplitResult?.transactions?.[0];
   const {projects} = useProjects();
+
+  const rootEvent = useRootEvent(props.trace?.transactions);
+
+  const viewManager = useMemo(() => {
+    return new VirtualizedViewManager({
+      list: {width: 0.5},
+      span_list: {width: 0.5},
+    });
+  }, []);
+
   const tree = useMemo(() => {
-    if (!props.traceSplitResult) {
+    if (props.status === 'pending' || rootEvent.status !== 'success') {
       return TraceTree.Loading({
         project_slug: projects?.[0]?.slug ?? '',
         event_id: props.traceSlug,
       });
     }
 
-    return TraceTree.FromTrace(props.traceSplitResult);
-  }, [props.traceSlug, props.traceSplitResult, projects]);
+    if (props.trace) {
+      return TraceTree.FromTrace(props.trace, rootEvent.data);
+    }
+
+    return TraceTree.Empty();
+  }, [
+    props.traceSlug,
+    props.trace,
+    props.status,
+    projects,
+    rootEvent.data,
+    rootEvent.status,
+  ]);
 
   const traceType = useMemo(() => {
-    if (tree.type === 'loading') {
+    if (props.status !== 'resolved' || !tree) {
       return null;
     }
     return TraceTree.GetTraceType(tree.root);
-  }, [tree]);
+  }, [props.status, tree]);
 
-  const rootEventResults = useApiQuery<EventTransaction>(
-    [
-      `/organizations/${props.organization.slug}/events/${rootEvent?.project_slug}:${rootEvent?.event_id}/`,
-      {
-        query: {
-          referrer: 'trace-details-summary',
-        },
-      },
-    ],
+  const [rovingTabIndexState, rovingTabIndexDispatch] = useReducer(
+    rovingTabIndexReducer,
     {
-      staleTime: 0,
-      enabled: !!(
-        props.traceSplitResult?.transactions &&
-        props.traceSplitResult.transactions.length > 0
-      ),
+      index: null,
+      items: null,
+      node: null,
     }
   );
+
+  useLayoutEffect(() => {
+    return rovingTabIndexDispatch({
+      type: 'initialize',
+      items: tree.list.length - 1,
+      index: null,
+      node: null,
+    });
+  }, [tree.list.length]);
+
+  const initialQuery = useMemo((): string | undefined => {
+    const query = qs.parse(location.search);
+
+    if (typeof query.search === 'string') {
+      return query.search;
+    }
+    return undefined;
+    // We only want to decode on load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [searchState, searchDispatch] = useReducer(traceSearchReducer, {
+    query: initialQuery,
+    resultIteratorIndex: undefined,
+    resultIndex: undefined,
+    results: undefined,
+    status: undefined,
+    resultsLookup: new Map(),
+  });
+
+  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
+    null
+  );
+
+  const onDetailClose = useCallback(() => {
+    setDetailNode(null);
+    maybeFocusRow();
+  }, []);
+
+  const onSetDetailNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
+      setDetailNode(prevNode => {
+        return prevNode === node ? null : node;
+      });
+      maybeFocusRow();
+    },
+    []
+  );
+
+  const searchingRaf = useRef<{id: number | null} | null>(null);
+  const onTraceSearch = useCallback(
+    (query: string) => {
+      if (searchingRaf.current?.id) {
+        window.cancelAnimationFrame(searchingRaf.current.id);
+      }
+
+      searchingRaf.current = searchInTraceTree(query, tree, results => {
+        searchDispatch({
+          type: 'set results',
+          results: results[0],
+          resultsLookup: results[1],
+        });
+      });
+    },
+    [tree]
+  );
+
+  const previousIndexRef = React.useRef<number | undefined>(searchState.resultIndex);
+  useLayoutEffect(() => {
+    if (previousIndexRef.current === searchState.resultIndex) {
+      return;
+    }
+    if (!viewManager.list) {
+      return;
+    }
+
+    viewManager.list.scrollToRow(searchState.resultIndex);
+    previousIndexRef.current = searchState.resultIndex;
+  }, [searchState.resultIndex, viewManager.list]);
+
+  const onSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event.currentTarget.value) {
+        searchDispatch({type: 'clear query'});
+        return;
+      }
+
+      onTraceSearch(event.currentTarget.value);
+      searchDispatch({type: 'set query', query: event.currentTarget.value});
+    },
+    [onTraceSearch]
+  );
+
+  const onSearchClear = useCallback(() => {
+    searchDispatch({type: 'clear query'});
+  }, []);
+
+  const onSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      searchDispatch({type: 'go to next match'});
+    } else {
+      if (event.key === 'ArrowUp') {
+        searchDispatch({type: 'go to previous match'});
+      }
+    }
+  }, []);
+
+  const onNextSearchClick = useCallback(() => {
+    searchDispatch({type: 'go to next match'});
+  }, []);
+
+  const onPreviousSearchClick = useCallback(() => {
+    searchDispatch({type: 'go to previous match'});
+  }, []);
+
+  const breadcrumbTransaction = useMemo(() => {
+    return {
+      project: rootEvent.data?.projectID ?? '',
+      name: rootEvent.data?.title ?? '',
+    };
+  }, [rootEvent.data]);
+
+  const trackOpenInDiscover = useCallback(() => {
+    trackAnalytics('performance_views.trace_view.open_in_discover', {
+      organization: props.organization,
+    });
+  }, [props.organization]);
+
+  const syncQuery = useMemo(() => {
+    return {search: searchState.query};
+  }, [searchState.query]);
+
+  useQueryParamSync(syncQuery);
 
   return (
     <Fragment>
@@ -173,10 +335,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           <Breadcrumb
             organization={props.organization}
             location={props.location}
-            transaction={{
-              project: rootEventResults.data?.projectID ?? '',
-              name: rootEventResults.data?.title ?? '',
-            }}
+            transaction={breadcrumbTransaction}
             traceSlug={props.traceSlug}
           />
           <Layout.Title data-test-id="trace-header">
@@ -188,11 +347,7 @@ function TraceViewContent(props: TraceViewContentProps) {
             <DiscoverButton
               size="sm"
               to={props.traceEventView.getResultsViewUrlTarget(props.organization.slug)}
-              onClick={() => {
-                trackAnalytics('performance_views.trace_view.open_in_discover', {
-                  organization: props.organization,
-                });
-              }}
+              onClick={trackOpenInDiscover}
             >
               {t('Open in Discover')}
             </DiscoverButton>
@@ -203,21 +358,100 @@ function TraceViewContent(props: TraceViewContentProps) {
         <Layout.Main fullWidth>
           {traceType ? <TraceWarnings type={traceType} /> : null}
           <TraceHeader
-            rootEventResults={rootEventResults}
+            rootEventResults={rootEvent}
             metaResults={props.metaResults}
             organization={props.organization}
-            traces={props.traceSplitResult}
+            traces={props.trace}
           />
-          <Trace trace={tree} trace_id={props.traceSlug} />
+          <TraceSearchInput
+            query={searchState.query}
+            status={searchState.status}
+            onChange={onSearchChange}
+            onSearchClear={onSearchClear}
+            onKeyDown={onSearchKeyDown}
+            onNextSearchClick={onNextSearchClick}
+            onPreviousSearchClick={onPreviousSearchClick}
+            resultCount={searchState.results?.length}
+            resultIteratorIndex={searchState.resultIteratorIndex}
+          />
+          <Trace
+            trace={tree}
+            trace_id={props.traceSlug}
+            roving_dispatch={rovingTabIndexDispatch}
+            roving_state={rovingTabIndexState}
+            search_dispatch={searchDispatch}
+            search_state={searchState}
+            setDetailNode={onSetDetailNode}
+            searchResultsIteratorIndex={searchState.resultIndex}
+            searchResultsMap={searchState.resultsLookup}
+            onTraceSearch={onTraceSearch}
+            manager={viewManager}
+          />
           <TraceFooter
-            rootEventResults={rootEventResults}
+            rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
-            traces={props.traceSplitResult}
+            traces={props.trace}
             traceEventView={props.traceEventView}
           />
+          {<TraceDetailPanel node={detailNode} onClose={onDetailClose} />}
         </Layout.Main>
       </Layout.Body>
     </Fragment>
+  );
+}
+
+function useQueryParamSync(query: Record<string, string | undefined>) {
+  const previousQueryRef = useRef<Record<string, string | undefined>>(query);
+  const syncStateTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const keys = Object.keys(query);
+    const previousKeys = Object.keys(previousQueryRef.current);
+
+    if (
+      keys.length === previousKeys.length &&
+      keys.every(key => {
+        return query[key] === previousQueryRef.current[key];
+      })
+    ) {
+      previousQueryRef.current = query;
+      return;
+    }
+
+    if (syncStateTimeoutRef.current !== null) {
+      window.clearTimeout(syncStateTimeoutRef.current);
+    }
+
+    previousQueryRef.current = query;
+    syncStateTimeoutRef.current = window.setTimeout(() => {
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          ...qs.parse(location.search),
+          ...previousQueryRef.current,
+        },
+      });
+    }, 1000);
+  }, [query]);
+}
+
+function useRootEvent(trace: TraceFullDetailed[] | undefined) {
+  const root = trace?.[0];
+  const organization = useOrganization();
+
+  return useApiQuery<EventTransaction>(
+    [
+      `/organizations/${organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
+      {
+        query: {
+          referrer: 'trace-details-summary',
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: !!trace,
+    }
   );
 }

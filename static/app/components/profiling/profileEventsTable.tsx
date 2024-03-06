@@ -310,6 +310,7 @@ const FIELDS = [
   'os.name',
   'os.version',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -322,6 +323,7 @@ type FieldType = (typeof FIELDS)[number];
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',
   'profile.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -443,6 +445,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'last_seen()': {
     key: 'last_seen()',
     name: t('Last Seen'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'p50()': {
+    key: 'p50()',
+    name: t('P50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   'p75()': {

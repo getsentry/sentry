@@ -18,10 +18,12 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
 import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
 import {toMetricDisplayType} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {useSeriesHover} from 'sentry/views/ddm/useSeriesHover';
@@ -100,12 +102,10 @@ function useFocusedSeries({
   };
 }
 
-const supportedDisplayTypes = Object.keys(displayTypes)
-  .filter(d => d !== DisplayType.BIG_NUMBER)
-  .map(value => ({
-    label: displayTypes[value],
-    value,
-  }));
+const supportedDisplayTypes = Object.keys(displayTypes).map(value => ({
+  label: displayTypes[value],
+  value,
+}));
 
 interface MetricVisualizationProps {
   displayType: DisplayType;
@@ -120,8 +120,6 @@ export function MetricVisualization({
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
 
-  const isTable = displayType === DisplayType.TABLE;
-
   const {
     data: timeseriesData,
     isLoading,
@@ -133,13 +131,47 @@ export function MetricVisualization({
 
   const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
 
+  const visualizationComponent = useMemo(() => {
+    if (!timeseriesData) {
+      return null;
+    }
+    if (displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableVisualization
+          isLoading={isLoading}
+          timeseriesData={timeseriesData}
+          queries={queries}
+        />
+      );
+    }
+    if (displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberVisualization
+          timeseriesData={timeseriesData}
+          isLoading={isLoading}
+          queries={queries}
+        />
+      );
+    }
+
+    return (
+      <MetricChartVisualization
+        isLoading={isLoading}
+        timeseriesData={timeseriesData}
+        queries={queries}
+        displayType={displayType}
+      />
+    );
+  }, [displayType, isLoading, queries, timeseriesData]);
+
   if (!timeseriesData || isError) {
     return (
       <StyledMetricChartContainer>
         {isLoading && <LoadingIndicator />}
         {isError && (
           <Alert type="error">
-            {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+            {(error?.responseJSON?.detail as string) ||
+              t('Error while fetching metrics data')}
           </Alert>
         )}
       </StyledMetricChartContainer>
@@ -167,20 +199,7 @@ export function MetricVisualization({
           onChange={({value}) => onDisplayTypeChange(value as DisplayType)}
         />
       </ViualizationHeader>
-      {!isTable ? (
-        <MetricChartVisualization
-          isLoading={isLoading}
-          timeseriesData={timeseriesData}
-          queries={queries}
-          displayType={displayType}
-        />
-      ) : (
-        <MetricTableVisualization
-          isLoading={isLoading}
-          timeseriesData={timeseriesData}
-          queries={queries}
-        />
-      )}
+      {visualizationComponent}
     </StyledOuterContainer>
   );
 }
@@ -204,6 +223,27 @@ function MetricTableVisualization({
     <Fragment>
       <TransparentLoadingMask visible={isLoading} />
       <MetricTable isLoading={isLoading} data={tableData} />
+    </Fragment>
+  );
+}
+
+function MetricBigNumberVisualization({
+  timeseriesData,
+  queries,
+  isLoading,
+}: MetricTableVisualizationProps) {
+  const bigNumberData = useMemo(() => {
+    return timeseriesData ? getBigNumberData(timeseriesData, queries) : undefined;
+  }, [timeseriesData, queries]);
+
+  if (!bigNumberData) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <LoadingScreen loading={isLoading} />
+      <BigNumber>{bigNumberData}</BigNumber>
     </Fragment>
   );
 }

@@ -50,6 +50,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            "span.duration": self._resolve_span_duration,
         }
 
     @property
@@ -195,9 +196,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "example",
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["group", "timestamp", "span_id"], alias
-                    ),
+                    snql_aggregate=self._resolve_random_sample,
                     private=True,
                 ),
                 SnQLFunction(
@@ -234,6 +233,29 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_span_module(self, alias: str) -> SelectType:
         return field_aliases.resolve_span_module(self.builder, alias)
+
+    def _resolve_span_duration(self, alias: str) -> SelectType:
+        # In ClickHouse, duration is an UInt32 whereas self time is a Float64.
+        # This creates a situation where a sub-millisecond duration is truncated
+        # to but the self time is not.
+        #
+        # To remedy this, we take the greater of the duration and self time as
+        # this is the only situation where the self time can be greater than
+        # the duration.
+        #
+        # Also avoids strange situations on the frontend where duration is less
+        # than the self time.
+        duration = Column("duration")
+        self_time = self.builder.column("span.self_time")
+        return Function(
+            "if",
+            [
+                Function("greater", [self_time, duration]),
+                self_time,
+                duration,
+            ],
+            alias,
+        )
 
     def _resolve_bounded_sample(
         self,
@@ -315,4 +337,18 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 [args["column"]],
                 alias,
             )
+        )
+
+    def _resolve_random_sample(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_sample(
+            ["group", "timestamp", "span_id"],
+            alias,
+            offset,
+            limit,
         )

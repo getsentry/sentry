@@ -17,11 +17,10 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
-from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
-from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import Type, type_from_value
@@ -769,6 +768,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
@@ -1092,6 +1092,15 @@ CELERYBEAT_SCHEDULE_REGION = {
         ),
         "options": {"expires": 60 * 60 * 3},
     },
+    "schedule-daily-organization-reports": {
+        "task": "sentry.tasks.summaries.daily_summary.schedule_organizations",
+        "schedule": crontab(
+            minute=0,
+            hour="*/1",  # Run every hour
+            day_of_week="mon-fri",
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
     # "schedule-monthly-invite-missing-org-members": {
     #     "task": "sentry.tasks.invite_missing_org_members.schedule_organizations",
     #     "schedule": crontab(
@@ -1206,11 +1215,6 @@ CELERYBEAT_SCHEDULE_REGION = {
     "statistical-detectors-detect-regressions": {
         "task": "sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab(minute="0", hour="*/1"),
-    },
-    "backfill-artifact-bundle-index": {
-        "task": "sentry.debug_files.tasks.backfill_artifact_index_updates",
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 60},
     },
     "refresh-artifact-bundles-in-use": {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -1450,6 +1454,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
+    # Enables activated alert rules
+    "organizations:activated-alert-rules": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
@@ -1475,13 +1481,15 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:codecov-commit-sha-from-git-blame": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
-    # Enable the Commit Context feature
-    "organizations:commit-context": False,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
+    # Enables detection and notification of severely broken monitors
+    "organizations:crons-broken-monitor-detection": False,
+    # Disables legacy cron ingest endpoints
+    "organizations:crons-disable-ingest-endpoints": False,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
@@ -1492,6 +1500,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:customer-domains": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable daily summary
+    "organizations:daily-summary": False,
     # Enable dashboard widget indicators.
     "organizations:dashboard-widget-indicators": True,
     # Enable readonly dashboards
@@ -1506,17 +1516,19 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-rh-widget": False,
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
-    # Enables ddm formula features
-    "organizations:ddm-formulas": False,
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enable the unit normalization in the metrics API
+    "organizations:ddm-metrics-api-unit-normalization": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
+    # Enables automatically deriving of PHP code mappings
+    "organizations:derive-code-mappings-php": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enables synthesis of device.class in ingest
@@ -1531,10 +1543,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:discover-query": True,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
@@ -1568,6 +1576,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable increased issue_owners rate limit for auto-assignment
+    "organizations:increased-issue-owners-rate-limit": False,
     # Enable integration functionality to work with alert rules
     "organizations:integrations-alert-rule": True,
     # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -1627,8 +1637,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable the trace timeline on issue details
-    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
@@ -1649,6 +1657,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-blocking": False,
     # Enables the new samples list experience
     "organizations:metrics-samples-list": False,
+    # Enables the search bar for metrics samples list
+    "organizations:metrics-samples-list-search": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1692,6 +1702,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
+    # Deprecate fid from performance score calculation
+    "organizations:deprecate-fid-from-performance-score": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1704,6 +1716,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable UI sending a discover split for widget
+    "organizations:performance-discover-widget-split-ui": False,
+    # Enable backend overriding and always making a fresh split decision
+    "organizations:performance-discover-widget-split-override-save": False,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Enable compressed assets performance issue type
@@ -1830,10 +1846,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
     "organizations:session-replay-enable-canvas-replayer": False,
-    # Enable replay event linking in event processing
-    "organizations:session-replay-event-linking": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
     "organizations:session-replay-issue-emails": False,
+    # Enable mobile replay player
+    "organizations:session-replay-mobile-player": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -1891,6 +1907,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable INP in the browser starfish webvitals module
+    "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
@@ -1941,6 +1959,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable playing replays from the replay tab
+    "organizations:replay-play-from-replay-tab": False,
     # Enable AI Autofix feture on the Issue Details page.
     "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -2322,6 +2342,11 @@ SENTRY_RELEASE_MONITOR_OPTIONS: dict[str, Any] = {}
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
 SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
+
+# User Feedback Spam Detection
+SENTRY_USER_FEEDBACK_SPAM = "sentry.feedback.spam.stub.StubFeedbackSpamDetection"
+SENTRY_USER_FEEDBACK_SPAM_OPTIONS: dict[str, str] = {}
+
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -3419,6 +3444,7 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 #     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
 #     pick up the change.
 
+# START DEPRECATED SECTION
 KAFKA_EVENTS = "events"
 KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
 KAFKA_TRANSACTIONS = "transactions"
@@ -3432,6 +3458,7 @@ KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-resu
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
+KAFKA_INGEST_EVENTS_DLQ = "ingest-events-dlq"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
@@ -3452,26 +3479,73 @@ KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
 KAFKA_SNUBA_SPANS = "snuba-spans"
+# END DEPRECATED SECTION
 
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "generic-metrics": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+
+# Mapping of default Kafka topic name to custom names
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
+    # TODO: This is temporary while we migrate between the old and new way of defining overrides.
+    # To be removed once this is defined in prod, along with KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
+    # variable which will no longer be needed
+    "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
 }
 
 
+# Mapping of default Kafka topic name to cluster name
+# as per KAFKA_CLUSTERS.
+# This must be the default name that matches the topic
+# in sentry.conf.types.kafka_definition and sentry-kafka-schemas
+# and not any environment-specific override value
+KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
+    "events": "default",
+    "ingest-events-dlq": "default",
+    "snuba-commit-log": "default",
+    "transactions": "default",
+    "snuba-transactions-commit-log": "default",
+    "outcomes": "default",
+    "outcomes-billing": "default",
+    "events-subscription-results": "default",
+    "transactions-subscription-results": "default",
+    "generic-metrics-subscription-results": "default",
+    "sessions-subscription-results": "default",
+    "metrics-subscription-results": "default",
+    "ingest-events": "default",
+    "ingest-attachments": "default",
+    "ingest-transactions": "default",
+    "ingest-metrics": "default",
+    "ingest-metrics-dlq": "default",
+    "snuba-metrics": "default",
+    "profiles": "default",
+    "ingest-performance-metrics": "default",
+    "ingest-generic-metrics-dlq": "default",
+    "snuba-generic-metrics": "default",
+    "ingest-replay-events": "default",
+    "ingest-replay-recordings": "default",
+    "ingest-occurrences": "default",
+    "ingest-monitors": "default",
+    "generic-events": "default",
+    "snuba-generic-events-commit-log": "default",
+    "group-attributes": "default",
+    "snuba-spans": "default",
+    "shared-resources-usage": "default",
+}
+
+from typing import TypedDict
+
+
+class LegacyTopicDefinition(TypedDict):
+    cluster: str
+
+
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
+# DEPRECATED
+KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
-    # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
-    # create a separate producer. Check ``track_outcome`` for details.
-    KAFKA_OUTCOMES_BILLING: None,
+    KAFKA_OUTCOMES_BILLING: {"cluster": "default"},
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
@@ -3479,6 +3553,8 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
     KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default"},
+    # ingest-events DLQ
+    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
     KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
@@ -3504,7 +3580,6 @@ KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
     KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
-
 
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance
@@ -3591,6 +3666,10 @@ SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
+
+# Configure service wrapper for reprocessing2 state
+SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE_OPTIONS = {"cluster": "default"}
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
@@ -3765,7 +3844,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
-MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
+MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
@@ -3784,7 +3863,6 @@ SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
-
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
 ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 

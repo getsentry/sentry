@@ -198,13 +198,13 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
             self.organization.slug,
             metric=mris,
             project=[project.id for project in projects],
-            statsPeriod="90d",
+            statsPeriod="30d",
             codeLocations="true",
         )
 
-        # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
+        # With a window of 30 days, it means that we are actually requesting 31 days, thus we have 4 batches of 10
         # elements each.
-        assert len(get_code_locations_mock.mock_calls) == 10
+        assert len(get_code_locations_mock.mock_calls) == 4
 
     def test_get_locations_with_incomplete_location(self):
         project = self.create_project(name="project_1")
@@ -317,15 +317,58 @@ class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
         "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
         50,
     )
-    def test_get_locations_with_too_many_combinations(self):
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._in_batches"
+    )
+    def test_get_locations_with_too_many_combinations(self, _in_batches):
         project = self.create_project(name="project_1")
         mri = "d:custom/sentry.process_profile.track_outcome@second"
 
-        self.get_error_response(
+        self.get_success_response(
             self.organization.slug,
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=400,
             codeLocations="true",
         )
+
+        args, *_ = _in_batches.call_args
+        assert len(list(args[0])) == 46
+
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAX_SET_SIZE",
+        1,
+    )
+    def test_get_locations_with_more_locations_than_limit(self):
+        projects = [self.create_project(name="project_1")]
+        mris = [
+            "d:custom/sentry.process_profile.track_outcome@second",
+        ]
+
+        # We are storing two code locations with a limit of 1.
+        self._store_code_locations(self.organization, projects, mris, 2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=mris,
+            project=[project.id for project in projects],
+            statsPeriod="1d",
+            codeLocations="true",
+        )
+        code_locations = response.data["codeLocations"]
+
+        assert len(code_locations) == 2
+
+        assert code_locations[0]["mri"] == mris[0]
+        assert code_locations[0]["timestamp"] == self._round_to_day(
+            self.current_time - timedelta(days=1)
+        )
+
+        assert code_locations[1]["mri"] == mris[0]
+        assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
+
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 1
+
+        frames = code_locations[0]["frames"]
+        assert len(frames) == 1

@@ -192,17 +192,21 @@ class JavaScriptSdkLoader(BaseView):
 
         metrics.incr("js-sdk-loader.rendered", instance=instance, skip_internal=False)
 
-        analytics.record(
-            "js_sdk_loader.rendered",
-            organization_id=key.project.organization_id,
-            project_id=key.project_id,
-            is_lazy=loader_config["isLazy"],
-            has_performance=loader_config["hasPerformance"],
-            has_replay=loader_config["hasReplay"],
-            has_debug=loader_config["hasDebug"],
-            sdk_version=sdk_version,
-            tmpl=tmpl,
-        ) if key else None
+        (
+            analytics.record(
+                "js_sdk_loader.rendered",
+                organization_id=key.project.organization_id,
+                project_id=key.project_id,
+                is_lazy=loader_config["isLazy"],
+                has_performance=loader_config["hasPerformance"],
+                has_replay=loader_config["hasReplay"],
+                has_debug=loader_config["hasDebug"],
+                sdk_version=sdk_version,
+                tmpl=tmpl,
+            )
+            if key
+            else None
+        )
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 

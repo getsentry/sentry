@@ -128,12 +128,14 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   ) => {
     const url = `/organizations/${organization.slug}/events/`;
 
+    const useOnDemandMetrics = shouldUseOnDemandMetrics(
+      organization,
+      widget,
+      onDemandControlContext
+    );
     const queryExtras = {
-      useOnDemandMetrics: shouldUseOnDemandMetrics(
-        organization,
-        widget,
-        onDemandControlContext
-      ),
+      useOnDemandMetrics,
+      ...getQueryExtraForSplittingDiscover(widget, organization, !!useOnDemandMetrics),
       onDemandType: 'dynamic_query',
     };
     return getEventsRequest(
@@ -607,6 +609,10 @@ function getEventsSeriesRequest(
   }
 
   if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...getQueryExtraForSplittingDiscover(widget, organization, true),
+    };
     return doOnDemandMetricsRequest(api, requestData);
   }
 
@@ -658,3 +664,21 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
   }
   return true;
 }
+
+const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
+  return organization.features.includes('performance-discover-widget-split-ui');
+};
+
+const getQueryExtraForSplittingDiscover = (
+  widget: Widget,
+  organization: Organization,
+  useOnDemandMetrics: boolean
+) => {
+  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
+    return {};
+  }
+  if (widget.id) {
+    return {dashboardWidgetId: widget.id};
+  }
+  return {};
+};

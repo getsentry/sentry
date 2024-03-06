@@ -7,7 +7,7 @@ import type {InputStylesProps} from 'sentry/components/input';
 import {inputStyles} from 'sentry/components/input';
 
 export interface TextAreaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'>,
+  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css' | 'onResize'>,
     InputStylesProps {
   /**
    * Enable autosizing of the textarea.

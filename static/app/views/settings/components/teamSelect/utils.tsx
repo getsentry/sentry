@@ -72,7 +72,6 @@ export function DropdownAddTeam({
       renderDropdownOption({
         isAddingTeamToMember,
         isAddingTeamToProject,
-        organization,
         team,
         index,
         disabled,
@@ -112,27 +111,23 @@ function renderDropdownOption({
   disabled,
   index,
   isAddingTeamToMember,
-  organization,
   team,
 }: {
   disabled: boolean;
   index: number;
   isAddingTeamToMember: boolean;
   isAddingTeamToProject: boolean;
-  organization: Organization;
   team: Team;
 }) {
-  const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const isPermissionGroup = isAddingTeamToMember && !hasOrgAdmin;
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   return {
     index,
     value: team.slug,
     searchKey: team.slug,
     label: () => {
-      if (isIdpProvisioned || isPermissionGroup) {
+      if (isIdpProvisioned) {
         return (
           <Tooltip title={buttonHelpText}>
             <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
@@ -142,7 +137,7 @@ function renderDropdownOption({
 
       return <DropdownTeamBadge avatarSize={18} team={team} />;
     },
-    disabled: disabled || isIdpProvisioned || isPermissionGroup,
+    disabled: disabled || isIdpProvisioned,
   };
 }
 

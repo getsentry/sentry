@@ -92,32 +92,34 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: false,
-          hasMore: null,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: false,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -157,31 +159,33 @@ describe('utils.projects', function () {
           expect.objectContaining({
             query: {
               query: 'slug:a slug:b',
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: true,
-          hasMore: null,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            {
-              slug: 'b',
-            },
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: true,
+            hasMore: null,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              {
+                slug: 'b',
+              },
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -294,32 +298,34 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: [
-            expect.objectContaining({
-              id: '1',
-              slug: 'foo',
-            }),
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: [
+              expect.objectContaining({
+                id: '1',
+                slug: 'foo',
+              }),
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+            ],
+          })
+        )
       );
     });
   });
@@ -368,28 +374,30 @@ describe('utils.projects', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              collapse: ['latestDeploys'],
+              collapse: ['latestDeploys', 'unusedFeatures'],
             },
           })
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: true,
-          projects: [
-            expect.objectContaining({
-              id: '100',
-              slug: 'a',
-            }),
-            expect.objectContaining({
-              id: '101',
-              slug: 'b',
-            }),
-          ],
-        })
+      await waitFor(() =>
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: true,
+            projects: [
+              expect.objectContaining({
+                id: '100',
+                slug: 'a',
+              }),
+              expect.objectContaining({
+                id: '101',
+                slug: 'b',
+              }),
+            ],
+          })
+        )
       );
     });
 
@@ -432,7 +440,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -487,7 +495,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
-            collapse: ['latestDeploys'],
+            collapse: ['latestDeploys', 'unusedFeatures'],
           },
         })
       );
@@ -596,7 +604,7 @@ describe('utils.projects', function () {
         expect(request).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {all_projects: 1, collapse: ['latestDeploys']},
+            query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
           })
         )
       );

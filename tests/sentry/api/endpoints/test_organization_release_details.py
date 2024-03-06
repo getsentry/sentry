@@ -11,10 +11,11 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release, ReleaseProject, ReleaseStatus
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase

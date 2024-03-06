@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -33,10 +32,6 @@ getsentry_logger = logging.getLogger("getsentry.staff_auth_index")
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
-    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
-)
-
 
 @control_silo_endpoint
 class BaseAuthIndexEndpoint(Endpoint):
@@ -66,7 +61,9 @@ class BaseAuthIndexEndpoint(Endpoint):
         if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
-        organization_context = organization_service.get_organization_by_id(id=org_id)
+        organization_context = organization_service.get_organization_by_id(
+            id=org_id, include_teams=False, include_projects=False
+        )
         assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
@@ -153,6 +150,15 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
+        logger.info(
+            "auth-index.validate_superuser",
+            extra={
+                "validator": validator,
+                "user": request.user.id,
+                "raise_exception": not DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
+                "verify_authenticator": verify_authenticator,
+            },
+        )
         # Disable exception for missing password or u2f code if we're running locally
         validator.is_valid(raise_exception=not DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
 
@@ -242,17 +248,17 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
                 if Superuser.org_id:
-                    superuser_org = organization_service.get_organization_by_id(id=Superuser.org_id)
+                    superuser_org = organization_service.get_organization_by_id(
+                        id=Superuser.org_id, include_teams=False, include_projects=False
+                    )
 
-                    verify_authenticator = (
-                        False
-                        if superuser_org is None
-                        else features.has(
+                    if superuser_org is not None:
+                        has_u2f_flag = features.has(
                             "organizations:u2f-superuser-form",
                             superuser_org.organization,
                             actor=request.user,
                         )
-                    )
+                        verify_authenticator = has_u2f_flag
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
@@ -261,6 +267,15 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
                         )
+                logger.info(
+                    "auth-index.put",
+                    extra={
+                        "organization": superuser_org,
+                        "u2f_flag": has_u2f_flag,
+                        "user": request.user.id,
+                        "verify_authenticator": verify_authenticator,
+                    },
+                )
             try:
                 authenticated = self._validate_superuser(validator, request, verify_authenticator)
             except ValidationError:

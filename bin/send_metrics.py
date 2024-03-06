@@ -4,6 +4,7 @@
 import datetime
 import itertools
 import json
+import pprint
 import random
 import string
 
@@ -37,7 +38,7 @@ make_dist_payload = lambda use_case, org_id, rand_str, value_len: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
     "type": "d",
-    "value": [i for i in range(value_len)],
+    "value": {"format": "array", "data": [random.random() for _ in range(value_len)]},
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
@@ -52,7 +53,28 @@ make_set_payload = lambda use_case, org_id, rand_str, value_len: {
     },
     "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
     "type": "s",
-    "value": [i for i in range(value_len)],
+    "value": {"format": "array", "data": [random.randint(0, 2048) for _ in range(value_len)]},
+    "org_id": org_id,
+    "retention_days": 90,
+    "project_id": 3,
+}
+
+make_gauge_payload = lambda use_case, org_id, rand_str: {
+    "name": f"s:{use_case}/error@none",
+    "tags": {
+        "environment": "production",
+        "session.status": "errored",
+        f"metric_e2e_{use_case}_set_k_{rand_str}": f"metric_e2e_{use_case}_set_v_{rand_str}",
+    },
+    "timestamp": int(datetime.datetime.now(tz=datetime.UTC).timestamp()),
+    "type": "g",
+    "value": {
+        "min": 1,
+        "max": 1,
+        "sum": 1,
+        "count": 1,
+        "last": 1,
+    },
     "org_id": org_id,
     "retention_days": 90,
     "project_id": 3,
@@ -89,6 +111,7 @@ make_csql = lambda rand_str, is_generic: "UNION ALL".join(
                 "generic_metric_counters_raw_local",
                 "generic_metric_distributions_raw_local",
                 "generic_metric_sets_raw_local",
+                "generic_metric_gauges_raw_local",
             ]
             if is_generic
             else [
@@ -101,13 +124,14 @@ make_csql = lambda rand_str, is_generic: "UNION ALL".join(
 )
 
 
-def produce_msgs(messages, is_generic, host, dryrun):
+def produce_msgs(messages, is_generic, host, dryrun, quiet):
     conf = {"bootstrap.servers": host}
 
     producer = KafkaProducer(conf)
     for i, message in enumerate(messages):
         print(f"{i + 1} / {len(messages)}")
-        # pprint.pprint(message)
+        if not quiet:
+            pprint.pprint(message)
         if not dryrun:
             producer.produce(
                 Topic(name=("ingest-performance-metrics" if is_generic else "ingest-metrics")),
@@ -135,36 +159,47 @@ def produce_msgs(messages, is_generic, host, dryrun):
 )
 @click.option(
     "--dryrun",
+    "-d",
     is_flag=True,
     default=False,
     show_default=True,
-    help="Print the messages without sending them.",
+    help="Generate the messages without sending them.",
+)
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    help="Disable printing the messages.",
 )
 @click.option(
     "--start-org-id",
     default=1,
     show_default=True,
-    help="Specify which org id(s) to start from",
+    help="Specify which org id(s) to start from.",
 )
 @click.option(
     "--end-org-id",
     default=1,
     show_default=True,
-    help="Specify which org id(s) to end with",
+    help="Specify which org id(s) to end with.",
 )
 @click.option(
     "--num-bad-msg",
     default=0,
     show_default=True,
-    help="Number of additional badly formatted metric messages to send",
+    help="Number of additional badly formatted metric messages to send.",
 )
 @click.option(
     "--value-len",
-    default=6,
+    default=8,
     show_default=True,
-    help="Number of elements for metrics (sets and distributions)",
+    help="Number of elements for metrics (sets and distributions).",
 )
-def main(use_cases, rand_str, host, dryrun, start_org_id, end_org_id, num_bad_msg, value_len):
+def main(
+    use_cases, rand_str, host, dryrun, quiet, start_org_id, end_org_id, num_bad_msg, value_len
+):
     if UseCaseID.SESSIONS.value in use_cases and len(use_cases) > 1:
         click.secho(
             "ERROR: UseCaseID.SESSIONS is in use_cases and there are more than 1 use cases",
@@ -183,6 +218,7 @@ def main(use_cases, rand_str, host, dryrun, start_org_id, end_org_id, num_bad_ms
                 make_counter_payload(use_case, org, rand_str),
                 make_dist_payload(use_case, org, rand_str, value_len),
                 make_set_payload(use_case, org, rand_str, value_len),
+                make_gauge_payload(use_case, org, rand_str),
             )
             for use_case in use_cases
             for org in range(start_org_id, end_org_id + 1)
@@ -193,9 +229,9 @@ def main(use_cases, rand_str, host, dryrun, start_org_id, end_org_id, num_bad_ms
 
     random.shuffle(messages)
 
-    produce_msgs(messages, is_generic, host, dryrun)
+    produce_msgs(messages, is_generic, host, dryrun, quiet)
 
-    metrics_per_use_case = 3
+    metrics_per_use_case = 4
     strs_per_use_case = 3
 
     print(

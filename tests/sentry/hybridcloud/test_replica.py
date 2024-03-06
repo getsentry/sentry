@@ -218,16 +218,6 @@ def test_replicate_team():
     assert replicated.slug == team.slug
     assert replicated.name == team.name
     assert replicated.status == team.status
-    assert replicated.org_role == team.org_role
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        team.org_role = "boo"
-        team.save()
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = TeamReplica.objects.get(team_id=team.id)
-
-    assert replicated.org_role == team.org_role
 
     with assume_test_silo_mode(SiloMode.REGION):
         teams = [

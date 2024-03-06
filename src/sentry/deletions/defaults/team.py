@@ -17,7 +17,7 @@ class TeamDeletionTask(ModelDeletionTask):
                 instance.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
     def delete_instance(self, instance):
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.rule import Rule
 
         AlertRule.objects.filter(owner_id=instance.actor_id).update(owner=None)
