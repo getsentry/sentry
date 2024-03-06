@@ -130,6 +130,7 @@ const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
   padding-bottom: ${p => 2 * p.theme.grid}px;
+  gap: ${space(1)};
 `;
 
 const StyledIconUser = styled(IconUser)`
