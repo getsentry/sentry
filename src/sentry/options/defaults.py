@@ -2194,7 +2194,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.process-segments.enable.drain",
+    "standalone-spans.process-segments.drain.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
