@@ -3,7 +3,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, Union
 
-from snuba_sdk import ArithmeticOperator, Formula, Timeseries
+from snuba_sdk import ArithmeticOperator, Formula
+
+from sentry.sentry_metrics.querying.types import QueryExpression
 
 DurationUnit = Literal[
     "nanosecond",
@@ -45,6 +47,7 @@ class UnitFamily(Enum):
 
     DURATION = "duration"
     INFORMATION = "information"
+    FUTURE = "future"
 
 
 @dataclass(frozen=True)
@@ -59,15 +62,19 @@ class Unit:
     def convert(self, value: float | int) -> float | int:
         return value * self.scaling_factor
 
-    def apply_on_timeseries(self, timeseries: Timeseries) -> Timeseries | Formula:
+    def apply_on_query_expression(self, query_expression: QueryExpression) -> QueryExpression:
         # In case the factor is the identity of the multiplication, we do not apply any formula.
         if self.scaling_factor in {1.0, 1}:
-            return timeseries
+            return query_expression
+
+        # In case we have just a scalar, we can multiply in-memory.
+        if isinstance(query_expression, int) or isinstance(query_expression, float):
+            return self.convert(query_expression)
 
         # We represent the scaling factor as a multiplicative factor, so that we can just multiply.
         return Formula(
             function_name=ArithmeticOperator.MULTIPLY.value,
-            parameters=[timeseries, self.scaling_factor],
+            parameters=[query_expression, self.scaling_factor],
         )
 
     def __hash__(self):
@@ -130,7 +137,8 @@ def get_unit_family_and_unit(
 
     return None
 
-def get_reference_unit_for_unit_family(unit_family: UnitFamily) ->Unit | None:
+
+def get_reference_unit_for_unit_family(unit_family: UnitFamily) -> Unit | None:
     units_spec = FAMILY_TO_UNITS.get(unit_family)
     if units_spec is None:
         return None

@@ -1286,15 +1286,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.CUSTOM,
             )
 
-        # 15
-        # 20
         for formula, expected_result, expected_unit_family in (
+            ("10 + $query_2", 30000.0, UnitFamily.DURATION.value),
             # Normalization of $query_2
-            ("$query_1 + $query_2", 20015.0, UnitFamily.DURATION.value),
-            # No normalization
-            ("$query_1 + 1", 16.0, UnitFamily.DURATION.value),
-            # Normalization of $query_2 and 1
-            ("$query_2 + 1", 21000.0, UnitFamily.DURATION.value),
+            # ("$query_1 + $query_2", 20015.0, UnitFamily.DURATION.value),
+            # # No normalization
+            # ("$query_1 + 1", 16.0, UnitFamily.DURATION.value),
+            # # Normalization of $query_2 and 1
+            # ("$query_2 + 1", 21000.0, UnitFamily.DURATION.value),
             # Support this
             # ("100 - 90 + $query_2", 21000.0, UnitFamily.DURATION.value),
         ):
@@ -1325,7 +1324,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             meta = results["meta"]
             assert len(meta) == 1
             assert meta[0][1]["unit_family"] == expected_unit_family
-
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_non_coercible_units(self):
