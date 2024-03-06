@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import Pills from 'sentry/components/pills';
 import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -22,11 +23,18 @@ type Props = {
   location: Location;
   organization: Organization;
   projectSlug: string;
+  tagFilter?: TagFilter;
 };
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
-export function EventTags({event, organization, projectSlug, location}: Props) {
+export function EventTags({
+  event,
+  organization,
+  projectSlug,
+  location,
+  tagFilter = TagFilter.ALL,
+}: Props) {
   const meta = event._meta?.tags;
   const projectId = event.projectID;
 
@@ -106,6 +114,7 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
           projectSlug={projectSlug}
           projectId={projectId}
           streamPath={streamPath}
+          tagFilter={tagFilter}
         />
       ) : (
         <Pills>

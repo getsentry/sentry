@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
+import type {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
@@ -15,6 +16,7 @@ const COLUMN_COUNT = 2;
 interface TagTree {
   [key: string]: TagTreeContent;
 }
+
 interface TagTreeContent {
   subtree: TagTree;
   value: string;
@@ -39,10 +41,12 @@ interface TagTreeRowProps {
   isLast?: boolean;
   spacerCount?: number;
 }
+
 interface EventTagsTreeProps {
   projectId: string;
   projectSlug: string;
   streamPath: string;
+  tagFilter: TagFilter;
   tags: EventTag[];
   meta?: Record<any, any>;
 }
@@ -200,26 +204,34 @@ function assembleTagTreeColumns({
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
-  const tagTreeColumns = useMemo(() => assembleTagTreeColumns(props), [props]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tagTreeColumns = useMemo(() => assembleTagTreeColumns(props), []);
   return (
     <TreeContainer>
-      <TreeGarden>{tagTreeColumns}</TreeGarden>
+      <TreeGarden columnCount={COLUMN_COUNT}>{tagTreeColumns}</TreeGarden>
     </TreeContainer>
   );
 }
 
-const TreeContainer = styled('div')``;
+const TreeContainer = styled('div')`
+  margin-top: ${space(1.5)};
+`;
 
-const TreeGarden = styled('div')`
+const TreeGarden = styled('div')<{columnCount: number}>`
   display: grid;
   gap: 0 ${space(2)};
-  grid-template-columns: repeat(${COLUMN_COUNT}, 1fr);
+  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
 `;
 
 const TreeColumn = styled('div')`
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: minmax(auto, 150px) 1fr;
+  grid-column-gap: ${space(3)};
+  &:not(:first-child) {
+    border-left: 1px solid ${p => p.theme.gray200};
+    padding-left: ${space(2)};
+  }
 `;
 
 const TreeRow = styled('div')`

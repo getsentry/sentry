@@ -124,6 +124,7 @@ function DefaultGroupEventDetailsContent({
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection event={event} organization={organization} />
       )}
+      {/* TODO(Leander): Hide this behind new UI flag */}
       <EventDataSection
         title="Context Summary"
         type="context-summary"
