@@ -19,7 +19,11 @@ import {
   type MetricsSamplesResults,
 } from 'sentry/utils/metrics/useMetricsSamples';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chart/chartUtils';
-import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
+import type {
+  CombinedMetricChartProps,
+  ScatterSeries,
+  Series,
+} from 'sentry/views/ddm/chart/types';
 import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseChartSamplesProps = {
@@ -171,8 +175,8 @@ export function useMetricChartSamples({
           color: theme.purple400,
           opacity: 1,
         },
-        yAxisIndex: 1,
-        xAxisIndex: 1,
+        yAxisIndex: 0,
+        xAxisIndex: 0,
         xValue,
         yValue,
         tooltip: {
@@ -222,8 +226,8 @@ export function useMetricChartSamples({
         ...baseProps,
         forwardedRef: mergeRefs([baseProps.forwardedRef, chartRef]),
         scatterSeries: series,
-        xAxes: [...(Array.isArray(baseProps.xAxes) ? baseProps.xAxes : []), xAxis],
-        yAxes: [...(Array.isArray(baseProps.yAxes) ? baseProps.yAxes : []), yAxis],
+        xAxes: [xAxis, ...(Array.isArray(baseProps.xAxes) ? baseProps.xAxes : [])],
+        yAxes: [yAxis, ...(Array.isArray(baseProps.yAxes) ? baseProps.yAxes : [])],
         onClick: (...args) => {
           handleClick(...args);
           baseProps.onClick?.(...args);
@@ -341,63 +345,6 @@ export function useMetricChartSamplesV2({
     };
   }, [valueRect.yMin, valueRect.yMax]);
 
-  const series = useMemo(() => {
-    if (isCumulativeOp(operation)) {
-      // TODO: for now we do not show samples for cumulative operations
-      // figure out how should this be shown
-      return [];
-    }
-
-    return (samples ?? []).map(sample => {
-      const isHighlighted = highlightedSampleId === sample.id;
-
-      const xValue = moment(sample.timestamp).valueOf();
-      const value = getSummaryValueForOp(sample.summary, operation);
-      const yValue = value * timeseriesScalingFactor;
-
-      const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
-
-      return {
-        seriesName: sample.id,
-        id: sample.id,
-        operation: '',
-        unit: '',
-        symbolSize: isHighlighted ? 20 : 10,
-        animation: false,
-        symbol: yPosition === yValue ? 'circle' : 'arrow',
-        symbolRotate: yPosition > yValue ? 180 : 0,
-        color: theme.purple400,
-        itemStyle: {
-          color: theme.purple400,
-          opacity: 1,
-        },
-        yAxisIndex: 1,
-        xAxisIndex: 1,
-        xValue,
-        yValue,
-        tooltip: {
-          axisPointer: {
-            type: 'none',
-          },
-        },
-        data: [
-          {
-            name: xPosition,
-            value: yPosition,
-          },
-        ],
-        z: 10,
-      };
-    });
-  }, [
-    highlightedSampleId,
-    operation,
-    samples,
-    theme.purple400,
-    timeseriesScalingFactor,
-    valueRect,
-  ]);
-
   const formatterOptions = useMemo(() => {
     return {
       isGroupedByDate: true,
@@ -428,6 +375,55 @@ export function useMetricChartSamplesV2({
 
   const applyChartProps = useCallback(
     (baseProps: CombinedMetricChartProps): CombinedMetricChartProps => {
+      let series: ScatterSeries[] = [];
+
+      const newXAxisIndex = Array.isArray(baseProps.xAxes) ? baseProps.xAxes.length : 1;
+      const newYAxisIndex = Array.isArray(baseProps.yAxes) ? baseProps.yAxes.length : 1;
+
+      if (!isCumulativeOp(operation)) {
+        series = (samples ?? []).map(sample => {
+          const isHighlighted = highlightedSampleId === sample.id;
+
+          const xValue = moment(sample.timestamp).valueOf();
+          const value = getSummaryValueForOp(sample.summary, operation);
+          const yValue = value * timeseriesScalingFactor;
+
+          const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
+
+          return {
+            seriesName: sample.id,
+            id: sample.id,
+            operation: '',
+            unit: '',
+            symbolSize: isHighlighted ? 20 : 10,
+            animation: false,
+            symbol: yPosition === yValue ? 'circle' : 'arrow',
+            symbolRotate: yPosition > yValue ? 180 : 0,
+            color: theme.purple400,
+            itemStyle: {
+              color: theme.purple400,
+              opacity: 1,
+            },
+            yAxisIndex: newYAxisIndex,
+            xAxisIndex: newXAxisIndex,
+            xValue,
+            yValue,
+            tooltip: {
+              axisPointer: {
+                type: 'none',
+              },
+            },
+            data: [
+              {
+                name: xPosition,
+                value: yPosition,
+              },
+            ],
+            z: 10,
+          };
+        });
+      }
+
       return {
         ...baseProps,
         forwardedRef: mergeRefs([baseProps.forwardedRef, chartRef]),
@@ -467,7 +463,18 @@ export function useMetricChartSamplesV2({
         },
       };
     },
-    [formatterOptions, handleClick, series, xAxis, yAxis]
+    [
+      formatterOptions,
+      handleClick,
+      highlightedSampleId,
+      operation,
+      samples,
+      theme.purple400,
+      timeseriesScalingFactor,
+      valueRect,
+      xAxis,
+      yAxis,
+    ]
   );
 
   return useMemo(() => {

@@ -70,7 +70,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
     const chartRef = useRef<ReactEchartsRef>(null);
 
-    const firstUnit = series.find(s => !s.hidden)?.unit || 'none';
+    const filteredSeries = useMemo(() => series.filter(s => !s.hidden), [series]);
+
+    const firstUnit = filteredSeries[0]?.unit || 'none';
+    const uniqueUnits = useMemo(
+      () => [...new Set(filteredSeries.map(s => s.unit))],
+      [filteredSeries]
+    );
 
     useEffect(() => {
       if (!group) {
@@ -93,11 +99,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
     const seriesToShow = useMemo(
       () =>
-        series
-          .filter(s => !s.hidden)
+        filteredSeries
           .map(s => ({
             ...s,
             silent: true,
+            yAxisIndex: uniqueUnits.indexOf(s.unit),
+            xAxisIndex: 0,
             ...(displayType !== MetricDisplayType.BAR
               ? addSeriesPadding(s.data)
               : {data: s.data}),
@@ -105,11 +112,10 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => createIngestionSeries(s, ingestionBuckets, displayType)),
-      [series, ingestionBuckets, displayType]
+      [filteredSeries, uniqueUnits, displayType, ingestionBuckets]
     );
 
     const chartProps = useMemo(() => {
-      const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
       const seriesUnits = seriesToShow.reduce(
         (acc, s) => {
           acc[s.seriesName] = s.unit;
@@ -211,18 +217,31 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         yAxes: [
-          {
-            // used to find and convert datapoint to pixel position
-            id: MAIN_Y_AXIS_ID,
-            axisLabel: {
-              formatter: (value: number) => {
-                return formatMetricUsingUnit(
-                  value,
-                  hasMultipleUnits ? 'none' : firstUnit
-                );
-              },
-            },
-          },
+          ...uniqueUnits.map(unit =>
+            unit === firstUnit
+              ? {
+                  // used to find and convert datapoint to pixel position
+                  id: MAIN_Y_AXIS_ID,
+                  axisLabel: {
+                    formatter: (value: number) => {
+                      return formatMetricUsingUnit(value, unit);
+                    },
+                  },
+                }
+              : {
+                  id: unit,
+                  show: false,
+                  axisLabel: {
+                    formatter: () => {
+                      return '';
+                    },
+                  },
+                  position: 'left' as const,
+                  axisPointer: {
+                    type: 'none' as const,
+                  },
+                }
+          ),
         ],
         xAxes: [
           {
@@ -251,6 +270,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       height,
       displayType,
       forwardedRef,
+      uniqueUnits,
       samples,
       focusArea,
       firstUnit,
