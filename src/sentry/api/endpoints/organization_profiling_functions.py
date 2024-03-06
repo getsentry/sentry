@@ -91,24 +91,25 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        top_functions = functions.query(
-            selected_columns=[
-                "project.id",
-                "fingerprint",
-                "package",
-                "function",
-                "count()",
-                "examples()",
-            ],
-            query=data.get("query"),
-            params=params,
-            orderby=["-count()"],
-            limit=TOP_FUNCTIONS_LIMIT,
-            referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            transform_alias_to_input_format=True,
-        )
+        with handle_query_errors():
+            top_functions = functions.query(
+                selected_columns=[
+                    "project.id",
+                    "fingerprint",
+                    "package",
+                    "function",
+                    "count()",
+                    "examples()",
+                ],
+                query=data.get("query"),
+                params=params,
+                orderby=["-count()"],
+                limit=TOP_FUNCTIONS_LIMIT,
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                transform_alias_to_input_format=True,
+            )
 
         def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
             rollup = get_rollup_from_range(params["end"] - params["start"])
