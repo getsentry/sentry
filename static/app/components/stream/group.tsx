@@ -428,7 +428,6 @@ function BaseGroupRow({
           organization={organization}
           data={group}
           query={query}
-          size="normal"
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} />
