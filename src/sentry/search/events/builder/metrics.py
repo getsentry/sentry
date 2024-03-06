@@ -1029,7 +1029,7 @@ class MetricsQueryBuilder(QueryBuilder):
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
-            groupbys = [Column(col) for col in self._get_group_bys()]
+            groupbys = [self.resolve_column(col) for col in self._get_group_bys()]
         groupby_aliases = [
             (
                 groupby.alias
