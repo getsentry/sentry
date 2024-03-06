@@ -694,3 +694,21 @@ class MonitorIncident(Model):
         app_label = "sentry"
         db_table = "sentry_monitorincident"
         indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
+
+
+@region_silo_only_model
+class MonitorEnvBrokenDetection(Model):
+    """
+    Records an instance where we have detected a monitor environment to be
+    broken based on a long duration of failure and consecutive failing check-ins
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    monitor_incident = FlexibleForeignKey("sentry.MonitorIncident")
+    detection_timestamp = models.DateTimeField(auto_now_add=True)
+    user_notified_timestamp = models.DateTimeField(null=True, db_index=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_monitorenvbrokendetection"
