@@ -101,8 +101,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def to_reference_unit(
         self, value: float | int, measurement_unit: MeasurementUnit = "millisecond"
     ) -> float:
-        _, _, unit = get_unit_family_and_unit(measurement_unit)
-        assert unit is not None
+        unit_family_and_unit = get_unit_family_and_unit(measurement_unit)
+        assert unit_family_and_unit is not None
+        _, _, unit = unit_family_and_unit
         return unit.convert(value)
 
     def run_query(
@@ -1285,35 +1286,46 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.CUSTOM,
             )
 
-        query_1 = self.mql("avg", mri_1)
-        query_2 = self.mql("sum", mri_2)
-        plan = (
-            MetricsQueriesPlan()
-            .declare_query("query_1", query_1)
-            .declare_query("query_2", query_2)
-            .apply_formula("$query_1 + $query_2")
-        )
+        # 15
+        # 20
+        for formula, expected_result, expected_unit_family in (
+            # Normalization of $query_2
+            ("$query_1 + $query_2", 20015.0, UnitFamily.DURATION.value),
+            # No normalization
+            ("$query_1 + 1", 16.0, UnitFamily.DURATION.value),
+            # Normalization of $query_2 and 1
+            ("$query_2 + 1", 21000.0, UnitFamily.DURATION.value),
+            # Support this
+            # ("100 - 90 + $query_2", 21000.0, UnitFamily.DURATION.value),
+        ):
+            query_1 = self.mql("avg", mri_1)
+            query_2 = self.mql("sum", mri_2)
+            plan = (
+                MetricsQueriesPlan()
+                .declare_query("query_1", query_1)
+                .declare_query("query_2", query_2)
+                .apply_formula(formula)
+            )
 
-        results = self.run_query(
-            metrics_queries_plan=plan,
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[self.project],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 20015.0, None]
-        assert data[0][0]["totals"] == 20015.0
-        meta = results["meta"]
-        assert len(meta) == 1
-        assert meta[0][1]["unit_family"] == UnitFamily.DURATION.value
-        assert meta[0][1]["unit"] is not None
-        assert meta[0][1]["scaling_factor"] is None
+            results = self.run_query(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {}
+            assert data[0][0]["series"] == [None, expected_result, None]
+            assert data[0][0]["totals"] == expected_result
+            meta = results["meta"]
+            assert len(meta) == 1
+            assert meta[0][1]["unit_family"] == expected_unit_family
+
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_basic_formula_and_non_coercible_units(self):
@@ -1449,7 +1461,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == 35.0
         meta = results["meta"]
         assert len(meta) == 1
-        assert meta[0][1]["unit_family"] == UnitFamily.UNKNOWN.value
+        assert meta[0][1]["unit_family"] is None
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 

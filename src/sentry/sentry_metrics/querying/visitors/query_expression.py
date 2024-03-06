@@ -21,6 +21,8 @@ from sentry.sentry_metrics.querying.units import (
     MeasurementUnit,
     UnitFamily,
     get_unit_family_and_unit,
+    Unit,
+    get_reference_unit_for_unit_family,
 )
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
@@ -365,3 +367,115 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]):
             return self._unit_family, self._reference_unit, None
 
         return self._unit_family, self._reference_unit, self._scaling_factor
+
+
+UnitMetadata = tuple[UnitFamily, MeasurementUnit, Unit | None]
+
+
+class UnitsNormalizationV2Visitor(
+    QueryExpressionVisitor[tuple[UnitMetadata | None, QueryExpression]]
+):
+    """
+    Visitor that recursively transforms the `QueryExpression` components to have the same unit. Throws an error in
+    case units are incompatible.
+    """
+
+    UNITLESS_FORMULA_FUNCTIONS = {
+        ArithmeticOperator.DIVIDE.value,
+        ArithmeticOperator.MULTIPLY.value,
+    }
+    UNITLESS_AGGREGATES = {"count", "count_unique"}
+
+    def __init__(self):
+        self._unit_family = None
+
+    def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata | None, QueryExpression]:
+        current_metadata = None
+        numeric_scalars = []
+        has_all_timeseries_params = True
+
+        parameters = []
+        for index, parameter in enumerate(formula.parameters):
+            if not isinstance(parameter, Timeseries):
+                has_all_timeseries_params = False
+
+            # We keep track of numeric scalars we found in the formula, since we have to normalize them based on the
+            # unit family of the expression.
+            if self._is_numeric_scalar(parameter):
+                numeric_scalars.append((index, parameter))
+                parameters.append(parameter)
+            else:
+                unit_metadata, query_expression = self.visit(parameter)
+                if unit_metadata is None:
+                    return None, formula
+
+                # If we encounter a unit family which is different across the formula parameters, we will not perform
+                # any normalization.
+                unit_family, *_ = unit_metadata
+                if current_metadata is not None and unit_family != current_metadata[0]:
+                    return None, formula
+
+                current_metadata = unit_metadata
+                parameters.append(query_expression)
+
+        # If we have all timeseries as parameters of a formula and the function belongs to `*` or `/` we will
+        # not perform any normalization.
+        if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and has_all_timeseries_params:
+            return None, formula
+
+        # If no unit family was found in the formula parameters, we do not need to normalize anything.
+        if current_metadata is None:
+            return None, formula
+
+        # We convert all scalars in the formula using the last seen scaling factor. Since we are always working with
+        # two operands, this means that if we found at least one numeric scalar, the scaling factor will belong to the
+        # other operand.
+        current_unit_family, current_reference_unit, current_unit = current_metadata
+        for index, numeric_scalar in numeric_scalars:
+            parameters[index] = current_unit.convert(numeric_scalar)
+
+        formula_reference_unit = get_reference_unit_for_unit_family(current_unit_family)
+        if formula_reference_unit is None:
+            return None, formula
+
+        # The new formula unit is the reference unit, since we know that all of its operands have been converted to
+        # the reference unit.
+        return (
+            current_unit_family,
+            formula_reference_unit.name,
+            formula_reference_unit,
+        ), formula.set_parameters(parameters)
+
+    def _visit_timeseries(
+        self, timeseries: Timeseries
+    ) -> tuple[UnitMetadata | None, QueryExpression]:
+        extracted_unit = self._extract_unit(timeseries=timeseries)
+        if extracted_unit is not None:
+            unit_family_and_unit = get_unit_family_and_unit(extracted_unit)
+            if unit_family_and_unit is not None:
+                unit_family, reference_unit, unit = unit_family_and_unit
+                return (unit_family, reference_unit, unit), unit.apply_on_timeseries(timeseries)
+
+        return None, timeseries
+
+    def _visit_int(self, int_number: float) -> tuple[UnitMetadata | None, QueryExpression]:
+        return None, int_number
+
+    def _visit_float(self, float_number: float) -> tuple[UnitMetadata | None, QueryExpression]:
+        return None, float_number
+
+    def _visit_string(self, string: str) -> tuple[UnitMetadata | None, QueryExpression]:
+        return None, string
+
+    def _extract_unit(self, timeseries: Timeseries) -> str | None:
+        if timeseries.aggregate in self.UNITLESS_AGGREGATES:
+            return None
+
+        parsed_mri = parse_mri(timeseries.metric.mri)
+        if parsed_mri is not None:
+            return parsed_mri.unit
+
+        return None
+
+    def _is_numeric_scalar(self, value: QueryExpression) -> bool:
+        return isinstance(value, int) or isinstance(value, float)

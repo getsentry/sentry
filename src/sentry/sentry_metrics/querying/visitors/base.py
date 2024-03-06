@@ -41,13 +41,13 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
         raise timeseries
 
-    def _visit_int(self, int_number: float):
+    def _visit_int(self, int_number: float) -> TVisited:
         return int_number
 
-    def _visit_float(self, float_number: float):
+    def _visit_float(self, float_number: float) -> TVisited:
         return float_number
 
-    def _visit_string(self, string: str):
+    def _visit_string(self, string: str) -> TVisited:
         return string
 
 
