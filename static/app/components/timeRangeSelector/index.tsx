@@ -189,7 +189,7 @@ export function TimeRangeSelector({
               value: item.value,
               // Wrap inside OptionLabel to offset custom margins from SelectorItemLabel
               // TODO: Remove SelectorItemLabel & OptionLabel
-              label: <OptionLabel>{item.label as string}</OptionLabel>,
+              label: <OptionLabel>{item.label}</OptionLabel>,
               details:
                 start && end ? (
                   <AbsoluteSummary>{getAbsoluteSummary(start, end, utc)}</AbsoluteSummary>
@@ -207,7 +207,7 @@ export function TimeRangeSelector({
 
           return {
             value: item.value,
-            label: <OptionLabel>{item.label as string}</OptionLabel>,
+            label: <OptionLabel>{item.label}</OptionLabel>,
             textValue: item.searchKey,
           };
         });
@@ -224,7 +224,7 @@ export function TimeRangeSelector({
 
       return filteredItems.map<SelectOption<string>>(item => ({
         value: item.value,
-        label: item.label as string,
+        label: item.label,
         textValue: item.searchKey,
       }));
     },
