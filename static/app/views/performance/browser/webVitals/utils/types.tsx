@@ -54,6 +54,7 @@ export type InteractionSpanSampleRow = {
 
 export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
   inpScore: number;
+  totalScore: number;
 };
 
 export type Weight = {
