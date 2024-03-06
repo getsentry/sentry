@@ -465,9 +465,7 @@ class Endpoint(APIView):
                         not in settings.SENTRY_API_PAGINATION_ALLOWLIST
                         and not self.has_pagination(self.response)
                     ):
-                        raise MissingPaginationError(
-                            f"Response is not paginated correctly in {handler.__func__.__qualname__}, {self.response.headers}, {self.response.data}"
-                        )
+                        raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
     def add_cors_headers(self, request: Request, response):

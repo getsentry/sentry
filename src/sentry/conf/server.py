@@ -103,9 +103,7 @@ DEFAULT_EXCEPTION_REPORTER_FILTER = (
     "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
 )
 
-ENFORCE_PAGINATION = False
-if DEBUG:
-    ENFORCE_PAGINATION = True
+ENFORCE_PAGINATION = True if DEBUG else False
 
 ADMINS = ()
 

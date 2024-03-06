@@ -94,4 +94,8 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectGroupIndexEndpoint",
     "ProjectTagsEndpoint",
     "OrganizationSearchesEndpoint",
+    "OrganizationAlertRuleAvailableActionIndexEndpoint",
+    "JiraSearchEndpoint",
+    "GithubSharedSearchEndpoint",
+    "ProjectMonitorStatsEndpoint",
 }

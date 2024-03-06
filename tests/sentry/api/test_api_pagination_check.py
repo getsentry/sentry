@@ -10,7 +10,7 @@ from sentry.api.paginator import MissingPaginationError
 
 
 class APIPaginationCheckTestCase(TestCase):
-    def test_if_wrong_api_method_fails(self):
+    def test_if_wrong_api_method_fails(self) -> None:
         class ExampleEndpoint(TestCase, Endpoint):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
