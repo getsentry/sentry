@@ -5,6 +5,7 @@ import uuid
 from typing import Any
 from unittest.mock import patch
 
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.utils import metrics
 from confluent_kafka import Producer
@@ -62,7 +63,10 @@ class PostProcessForwarderTest(TestCase):
             KAFKA_TOPICS={
                 self.events_topic: {"cluster": "default"},
             },
-            KAFKA_TOPIC_OVERRIDES={"events": self.events_topic, "transactions": self.events_topic},
+            KAFKA_TOPIC_OVERRIDES={
+                "events": self.events_topic,
+                "transactions": self.events_topic,
+            },
         )
 
         self.override_settings_cm.__enter__()
@@ -81,7 +85,7 @@ class PostProcessForwarderTest(TestCase):
 
     def get_test_stream_processor(
         self, mode: str, consumer_group: str, synchronize_commit_group: str
-    ) -> StreamProcessor:
+    ) -> StreamProcessor[KafkaPayload]:
         return get_stream_processor(
             consumer_name="post-process-forwarder-errors",
             consumer_args=[f"--mode={mode}"],

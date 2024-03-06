@@ -5,17 +5,17 @@ from datetime import datetime
 from typing import Any
 
 import sentry_kafka_schemas
-from arroyo import Topic
+from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import quotas
+from sentry.conf.types.kafka_definition import Topic
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 ingest_codec: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
     "ingest-metrics"
@@ -50,12 +50,10 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 class KafkaMetricsBackend(GenericMetricsBackend):
     def __init__(self) -> None:
-        kafka_topic_name = settings.KAFKA_INGEST_PERFORMANCE_METRICS
-        self.kafka_topic = Topic(kafka_topic_name)
-
-        kafka_topic_dict = settings.KAFKA_TOPICS[kafka_topic_name]
-        assert kafka_topic_dict is not None
-        cluster_name = kafka_topic_dict["cluster"]
+        logical_topic = Topic.INGEST_PERFORMANCE_METRICS
+        topic_defn = get_topic_definition(logical_topic)
+        self.kafka_topic = ArroyoTopic(topic_defn["real_topic_name"])
+        cluster_name = topic_defn["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         self.producer: Producer = KafkaProducer(
             build_kafka_configuration(default_config=producer_config)
