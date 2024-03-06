@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -32,10 +31,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 getsentry_logger = logging.getLogger("getsentry.staff_auth_index")
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
-
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
-    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
-)
 
 
 @control_silo_endpoint
