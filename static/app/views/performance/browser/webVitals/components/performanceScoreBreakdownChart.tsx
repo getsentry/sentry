@@ -25,6 +25,7 @@ import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals
 import Chart from 'sentry/views/starfish/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
+export const FID_DEPRECATION_DATE = 1710259200000;
 
 type Props = {
   transaction?: string;

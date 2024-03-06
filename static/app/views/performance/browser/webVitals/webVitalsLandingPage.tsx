@@ -8,7 +8,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,7 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {SCORE_MIGRATION_TIMESTAMP} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {FID_DEPRECATION_DATE} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
@@ -52,7 +51,7 @@ export default function WebVitalsLandingPage() {
   const user = ConfigStore.get('user');
 
   const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
+    key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
   });
 
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
@@ -68,9 +67,8 @@ export default function WebVitalsLandingPage() {
         ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
         : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
-  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
-    'DD MMMM YYYY'
-  );
+  const fidDeprecationTimestampString =
+    moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   return (
     <ModulePageProviders
@@ -115,17 +113,14 @@ export default function WebVitalsLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
-              {shouldUseStoredScores && !isDismissed && (
+              {!isDismissed && (
                 <StyledAlert type="info" showIcon>
                   <AlertContent>
                     <span>
                       {tct(
-                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        `Starting on [fidDeprecationTimestampString], First Input Delay will no longer be included in Performance Scores, and will be replaced by Interaction to Next Paint. Users should update their Sentry SDKs to the latest version (7.105.0+) and enable the INP option to start receiving updated Performance Scores.`,
                         {
-                          scoreMigrationTimestampString,
-                          link: (
-                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
-                          ),
+                          fidDeprecationTimestampString,
                         }
                       )}
                     </span>
