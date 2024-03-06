@@ -44,7 +44,7 @@ def send_confirmation_notification(rule: Rule, new: bool):
         safe_execute(
             action_inst.send_confirmation_notification,
             rule=rule,
-            new=True,
+            new=new,
         )
 
 

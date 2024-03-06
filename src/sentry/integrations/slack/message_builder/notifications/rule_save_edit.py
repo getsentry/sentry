@@ -4,6 +4,7 @@ from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.utils.http import absolute_uri
 
 
@@ -27,13 +28,26 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         rule_name = self.rule.label
         return f"<{rule_url}|*{escape_slack_text(rule_name)}*>"
 
+    def get_settings_url(self):
+        url_str = "/settings/account/notifications/"
+        fine_tuning_key = NotificationSettingEnum.ISSUE_ALERTS.value
+        url_str += f"{fine_tuning_key}/"
+        url = str(self.rule.project.organization.absolute_url(url_str))
+        return f"<{url}|*Notification Settings*>"
+
     def build(self) -> SlackBlock:
+        blocks = []
         rule_url = self.linkify_rule()
         project = self.rule.project.slug
         if self.new:
-            rule_text = f"{rule_url} was created in the {project} project and will send notifications to this channel."
+            rule_text = f"{rule_url} was created in the *{project}* project and will send notifications here."
         else:
-            rule_text = f"{rule_url} was updated."
-        # TODO add short summary of the trigger & filter conditions, plus a link to the notif setting
-        blocks = [self.get_markdown_block(rule_text)]
+            rule_text = f"{rule_url} in the *{project}* project was updated."
+
+        # TODO add short summary of the trigger & filter conditions
+        blocks.append(self.get_markdown_block(rule_text))
+
+        settings_link = self.get_settings_url()
+        blocks.append(self.get_context_block(settings_link))
+
         return self._build_blocks(*blocks, fallback_text=rule_text)

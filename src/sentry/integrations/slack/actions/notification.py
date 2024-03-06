@@ -164,7 +164,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "channel_name": self.get_option("channel"),
             }
             self.logger.info(
-                "rule.fail.slack_post",
+                "rule_confirmation.fail.slack_post",
                 extra=log_params,
             )
 
