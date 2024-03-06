@@ -1,5 +1,6 @@
-// From https://github.com/romgain/react-select-event
-//
+// Based on https://github.com/romgain/react-select-event
+// Switched from fireEvent to userEvent to avoid act warnings in react 18
+
 // Copyright 2019 Romain Bertrand
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,7 +20,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-//
 
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
@@ -129,6 +129,7 @@ interface CreateConfig extends Config, UserEventOptions {
    */
   waitForElement?: boolean;
 }
+
 /**
  * Creates and selects a value in a Creatable `react-select` dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
