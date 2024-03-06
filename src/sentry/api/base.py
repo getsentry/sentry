@@ -461,9 +461,9 @@ class Endpoint(APIView):
                 if hasattr(self.response, "data") and isinstance(self.response.data, list):
                     # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
                     if (
-                        not self.has_pagination(self.response)
-                        and handler.__self__.__class__.__name__
+                        handler.__self__.__class__.__name__
                         not in settings.SENTRY_API_PAGINATION_ALLOWLIST
+                        and not self.has_pagination(self.response)
                     ):
                         raise MissingPaginationError("Response is not paginated")
         return self.response
