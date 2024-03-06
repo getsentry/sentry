@@ -102,7 +102,7 @@ describe('StreamGroup', function () {
     });
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
-    expect(within(priorityDropdown).getByText('Medium')).toBeInTheDocument();
+    expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
     await userEvent.click(priorityDropdown);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
     expect(within(priorityDropdown).getByText('High')).toBeInTheDocument();

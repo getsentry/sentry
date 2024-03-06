@@ -66,6 +66,13 @@ METRIC_META_TYPE_SERIALIZER = {
     MetricMetaType.CODE_LOCATIONS.value: MetricCodeLocationsSerializer(),
 }
 
+DEFAULT_USE_CASE_IDS = [
+    UseCaseID.TRANSACTIONS,
+    UseCaseID.SESSIONS,
+    UseCaseID.SPANS,
+    UseCaseID.CUSTOM,
+]
+
 
 def get_use_case_id(request: Request) -> UseCaseID:
     """
@@ -76,6 +83,22 @@ def get_use_case_id(request: Request) -> UseCaseID:
     try:
         use_case_param = request.GET.get("useCase", "sessions")
         return string_to_use_case_id(use_case_param)
+    except ValueError:
+        raise ParseError(
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
+        )
+
+
+def get_use_case_ids(request: Request) -> Sequence[UseCaseID]:
+    """
+    Gets use case ids from the query params and validates them again the `UseCaseID` enum type.
+
+    If an empty list is supplied, the use case ids in `DEFAULT_USE_CASE_IDS` will be used.
+    """
+
+    try:
+        use_case_params = request.GET.getlist("useCase", DEFAULT_USE_CASE_IDS)
+        return [string_to_use_case_id(use_case_param) for use_case_param in use_case_params]
     except ValueError:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
@@ -100,7 +123,7 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
 
         metrics = get_metrics_meta(
-            projects=projects, use_case_id=get_use_case_id(request), start=start, end=end
+            projects=projects, use_case_ids=get_use_case_ids(request), start=start, end=end
         )
 
         return Response(metrics, status=200)
