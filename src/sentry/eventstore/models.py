@@ -214,6 +214,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if user is not None:
             user._data.pop("sentry_user", None)
             return user
+        return None
 
     def get_event_type(self) -> str:
         """
