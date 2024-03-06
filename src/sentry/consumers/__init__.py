@@ -377,8 +377,6 @@ def get_stream_processor(
     validate_schema: bool = False,
     group_instance_id: str | None = None,
 ) -> StreamProcessor:
-    from django.conf import settings
-
     from sentry.utils import kafka_config
 
     try:
@@ -398,8 +396,10 @@ def get_stream_processor(
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     consumer_topic = consumer_definition["topic"]
-    default_topic = consumer_topic.value
-    real_topic = settings.KAFKA_TOPIC_OVERRIDES.get(default_topic, default_topic)
+
+    topic_defn = get_topic_definition(consumer_topic)
+    real_topic = topic_defn["real_topic_name"]
+    cluster = topic_defn["cluster"]
 
     if topic is None:
         topic = real_topic
@@ -411,12 +411,6 @@ def get_stream_processor(
     strategy_factory = cmd_context.invoke(
         strategy_factory_cls, **cmd_context.params, **consumer_definition.get("static_args") or {}
     )
-
-    topic_def = settings.KAFKA_TOPICS[real_topic]
-    assert topic_def is not None
-
-    if cluster is None:
-        cluster = topic_def["cluster"]
 
     def build_consumer_config(group_id: str):
         assert cluster is not None
