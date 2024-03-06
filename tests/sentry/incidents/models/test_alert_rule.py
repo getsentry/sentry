@@ -146,7 +146,7 @@ class IncidentAlertRuleRelationTest(TestCase):
 
 
 class AlertRuleTest(TestCase):
-    @patch("sentry.incidents.models.alert_rules.bulk_create_snuba_subscriptions")
+    @patch("sentry.incidents.models.alert_rule.bulk_create_snuba_subscriptions")
     def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
         # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
@@ -291,7 +291,7 @@ class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, 
 class AlertRuleTriggerActionActivateTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
-        with mock.patch("sentry.incidents.models.alert_rules.metrics") as self.metrics:
+        with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
     def setUp(self):
