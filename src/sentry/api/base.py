@@ -466,7 +466,7 @@ class Endpoint(APIView):
                         and not self.has_pagination(self.response)
                     ):
                         raise MissingPaginationError(
-                            f"Response is not paginated correctly in {handler.__func__.__qualname__}"
+                            f"Response is not paginated correctly in {handler.__func__.__qualname__}, {response.headers}"
                         )
         return self.response
 
