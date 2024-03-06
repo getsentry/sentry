@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from django.db.models import Q
 
 from sentry import features
-from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
@@ -139,20 +138,25 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.save(update_fields=("status",))
 
-        # Do not create incident if monitor is muted
-        if not monitor_muted:
-            starting_checkin = previous_checkins[0]
+        # Do not create incident if monitor is muted. This check happens late
+        # as we still want the status to have been updated
+        if monitor_muted:
+            return True
 
-            # for new incidents, generate a new hash from a uuid to use
-            fingerprint = hash_from_values([uuid.uuid4()])
+        starting_checkin = previous_checkins[0]
 
-            MonitorIncident.objects.create(
-                monitor=monitor_env.monitor,
-                monitor_environment=monitor_env,
-                starting_checkin_id=starting_checkin["id"],
-                starting_timestamp=starting_checkin["date_added"],
-                grouphash=fingerprint,
-            )
+        # for new incidents, generate a uuid as the fingerprint. This is
+        # not deterministic of any property of the incident and is simply
+        # used to associate the incident to it's event occurrences
+        fingerprint = uuid.uuid4().hex
+
+        MonitorIncident.objects.create(
+            monitor=monitor_env.monitor,
+            monitor_environment=monitor_env,
+            starting_checkin_id=starting_checkin["id"],
+            starting_timestamp=starting_checkin["date_added"],
+            grouphash=fingerprint,
+        )
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,

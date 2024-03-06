@@ -37,7 +37,7 @@ type ProviderOptions = {
 type Options = ProviderOptions & rtl.RenderOptions;
 
 function createProvider(contextDefs: Record<string, any>) {
-  return class ContextProvider extends Component {
+  return class ContextProvider extends Component<{children?: React.ReactNode}> {
     static childContextTypes = contextDefs.childContextTypes;
 
     getChildContext() {
