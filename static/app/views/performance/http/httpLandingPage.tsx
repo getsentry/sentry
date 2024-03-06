@@ -55,6 +55,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: ['spm()'],
+    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-landing-throughput-chart',
   });
 
@@ -65,6 +66,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`avg(span.self_time)`],
+    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-landing-duration-chart',
   });
 

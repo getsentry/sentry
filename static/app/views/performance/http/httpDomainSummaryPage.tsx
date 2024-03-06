@@ -64,6 +64,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
   });
 
@@ -74,6 +75,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
 

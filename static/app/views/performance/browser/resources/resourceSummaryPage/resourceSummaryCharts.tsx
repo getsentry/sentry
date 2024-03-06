@@ -48,6 +48,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
       ],
+      enabled: Object.values(filters).every(value => Boolean(value)),
     });
 
   if (spanMetricsSeriesData) {

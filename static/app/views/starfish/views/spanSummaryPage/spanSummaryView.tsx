@@ -89,6 +89,9 @@ export function SpanSummaryView({groupId}: Props) {
     useSpanMetricsSeries({
       filters: {'span.group': groupId, ...seriesQueryFilter},
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      enabled: Object.values({'span.group': groupId, ...seriesQueryFilter}).every(value =>
+        Boolean(value)
+      ),
       referrer: 'api.starfish.span-summary-page-metrics-chart',
     });
 

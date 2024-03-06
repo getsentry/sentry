@@ -104,6 +104,7 @@ export function DatabaseLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: ['spm()'],
+    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-landing-page-metrics-chart',
   });
 
@@ -114,6 +115,7 @@ export function DatabaseLandingPage() {
   } = useSpanMetricsSeries({
     filters: chartFilters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Object.values(chartFilters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-landing-page-metrics-chart',
   });
 

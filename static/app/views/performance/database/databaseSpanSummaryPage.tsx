@@ -102,6 +102,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
@@ -112,6 +113,7 @@ function SpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-page-metrics-chart',
   });
 
