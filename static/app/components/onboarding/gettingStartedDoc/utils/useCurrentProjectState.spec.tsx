@@ -89,7 +89,7 @@ describe('useCurrentProjectState', () => {
         allPlatforms: feedbackOnboardingPlatforms,
       },
     });
-    expect(result.current.currentProject).toBe(javascript);
+    expect(result.current.currentProject).toBe(rust_1);
   });
 
   it('should return the first project if no selection', () => {
@@ -97,10 +97,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([]);
     const {result} = reactHooks.renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        onboardingPlatforms: feedbackOnboardingPlatforms,
-        allPlatforms: feedbackOnboardingPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayPlatforms,
       },
     });
     expect(result.current.currentProject).toBe(javascript);
@@ -111,10 +111,10 @@ describe('useCurrentProjectState', () => {
     mockPageFilterStore([]);
     const {result} = reactHooks.renderHook(useCurrentProjectState, {
       initialProps: {
-        currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
-        onboardingPlatforms: feedbackOnboardingPlatforms,
-        allPlatforms: feedbackOnboardingPlatforms,
+        currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
+        onboardingPlatforms: replayOnboardingPlatforms,
+        allPlatforms: replayPlatforms,
       },
     });
     expect(result.current.currentProject).toBe(undefined);
