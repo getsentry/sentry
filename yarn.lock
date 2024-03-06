@@ -3086,7 +3086,7 @@
     "@tanstack/query-core" "4.29.7"
     use-sync-external-store "^1.2.0"
 
-"@testing-library/dom@^8.0.0":
+"@testing-library/dom@>=7", "@testing-library/dom@^8.0.0":
   version "8.12.0"
   resolved "https://registry.yarnpkg.com/@testing-library/dom/-/dom-8.12.0.tgz#fef5e545533fb084175dda6509ee71d7d2f72e23"
   integrity sha512-rBrJk5WjI02X1edtiUcZhgyhgBhiut96r5Jp8J5qktKdcvLcZpKDW8i2hkGMMItxrghjXuQ5AM6aE0imnFawaw==
@@ -10064,6 +10064,13 @@ react-router@3.2.0:
     loose-envify "^1.2.0"
     prop-types "^15.5.6"
     warning "^3.0.0"
+
+react-select-event@5.5.0:
+  version "5.5.0"
+  resolved "https://registry.yarnpkg.com/react-select-event/-/react-select-event-5.5.0.tgz#148067f75846f6bf07254c453083f2d3d59935f6"
+  integrity sha512-BwGjWL9wJxfug32mcIjj9arw9C8vBuW/pGijocFsS0NA8n6QSTmgvs27N1tVk7Pb5cJ1iFpQ5EcjqtO61sA02g==
+  dependencies:
+    "@testing-library/dom" ">=7"
 
 react-select@4.3.1:
   version "4.3.1"
