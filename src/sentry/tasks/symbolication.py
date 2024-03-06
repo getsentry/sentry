@@ -11,14 +11,8 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.features.rollout import in_random_rollout
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.java.processing import process_jvm_stacktraces
-from sentry.lang.java.utils import should_use_symbolicator_for_proguard
 from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.symbolicator import (
-    Symbolicator,
-    SymbolicatorTaskKind,
-    SymbolicatorPlatform,
-)
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.processing import realtime_metrics
@@ -108,10 +102,13 @@ def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any]
 def get_symbolication_function(
     data: Any,
 ) -> tuple[SymbolicatorPlatform, Callable[[Symbolicator, Any], Any] | None]:
+    from sentry.lang.java.processing import process_jvm_stacktraces
+    from sentry.lang.java.utils import should_use_symbolicator_for_proguard
+
     if data["platform"] in ("javascript", "node"):
         return SymbolicatorPlatform.js, process_js_stacktraces
     elif data["platform"] == "java" and should_use_symbolicator_for_proguard(data):
-        return SymbolicatorPlatform.jvm, process_jvm_event
+        return SymbolicatorPlatform.jvm, process_jvm_stacktraces
     else:
         return SymbolicatorPlatform.native, get_native_symbolication_function(data)
 
@@ -196,6 +193,8 @@ def _do_symbolicate_event(
     if task_kind.platform == SymbolicatorPlatform.js:
         symbolication_function = process_js_stacktraces
     elif task_kind.platform == SymbolicatorPlatform.jvm:
+        from sentry.lang.java.processing import process_jvm_stacktraces
+
         symbolication_function = process_jvm_stacktraces
     else:
         symbolication_function = get_native_symbolication_function(data)
