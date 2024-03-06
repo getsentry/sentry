@@ -32,10 +32,6 @@ CACHE_TIMEOUT = 3600
 IngestMessage = Mapping[str, Any]
 
 
-class Retriable(Exception):
-    pass
-
-
 def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
