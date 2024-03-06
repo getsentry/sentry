@@ -179,7 +179,15 @@ class Superuser(ElevatedMode):
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted() or DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
+        self_hosted = is_self_hosted()
+        logger.info(
+            "superuser.needs-validation",
+            extra={
+                "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL": DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL,
+                "self_hosted": self_hosted,
+            },
+        )
+        if self_hosted or DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
