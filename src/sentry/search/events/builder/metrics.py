@@ -1029,18 +1029,23 @@ class MetricsQueryBuilder(QueryBuilder):
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
-            groupbys = [Column(col) for col in self._get_group_bys()]
-        groupby_aliases = [
-            (
-                groupby.alias
-                if isinstance(groupby, (AliasedExpression, CurriedFunction))
-                else groupby.name
-            )
-            for groupby in groupbys
-            if not (
-                isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
-            )
-        ]
+            groupbys = [self.resolve_column(col) for col in self._get_group_bys()]
+            # Later the query is made by passing these columns to metrics layer so we can just have the aliases be the
+            # raw groupbys
+            groupby_aliases = self._get_group_bys()
+        else:
+            groupby_aliases = [
+                (
+                    groupby.alias
+                    if isinstance(groupby, (AliasedExpression, CurriedFunction))
+                    else groupby.name
+                )
+                for groupby in groupbys
+                if not (
+                    isinstance(groupby, CurriedFunction)
+                    and groupby.function == "team_key_transaction"
+                )
+            ]
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: dict[str, Any] = defaultdict(dict)
         groupby_values: list[Any] = []
