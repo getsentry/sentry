@@ -774,7 +774,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         conditions = []
 
         column = builder.resolve_column(
-            self.MIN_MAX_CONDITION_COLUMN.get(self.operation, "avg_metric")
+            self.MIN_MAX_CONDITION_COLUMN.get(self.operation or "", "avg_metric")
         )
 
         if self.min is not None:
