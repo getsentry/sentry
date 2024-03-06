@@ -6,6 +6,7 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {
   DashboardFilterKeys,
@@ -72,12 +73,15 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   const api = new MockApiClient();
 
+  beforeEach(function () {
+    setMockDate(new Date('2022-08-02'));
+  });
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    resetMockDate();
   });
 
   it('can send chart requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`session.all`),
@@ -459,7 +463,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send table requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsSessionUserCountByStatusByReleaseFixture(),
@@ -559,7 +562,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send big number requests', async function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
@@ -605,7 +607,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send multiple API requests', function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),
@@ -700,7 +701,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('adjusts interval based on date window', function () {
-    jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture(`session.all`),

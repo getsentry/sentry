@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
@@ -1269,7 +1270,7 @@ describe('Modals -> WidgetViewerModal', function () {
       widgetType: WidgetType.RELEASE,
     };
     beforeEach(function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
         body: MetricsTotalCountByReleaseIn24h(),
@@ -1281,7 +1282,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
     afterEach(() => {
-      jest.useRealTimers();
+      resetMockDate();
     });
 
     it('does a sessions query', async function () {
