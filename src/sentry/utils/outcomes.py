@@ -4,8 +4,6 @@ import time
 from datetime import datetime
 from enum import IntEnum
 
-from django.conf import settings
-
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.utils import json, kafka_config, metrics
@@ -98,14 +96,10 @@ def track_outcome(
 
     timestamp = timestamp or to_datetime(time.time())
 
-    # Send billing outcomes to a dedicated topic if there is a separate
-    # configuration for it. Otherwise, fall back to the regular outcomes topic.
-    # This does NOT switch the producer, if both topics are on the same cluster.
-    #
-    # In Sentry, there is no significant difference between the classes of
-    # outcome. In Sentry SaaS, they have elevated stability requirements as they
-    # are used for spike protection and quota enforcement.
-    topic_name = settings.KAFKA_OUTCOMES_BILLING if use_billing else settings.KAFKA_OUTCOMES
+    # Send billing outcomes to a dedicated topic.
+    topic_name = (
+        billing_config["real_topic_name"] if use_billing else outcomes_config["real_topic_name"]
+    )
 
     # Send a snuba metrics payload.
     publisher.publish(
