@@ -12,7 +12,6 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -238,8 +237,7 @@ class IntegrationService(RpcService):
         incident_id: int,
         new_status: int,
         incident_attachment_json: str,
-        organization: RpcOrganizationSummary | None = None,
-        organization_id: int | None = None,
+        organization_id: int,
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
