@@ -316,7 +316,9 @@ describe('flattenFrames', () => {
         uri: '/_assets/test6.mp4',
       },
     ];
-    const trackList = segments.map(({timestamp}, index) => [timestamp, index]);
+    const trackList = segments.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
 
     it.each([
       ['matches starting timestamp', 0, 0],
