@@ -5,16 +5,16 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {HTTPLandingPage} from 'sentry/views/performance/http/httpLandingPage';
+import {HTTPDomainSummaryPage} from 'sentry/views/performance/http/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
-describe('HTTPLandingPage', function () {
+describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let domainChartsRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -36,7 +36,7 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d'},
+    query: {domain: '*.sentry.dev', statsPeriod: '10d'},
     hash: '',
     state: undefined,
     action: 'PUSH',
@@ -46,27 +46,15 @@ describe('HTTPLandingPage', function () {
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   beforeEach(function () {
-    spanListRequestMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-landing-domains-list',
-        }),
-      ],
       body: {
-        data: [
-          {
-            'span.domain': '*.sentry.io',
-          },
-          {
-            'span.domain': '*.github.com',
-          },
-        ],
+        data: [],
       },
     });
 
-    spanChartsRequestMock = MockApiClient.addMockResponse({
+    domainChartsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
@@ -85,9 +73,9 @@ describe('HTTPLandingPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<HTTPLandingPage />);
+    render(<HTTPDomainSummaryPage />);
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -103,8 +91,8 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http has:span.domain',
-          referrer: 'api.starfish.http-module-landing-throughput-chart',
+          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -112,7 +100,7 @@ describe('HTTPLandingPage', function () {
       })
     );
 
-    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+    expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       2,
       `/organizations/${organization.slug}/events-stats/`,
       expect.objectContaining({
@@ -128,8 +116,8 @@ describe('HTTPLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http has:span.domain',
-          referrer: 'api.starfish.http-module-landing-duration-chart',
+          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          referrer: 'api.starfish.http-module-domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -137,46 +125,6 @@ describe('HTTPLandingPage', function () {
       })
     );
 
-    expect(spanListRequestMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          dataset: 'spansMetrics',
-          environment: [],
-          field: [
-            'project.id',
-            'span.domain',
-            'spm()',
-            'avg(span.self_time)',
-            'sum(span.self_time)',
-            'time_spent_percentage()',
-          ],
-          per_page: 10,
-          project: [],
-          query: 'span.module:http has:span.domain',
-          referrer: 'api.starfish.http-module-landing-domains-list',
-          sort: '-time_spent_percentage()',
-          statsPeriod: '10d',
-        },
-      })
-    );
-
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-  });
-
-  it('renders a list of domains', async function () {
-    render(<HTTPLandingPage />);
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-
-    expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.io&statsPeriod=10d'
-    );
-    expect(screen.getByRole('link', {name: '*.github.com'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/performance/http/domains/?domain=%2A.github.com&statsPeriod=10d'
-    );
   });
 });
