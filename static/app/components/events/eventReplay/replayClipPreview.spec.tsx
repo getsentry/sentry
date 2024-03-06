@@ -217,7 +217,7 @@ describe('ReplayClipPreview', () => {
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
   });
-  it('Render the back button when we pass in handleBackClick', async () => {
+  it('Render the back and forward buttons when we pass in handleBackClick and handleForwardClick', async () => {
     const handleBackClick = jest.fn();
     const handleForwardClick = jest.fn();
     render(

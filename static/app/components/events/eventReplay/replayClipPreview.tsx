@@ -76,6 +76,7 @@ type Props = {
   handleForwardClick?: () => void;
   isLarge?: boolean;
   issueCategory?: IssueCategory;
+  overlayText?: string;
 } & AdditionalProps;
 
 function getReplayAnalyticsStatus({
@@ -224,6 +225,7 @@ function ReplayClipPreview({
   handleForwardClick,
   handleBackClick,
   group,
+  overlayText,
 }: Props) {
   const clipWindow = useMemo(
     () =>
@@ -298,9 +300,10 @@ function ReplayClipPreview({
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
             replayRecord={replayRecord}
+            issueCategory={issueCategory}
             handleBackClick={handleBackClick}
             handleForwardClick={handleForwardClick}
-            issueCategory={issueCategory}
+            overlayText={overlayText}
           />
         )}
       </PlayerContainer>
