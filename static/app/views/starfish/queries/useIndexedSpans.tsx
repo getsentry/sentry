@@ -5,7 +5,11 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {
+  SpanIndexedField,
+  SpanIndexedFieldTypes,
+  SpanMeasurements,
+} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface Filters {
@@ -20,7 +24,7 @@ export const useIndexedSpans = ({
   referrer,
   fields,
 }: {
-  fields: SpanIndexedField[];
+  fields: (SpanIndexedField | SpanMeasurements)[];
   filters: Filters;
   limit: number;
   referrer: string;
@@ -42,7 +46,7 @@ export const useIndexedSpans = ({
 function getEventView(
   filters: Filters,
   location: Location,
-  fields: SpanIndexedField[],
+  fields: (SpanIndexedField | SpanMeasurements)[],
   sorts?: Sort[]
 ) {
   // TODO: Add a `MutableSearch` constructor that accept a key-value mapping

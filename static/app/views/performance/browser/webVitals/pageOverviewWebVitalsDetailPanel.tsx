@@ -17,6 +17,7 @@ import {getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
+import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -33,15 +34,18 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webV
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import type {
+  InteractionSpanSampleRowWithScore,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader;
 
@@ -53,8 +57,20 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
+const inpColumnOrder: GridColumnOrder[] = [
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Inp'},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+];
+
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
   key: 'totalScore',
+  order: 'desc',
+};
+
+const inpSort: GridColumnSortBy<keyof InteractionSpanSampleRowWithScore> = {
+  key: 'inpScore',
   order: 'desc',
 };
 
@@ -69,8 +85,10 @@ export function PageOverviewWebVitalsDetailPanel({
   const {projects} = useProjects();
   const organization = useOrganization();
   const routes = useRoutes();
+  const {replayExists} = useReplayExists();
   const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+
+  const isInp = webVital === 'inp';
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -95,10 +113,6 @@ export function PageOverviewWebVitalsDetailPanel({
   const projectScore = shouldUseStoredScores
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
-
-  // TODO: remove this when INP is queryable. Need to map inp back to fid for search filters.
-  const webVitalFilter = shouldReplaceFidWithInp && webVital === 'inp' ? 'fid' : webVital;
-
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
@@ -106,12 +120,12 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVitalFilter}:<${PERFORMANCE_SCORE_P90S[webVital]}`
+        ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
-      enabled: Boolean(webVital),
+      enabled: Boolean(webVital) && !isInp,
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVitalFilter ?? undefined,
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -119,12 +133,12 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVitalFilter}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVitalFilter}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
+        ? `measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
-      enabled: Boolean(webVital),
+      enabled: Boolean(webVital) && !isInp,
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVitalFilter ?? undefined,
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -132,22 +146,32 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVitalFilter}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
+        ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
         : undefined,
-      enabled: Boolean(webVital),
+      enabled: Boolean(webVital) && !isInp,
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVitalFilter ?? undefined,
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
+
+  const {data: interactionsTableData, isFetching: isInteractionsLoading} =
+    useInpSpanSamplesWebVitalsQuery({
+      transaction,
+      enabled: Boolean(webVital) && isInp,
+      limit: 9,
+    });
 
   const isTransactionWebVitalsQueryLoading =
     isGoodTransactionWebVitalsQueryLoading ||
     isMehTransactionWebVitalsQueryLoading ||
     isPoorTransactionWebVitalsQueryLoading;
 
-  const tableData: TransactionSampleRowWithScore[] = data.sort(
+  const transactionsTableData: TransactionSampleRowWithScore[] = data.sort(
+    (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
+  );
+  const inpTableData: SpanIndexedFieldTypes[] = interactionsTableData.sort(
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );
 
@@ -178,7 +202,7 @@ export function PageOverviewWebVitalsDetailPanel({
     if (col.key === 'webVital') {
       return <AlignRight>{`${webVital}`}</AlignRight>;
     }
-    if (col.key === 'score') {
+    if (col.key === 'score' || col.key === 'measurements.score.inp') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
@@ -246,7 +270,7 @@ export function PageOverviewWebVitalsDetailPanel({
           undefined
         );
 
-      return row.replayId && replayTarget ? (
+      return row.replayId && replayTarget && replayExists(row[key]) ? (
         <AlignCenter>
           <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
         </AlignCenter>
@@ -267,6 +291,78 @@ export function PageOverviewWebVitalsDetailPanel({
       const target = generateProfileFlamechartRoute({
         orgSlug: organization.slug,
         projectSlug,
+        profileId: String(row['profile.id']),
+      });
+
+      return (
+        <AlignCenter>
+          <Link to={target}>{getShortEventId(row['profile.id'])}</Link>
+        </AlignCenter>
+      );
+    }
+    return <AlignRight>{row[key]}</AlignRight>;
+  };
+
+  const renderInpBodyCell = (col: Column, row: InteractionSpanSampleRowWithScore) => {
+    const {key} = col;
+    if (key === 'score') {
+      if (row[`measurements.${webVital}`] !== undefined) {
+        return (
+          <AlignCenter>
+            <PerformanceBadge score={row[`${webVital}Score`]} />
+          </AlignCenter>
+        );
+      }
+      return null;
+    }
+    if (col.key === 'webVital') {
+      const value = row[`measurements.${webVital}`];
+      if (value === undefined) {
+        return (
+          <AlignRight>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignRight>
+        );
+      }
+      const formattedValue =
+        webVital === 'cls' ? value?.toFixed(2) : getFormattedDuration(value);
+      return <AlignRight>{formattedValue}</AlignRight>;
+    }
+    if (key === 'replayId') {
+      const replayTarget = replayLinkGenerator(
+        organization,
+        {
+          replayId: row.replayId,
+          id: '', // id doesn't actually matter here. Just to satisfy type.
+          'transaction.duration': isInp
+            ? row[SpanIndexedField.SPAN_SELF_TIME]
+            : row['transaction.duration'],
+          timestamp: row.timestamp,
+        },
+        undefined
+      );
+
+      return row.replayId && replayTarget && replayExists(row[key]) ? (
+        <AlignCenter>
+          <Link to={replayTarget}>{getShortEventId(row.replayId)}</Link>
+        </AlignCenter>
+      ) : (
+        <AlignCenter>
+          <NoValue>{t('(no value)')}</NoValue>
+        </AlignCenter>
+      );
+    }
+    if (key === 'profile.id') {
+      if (!defined(project) || !defined(row['profile.id'])) {
+        return (
+          <AlignCenter>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignCenter>
+        );
+      }
+      const target = generateProfileFlamechartRoute({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
         profileId: String(row['profile.id']),
       });
 
@@ -304,17 +400,31 @@ export function PageOverviewWebVitalsDetailPanel({
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
         <TableContainer>
-          <GridEditable
-            data={tableData}
-            isLoading={isTransactionWebVitalsQueryLoading}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-          />
+          {isInp ? (
+            <GridEditable
+              data={inpTableData as unknown as InteractionSpanSampleRowWithScore[]}
+              isLoading={isInteractionsLoading}
+              columnOrder={inpColumnOrder}
+              columnSortBy={[inpSort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell: renderInpBodyCell,
+              }}
+              location={location}
+            />
+          ) : (
+            <GridEditable
+              data={transactionsTableData}
+              isLoading={isTransactionWebVitalsQueryLoading}
+              columnOrder={columnOrder}
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              location={location}
+            />
+          )}
         </TableContainer>
         <PageAlert />
       </DetailPanel>

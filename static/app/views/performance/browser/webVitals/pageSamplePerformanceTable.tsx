@@ -24,12 +24,14 @@ import {getDuration} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import type {
   InteractionSpanSampleRowWithScore,
@@ -44,6 +46,7 @@ import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webV
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {SpanIndexedField, SpanMeasurements} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -65,13 +68,11 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   keyof InteractionSpanSampleRowWithScore
 >[] = [
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
-  {key: 'measurements.inp', width: COL_WIDTH_UNDEFINED, name: 'INP'},
+  {key: SpanMeasurements.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
-
-const INP_SEARCH_FILTER = 'has:measurements.fid (has:profile.id OR has:replayId)';
 
 enum Dataset {
   PAGELOADS = 'pageloads',
@@ -88,6 +89,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const {replayExists} = useReplayExists();
   const routes = useRoutes();
   const router = useRouter();
   const shouldUseStoredScores = useStoredScoresSetting();
@@ -137,17 +139,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: dataset === Dataset.PAGELOADS,
   });
 
-  const {
-    data: interactionsTableData,
-    isLoading: isInteractionsLoading,
-    pageLinks: interactionsPageLinks,
-  } = useTransactionSamplesWebVitalsQuery({
-    limit,
-    transaction,
-    query: `${INP_SEARCH_FILTER} ${search ?? ''}`,
-    withProfiles: true,
-    enabled: dataset === Dataset.INTERACTIONS,
-  });
+  const interactionsPageLinks = null;
+
+  const {data: interactionsTableData, isFetching: isInteractionsLoading} =
+    useInpSpanSamplesWebVitalsQuery({
+      transaction,
+      enabled: dataset === Dataset.INTERACTIONS,
+      limit: 9,
+    });
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -155,7 +154,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
-      const key = col.key === 'totalScore' ? 'measurements.score.total' : col.key;
+      const key = col.key === 'inpScore' ? 'measurements.score.total' : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {
@@ -201,7 +200,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         </AlignRight>
       );
     }
-    if (col.key === 'totalScore') {
+    if (col.key === 'totalScore' || col.key === 'inpScore') {
       return (
         <SortLink
           title={
@@ -244,10 +243,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     row: TransactionSampleRowWithScore | InteractionSpanSampleRowWithScore
   ) {
     const {key} = col;
-    if (key === 'totalScore') {
+    if (key === 'totalScore' || key === 'inpScore') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row.totalScore} />
+          <PerformanceBadge score={row[key]} />
         </AlignCenter>
       );
     }
@@ -304,11 +303,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     }
     if (key === 'profile.id') {
       const profileTarget =
-        defined(row.projectSlug) && defined(row['profile.id'])
+        defined(row.projectSlug) && defined(row[key])
           ? generateProfileFlamechartRoute({
               orgSlug: organization.slug,
               projectSlug: row.projectSlug,
-              profileId: String(row['profile.id']),
+              profileId: String(row[key]),
             })
           : null;
       return (
@@ -332,9 +331,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         replayLinkGenerator(
           organization,
           {
-            replayId: row.replayId,
+            replayId: row[key],
             id: row.id,
-            'transaction.duration': row['transaction.duration'],
+            'transaction.duration':
+              dataset === Dataset.INTERACTIONS
+                ? row[SpanIndexedField.SPAN_SELF_TIME]
+                : row['transaction.duration'],
             timestamp: row.timestamp,
           },
           undefined
@@ -342,13 +344,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       return (
         <NoOverflow>
           <AlignCenter>
-            {replayTarget && Object.keys(replayTarget).length > 0 && (
-              <Tooltip title={t('View Replay')}>
-                <LinkButton to={replayTarget} size="xs">
-                  <IconPlay size="xs" />
-                </LinkButton>
-              </Tooltip>
-            )}
+            {replayTarget &&
+              Object.keys(replayTarget).length > 0 &&
+              replayExists(row[key]) && (
+                <Tooltip title={t('View Replay')}>
+                  <LinkButton to={replayTarget} size="xs">
+                    <IconPlay size="xs" />
+                  </LinkButton>
+                </Tooltip>
+              )}
           </AlignCenter>
         </NoOverflow>
       );
