@@ -1,4 +1,4 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 
@@ -59,5 +59,43 @@ describe('ContextData', function () {
         within(screen.getByTestId('value-null')).getByText('null_value_output')
       ).toBeInTheDocument();
     });
+  });
+
+  describe('collpasible values', function () {
+    it('auto-collapses objects/arrays with more than 5 items', async function () {
+      render(
+        <StructuredEventData
+          data={{
+            one: {one_child: 'one_child_value'},
+            two: {
+              two_1: 'two_child_value',
+              two_2: 2,
+              two_3: 3,
+              two_4: 4,
+              two_5: 5,
+              two_6: 6,
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('one_child_value')).toBeInTheDocument();
+      expect(screen.queryByText('two_child_value')).not.toBeInTheDocument();
+
+      // Click the "6 items" button to expand the object
+      await userEvent.click(screen.getByRole('button', {name: '6 items'}));
+      expect(screen.getByText('two_child_value')).toBeInTheDocument();
+    });
+  });
+
+  it('auto-collapses objects/arrays after max depth', async function () {
+    render(<StructuredEventData data={[1, [2, 3]]} maxDefaultDepth={1} />);
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
+
+    // Click the "2 items" button to expand the array
+    await userEvent.click(screen.getByRole('button', {name: '2 items'}));
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });
