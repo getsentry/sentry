@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import controlCenter from 'sentry-images/spot/controlCenter.jpg';
@@ -11,72 +11,55 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export default function DataConsentModal({closeModal}: ModalRenderProps) {
-  const [step, setStep] = useState(0);
-
   return (
     <Fragment>
       <ImageHeader />
-      {step === 0 && (
-        <div>
-          <Subheader>{t('Less noise, more action')}</Subheader>
-          <Title>{t('Help Sentry be more opinionated')}</Title>
-          <Body>
-            {t(
-              "We're working on making issue alerts more actionable, improving prioritization, grouping, and more, but we need your help."
-            )}
-          </Body>
-          <InfoHeader>
-            <ConsentHeader>{t('Data Consent')}</ConsentHeader>
-            <LearnMore onClick={() => setStep(1)}>{t('Learn More')}</LearnMore>
-          </InfoHeader>
+      <div>
+        <Subheader>{t('Less noise, more action')}</Subheader>
+        <Title>{t('Help Sentry be more opinionated')}</Title>
+        <Body>
+          {t(
+            "We're working to improve grouping, alert relevance, issue prioritization, and more, and we need your help."
+          )}
+        </Body>
+        <InfoHeader>
+          <ConsentHeader>{t('Data Consent')}</ConsentHeader>
+          <LearnMore href="https://www.apple.com">{t('Learn More')}</LearnMore>
+        </InfoHeader>
 
-          <ConsentInfo>
-            <ConsentRow>
-              <StyledIconWrapper>
-                <IconGraphBar size="lg" />
-              </StyledIconWrapper>
-              <ConsentLabel>
-                <ConsentLabelHeader>{t('What we collect')}</ConsentLabelHeader>
-                <ConsentLabelBody>
-                  {t('Error message, stack traces, spans, and DOM interactions')}
-                </ConsentLabelBody>
-              </ConsentLabel>
-            </ConsentRow>
-            <Divider />
-            <ConsentRow>
-              <StyledIconWrapper>
-                <IconLock isSolid size="lg" />
-              </StyledIconWrapper>
-              <ConsentLabel>
-                <ConsentLabelHeader>{t('How we store and use it')}</ConsentLabelHeader>
-                <ConsentLabelBody>{t('Only within Sentry')}</ConsentLabelBody>
-              </ConsentLabel>
-            </ConsentRow>
-          </ConsentInfo>
-        </div>
-      )}
-
-      {step === 1 && (
-        <div>
-          <Subheader learnMore>{t('Data Consent')}</Subheader>
-          <LearnMoreHeader>{t('What we collect')}</LearnMoreHeader>
-          <LearnMoreBody>
-            {t(
-              'Sentry will collect error messages, stack traces, spans, and DOM interactions to train and validate models. These models will be used to improve alert accuracy and relevance, issue prioritization, suggested fixes, and more.'
-            )}
-          </LearnMoreBody>
-          <LearnMoreHeader>{t('How we store and use it')}</LearnMoreHeader>
-          <LearnMoreBody>
-            {t(
-              'Sentry stores data within Sentry only. We will not share it with any sub-processor or third party without additional consent from you.'
-            )}
-          </LearnMoreBody>
-        </div>
-      )}
-      <Footer step={step}>
-        {step === 0 && <Button onClick={closeModal}>{t('Maybe later')}</Button>}
-        {step === 0 && <Button priority="primary">{t("I'll help")}</Button>}
-        {step === 1 && <Button onClick={() => setStep(0)}>{t('Back')}</Button>}
+        <ConsentInfo>
+          <ConsentRow>
+            <StyledIconWrapper>
+              <IconGraphBar size="lg" />
+            </StyledIconWrapper>
+            <ConsentLabel>
+              <ConsentLabelHeader>{t('What data do we access?')}</ConsentLabelHeader>
+              <ConsentLabelBody>
+                {t(
+                  'Sentry will access error messages, stack traces, spans, and DOM interactions to train and validate models to improve our product.'
+                )}
+              </ConsentLabelBody>
+            </ConsentLabel>
+          </ConsentRow>
+          <Divider />
+          <ConsentRow>
+            <StyledIconWrapper>
+              <IconLock isSolid size="lg" />
+            </StyledIconWrapper>
+            <ConsentLabel>
+              <ConsentLabelHeader>{t('Where does it go?')}</ConsentLabelHeader>
+              <ConsentLabelBody>
+                {t(
+                  "We store data within Sentry's infrastructure. We will not share it with AI sub-processors without additional consent."
+                )}
+              </ConsentLabelBody>
+            </ConsentLabel>
+          </ConsentRow>
+        </ConsentInfo>
+      </div>
+      <Footer>
+        <Button onClick={closeModal}>{t('Maybe later')}</Button>
+        <Button priority="primary">{t('I agree')}</Button>
       </Footer>
     </Fragment>
   );
@@ -137,27 +120,20 @@ const ConsentLabelHeader = styled('h6')`
 const ConsentLabelBody = styled('p')`
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const LearnMoreHeader = styled('h4')`
-  margin-bottom: ${space(1)};
-`;
-
-const LearnMoreBody = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(3)};
-`;
 const StyledIconWrapper = styled('span')`
   margin-left: ${space(3)};
   color: ${p => p.theme.gray300};
 `;
 
-const Footer = styled('div')<{step: number}>`
+const Footer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: right;
   gap: ${space(1)};
-  margin-top: ${p => (p.step === 0 ? space(2) : '84px')};
+  margin-top: ${space(3)};
 `;
 
 const LearnMore = styled('a')`
