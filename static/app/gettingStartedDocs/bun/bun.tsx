@@ -7,10 +7,9 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
-  getCrashReportModalInstallDescriptionJavaScript,
   getCrashReportModalIntroduction,
-  getCrashReportModalSnippetJavaScript,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
@@ -193,13 +192,7 @@ const customMetricsOnboarding: OnboardingConfig = {
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      description: getCrashReportModalInstallDescriptionJavaScript(),
-      configurations: getCrashReportModalSnippetJavaScript(params),
-    },
-  ],
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
