@@ -32,6 +32,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
+from sentry.relay.globalconfig import GenericFiltersConfig
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
@@ -170,7 +171,24 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    try:
+        generic_filters = _get_generic_project_filters()
+    except Exception:
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
+    else:
+        if generic_filters and len(generic_filters["filters"]) > 0:
+            filter_settings["generic"] = generic_filters
+
     return filter_settings
+
+
+def _get_generic_project_filters() -> GenericFiltersConfig:
+    return {
+        "version": 1,
+        "filters": [],
+    }
 
 
 def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
