@@ -912,7 +912,7 @@ export type KeyValueListDataItem = {
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode;
+  value?: React.ReactNode | Record<string, string | number>;
 };
 
 export type KeyValueListData = KeyValueListDataItem[];
