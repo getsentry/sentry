@@ -425,10 +425,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         data = parse_qs(responses.calls[1].request.body)
         message = f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
         assert data["text"][0] == message
-        blocks = json.loads(data["blocks"][0])
-        assert blocks[0]["text"]["text"] == message
+        rendered_blocks = json.loads(data["blocks"][0])
+        assert rendered_blocks[0]["text"]["text"] == message
         assert (
-            blocks[1]["elements"][0]["text"]
+            rendered_blocks[1]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 
