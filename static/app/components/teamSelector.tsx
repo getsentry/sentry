@@ -364,20 +364,14 @@ function TeamSelector(props: Props) {
 
   useEffect(() => {
     // Only take action after we've finished loading the teams
-    if (fetching) {
-      return;
-    }
+    if (fetching) return;
 
     // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
-    if (options.length === 1 && useTeamDefaultIfOnlyOne) {
-      const castedValue = multiple
-        ? (options as TeamOption[])
-        : (options[0] as TeamOption);
-      handleChange(castedValue);
-    }
+    if (options.length === 1 && useTeamDefaultIfOnlyOne) handleChange(options[0]);
+
     // We only want to do this once when the component is finished loading for teams and mounted.
     // If the user decides they do not want the default, we should not add the default value back.
-  }, [fetching, useTeamDefaultIfOnlyOne]);
+  }, [fetching, useTeamDefaultIfOnlyOne, handleChange, options]);
 
   return (
     <SelectControl
