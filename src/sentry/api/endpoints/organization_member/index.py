@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import F, Q
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,13 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import organization_member as organization_member_serializers
+from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
+from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.api.validators import AllowedEmailField
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -29,27 +35,77 @@ from . import get_allowed_org_roles, save_team_assignments
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
+# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
+# has the wrong descriptions, includes deprecated admin, and excludes billing
+ROLE_CHOICES = [
+    ("billing", "Can manage payment and compliance details."),
+    (
+        "member",
+        "Can view and act on events, as well as view most other data within the organization.",
+    ),
+    (
+        "manager",
+        """Has full management access to all teams and projects. Can also manage
+        the organization's membership.""",
+    ),
+    (
+        "owner",
+        """Has unrestricted access to the organization, its data, and its
+        settings. Can add, modify, and delete projects and members, as well as
+        make billing and plan changes.""",
+    ),
+    (
+        "admin",
+        """Can edit global integrations, manage projects, and add/remove teams.
+        They automatically assume the Team Admin role for teams they join.
+        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
+        """,
+    ),
+]
+
 
 class MemberConflictValidationError(serializers.ValidationError):
     pass
 
 
-class OrganizationMemberSerializer(serializers.Serializer):
-    email = AllowedEmailField(max_length=75, required=True)
+@extend_schema_serializer(
+    deprecate_fields=["role", "teams"], exclude_fields=["regenerate", "role", "teams"]
+)
+class OrganizationMemberRequestSerializer(serializers.Serializer):
+    email = AllowedEmailField(
+        max_length=75, required=True, help_text="The email address to send the invitation to."
+    )
     role = serializers.ChoiceField(
         choices=roles.get_choices(), default=organization_roles.get_default().id
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id, required=False
+        choices=ROLE_CHOICES,
+        default=organization_roles.get_default().id,
+        required=False,
+        help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
         required=False, allow_null=False, default=[]
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
-        required=False, allow_null=True, default=[], child=serializers.JSONField()
+        required=False,
+        allow_null=True,
+        default=[],
+        child=serializers.JSONField(),
+        help_text="""The team and team-roles assigned to the member. Team roles can be either:
+        - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
+        - `admin` - Has full management access to their team's membership and projects.""",
     )
-    sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
-    reinvite = serializers.BooleanField(required=False)
+    sendInvite = serializers.BooleanField(
+        required=False,
+        default=True,
+        write_only=True,
+        help_text="Whether or not to send an invite notification through email. Defaults to True.",
+    )
+    reinvite = serializers.BooleanField(
+        required=False,
+        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
+    )
     regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
@@ -116,15 +172,36 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Organizations"])
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
+    @extend_schema(
+        operation_id="List an Organization's Members",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationMemberResponse", list[OrganizationMemberResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        List all organization members.
+
+        Response includes pending invites that are approved by organization admins but waiting to be accepted by the invitee.
+        """
         queryset = OrganizationMember.objects.filter(
             Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
             organization=organization,
@@ -209,27 +286,28 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                serializer=organization_member_serializers.OrganizationMemberSerializer(
-                    expand=expand
-                ),
+                serializer=OrganizationMemberSerializer(expand=expand),
             ),
             paginator_cls=OffsetPaginator,
         )
 
+    @extend_schema(
+        operation_id="Add a Member to an Organization",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+        ],
+        request=OrganizationMemberRequestSerializer,
+        responses={
+            201: OrganizationMemberSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
+    )
     def post(self, request: Request, organization) -> Response:
         """
-        Add a Member to Organization
-        ````````````````````````````
-
-        Invite a member to the organization.
-
-        :param string organization_slug: the slug of the organization the member will belong to
-        :param string email: the email address to invite
-        :param string role: the org-role of the new member
-        :param array teams: the slugs of the teams the member should belong to.
-        :param array teamRoles: the team and team-roles assigned to the member
-
-        :auth: required
+        Add or invite a member to an organization.
         """
         if not features.has("organizations:invite-members", organization, actor=request.user):
             return Response(
@@ -248,7 +326,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 )
             allowed_roles = [organization_roles.get("member")]
 
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             context={
                 "organization": organization,

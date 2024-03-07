@@ -13,7 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -64,27 +67,6 @@ Configures the team role of the member. The two roles are:
 }
 ```
 """
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-]
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -202,7 +184,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Update a member's organization and team-level roles.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             partial=True,
             context={

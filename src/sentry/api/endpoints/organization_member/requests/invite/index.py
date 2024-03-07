@@ -7,7 +7,7 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
@@ -70,7 +70,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             context={"organization": organization, "allowed_roles": roles.get_all()},
         )
