@@ -210,12 +210,12 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
         for query_groups in queries_groups:
             translated_query_groups = []
             for group_key, group_value in query_groups.items():
-                base_group = {
+                base_group: dict[str, Any] = {
                     "by": {name: value for name, value in group_key},
                     "totals": undefined_value_to_none(group_value.totals),
                 }
 
-                if intervals is not None:
+                if intervals is not None and interval is not None:
                     base_group["series"] = _generate_full_series(
                         int(start.timestamp()), len(intervals), interval, group_value.series
                     )
