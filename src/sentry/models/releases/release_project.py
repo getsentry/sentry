@@ -49,7 +49,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         NOTE: import AlertRule model here to avoid circular dependency
         TODO: move once AlertRule has been split into separate subdirectory files
         """
-        from sentry.incidents.models import AlertRule
+        from sentry.incidents.models.alert_rule import AlertRule
 
         query_extra = f"release:{release.version} AND event.timestamp:>{timezone.now().isoformat()}"
         return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(

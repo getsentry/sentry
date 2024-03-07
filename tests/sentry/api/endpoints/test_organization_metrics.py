@@ -190,7 +190,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "detail": ErrorDetail(string="Unsupported sort: id for MRI", code="parse_error")
         }
 
-    def test_span_duration_samples(self):
+    def test_span_exclusive_time_samples(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
         good_span_id = span_ids[1]
@@ -204,12 +204,13 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 span_id=span_id,
                 duration=duration,
+                exclusive_time=duration,
                 timestamp=ts,
                 group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         query = {
-            "mri": "d:spans/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [self.project.id],
             "statsPeriod": "14d",
@@ -528,8 +529,8 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                         {
                             "min": val,
                             "max": val,
-                            "sum": val,
-                            "count": 1,
+                            "sum": val * (i + 1) * 2,
+                            "count": (i + 1) * 2,
                             "tags": {},
                         }
                     ]
@@ -556,27 +557,34 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         )
 
-        query = {
-            "mri": mri,
-            "field": ["id"],
-            "project": [self.project.id],
-            "statsPeriod": "14d",
-            "min": 150.0,
-            "max": 250.0,
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-        expected = {int(good_span_id, 16)}
-        actual = {int(row["id"], 16) for row in response.data["data"]}
-        assert actual == expected
-
-        for row in response.data["data"]:
-            assert row["summary"] == {
-                "min": 200.0,
-                "max": 200.0,
-                "sum": 200.0,
-                "count": 1,
+        for operation, min_bound, max_bound in [
+            ("avg", 150.0, 250.0),
+            ("min", 150.0, 250.0),
+            ("max", 150.0, 250.0),
+            ("count", 3, 5),
+        ]:
+            query = {
+                "mri": mri,
+                "field": ["id"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "min": min_bound,
+                "max": max_bound,
+                "operation": operation,
             }
+            response = self.do_request(query)
+            assert response.status_code == 200, (operation, response.data)
+            expected = {int(good_span_id, 16)}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected, operation
+
+            for row in response.data["data"]:
+                assert row["summary"] == {
+                    "min": 200.0,
+                    "max": 200.0,
+                    "sum": 800.0,
+                    "count": 4,
+                }, operation
 
         query = {
             "mri": mri,
@@ -591,10 +599,10 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
         actual = {int(row["id"], 16) for row in response.data["data"]}
         assert actual == expected
 
-        for val, row in zip(reversed(values), response.data["data"]):
+        for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
             assert row["summary"] == {
                 "min": val,
                 "max": val,
-                "sum": val,
-                "count": 1,
+                "sum": val * (len(values) - i) * 2,
+                "count": (len(values) - i) * 2,
             }

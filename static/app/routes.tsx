@@ -1687,6 +1687,12 @@ function buildRoutes() {
         <IndexRoute
           component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
         />
+        <Route
+          path="domains/"
+          component={make(
+            () => import('sentry/views/performance/http/httpDomainSummaryPage')
+          )}
+        />
       </Route>
       <Route path="browser/">
         <Route path="interactions/">
