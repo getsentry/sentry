@@ -61,13 +61,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         if event_type == EventStreamEventType.Transaction:
-            assert produce_kwargs["topic"] == settings.KAFKA_TRANSACTIONS
+            assert produce_kwargs["topic"] == "transactions"
             assert produce_kwargs["key"] is None
         elif event_type == EventStreamEventType.Generic:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+            assert produce_kwargs["topic"] == "generic-events"
             assert produce_kwargs["key"] is None
         else:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
+            assert produce_kwargs["topic"] == "events"
             assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])

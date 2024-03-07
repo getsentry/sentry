@@ -58,8 +58,6 @@ class PostProcessForwarderTest(TestCase):
         self.events_topic = f"events-{self.consumer_and_topic_suffix}"
         self.commit_log_topic = f"events-commit-{self.consumer_and_topic_suffix}"
         self.override_settings_cm = override_settings(
-            KAFKA_EVENTS=self.events_topic,
-            KAFKA_TRANSACTIONS=self.events_topic,
             KAFKA_TOPICS={
                 self.events_topic: {"cluster": "default"},
             },
