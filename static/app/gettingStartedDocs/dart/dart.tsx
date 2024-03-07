@@ -197,6 +197,7 @@ Sentry.captureUserFeedback(userFeedback);`,
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  crashReportOnboarding: feedbackOnboardingCrashApiDart,
 };
 
 export default docs;

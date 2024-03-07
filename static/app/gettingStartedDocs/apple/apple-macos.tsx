@@ -284,6 +284,7 @@ SentrySDK.start { options in
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
+  crashReportOnboarding: appleFeedbackOnboarding,
 };
 
 export default docs;

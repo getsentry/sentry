@@ -313,6 +313,7 @@ Sentry.captureUserFeedback(userFeedback)`,
 const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingCrashApi,
+  crashReportOnboarding: feedbackOnboardingCrashApi,
   onboarding,
 };
 
