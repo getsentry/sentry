@@ -419,7 +419,7 @@ class DailySummaryTest(
                 project_context=top_projects_context_map,
             ).send()
         blocks, _ = get_blocks_and_fallback_text()
-        assert len(blocks) == 13
+        assert len(blocks) == 12
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
@@ -446,8 +446,8 @@ class DailySummaryTest(
         assert f"*{self.project.slug}*" in blocks[2]["text"]["text"]
         # check that we skip ahead to the today's event count section
         # if we had release data, it would be here instead
-        assert "*Today’s Event Count*" in blocks[3]["text"]["text"]
-        assert "higher than last 14d avg" in blocks[3]["text"]["text"]
+        assert "*Today’s Event Count*" in blocks[3]["fields"][0]["text"]
+        assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-block-kit")
