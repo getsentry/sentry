@@ -2,7 +2,7 @@ import logging
 import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
@@ -193,9 +193,10 @@ class SlidingWindow(TypedDict):
 
 class CardinalityLimit(TypedDict):
     id: str
+    passive: NotRequired[bool]
     window: SlidingWindow
     limit: int
-    scope: Literal["organization"]
+    scope: Literal["organization", "project"]
     namespace: str | None
 
 
@@ -203,34 +204,33 @@ def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
-        cardinality_limits: list[CardinalityLimit] = []
-        cardinality_options = {
-            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-        }
-        cardinality_options.update(
-            (namespace.value, option)
-            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+            project.organization.id, []
         )
-        for namespace, option_name in cardinality_options.items():
+
+        cardinality_limits: list[CardinalityLimit] = []
+        for namespace, option_name in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items():
             option = options.get(option_name)
             if not option or not len(option) == 1:
                 # Multiple quotas are not supported
                 continue
 
             quota = option[0]
+            id = namespace.value
 
-            cardinality_limits.append(
-                {
-                    "id": namespace,
-                    "window": {
-                        "windowSeconds": quota["window_seconds"],
-                        "granularitySeconds": quota["granularity_seconds"],
-                    },
-                    "limit": quota["limit"],
-                    "scope": "organization",
-                    "namespace": namespace,
-                }
-            )
+            limit: CardinalityLimit = {
+                "id": id,
+                "window": {
+                    "windowSeconds": quota["window_seconds"],
+                    "granularitySeconds": quota["granularity_seconds"],
+                },
+                "limit": quota["limit"],
+                "scope": "organization",
+                "namespace": namespace.value,
+            }
+            if id in passive_limits:
+                limit["passive"] = True
+            cardinality_limits.append(limit)
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
