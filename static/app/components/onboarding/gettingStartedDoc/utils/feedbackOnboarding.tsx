@@ -1,5 +1,7 @@
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({
@@ -66,6 +68,14 @@ export function FeedbackOnboardingWebApiBanner() {
   );
 }
 
+export const CrashReportWebApiOnboarding: OnboardingConfig = {
+  introduction: () => FeedbackOnboardingWebApiBanner(),
+  install: () => [],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 export const getFeedbackConfigOptions = ({
   name,
   email,
@@ -121,5 +131,13 @@ export const getCrashReportModalSnippetJavaScript = params => [
 </script>`,
       },
     ],
+  },
+];
+
+export const getCrashReportJavaScriptInstallStep = params => [
+  {
+    type: StepType.INSTALL,
+    description: getCrashReportModalInstallDescriptionJavaScript(),
+    configurations: getCrashReportModalSnippetJavaScript(params),
   },
 ];

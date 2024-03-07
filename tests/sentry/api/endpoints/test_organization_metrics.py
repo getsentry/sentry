@@ -252,6 +252,99 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 "count": 1,
             }
 
+    def test_span_measurement_samples(self):
+        durations = [100, 200, 300]
+        span_ids = [uuid4().hex[:16] for _ in durations]
+        good_span_id = span_ids[1]
+
+        for i, (span_id, duration) in enumerate(zip(span_ids, durations)):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                duration=duration,
+                timestamp=ts,
+                group=uuid4().hex[:16],  # we need a non 0 group
+                measurements={
+                    measurement: duration + j + 1
+                    for j, measurement in enumerate(
+                        [
+                            "score.total",
+                            "score.inp",
+                            "score.weight.inp",
+                            "http.response_content_length",
+                            "http.decoded_response_content_length",
+                            "http.response_transfer_size",
+                        ]
+                    )
+                },
+            )
+
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                timestamp=ts,
+                group=uuid4().hex[:16],  # we need a non 0 group
+            )
+
+        for i, mri in enumerate(
+            [
+                "d:spans/webvital.score.total@ratio",
+                "d:spans/webvital.score.inp@ratio",
+                "d:spans/webvital.score.weight.inp@ratio",
+                "d:spans/http.response_content_length@byte",
+                "d:spans/http.decoded_response_content_length@byte",
+                "d:spans/http.response_transfer_size@byte",
+            ]
+        ):
+            query = {
+                "mri": mri,
+                "field": ["id"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "min": 150.0,
+                "max": 250.0,
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(good_span_id, 16)}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected, mri
+
+            for row in response.data["data"]:
+                assert row["summary"] == {
+                    "min": 201 + i,
+                    "max": 201 + i,
+                    "sum": 201 + i,
+                    "count": 1,
+                }, mri
+
+            query = {
+                "mri": mri,
+                "field": ["id", "span.duration"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "sort": "-span.duration",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(span_id, 16) for span_id in span_ids}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected, mri
+
+            for duration, row in zip(reversed(durations), response.data["data"]):
+                assert row["summary"] == {
+                    "min": duration + i + 1,
+                    "max": duration + i + 1,
+                    "sum": duration + i + 1,
+                    "count": 1,
+                }, mri
+
     def test_transaction_duration_samples(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
@@ -416,96 +509,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 "count": 1,
             }
 
-    def test_span_measurement_samples(self):
-        durations = [100, 200, 300]
-        span_ids = [uuid4().hex[:16] for _ in durations]
-        good_span_id = span_ids[1]
-
-        for i, (span_id, duration) in enumerate(zip(span_ids, durations)):
-            self.store_indexed_span(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=span_id,
-                duration=duration,
-                timestamp=before_now(days=i, minutes=10).replace(microsecond=0),
-                group=uuid4().hex[:16],  # we need a non 0 group
-                measurements={
-                    measurement: duration + j + 1
-                    for j, measurement in enumerate(
-                        [
-                            "score.total",
-                            "score.inp",
-                            "score.weight.inp",
-                            "http.response_content_length",
-                            "http.decoded_response_content_length",
-                            "http.response_transfer_size",
-                        ]
-                    )
-                },
-            )
-            self.store_indexed_span(
-                self.project.id,
-                uuid4().hex,
-                uuid4().hex,
-                span_id=uuid4().hex[:16],
-                timestamp=before_now(days=10, minutes=10).replace(microsecond=0),
-                group=uuid4().hex[:16],  # we need a non 0 group
-            )
-
-        for i, mri in enumerate(
-            [
-                "d:spans/webvital.score.total@ratio",
-                "d:spans/webvital.score.inp@ratio",
-                "d:spans/webvital.score.weight.inp@ratio",
-                "d:spans/http.response_content_length@byte",
-                "d:spans/http.decoded_response_content_length@byte",
-                "d:spans/http.response_transfer_size@byte",
-            ]
-        ):
-            query = {
-                "mri": mri,
-                "field": ["id"],
-                "project": [self.project.id],
-                "statsPeriod": "14d",
-                "min": 150.0,
-                "max": 250.0,
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-            expected = {int(good_span_id, 16)}
-            actual = {int(row["id"], 16) for row in response.data["data"]}
-            assert actual == expected, mri
-
-            for row in response.data["data"]:
-                assert row["summary"] == {
-                    "min": 201 + i,
-                    "max": 201 + i,
-                    "sum": 201 + i,
-                    "count": 1,
-                }, mri
-
-            query = {
-                "mri": mri,
-                "field": ["id", "span.duration"],
-                "project": [self.project.id],
-                "statsPeriod": "14d",
-                "sort": "-span.duration",
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-            expected = {int(span_id, 16) for span_id in span_ids}
-            actual = {int(row["id"], 16) for row in response.data["data"]}
-            assert actual == expected, mri
-
-            for duration, row in zip(reversed(durations), response.data["data"]):
-                assert row["summary"] == {
-                    "min": duration + i + 1,
-                    "max": duration + i + 1,
-                    "sum": duration + i + 1,
-                    "count": 1,
-                }, mri
-
     def test_custom_samples(self):
         mri = "d:custom/value@millisecond"
         values = [100, 200, 300]
@@ -516,19 +519,20 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
         # 20 is within bounds
         # 30 is above the max
         for i, (span_id, val) in enumerate(zip(span_ids, values)):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
             self.store_indexed_span(
                 self.project.id,
                 uuid4().hex,
                 uuid4().hex,
                 span_id=span_id,
                 duration=val,
-                timestamp=before_now(days=i, minutes=10).replace(microsecond=0),
+                timestamp=ts,
                 group=uuid4().hex[:16],  # we need a non 0 group
                 store_metrics_summary={
                     mri: [
                         {
-                            "min": val,
-                            "max": val,
+                            "min": val - 1,
+                            "max": val + 1,
                             "sum": val * (i + 1) * 2,
                             "count": (i + 1) * 2,
                             "tags": {},
@@ -580,8 +584,8 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
             for row in response.data["data"]:
                 assert row["summary"] == {
-                    "min": 200.0,
-                    "max": 200.0,
+                    "min": 199.0,
+                    "max": 201.0,
                     "sum": 800.0,
                     "count": 4,
                 }, operation
@@ -601,8 +605,99 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
         for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
             assert row["summary"] == {
-                "min": val,
-                "max": val,
+                "min": val - 1,
+                "max": val + 1,
                 "sum": val * (len(values) - i) * 2,
                 "count": (len(values) - i) * 2,
             }
+
+    def test_multiple_span_sample_per_time_bucket(self):
+        custom_mri = "d:custom/value@millisecond"
+        values = [100, 200, 300, 400, 500]
+        span_ids = [uuid4().hex[:16] for _ in values]
+        ts = before_now(days=0, minutes=10).replace(microsecond=0)
+
+        for span_id, value in zip(span_ids, values):
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                duration=value,
+                exclusive_time=value,
+                timestamp=ts,
+                group=uuid4().hex[:16],  # we need a non 0 group
+                measurements={"score.total": value},
+                store_metrics_summary={
+                    custom_mri: [
+                        {
+                            "min": value - 1,
+                            "max": value + 1,
+                            "sum": value * 2,
+                            "count": 2,
+                            "tags": {},
+                        }
+                    ]
+                },
+            )
+
+        for mri in [
+            "d:spans/exclusive_time@millisecond",
+            "d:spans/webvital.score.total@ratio",
+            custom_mri,
+        ]:
+            query = {
+                "mri": mri,
+                "field": ["id"],
+                "project": [self.project.id],
+                "statsPeriod": "24h",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected
+
+    def test_multiple_transaction_sample_per_time_bucket(self):
+        values = [100, 200, 300, 400, 500]
+        span_ids = [uuid4().hex[:16] for _ in values]
+        ts = before_now(days=0, minutes=10).replace(microsecond=0)
+
+        for span_id, value in zip(span_ids, values):
+            start_ts = ts - timedelta(microseconds=value * 1000)
+
+            # first write to the transactions dataset
+            data = load_data("transaction", start_timestamp=start_ts, timestamp=ts)
+            # good span ids will have the measurement
+            data["measurements"] = {"lcp": {"value": value}}
+            data["contexts"]["trace"]["span_id"] = span_id
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
+
+            # next write to the spans dataset
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                duration=value,
+                span_id=span_id,
+                timestamp=ts,
+            )
+
+        for mri in [
+            "d:transactions/duration@millisecond",
+            "d:transactions/measurements.lcp@millisecond",
+        ]:
+            query = {
+                "mri": mri,
+                "field": ["id"],
+                "project": [self.project.id],
+                "statsPeriod": "24h",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected

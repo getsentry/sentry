@@ -1,8 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {AiAutofix} from 'sentry/components/events/aiAutofix';
 import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
+import {Autofix} from 'sentry/components/events/autofix';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
@@ -25,7 +25,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
 
-  // NOTE: AI Autofix is for INTERNAL testing only for now.
+  // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&
     !shouldShowCustomErrorResourceConfig(group, project);
@@ -56,7 +56,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
         {displayAiSuggestedSolution && (
           <AiSuggestedSolution event={event} projectSlug={project.slug} />
         )}
-        {displayAiAutofix && <AiAutofix event={event} group={group} />}
+        {displayAiAutofix && <Autofix event={event} group={group} />}
       </Content>
     </Wrapper>
   );

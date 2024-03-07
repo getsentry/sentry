@@ -268,6 +268,7 @@ SentrySubsystem->CaptureUserFeedbackWithParams(EventId, "test@sentry.io", "Some 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi,
+  crashReportOnboarding: feedbackOnboardingCrashApi,
 };
 
 export default docs;
