@@ -203,7 +203,10 @@ export function findVideoSegmentIndex(
   if (start > end) {
     // XXX: This means we are not returning "exact" segments, but the prior
     // segment if it doesn't not satisfy the exact time constraints
-    return end;
+    //
+    // In the case where targetTimestamp is < first segment, end can be -1, so
+    // set the floor to be 0
+    return Math.max(end, 0);
   }
 
   const mid = Math.floor((start + end) / 2);

@@ -279,66 +279,95 @@ describe('flattenFrames', () => {
       expect(divide(81, 0)).toEqual(0);
     });
   });
+});
 
-  describe('findVideoSegmentIndex', () => {
-    const segments = [
+describe('findVideoSegmentIndex', () => {
+  const segments = [
+    {
+      id: 0,
+      timestamp: 0,
+      duration: 5000,
+    },
+    // no gap
+    {
+      id: 1,
+      timestamp: 5000,
+      duration: 5000,
+    },
+    {
+      id: 2,
+      timestamp: 10_001,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 3,
+      timestamp: 20_000,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 4,
+      timestamp: 30_000,
+      duration: 5000,
+    },
+    {
+      id: 5,
+      timestamp: 35_002,
+      duration: 5000,
+    },
+  ];
+  const trackList = segments.map(
+    ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+  );
+
+  it.each([
+    ['matches starting timestamp', 0, 0],
+    ['matches ending timestamp', 5000, 0],
+    ['is inside of a segment (between timestamps)', 7500, 1],
+    ['matches ending timestamp', 15_001, 2],
+    ['is not inside of a segment', 16_000, 2],
+    ['matches starting timestamp', 20_000, 3],
+    ['is not inside of a segment', 27_500, 3],
+    ['is not inside of a segment', 29_000, 3],
+    ['is inside of a segment', 34_999, 4],
+    ['is inside of a segment', 40_002, 5],
+    ['is after the last segment', 50_000, 5],
+  ])(
+    'should find correct segment when target timestamp %s (%s)',
+    (_desc, targetTimestamp, expected) => {
+      expect(findVideoSegmentIndex(trackList, segments, targetTimestamp)).toEqual(
+        expected
+      );
+    }
+  );
+
+  it('returns first segment if target timestamp is before the first segment', () => {
+    const segments2 = [
       {
         id: 0,
-        timestamp: 0,
-        duration: 5000,
-      },
-      // no gap
-      {
-        id: 1,
         timestamp: 5000,
         duration: 5000,
       },
       {
-        id: 2,
-        timestamp: 10_001,
+        id: 1,
+        timestamp: 10000,
         duration: 5000,
       },
-      // 5 second gap
+      {
+        id: 2,
+        timestamp: 15000,
+        duration: 5000,
+      },
       {
         id: 3,
-        timestamp: 20_000,
-        duration: 5000,
-      },
-      // 5 second gap
-      {
-        id: 4,
-        timestamp: 30_000,
-        duration: 5000,
-      },
-      {
-        id: 5,
-        timestamp: 35_002,
+        timestamp: 25000,
         duration: 5000,
       },
     ];
-    const trackList = segments.map(
+    const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-
-    it.each([
-      ['matches starting timestamp', 0, 0],
-      ['matches ending timestamp', 5000, 0],
-      ['is inside of a segment (between timestamps)', 7500, 1],
-      ['matches ending timestamp', 15_001, 2],
-      ['is not inside of a segment', 16_000, 2],
-      ['matches starting timestamp', 20_000, 3],
-      ['is not inside of a segment', 27_500, 3],
-      ['is not inside of a segment', 29_000, 3],
-      ['is inside of a segment', 34_999, 4],
-      ['is inside of a segment', 40_002, 5],
-      ['is not inside of a segment', 50_000, 5],
-    ])(
-      'should find correct segment when target timestamp %s (%s)',
-      (_desc, targetTimestamp, expected) => {
-        expect(findVideoSegmentIndex(trackList, segments, targetTimestamp)).toEqual(
-          expected
-        );
-      }
-    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(0);
   });
 });
