@@ -12,7 +12,7 @@ pytest-cov>=4.0.0
 pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
 pytest-rerunfailures>=11
-git+https://github.com/getsentry/pytest-sentry/tree/szokeasaurusrex/sdk-2.0-support
+https://github.com/getsentry/pytest-sentry/archive/refs/heads/szokeasaurusrex/sdk-2.0-support.zip
 pytest-xdist>=3
 responses>=0.23.1
 selenium>=4.16.0
