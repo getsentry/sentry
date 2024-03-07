@@ -333,6 +333,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
   onboarding,
 };
 

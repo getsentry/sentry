@@ -103,6 +103,8 @@ DEFAULT_EXCEPTION_REPORTER_FILTER = (
     "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
 )
 
+ENFORCE_PAGINATION = True if DEBUG else False
+
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -1760,6 +1762,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-screens-platform-selector": False,
     # Enable API aka HTTP aka Network Performance module
     "organizations:performance-http-view": False,
+    # Skip groupowner cache post processing
+    "organizations:post-process-skip-groupowner-cache": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
@@ -1826,6 +1830,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable post create/edit rule confirmation notifications
+    "organizations:rule-create-edit-confirm-notification": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable detecting SDK crashes during event processing
@@ -1939,8 +1945,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:transaction-name-normalize": True,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
-    # Enable u2f verification on superuser form
-    "organizations:u2f-superuser-form": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
@@ -2512,6 +2516,8 @@ SENTRY_SCOPE_SETS = (
     ),
     (("email", "Read email address and verification status. Requires openid scope."),),
 )
+
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
 SENTRY_DEFAULT_ROLE = "member"
 
@@ -3437,15 +3443,6 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     }
 }
 
-# These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
-# which contains cluster mappings for these topics. Follow these steps to
-# override a kafka topic name:
-#
-#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
-#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
-#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
-#     pick up the change.
-
 # START DEPRECATED SECTION
 KAFKA_EVENTS = "events"
 KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
@@ -3532,56 +3529,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
 }
 
-from typing import TypedDict
-
-
-class LegacyTopicDefinition(TypedDict):
-    cluster: str
-
-
-# Cluster configuration for each Kafka topic by name.
-# DEPRECATED
-KAFKA_TOPICS: Mapping[str, LegacyTopicDefinition] = {
-    KAFKA_EVENTS: {"cluster": "default"},
-    KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_TRANSACTIONS: {"cluster": "default"},
-    KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_OUTCOMES: {"cluster": "default"},
-    KAFKA_OUTCOMES_BILLING: {"cluster": "default"},
-    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
-    # Topic for receiving simple events (error events without attachments) from Relay
-    KAFKA_INGEST_EVENTS: {"cluster": "default"},
-    # ingest-events DLQ
-    KAFKA_INGEST_EVENTS_DLQ: {"cluster": "default"},
-    # Topic for receiving 'complex' events (error events with attachments) from Relay
-    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
-    # Topic for receiving transaction events (APM events) from Relay
-    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
-    # Topic for receiving metrics from Relay
-    KAFKA_INGEST_METRICS: {"cluster": "default"},
-    # Topic for routing invalid messages from KAFKA_INGEST_METRICS
-    KAFKA_INGEST_METRICS_DLQ: {"cluster": "default"},
-    # Topic for indexer translated metrics
-    KAFKA_SNUBA_METRICS: {"cluster": "default"},
-    # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default"},
-    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
-    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
-    KAFKA_INGEST_GENERIC_METRICS_DLQ: {"cluster": "default"},
-    KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
-    KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
-    KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
-    KAFKA_INGEST_MONITORS: {"cluster": "default"},
-    KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
-    KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
-    KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
-    KAFKA_SNUBA_SPANS: {"cluster": "default"},
-    KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
-}
 
 # If True, sentry.utils.arroyo.RunTaskWithMultiprocessing will actually be
 # single-threaded under the hood for performance

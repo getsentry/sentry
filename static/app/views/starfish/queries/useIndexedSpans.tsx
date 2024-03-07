@@ -8,8 +8,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-interface Filters {
-  [key: string]: string;
+export interface Filters {
+  [key: string]: string | string[];
 }
 
 export const useIndexedSpans = ({
@@ -49,7 +49,12 @@ function getEventView(
   const search = new MutableSearch([]);
 
   for (const filterName in filters) {
-    search.addFilterValue(filterName, filters[filterName]);
+    const filter = filters[filterName];
+    if (Array.isArray(filter)) {
+      search.addFilterValues(filterName, filter);
+    } else {
+      search.addFilterValue(filterName, filter);
+    }
   }
 
   const eventView = EventView.fromNewQueryWithLocation(

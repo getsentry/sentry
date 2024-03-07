@@ -7,10 +7,8 @@ import Badge from 'sentry/components/badge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -33,7 +31,6 @@ import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import GroupActions from './actions';
 import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
 import {Tab} from './types';
-import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
 type Props = {
@@ -272,11 +269,13 @@ function GroupHeader({
                 fontSize="md"
               />
             </TitleHeading>
-            <StyledTagAndMessageWrapper>
-              {group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && <UnhandledInboxTag />}
-              <EventMessage message={message} />
-            </StyledTagAndMessageWrapper>
+            <EventMessage
+              message={message}
+              level={group.level}
+              levelIndicatorSize="11px"
+              type={group.type}
+              showUnhandled={group.isUnhandled}
+            />
           </TitleWrapper>
           {issueTypeConfig.stats.enabled && (
             <StatsWrapper>
@@ -362,13 +361,6 @@ const StatsWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     justify-content: flex-end;
   }
-`;
-
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  display: flex;
-  gap: ${space(1)};
-  justify-content: flex-start;
-  line-height: 1.2;
 `;
 
 const IconBadge = styled(Badge)`
