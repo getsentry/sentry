@@ -856,7 +856,8 @@ def pick_samples(
     idx_m = bisect(keys, avg_m)
     # ensure there is at least 1 element on both sides
     # of the middle element we just picked
-    idx_m = min(max(1, idx_m), len(keys) - 2)
+    # i.e. should not pick index 0 and len(keys) - 1
+    idx_m = _clip(idx_m, 1, len(keys) - 2)
 
     # second element is near the average of first
     # split, but must not be the split element
@@ -864,7 +865,7 @@ def pick_samples(
     idx_l = bisect(keys, avg_l, hi=idx_m - 1)
     idx_l += 1  # push it closer to the middle
     # ensure this is not the same as middle element
-    idx_l = min(max(0, idx_l), idx_m - 1)
+    idx_l = _clip(idx_l, 0, idx_m - 1)
 
     # third element is near the average of second
     # split, but must not be the split element
@@ -872,6 +873,12 @@ def pick_samples(
     idx_r = bisect(keys, avg_r, lo=idx_m + 1)
     idx_r -= 1  # push it closer to the middle
     # ensure this is not the same as middle element
-    idx_r = min(max(idx_m + 1, idx_r), len(keys) - 1)
+    idx_r = _clip(idx_r, idx_m + 1, len(keys) - 1)
 
     return [samples[idx_m], samples[idx_l], samples[idx_r]]
+
+
+def _clip(val: int, left: int, right: int) -> int:
+    val = max(left, val)
+    val = min(val, right)
+    return val
