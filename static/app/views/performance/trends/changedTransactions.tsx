@@ -255,9 +255,7 @@ function ChangedTransactions(props: Props) {
           projects,
           trendView.project
         );
-        const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || []
-        );
+        const events = normalizeTrends(trendsData?.events?.data || []);
         const selectedTransaction = getSelectedTransaction(
           location,
           trendChangeType,
@@ -265,7 +263,7 @@ function ChangedTransactions(props: Props) {
         );
 
         const statsData = trendsData?.stats || {};
-        const transactionsList = events && events.slice ? events.slice(0, 5) : [];
+        const transactionsList = events?.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
           isLoading && previousTrendFunction

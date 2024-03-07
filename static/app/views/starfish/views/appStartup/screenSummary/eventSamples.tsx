@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -24,10 +25,10 @@ const DEFAULT_SORT: Sort = {
 
 type Props = {
   cursorName: string;
-  release: string;
   sortKey: string;
   transaction: string;
   footerAlignedPagination?: boolean;
+  release?: string;
   showDeviceClassSelector?: boolean;
 };
 
@@ -45,7 +46,8 @@ export function EventSamples({
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
-  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
@@ -60,19 +62,12 @@ export function EventSamples({
     'OR',
     'span.description:"Warm Start"',
     ')',
+    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
     // TODO: Add this back in once we have the ability to filter by start type
     // `${SpanMetricsField.APP_START_TYPE}:${
     //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     // }`,
   ]);
-
-  if (deviceClass) {
-    if (deviceClass === 'Unknown') {
-      searchQuery.addFilterValue('!has', 'device.class');
-    } else {
-      searchQuery.addFilterValue('device.class', deviceClass);
-    }
-  }
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
@@ -82,19 +77,12 @@ export function EventSamples({
       release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
     ),
     profile_id: t('Profile'),
-    'span.description': t('Start Type'),
     'span.duration': t('Duration'),
   };
 
   const newQuery: NewQuery = {
     name: '',
-    fields: [
-      'transaction.id',
-      'project.name',
-      'profile_id',
-      'span.description',
-      'span.duration',
-    ],
+    fields: ['transaction.id', 'project.name', 'profile_id', 'span.duration'],
     query: searchQuery.formatString(),
     dataset: DiscoverDatasets.SPANS_INDEXED,
     version: 2,
@@ -106,10 +94,11 @@ export function EventSamples({
 
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
-    enabled: true,
+    enabled: defined(release),
     limit: 4,
     cursor,
     referrer: 'api.starfish.mobile-startup-event-samples',
+    initialData: {data: []},
   });
 
   return (
@@ -117,7 +106,7 @@ export function EventSamples({
       cursorName={cursorName}
       eventIdKey="transaction.id"
       eventView={eventView}
-      isLoading={isLoading}
+      isLoading={defined(release) && isLoading}
       profileIdKey="profile_id"
       sortKey={sortKey}
       data={data}

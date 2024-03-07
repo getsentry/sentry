@@ -18,14 +18,11 @@ const config: TransformOptions = {
         corejs: '3.27',
       },
     ],
-    '@babel/preset-typescript',
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-transform-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
       plugins: [

@@ -1,3 +1,35 @@
+24.2.0
+------
+
+### Various fixes & improvements
+
+- Revert "build: update redis and remove redis-py-cluster (#64711)" (c699781d) by @getsentry-bot
+- rename issue_alert creators (#65207) by @nhsiehgit
+- ref(similarity-embedding): Move log (#65243) by @jangjodi
+- build: update redis and remove redis-py-cluster (#64711) by @anonrig
+- feat(metrics_extraction): user_misery to fall back to Discover (#65232) by @armenzg
+- build: optimize extract-ios-device-names command (#65112) by @anonrig
+- feat(trace): prevent back forward navigation (#65244) by @JonasBa
+- feat(metrics): Support basic spans metrics examples (#65119) by @Zylphrex
+- ref(similar-embeddings): Add shouldBeGrouped to diff analytics (#65235) by @jangjodi
+- chore(issues): Revert-revert of deleting streamline-targeting-context (#65160) by @leeandher
+- ref: use decode_responses=False for raw=True redis cache (#64885) by @asottile-sentry
+- fix(profiling): fix measurement chart messaging (#65237) by @JonasBa
+- ref: replace trivial uses of utcnow with tz-aware now (#65085) by @asottile-sentry
+- feat(hybridcloud) Add a metric for webhook saves (#65185) by @markstory
+- feat(ddm): sample tooltip prefix (#65230) by @obostjancic
+- fix(relay): Increase project config timeout (#65229) by @jjbayer
+- fix(ddm): Add op to series name (#65231) by @ArthurKnaus
+- chore(dashboards): remove inline widget editor (#65166) by @obostjancic
+- feat(ddm): Prefix multi query series names (#65222) by @ArthurKnaus
+- fix(ddm): Remove connected nulls (#65221) by @ArthurKnaus
+- chore(stats): remove metrics (#65220) by @obostjancic
+- feat(platforms): Add platform deno in BE (#65218) by @ArthurKnaus
+- feat(ddm): Multi query chart (#65217) by @ArthurKnaus
+- chore(dashboards): remove custom metrics from widget builder (#65156) by @obostjancic
+
+_Plus 207 more_
+
 24.1.2
 ------
 

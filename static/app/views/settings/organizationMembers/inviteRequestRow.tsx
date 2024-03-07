@@ -35,7 +35,7 @@ function InviteRequestRow({
   allRoles,
 }: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
-  const roleDisallowed = !(role && role.allowed);
+  const roleDisallowed = !role?.allowed;
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 

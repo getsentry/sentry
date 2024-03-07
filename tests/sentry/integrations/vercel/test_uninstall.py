@@ -11,39 +11,46 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 
 PRIMARY_UNINSTALL_RESPONSE = """{
-    "configurationId": "my_config_id",
-    "teamId": "vercel_team_id",
-    "userId": "vercel_user_id"
+    "payload": {
+        "configuration": {
+                "id": "my_config_id"
+            },
+        "team": {
+                "id": "vercel_team_id"
+            },
+        "user": {
+                "id": "vercel_user_id"
+            }
+    }
 }"""
 
 NONPRIMARY_UNINSTALL_RESPONSE = """{
-    "configurationId": "my_config_id2",
-    "teamId": "vercel_team_id",
-    "userId": "vercel_user_id"
+    "payload": {
+        "configuration": {
+            "id": "my_config_id2"
+        },
+        "team": {
+            "id": "vercel_team_id"
+        },
+        "user": {
+            "id": "vercel_user_id"
+        }
+    }
 }"""
 
 USERID_UNINSTALL_RESPONSE = """{
-    "configurationId": "my_config_id",
-    "teamId": null,
-    "userId": "vercel_user_id"
-}"""
-
-# response payload to POST, instead of DELETE
-# Old Vercel response
-POST_DELETE_RESPONSE_OLD = """{
-        "type": "integration-configuration-removed",
-        "payload": {
-            "configuration": {
-                "id": "my_config_id",
-                "projects": ["project_id1"]
-            }
+    "payload": {
+        "configuration": {
+            "id": "my_config_id"
         },
-        "teamId": "vercel_team_id",
-        "userId": "vercel_user_id"
+        "team" : null,
+        "user": {
+            "id": "vercel_user_id"
+        }
+    }
 }"""
 
-# New Vercel response
-POST_DELETE_RESPONSE_NEW = """{
+POST_DELETE_RESPONSE = """{
         "type": "integration-configuration.removed",
         "payload": {
             "configuration": {
@@ -92,26 +99,11 @@ class VercelUninstallTest(APITestCase):
             "userId": "vercel_user_id"
         }"""
 
-    def test_uninstall_old(self):
+    def test_uninstall(self):
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(
                 path=self.url,
-                data=POST_DELETE_RESPONSE_OLD,
-                content_type="application/json",
-                HTTP_X_VERCEL_SIGNATURE="9fe7776332998c90980cc537b24b196f37e17c99",
-            )
-
-            assert response.status_code == 204
-            assert not Integration.objects.filter(id=self.integration.id).exists()
-            assert not OrganizationIntegration.objects.filter(
-                integration_id=self.integration.id, organization_id=self.organization.id
-            ).exists()
-
-    def test_uninstall_new(self):
-        with override_options({"vercel.client-secret": SECRET}):
-            response = self.client.post(
-                path=self.url,
-                data=POST_DELETE_RESPONSE_NEW,
+                data=POST_DELETE_RESPONSE,
                 content_type="application/json",
                 HTTP_X_VERCEL_SIGNATURE="83d53d644f6504de716eea275039e8bddd870be5",
             )

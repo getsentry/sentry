@@ -279,7 +279,7 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
         assert (
             "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
-            in unfurls[links[0].url]["blocks"][1]["elements"][0]["elements"][0]["text"]
+            in unfurls[links[0].url]["blocks"][1]["text"]["text"]
         )
 
     def test_unfurl_metric_alert(self):

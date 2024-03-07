@@ -2,9 +2,12 @@ import {createContext, useCallback, useContext, useEffect, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
+import type {
+  PrefsStrategy,
+  ReplayPrefs,
+} from 'sentry/components/replays/preferences/replayPreferences';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import localStorage from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
@@ -14,14 +17,6 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
-
-enum ReplayLocalstorageKeys {
-  REPLAY_CONFIG = 'replay-config',
-}
-type ReplayConfig = {
-  skip?: boolean;
-  speed?: number;
-};
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -191,6 +186,11 @@ type Props = {
    */
   isFetching: boolean;
 
+  /**
+   * The strategy for saving/loading preferences, like the playback speed
+   */
+  prefsStrategy: PrefsStrategy;
+
   replay: ReplayReader | null;
 
   /**
@@ -210,24 +210,19 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-function updateSavedReplayConfig(config: ReplayConfig) {
-  localStorage.setItem(ReplayLocalstorageKeys.REPLAY_CONFIG, JSON.stringify(config));
-}
-
 export function Provider({
   analyticsContext,
   children,
   initialTimeOffsetMs,
   isFetching,
+  prefsStrategy,
   replay,
   value = {},
 }: Props) {
   const user = useUser();
   const organization = useOrganization();
   const events = replay?.getRRWebFrames();
-  const savedReplayConfigRef = useRef<ReplayConfig>(
-    JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.REPLAY_CONFIG) || '{}')
-  );
+  const savedReplayConfigRef = useRef<ReplayPrefs>(prefsStrategy.get());
 
   const theme = useTheme();
   const oldEvents = usePrevious(events);
@@ -239,9 +234,9 @@ export function Provider({
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
-    savedReplayConfigRef.current.skip ?? true
+    savedReplayConfigRef.current.isSkippingInactive
   );
-  const [speed, setSpeedState] = useState(savedReplayConfigRef.current.speed || 1);
+  const [speed, setSpeedState] = useState(savedReplayConfigRef.current.playbackSpeed);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
@@ -392,8 +387,8 @@ export function Provider({
         plugins: organization.features.includes('session-replay-enable-canvas-replayer')
           ? [CanvasReplayerPlugin(events)]
           : [],
-        skipInactive: savedReplayConfigRef.current.skip ?? true,
-        speed: savedReplayConfigRef.current.speed || 1,
+        skipInactive: savedReplayConfigRef.current.isSkippingInactive,
+        speed: savedReplayConfigRef.current.playbackSpeed,
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -427,10 +422,10 @@ export function Provider({
       const replayer = replayerRef.current;
       savedReplayConfigRef.current = {
         ...savedReplayConfigRef.current,
-        speed: newSpeed,
+        playbackSpeed: newSpeed,
       };
 
-      updateSavedReplayConfig(savedReplayConfigRef.current);
+      prefsStrategy.set(savedReplayConfigRef.current);
 
       if (!replayer) {
         return;
@@ -445,7 +440,7 @@ export function Provider({
 
       setSpeedState(newSpeed);
     },
-    [getCurrentPlayerTime, isPlaying]
+    [prefsStrategy, getCurrentPlayerTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -496,24 +491,27 @@ export function Provider({
     }
   }, [startTimeOffsetMs]);
 
-  const toggleSkipInactive = useCallback((skip: boolean) => {
-    const replayer = replayerRef.current;
-    savedReplayConfigRef.current = {
-      ...savedReplayConfigRef.current,
-      skip,
-    };
+  const toggleSkipInactive = useCallback(
+    (skip: boolean) => {
+      const replayer = replayerRef.current;
+      savedReplayConfigRef.current = {
+        ...savedReplayConfigRef.current,
+        isSkippingInactive: skip,
+      };
 
-    updateSavedReplayConfig(savedReplayConfigRef.current);
+      prefsStrategy.set(savedReplayConfigRef.current);
 
-    if (!replayer) {
-      return;
-    }
-    if (skip !== replayer.config.skipInactive) {
-      replayer.setConfig({skipInactive: skip});
-    }
+      if (!replayer) {
+        return;
+      }
+      if (skip !== replayer.config.skipInactive) {
+        replayer.setConfig({skipInactive: skip});
+      }
 
-    setIsSkippingInactive(skip);
-  }, []);
+      setIsSkippingInactive(skip);
+    },
+    [prefsStrategy]
+  );
 
   const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 

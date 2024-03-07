@@ -84,6 +84,8 @@ class SlackRequestParser(BaseRequestParser):
         if self.response_url is None:
             return self.get_response_from_control_silo()
 
+        # TODO(hybridcloud) this isn't using outboxes per-se and we will likely need to keep
+        # `get_webhook_payload_from_request` around after webhooks are entirely on WebhookPayload
         webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
         convert_to_async_slack_response.apply_async(
             kwargs={

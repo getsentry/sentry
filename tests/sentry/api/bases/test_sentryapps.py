@@ -6,6 +6,7 @@ from django.http import Http404
 from django.test.utils import override_settings
 
 from sentry.api.bases.sentryapps import (
+    SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
@@ -21,11 +22,7 @@ from sentry.testutils.silo import control_silo_test
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-
-        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
-
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
         self.request = self.make_request(user=self.user, method="GET")
 
         self.superuser = self.create_user(is_superuser=True)
@@ -80,16 +77,38 @@ class SentryAppPermissionTest(TestCase):
 
 
 @control_silo_test
+class SentryAppAndStaffPermissionTest(TestCase):
+    def setUp(self):
+        self.permission = SentryAppAndStaffPermission()
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
+
+    def test_superuser_has_permission(self):
+        superuser = self.create_user(is_superuser=True)
+        request = self.make_request(user=superuser, method="GET", is_superuser=True)
+
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+        request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+    def test_staff_has_permission(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        request = self.make_request(user=staff_user, method="GET", is_staff=True)
+
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+        request.method = "POST"
+        assert self.permission.has_object_permission(request, None, self.sentry_app)
+
+
+@control_silo_test
 class SentryAppBaseEndpointTest(TestCase):
     def setUp(self):
         self.endpoint = SentryAppBaseEndpoint()
-
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-
         self.request = self.make_request(user=self.user, method="GET")
-
-        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
 
     def test_retrieves_sentry_app(self):
         args, kwargs = self.endpoint.convert_args(self.request, self.sentry_app.slug)
@@ -104,17 +123,10 @@ class SentryAppBaseEndpointTest(TestCase):
 class SentryAppInstallationPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppInstallationPermission()
-
-        self.user = self.create_user()
-        self.member = self.create_user()
-        self.org = self.create_organization(owner=self.member)
-
-        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
-
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
         self.installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
-
         self.request = self.make_request(user=self.user, method="GET")
 
         self.superuser = self.create_user(is_superuser=True)
@@ -125,13 +137,12 @@ class SentryAppInstallationPermissionTest(TestCase):
         assert not self.permission.has_object_permission(self.request, None, self.installation)
 
     def test_request_user_in_organization(self):
-        self.request = self.make_request(user=self.member, method="GET")
-
         assert self.permission.has_object_permission(self.request, None, self.installation)
 
     def test_request_user_not_in_organization(self):
+        request = self.make_request(user=self.create_user(), method="GET")
         with pytest.raises(Http404):
-            self.permission.has_object_permission(self.request, None, self.installation)
+            self.permission.has_object_permission(request, None, self.installation)
 
     def test_superuser_has_permission(self):
         request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
@@ -149,7 +160,6 @@ class SentryAppInstallationPermissionTest(TestCase):
         assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
-
         with pytest.raises(Http404):
             self.permission.has_object_permission(request, None, self.installation)
 
@@ -162,7 +172,6 @@ class SentryAppInstallationPermissionTest(TestCase):
         assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
-
         self.permission.has_object_permission(request, None, self.installation)
 
 
@@ -171,15 +180,10 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
     def setUp(self):
         self.endpoint = SentryAppInstallationBaseEndpoint()
 
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-
         self.request = self.make_request(user=self.user, method="GET")
-
-        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
-
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
         self.installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
         )
 
     def test_retrieves_installation(self):

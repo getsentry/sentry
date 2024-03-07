@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from django.http import HttpRequest
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
-from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.shared_integrations.exceptions import ApiError
@@ -38,15 +37,18 @@ class IntegrationEndpointTest(TestCase):
     def test_handle_exception_503(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):
-        exc = ApiError("This is an error", code=503)
-        request = Request(HttpRequest())
+        try:
+            raise ApiError("This is an error", code=503)
+        except ApiError as exc:
+            request = Request(HttpRequest())
 
-        with patch("sys.exc_info", return_value=exc_info_from_error(exc)):
             resp = IntegrationEndpoint().handle_exception(request, exc)
 
             mock_capture_exception.assert_called_with(exc)
-            mock_stderror_write.assert_called_with(
-                "sentry.shared_integrations.exceptions.ApiError: This is an error\n"
+            (((s,), _),) = mock_stderror_write.call_args_list
+            assert (
+                s.splitlines()[-1]
+                == "sentry.shared_integrations.exceptions.ApiError: This is an error"
             )
 
             assert resp.status_code == 503
@@ -56,14 +58,16 @@ class IntegrationEndpointTest(TestCase):
     def test_handle_exception_stdlib(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):
-        exc = ValueError("This is an error")
-        request = Request(HttpRequest())
+        try:
+            raise ValueError("This is an error")
+        except ValueError as exc:
+            request = Request(HttpRequest())
 
-        with patch("sys.exc_info", return_value=exc_info_from_error(exc)):
             resp = IntegrationEndpoint().handle_exception(request, exc)
 
             assert mock_capture_exception.call_args.args[0] == exc
-            mock_stderror_write.assert_called_with("ValueError: This is an error\n")
+            (((s,), _),) = mock_stderror_write.call_args_list
+            assert s.splitlines()[-1] == "ValueError: This is an error"
 
             assert resp.status_code == 500
             assert resp.exception is True

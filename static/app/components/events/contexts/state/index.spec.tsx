@@ -69,7 +69,7 @@ describe('StateContext', function () {
     );
 
     expect(screen.getByText('State (Redux)')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('None'));
+    await userEvent.hover(screen.getByText('null'));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

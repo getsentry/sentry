@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
+    RpcDisabledException,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
@@ -26,6 +27,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -195,3 +197,10 @@ class DispatchRemoteCallTest(TestCase):
             org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None
+
+    @override_options(
+        {"hybrid_cloud.rpc.disabled-service-methods": ["organization.get_organization_by_id"]}
+    )
+    def test_disable_rpc_method(self):
+        with pytest.raises(RpcDisabledException):
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})

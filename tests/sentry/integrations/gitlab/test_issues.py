@@ -126,7 +126,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         self.group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),

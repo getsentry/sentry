@@ -31,7 +31,8 @@ export function OpenReplayComparisonButton({
       size="xs"
       analyticsEventKey="replay.details-hydration-modal-opened"
       analyticsEventName="Replay Details Hydration Modal Opened"
-      onClick={() => {
+      onClick={event => {
+        event.stopPropagation();
         openModal(
           deps => (
             <Suspense

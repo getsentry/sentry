@@ -180,6 +180,17 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert not response.data[0]["pending"]
         assert not response.data[0]["expired"]
 
+    def test_staff_simple(self):
+        staff_user = self.create_user("staff@localhost", is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == self.user2.email
+        assert not response.data[0]["pending"]
+        assert not response.data[0]["expired"]
+
     def test_empty_query(self):
         response = self.get_success_response(self.organization.slug, qs_params={"query": ""})
 
@@ -251,27 +262,17 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
-        member_team = self.create_team(organization=self.organization, org_role="member")
-        user = self.create_user("zoo@localhost", username="zoo")
-        self.create_member(
-            user=user,
-            organization=self.organization,
-            role="owner",
-            teams=[member_team],
-        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data[0]["email"] == self.user2.email
-        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data[0]["email"] == self.user.email
-        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(
@@ -691,9 +692,12 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["member:write"]
+        )
         token = self.create_internal_integration_token(
-            user=self.user, org=self.organization, scopes=["member:write"]
+            user=self.user, internal_integration=internal_integration
         )
         err_message = (
             "Integration tokens are restricted to inviting new members with the member role only."

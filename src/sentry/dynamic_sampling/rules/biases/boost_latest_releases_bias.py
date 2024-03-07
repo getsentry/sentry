@@ -51,10 +51,10 @@ class BoostLatestReleasesBias(Bias):
                     },
                     "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
                     "timeRange": {
-                        "start": datetime.utcfromtimestamp(boosted_release.timestamp).strftime(
+                        "start": datetime.fromtimestamp(boosted_release.timestamp).strftime(
                             self.datetime_format
                         ),
-                        "end": datetime.utcfromtimestamp(
+                        "end": datetime.fromtimestamp(
                             boosted_release.timestamp + boosted_release.platform.time_to_adoption
                         ).strftime(self.datetime_format),
                     },

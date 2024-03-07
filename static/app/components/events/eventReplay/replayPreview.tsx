@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import type {LinkButton} from 'sentry/components/button';
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
-import Placeholder from 'sentry/components/placeholder';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import {IconDelete} from 'sentry/icons';
@@ -89,13 +91,11 @@ function ReplayPreview({
     return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
-  if (fetching || !replayRecord) {
+  if (fetching || !replayRecord || !replay) {
     return (
-      <StyledPlaceholder
-        testId="replay-loading-placeholder"
-        height="400px"
-        width="100%"
-      />
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
     );
   }
 
@@ -112,7 +112,8 @@ function ReplayPreview({
   );
 }
 
-const StyledPlaceholder = styled(Placeholder)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
 

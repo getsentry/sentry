@@ -13,6 +13,7 @@ from sentry.search.events import constants
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils.hashlib import fnv1a_32
 
 
 def resolve_project_threshold_config(
@@ -321,5 +322,40 @@ def resolve_division(
             ),
             fallback,
         ],
+        alias,
+    )
+
+
+def resolve_rounded_timestamp(interval: int, alias: str, timestamp_column: str = "timestamp"):
+    return Function(
+        "toUInt32",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [Function("toUInt32", [Column(timestamp_column)]), interval],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def resolve_random_samples(
+    columns: list[SelectType],
+    alias: str,
+    offset: int,
+    limit: int,
+    size: int = 1,
+):
+    seed_str = f"{offset}-{limit}"
+    seed = fnv1a_32(seed_str.encode("utf-8"))
+    return Function(
+        f"groupArraySample({size}, {seed})",
+        [Function("tuple", columns)],
         alias,
     )

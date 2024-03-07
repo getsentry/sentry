@@ -92,6 +92,8 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
+type DDMMetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
+
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
@@ -179,10 +181,10 @@ export type PartnershipAgreementProps = {
  */
 export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
-  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<DDMMetricsSamplesListProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
@@ -212,6 +214,7 @@ export type ComponentHooks = {
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
+  'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
 
 /**
@@ -396,6 +399,11 @@ type FeatureDisabledHook = (opts: {
    */
   project?: Project;
 }) => React.ReactNode;
+
+/**
+ * Called to check if the superuser warning should be excluded for the given organization.
+ */
+type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
 
 /**
  * Called when the app is mounted.

@@ -16,19 +16,6 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-PRIORITY_LEVEL_TO_STR: dict[int, str] = {
-    PriorityLevel.LOW: "low",
-    PriorityLevel.MEDIUM: "medium",
-    PriorityLevel.HIGH: "high",
-}
-
-PRIORITY_UPDATE_CHOICES: dict[str, int] = {
-    "low": PriorityLevel.LOW,
-    "medium": PriorityLevel.MEDIUM,
-    "high": PriorityLevel.HIGH,
-}
-
-
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
@@ -58,7 +45,7 @@ def update_priority(
         type=ActivityType.SET_PRIORITY,
         user=actor,
         data={
-            "priority": PRIORITY_LEVEL_TO_STR[priority],
+            "priority": priority.to_str(),
             "reason": reason,
         },
     )
@@ -129,5 +116,5 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     elif reason == PriorityChangeReason.ONGOING:
         new_priority = get_priority_for_ongoing_group(group)
 
-    if new_priority is not None:
+    if new_priority is not None and new_priority != group.priority:
         update_priority(group, new_priority, reason)

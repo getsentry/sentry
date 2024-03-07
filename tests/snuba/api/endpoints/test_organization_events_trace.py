@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -38,9 +38,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         span_id=None,
         measurements=None,
         file_io_performance_issue=False,
+        start_timestamp=None,
         **kwargs,
     ):
         start, end = self.get_start_end(duration)
+        if start_timestamp is not None:
+            start = start_timestamp
         data = load_data(
             "transaction",
             trace=trace,
@@ -78,7 +81,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(self.create_span(span))
+                        self.store_span(
+                            self.create_span(
+                                span, start_ts=datetime.fromtimestamp(span["start_timestamp"])
+                            )
+                        )
                 self.store_span(self.convert_event_data_to_span(event))
                 return event
 
@@ -100,6 +107,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
+                "timestamp": int(start_ts * 1000),
                 "received": start_ts,
                 "duration_ms": int(end_ts - start_ts),
             }
@@ -604,7 +612,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=525,
+                duration=1500,
             ).event_id,
         ]
 
@@ -785,19 +793,20 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 @region_silo_test
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
+    check_generation = True
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
-        assert result["event_id"] == event_data.event_id, message
-        # assert result["timestamp"] == event_data.data["timestamp"], message
-        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        assert result["event_id"] == event_data.event_id
+        assert result["start_timestamp"] == event_data.data["start_timestamp"]
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
         self.assert_event(root, self.root_event, "root")
         assert root["parent_event_id"] is None
         assert root["parent_span_id"] is None
-        assert root["generation"] == 0
+        if self.check_generation:
+            assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
         assert len(root["performance_issues"]) == 1
@@ -807,7 +816,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
             assert gen1["parent_event_id"] == self.root_event.event_id
             assert gen1["parent_span_id"] == self.root_span_ids[i]
-            assert gen1["generation"] == 1
+            if self.check_generation:
+                assert gen1["generation"] == 1
             assert gen1["transaction.duration"] == 2000
             assert len(gen1["children"]) == 1
 
@@ -815,7 +825,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             self.assert_event(gen2, self.gen2_events[i], f"gen2_{i}")
             assert gen2["parent_event_id"] == self.gen1_events[i].event_id
             assert gen2["parent_span_id"] == self.gen1_span_ids[i]
-            assert gen2["generation"] == 2
+            if self.check_generation:
+                assert gen2["generation"] == 2
             assert gen2["transaction.duration"] == 1000
 
             # Only the first gen2 descendent has a child
@@ -825,7 +836,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 self.assert_event(gen3, self.gen3_event, f"gen3_{i}")
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
                 assert gen3["parent_span_id"] == self.gen2_span_id
-                assert gen3["generation"] == 3
+                if self.check_generation:
+                    assert gen3["generation"] == 3
                 assert gen3["transaction.duration"] == 500
                 assert len(gen3["children"]) == 0
             elif gen2_no_children:
@@ -1006,6 +1018,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=root_parent_span,
             project_id=self.project.id,
             duration=3000,
+            start_timestamp=self.day_ago - timedelta(minutes=1),
         )
         orphan_child = self.create_event(
             trace=self.trace_id,
@@ -1081,7 +1094,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=500,
+                duration=1000,
             ).event_id,
             self.create_event(
                 trace=self.trace_id,
@@ -1089,7 +1102,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 spans=[],
                 project_id=self.create_project(organization=self.organization).id,
                 parent_span_id=self.gen2_span_ids[1],
-                duration=525,
+                duration=2000,
             ).event_id,
         ]
 
@@ -1124,7 +1137,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             spans=[],
             parent_span_id=parent_span_id,
             project_id=self.project.id,
-            duration=1250,
+            duration=2000,
         )
 
         with self.feature(self.FEATURES):
@@ -1165,7 +1178,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=uuid4().hex[:16],
             span_id=orphan_span_ids["root"],
             project_id=self.project.id,
-            duration=1000,
+            duration=3000,
+            start_timestamp=self.day_ago - timedelta(minutes=1),
         )
         child_event = self.create_event(
             trace=self.trace_id,
@@ -1184,7 +1198,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             project_id=self.gen1_project.id,
             # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
             # results first before child1-0
-            duration=2500,
+            duration=2000,
         )
         grandchild_event = self.create_event(
             trace=self.trace_id,
@@ -1201,7 +1215,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             parent_span_id=orphan_span_ids["child_span"],
             span_id=orphan_span_ids["grandchild"],
             project_id=self.gen1_project.id,
-            duration=1500,
+            duration=1000,
         )
 
         with self.feature(self.FEATURES):
@@ -1216,16 +1230,19 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(main)
         self.assert_event(orphans, root_event, "orphan-root")
         assert len(orphans["children"]) == 1
-        assert orphans["generation"] == 0
+        if self.check_generation:
+            assert orphans["generation"] == 0
         assert orphans["parent_event_id"] is None
         child = orphans["children"][0]
         self.assert_event(child, child_event, "orphan-child")
         assert len(child["children"]) == 1
-        assert child["generation"] == 1
+        if self.check_generation:
+            assert child["generation"] == 1
         assert child["parent_event_id"] == root_event.event_id
         grandchild = child["children"][0]
         self.assert_event(grandchild, grandchild_event, "orphan-grandchild")
-        assert grandchild["generation"] == 2
+        if self.check_generation:
+            assert grandchild["generation"] == 2
         assert grandchild["parent_event_id"] == child_event.event_id
 
     def test_with_errors(self):
@@ -1496,9 +1513,46 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             else:
                 assert len(gen1["children"]) == 0
 
+    @mock.patch("sentry.api.endpoints.organization_events_trace.query_trace_data")
+    def test_timestamp_optimization(self, mock_query):
+        """When timestamp is passed we'll ignore the statsPeriod and make a query with a smaller start & end"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        mock_query.assert_called_once()
+        params = mock_query.call_args.args[1]
+        assert abs((params["end"] - params["start"]).days) <= 7
+
+    def test_timestamp_optimization_without_mock(self):
+        """Make sure that even if the params are smaller the query still works"""
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "project": -1,
+                    "timestamp": self.root_event.timestamp,
+                    "statsPeriod": "90d",
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
+
 
 @region_silo_test
 class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
+    check_generation = False
+
     def client_get(self, data, url=None):
         data["useSpans"] = 1
         return super().client_get(data, url)
@@ -1528,6 +1582,10 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
     def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        mock_builder = mock.Mock()
+        mock_builder.resolve_column_name.return_value = "span_id"
+        mock_builder.run_query.return_value = {}
+        mock_query_builder.return_value = mock_builder
         # Add a few more projects to the org
         self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)

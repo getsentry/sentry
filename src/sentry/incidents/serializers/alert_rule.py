@@ -26,7 +26,12 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
     update_alert_rule,
 )
-from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleMonitorType,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -57,9 +62,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
 
     environment = EnvironmentField(required=False, allow_null=True)
-    # TODO: These might be slow for many projects, since it will query for each
-    # individually. If we find this to be a problem then we can look into batching.
-    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    projects = serializers.ListField(
+        child=ProjectField(scope="project:read"),
+        required=False,
+        max_length=1,
+    )
     excluded_projects = serializers.ListField(
         child=ProjectField(scope="project:read"), required=False
     )
@@ -84,6 +91,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
         as_actor=True,
     )  # This will be set to required=True once the frontend starts sending it.
+    monitor_type = serializers.IntegerField(required=False, min_value=0)
 
     class Meta:
         model = AlertRule
@@ -105,6 +113,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "excluded_projects",
             "triggers",
             "event_types",
+            "monitor_type",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
@@ -136,7 +145,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def validate_aggregate(self, aggregate):
         allow_mri = features.has(
-            "organizations:ddm-experimental",
+            "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
         )
@@ -191,6 +200,16 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Invalid threshold type, valid values are %s"
                 % [item.value for item in AlertRuleThresholdType]
             )
+
+    def validate_monitor_type(self, monitor_type):
+        if monitor_type > 0 and not features.has(
+            "organizations:activated-alert-rules",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError("Invalid monitor type")
+
+        return AlertRuleMonitorType(monitor_type)
 
     def validate(self, data):
         """
@@ -256,7 +275,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
-            "organizations:ddm-experimental",
+            "organizations:custom-metrics",
             self.context["organization"],
             actor=self.context.get("user", None),
         ):

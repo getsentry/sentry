@@ -34,6 +34,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.events.types import ParamsType
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -387,7 +388,7 @@ def _detect_transaction_change_points(
 
     for regression in regressions:
         breakpoint_count += 1
-        send_regression_to_platform(regression, True)
+        send_regression_to_platform(regression)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
@@ -502,7 +503,7 @@ def emit_function_regression_issue(
     project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "start": start,
         "end": start + timedelta(minutes=1),
         "project_id": project_ids,
@@ -565,7 +566,6 @@ def emit_function_regression_issue(
                 "trend_percentage": regression["trend_percentage"],
                 "unweighted_p_value": regression["unweighted_p_value"],
                 "unweighted_t_value": regression["unweighted_t_value"],
-                "released": True,
             }
         )
 
@@ -878,7 +878,7 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
     # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "start": start,
         "end": start + timedelta(minutes=1),
         "project_id": [project.id for project in projects],
@@ -928,7 +928,7 @@ def query_functions_timeseries(
 
     # take the last 14 days as our window
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    params: dict[str, Any] = {
+    params: ParamsType = {
         "start": end - timedelta(days=14),
         "end": end,
         "project_id": project_ids,

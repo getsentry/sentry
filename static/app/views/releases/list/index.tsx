@@ -31,7 +31,14 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters, Project, Release, Tag} from 'sentry/types';
+import type {
+  AvatarProject,
+  Organization,
+  PageFilters,
+  Project,
+  Release,
+  Tag,
+} from 'sentry/types';
 import {ReleaseStatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
@@ -412,7 +419,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         ? t('time range')
         : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
-    if (searchQuery && searchQuery.length) {
+    if (searchQuery?.length) {
       return (
         <Panel>
           <EmptyMessage icon={<IconSearch size="xl" />} size="large">{`${t(
@@ -501,9 +508,10 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return (
       <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
         {({projects, initiallyLoaded, fetchError}) => {
-          const project = projects && projects.length === 1 && projects[0];
+          const project: AvatarProject | undefined =
+            projects?.length === 1 ? projects.at(0) : undefined;
           const projectCanHaveReleases =
-            project && project.platform && releaseHealth.includes(project.platform);
+            project?.platform && releaseHealth.includes(project.platform);
 
           if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
             return null;
@@ -623,7 +631,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
-    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
@@ -657,29 +664,23 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  <GuideAnchor
-                    target="releases_search"
-                    position="bottom"
-                    disabled={!hasReleasesSetup}
-                  >
-                    <StyledSmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      hasRecentSearches={false}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                    />
-                  </GuideAnchor>
+                  <StyledSmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    hasRecentSearches={false}
+                    supportedTags={{
+                      ...SEMVER_TAGS,
+                      release: {
+                        key: 'release',
+                        name: 'release',
+                      },
+                    }}
+                    maxMenuHeight={500}
+                    supportedTagType={ItemType.PROPERTY}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}

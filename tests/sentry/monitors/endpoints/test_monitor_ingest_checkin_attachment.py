@@ -50,7 +50,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment=environment, **monitorenvironment_defaults
+            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
         )
 
     def test_upload(self):

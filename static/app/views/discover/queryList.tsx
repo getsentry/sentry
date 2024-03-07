@@ -307,11 +307,7 @@ class QueryList extends Component<Props> {
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              yAxis={
-                savedQuery.yAxis && savedQuery.yAxis.length
-                  ? savedQuery.yAxis
-                  : ['count()']
-              }
+              yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
             />
           )}
           renderContextMenu={() => (

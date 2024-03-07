@@ -1,3 +1,4 @@
+import {act} from 'react-test-renderer';
 import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -59,17 +60,14 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      useReplaysForRegressionIssue,
-      {
-        initialProps: {
-          group: MOCK_GROUP,
-          location,
-          organization,
-          event: mockEvent,
-        },
-      }
-    );
+    const {result, waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+      initialProps: {
+        group: MOCK_GROUP,
+        location,
+        organization,
+        event: mockEvent,
+      },
+    });
 
     expect(result.current).toEqual({
       eventView: null,
@@ -77,15 +75,15 @@ describe('useReplaysForRegressionIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[replay42,replay256]',
-      }),
-      fetchError: undefined,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[replay42,replay256]',
+        }),
+        fetchError: undefined,
+        pageLinks: null,
+      })
+    );
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
@@ -97,17 +95,14 @@ describe('useReplaysForRegressionIssue', () => {
       body: {},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      useReplaysForRegressionIssue,
-      {
-        initialProps: {
-          group: MOCK_GROUP,
-          location,
-          organization,
-          event: mockEvent,
-        },
-      }
-    );
+    const {result, waitFor} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+      initialProps: {
+        group: MOCK_GROUP,
+        location,
+        organization,
+        event: mockEvent,
+      },
+    });
 
     expect(result.current).toEqual({
       eventView: null,
@@ -115,15 +110,15 @@ describe('useReplaysForRegressionIssue', () => {
       pageLinks: null,
     });
 
-    await waitForNextUpdate();
-
-    expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[]',
-      }),
-      fetchError: undefined,
-      pageLinks: null,
-    });
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        eventView: expect.objectContaining({
+          query: 'id:[]',
+        }),
+        fetchError: undefined,
+        pageLinks: null,
+      })
+    );
   });
 
   it('queries using start and end date strings if passed in', async () => {
@@ -136,7 +131,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    reactHooks.renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -157,7 +152,7 @@ describe('useReplaysForRegressionIssue', () => {
       })
     );
 
-    await waitForNextUpdate();
+    await act(tick);
   });
 
   it('queries the transaction name with event type and duration filters', async () => {
@@ -170,7 +165,7 @@ describe('useReplaysForRegressionIssue', () => {
       },
     });
 
-    const {waitForNextUpdate} = reactHooks.renderHook(useReplaysForRegressionIssue, {
+    reactHooks.renderHook(useReplaysForRegressionIssue, {
       initialProps: {
         group: MOCK_GROUP,
         location,
@@ -189,6 +184,6 @@ describe('useReplaysForRegressionIssue', () => {
       })
     );
 
-    await waitForNextUpdate();
+    await act(tick);
   });
 });

@@ -1,7 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
-
-from typing_extensions import TypedDict
+from typing import Any, TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer

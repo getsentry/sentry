@@ -1,11 +1,14 @@
 import uuid
 from unittest.mock import patch
 
+import pytest
 import responses
+from django.http import Http404
 
 from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
@@ -113,6 +116,15 @@ class PagerDutyActionHandlerTest(FireTest):
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
+
+    def test_fire_metric_alert_no_org_integration(self):
+        # We've had orgs in prod that have alerts referencing
+        # pagerduty integrations that no longer attached to the org.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.organizationintegration_set.first().delete()
+
+        with pytest.raises(Http404):
+            self.run_fire_test()
 
     def test_fire_metric_alert_multiple_services(self):
         service = [

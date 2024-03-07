@@ -195,9 +195,6 @@
     "/api/0/organizations/{organization_slug}/releases/{version}/commitfiles/": {
       "$ref": "paths/releases/organization-release-commit-files.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/resolved/": {
-      "$ref": "paths/releases/project-issues-resolved-in-release.json"
-    },
     "/api/0/organizations/{organization_slug}/releases/{version}/deploys/": {
       "$ref": "paths/releases/deploys.json"
     },

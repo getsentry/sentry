@@ -4,10 +4,9 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, AbstractSet, Any
+from typing import TYPE_CHECKING, AbstractSet, Any, TypedDict
 
 from django.db.models import Count
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -79,56 +78,29 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
     return {item["id"]: item["member_count"] for item in query}
 
 
-def get_member_orgs_and_roles(org_ids: set[int], user_id: int) -> Mapping[int, Sequence[str]]:
-    org_members = OrganizationMember.objects.filter(
-        user_id=user_id, organization__in=org_ids
-    ).values_list("organization_id", "id", "role")
-
-    if not len(org_members):
-        return {}
-
-    _, org_member_ids, _ = zip(*org_members)
-
-    roles_from_teams = (
-        OrganizationMemberTeam.objects.filter(organizationmember_id__in=org_member_ids)
-        .exclude(team__org_role=None)
-        .values_list("organizationmember__organization_id", "team__org_role")
-    )
-
-    orgs_and_roles = {orgs: {role} for orgs, _, role in org_members}
-
-    for org_id, org_role in roles_from_teams:
-        orgs_and_roles[org_id].add(org_role)
-
-    return {
-        org: [r.id for r in organization_roles.get_sorted_roles(org_roles)]
-        for org, org_roles in orgs_and_roles.items()
-    }
-
-
 def get_org_roles(
     org_ids: set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
-) -> Mapping[int, Sequence[str]]:
+) -> Mapping[int, str]:
     """
     Get the roles the user has in each org
-    Roles are ordered from highest to lower priority (descending priority)
     """
     if not user.is_authenticated:
         return {}
 
     if optimization:
-        if optimization.access.roles is not None:
+        if optimization.access.role is not None:
             return {
-                optimization.access.rpc_user_organization_context.organization.id: list(
-                    optimization.access.roles
-                )
+                optimization.access.api_user_organization_context.organization.id: optimization.access.role
             }
         return {}
 
     # map of org id to role
-    # can have multiple org roles through team membership
-    # return them sorted to figure out highest team role
-    return get_member_orgs_and_roles(org_ids=org_ids, user_id=user.id)
+    return {
+        om["organization_id"]: om["role"]
+        for om in OrganizationMember.objects.filter(
+            user_id=user.id, organization__in=set(org_ids)
+        ).values("role", "organization_id")
+    }
 
 
 def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Team]:
@@ -145,7 +117,6 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: list[ExternalActorResponse]
     organization: OrganizationSerializerResponse
     projects: list[ProjectSerializerResponse]
-    orgRole: str | None  # TODO(cathy): Change to new key
 
 
 class BaseTeamSerializerResponse(TypedDict):
@@ -229,14 +200,14 @@ class BaseTeamSerializer(Serializer):
 
         for team in item_list:
             is_member = team.id in team_memberships
-            org_roles = roles_by_org.get(team.organization_id) or []
+            org_role = roles_by_org.get(team.organization_id)
             team_role_id, team_role_scopes = team_memberships.get(team.id), set()
 
             has_access = bool(
                 is_member
                 or is_superuser
                 or organization.flags.allow_joinleave
-                or any(roles.get(org_role).is_global for org_role in org_roles)
+                or (org_role and roles.get(org_role).is_global)
             )
 
             if has_access:
@@ -244,12 +215,11 @@ class BaseTeamSerializer(Serializer):
                     team_roles.get(team_role_id) if team_role_id else team_roles.get_default()
                 )
 
-                top_org_role = org_roles[0] if org_roles else None
                 if is_superuser:
-                    top_org_role = organization_roles.get_top_dog().id
+                    org_role = organization_roles.get_top_dog().id
 
-                if top_org_role:
-                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                if org_role:
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
                     if minimum_team_role.priority > effective_team_role.priority:
                         effective_team_role = minimum_team_role
 
@@ -313,8 +283,6 @@ class BaseTeamSerializer(Serializer):
             # Teams only have letter avatars.
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         }
-        if obj.org_role:
-            result["orgRole"] = obj.org_role
 
         return result
 

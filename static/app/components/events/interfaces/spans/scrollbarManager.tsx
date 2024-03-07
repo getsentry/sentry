@@ -90,7 +90,6 @@ export class Provider extends Component<Props, State> {
   componentDidMount() {
     // React will guarantee that refs are set before componentDidMount() is called;
     // but only for DOM elements that actually got rendered
-
     this.initializeScrollState();
   }
 

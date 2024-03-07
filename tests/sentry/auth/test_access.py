@@ -333,21 +333,6 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_project_scope(project_other, "project:write")
             assert result.has_project_scope(project_other, "project:read")
 
-    def test_get_organization_roles_from_teams(self):
-        user = self.create_user()
-        organization = self.create_organization()
-        owner_team = self.create_team(organization=organization, org_role="owner")
-        admin_team = self.create_team(organization=organization, org_role="admin")
-        self.create_member(organization=organization, user=user, teams=[owner_team, admin_team])
-
-        request = self.make_request(user=user)
-        results = [self.from_user(user, organization), self.from_request(request, organization)]
-
-        for result in results:
-            assert "owner" in result.roles
-            assert "member" in result.roles
-            assert "admin" in result.roles
-
     def test_unlinked_sso(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)

@@ -6,6 +6,7 @@ import type {
   Docs,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/apple-macos';
 import {t, tct} from 'sentry/locale';
 
 const getExperimentalFeaturesSnippet = () => `
@@ -176,6 +177,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: appleFeedbackOnboarding,
 };
 
 export default docs;

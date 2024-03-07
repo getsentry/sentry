@@ -27,7 +27,6 @@ describe('OrganizationMemberRow', function () {
       has2fa: false,
       name: 'sentry@test.com',
     }),
-    groupOrgRoles: [],
   });
 
   const currentUser = UserFixture({

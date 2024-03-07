@@ -5,15 +5,12 @@ import moment from 'moment';
 import type {MRI} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {getDateTimeParams} from 'sentry/utils/metrics';
-import type {
-  MetricCorrelation,
-  MetricMetaCodeLocation,
-  SelectionRange,
-} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation, MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 
 type ApiResponse = {
   metrics: MetricMetaCodeLocation[];

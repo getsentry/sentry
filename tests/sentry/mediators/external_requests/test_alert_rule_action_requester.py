@@ -6,10 +6,12 @@ from sentry.mediators.external_requests.alert_rule_action_requester import (
     AlertRuleActionRequester,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
+@control_silo_test
 class TestAlertRuleActionRequester(TestCase):
     def setUp(self):
         super().setUp()

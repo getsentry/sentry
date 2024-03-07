@@ -898,7 +898,7 @@ function GroupDetails(props: GroupDetailsProps) {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config && config.showFeedbackWidget && <FloatingFeedbackWidget />}
+          {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
           <GroupDetailsPageContent
             {...props}
             {...{

@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import {MetricQueryType, type MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -10,22 +11,29 @@ import {useDDMContext} from 'sentry/views/ddm/context';
 export function useCreateDashboard() {
   const router = useRouter();
   const organization = useOrganization();
-  const {widgets} = useDDMContext();
+  const {widgets, isMultiChartMode} = useDDMContext();
   const {selection} = usePageFilters();
+
+  const dashboardWidgets = useMemo(() => {
+    // TODO(aknaus): Remove filtering once dashboard supports metrics formulas
+    const supportedWidgets = widgets.filter(
+      widget => widget.type === MetricQueryType.QUERY
+    ) as MetricQueryWidgetParams[];
+    if (isMultiChartMode) {
+      return [convertToDashboardWidget(supportedWidgets, widgets[0].displayType)];
+    }
+
+    return supportedWidgets.map(widget =>
+      convertToDashboardWidget([widget], widget.displayType)
+    );
+  }, [widgets, isMultiChartMode]);
 
   return useMemo(() => {
     return function () {
       const newDashboard = {
         title: 'Metrics Dashboard',
         description: '',
-        widgets: widgets
-          .filter(widget => !!widget.mri)
-          .map(widget =>
-            // @ts-expect-error TODO(ogi): fix this
-            convertToDashboardWidget(widget, widget.displayType)
-          )
-          // Only import the first 30 widgets because of dashboard widget limit
-          .slice(0, 30),
+        widgets: dashboardWidgets.slice(0, 30),
         projects: selection.projects,
         environment: selection.environments,
         start: selection.datetime.start as string,
@@ -39,5 +47,5 @@ export function useCreateDashboard() {
 
       openCreateDashboardFromScratchpad({newDashboard, router, organization});
     };
-  }, [selection, widgets, organization, router]);
+  }, [selection, organization, router, dashboardWidgets]);
 }

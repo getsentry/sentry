@@ -1,8 +1,8 @@
 from collections import defaultdict
+from typing import TypedDict
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
-from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
@@ -89,7 +89,10 @@ class RuleSerializer(Serializer):
         )
 
         users = {
-            u.id: u for u in user_service.get_many(filter=dict(user_ids=[ra.user_id for ra in ras]))
+            u.id: u
+            for u in user_service.get_many(
+                filter=dict(user_ids=[ra.user_id for ra in ras if ra.user_id is not None])
+            )
         }
 
         for rule_activity in ras:

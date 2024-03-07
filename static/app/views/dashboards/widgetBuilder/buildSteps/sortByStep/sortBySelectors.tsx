@@ -142,7 +142,6 @@ export function SortBySelectors({
                 : undefined
             }
             filterAggregateParameters={datasetConfig.filterAggregateParams}
-            placeholder={widgetType === WidgetType.METRICS ? t('(tag)') : undefined}
             onChange={value => {
               if (value.alias && isEquationAlias(value.alias)) {
                 onChange({

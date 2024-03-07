@@ -3,53 +3,19 @@ from collections.abc import Generator, Sequence
 
 from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Timeseries
-from snuba_sdk.mql.mql import parse_mql
-from snuba_sdk.query_visitors import InvalidQueryError
+from snuba_sdk.mql.mql import InvalidMQLQueryError, parse_mql
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
-    FiltersCompositeVisitor,
     LatestReleaseTransformationVisitor,
-    QueryExpressionVisitor,
-    ValidationVisitor,
+    QueryConditionsCompositeVisitor,
+    QueryValidationVisitor,
+    VisitableQueryExpression,
 )
-
-
-class VisitableQueryExpression:
-    def __init__(self, query: QueryExpression):
-        self._query = query
-        self._visitors: list[QueryExpressionVisitor[QueryExpression]] = []
-
-    def add_visitor(
-        self, visitor: QueryExpressionVisitor[QueryExpression]
-    ) -> "VisitableQueryExpression":
-        """
-        Adds a visitor to the query expression.
-
-        The visitor can both perform mutations or not on the expression tree.
-        """
-        self._visitors.append(visitor)
-
-        return self
-
-    def get(self) -> QueryExpression:
-        """
-        Returns the mutated query expression after running all the visitors
-        in the order of definition.
-
-        Order preservation does matter, since downstream visitors might work under the
-        assumption that upstream visitors have already been run.
-        """
-        query = self._query
-        for visitor in self._visitors:
-            query = visitor.visit(query)
-
-        return query
 
 
 class QueryParser:
@@ -127,8 +93,8 @@ class QueryParser:
         Parses the field with the MQL grammar.
         """
         try:
-            query = parse_mql(mql).query
-        except InvalidQueryError as e:
+            query = parse_mql(mql)
+        except InvalidMQLQueryError as e:
             cause = e.__cause__
             if cause and isinstance(cause, IncompleteParseError):
                 error_context = cause.text[cause.pos : cause.pos + 20]
@@ -137,9 +103,9 @@ class QueryParser:
                 # fields.
                 raise InvalidMetricsQueryError(
                     f"The query '{mql}' could not be matched starting from '{error_context}...'"
-                )
+                ) from e
 
-            raise InvalidMetricsQueryError("The supplied query is not valid")
+            raise InvalidMetricsQueryError("The supplied query is not valid") from e
 
         return VisitableQueryExpression(query=query)
 
@@ -163,11 +129,13 @@ class QueryParser:
                 field,
                 self._parse_mql(mql_query)
                 # We validate the query.
-                .add_visitor(ValidationVisitor())
+                .add_visitor(QueryValidationVisitor())
                 # We inject the environment filter in each timeseries.
                 .add_visitor(EnvironmentsInjectionVisitor(environments))
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
-                    FiltersCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                    QueryConditionsCompositeVisitor(
+                        LatestReleaseTransformationVisitor(self._projects)
+                    )
                 ).get(),
             )

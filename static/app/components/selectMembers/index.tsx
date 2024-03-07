@@ -12,7 +12,7 @@ import type {Member, Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
-  `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
+  `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
 
 type MentionableUser = {
   actor: {

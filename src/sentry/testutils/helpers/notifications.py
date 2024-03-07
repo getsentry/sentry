@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sentry.issues.grouptype import (
@@ -18,7 +18,6 @@ from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.dates import ensure_aware
 
 
 class DummyNotification(BaseNotification):
@@ -97,7 +96,7 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
         IssueEvidence("Evidence 3", "Nobody cares about this", False),
     ],
     ProfileFileIOGroupType,
-    ensure_aware(datetime.now()),
+    datetime.now(UTC),
     "info",
     "/api/123/",
 )
@@ -118,7 +117,7 @@ TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
         ),
     ],
     PerformanceNPlusOneGroupType,
-    ensure_aware(datetime.now()),
+    datetime.now(UTC),
     "info",
     "/api/123/",
 )
@@ -160,7 +159,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceNPlusOneAPICallsGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/books/",
     ),
@@ -196,7 +195,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceNPlusOneGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/books/",
     ),
@@ -223,7 +222,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         },
         [],
         PerformanceRenderBlockingAssetSpanGroupType,
-        ensure_aware(datetime.now()),
+        datetime.now(UTC),
         "info",
         "/render-blocking-asset/",
     ),

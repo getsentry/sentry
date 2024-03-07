@@ -39,7 +39,7 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
-    PrioritySortWeights,
+    TrendsSortWeights,
 )
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -154,14 +154,10 @@ def first_release_all_environments_filter(
             # We only need to find the first non-existent release here
             break
 
-    return Q(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(
-            first_release_id__in=list(releases.values()),
-        ).values_list("group_id")
-    )
+    return Q(first_release_id__in=list(releases.values()))
 
 
 def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
@@ -277,7 +273,7 @@ def _group_attributes_side_query(
     max_hits: int | None = None,
     referrer: str | None = None,
     actor: Any | None = None,
-    aggregate_kwargs: PrioritySortWeights | None = None,
+    aggregate_kwargs: TrendsSortWeights | None = None,
 ) -> None:
     def __run_joined_query_and_log_metric(
         events_only_search_results: CursorResult[Group],
@@ -297,7 +293,7 @@ def _group_attributes_side_query(
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ):
         from sentry.utils import metrics
 
@@ -479,7 +475,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -701,6 +697,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
+            "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
@@ -714,16 +711,18 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
             queryset_conditions.update(
                 {
-                    "message": QCallbackCondition(
-                        lambda query: Q(type=ErrorGroupType.type_id)
-                        | _issue_platform_issue_message_condition(query)
-                    )
-                    # negation should only apply on the message search icontains, we have to include
-                    # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
-                    # column when type=GroupType.ERROR - we delegate that to snuba in that case
-                    if not message_filter.is_negation
-                    else QCallbackCondition(
-                        lambda query: _issue_platform_issue_message_condition(query)
+                    "message": (
+                        QCallbackCondition(
+                            lambda query: Q(type=ErrorGroupType.type_id)
+                            | _issue_platform_issue_message_condition(query)
+                        )
+                        # negation should only apply on the message search icontains, we have to include
+                        # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                        if not message_filter.is_negation
+                        else QCallbackCondition(
+                            lambda query: _issue_platform_issue_message_condition(query)
+                        )
                     )
                 }
             )

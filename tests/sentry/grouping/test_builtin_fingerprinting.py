@@ -16,7 +16,6 @@ from sentry.grouping.fingerprinting import (
     _load_configs,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
@@ -24,7 +23,7 @@ GROUPING_CONFIG = get_default_grouping_config_dict()
 
 @pytest.fixture
 def default_bases():
-    return ["sentry.javascript@2024-02-02"]
+    return ["javascript@2024-02-02"]
 
 
 def test_default_bases(default_bases):
@@ -33,7 +32,7 @@ def test_default_bases(default_bases):
     assert {
         k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
     } == {
-        "sentry.javascript@2024-02-02": [
+        "javascript@2024-02-02": [
             {
                 "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
@@ -510,7 +509,6 @@ class BuiltInFingerprintingTest(TestCase):
 
         return eventstore.backend.create_event(data=data)
 
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules(self):
         """
         With flag enabled, the built-in rules for ChunkLoadError should be applied.
@@ -526,7 +524,6 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules_variants(self):
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         variants = {
@@ -544,15 +541,6 @@ class BuiltInFingerprintingTest(TestCase):
             "matched_rule": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
         }
 
-    def test_built_in_chunkload_rules_disabled(self):
-        """
-        With flag disabled, the built-in rules for ChunkLoadError should be ignored.
-        """
-        event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
-        assert event.data["fingerprint"] == ["my-route", "{{ default }}"]
-        assert event.data.get("_fingerprint_info") is None
-
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules_value_only(self):
         """
         ChunkLoadError rule based on value should apply even if error is not ChunkLoadError type.
@@ -568,7 +556,6 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules_wrong_sdk(self):
         """
         Built-in ChunkLoadError rule should also apply event if SDK is not sentry.javascript.nextjs.
@@ -585,7 +572,6 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_hydration_rules_same_transactions(self):
         """
         With the flag enabled, hydration errors with the same transaction should be grouped and
@@ -624,7 +610,6 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert event_message1.group == event_message2.group
 
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_hydration_rules_different_transactions(self):
         """
         With the flag enabled, hydration errors with different transactions should not be grouped and
@@ -671,15 +656,6 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert event_transaction_slash.group != event_transaction_text.group
 
-    def test_built_in_hydration_rules_disabled(self):
-        """
-        With flag disabled, the built-in rules for hydration errors should be ignored.
-        """
-        event = self.store_event(data=self.hydration_error_trace, project_id=self.project)
-        assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
-        assert event.data.data.get("_fingerprint_info") is None
-
-    @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_hydration_rules_no_transactions(self):
         """
         With the flag enabled, for hydration errors with no transactions

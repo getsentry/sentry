@@ -36,11 +36,12 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     timelineEvent => timelineEvent.id !== event.id
   );
   const displayYouAreHere = filteredTimelineEvents.length !== timelineEvents.length;
+  const hasTitle = filteredTimelineEvents.length > 1 || displayYouAreHere;
   return (
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
-      <EventItemsWrapper>
-        <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>
+      <EventItemsWrapper hasTitle={hasTitle}>
+        {hasTitle && <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
           const project = projects.find(p => p.slug === timelineEvent.project);
           return (
@@ -50,6 +51,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
                 pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
                 query: {
                   ...location.query,
+                  project: undefined,
                   referrer: 'issues_trace_timeline',
                 },
               }}
@@ -113,10 +115,10 @@ const UnstyledUnorderedList = styled('div')`
   width: 220px;
 `;
 
-const EventItemsWrapper = styled('div')`
+const EventItemsWrapper = styled('div')<{hasTitle: boolean}>`
   display: flex;
   flex-direction: column;
-  padding: ${space(1)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+  padding: ${p => space(p.hasTitle ? 1 : 0.5)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
 `;
 
 const EventItemsTitle = styled('div')`

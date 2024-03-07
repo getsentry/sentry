@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
@@ -126,6 +126,65 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         result = serialize(event)
         assert result["message"] == "baz"
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
+
+    def test_exception_interface(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValidationError",
+                            "value": "Bad request",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "foo.py",
+                                        "lineno": 100,
+                                        "in_app": True,
+                                        "vars": {"foo": "[Filtered]"},
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "_meta": {
+                    "exception": {
+                        "values": {
+                            "0": {
+                                "stacktrace": {
+                                    "frames": {
+                                        "0": {
+                                            "lineno": 100,
+                                            "in_app": True,
+                                            "vars": {"foo": {"": {"err": ["some error"]}}},
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        result = serialize(event)
+
+        assert result["entries"][0]["type"] == "exception"
+
+        # Exception interface data should be preserved
+        assert (
+            result["entries"][0]["data"]["values"][0]["stacktrace"]["frames"][0]["vars"]["foo"]
+            == "[Filtered]"
+        )
+        # Exception meta should be preserved
+        assert result["_meta"]["entries"][0]["data"]["values"]["0"]["stacktrace"]["frames"]["0"][
+            "vars"
+        ]["foo"] == {"": {"err": ["some error"]}}
 
     def test_tags_tuples(self):
         event = self.store_event(
@@ -501,7 +560,7 @@ class SqlFormatEventSerializerTest(TestCase):
         release = Release.objects.create(
             version="internal@1.0.0",
             organization=self.organization,
-            date_released=datetime(2023, 1, 1),
+            date_released=datetime(2023, 1, 1, tzinfo=UTC),
         )
         release.add_project(self.project)
         release.set_commits(

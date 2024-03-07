@@ -185,7 +185,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('not shared event - without attachments', function () {
+    it('not shared event - without attachments', async function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
@@ -196,13 +196,13 @@ describe('EventTagsAndScreenshot', function () {
         {organization}
       );
 
-      // Screenshot Container
-      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
-
       // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
+      expect(await screen.findByText('Tags')).toBeInTheDocument();
       const contextItems = screen.getAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
+
+      // Screenshot Container
+      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
 
       // Context Item 1
       const contextItem1 = within(contextItems[0]);
@@ -413,9 +413,9 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
       );
 
-      screen.getByRole('button', {name: 'Next Screenshot'}).click();
+      await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+      expect(await screen.findByTestId('screenshot-data-section')).toHaveTextContent(
         '2 of 2'
       );
 

@@ -1,3 +1,6 @@
+from typing import Any
+from uuid import UUID, uuid4
+
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -184,6 +187,32 @@ class RuleSerializer(RuleSetSerializer):
         return rule
 
 
+ACTION_UUID_KEY = "uuid"
+
+
+def ensure_action_uuid(action: dict[Any, Any]) -> None:
+    """
+    Ensure that each action is uniquely identifiable.
+    The function will check that a UUID key and value exists in the action.
+    If the key does not exist, or it's not a valid UUID, it will create a new one and assign it to the action.
+
+    Does not add an uuid to the action if it is empty.
+    """
+    if not action:
+        return
+
+    if ACTION_UUID_KEY in action:
+        existing_uuid = action[ACTION_UUID_KEY]
+        try:
+            UUID(existing_uuid)
+        except (ValueError, TypeError):
+            pass
+        else:
+            return
+
+    action[ACTION_UUID_KEY] = str(uuid4())
+
+
 def validate_actions(attrs):
     # XXX(meredith): For rules that have the Slack integration as an action
     # we need to check if the channel_id needs to be looked up via an async task.
@@ -191,6 +220,8 @@ def validate_actions(attrs):
     # project_rule(_details) endpoints by setting it on attrs
     actions = attrs.get("actions", tuple())
     for action in actions:
+        ensure_action_uuid(action)
+
         if action.get("name"):
             del action["name"]
         # XXX(colleen): For ticket rules we need to ensure the user has

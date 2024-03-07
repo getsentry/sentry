@@ -14,8 +14,11 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
+from sentry.replays.consumers.recording_buffered import (
+    RecordingBufferedStrategyFactory,
+    cast_payload_from_bytes,
+)
+from sentry.replays.lib.storage import _make_recording_filename, _make_video_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
 
@@ -63,13 +66,24 @@ class RecordingTestCase(TransactionTestCase):
             assert bytes == b'[{"hello":"world"}]'
 
     def get_recording_data(self, segment_id):
-        recording_segment = RecordingSegmentStorageMeta(
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
+        return storage_kv.get(
+            _make_recording_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
         )
-        return StorageBlob().get(recording_segment)
+
+    def get_video_data(self, segment_id):
+        return storage_kv.get(
+            _make_video_filename(
+                project_id=self.project.id,
+                replay_id=self.replay_id,
+                segment_id=segment_id,
+                retention_days=30,
+            )
+        )
 
     def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
@@ -107,6 +121,8 @@ class RecordingTestCase(TransactionTestCase):
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
+        replay_event: bytes | None = None,
+        replay_video: bytes | None = None,
     ) -> list[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
@@ -118,7 +134,11 @@ class RecordingTestCase(TransactionTestCase):
                 "project_id": self.project.id,
                 "received": int(time.time()),
                 "retention_days": 30,
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message,
+                "payload": cast_payload_from_bytes(
+                    f'{{"segment_id":{segment_id}}}\n'.encode() + message
+                ),
+                "replay_event": replay_event,  # type: ignore
+                "replay_video": replay_video,  # type: ignore
             }
         ]
 
@@ -128,6 +148,38 @@ class RecordingTestCase(TransactionTestCase):
         segment_id = 0
         self.submit(self.nonchunked_messages(segment_id=segment_id, compressed=True))
         self.assert_replay_recording_segment(segment_id, compressed=True)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+
+        mock_record.assert_called_with(
+            "first_replay.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
+        )
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    def test_event_with_replay_video(self, mock_record, mock_onboarding_task):
+        segment_id = 0
+        self.submit(
+            self.nonchunked_messages(
+                segment_id=segment_id,
+                compressed=True,
+                replay_video=b"hello, world!",
+            )
+        )
+        self.assert_replay_recording_segment(segment_id, compressed=True)
+        assert self.get_video_data(segment_id) == b"hello, world!"
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
@@ -211,6 +263,186 @@ class RecordingTestCase(TransactionTestCase):
         )
 
         # No replay actions were emitted because JSON deserialization failed.
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_payload_invalid_headers(
+        self, emit_replay_actions, mock_record, mock_onboarding_task
+    ):
+        """Test missing segment_id key does not break ingestion."""
+        segment_id = 0
+
+        self.submit(
+            [
+                {
+                    "type": "replay_recording_not_chunked",
+                    "replay_id": self.replay_id,
+                    "org_id": self.organization.id,
+                    "key_id": 123,
+                    "project_id": self.project.id,
+                    "received": int(time.time()),
+                    "retention_days": 30,
+                    "payload": b'{"something":"else"}\n' + b'[{"hello":"world"}]',
+                }
+            ]
+        )
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_payload_invalid_unicode_codepoint(
+        self, emit_replay_actions, mock_record, mock_onboarding_task
+    ):
+        """Test invalid unicode codepoint in headers does not break ingestion."""
+        segment_id = 0
+
+        self.submit(
+            [
+                {
+                    "type": "replay_recording_not_chunked",
+                    "replay_id": self.replay_id,
+                    "org_id": self.organization.id,
+                    "key_id": 123,
+                    "project_id": self.project.id,
+                    "received": int(time.time()),
+                    "retention_days": 30,
+                    "payload": '{"segment_id":"\\ud83c"}\n'.encode("utf-16")
+                    + b'[{"hello":"world"}]',
+                }
+            ]
+        )
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_payload_malformed_headers(
+        self, emit_replay_actions, mock_record, mock_onboarding_task
+    ):
+        """Test malformed headers in payload attribute do not break ingestion."""
+        segment_id = 0
+
+        self.submit(
+            [
+                {
+                    "type": "replay_recording_not_chunked",
+                    "replay_id": self.replay_id,
+                    "org_id": self.organization.id,
+                    "key_id": 123,
+                    "project_id": self.project.id,
+                    "received": int(time.time()),
+                    "retention_days": 30,
+                    "payload": b"i am invalid\n" + b'[{"hello":"world"}]',
+                }
+            ]
+        )
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_payload_missing_headers(
+        self, emit_replay_actions, mock_record, mock_onboarding_task
+    ):
+        """Test missing headers in payload attribute does not break ingestion."""
+        segment_id = 0
+
+        self.submit(
+            [
+                {
+                    "type": "replay_recording_not_chunked",
+                    "replay_id": self.replay_id,
+                    "org_id": self.organization.id,
+                    "key_id": 123,
+                    "project_id": self.project.id,
+                    "received": int(time.time()),
+                    "retention_days": 30,
+                    "payload": b"no headers :P",
+                }
+            ]
+        )
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_payload_type(self, emit_replay_actions, mock_record, mock_onboarding_task):
+        """Test invalid payload types do not break ingestion."""
+        segment_id = 0
+
+        self.submit(
+            [
+                {
+                    "type": "replay_recording_not_chunked",
+                    "replay_id": self.replay_id,
+                    "org_id": self.organization.id,
+                    "key_id": 123,
+                    "project_id": self.project.id,
+                    "received": int(time.time()),
+                    "retention_days": 30,
+                    "payload": "I'm a string!",
+                }
+            ]
+        )
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(segment_id)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
+        assert not emit_replay_actions.called
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.dom_index.emit_replay_actions")
+    def test_invalid_message(self, emit_replay_actions, mock_record, mock_onboarding_task):
+        """Test invalid messages do not break ingestion."""
+        self.submit(["i am totally wrong"])
+
+        # Assert the message was totally broken and nothing happened.
+        bytes = self.get_recording_data(0)
+        assert bytes is None
+        self.project.refresh_from_db()
+        assert not self.project.flags.has_replays
+        # assert not mock_onboarding_task.called
+        # assert not mock_record.called
         assert not emit_replay_actions.called
 
 

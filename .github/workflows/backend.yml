@@ -92,6 +92,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
+          redis_cluster: true
           kafka: true
           snuba: true
           symbolicator: true

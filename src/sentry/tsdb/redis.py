@@ -4,19 +4,25 @@ import logging
 import random
 import uuid
 from collections import defaultdict, namedtuple
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from datetime import datetime
 from functools import reduce
 from hashlib import md5
-from typing import ContextManager, TypeVar
+from typing import Any, ContextManager, Generic, TypeVar
 
+import rb
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB
+from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
 from sentry.utils.compat import crc32
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
+from sentry.utils.redis import (
+    check_cluster_versions,
+    get_cluster_from_options,
+    is_instance_rb_cluster,
+)
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
@@ -30,7 +36,7 @@ CountMinScript = Script(
 )
 
 
-class SuppressionWrapper:
+class SuppressionWrapper(Generic[T]):
     """\
     Wraps a context manager and prevents any exceptions raised either during
     the managed block or the exiting of the wrapped manager from propagating.
@@ -38,13 +44,13 @@ class SuppressionWrapper:
     You probably shouldn't use this.
     """
 
-    def __init__(self, wrapped):
+    def __init__(self, wrapped: ContextManager[T]):
         self.wrapped = wrapped
 
-    def __enter__(self):
+    def __enter__(self) -> T:
         return self.wrapped.__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> bool:
         try:
             # allow the wrapped manager to perform any cleanup tasks regardless
             # of whether or not we are suppressing an exception raised within
@@ -113,19 +119,23 @@ class RedisTSDB(BaseTSDB):
 
     DEFAULT_SKETCH_PARAMETERS = SketchParameters(3, 128, 50)
 
-    def __init__(self, prefix="ts:", vnodes=64, **options):
-        self.cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
+    def __init__(self, prefix: str = "ts:", vnodes: int = 64, **options: Any):
+        cluster, options = get_cluster_from_options("SENTRY_TSDB_OPTIONS", options)
+        if is_instance_rb_cluster(cluster, False):
+            self.cluster = cluster
+        else:
+            raise AssertionError("unreachable")
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
         super().__init__(**options)
 
-    def validate(self):
+    def validate(self) -> None:
         logger.debug("Validating Redis version...")
         version = Version((2, 8, 18)) if self.enable_frequency_sketches else Version((2, 8, 9))
         check_cluster_versions(self.cluster, version, recommended=Version((2, 8, 18)), label="TSDB")
 
-    def get_cluster(self, environment_id):
+    def get_cluster(self, environment_id: int | None) -> tuple[rb.Cluster, bool]:
         """\
         Returns a 2-tuple of the form ``(cluster, durable)``.
 
@@ -137,19 +147,28 @@ class RedisTSDB(BaseTSDB):
         """
         return self.cluster, True
 
-    def get_cluster_groups(self, environment_ids):
-        results = defaultdict(list)
+    def get_cluster_groups(
+        self, environment_ids: Iterable[int | None]
+    ) -> list[tuple[tuple[rb.Cluster, bool], list[int | None]]]:
+        results: dict[tuple[rb.Cluster, bool], list[int | None]] = defaultdict(list)
         for environment_id in environment_ids:
             results[self.get_cluster(environment_id)].append(environment_id)
         return list(results.items())
 
-    def add_environment_parameter(self, key, environment_id):
+    def add_environment_parameter(self, key: str | int, environment_id: int | None) -> str | int:
         if environment_id is not None:
             return f"{key}?e={environment_id}"
         else:
             return key
 
-    def make_key(self, model, rollup, timestamp, key, environment_id):
+    def make_key(
+        self,
+        model: TSDBModel,
+        rollup: int,
+        timestamp: float,
+        key: int | str,
+        environment_id: int | None,
+    ) -> str | int:
         """
         Make a key that is used for distinct counter and frequency table
         values.
@@ -164,7 +183,14 @@ class RedisTSDB(BaseTSDB):
             environment_id,
         )
 
-    def make_counter_key(self, model, rollup, timestamp, key, environment_id):
+    def make_counter_key(
+        self,
+        model: TSDBModel,
+        rollup: int,
+        timestamp: float | datetime,
+        key: int | str | bytes,
+        environment_id: int | None,
+    ) -> tuple[str, str | int]:
         """
         Make a key that is used for counter values.
 
@@ -187,7 +213,7 @@ class RedisTSDB(BaseTSDB):
             self.add_environment_parameter(model_key, environment_id),
         )
 
-    def get_model_key(self, key):
+    def get_model_key(self, key: int | str | bytes) -> int | str:
         # We specialize integers so that a pure int-map can be optimized by
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
@@ -202,12 +228,25 @@ class RedisTSDB(BaseTSDB):
 
         return key
 
-    def incr(self, model, key, timestamp=None, count=1, environment_id=None):
+    def incr(
+        self,
+        model: TSDBModel,
+        key: int,
+        timestamp: datetime | None = None,
+        count: int = 1,
+        environment_id: int | None = None,
+    ) -> None:
         self.validate_arguments([model], [environment_id])
 
         self.incr_multi([(model, key)], timestamp, count, environment_id)
 
-    def incr_multi(self, items, timestamp=None, count=1, environment_id=None):
+    def incr_multi(
+        self,
+        items: list[tuple[TSDBModel, int] | tuple[TSDBModel, int, IncrMultiOptions]],
+        timestamp: datetime | None = None,
+        count: int = 1,
+        environment_id: int | None = None,
+    ) -> None:
         """
         Increment project ID=1 and group ID=5:
 
@@ -234,26 +273,29 @@ class RedisTSDB(BaseTSDB):
 
             with manager as client:
                 # (hash_key, hash_field) -> count
-                key_operations = defaultdict(int)
+                key_operations: dict[tuple[str, str | int], int] = defaultdict(int)
                 # (hash_key) -> "max expiration encountered"
-                key_expiries = defaultdict(float)
+                key_expiries: dict[str, float] = defaultdict(float)
 
                 for rollup, max_values in self.rollups.items():
                     for item in items:
                         if len(item) == 2:
                             model, key = item
-                            options = {}
+                            options: IncrMultiOptions = {
+                                "timestamp": default_timestamp,
+                                "count": default_count,
+                            }
                         else:
                             model, key, options = item
 
                         count = options.get("count", default_count)
-                        timestamp = options.get("timestamp", default_timestamp)
+                        _timestamp = options.get("timestamp", default_timestamp)
 
-                        expiry = self.calculate_expiry(rollup, max_values, timestamp)
+                        expiry = self.calculate_expiry(rollup, max_values, _timestamp)
 
-                        for environment_id in environment_ids:
+                        for _environment_id in environment_ids:
                             hash_key, hash_field = self.make_counter_key(
-                                model, rollup, timestamp, key, environment_id
+                                model, rollup, _timestamp, key, _environment_id
                             )
 
                             if key_expiries[hash_key] < expiry:
@@ -268,17 +310,17 @@ class RedisTSDB(BaseTSDB):
 
     def get_range(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-    ):
+        model: TSDBModel,
+        keys: list[int],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: list[int] | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+    ) -> dict[int, list[tuple[float, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -295,13 +337,13 @@ class RedisTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        series = [to_datetime(item) for item in series]
+        _series: list[datetime] = [to_datetime(item) for item in series]
 
-        results = []
+        results: list[tuple[float, int, Any]] = []
         cluster, _ = self.get_cluster(environment_id)
         with cluster.map() as client:
             for key in keys:
-                for timestamp in series:
+                for timestamp in _series:
                     hash_key, hash_field = self.make_counter_key(
                         model, rollup, timestamp, key, environment_id
                     )
@@ -309,38 +351,44 @@ class RedisTSDB(BaseTSDB):
                         (to_timestamp(timestamp), key, client.hget(hash_key, hash_field))
                     )
 
-        results_by_key = defaultdict(dict)
+        results_by_key: dict[int, dict[float, int]] = defaultdict(dict)
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
+        output: dict[int, list[tuple[float, int]]] = {}
         for key, points in results_by_key.items():
-            results_by_key[key] = sorted(points.items())
-        return dict(results_by_key)
+            output[key] = sorted(points.items())
+        return output
 
-    def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
-        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
-            [None]
-        )
+    def merge(
+        self,
+        model: TSDBModel,
+        destination: int,
+        sources: list[int],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments([model], environment_ids)
+        self.validate_arguments([model], ids)
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), _environment_ids in self.get_cluster_groups(ids):
             manager = cluster.map()
             if not durable:
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
-                data = {}
+                data: dict[int, dict[datetime, dict[int | None, list[rb.Promise]]]] = {}
                 for rollup, series in rollups.items():
                     data[rollup] = {}
-                    for timestamp in series:
-                        results = data[rollup][timestamp] = defaultdict(list)
+                    for _timestamp in series:
+                        results = data[rollup][_timestamp] = defaultdict(list)
                         for source in sources:
-                            for environment_id in environment_ids:
+                            for environment_id in _environment_ids:
                                 source_hash_key, source_hash_field = self.make_counter_key(
-                                    model, rollup, timestamp, source, environment_id
+                                    model, rollup, _timestamp, source, environment_id
                                 )
                                 results[environment_id].append(
                                     client.hget(source_hash_key, source_hash_field)
@@ -348,55 +396,73 @@ class RedisTSDB(BaseTSDB):
                                 client.hdel(source_hash_key, source_hash_field)
 
             with cluster.map() as client:
-                for rollup, series in data.items():
-                    for timestamp, results in series.items():
-                        for environment_id, promises in results.items():
+                for rollup, _series in data.items():
+                    for _timestamp, _results in _series.items():
+                        for environment_id, promises in _results.items():
                             total = sum(int(p.value) for p in promises if p.value)
                             if total:
                                 (
                                     destination_hash_key,
                                     destination_hash_field,
                                 ) = self.make_counter_key(
-                                    model, rollup, timestamp, destination, environment_id
+                                    model, rollup, _timestamp, destination, environment_id
                                 )
                                 client.hincrby(destination_hash_key, destination_hash_field, total)
                                 client.expireat(
                                     destination_hash_key,
-                                    self.calculate_expiry(rollup, self.rollups[rollup], timestamp),
+                                    self.calculate_expiry(rollup, self.rollups[rollup], _timestamp),
                                 )
 
-    def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
-        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
-            [None]
-        )
+    def delete(
+        self,
+        models: list[Any],
+        keys: list[int],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int | None] | None = None,
+    ) -> None:
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments(models, environment_ids)
+        self.validate_arguments(models, ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), _ids in self.get_cluster_groups(ids):
             manager = cluster.map()
             if not durable:
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
                 for rollup, series in rollups.items():
-                    for timestamp in series:
+                    for _timestamp in series:
                         for model in models:
                             for key in keys:
-                                for environment_id in environment_ids:
+                                for environment_id in _ids:
                                     hash_key, hash_field = self.make_counter_key(
-                                        model, rollup, timestamp, key, environment_id
+                                        model, rollup, _timestamp, key, environment_id
                                     )
 
                                     client.hdel(hash_key, hash_field)
 
-    def record(self, model, key, values, timestamp=None, environment_id=None):
+    def record(
+        self,
+        model: TSDBModel,
+        key: int,
+        values: Iterable[str],
+        timestamp: datetime | None = None,
+        environment_id: int | None = None,
+    ) -> None:
         self.validate_arguments([model], [environment_id])
 
         self.record_multi(((model, key, values),), timestamp, environment_id)
 
-    def record_multi(self, items, timestamp=None, environment_id=None):
+    def record_multi(
+        self,
+        items: Iterable[tuple[TSDBModel, int, Iterable[str]]],
+        timestamp: datetime | None = None,
+        environment_id: int | None = None,
+    ) -> None:
         """
         Record an occurrence of an item in a distinct counter.
         """
@@ -416,14 +482,21 @@ class RedisTSDB(BaseTSDB):
                 for model, key, values in items:
                     c = client.target_key(key)
                     for rollup, max_values in self.rollups.items():
-                        for environment_id in environment_ids:
-                            k = self.make_key(model, rollup, ts, key, environment_id)
+                        for _environment_id in environment_ids:
+                            k = self.make_key(model, rollup, ts, key, _environment_id)
                             c.pfadd(k, *values)
                             c.expireat(k, self.calculate_expiry(rollup, max_values, timestamp))
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
-    ):
+        self,
+        model: TSDBModel,
+        keys: list[int],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[int, list[tuple[int, Any]]]:
         """
         Fetch counts of distinct items for each rollup interval within the range.
         """
@@ -431,7 +504,7 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        responses = {}
+        responses: dict[int, list[tuple[int, Any]]] = {}
         cluster, _ = self.get_cluster(environment_id)
         with cluster.fanout() as client:
             for key in keys:
@@ -452,17 +525,17 @@ class RedisTSDB(BaseTSDB):
 
     def get_distinct_counts_totals(
         self,
-        model,
-        keys,
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-    ):
+        model: TSDBModel,
+        keys: list[int],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+        referrer_suffix: str | None = None,
+    ) -> dict[int, Any]:
         """
         Count distinct items during a time range.
         """
@@ -489,8 +562,15 @@ class RedisTSDB(BaseTSDB):
         return {key: value.value for key, value in responses.items()}
 
     def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
-    ):
+        self,
+        model: TSDBModel,
+        keys: list[int] | None,
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> int:
         self.validate_arguments([model], [environment_id])
 
         if not keys:
@@ -500,10 +580,10 @@ class RedisTSDB(BaseTSDB):
 
         temporary_id = uuid.uuid1().hex
 
-        def make_temporary_key(key):
+        def make_temporary_key(key: str | int) -> str:
             return f"{self.prefix}{temporary_id}:{key}"
 
-        def expand_key(key):
+        def expand_key(key: int) -> list[int | str]:
             """
             Return a list containing all keys for each interval in the series for a key.
             """
@@ -512,34 +592,37 @@ class RedisTSDB(BaseTSDB):
             ]
 
         cluster, _ = self.get_cluster(environment_id)
-        router = cluster.get_router()
+        if is_instance_rb_cluster(cluster, False):
+            router = cluster.get_router()
+        else:
+            raise AssertionError("unreachable")
 
-        def map_key_to_host(hosts, key):
+        def map_key_to_host(hosts: dict[int, set[int]], key: int) -> dict[int, set[int]]:
             """
             Identify the host where a key is located and add it to the host map.
             """
             hosts[router.get_host_for_key(key)].add(key)
             return hosts
 
-        def get_partition_aggregate(value):
+        def get_partition_aggregate(value: tuple[int, set[int]]) -> tuple[int, int]:
             """
             Fetch the HyperLogLog value (in its raw byte representation) that
             results from merging all HyperLogLogs at the provided keys.
             """
-            (host, keys) = value
+            (host, _keys) = value
             destination = make_temporary_key(f"p:{host}")
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
                     "PFMERGE",
                     destination,
-                    *itertools.chain.from_iterable(expand_key(key) for key in keys),
+                    *itertools.chain.from_iterable(expand_key(key) for key in _keys),
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
-                return (host, pipeline.execute()[1])
+                return host, pipeline.execute()[1]
 
-        def merge_aggregates(values):
+        def merge_aggregates(values: list[tuple[int, int]]) -> int:
             """
             Calculate the cardinality of the provided HyperLogLog values.
             """
@@ -564,25 +647,24 @@ class RedisTSDB(BaseTSDB):
         # final reduction could be performed as a single PFCOUNT, skipping the
         # MSET and PFMERGE operations entirely.
 
-        return merge_aggregates(
-            [
-                get_partition_aggregate(x)
-                for x in reduce(map_key_to_host, keys, defaultdict(set)).items()
-            ]
-        )
+        reduced: dict[int, set[int]] = reduce(map_key_to_host, set(keys), defaultdict(set))
+        return merge_aggregates([get_partition_aggregate(x) for x in reduced.items()])
 
     def merge_distinct_counts(
-        self, model, destination, sources, timestamp=None, environment_ids=None
-    ):
-        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
-            [None]
-        )
+        self,
+        model: TSDBModel,
+        destination: int,
+        sources: list[int],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments([model], environment_ids)
+        self.validate_arguments([model], ids)
 
         rollups = self.get_active_series(timestamp=timestamp)
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), _ids in self.get_cluster_groups(ids):
             wrapper: Callable[[ContextManager[T]], ContextManager[T]]
             if not durable:
                 wrapper = SuppressionWrapper
@@ -591,21 +673,21 @@ class RedisTSDB(BaseTSDB):
 
             temporary_id = uuid.uuid1().hex
 
-            def make_temporary_key(key):
+            def make_temporary_key(key: str | int) -> str:
                 return f"{self.prefix}{temporary_id}:{key}"
 
-            data = {}
-            for rollup, series in rollups.items():
-                data[rollup] = {timestamp: {e: [] for e in environment_ids} for timestamp in series}
+            data: dict[int, dict[datetime, dict[int | None, list[rb.Promise]]]] = {}
+            for rollup, rollup_series in rollups.items():
+                data[rollup] = {_timestamp: {e: [] for e in _ids} for _timestamp in rollup_series}
 
             with wrapper(cluster.fanout()) as client:
                 for source in sources:
                     c = client.target_key(source)
                     for rollup, series in data.items():
-                        for timestamp, results in series.items():
-                            for environment_id in environment_ids:
+                        for _timestamp, results in series.items():
+                            for environment_id in _ids:
                                 key = self.make_key(
-                                    model, rollup, to_timestamp(timestamp), source, environment_id
+                                    model, rollup, to_timestamp(_timestamp), source, environment_id
                                 )
                                 results[environment_id].append(c.get(key))
                                 c.delete(key)
@@ -615,8 +697,8 @@ class RedisTSDB(BaseTSDB):
 
                 temporary_key_sequence = itertools.count()
 
-                for rollup, series in data.items():
-                    for timestamp, results in series.items():
+                for rollup, _series in data.items():
+                    for _timestamp, results in _series.items():
                         for environment_id, promises in results.items():
                             values = {}
                             for promise in promises:
@@ -629,7 +711,7 @@ class RedisTSDB(BaseTSDB):
                                 key = self.make_key(
                                     model,
                                     rollup,
-                                    to_timestamp(timestamp),
+                                    to_timestamp(_timestamp),
                                     destination,
                                     environment_id,
                                 )
@@ -638,47 +720,63 @@ class RedisTSDB(BaseTSDB):
                                 c.delete(*values.keys())
                                 c.expireat(
                                     key,
-                                    self.calculate_expiry(rollup, self.rollups[rollup], timestamp),
+                                    self.calculate_expiry(rollup, self.rollups[rollup], _timestamp),
                                 )
 
     def delete_distinct_counts(
-        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
-    ):
-        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
-            [None]
-        )
+        self,
+        models: list[TSDBModel],
+        keys: list[int],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments(models, environment_ids)
+        self.validate_arguments(models, ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), _ids in self.get_cluster_groups(ids):
             manager = cluster.fanout()
             if not durable:
                 manager = SuppressionWrapper(manager)
 
             with manager as client:
                 for rollup, series in rollups.items():
-                    for timestamp in series:
+                    for _timestamp in series:
                         for model in models:
                             for key in keys:
                                 c = client.target_key(key)
-                                for environment_id in environment_ids:
+                                for environment_id in _ids:
                                     c.delete(
                                         self.make_key(
                                             model,
                                             rollup,
-                                            to_timestamp(timestamp),
+                                            to_timestamp(_timestamp),
                                             key,
                                             environment_id,
                                         )
                                     )
 
-    def make_frequency_table_keys(self, model, rollup, timestamp, key, environment_id):
+    def make_frequency_table_keys(
+        self,
+        model: TSDBModel,
+        rollup: int,
+        timestamp: float,
+        key: int | str,
+        environment_id: int | None,
+    ) -> list[str]:
         prefix = self.make_key(model, rollup, timestamp, key, environment_id)
         return [f"{prefix}:i", f"{prefix}:e"]
 
-    def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
+    def record_frequency_multi(
+        self,
+        requests: Iterable[tuple[TSDBModel, dict[str, dict[str, int | float]]]],
+        timestamp: datetime | None = None,
+        environment_id: int | None = None,
+    ) -> None:
         self.validate_arguments([model for model, request in requests], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -690,7 +788,7 @@ class RedisTSDB(BaseTSDB):
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
         for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
-            commands = {}
+            commands: dict[str, list] = {}
 
             for model, request in requests:
                 for key, items in request.items():
@@ -729,8 +827,16 @@ class RedisTSDB(BaseTSDB):
                     raise
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
-    ):
+        self,
+        model: TSDBModel,
+        keys: Iterable[str],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        limit: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> dict[str, list[tuple[str, float]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -742,27 +848,35 @@ class RedisTSDB(BaseTSDB):
         if limit is not None:
             arguments.append(int(limit))
 
-        commands = {}
+        commands: dict[str, list[tuple[Script, list[str], list[int]]]] = {}
         for key in keys:
-            ks = []
+            ks: list[str] = []
             for timestamp in series:
                 ks.extend(
                     self.make_frequency_table_keys(model, rollup, timestamp, key, environment_id)
                 )
             commands[key] = [(CountMinScript, ks, arguments)]
 
-        results = {}
+        results: dict[str, list[tuple[str, float]]] = {}
         cluster, _ = self.get_cluster(environment_id)
-        for key, responses in cluster.execute_commands(commands).items():
-            results[key] = [
+        for _key, responses in cluster.execute_commands(commands).items():
+            results[_key] = [
                 (member.decode("utf-8"), float(score)) for member, score in responses[0].value
             ]
 
         return results
 
     def get_most_frequent_series(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
-    ):
+        self,
+        model: TSDBModel,
+        keys: Iterable[str],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        limit: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> dict[str, Iterable[dict[str, float]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -774,7 +888,7 @@ class RedisTSDB(BaseTSDB):
         if limit is not None:
             arguments.append(int(limit))
 
-        commands = {}
+        commands: dict[str, list[tuple[Script, list[str], list[str | int]]]] = {}
         for key in keys:
             commands[key] = [
                 (
@@ -785,17 +899,27 @@ class RedisTSDB(BaseTSDB):
                 for timestamp in series
             ]
 
-        def unpack_response(response):
+        def unpack_response(response: rb.Promise) -> dict[str, float]:
             return {item.decode("utf-8"): float(score) for item, score in response.value}
 
-        results = {}
+        results: dict[str, Iterable[Any]] = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = list(zip(series, (unpack_response(response) for response in responses)))
+            zipped_series = zip(series, (unpack_response(response) for response in responses))
+            results[key] = list(zipped_series)
 
         return results
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self,
+        model: TSDBModel,
+        items: dict[str, Iterable[str]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[str, list[tuple[float, dict[str, float]]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -810,78 +934,100 @@ class RedisTSDB(BaseTSDB):
         for key, members in list(items.items()):
             items[key] = list(members)
 
-        commands = {}
+        commands: dict[str, list[tuple[Script, list[str], list[str | int]]]] = {}
 
         arguments = ["ESTIMATE"] + list(self.DEFAULT_SKETCH_PARAMETERS)
-        for key, members in items.items():
-            ks = []
+        for item_key, members in items.items():
+            ks: list[str] = []
             for timestamp in series:
                 ks.extend(
-                    self.make_frequency_table_keys(model, rollup, timestamp, key, environment_id)
+                    self.make_frequency_table_keys(
+                        model, rollup, timestamp, item_key, environment_id
+                    )
                 )
 
-            commands[key] = [(CountMinScript, ks, arguments + members)]
+            commands[item_key] = [(CountMinScript, ks, arguments + list(members))]
 
-        results = {}
+        results: dict[str, list[tuple[float, dict[str, float]]]] = {}
 
         cluster, _ = self.get_cluster(environment_id)
-        for key, responses in cluster.execute_commands(commands).items():
-            members = items[key]
+        for _key, responses in cluster.execute_commands(commands).items():
+            _members = items[_key]
 
-            chunk = results[key] = []
-            for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(zip(members, (float(score) for score in scores)))))
+            chunk = results[_key] = []
+            for _timestamp, scores in zip(series, responses[0].value):
+                chunk.append((_timestamp, dict(zip(_members, (float(score) for score in scores)))))
 
         return results
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self,
+        model: TSDBModel,
+        items: dict[str, Iterable[str]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[str, dict[str, float]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
             raise NotImplementedError("Frequency sketches are disabled.")
 
-        responses = {}
-
-        for key, series in self.get_frequency_series(
+        responses: dict[str, dict[str, float]] = {}
+        frequency_series = self.get_frequency_series(
             model, items, start, end, rollup, environment_id
-        ).items():
-            response = responses[key] = {}
+        )
+        for _key, series in frequency_series.items():
+            response = responses[_key] = defaultdict(float)
             for timestamp, results in series:
                 for member, value in results.items():
-                    response[member] = response.get(member, 0.0) + value
+                    response[member] = response.get(member, 0) + value
 
         return responses
 
-    def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
-        environment_ids = list(
-            (set(environment_ids) if environment_ids is not None else set()).union([None])
-        )
+    def merge_frequencies(
+        self,
+        model: TSDBModel,
+        destination: str,
+        sources: list[str],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ):
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments([model], environment_ids)
+        self.validate_arguments([model], ids)
 
         if not self.enable_frequency_sketches:
             return
 
-        rollups = []
+        rollups: list[tuple[int, list[datetime]]] = []
         for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
+            _, rollup_series = self.get_optimal_rollup_series(
                 to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
                 end=None,
                 rollup=rollup,
             )
-            rollups.append((rollup, [to_datetime(item) for item in series]))
+            rollups.append((rollup, [to_datetime(item) for item in rollup_series]))
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
-            exports = defaultdict(list)
+        for (cluster, durable), _ids in self.get_cluster_groups(ids):
+            exports: dict[str, list[tuple[Script, list[str], list[str]] | list[str]]] = defaultdict(
+                list
+            )
 
             for source in sources:
                 for rollup, series in rollups:
-                    for timestamp in series:
-                        keys = []
-                        for environment_id in environment_ids:
+                    for serie_timestamp in series:
+                        keys: list[str] = []
+                        for environment_id in _ids:
                             keys.extend(
                                 self.make_frequency_table_keys(
-                                    model, rollup, to_timestamp(timestamp), source, environment_id
+                                    model,
+                                    rollup,
+                                    to_timestamp(serie_timestamp),
+                                    source,
+                                    environment_id,
                                 )
                             )
                         arguments = ["EXPORT"] + list(self.DEFAULT_SKETCH_PARAMETERS)
@@ -900,15 +1046,15 @@ class RedisTSDB(BaseTSDB):
             for source, results in responses.items():
                 results = iter(results)
                 for rollup, series in rollups:
-                    for timestamp in series:
-                        for environment_id, payload in zip(environment_ids, next(results).value):
+                    for _timestamp in series:
+                        for environment_id, payload in zip(_ids, next(results).value):
                             imports.append(
                                 (
                                     CountMinScript,
                                     self.make_frequency_table_keys(
                                         model,
                                         rollup,
-                                        to_timestamp(timestamp),
+                                        to_timestamp(_timestamp),
                                         destination,
                                         environment_id,
                                     ),
@@ -924,17 +1070,21 @@ class RedisTSDB(BaseTSDB):
                     raise
 
     def delete_frequencies(
-        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
-    ):
-        environment_ids = (set(environment_ids) if environment_ids is not None else set()).union(
-            [None]
-        )
+        self,
+        models: list[TSDBModel],
+        keys: Iterable[str],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
+        ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
-        self.validate_arguments(models, environment_ids)
+        self.validate_arguments(models, ids)
 
         rollups = self.get_active_series(start, end, timestamp)
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
+        for (cluster, durable), _environment_ids in self.get_cluster_groups(ids):
             manager = cluster.fanout()
             if not durable:
                 manager = SuppressionWrapper(manager)
@@ -945,7 +1095,7 @@ class RedisTSDB(BaseTSDB):
                         for model in models:
                             for key in keys:
                                 c = client.target_key(key)
-                                for environment_id in environment_ids:
+                                for environment_id in _environment_ids:
                                     for k in self.make_frequency_table_keys(
                                         model, rollup, to_timestamp(timestamp), key, environment_id
                                     ):

@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Literal, NamedTuple, NotRequired, Optional, TypedDict, TypeVar, Union, cast
+from typing import (
+    Any,
+    Literal,
+    NamedTuple,
+    NotRequired,
+    Optional,
+    Self,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -21,7 +33,7 @@ from sentry.api.event_search import (
     SearchKey,
     SearchValue,
 )
-from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
+from sentry.constants import DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -29,13 +41,20 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
-from sentry.search.events.constants import VITAL_THRESHOLDS
+from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
+
+SPEC_VERSION_TWO_FLAG = "organizations:on-demand-metrics-query-spec-version-two"
+# Certain functions will only be supported with certain feature flags
+OPS_REQUIRE_FEAT_FLAG = {
+    "count_unique": SPEC_VERSION_TWO_FLAG,
+    "user_misery": SPEC_VERSION_TWO_FLAG,
+}
 
 
 # This helps us control the different spec versions
@@ -73,7 +92,7 @@ class OnDemandMetricSpecVersioning:
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:on-demand-metrics-query-spec-version-two", org):
+        if features.has(SPEC_VERSION_TWO_FLAG, org):
             return cls.spec_versions[1]
         return cls.spec_versions[0]
 
@@ -114,6 +133,9 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "level": "level",
     "logger": "logger",
     # Top-level structures ("interfaces")
+    # sentry_user is a special field added for on-demand metrics
+    # https://github.com/getsentry/relay/pull/3122
+    "user": "sentry_user",
     "user.email": "user.email",
     "user.id": "user.id",
     "user.ip": "user.ip_address",
@@ -224,16 +246,18 @@ _SEARCH_TO_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "p95": "p95",
     "p99": "p99",
     # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
-    "p100": "max"
+    "p100": "max",
     # generic percentile is not supported by metrics layer.
 }
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
+# XXX: We need to support count_miserable
 _SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
     "count_web_vitals": "on_demand_count_web_vitals",
+    "count_unique": "on_demand_count_unique",
     "epm": "on_demand_epm",
     "eps": "on_demand_eps",
     "user_misery": "on_demand_user_misery",
@@ -255,6 +279,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     # With on demand metrics, evaluated metrics are actually stored, thus we have to choose a concrete metric type.
     "failure_count": "c",
     "failure_rate": "c",
+    "count_unique": "s",
     "count_web_vitals": "c",
     "apdex": "c",
     "epm": "c",
@@ -268,7 +293,12 @@ _NO_ARG_METRICS = [
     "on_demand_failure_count",
     "on_demand_failure_rate",
 ]
-_MULTIPLE_ARGS_METRICS = ["on_demand_apdex", "on_demand_count_web_vitals", "on_demand_user_misery"]
+_MULTIPLE_ARGS_METRICS = [
+    "on_demand_apdex",
+    "on_demand_count_unique",
+    "on_demand_count_web_vitals",
+    "on_demand_user_misery",
+]
 
 # Query fields that on their own do not require on-demand metric extraction but if present in an on-demand query
 # will be converted to metric extraction conditions.
@@ -546,19 +576,47 @@ class SupportedBy:
     on_demand_metrics: bool
 
     @classmethod
-    def neither(cls):
+    def neither(cls) -> Self:
         return cls(standard_metrics=False, on_demand_metrics=False)
 
     @classmethod
-    def both(cls):
+    def both(cls) -> Self:
         return cls(standard_metrics=True, on_demand_metrics=True)
 
     @classmethod
-    def combine(cls, *supported_by):
+    def combine(cls, *supported_by: Self) -> Self:
         return cls(
             standard_metrics=all(s.standard_metrics for s in supported_by),
             on_demand_metrics=all(s.on_demand_metrics for s in supported_by),
         )
+
+
+def should_use_on_demand_metrics_for_querying(organization: Organization, **kwargs: Any) -> bool:
+    """Helper function to check if an organization can query an specific on-demand function"""
+    components = _extract_aggregate_components(kwargs["aggregate"])
+    if components is None:
+        return False
+    function, _ = components
+
+    # This helps us control which functions are allowed to use the new spec version.
+    if function in OPS_REQUIRE_FEAT_FLAG:
+        if not organization:
+            # We need to let devs writting tests that if they intend to use a function that requires a feature flag
+            # that the organization needs to be included in the test.
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                logger.error("Pass the organization to create the spec for this function.")
+            sentry_sdk.capture_message(
+                f"Organization is required for {function} on-demand metrics."
+            )
+            return False
+        feat_flag = OPS_REQUIRE_FEAT_FLAG[function]
+        if not features.has(feat_flag, organization):
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                # This will show up in the logs and help the developer understand why the test is failing
+                logger.error("Add the feature flag to create the spec for this function.")
+            return False
+
+    return should_use_on_demand_metrics(**kwargs)
 
 
 def should_use_on_demand_metrics(
@@ -584,6 +642,7 @@ def should_use_on_demand_metrics(
         return False
 
     function, args = components
+
     mri_aggregate = _extract_mri(args)
     if mri_aggregate is not None:
         # For now, we do not support MRIs in on demand metrics.
@@ -686,6 +745,9 @@ def _get_args_support(fields: Sequence[str], used_in_function: str | None = None
     if used_in_function == "apdex":
         # apdex can have two variations, either apdex() or apdex(value).
         return SupportedBy(on_demand_metrics=True, standard_metrics=False)
+
+    if used_in_function in ["epm", "eps"]:
+        return SupportedBy.both()
 
     arg = fields[0]
     return _get_field_support(arg)
@@ -1061,12 +1123,10 @@ def user_misery_tag_spec(project: Project, arguments: Sequence[str] | None) -> l
 
 
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator | None] = {
+_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
-    "on_demand_epm": None,
-    "on_demand_eps": None,
     "on_demand_count_web_vitals": count_web_vitals_spec,
     "on_demand_user_misery": user_misery_tag_spec,
 }
@@ -1147,24 +1207,20 @@ class OnDemandMetricSpec:
         self._arguments = []
         self._eager_process()
 
-    def _eager_process(self):
+    def _eager_process(self) -> None:
         op, metric_type, arguments = self._process_field()
 
         self.op = op
         self._metric_type = metric_type
         self._arguments = arguments or []
 
-        sentry_sdk.start_span(
-            op="OnDemandMetricSpec.spec_type", description=self.spec_type
-        ).finish()
-
     @property
-    def field_to_extract(self):
+    def field_to_extract(self) -> str | None:
         if self.op in ("on_demand_apdex", "on_demand_count_web_vitals"):
             return None
 
         if self.op in ("on_demand_user_misery"):
-            return _map_field_name("user.id")
+            return _map_field_name("user")
 
         if not self._arguments:
             return None
@@ -1233,7 +1289,7 @@ class OnDemandMetricSpec:
         # In case we have `None` condition, we will use `None` string for hashing, so it's a sentinel value.
         return str(_deep_sorted(self.condition))
 
-    def _groupbys_for_hash(self):
+    def _groupbys_for_hash(self) -> str:
         # A sorted list of group-bys for the hash, since groupbys will be unique per on_demand metric.
         return str(sorted(self.groupbys))
 
@@ -1513,7 +1569,7 @@ def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
 
     if len(result) == 0:
         # We use the default threshold shown in the UI.
-        threshold = APDEX_THRESHOLD_DEFAULT
+        threshold = DEFAULT_PROJECT_THRESHOLD
         metric = TransactionMetric.DURATION.value
     else:
         # We technically don't use this threshold since we extract it from the apdex(x) field

@@ -32,7 +32,6 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
-import {renderMetricField} from 'sentry/views/dashboards/datasetConfig/metrics';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -200,8 +199,6 @@ export const renderGridBodyCell = ({
           getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
         )(dataRow, {organization, location});
         break;
-      case WidgetType.METRICS:
-        return renderMetricField(columnKey, dataRow[column.key]);
       case WidgetType.DISCOVER:
       default:
         if (!tableData || !tableData.meta) {

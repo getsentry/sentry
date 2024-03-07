@@ -10,7 +10,7 @@ import {TraceLink} from './traceLink';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 describe('TraceLink', () => {
-  const organization = OrganizationFixture({features: ['issues-trace-timeline']});
+  const organization = OrganizationFixture();
   const event = EventFixture({
     contexts: {
       trace: {
@@ -29,7 +29,6 @@ describe('TraceLink', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        issue: 'SENTRY-ABC1',
         transaction: '/api/slow/',
       },
     ],
@@ -44,7 +43,6 @@ describe('TraceLink', () => {
         'project.name': project.name,
         title: 'AttributeError: Something Failed',
         id: event.id,
-        issue: 'SENTRY-2EYS',
         transaction: 'important.task',
         'event.type': 'error',
       },

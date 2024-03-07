@@ -23,7 +23,6 @@ sentry-package.json
 /env
 /tmp
 node_modules
-/static/app/constants/ios-device-list.tsx
 /src/sentry/apidocs/api_ownership_stats_dont_modify.json
 /src/sentry/assets.json
 /src/sentry/static/version
@@ -45,6 +44,7 @@ node_modules
 Gemfile.lock
 .idea/
 .vim/
+*.sw*
 *.iml
 .pytest_cache/
 .vscode/tags

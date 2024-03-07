@@ -26,7 +26,6 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
 
 @region_silo_test
 class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
-
     endpoint = "sentry-api-0-organization-metrics-tags"
 
     @property
@@ -111,6 +110,30 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug,
         )
         assert response.data == []
+
+    def test_staff_session_metric_tags(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id,
+                started=(time.time() // 60) * 60,
+                status="ok",
+                release="foobar@2.0",
+            )
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "environment"},
+            {"key": "release"},
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
 
     def test_session_metric_tags(self):
         self.store_session(
@@ -257,3 +280,24 @@ class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
                 statsPeriod=stats_period,
             )
             assert len(response.data) == expected_count
+
+    def test_metric_tags_with_gauge(self):
+        mri = "g:custom/page_load@millisecond"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "gauge",
+            mri,
+            {"transaction": "/hello", "release": "1.0", "environment": "prod"},
+            int(self.now.timestamp()),
+            10,
+            UseCaseID.CUSTOM,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert len(response.data) == 3

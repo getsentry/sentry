@@ -532,7 +532,7 @@ class QueryExecutor:
             )
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
-            raise MetricsQueryExecutionError("An error occurred while executing the query")
+            raise MetricsQueryExecutionError("An error occurred while executing the query") from e
 
     def _derive_next_interval(self, result: QueryResult) -> int:
         """

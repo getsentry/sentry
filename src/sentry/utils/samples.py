@@ -16,7 +16,7 @@ from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger(__name__)
-epoch = datetime.utcfromtimestamp(0)
+epoch = datetime.fromtimestamp(0)
 
 
 def random_normal(mu, sigma, minimum, maximum=None):

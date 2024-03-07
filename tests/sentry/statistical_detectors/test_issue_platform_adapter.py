@@ -1,27 +1,13 @@
 from unittest import mock
 
-import pytest
-
-from sentry.issues.grouptype import (
-    PerformanceDurationRegressionGroupType,
-    PerformanceP95EndpointRegressionGroupType,
-)
+from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.seer.utils import BreakpointData
 from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
 
 
-@pytest.mark.parametrize(
-    ["released", "issue_type"],
-    [
-        pytest.param(False, PerformanceDurationRegressionGroupType, id="unreleased"),
-        pytest.param(True, PerformanceP95EndpointRegressionGroupType, id="released"),
-    ],
-)
 @mock.patch("sentry.statistical_detectors.issue_platform_adapter.produce_occurrence_to_kafka")
 def test_send_regressions_to_plaform(
     mock_produce_occurrence_to_kafka,
-    released,
-    issue_type,
 ):
     project_id = "123"
 
@@ -38,7 +24,7 @@ def test_send_regressions_to_plaform(
         "breakpoint": 1691366400,
     }
 
-    send_regression_to_platform(mock_regression, released)
+    send_regression_to_platform(mock_regression)
 
     assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
 
@@ -51,7 +37,7 @@ def test_send_regressions_to_plaform(
         occurrence,
         **{
             "project_id": 123,
-            "issue_title": issue_type.description,
+            "issue_title": PerformanceP95EndpointRegressionGroupType.description,
             "subtitle": "Increased from 14.0ms to 28.0ms (P95)",
             "resource_id": None,
             "evidence_data": mock_regression,
@@ -63,7 +49,7 @@ def test_send_regressions_to_plaform(
                 },
                 {"name": "Transaction", "value": "foo", "important": True},
             ],
-            "type": issue_type.type_id,
+            "type": PerformanceP95EndpointRegressionGroupType.type_id,
             "level": "info",
             "culprit": "foo",
         },

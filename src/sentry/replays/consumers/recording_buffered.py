@@ -42,7 +42,7 @@ import logging
 import time
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -52,15 +52,16 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
-from sentry.replays.usecases.ingest import (
-    MissingRecordingSegmentHeaders,
-    decompress,
-    process_headers,
-    track_initial_segment_event,
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    make_video_filename,
+    storage_kv,
 )
+from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -71,6 +72,30 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+
+
+def cast_payload_bytes(x: Any) -> bytes:
+    """
+    Coerces a type from Any to bytes
+
+    sentry-kafka-schemas does not support the typing of bytes for replay's
+    payloads, and so sometimes we have to cast values around to work around the
+    schema.
+
+    Use this helper function to explicitly annotate that. At a later point when
+    sentry-kafka-schemas is fixed, we can replace all usages of this function
+    with the proper solution.
+    """
+    return x
+
+
+def cast_payload_from_bytes(x: bytes) -> Any:
+    """
+    Coerces a type from bytes to Any.
+
+    See cast_payload_bytes
+    """
+    return x
 
 
 class BufferCommitFailed(Exception):
@@ -112,11 +137,8 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 class UploadEvent(TypedDict):
-    payload: bytes
-    project_id: int
-    replay_id: str
-    retention_days: int
-    segment_id: int
+    key: str
+    value: bytes
 
 
 class InitialSegmentEvent(TypedDict):
@@ -195,24 +217,44 @@ class RecordingBuffer:
 
 def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.decode_kafka_message"):
-        decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        try:
+            decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        except ValidationError:
+            # TODO: DLQ
+            logger.exception("Could not decode recording message.")
+            return None
 
     try:
-        headers, recording_data = process_headers(decoded_message["payload"])
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", decoded_message["replay_id"])
+        headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
+    except Exception:
+        # TODO: DLQ
+        logger.exception(
+            "Recording headers could not be extracted %s", decoded_message["replay_id"]
+        )
         return None
+
+    recording_segment = RecordingSegmentStorageMeta(
+        project_id=decoded_message["project_id"],
+        replay_id=decoded_message["replay_id"],
+        retention_days=decoded_message["retention_days"],
+        segment_id=headers["segment_id"],
+    )
 
     # Append an upload event to the state object for later processing.
     buffer.upload_events.append(
-        {
-            "payload": recording_data,
-            "project_id": decoded_message["project_id"],
-            "replay_id": decoded_message["replay_id"],
-            "retention_days": decoded_message["retention_days"],
-            "segment_id": headers["segment_id"],
-        }
+        {"key": make_recording_filename(recording_segment), "value": recording_data}
     )
+
+    if replay_video := decoded_message.get("replay_video"):
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(replay_video),  # type: ignore
+            unit="byte",
+        )
+        buffer.upload_events.append(
+            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore
+        )
 
     # Initial segment events are recorded in the state machine.
     if headers["segment_id"] == 0:
@@ -232,12 +274,18 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
 
         with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
             parsed_recording_data = json.loads(decompressed_segment)
+            parsed_replay_event = (
+                json.loads(cast_payload_bytes(decoded_message["replay_event"]))
+                if decoded_message.get("replay_event")
+                else None
+            )
 
         replay_actions = parse_replay_actions(
             decoded_message["project_id"],
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
+            parsed_replay_event,
         )
 
         if replay_actions is not None:
@@ -323,15 +371,7 @@ def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> Non
 
 def _do_upload(upload_event: UploadEvent) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.upload_segment"):
-        recording_metadata = RecordingSegmentStorageMeta(
-            project_id=upload_event["project_id"],
-            replay_id=upload_event["replay_id"],
-            segment_id=upload_event["segment_id"],
-            retention_days=upload_event["retention_days"],
-        )
-        recording_data = upload_event["payload"]
-
         # If an error occurs this will retry up to five times by default.
         #
         # Refer to `src.sentry.filestore.gcs.GCS_RETRIES`.
-        storage.set(recording_metadata, recording_data)
+        storage_kv.set(upload_event["key"], upload_event["value"])

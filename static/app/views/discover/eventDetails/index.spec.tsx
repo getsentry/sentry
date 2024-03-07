@@ -105,6 +105,13 @@ describe('Discover > EventDetails', function () {
       statusCode: 404,
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1234/actionable-items/',
+      body: {
+        errors: [],
+      },
+    });
   });
 
   it('renders', async function () {

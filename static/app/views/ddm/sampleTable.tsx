@@ -25,16 +25,13 @@ import type {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import type {
-  MetricCorrelation,
-  SelectionRange,
-  SpanSummary,
-} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation, SpanSummary} from 'sentry/utils/metrics/types';
 import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import type {SelectionRange} from 'sentry/views/ddm/chart/types';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
 /**
@@ -57,7 +54,7 @@ function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
   ]);
 }
 
-interface SamplesTableProps extends SelectionRange {
+export interface SamplesTableProps extends SelectionRange {
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
@@ -125,7 +122,7 @@ export const SampleTable = memo(function InnerSampleTable({
     return <span>{col.name}</span>;
   }
 
-  function renderBodyCell(col: Column, row: MetricCorrelation) {
+  function renderBodyCell(col: Column, row: MetricCorrelation): React.ReactNode {
     const {key} = col;
     if (!row[key]) {
       return <AlignCenter>{'\u2014'}</AlignCenter>;
@@ -259,7 +256,8 @@ export const SampleTable = memo(function InnerSampleTable({
       );
     }
 
-    return row[col.key];
+    // TODO(TS): The types here indicate it could be an object
+    return row[col.key] as React.ReactNode;
   }
 
   const wrapperRef = useRef<HTMLDivElement>(null);

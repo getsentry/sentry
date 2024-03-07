@@ -20,7 +20,6 @@ from sentry.seer.utils import (
     SimilarIssuesEmbeddingsRequest,
     get_similar_issues_embeddings,
 )
-from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
@@ -28,13 +27,13 @@ MAX_FRAME_COUNT = 50
 
 def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> str:
     """Get the stacktrace string from an exception dictionary."""
-    if not exception["values"]:
+    if not exception.get("values"):
         return ""
 
     frame_count = 0
-    output = []
+    output = ""
     for exc in exception["values"]:
-        if not exc:
+        if not exc or not exc.get("stacktrace"):
             continue
 
         if exc["stacktrace"] and exc["stacktrace"].get("frames"):
@@ -49,27 +48,17 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
             frame_count += num_frames
 
             if in_app_frames:
-                output.append(f'{exc["type"]}: {exc["value"]}')
+                output += exc.get("type") + ": " + exc.get("value") + "\n"
 
-            choices = [event.platform, "default"] if event.platform else ["default"]
-            templates = [f"sentry/partial/frames/{choice}.txt" for choice in choices]
             for frame in in_app_frames:
-                output.append(
-                    render_to_string(
-                        templates,
-                        {
-                            "abs_path": frame.get("abs_path"),
-                            "filename": frame.get("filename"),
-                            "function": frame.get("function"),
-                            "module": frame.get("module"),
-                            "lineno": frame.get("lineno"),
-                            "colno": frame.get("colno"),
-                            "context_line": frame.get("context_line"),
-                        },
-                    ).strip("\n")
+                output += '  File "{}", line {}, in {}\n    {}\n'.format(
+                    frame.get("filename", ""),
+                    frame.get("lineno", ""),
+                    frame.get("function", ""),
+                    frame.get("context_line", "").strip(),
                 )
 
-    return "\n".join(output)
+    return output.strip()
 
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
@@ -88,13 +77,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     def get_formatted_results(
         self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
-        """Format the responses using to be used by the frontend."""
+        """
+        Format the responses using to be used by the frontend by changing the  field names and
+        changing the cosine distances into cosine similarities.
+        """
         group_data = {}
         for response in responses:
             if response:
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                    "message": response["message_similarity"],
-                    "exception": response["stacktrace_similarity"],
+                    "message": 1 - response["message_distance"],
+                    "exception": 1 - response["stacktrace_distance"],
                     "shouldBeGrouped": "Yes" if response["should_group"] else "No",
                 }
                 group_data.update({response["parent_group_id"]: formatted_response})
@@ -120,7 +112,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response(status=404)
 
         latest_event = group.get_latest_event()
-        stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
+        stacktrace_string = ""
+        if latest_event.data.get("exception"):
+            stacktrace_string = get_stacktrace_string(latest_event.data["exception"], latest_event)
+
+        if stacktrace_string == "":
+            return Response([])  # No stacktrace or in-app frames
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
@@ -134,6 +131,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("threshold"):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
+        extra: dict[str, Any] = dict(similar_issues_params.copy())
+        extra["group_message"] = extra.pop("message")
+        logger.info("Similar issues embeddings parameters", extra=extra)
+
         results = get_similar_issues_embeddings(similar_issues_params)
 
         analytics.record(
@@ -143,9 +144,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             group_id=group.id,
             count_over_threshold=len(
                 [
-                    result["stacktrace_similarity"]  # type: ignore
+                    result["stacktrace_distance"]
                     for result in results["responses"]
-                    if result["stacktrace_similarity"] > 0.99  # type: ignore
+                    if result and result["stacktrace_distance"] <= 0.01
                 ]
             )
             if results["responses"]

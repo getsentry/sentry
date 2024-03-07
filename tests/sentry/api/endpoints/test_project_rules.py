@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import responses
 from django.test import override_settings
@@ -44,7 +45,9 @@ class ProjectRuleBaseTestCase(APITestCase):
         self.first_seen_condition = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
         ]
-        self.notify_event_action = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        self.notify_event_action = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         self.notify_issue_owners_action = [
             {
                 "targetType": "IssueOwners",
@@ -52,6 +55,7 @@ class ProjectRuleBaseTestCase(APITestCase):
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": "",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": str(uuid4()),
             }
         ]
 
@@ -167,6 +171,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": str(uuid4()),
             }
         ]
 
@@ -288,10 +293,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     def test_pre_save(self):
         """Test that a rule with name data in the conditions and actions is saved without it"""
+        action_uuid = str(uuid4())
         actions = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
                 "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": action_uuid,
             }
         ]
         response = self.get_success_response(
@@ -308,7 +315,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         rule = Rule.objects.get(id=response.data.get("id"))
         assert rule.data["actions"][0] == {
-            "id": "sentry.rules.actions.notify_event.NotifyEventAction"
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": action_uuid,
         }
         assert rule.data["conditions"][0] == {
             "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
@@ -401,7 +409,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
     @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
     def test_exceed_limit_slow_conditions(self):
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
@@ -437,6 +447,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.team.id,
+                "uuid": str(uuid4()),
             }
         )
         with self.feature("organizations:more-slow-alerts"):
@@ -552,7 +563,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
         actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
         self.run_test(
             actions=actions,
@@ -566,7 +577,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
         ]
         actions: list[dict[str, Any]] = [
-            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
 
         self.run_test(
@@ -642,6 +653,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "channel": "#team-team-team",
                 "channel_id": "",
                 "tags": "",
+                "uuid": str(uuid4()),
             }
         ]
         payload: dict[str, Any] = {
@@ -687,7 +699,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "interval": "1h",
             "value": 50,
         }
-        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        actions = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
         self.run_test(
             actions=actions,
             conditions=[condition],
@@ -708,6 +722,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.team.id,
+                "uuid": str(uuid4()),
             }
         )
         self.run_test(actions=actions, conditions=[condition])
@@ -720,6 +735,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "fallthroughType": "ActiveMembers",
                 "id": "sentry.mail.actions.NotifyEmailAction",
                 "targetIdentifier": self.user.id,
+                "uuid": str(uuid4()),
             }
         )
         self.run_test(actions=actions, conditions=[condition])
@@ -812,6 +828,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 "settings": self.sentry_app_settings_payload,
                 "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
                 "hasSchemaFormConfig": True,
+                "uuid": str(uuid4()),
             },
         ]
         payload = {

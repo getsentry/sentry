@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -21,10 +20,11 @@ from sentry.relay.config.metric_extraction import (
     HashedMetricSpec,
     convert_widget_query_to_metric,
     on_demand_metrics_feature_flags,
+    widget_exceeds_max_specs,
 )
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
@@ -39,14 +39,23 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24 * 7  # Cardinality outcome is valid for 7 days.
+_COLUMN_CARDINALITY_TTL = 3600  # Cardinality outcome is valid for 1 hour to match the widget check.
+TASK_CACHE_KEY = "task-cache"
+DASHBOARD_CACHE_KEY = "dashboard-cache"
+TASK_QUERY_PERIOD = "30m"
+DASHBOARD_QUERY_PERIOD = "1h"
 
 
 def _get_widget_processing_batch_key() -> str:
     return "on-demand-metrics:widgets:currently-processing-batch"
 
 
-def _get_widget_query_cardinality_cache_key(widget_query: DashboardWidgetQuery) -> str:
-    return f"check-widget-query-cardinality:{widget_query.id}"
+def get_field_cardinality_cache_key(
+    query_column: str, organization: Organization, widget_cache_key: str
+) -> str:
+    """widget_cache_key is to differentiate the cache keys between the frontend validating widgets and the task which
+    checks if widgets are still valid"""
+    return f"check-fields-cardinality:{widget_cache_key}:{organization.id}:{query_column}"
 
 
 def _set_currently_processing_batch(current_batch: int) -> None:
@@ -173,7 +182,7 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -203,10 +212,6 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
         if "organizations:on-demand-metrics-extraction-widgets" in enabled_features:
             if widget_specs:
                 is_low_cardinality = _get_widget_query_low_cardinality(query, organization)
-                if is_low_cardinality is not None:
-                    # Still setting to cache for now until switching cardinality out of build_project_config
-                    cache_key = _get_widget_query_cardinality_cache_key(query)
-                    _set_cardinality_cache(cache_key, is_low_cardinality)
                 if is_low_cardinality is False:
                     widget_query_high_cardinality_count += 1
         else:
@@ -272,7 +277,7 @@ def _set_widget_on_demand_state(
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
     enabled_features: set[str],
-):
+) -> None:
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
         specs_per_version.setdefault(spec_version.version, [])
@@ -305,6 +310,51 @@ def _set_widget_on_demand_state(
         on_demand.save()
 
 
+def set_or_create_on_demand_state(
+    widget_query: DashboardWidgetQuery,
+    organization: Organization,
+    is_low_cardinality: bool,
+    feature_enabled: bool,
+    current_widget_specs: set[str],
+) -> None:
+    specs = _get_widget_on_demand_specs(widget_query, organization)
+
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+
+    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+        version = spec_version.version
+        specs_for_version = specs_per_version.get(version, [])
+        if not specs:
+            extraction_state = OnDemandExtractionState.DISABLED_NOT_APPLICABLE
+        elif widget_exceeds_max_specs(specs, current_widget_specs, organization):
+            extraction_state = OnDemandExtractionState.DISABLED_SPEC_LIMIT
+        elif not is_low_cardinality:
+            extraction_state = OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+        elif not feature_enabled:
+            extraction_state = OnDemandExtractionState.DISABLED_PREROLLOUT
+        else:
+            extraction_state = OnDemandExtractionState.ENABLED_CREATION
+
+        spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
+
+        on_demand, created = DashboardWidgetQueryOnDemand.objects.get_or_create(
+            dashboard_widget_query=widget_query,
+            spec_version=version,
+            defaults={
+                "spec_hashes": spec_hashes,
+                "extraction_state": extraction_state,
+            },
+        )
+
+        if not created:
+            on_demand.spec_hashes = spec_hashes
+            on_demand.extraction_state = extraction_state
+            on_demand.save()
+
+
 def _determine_extraction_state(
     specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: set[str]
 ) -> OnDemandExtractionState:
@@ -330,52 +380,95 @@ def _get_widget_query_low_cardinality(
     New queries will be checked upon creation and not allowed at that time.
     """
 
-    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
-    cache_key = _get_widget_query_cardinality_cache_key(widget_query)
-
-    # We default low cardinality to true since if it's false we'll remove user data.
-    is_low_cardinality = cache.get(cache_key, default=True)
     query_columns = widget_query.columns
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
 
+    field_cardinality = check_field_cardinality(
+        query_columns,
+        organization,
+        max_cardinality_allowed,
+        is_task=True,
+        widget_query=widget_query,
+    )
+    return all(field_cardinality.values())
+
+
+def check_field_cardinality(
+    query_columns: list[str] | None,
+    organization: Organization,
+    max_cardinality: int,
+    is_task: bool = False,
+    widget_query: DashboardWidgetQuery | None = None,
+) -> dict[str, str]:
     if not query_columns:
-        return None
+        return {}
+    if is_task:
+        cache_identifier = TASK_CACHE_KEY
+        cache_ttl = _WIDGET_QUERY_CARDINALITY_TTL
+        period = TASK_QUERY_PERIOD
+        assert widget_query is not None, "widget_query is a required param"
+    else:
+        cache_identifier = DASHBOARD_CACHE_KEY
+        cache_ttl = _COLUMN_CARDINALITY_TTL
+        period = DASHBOARD_QUERY_PERIOD
+
+    # We cache each key individually to query less
+    cache_keys: dict[str, str] = {}
+    for column in query_columns:
+        column_cache_key = get_field_cardinality_cache_key(column, organization, cache_identifier)
+        cache_keys[column] = column_cache_key
+    cardinality_map = cache.get_many(cache_keys.values())
+    if len(cardinality_map) == len(query_columns):
+        return cardinality_map
+
+    query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
     with sentry_sdk.push_scope() as scope:
-        scope.set_tag("widget_query.widget_id", widget_query.id)
-        scope.set_tag("widget_query.org_slug", organization.slug)
-        scope.set_tag("widget_query.conditions", widget_query.conditions)
+        if widget_query:
+            scope.set_tag("widget_query.widget_id", widget_query.id)
+            scope.set_tag("widget_query.org_slug", organization.slug)
+            scope.set_tag("widget_query.conditions", widget_query.conditions)
+        else:
+            scope.set_tag("cardinality_check.org_slug", organization.slug)
 
         try:
-            processed_results, columns_to_check = _query_cardinality(query_columns, organization)
-            for column in columns_to_check:
+            processed_results, columns_to_check = _query_cardinality(
+                query_columns, organization, period
+            )
+            for column in query_columns:
                 count = processed_results["data"][0][f"count_unique({column})"]
-                if count > max_cardinality_allowed:
-                    cache.set(cache_key, False, timeout=_WIDGET_QUERY_CARDINALITY_TTL)
-                    scope.set_tag("widget_query.column_name", column)
-                    raise HighCardinalityWidgetException(
-                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                    )
-            # If it's made it here then cardinality is low.
-            is_low_cardinality = True
+                column_low_cardinality = count <= max_cardinality
+                cardinality_map[cache_keys[column]] = column_low_cardinality
 
-        except HighCardinalityWidgetException as error:
-            sentry_sdk.capture_exception(error)
-            is_low_cardinality = False
+                if not column_low_cardinality:
+                    scope.set_tag("widget_query.column_name", column)
+                    if widget_query:
+                        sentry_sdk.capture_exception(
+                            HighCardinalityWidgetException(
+                                f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                            )
+                        )
         except SoftTimeLimitExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
         except Exception as error:
             sentry_sdk.capture_exception(error)
 
-    return is_low_cardinality
+    cache.set_many(cardinality_map, timeout=cache_ttl)
+    # assume that columns are low cardinality if we fail to retrieve it for some reason
+    return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
 def _query_cardinality(
-    query_columns: list[str], organization: Organization
+    query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:
-    params: dict[str, Any] = {
-        "statsPeriod": "30m",
+    # Restrict period down to an allowlist so we're not slamming snuba with giant queries
+    if period not in [TASK_QUERY_PERIOD, DASHBOARD_QUERY_PERIOD]:
+        raise Exception("Cardinality can only be queried with 1h or 30m")
+    params: ParamsType = {
+        "statsPeriod": period,
         "organization_id": organization.id,
+        "projects": Project.objects.filter(organization=organization),
     }
     start, end = get_date_range_from_params(params)
     params["start"] = start

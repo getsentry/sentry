@@ -4,40 +4,32 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Activity, Organization} from 'sentry/types';
+import type {Activity} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitle from 'sentry/utils/routeTitle';
-import withOrganization from 'sentry/utils/withOrganization';
-import type {AsyncViewProps, AsyncViewState} from 'sentry/views/deprecatedAsyncView';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import ActivityFeedItem from './activityFeedItem';
 
-interface Props extends AsyncViewProps {
-  organization: Organization;
-}
+function OrganizationActivity() {
+  const organization = useOrganization();
+  const {
+    data: activity,
+    isLoading,
+    isError,
+    getResponseHeader,
+  } = useApiQuery<Activity[]>([`/organizations/${organization.slug}/activity/`], {
+    staleTime: 0,
+  });
 
-interface State extends AsyncViewState {
-  activity: Activity[];
-}
-
-class OrganizationActivity extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {organization} = this.props;
-    return routeTitle(t('Activity'), organization.slug, false);
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    return [['activity', `/organizations/${organization.slug}/activity/`]];
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderEmpty() {
+  if (isError || (!isLoading && !activity.length)) {
     return (
       <EmptyStateWarning>
         <p>{t('Nothing to show here, move along.')}</p>
@@ -45,19 +37,10 @@ class OrganizationActivity extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderError(error?: Error, disableLog = false): React.ReactNode {
-    const {errors} = this.state;
-    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
-    if (notFound) {
-      return this.renderBody();
-    }
-    return super.renderError(error, disableLog);
-  }
+  const activityPageLinks = getResponseHeader?.('Link');
 
-  renderBody() {
-    const {loading, activity, activityPageLinks} = this.state;
-
-    return (
+  return (
+    <SentryDocumentTitle title={routeTitle(t('Activity'), organization.slug, false)}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -67,9 +50,7 @@ class OrganizationActivity extends DeprecatedAsyncView<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Panel>
-              {loading && <LoadingIndicator />}
-              {!loading && !activity?.length && this.renderEmpty()}
-              {!loading && activity?.length > 0 && (
+              {!isLoading && (
                 <div data-test-id="activity-feed-list">
                   {activity.map(item => (
                     <ErrorBoundary
@@ -77,23 +58,18 @@ class OrganizationActivity extends DeprecatedAsyncView<Props, State> {
                       css={{marginBottom: space(1), borderRadius: 0}}
                       key={item.id}
                     >
-                      <ActivityFeedItem
-                        organization={this.props.organization}
-                        item={item}
-                      />
+                      <ActivityFeedItem organization={organization} item={item} />
                     </ErrorBoundary>
                   ))}
                 </div>
               )}
             </Panel>
-            {activityPageLinks && (
-              <Pagination pageLinks={activityPageLinks} {...this.props} />
-            )}
+            {activityPageLinks && <Pagination pageLinks={activityPageLinks} />}
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
-export default withOrganization(OrganizationActivity);
+export default OrganizationActivity;

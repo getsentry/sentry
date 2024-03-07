@@ -5,12 +5,11 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.db.models import ValidateFunction, Value
@@ -66,7 +65,6 @@ class RpcTeam(RpcModel):
             "slug": self.slug,
             "name": self.name,
             "status": self.status,
-            "org_role": self.org_role,
         }
 
 
@@ -264,7 +262,9 @@ class RpcOrganization(RpcOrganizationSummary):
             owners = OrganizationMember.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
-        return user_service.get_many(filter={"user_ids": list(owners)})
+        return user_service.get_many(
+            filter={"user_ids": [owner_id for owner_id in owners if owner_id is not None]}
+        )
 
     @property
     def default_owner_id(self):

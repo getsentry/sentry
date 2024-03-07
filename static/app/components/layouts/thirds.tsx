@@ -124,7 +124,8 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p => (!p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`)};
+    padding: ${p =>
+      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

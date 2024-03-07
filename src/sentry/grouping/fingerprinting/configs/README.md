@@ -30,7 +30,7 @@ order of the files (hence numerical prefix is recommended).
 
 Contents of the files should use syntax as described in https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/
 
-## Naming convetions
+## Naming conventions
 
 - config name
   - `common` for rules that apply to everything;
@@ -43,11 +43,6 @@ Contents of the files should use syntax as described in https://docs.sentry.io/p
   - `.txt` suffix
 
 ## Using Built-in Fingerprinting Rules
-
-> **Note**
->
-> This functionality is currently feature-flagged behind
-> `organizations:grouping-built-in-fingerprint-rules`
 
 To add one or more of these rule configs
 

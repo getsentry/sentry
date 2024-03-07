@@ -7,6 +7,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
@@ -111,6 +113,18 @@ class NoiseConfig:
 
 
 @dataclass(frozen=True)
+class NotificationConfig:
+    text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
+    context: list[str] = field(
+        default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
+    )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
+    actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
+    extra_action: dict[str, str] = field(
+        default_factory=lambda: {}
+    )  # TODO(cathy): view monitor button for crons. "text": "", "url": ""
+
+
+@dataclass(frozen=True)
 class GroupType:
     type_id: int
     slug: str
@@ -127,6 +141,7 @@ class GroupType:
     # Allow escalation forecasts and detection
     enable_escalation_detection: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
+    notification_config: NotificationConfig = NotificationConfig()
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -226,6 +241,14 @@ class ErrorGroupType(GroupType):
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
+
+
+class CronGroupTypeDefaults:
+    notification_config = NotificationConfig(context=[])
+
+
+class ReplayGroupTypeDefaults:
+    notification_config = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)
@@ -362,6 +385,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -374,6 +398,19 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
+
+
+# experimental
+@dataclass(frozen=True)
+class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
+    type_id = 1019
+    slug = "performance_streamed_spans_exp"
+    description = "Streamed Spans (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    default_priority = PriorityLevel.LOW
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -461,6 +498,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -472,10 +510,11 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
-class MonitorCheckInFailure(GroupType):
+class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
@@ -486,7 +525,7 @@ class MonitorCheckInFailure(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeout(GroupType):
+class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
     type_id = 4002
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
@@ -497,7 +536,7 @@ class MonitorCheckInTimeout(GroupType):
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissed(GroupType):
+class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
     type_id = 4003
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
@@ -508,7 +547,7 @@ class MonitorCheckInMissed(GroupType):
 
 
 @dataclass(frozen=True)
-class ReplayDeadClickType(GroupType):
+class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
     # This is not currently used
     type_id = 5001
     slug = "replay_click_dead"
@@ -518,12 +557,13 @@ class ReplayDeadClickType(GroupType):
 
 
 @dataclass(frozen=True)
-class ReplayRageClickType(GroupType):
+class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
     description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
 
 
 @dataclass(frozen=True)
@@ -534,12 +574,13 @@ class FeedbackGroup(GroupType):
     category = GroupCategory.FEEDBACK.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig(context=[])
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
     grouptype: type[GroupType],
-    client: Any,
+    client: RedisCluster | StrictRedis,
     grouphash: str,
     project: Project,
 ) -> bool:

@@ -28,7 +28,7 @@ function ActivitySection(props: Props) {
   const [inputId, setInputId] = useState(uniqueId());
 
   const me = ConfigStore.get('user');
-  const projectSlugs = group && group.project ? [group.project.slug] : [];
+  const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
     minHeight: 140,
     group,

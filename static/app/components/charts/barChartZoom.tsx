@@ -87,7 +87,7 @@ class BarChartZoom extends Component<Props> {
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({

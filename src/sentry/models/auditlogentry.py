@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping
 from typing import Any
 
 from django.db import models
 from django.utils import timezone
-from sentry_sdk import capture_exception
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -23,6 +23,8 @@ from sentry.services.hybrid_cloud.log import AuditLogEvent
 from sentry.services.hybrid_cloud.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
+
+logger = logging.getLogger(__name__)
 
 
 def is_scim_token_actor(actor):
@@ -94,8 +96,12 @@ class AuditLogEntry(Model):
                 # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
             else:
-                capture_exception(
-                    Exception("Expected there to be a user or actor key for audit logging")
+                logger.error(
+                    "Expected a user or actor key for audit log",
+                    extra={
+                        "event": self.event,
+                    },
+                    stack_info=True,
                 )
                 # Fallback to IP address if user or actor label not available
                 self.actor_label = self.ip_address

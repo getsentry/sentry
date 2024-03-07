@@ -1,3 +1,5 @@
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -5,14 +7,17 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
-  getUploadSourceMapsStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularVersion {
@@ -105,7 +110,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: getInstallConfig(params),
     },
   ],
-  configure: params => [
+  configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       configurations: [
@@ -164,7 +169,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => getNextStep(params),
+  nextSteps: (params: Params) => getNextStep(params),
 };
 
 export const nextSteps = [
@@ -207,6 +212,14 @@ function getSdkSetupSnippet(params: Params) {
       params.isPerformanceSelected
         ? `
           Sentry.browserTracingIntegration(),`
+        : ''
+    }${
+      params.isFeedbackSelected
+        ? `
+        Sentry.feedbackIntegration({
+// Additional SDK configuration goes in here, for example:
+colorScheme: "system",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
         : ''
     }${
       params.isReplaySelected
@@ -268,7 +281,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       configurations: getInstallConfig(params),
     },
   ],
-  configure: params => [
+  configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       description: getReplayConfigureDescription({
@@ -286,7 +299,51 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codeAngular:@sentry/angular] or [codeIvy:@sentry/angular-ivy]) installed, minimum version 7.85.0.',
+        {
+          codeAngular: <code />,
+          codeIvy: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/#crash-report-modal',
+      }),
     },
   ],
   verify: () => [],
@@ -296,6 +353,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };

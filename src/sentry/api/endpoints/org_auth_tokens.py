@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.core.exceptions import ValidationError
 from django.db.models import Value
@@ -49,7 +49,7 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         # We want to sort by date_last_used, but sort NULLs last
-        the_past = datetime.min
+        the_past = datetime.min.replace(tzinfo=UTC)
 
         token_list = list(
             OrgAuthToken.objects.filter(

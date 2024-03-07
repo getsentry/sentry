@@ -68,7 +68,9 @@ SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [
 
 UNSET = object()
 
-ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
+    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
+)
 
 SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
@@ -177,7 +179,15 @@ class Superuser(ElevatedMode):
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+        self_hosted = is_self_hosted()
+        logger.info(
+            "superuser.needs-validation",
+            extra={
+                "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL": DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL,
+                "self_hosted": self_hosted,
+            },
+        )
+        if self_hosted or DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
@@ -186,8 +196,8 @@ class Superuser(ElevatedMode):
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
-        # We have a wsgi request with no user.
-        if not hasattr(self.request, "user"):
+        # We have a wsgi request with no user or user is None.
+        if not hasattr(self.request, "user") or self.request.user is None:
             return False
         # if we've been logged out
         if not self.request.user.is_authenticated:

@@ -158,8 +158,8 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         response = self.client.get(
             self.path,
             data={
-                "since": before_now(days=1).timestamp(),
-                "until": before_now().timestamp(),
+                "since": int(before_now(days=1).timestamp()),
+                "until": int(before_now().timestamp()),
             },
         )
         assert response.status_code == 200, response.content

@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
@@ -177,17 +176,13 @@ class AllTeamsRow extends Component<Props, State> {
 
   render() {
     const {team, openMembership, organization} = this.props;
-    const {access} = organization;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const canEditTeam = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = !!team.orgRole && (!canEditTeam || !isOrgOwner);
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
-    const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+    const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
     const display = (
       <IdBadge
@@ -201,9 +196,8 @@ class AllTeamsRow extends Component<Props, State> {
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
 
-    const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
-    const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
-    const isDisabled = isIdpProvisioned || isPermissionGroup;
+    const teamRoleName = this.getTeamRoleName();
+    const isDisabled = isIdpProvisioned;
 
     return (
       <TeamPanelItem>
@@ -216,8 +210,7 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <DisplayRole isHidden={isHidden}>{orgRoleFromTeam}</DisplayRole>
-        <DisplayRole isHidden={isHidden}>{this.getTeamRoleName()}</DisplayRole>
+        <DisplayRole isHidden={teamRoleName === null}>{teamRoleName}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>

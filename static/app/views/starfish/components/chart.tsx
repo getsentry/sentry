@@ -81,7 +81,7 @@ type Props = {
   definedAxisTicks?: number;
   disableXAxis?: boolean;
   durationUnit?: number;
-  errored?: boolean;
+  error?: Error | null;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
@@ -180,7 +180,7 @@ function Chart({
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
-  errored,
+  error,
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
@@ -326,7 +326,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -366,9 +366,9 @@ function Chart({
       };
 
   function getChart() {
-    if (errored) {
+    if (error) {
       return (
-        <ErrorPanel>
+        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
           <IconWarning color="gray300" size="lg" />
         </ErrorPanel>
       );

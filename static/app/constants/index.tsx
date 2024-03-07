@@ -59,6 +59,7 @@ export const ALLOWED_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:billing',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
@@ -218,6 +219,7 @@ export const MAX_PICKABLE_DAYS = 90;
 export const DEFAULT_STATS_PERIOD = '14d';
 
 export const DEFAULT_QUERY = 'is:unresolved';
+export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -311,14 +313,6 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
-  },
-  [DataCategoryExact.METRICS]: {
-    name: DataCategoryExact.METRICS,
-    apiName: 'metric_bucket',
-    plural: 'metric_buckets',
-    displayName: 'metrics',
-    titleName: t('Metrics'),
-    uid: 15,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

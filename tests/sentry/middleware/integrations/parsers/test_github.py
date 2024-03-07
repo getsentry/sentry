@@ -10,9 +10,12 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import (
     assert_no_webhook_outboxes,
+    assert_no_webhook_payloads,
     assert_webhook_outboxes_with_shard_id,
+    assert_webhook_payloads_for_mailbox,
 )
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -136,6 +139,26 @@ class GithubRequestParserTest(TestCase):
             factory_request=request,
             expected_shard_id=integration.id,
             region_names=[region.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
+    def test_webhook_outbox_creation_webhookpayload(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
+        assert_no_webhook_payloads()
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert response.content == b""
+
+        assert_webhook_payloads_for_mailbox(
+            mailbox_name=f"github:{integration.id}", region_names=["us"], request=request
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)

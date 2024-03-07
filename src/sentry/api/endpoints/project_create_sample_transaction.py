@@ -36,9 +36,8 @@ def fix_event_data(data):
     random ids for traces, spans, and the event id.
     Largely based on sentry.utils.samples.load_data but more simple
     """
-    timestamp = datetime.utcnow() - timedelta(minutes=1)
+    timestamp = datetime.now(timezone.utc) - timedelta(minutes=1)
     timestamp = timestamp - timedelta(microseconds=timestamp.microsecond % 1000)
-    timestamp = timestamp.replace(tzinfo=timezone.utc)
     data["timestamp"] = to_timestamp(timestamp)
 
     start_timestamp = timestamp - timedelta(seconds=3)

@@ -54,11 +54,18 @@
     "sentry.team",
     "sentry.user"
   ],
+  "sentry.alertruleactivationcondition": [
+    "sentry.alertrule"
+  ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
   ],
   "sentry.alertruleexcludedprojects": [
+    "sentry.alertrule",
+    "sentry.project"
+  ],
+  "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
   ],
@@ -98,9 +105,6 @@
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
-  ],
-  "sentry.artifactbundleflatfileindex": [
-    "sentry.project"
   ],
   "sentry.artifactbundleindex": [
     "sentry.artifactbundle",
@@ -284,10 +288,6 @@
     "sentry.fileblob",
     "sentry.organization"
   ],
-  "sentry.flatfileindexstate": [
-    "sentry.artifactbundle",
-    "sentry.artifactbundleflatfileindex"
-  ],
   "sentry.group": [
     "sentry.project",
     "sentry.release"
@@ -449,6 +449,9 @@
     "sentry.monitorlocation",
     "sentry.project"
   ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
+  ],
   "sentry.monitorenvironment": [
     "sentry.environment",
     "sentry.monitor"
@@ -471,6 +474,11 @@
   "sentry.notificationactionproject": [
     "sentry.notificationaction",
     "sentry.project"
+  ],
+  "sentry.notificationmessage": [
+    "sentry.alertruletriggeraction",
+    "sentry.incident",
+    "sentry.rulefirehistory"
   ],
   "sentry.notificationsettingoption": [
     "sentry.team",
@@ -774,6 +782,9 @@
     "sentry.sentryappinstallation"
   ],
   "sentry.sentryfunction": [
+    "sentry.organization"
+  ],
+  "sentry.sentryshot": [
     "sentry.organization"
   ],
   "sentry.servicehook": [

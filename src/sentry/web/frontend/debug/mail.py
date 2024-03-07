@@ -60,6 +60,7 @@ from sentry.testutils.helpers.notifications import (  # NOQA:S007
 )
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
+from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
@@ -382,10 +383,10 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
-    def get_activity(self, request: HttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event):
         raise NotImplementedError
 
-    def get(self, request: HttpRequest) -> HttpResponse:
+    def get(self, request: AuthenticatedHttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

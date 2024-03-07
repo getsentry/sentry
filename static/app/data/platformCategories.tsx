@@ -379,6 +379,78 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
+// Feedback platforms that show only NPM widget setup instructions (no loader)
+export const feedbackNpmPlatforms: readonly PlatformKey[] = [
+  'ionic',
+  ...replayFrontendPlatforms,
+];
+
+// Feedback platforms that show widget instructions (both NPM & loader)
+export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+  ...feedbackNpmPlatforms,
+  ...replayBackendPlatforms,
+];
+
+// Feedback platforms that only show crash API instructions
+export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
+  'android',
+  'apple-macos',
+  'apple-ios',
+  'dart',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'flutter',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'kotlin',
+  'node-koa',
+  'react-native',
+  'unity',
+  'unreal',
+];
+
+// Feedback platforms that default to the web API
+export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
+  'cordova',
+  'ruby-rack',
+  'ruby',
+  'rust',
+  'native',
+  'native-qt',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-gcpfunctions',
+  'node-serverlesscloud',
+  'minidump',
+  'python-asgi',
+  'python-awslambda',
+  'python-celery',
+  'python-chalice',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python',
+  'python-rq',
+  'python-serverless',
+  'python-tryton',
+  'python-wsgi',
+];
+
+// All feedback onboarding platforms
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWebApiPlatforms,
+  ...feedbackWidgetPlatforms,
+  ...feedbackCrashApiPlatforms,
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet',
@@ -445,17 +517,17 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: Set<PlatformKey> = new Set([
+export const customMetricPlatforms: readonly PlatformKey[] = [
   ...customMetricFrontendPlatforms,
   ...customMetricBackendPlatforms,
-]);
+];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms = new Set(
-  [...customMetricPlatforms].filter(
+export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
+  customMetricPlatforms.filter(
     p =>
       // Legacy platforms that do not have in-product docs
       ![
@@ -465,5 +537,4 @@ export const customMetricOnboardingPlatforms = new Set(
         'python-pylons',
         'python-tryton',
       ].includes(p)
-  )
-);
+  );

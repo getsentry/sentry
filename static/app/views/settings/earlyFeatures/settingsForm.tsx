@@ -18,31 +18,23 @@ interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
 }
 
-interface State {
-  authProvider: OrganizationAuthProvider;
-  featureFlags: {[key: string]: {description: string; value: boolean}};
-}
+type FeatureFlags = Record<string, {description: string; value: boolean}>;
 
 function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
-  const {data: authProvider, isLoading: authProviderIsLoading} = useApiQuery<
-    Pick<State, 'authProvider'>
-  >([`/organizations/${organization.slug}/auth-provider/`], {
-    staleTime: 0,
-  });
+  const {data: authProvider, isLoading: authProviderIsLoading} =
+    useApiQuery<OrganizationAuthProvider>(
+      [`/organizations/${organization.slug}/auth-provider/`],
+      {staleTime: 0}
+    );
 
-  const {data: featureFlags, isLoading: featureFlagsIsLoading} = useApiQuery<
-    Pick<State, 'featureFlags'>
-  >(['/internal/feature-flags/'], {
-    staleTime: 0,
-  });
-
-  const endpoint = `/internal/feature-flags/`;
+  const {data: featureFlags, isLoading: featureFlagsIsLoading} =
+    useApiQuery<FeatureFlags>(['/internal/feature-flags/'], {staleTime: 0});
 
   if (authProviderIsLoading || featureFlagsIsLoading) {
     return <LoadingIndicator />;
   }
 
-  const initialData = {};
+  const initialData: Record<string, boolean> = {};
   for (const flag in featureFlags) {
     if (featureFlags.hasOwnProperty(flag)) {
       const obj = featureFlags[flag];
@@ -72,7 +64,7 @@ function EarlyFeaturesSettingsForm({organization, access, location}: Props) {
       <Form
         data-test-id="organization-settings"
         apiMethod="PUT"
-        apiEndpoint={endpoint}
+        apiEndpoint={`/internal/feature-flags/`}
         saveOnBlur
         allowUndo
         initialData={initialData}

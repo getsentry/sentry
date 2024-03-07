@@ -1,12 +1,13 @@
 import contextlib
 import time
+from collections.abc import Callable
 from threading import Thread
 from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
 
-from sentry.event_manager import _save_aggregate
+from sentry.event_manager import GroupInfo, _save_aggregate, _save_aggregate_new
 from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.grouphash import GroupHash
@@ -15,6 +16,11 @@ from sentry.testutils.silo import region_silo_test
 
 
 @django_db_all(transaction=True)
+@pytest.mark.parametrize(
+    "use_save_aggregate_new",
+    (True, False),
+    ids=(" use_save_aggregate_new: True ", " use_save_aggregate_new: False "),
+)
 @pytest.mark.parametrize(
     "is_race_free",
     [
@@ -31,9 +37,12 @@ from sentry.testutils.silo import region_silo_test
         # necessary so far.
         False,
     ],
+    ids=(" is_race_free: True ", " is_race_free: False "),
 )
 @region_silo_test
-def test_group_creation_race(monkeypatch, default_project, is_race_free):
+def test_group_creation_race_new(
+    monkeypatch, default_project, is_race_free, use_save_aggregate_new
+):
     CONCURRENCY = 2
 
     if not is_race_free:
@@ -53,40 +62,55 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
 
     return_values = []
 
+    event = Event(
+        default_project.id,
+        "11212012123120120415201309082013",
+        data={"timestamp": time.time()},
+    )
+    hashes = CalculatedHashes(
+        hashes=["pound sign", "octothorpe"],
+        hierarchical_hashes=[],
+        tree_labels=[],
+    )
+
+    # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
+    # See https://github.com/python/mypy/issues/14661
+    save_aggregate_fn: Callable[..., GroupInfo | None] = (
+        _save_aggregate_new if use_save_aggregate_new else _save_aggregate  # type: ignore
+    )
+    group_kwargs_fn_name = (
+        "_get_group_processing_kwargs" if use_save_aggregate_new else "_get_group_creation_kwargs"
+    )
+
+    group_processing_kwargs = {"level": 10, "culprit": "", "data": {}}
+    save_aggregate_kwargs = {
+        "event": event,
+        "job": {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
+        "metric_tags": {},
+    }
+    if not use_save_aggregate_new:
+        save_aggregate_kwargs.update(
+            {
+                "release": None,
+                "received_timestamp": 0,
+            }
+        )
+
     def save_event():
         try:
-            data = {"timestamp": time.time()}
-            evt = Event(
-                default_project.id,
-                "89aeed6a472e4c5fb992d14df4d7e1b6",
-                data=data,
-            )
-            group_creation_kwargs = {"level": 10, "culprit": ""}
-            hashes = CalculatedHashes(
-                hashes=["a" * 32, "b" * 32],
-                hierarchical_hashes=[],
-                tree_labels=[],
-            )
-
             with patch(
-                "sentry.event_manager.get_hash_values",
-                return_value=(hashes, hashes, hashes),
+                "sentry.grouping.ingest._calculate_event_grouping",
+                return_value=hashes,
             ):
                 with patch(
-                    "sentry.event_manager._get_group_creation_kwargs",
-                    return_value=group_creation_kwargs,
+                    f"sentry.event_manager.{group_kwargs_fn_name}",
+                    return_value=group_processing_kwargs,
                 ):
                     with patch("sentry.event_manager._materialize_metadata_many"):
-                        ret = _save_aggregate(
-                            evt,
-                            job={"event_metadata": {}},
-                            release=None,
-                            received_timestamp=0,
-                            metric_tags={},
-                        )
+                        group_info = save_aggregate_fn(**save_aggregate_kwargs)
 
-                        assert ret is not None
-                        return_values.append(ret)
+                        assert group_info is not None
+                        return_values.append(group_info)
         finally:
             transaction.get_connection(router.db_for_write(GroupHash)).close()
 
@@ -100,10 +124,10 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         thread.join()
 
     if is_race_free:
-        # assert one group is new
-        assert len({rv.group.id for rv in return_values}) == 1
-        assert sum(rv.is_new for rv in return_values) == 1
+        # assert only one new group was created
+        assert len({group_info.group.id for group_info in return_values}) == 1
+        assert sum(group_info.is_new for group_info in return_values) == 1
     else:
-        # assert many groups are new
-        assert 1 < len({rv.group.id for rv in return_values}) <= CONCURRENCY
-        assert 1 < sum(rv.is_new for rv in return_values) <= CONCURRENCY
+        # assert multiple new groups were created
+        assert 1 < len({group_info.group.id for group_info in return_values}) <= CONCURRENCY
+        assert 1 < sum(group_info.is_new for group_info in return_values) <= CONCURRENCY

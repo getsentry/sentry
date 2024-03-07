@@ -1,134 +1,58 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/projects';
+import {
+  useAddTeamToProject,
+  useFetchProjectTeams,
+  useRemoveTeamFromProject,
+} from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = {
+type ProjectTeamsProps = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{projectId: string}, {}>;
+};
 
-type State = {
-  projectTeams: null | Team[];
-} & DeprecatedAsyncView['state'];
+export function ProjectTeams({organization, project}: ProjectTeamsProps) {
+  const {
+    data: projectTeams,
+    isLoading,
+    isError,
+  } = useFetchProjectTeams({orgSlug: organization.slug, projectSlug: project.slug});
+  const handleAddTeamToProject = useAddTeamToProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+  const handleRemoveTeamFromProject = useRemoveTeamFromProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
 
-class ProjectTeams extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, project} = this.props;
-    return [['projectTeams', `/projects/${organization.slug}/${project.slug}/teams/`]];
+  const canCreateTeam =
+    organization.access.includes('org:write') &&
+    organization.access.includes('team:write') &&
+    organization.access.includes('project:write');
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+
+  if (isError) {
+    return <LoadingError message={t('Failed to load project teams')} />;
   }
 
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Project Teams'), projectId, false);
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  canCreateTeam = () => {
-    const access = this.props.organization.access;
-    return (
-      access.includes('org:write') &&
-      access.includes('team:write') &&
-      access.includes('project:write')
-    );
-  };
-
-  handleRemove = (teamSlug: Team['slug']) => {
-    if (this.state.loading) {
-      return;
-    }
-
-    const {organization, project} = this.props;
-
-    removeTeamFromProject(this.api, organization.slug, project.slug, teamSlug)
-      .then(() => this.handleRemovedTeam(teamSlug))
-      .catch(() => {
-        addErrorMessage(t('Could not remove the %s team', teamSlug));
-        this.setState({loading: false});
-      });
-  };
-
-  handleRemovedTeam = (teamSlug: Team['slug']) => {
-    this.setState(prevState => ({
-      projectTeams: [
-        ...(prevState.projectTeams || []).filter(team => team.slug !== teamSlug),
-      ],
-    }));
-  };
-
-  handleAddedTeam = (team: Team) => {
-    this.setState(prevState => ({
-      projectTeams: [...(prevState.projectTeams || []), team],
-    }));
-  };
-
-  handleAdd = (teamSlug: string) => {
-    if (this.state.loading) {
-      return;
-    }
-
-    const team = TeamStore.getBySlug(teamSlug);
-    if (!team) {
-      addErrorMessage(tct('Unable to find "[teamSlug]"', {teamSlug}));
-      this.setState({error: true});
-      return;
-    }
-
-    const {organization, project} = this.props;
-
-    addTeamToProject(this.api, organization.slug, project.slug, team).then(
-      () => {
-        this.handleAddedTeam(team);
-      },
-      () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      }
-    );
-  };
-
-  handleCreateTeam = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    const {project, organization} = this.props;
-
-    if (!this.canCreateTeam()) {
-      return;
-    }
-
-    openCreateTeamModal({
-      project,
-      organization,
-      onClose: data => {
-        addTeamToProject(this.api, organization.slug, project.slug, data).then(
-          this.remountComponent,
-          this.remountComponent
-        );
-      },
-    });
-  };
-
-  renderBody() {
-    const {project, organization} = this.props;
-    const {projectTeams} = this.state;
-
-    const canCreateTeam = this.canCreateTeam();
-    const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-
-    return (
+  return (
+    <SentryDocumentTitle title={routeTitleGen(t('Project Teams'), project.slug, false)}>
       <div>
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
         <TextBlock>
@@ -149,18 +73,22 @@ class ProjectTeams extends DeprecatedAsyncView<Props, State> {
           organization={organization}
           project={project}
           selectedTeams={projectTeams ?? []}
-          onAddTeam={this.handleAdd}
-          onRemoveTeam={this.handleRemove}
-          onCreateTeam={(team: Team) => {
-            addTeamToProject(this.api, organization.slug, project.slug, team).then(
-              this.remountComponent,
-              this.remountComponent
-            );
+          onAddTeam={teamSlug => {
+            const team = TeamStore.getBySlug(teamSlug);
+
+            if (!team) {
+              addErrorMessage(tct('Unable to find "[teamSlug]"', {teamSlug}));
+              return;
+            }
+
+            handleAddTeamToProject(team);
           }}
+          onRemoveTeam={handleRemoveTeamFromProject}
+          onCreateTeam={handleAddTeamToProject}
         />
       </div>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
 
 export default ProjectTeams;

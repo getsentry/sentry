@@ -1,5 +1,6 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MultiSeriesEventsStats} from 'sentry/types';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -7,29 +8,34 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {RELEASE_COMPARISON} from 'sentry/views/starfish/colours';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};
+
   if (defined(data)) {
     Object.keys(data).forEach(releaseName => {
       transformedSeries[releaseName] = {
         seriesName: releaseName,
-        color:
-          releaseName === primaryRelease
-            ? RELEASE_COMPARISON.PRIMARY_RELEASE_COLOR
-            : RELEASE_COMPARISON.SECONDARY_RELEASE_COLOR,
         data:
           data[releaseName]?.data?.map(datum => {
             return {
@@ -37,6 +43,12 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
               value: datum[1][0].count,
             } as SeriesDataUnit;
           }) ?? [],
+        ...(primaryRelease === releaseName
+          ? {color: PRIMARY_RELEASE_COLOR}
+          : {
+              color: SECONDARY_RELEASE_COLOR,
+              lineStyle: {type: 'dashed'},
+            }),
       };
     });
   }
@@ -45,20 +57,23 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
 
 interface Props {
   chartHeight: number;
-  type: 'cold' | 'warm';
   additionalFilters?: string[];
 }
 
-function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
+function StartDurationWidget({additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
+  const location = useLocation();
   const {
     primaryRelease,
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
+  const startType =
+    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+
   const query = new MutableSearch([
-    ...(type === 'cold' ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
+    ...(startType === COLD_START_TYPE ? COLD_START_CONDITIONS : WARM_START_CONDITIONS),
     ...(additionalFilters ?? []),
   ]);
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
@@ -66,7 +81,7 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
   const {
     data: series,
     isLoading: isSeriesLoading,
-    isError,
+    error: seriesError,
   } = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
@@ -96,13 +111,24 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
 
   // Only transform the data is we know there's at least one release
   const transformedSeries = hasReleaseData
-    ? Object.values(transformData(series, primaryRelease)).sort()
+    ? Object.values(transformData(series, primaryRelease)).sort((releaseA, _releaseB) =>
+        releaseA.seriesName === primaryRelease ? -1 : 1
+      )
     : [];
 
   return (
     <MiniChartPanel
       title={
-        type === 'cold' ? t('Avg. Cold Start Duration') : t('Avg. Warm Start Duration')
+        startType === COLD_START_TYPE ? t('Average Cold Start') : t('Average Warm Start')
+      }
+      subtitle={
+        primaryRelease
+          ? t(
+              '%s v. %s',
+              formatVersionAndCenterTruncate(primaryRelease, 12),
+              secondaryRelease ? formatVersionAndCenterTruncate(secondaryRelease, 12) : ''
+            )
+          : ''
       }
     >
       <Chart
@@ -112,7 +138,7 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
         grid={{
           left: '0',
           right: '0',
-          top: '8px',
+          top: space(2),
           bottom: '0',
         }}
         showLegend
@@ -125,7 +151,7 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
           nameFormatter: value => formatVersion(value),
         }}
         legendFormatter={value => formatVersion(value)}
-        errored={isError}
+        error={seriesError}
       />
     </MiniChartPanel>
   );

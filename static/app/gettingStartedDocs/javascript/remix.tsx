@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,32 +12,37 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getConfigStep = () => [
+  {
+    description: tct(
+      'Configure your app automatically with the [wizardLink:Sentry wizard].',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+        ),
+      }
+    ),
+    language: 'bash',
+    code: `npx @sentry/wizard@latest -i remix`,
+  },
+];
+
 const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
-    configurations: [
-      {
-        description: tct(
-          'Configure your app automatically with the [wizardLink:Sentry wizard].',
-          {
-            wizardLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
-            ),
-          }
-        ),
-        language: 'bash',
-        code: `npx @sentry/wizard@latest -i remix`,
-      },
-    ],
+    configurations: getConfigStep(),
   },
 ];
 
@@ -157,7 +164,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
       additionalInfo: (
         <Fragment>
-          {tracePropagationMessage}
+          <TracePropagationMessage />
           {tct(
             'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
             {entryClient: <code />, sentryServer: <code />}
@@ -170,8 +177,56 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const feedbackOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/remix]) installed, minimum version 7.85.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getConfigStep(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/configuration/#bring-your-own-button',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/remix";`,
+                dsn: params.dsn,
+                feedbackOptions: params.feedbackOptions,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: crashReportCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/user-feedback/#user-feedback-api',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboardingNpm: replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };

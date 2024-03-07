@@ -1,3 +1,4 @@
+import type {InjectedRouter} from 'react-router';
 import {browserHistory} from 'react-router';
 import {connect} from 'echarts';
 import type {Location, Query} from 'history';
@@ -425,7 +426,7 @@ export function getWidgetDDMUrl(
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies MetricWidgetQueryParams;
+      } satisfies Partial<MetricWidgetQueryParams>;
     }),
   });
 
@@ -667,4 +668,17 @@ export function dashboardFiltersToString(
 
 export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
+}
+
+export function openWidgetPreviewModal(
+  router: InjectedRouter,
+  location: Location,
+  widget: Widget
+) {
+  router.push({
+    pathname: `${location.pathname}${location.pathname.endsWith('/') ? '' : '/'}widget/${
+      widget.id
+    }/`,
+    query: location.query,
+  });
 }

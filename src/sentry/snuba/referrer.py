@@ -65,12 +65,6 @@ class Referrer(Enum):
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
 
-    # DDM
-    API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
-    API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
-    API_DDM_METRICS_DATA = "api.ddm.metrics.data"
-    API_DDM_METRICS_QUERY = "api.ddm.metrics.query"
-
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -104,10 +98,6 @@ class Referrer(Enum):
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
-    API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
-    API_METRICS_SERIES = "api.metrics.series"
-    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
-    API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
@@ -160,7 +150,14 @@ class Referrer(Enum):
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
+    API_ORGANIZATION_METRICS_DATA = "api.organization.metrics-data"
     API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
+    API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
+    API_ORGANIZATION_METRICS_METADATA_FETCH_METRICS_SUMMARIES = (
+        "api.organization.metrics-metadata.fetch-metrics-summaries"
+    )
+    API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
+    API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -619,6 +616,12 @@ class Referrer(Enum):
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
+    DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
+    DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES = "daily_summary.key_performance_issues"
+    DAILY_SUMMARY_KEY_TRANSACTIONS_P95 = "daily_summary.key_transactions.p95"
+    DAILY_SUMMARY_KEY_TRANSACTIONS = "daily_summary.key_transactions"
+    DAILY_SUMMARY_OUTCOME_SERIES = "daily_summary.outcome_series"
+    DAILY_SUMMARY_OUTCOMES = "daily_summary.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
@@ -743,7 +746,6 @@ class Referrer(Enum):
     ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
 
     # Referrers in tests
-    API_METRICS_TOTALS = "api.metrics.totals"
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"

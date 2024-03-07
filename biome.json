@@ -17,18 +17,24 @@
         "noBlankTarget": "error"
       },
       "correctness": {
+        "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
         "useHookAtTopLevel": "error",
         "useIsNan": "error"
       },
       "complexity": {
-        "useFlatMap": "error"
+        "useFlatMap": "error",
+        "useOptionalChain": "error"
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
         "noNodejsModules": "error",
         "useExportType": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "useShorthandFunctionType": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error"
       },
       "suspicious": {
         "noDebugger": "error",
@@ -37,8 +43,19 @@
         "noDuplicateObjectKeys": "error",
         "noDuplicateParameters": "error",
         "noDuplicateCase": "error",
+        "noFallthroughSwitchClause": "error",
         "noRedeclare": "error",
+        "noSparseArray": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnsafeNegation": "error",
         "useIsArray": "error"
+      },
+      "style": {
+        "noCommaOperator": "error",
+        "noShoutyConstants": "error",
+        "noParameterProperties": "error",
+        "noVar": "error",
+        "useConst": "error"
       }
     }
   },
@@ -62,7 +79,7 @@
   },
   "javascript": {
     "formatter": {
-      "enabled": true,
+      "enabled": false,
       "lineWidth": 90,
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
@@ -100,6 +117,16 @@
         "rules": {
           "nursery": {
             "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/sentry/templates/sentry/error-page-embed.js"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noVar": "off"
           }
         }
       }

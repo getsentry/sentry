@@ -506,17 +506,17 @@ export function parseTrace(
   const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
-  const traceID = (traceContext && traceContext.trace_id) || '';
-  const rootSpanID = (traceContext && traceContext.span_id) || '';
-  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
-  const description = traceContext && traceContext.description;
-  const parentSpanID = traceContext && traceContext.parent_span_id;
-  const rootSpanStatus = traceContext && traceContext.status;
-  const hash = traceContext && traceContext.hash;
-  const exclusiveTime = traceContext && traceContext.exclusive_time;
-  const count = traceContext && traceContext.count;
-  const frequency = traceContext && traceContext.frequency;
-  const total = traceContext && traceContext.total;
+  const traceID = traceContext?.trace_id || '';
+  const rootSpanID = traceContext?.span_id || '';
+  const rootSpanOpName = traceContext?.op || 'transaction';
+  const description = traceContext?.description;
+  const parentSpanID = traceContext?.parent_span_id;
+  const rootSpanStatus = traceContext?.status;
+  const hash = traceContext?.hash;
+  const exclusiveTime = traceContext?.exclusive_time;
+  const count = traceContext?.count;
+  const frequency = traceContext?.frequency;
+  const total = traceContext?.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {

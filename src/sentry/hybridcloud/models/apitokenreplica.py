@@ -17,7 +17,7 @@ class ApiTokenReplica(Model, HasApiScopes):
     application_is_active = models.BooleanField(default=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     apitoken_id = HybridCloudForeignKey("sentry.ApiToken", null=False, on_delete="CASCADE")
-    token = models.CharField(max_length=64)
+    token = models.CharField(max_length=71)
     expires_at = models.DateTimeField(null=True)
     allowed_origins = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)

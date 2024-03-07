@@ -19,6 +19,7 @@ type Options = {
   sortParameterName?:
     | QueryParameterNames.ENDPOINTS_SORT
     | QueryParameterNames.SPANS_SORT
+    | QueryParameterNames.DOMAINS_SORT
     | typeof DEFAULT_SORT_PARAMETER_NAME;
 };
 

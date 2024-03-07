@@ -14,6 +14,7 @@ import hydrateBreadcrumbs, {
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
+  clipEndFrame,
   recordingEndFrame,
   recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
@@ -237,14 +238,10 @@ export default class ReplayReader {
     this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
       frame => frame.timestamp <= clipEndTimestampMs
     );
-
-    // We only want playback to occur while events are still being recorded.
-    // Without doing this, the replay will appear to stop prematurely.
-    const lastRecordingFrameTimestampMs =
-      this._sortedRRWebEvents.at(-1)?.timestamp ?? clipEndTimestampMs;
+    this._sortedRRWebEvents.push(clipEndFrame(clipEndTimestampMs));
 
     this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
-    this._duration = duration(lastRecordingFrameTimestampMs - clipStartTimestampMs);
+    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -252,23 +249,19 @@ export default class ReplayReader {
       this._trimFramesToClipWindow(
         this._sortedBreadcrumbFrames,
         this._replayRecord.started_at.getTime(),
-        lastRecordingFrameTimestampMs
+        clipEndTimestampMs
       )
     );
     this._sortedSpanFrames = this._updateFrameOffsets(
       this._trimFramesToClipWindow(
         this._sortedSpanFrames,
         this._replayRecord.started_at.getTime(),
-        lastRecordingFrameTimestampMs
+        clipEndTimestampMs
       )
     );
 
     this._errors = this._updateFrameOffsets(
-      this._trimFramesToClipWindow(
-        this._errors,
-        clipStartTimestampMs,
-        lastRecordingFrameTimestampMs
-      )
+      this._trimFramesToClipWindow(this._errors, clipStartTimestampMs, clipEndTimestampMs)
     );
   };
 

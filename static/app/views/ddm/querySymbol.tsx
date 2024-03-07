@@ -1,9 +1,10 @@
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
-const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
 export const getQuerySymbol = (index: number) => {
   let result = '';
@@ -15,7 +16,7 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-const Symbol = styled('div')<{isSelected: boolean}>`
+const Symbol = styled('span')<{isSelected: boolean; isHidden?: boolean}>`
   display: flex;
   width: 16px;
   height: 16px;
@@ -27,29 +28,39 @@ const Symbol = styled('div')<{isSelected: boolean}>`
   border-radius: 50%;
   font-weight: 500;
   color: ${p => p.theme.black};
-  font-size: 10px;
+  font-size: 11px;
   background: ${p => p.theme.yellow300};
 
   ${p =>
     p.isSelected &&
+    !p.isHidden &&
     `
   background: ${p.theme.purple300};
   color: ${p.theme.white};
   `}
+
+  ${p =>
+    p.isHidden &&
+    `
+  background: ${p.theme.gray300};
+  color: ${p.theme.white};
+  `}
 `;
 
-export function QuerySymbol({
-  index,
-  isSelected,
-  ...props
-}: React.ComponentProps<typeof Symbol> & {index: number; isSelected: boolean}) {
-  const {showQuerySymbols} = useDDMContext();
-  if (!showQuerySymbols) {
-    return null;
-  }
-  return (
-    <Symbol isSelected={isSelected} {...props}>
-      <span>{getQuerySymbol(index)}</span>
-    </Symbol>
-  );
+interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
+  queryId: number;
 }
+
+export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
+  function QuerySymbol({queryId, isSelected, ...props}, ref) {
+    const {showQuerySymbols, isMultiChartMode} = useDDMContext();
+    if (!showQuerySymbols || queryId < 0) {
+      return null;
+    }
+    return (
+      <Symbol ref={ref} isSelected={isMultiChartMode && isSelected} {...props}>
+        <span>{getQuerySymbol(queryId)}</span>
+      </Symbol>
+    );
+  }
+);

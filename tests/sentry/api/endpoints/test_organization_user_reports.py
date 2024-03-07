@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
@@ -64,7 +64,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             comments="Hello world",
             group_id=self.group_1.id,
             environment_id=self.env_2.id,
-            date_added=datetime.now() - timedelta(days=7),
+            date_added=datetime.now(UTC) - timedelta(days=7),
         )
 
     def run_test(self, expected, **params):
@@ -88,13 +88,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     def test_date_filter(self):
         self.run_test(
             [self.report_1],
-            start=(datetime.now() - timedelta(days=1)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test(
             [self.report_1, self.report_2],
-            start=(datetime.now() - timedelta(days=8)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=8)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test([self.report_1, self.report_2], statsPeriod="14d")
 

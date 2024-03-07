@@ -72,7 +72,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
-        cutoff = datetime.utcfromtimestamp(cutoff).replace(tzinfo=timezone.utc)
+        cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
     else:
         cutoff = django_timezone.now() - timedelta(hours=int(age))
 

@@ -2,40 +2,51 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
-const pathPrefix = '/settings/:orgId';
+const organizationSettingsPathPrefix = '/settings/:orgId';
+const userSettingsPathPrefix = '/settings/account';
 
 const organizationNavigation: NavigationSection[] = [
+  {
+    name: t('User Settings'),
+    items: [
+      {
+        path: `${userSettingsPathPrefix}`,
+        title: t('General Settings'),
+        description: t('Configure general settings for your account'),
+        id: 'user-settings',
+      },
+    ],
+  },
   {
     name: t('Organization'),
     items: [
       {
-        path: `${pathPrefix}/`,
+        path: `${organizationSettingsPathPrefix}/`,
         title: t('General Settings'),
         index: true,
         description: t('Configure general settings for an organization'),
         id: 'general',
       },
       {
-        path: `${pathPrefix}/projects/`,
+        path: `${organizationSettingsPathPrefix}/projects/`,
         title: t('Projects'),
         description: t("View and manage an organization's projects"),
         id: 'projects',
       },
       {
-        path: `${pathPrefix}/teams/`,
+        path: `${organizationSettingsPathPrefix}/teams/`,
         title: t('Teams'),
         description: t("Manage an organization's teams"),
         id: 'teams',
       },
       {
-        path: `${pathPrefix}/members/`,
+        path: `${organizationSettingsPathPrefix}/members/`,
         title: t('Members'),
-        show: ({access}) => access!.has('member:read'),
         description: t('Manage user membership for an organization'),
         id: 'members',
       },
       {
-        path: `${pathPrefix}/security-and-privacy/`,
+        path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
         title: t('Security & Privacy'),
         description: t(
           'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -43,47 +54,45 @@ const organizationNavigation: NavigationSection[] = [
         id: 'security-and-privacy',
       },
       {
-        path: `${pathPrefix}/auth/`,
+        path: `${organizationSettingsPathPrefix}/auth/`,
         title: t('Auth'),
         description: t('Configure single sign-on'),
         id: 'sso',
       },
       {
-        path: `${pathPrefix}/api-keys/`,
+        path: `${organizationSettingsPathPrefix}/api-keys/`,
         title: t('API Keys'),
         show: ({access, features}) =>
           features!.has('api-keys') && access!.has('org:admin'),
         id: 'api-keys',
       },
       {
-        path: `${pathPrefix}/audit-log/`,
+        path: `${organizationSettingsPathPrefix}/audit-log/`,
         title: t('Audit Log'),
-        show: ({access}) => access!.has('org:write'),
         description: t('View the audit log for an organization'),
         id: 'audit-log',
       },
       {
-        path: `${pathPrefix}/rate-limits/`,
+        path: `${organizationSettingsPathPrefix}/rate-limits/`,
         title: t('Rate Limits'),
-        show: ({access, features}) =>
-          features!.has('legacy-rate-limits') && access!.has('org:write'),
+        show: ({features}) => features!.has('legacy-rate-limits'),
         description: t('Configure rate limits for all projects in the organization'),
         id: 'rate-limits',
       },
       {
-        path: `${pathPrefix}/relay/`,
+        path: `${organizationSettingsPathPrefix}/relay/`,
         title: t('Relay'),
         description: t('Manage relays connected to the organization'),
         id: 'relay',
       },
       {
-        path: `${pathPrefix}/repos/`,
+        path: `${organizationSettingsPathPrefix}/repos/`,
         title: t('Repositories'),
         description: t('Manage repositories connected to the organization'),
         id: 'repos',
       },
       {
-        path: `${pathPrefix}/integrations/`,
+        path: `${organizationSettingsPathPrefix}/integrations/`,
         title: t('Integrations'),
         description: t(
           'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
@@ -92,7 +101,7 @@ const organizationNavigation: NavigationSection[] = [
         recordAnalytics: true,
       },
       {
-        path: `${pathPrefix}/early-features/`,
+        path: `${organizationSettingsPathPrefix}/early-features/`,
         title: t('Early Features'),
         description: t('Manage early access features'),
         badge: () => <FeatureBadge type="new" />,
@@ -106,13 +115,13 @@ const organizationNavigation: NavigationSection[] = [
     name: t('Developer Settings'),
     items: [
       {
-        path: `${pathPrefix}/auth-tokens/`,
+        path: `${organizationSettingsPathPrefix}/auth-tokens/`,
         title: t('Auth Tokens'),
         description: t('Manage organization auth tokens'),
         id: 'auth-tokens',
       },
       {
-        path: `${pathPrefix}/developer-settings/`,
+        path: `${organizationSettingsPathPrefix}/developer-settings/`,
         title: t('Custom Integrations'),
         description: t('Manage custom integrations'),
         id: 'developer-settings',

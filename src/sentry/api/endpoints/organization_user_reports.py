@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +13,10 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
 from sentry.models.userreport import UserReport
+
+
+class _PaginateKwargs(TypedDict):
+    post_query_filter: NotRequired[object]
 
 
 @region_silo_endpoint
@@ -52,7 +58,7 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             )
 
         status = request.GET.get("status", "unresolved")
-        paginate_kwargs = {}
+        paginate_kwargs: _PaginateKwargs = {}
         if status == "unresolved":
             paginate_kwargs["post_query_filter"] = user_reports_filter_to_unresolved
         elif status:

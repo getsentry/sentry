@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -24,7 +24,7 @@ interface TraceTimelineEventsProps {
 }
 
 export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
-  const {startTimestamp, endTimestamp, data} = useTraceTimelineEvents({event});
+  const {startTimestamp, endTimestamp, traceEvents} = useTraceTimelineEvents({event});
   let paddedStartTime = startTimestamp;
   let paddedEndTime = endTimestamp;
   // Duration is 0, pad both sides, this is how we end up with 1 dot in the middle
@@ -36,12 +36,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   const durationMs = paddedEndTime - paddedStartTime;
 
   const totalColumns = Math.floor(width / PARENT_WIDTH);
-  const eventsByColumn = getEventsByColumn(
-    durationMs,
-    data,
-    totalColumns,
-    paddedStartTime
+  const eventsByColumn = useMemo(
+    () => getEventsByColumn(traceEvents, durationMs, totalColumns, paddedStartTime),
+    [durationMs, traceEvents, totalColumns, paddedStartTime]
   );
+
   const columnSize = width / totalColumns;
 
   // If the duration is less than 2 minutes, show seconds
@@ -54,7 +53,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
     <Fragment>
       {/* Add padding to the total columns, 1 column of padding on each side */}
       <TimelineColumns style={{gridTemplateColumns: `repeat(${totalColumns + 2}, 1fr)`}}>
-        {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
+        {eventsByColumn.map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const timeRange = getChunkTimeRange(
             paddedStartTime,
@@ -139,44 +138,43 @@ function NodeGroup({
   timeRange: [number, number];
 }) {
   const totalSubColumns = Math.floor(columnSize / CHILD_WIDTH);
-  const durationMs = timeRange[1] - timeRange[0];
-  const eventsByColumn = getEventsByColumn(
-    durationMs,
-    colEvents,
-    totalSubColumns,
-    timeRange[0]
-  );
-
-  const columns = Array.from(eventsByColumn.keys());
-  const minColumn = Math.min(...columns);
-  const maxColumn = Math.max(...columns);
+  const {eventsByColumn, columns} = useMemo(() => {
+    const durationMs = timeRange[1] - timeRange[0];
+    const eventColumns = getEventsByColumn(
+      colEvents,
+      durationMs,
+      totalSubColumns,
+      timeRange[0]
+    );
+    return {
+      eventsByColumn: eventColumns,
+      columns: eventColumns.map<number>(([column]) => column).sort(),
+    };
+  }, [colEvents, totalSubColumns, timeRange]);
 
   return (
     <Fragment>
       <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
-        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
+        {eventsByColumn.map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
-            <EventColumn
-              key={`${column}-currrent-event`}
-              style={{gridColumn: Math.floor(column)}}
-            >
-              {isCurrentNode && (
+            <EventColumn key={`${column}-currrent-event`} style={{gridColumn: column}}>
+              {isCurrentNode ? (
                 <CurrentNodeContainer aria-label={t('Current Event')}>
                   <CurrentNodeRing />
                   <CurrentIconNode />
                 </CurrentNodeContainer>
-              )}
-              {!isCurrentNode &&
+              ) : (
                 groupEvents
-                  .slice(0, 4)
+                  .slice(0, 5)
                   .map(groupEvent =>
                     'event.type' in groupEvent ? (
                       <IconNode key={groupEvent.id} />
                     ) : (
                       <PerformanceIconNode key={groupEvent.id} />
                     )
-                  )}
+                  )
+              )}
             </EventColumn>
           );
         })}
@@ -193,7 +191,10 @@ function NodeGroup({
         >
           <TooltipHelper
             style={{
-              gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
+              gridColumn:
+                columns.length > 1
+                  ? `${columns.at(0)} / ${columns.at(-1)}`
+                  : columns.at(0)!,
               width: 8 * columns.length,
             }}
             data-test-id={`trace-timeline-tooltip-${currentColumn}`}
@@ -226,12 +227,12 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
-  border: 1px solid ${p => p.theme.red300};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
+  border: 1px solid ${p => p.theme.red300};
 `;
 
 const CurrentNodeContainer = styled('div')`
@@ -255,18 +256,18 @@ const CurrentNodeRing = styled('div')`
   @keyframes pulse {
     0% {
       transform: scale(0.1, 0.1);
-      opacity: 0.0;
+      opacity: 0;
     }
     50% {
       transform: scale(0.1, 0.1);
-      opacity: 0.0;
+      opacity: 0;
     }
     70% {
-      opacity: 1.0;
+      opacity: 1;
     }
     100% {
       transform: scale(1.2, 1.2);
-      opacity: 0.0;
+      opacity: 0;
     }
   }
 `;

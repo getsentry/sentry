@@ -58,10 +58,16 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, aggregate} = this.props;
     const {id: targetIssueId} = issue;
 
-    openDiffModal({baseIssueId, targetIssueId, project, orgId});
+    const hasSimilarityEmbeddingsFeature = project.features.includes(
+      'similarity-embeddings'
+    );
+    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
+      ? aggregate?.shouldBeGrouped
+      : '';
+    openDiffModal({baseIssueId, targetIssueId, project, orgId, shouldBeGrouped});
     event.stopPropagation();
   };
 

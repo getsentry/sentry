@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.priority import PRIORITY_UPDATE_CHOICES, update_priority
+from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -54,7 +54,7 @@ from sentry.signals import issue_resolved
 from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
@@ -597,7 +597,6 @@ def update_groups(
                 acting_user=acting_user,
                 status_details=result.get("statusDetails", {}),
                 sender=update_groups,
-                activity_type=activity_type,
             )
 
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
@@ -784,7 +783,7 @@ def handle_priority(priority: str, group_list: Sequence[Group], actor: User) -> 
     for group in group_list:
         update_priority(
             group=group,
-            priority=PRIORITY_UPDATE_CHOICES[priority] if priority else None,
+            priority=PriorityLevel.from_str(priority) if priority else None,
             actor=actor,
         )
         group.update(priority_locked_at=django_timezone.now())

@@ -6,7 +6,8 @@ from typing import Any, TypedDict
 from django.db import router, transaction
 from django.http import Http404
 
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -15,7 +16,7 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
-from .client import PagerDutyProxyClient
+from .client import PagerDutyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -130,15 +131,18 @@ def send_incident_alert_notification(
         integration_id=integration_id,
         organization_id=organization_id,
     )
-    if org_integration is None:
+    org_integration_id: int | None = None
+    if org_integration:
+        org_integration_id = org_integration.id
+    else:
+        org_integrations = None
         org_integration_id = infer_org_integration(integration_id=integration_id, ctx_logger=logger)
-        org_integrations = integration_service.get_organization_integrations(
-            org_integration_ids=[org_integration_id]
-        )
+        if org_integration_id:
+            org_integrations = integration_service.get_organization_integrations(
+                org_integration_ids=[org_integration_id]
+            )
         if org_integrations:
             org_integration = org_integrations[0]
-    else:
-        org_integration_id = org_integration.id
 
     if org_integration and action.target_identifier:
         service = get_service(org_integration, action.target_identifier)
@@ -157,10 +161,9 @@ def send_incident_alert_notification(
 
     integration_key = service["integration_key"]
     # TODO(hybridcloud) This should use the integration.installation client workflow instead.
-    client = PagerDutyProxyClient(
-        org_integration_id=org_integration_id,
+    client = PagerDutyClient(
+        integration_id=integration_id,
         integration_key=integration_key,
-        keyid=str(service["id"]),
     )
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid

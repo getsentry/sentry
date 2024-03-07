@@ -61,7 +61,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
     def test_get_group_creation_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc).replace(microsecond=0)
         e1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -120,7 +120,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_get_group_backfill_attributes(self):
-        now = datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc).replace(microsecond=0)
 
         assert get_group_backfill_attributes(
             get_caches(),
@@ -175,7 +175,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @mock.patch("sentry.analytics.record")
     def test_unmerge(self, mock_record):
-        now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
+        now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)

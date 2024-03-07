@@ -10,14 +10,14 @@ function OrganizationAvatar({organization, ...props}: Props) {
   if (!organization) {
     return null;
   }
-  const slug = (organization && organization.slug) || '';
+  const slug = organization?.slug || '';
   const title = explodeSlug(slug);
 
   return (
     <BaseAvatar
       {...props}
-      type={(organization.avatar && organization.avatar.avatarType) || 'letter_avatar'}
-      uploadUrl={organization.avatar && organization.avatar.avatarUrl}
+      type={organization.avatar?.avatarType || 'letter_avatar'}
+      uploadUrl={organization.avatar?.avatarUrl}
       letterId={slug}
       tooltip={slug}
       title={title}

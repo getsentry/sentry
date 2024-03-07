@@ -187,9 +187,7 @@ function TrendChart({
           withBreakpoint
         >
           {({isLoading, trendsData}) => {
-            const events = normalizeTrends(
-              (trendsData && trendsData.events && trendsData.events.data) || []
-            );
+            const events = normalizeTrends(trendsData?.events?.data || []);
 
             // keep trend change type as regression until the backend can support passing the type
             const selectedTransaction = getSelectedTransaction(
@@ -220,7 +218,7 @@ function TrendChart({
             );
 
             const metricsTimeFrame =
-              transactionEvent && transactionEvent.start && transactionEvent.end
+              transactionEvent?.start && transactionEvent.end
                 ? {start: transactionEvent.start * 1000, end: transactionEvent.end * 1000}
                 : undefined;
 

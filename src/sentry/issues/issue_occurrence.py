@@ -35,7 +35,7 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: str | None
     culprit: str | None
-    initial_issue_priority: NotRequired[int]
+    initial_issue_priority: NotRequired[int | None]
 
 
 @dataclass(frozen=True)
@@ -168,11 +168,13 @@ class IssueOccurrence:
         return f"i-o:{identifier}"
 
     def save(self) -> None:
-        nodestore.set(self.build_storage_identifier(self.id, self.project_id), self.to_dict())
+        nodestore.backend.set(
+            self.build_storage_identifier(self.id, self.project_id), self.to_dict()
+        )
 
     @classmethod
     def fetch(cls, id_: str, project_id: int) -> IssueOccurrence | None:
-        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
@@ -180,7 +182,7 @@ class IssueOccurrence:
     @classmethod
     def fetch_multi(cls, ids: Sequence[str], project_id: int) -> Sequence[IssueOccurrence | None]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
         ]

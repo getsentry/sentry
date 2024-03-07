@@ -1,3 +1,4 @@
+import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from time import sleep, time
@@ -11,10 +12,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from sentry.issues.endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.models.apikey import ApiKey
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_key, get_rate_limit_value
@@ -65,15 +65,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = None
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            install = SentryAppInstallation.objects.get(
-                sentry_app=internal_integration.id, organization_id=self.organization.id
-            )
-            token = install.api_token
 
-        assert token is not None
+        token = self.create_internal_integration_token(
+            user=self.user,
+            internal_integration=internal_integration,
+        )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
@@ -239,10 +235,10 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         )
 
         self.populate_internal_integration_request(request)
-        assert (
-            get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
-            == f"org:default:OrganizationGroupIndexEndpoint:GET:{self.organization.id}"
-        )
+        key_pattern = re.compile(r"^org:default:OrganizationGroupIndexEndpoint:GET:[a-zA-Z]$")
+        key = get_rate_limit_key(view, request, rate_limit_group, rate_limit_config)
+        assert key
+        assert key_pattern.match(key)
 
         # Test for
         request.user = AnonymousUser()

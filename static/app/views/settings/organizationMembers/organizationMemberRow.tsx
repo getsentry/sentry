@@ -116,7 +116,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
-    const has2fa = user && user.has2fa;
+    const has2fa = user?.has2fa;
     const detailsUrl = `/settings/${organization.slug}/members/${id}/`;
     const isInviteSuccessful = status === 'success';
     const isInviting = status === 'loading';

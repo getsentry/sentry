@@ -3,12 +3,17 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -199,8 +204,49 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const csharpFeedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C#',
+              value: 'csharp',
+              language: 'csharp',
+              code: `using Sentry;
+
+var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
+            },
+            {
+              label: 'F#',
+              value: 'fsharp',
+              language: 'fsharp',
+              code: `open Sentry
+
+let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: altCrashReportCallout(),
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
 };
 

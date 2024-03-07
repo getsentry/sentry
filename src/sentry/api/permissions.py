@@ -75,11 +75,44 @@ class StaffPermissionMixin:
     https://www.python.org/download/releases/2.3/mro/ to learn more.
     """
 
-    def has_permission(self, request, *args, **kwargs):
-        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+    staff_allowed_methods = {"GET", "POST", "PUT", "DELETE"}
 
-    def has_object_permission(self, request, *args, **kwargs):
-        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+    def has_permission(self, request, *args, **kwargs) -> bool:
+        """
+        Calls the parent class's has_permission method. If it returns False or
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
+        """
+        try:
+            if super().has_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
+                raise
+            return True
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
+
+    def has_object_permission(self, request, *args, **kwargs) -> bool:
+        """
+        Calls the parent class's has_object_permission method. If it returns False or
+        raises an exception and the method is allowed by the mixin, we then check
+        if the request is from an active staff. Raised exceptions are not caught
+        if the request is not allowed by the mixin or from an active staff.
+        """
+        try:
+            if super().has_object_permission(request, *args, **kwargs):
+                return True
+        except Exception:
+            if not (request.method in self.staff_allowed_methods and is_active_staff(request)):
+                raise
+            return True
+        return request.method in self.staff_allowed_methods and is_active_staff(request)
+
+    def is_not_2fa_compliant(self, request, *args, **kwargs) -> bool:
+        return super().is_not_2fa_compliant(request, *args, **kwargs) and not is_active_staff(
+            request
+        )
 
 
 # NOTE(schew2381): This is a temporary permission that does NOT perform an OR

@@ -3,13 +3,15 @@ import datetime
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py
 import json  # NOQA
+import logging
 import os
 import os.path
 import sys
 import traceback
-from distutils import log
 
 from .base import BaseBuildCommand
+
+log = logging.getLogger(__name__)
 
 
 class BuildAssetsCommand(BaseBuildCommand):
@@ -72,7 +74,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             except Exception:
                 pass
             else:
-                log.info(f"pulled version information from '{json_path}'")
+                log.info("pulled version information from %r", json_path)
                 version, build = data["version"], data["build"]
 
         return {"version": version, "build": build}
@@ -99,11 +101,10 @@ class BuildAssetsCommand(BaseBuildCommand):
     def _build(self):
         version_info = self._get_package_version()
         log.info(
-            "building assets for {} v{} (build {})".format(
-                self.distribution.get_name(),
-                version_info["version"] or "UNKNOWN",
-                version_info["build"] or "UNKNOWN",
-            )
+            "building assets for %s v%s (build %s)",
+            self.distribution.get_name(),
+            version_info["version"] or "UNKNOWN",
+            version_info["build"] or "UNKNOWN",
         )
         if not version_info["version"] or not version_info["build"]:
             log.fatal("Could not determine sentry version or build")
@@ -118,7 +119,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
         log.info("writing version manifest")
         manifest = self._write_version_file(version_info)
-        log.info(f"recorded manifest\n{json.dumps(manifest, indent=2)}")
+        log.info("recorded manifest\n%s", json.dumps(manifest, indent=2))
 
     def _build_static(self):
         # By setting NODE_ENV=production, a few things happen

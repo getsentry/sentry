@@ -15,7 +15,8 @@ export function ReduxContext({data}: Props) {
           {
             key: 'value',
             subject: t('Latest State'),
-            value: data,
+            // TODO(TS): Objects cannot be rendered to the dom
+            value: data as any,
           },
         ]}
       />

@@ -57,27 +57,22 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         user2 = self.create_user(email="user2@example.com")
         org3 = self.create_organization(name="C", owner=user2)
-        org4 = self.create_organization(name="D", owner=user2)
-        org5 = self.create_organization(name="E", owner=user2)
+        self.create_organization(name="D", owner=user2)
+        org4 = self.create_organization(name="E", owner=user2)
 
         self.create_member(user=user2, organization=org2, role="owner")
         self.create_member(user=self.user, organization=org3, role="owner")
 
-        owner_team = self.create_team(organization=org4, org_role="owner")
-        # org4 has 2 owners
-        self.create_member(user=self.user, organization=org4, role="member", teams=[owner_team])
-        self.create_member(user=self.user, organization=org5, role="member")
+        self.create_member(user=self.user, organization=org4, role="member")
 
         response = self.get_success_response(qs_params={"owner": 1})
-        assert len(response.data) == 4
+        assert len(response.data) == 3
         assert response.data[0]["organization"]["id"] == str(org.id)
         assert response.data[0]["singleOwner"] is True
         assert response.data[1]["organization"]["id"] == str(org2.id)
         assert response.data[1]["singleOwner"] is False
         assert response.data[2]["organization"]["id"] == str(org3.id)
         assert response.data[2]["singleOwner"] is False
-        assert response.data[3]["organization"]["id"] == str(org4.id)
-        assert response.data[3]["singleOwner"] is False
 
     def test_status_query(self):
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)

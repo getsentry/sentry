@@ -1,14 +1,15 @@
 """ Write transactions into redis sets """
 import logging
-import random
 from collections.abc import Iterator, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
+from rediscluster import RedisCluster
 
-from sentry import features, options
+from sentry import features
+from sentry.features.rollout import in_random_rollout
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
     HTTP_404_TAG,
@@ -45,10 +46,10 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
     return f"{prefix}:projects"
 
 
-def get_redis_client() -> Any:
+def get_redis_client() -> RedisCluster:
     # XXX(iker): we may want to revisit the decision of having a single Redis cluster.
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
@@ -110,8 +111,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             transaction_name,
             _with_transaction=False,
         )
-        sample_rate = options.get("txnames.bump-lifetime-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
+        if in_random_rollout("txnames.bump-lifetime-sample-rate"):
             safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 

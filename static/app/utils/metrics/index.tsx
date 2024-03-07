@@ -20,14 +20,10 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
-  MetricsApiRequestMetric,
-  MetricsApiRequestQuery,
-  MetricsApiRequestQueryOptions,
   MetricsDataIntervalLadder,
-  MetricsGroup,
   MetricsOperation,
   MRI,
   UseCase,
@@ -36,27 +32,23 @@ import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  formatMRI,
-  formatMRIField,
-  getUseCaseFromMRI,
-  MRIToField,
-  parseField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import type {
   DdmQueryParams,
   MetricsQuery,
-  MetricsQuerySubject,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import {
+  isMetricFormula,
+  type MetricsQueryApiQueryParams,
+} from 'sentry/utils/metrics/useMetricsQuery';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
+  mri?: MetricsQuery['mri'],
+  op?: MetricsQuery['op']
 ): MetricDisplayType {
   if (mri?.startsWith('c') || op === 'count') {
     return MetricDisplayType.BAR;
@@ -86,7 +78,7 @@ export function getDdmUrl(
     project,
     ...otherParams
   }: Omit<DdmQueryParams, 'project' | 'widgets'> & {
-    widgets: MetricWidgetQueryParams[];
+    widgets: Partial<MetricWidgetQueryParams>[];
     project?: (string | number)[];
   }
 ) {
@@ -104,37 +96,6 @@ export function getDdmUrl(
   }
 
   return `/organizations/${orgSlug}/ddm/?${qs.stringify(urlParams)}`;
-}
-
-export function getMetricsApiRequestQuery(
-  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
-  {projects, environments, datetime}: PageFilters,
-  {intervalLadder, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
-): MetricsApiRequestQuery {
-  const {mri: mri} = parseField(field) ?? {};
-  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, intervalLadder);
-
-  const hasGroupBy = groupBy && groupBy.length > 0;
-
-  const queryToSend = {
-    ...getDateTimeParams(datetime),
-    query: sanitizeQuery(query),
-    project: projects,
-    environment: environments,
-    field,
-    useCase,
-    interval,
-    groupBy,
-    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
-    useNewMetricsLayer: true,
-  };
-
-  return {...queryToSend, ...overrides};
-}
-
-function sanitizeQuery(query?: string) {
-  return query?.trim();
 }
 
 const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
@@ -263,19 +224,51 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function getMetricsSeriesName(group: MetricsGroup) {
-  const groupByEntries = Object.entries(group.by ?? {});
-  if (!groupByEntries.length) {
-    const field = Object.keys(group.series)?.[0];
-    const {mri} = parseField(field) ?? {mri: field};
-    const name = formatMRI(mri as MRI);
+export function unescapeMetricsFormula(formula: string) {
+  // Remove the $ from variable names
+  return formula.replaceAll('$', '');
+}
 
-    return name ?? '(none)';
+export function getMetricsSeriesName(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>,
+  isMultiQuery: boolean = true
+) {
+  let name = '';
+  if (isMetricFormula(query)) {
+    name = unescapeMetricsFormula(query.formula);
+  } else {
+    name = formatMRIField(MRIToField(query.mri, query.op));
   }
 
-  return groupByEntries
+  if (isMultiQuery) {
+    name = `${query.name}: ${name}`;
+  }
+
+  const groupByEntries = Object.entries(groupBy ?? {});
+
+  if (!groupByEntries || !groupByEntries.length) {
+    return name;
+  }
+
+  const formattedGrouping = groupByEntries
     .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
     .join(', ');
+
+  if (isMultiQuery) {
+    return `${name} - ${formattedGrouping}`;
+  }
+  return formattedGrouping;
+}
+
+export function getMetricsSeriesId(
+  query: MetricsQueryApiQueryParams,
+  groupBy?: Record<string, string>
+) {
+  if (Object.keys(groupBy ?? {}).length === 0) {
+    return `${query.name}`;
+  }
+  return `${query.name}-${JSON.stringify(groupBy)}`;
 }
 
 export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
@@ -321,41 +314,13 @@ export function isSpanMetric({mri}: {mri: MRI}) {
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+    return MRIToField(metricsQuery.mri, metricsQuery.op);
   }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op));
 }
 
-// TODO(ddm): remove this and all of its usages once backend sends mri fields
-export function mapToMRIFields(
-  data: MetricsApiResponse | undefined,
-  fields: string[]
-): void {
-  if (!data) {
-    return;
-  }
-
-  data.groups.forEach(group => {
-    group.series = swapObjectKeys(group.series, fields);
-    group.totals = swapObjectKeys(group.totals, fields);
-  });
-}
-
-function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
-  if (!obj) {
-    return {};
-  }
-
-  return Object.keys(obj).reduce((acc, key, index) => {
-    acc[newKeys[index]] = obj[key];
-    return acc;
-  }, {});
-}
-
-export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
-
+export function getFormattedMQL({mri, op, query, groupBy}: MetricsQuery): string {
   if (!op) {
     return '';
   }
@@ -366,11 +331,41 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
     result += `{${query.trim()}}`;
   }
 
-  if (groupBy && groupBy.length) {
+  if (groupBy?.length) {
     result += ` by ${groupBy.join(', ')}`;
   }
 
   return result;
+}
+
+export function isFormattedMQL(mql: string) {
+  const regex = /^(\w+\([\w\.]+\))(?:\{\w+\:\w+\})*(?:\sby\s\w+)*/;
+
+  const matches = mql.match(regex);
+
+  const [, field, query, groupBy] = matches ?? [];
+
+  if (!field) {
+    return false;
+  }
+
+  if (query) {
+    return query.includes(':');
+  }
+
+  if (groupBy) {
+    // TODO check groupbys
+  }
+
+  return true;
+}
+
+export function getWidgetTitle(queries: MetricsQuery[]) {
+  if (queries.length === 1) {
+    return getFormattedMQL(queries[0]);
+  }
+
+  return queries.map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? ''))).join(', ');
 }
 
 // TODO: consider moving this to utils/dates.tsx
@@ -398,10 +393,6 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
-}
-
-export function isSupportedDisplayType(displayType: unknown) {
-  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
 }
 
 export function getMetricsCorrelationSpanUrl(

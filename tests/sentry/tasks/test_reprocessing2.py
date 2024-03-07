@@ -436,6 +436,7 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
+
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
@@ -464,7 +465,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert mock_logger.error.called_with("reprocessing2.unprocessed_event.not_found")
+    mock_logger.error.assert_called_once_with("reprocessing2.%s", "unprocessed_event.not_found")
 
 
 @django_db_all

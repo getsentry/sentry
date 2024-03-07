@@ -110,7 +110,7 @@ export default class AbstractExternalIssueForm<
   ): {[key: string]: FieldValue | null} => {
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
-    const config = (integrationDetails || {})[this.getConfigName()];
+    const config = integrationDetails?.[this.getConfigName()];
     return Object.fromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
@@ -187,7 +187,7 @@ export default class AbstractExternalIssueForm<
         <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
-              label: field.label,
+              label: field.label as React.ReactNode,
             })}
             size="xs"
           />{' '}
@@ -321,7 +321,7 @@ export default class AbstractExternalIssueForm<
   loadAsyncThenFetchAllFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
-    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    const configsFromAPI = integrationDetails?.[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
       // Overwrite choices from cache.

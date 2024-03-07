@@ -3,20 +3,8 @@
 import os
 import sys
 
-python_version = sys.version_info[:2]
-
-if python_version < (3, 8):
-    sys.exit(f"Error: Sentry requires at least Python 3.8 ({python_version})")
-if python_version != (3, 8):
-    import logging
-
-    logger = logging.getLogger()
-    logger.warning("A Python version different than 3.8 is being used (%s)", python_version)
-
-
-from distutils.command.build import build as BuildCommand
-
 from setuptools import setup
+from setuptools.command.build import build as BuildCommand
 from setuptools.command.develop import develop as DevelopCommand
 from setuptools.command.sdist import sdist as SDistCommand
 
@@ -37,7 +25,8 @@ class SentrySDistCommand(SDistCommand):
     # If we are not a light build we want to also execute build_assets as
     # part of our source build pipeline.
     if not IS_LIGHT_BUILD:
-        sub_commands = SDistCommand.sub_commands + [
+        sub_commands = [
+            *SDistCommand.sub_commands,
             ("build_integration_docs", None),
             ("build_assets", None),
             ("build_js_sdk_registry", None),
@@ -46,9 +35,9 @@ class SentrySDistCommand(SDistCommand):
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
-        from distutils import log as distutils_log
+        import logging
 
-        distutils_log.set_threshold(distutils_log.WARN)
+        logging.getLogger("sentry").setLevel(logging.WARNING)
 
         if not IS_LIGHT_BUILD:
             self.run_command("build_integration_docs")

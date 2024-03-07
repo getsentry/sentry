@@ -160,23 +160,21 @@ async function createIntegrationResults(
 ): Promise<ResultItem[]> {
   const {providers} = (await integrationsPromise) || {};
   return (
-    (providers &&
-      providers.map(provider => ({
-        title: provider.name,
-        description: (
-          <span
-            dangerouslySetInnerHTML={{
-              __html: markedSingleLine(provider.metadata.description),
-            }}
-          />
-        ),
-        model: provider,
-        sourceType: 'integration',
-        resultType: 'integration',
-        to: `/settings/${orgId}/integrations/${provider.slug}/`,
-        configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
-      }))) ||
-    []
+    providers?.map(provider => ({
+      title: provider.name,
+      description: (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: markedSingleLine(provider.metadata.description),
+          }}
+        />
+      ),
+      model: provider,
+      sourceType: 'integration',
+      resultType: 'integration',
+      to: `/settings/${orgId}/integrations/${provider.slug}/`,
+      configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
+    })) || []
   );
 }
 
@@ -230,13 +228,11 @@ async function createShortIdLookupResult(
     return null;
   }
 
-  const issue = shortIdLookup && shortIdLookup.group;
+  const issue = shortIdLookup?.group;
   return {
     item: {
-      title: `${
-        (issue && issue.metadata && issue.metadata.type) || shortIdLookup.shortId
-      }`,
-      description: `${(issue && issue.metadata && issue.metadata.value) || t('Issue')}`,
+      title: `${issue?.metadata?.type || shortIdLookup.shortId}`,
+      description: `${issue?.metadata?.value || t('Issue')}`,
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
@@ -255,11 +251,11 @@ async function createEventIdLookupResult(
     return null;
   }
 
-  const event = eventIdLookup && eventIdLookup.event;
+  const event = eventIdLookup?.event;
   return {
     item: {
-      title: `${(event && event.metadata && event.metadata.type) || t('Event')}`,
-      description: `${event && event.metadata && event.metadata.value}`,
+      title: `${event?.metadata?.type || t('Event')}`,
+      description: `${event?.metadata?.value}`,
       sourceType: 'event',
       resultType: 'event',
       to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,

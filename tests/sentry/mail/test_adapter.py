@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from functools import cached_property
 from unittest import mock
 from unittest.mock import ANY
@@ -36,7 +36,7 @@ from sentry.models.rule import Rule
 from sentry.models.useremail import UserEmail
 from sentry.models.userreport import UserReport
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
@@ -51,7 +51,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
-from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
@@ -170,7 +169,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -213,12 +216,16 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = Rule.objects.create(
             project=self.project, label="my rule", environment_id=environment.id
         )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -276,7 +283,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -321,7 +332,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            datetime.now(UTC),
             "info",
             "/api/123",
         )
@@ -336,7 +347,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -373,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             {"Test": 123},
             [],  # no evidence
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            datetime.now(UTC),
             "info",
             "/api/123",
         )
@@ -388,7 +403,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -404,7 +423,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -440,7 +463,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
@@ -448,8 +475,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
     def test_notify_users_does_email(self, mock_logger, mock_func):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
+        self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -460,19 +486,22 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
         group = event.group
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingProvider.objects.create(
-                user_id=self.user.id,
-                scope_type="user",
-                scope_identifier=self.user.id,
-                provider="slack",
-                type="alerts",
-                value="never",
-            )
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
+        )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.tasks():
-            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
+            AlertRuleNotification(
+                Notification(event=event),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
 
         assert mock_func.call_count == 1
 
@@ -497,7 +526,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 "group": group.id,
                 "project_id": group.project.id,
                 "organization": group.organization.id,
-                "fallthrough_choice": None,
+                "fallthrough_choice": "ActiveMembers",
                 "notification_uuid": mock.ANY,
             },
         )
@@ -553,7 +582,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event_manager.save(self.project.id)
 
         with self.tasks():
-            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
+            AlertRuleNotification(
+                Notification(event=event),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
 
         assert mock_func.call_count == 1
 
@@ -591,7 +624,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         event = event_manager.save(self.project.id)
         with self.tasks():
-            AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
+            AlertRuleNotification(
+                Notification(event=event),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
 
         assert mock_func.call_count == 1
         args, kwargs = mock_func.call_args
@@ -607,7 +644,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -635,7 +676,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -720,7 +765,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         with self.tasks():
             notification = Notification(event=event)
 
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) >= 1
 
@@ -750,7 +799,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         with self.feature(features):
             with self.tasks():
                 notification = Notification(event=event)
-                self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+                self.adapter.notify(
+                    notification,
+                    ActionTargetType.ISSUE_OWNERS,
+                    fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+                )
 
         assert len(mail.outbox) >= 1
 
@@ -770,7 +823,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         with self.tasks():
             notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) >= 1
 
@@ -795,7 +852,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         with self.tasks():
             notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) >= 1
 
@@ -818,7 +879,11 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         with self.tasks():
             notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) >= 1
 
@@ -1271,7 +1336,11 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -1315,7 +1384,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1
@@ -1367,7 +1441,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
         with self.feature(features), self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1
@@ -1400,7 +1479,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 0
@@ -1432,7 +1516,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 2  # we send it to 2 users
@@ -1477,7 +1566,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1  # we send it to only 1 user
@@ -1516,7 +1610,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1  # we send it to only 1 user
@@ -1533,7 +1632,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         rule = self.project.rule_set.all()[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))[0]
-        self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
+        self.adapter.notify_digest(
+            self.project,
+            digest,
+            ActionTargetType.ISSUE_OWNERS,
+            fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+        )
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
@@ -1559,7 +1663,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )[0]
 
         with self.tasks():
-            self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.notify_digest(
+                self.project,
+                digest,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
 
         assert len(mail.outbox) == 1
 

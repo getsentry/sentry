@@ -356,18 +356,6 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         )
         return result
 
-    def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str, lineno: int
-    ) -> Sequence[Mapping[str, Any]]:
-        project_id = repo.config["project_id"]
-        encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
-        contents = self.get(
-            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
-        )
-
-        return contents or []
-
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:

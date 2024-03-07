@@ -21,7 +21,7 @@ import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -76,6 +76,8 @@ function ResourceSummary() {
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
+      baseURL="/performance/browser/resources"
+      features="starfish-browser-resource-module-ui"
     >
       <Layout.Header>
         <Layout.HeaderContent>

@@ -9,12 +9,12 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-import api from "@serverless/cloud";
-import * as Sentry from "@sentry/node";
+const api = require("@serverless/cloud");
+const Sentry = require('@sentry/node');
 
-// or using CommonJS
-// const api = require("@serverless/cloud");
-// const Sentry = require('@sentry/node');
+// or using ESM
+// import api from "@serverless/cloud";
+// import * as Sentry from "@sentry/node";
 
 Sentry.init({
 dsn: "${params.dsn}",

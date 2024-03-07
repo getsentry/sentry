@@ -40,6 +40,9 @@ export const ActionableItemWarning = [
   GenericSchemaErrors.CLOCK_DRIFT,
   GenericSchemaErrors.PAST_TIMESTAMP,
   GenericSchemaErrors.VALUE_TOO_LONG,
+  GenericSchemaErrors.INVALID_DATA,
+  GenericSchemaErrors.INVALID_ATTRIBUTE,
+  GenericSchemaErrors.MISSING_ATTRIBUTE,
 ];
 
 interface BaseActionableItem {

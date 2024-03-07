@@ -120,7 +120,11 @@ def get_rule(slack_request: SlackActionRequest) -> Group | None:
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
-    return Rule.objects.get(id=rule_id)
+    try:
+        rule = Rule.objects.get(id=rule_id)
+    except Rule.DoesNotExist:
+        return None
+    return rule
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -772,7 +776,7 @@ class SlackActionEndpoint(Endpoint):
         use_block_kit = False
         if len(org_integrations):
             org_context = organization_service.get_organization_by_id(
-                id=org_integrations[0].organization_id
+                id=org_integrations[0].organization_id, include_projects=False, include_teams=False
             )
             if org_context:
                 use_block_kit = any(

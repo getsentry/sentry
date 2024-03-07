@@ -1,16 +1,14 @@
-from datetime import timezone
-
 from django.utils import timezone as django_timezone
 
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
-event_time = before_now(days=3).replace(tzinfo=timezone.utc)
+event_time = before_now(days=3)
 
 
 @no_silo_test

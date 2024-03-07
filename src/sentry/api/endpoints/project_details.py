@@ -19,6 +19,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
@@ -450,6 +451,10 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermission):
+    pass
+
+
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
@@ -458,7 +463,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (RelaxedProjectPermission,)
+    permission_classes = (RelaxedProjectAndStaffPermission,)
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
@@ -811,6 +816,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
+                )
+            if "sentry:feedback_user_report_notifications" in options:
+                project.update_option(
+                    "sentry:feedback_user_report_notifications",
+                    bool(options["sentry:feedback_user_report_notifications"]),
+                )
+            if "sentry:feedback_ai_spam_detection" in options:
+                project.update_option(
+                    "sentry:feedback_ai_spam_detection",
+                    bool(options["sentry:feedback_ai_spam_detection"]),
                 )
             if "sentry:reprocessing_active" in options:
                 project.update_option(

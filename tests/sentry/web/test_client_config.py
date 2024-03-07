@@ -90,7 +90,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     else:
         request = None
 
-    base_line = get_client_config(request)
+    base_line = dict(get_client_config(request))
 
     # Removing the region list as it varies based on silo mode.
     # See Region.to_url()
@@ -100,7 +100,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
     for silo_mode in SiloMode:
         with override_settings(SILO_MODE=silo_mode):
-            result = get_client_config(request)
+            result = dict(get_client_config(request))
             result.pop("regions")
             result["links"].pop("regionUrl")
             assert result == base_line
@@ -162,6 +162,40 @@ def test_client_config_with_region_data():
     assert len(result["regions"]) == 2
     regions = result["regions"]
     assert {r["name"] for r in regions} == {"eu", "us"}
+
+
+multiregion_client_config_test = control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+
+hidden_regions = [
+    region.Region(
+        name="us",
+        snowflake_id=1,
+        address="https//us.testserver",
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+    region.Region(
+        name="eu",
+        snowflake_id=5,
+        address="https//eu.testserver",
+        visible=False,
+        category=region.RegionCategory.MULTI_TENANT,
+    ),
+]
+
+
+@control_silo_test(regions=hidden_regions, include_monolith_run=True)
+@django_db_all
+def test_client_config_with_hidden_region_data():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert {r["name"] for r in regions} == {"us"}
 
 
 @multiregion_client_config_test

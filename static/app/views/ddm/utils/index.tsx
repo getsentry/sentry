@@ -1,5 +1,5 @@
 import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries} from 'sentry/utils/metrics/types';
 
 function constructQueryString(queryObject: Record<string, string>) {
   return Object.entries(queryObject)
@@ -7,10 +7,13 @@ function constructQueryString(queryObject: Record<string, string>) {
     .join(' ');
 }
 
-export function getQueryWithFocusedSeries(widget: MetricWidgetQueryParams) {
-  const focusedSeriesQuery = widget.focusedSeries
+export function getQueryWithFocusedSeries(
+  query: string,
+  focusedSeries?: FocusedMetricsSeries[]
+) {
+  const focusedSeriesQuery = focusedSeries
     ?.map(series => {
-      if (!series.groupBy) {
+      if (!series.groupBy || Object.keys(series.groupBy).length === 0) {
         return '';
       }
       return `(${constructQueryString(series.groupBy)})`;
@@ -18,7 +21,5 @@ export function getQueryWithFocusedSeries(widget: MetricWidgetQueryParams) {
     .filter(Boolean)
     .join(` ${BooleanOperator.OR} `);
 
-  return focusedSeriesQuery
-    ? `${widget.query} (${focusedSeriesQuery})`.trim()
-    : widget.query;
+  return focusedSeriesQuery ? `${query} (${focusedSeriesQuery})`.trim() : query;
 }

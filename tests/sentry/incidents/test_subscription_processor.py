@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -16,11 +16,15 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
+    alert_subscription_callback_registry,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -205,6 +209,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
+            monitor_type=AlertRuleMonitorType.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -277,9 +282,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             processor.process_update(message)
         return processor
 
@@ -2180,6 +2186,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
+    def test_invoke_alert_subscription_callback(self):
+        mock = Mock()
+        alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] = mock
+
+        self.send_update(self.rule, 1, subscription=self.sub)
+
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.sub
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -2260,9 +2275,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2274,9 +2290,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {
@@ -2769,9 +2785,10 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             timestamp = django_timezone.now()
         timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2786,9 +2803,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {"project_id": 8, session_status: tag_value_init, "value": denominator},
@@ -2849,7 +2866,7 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        timestamp = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = datetime.now(UTC).replace(microsecond=0)
         pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
@@ -2871,7 +2888,7 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        date = datetime.utcnow().replace(tzinfo=timezone.utc)
+        date = datetime.now(timezone.utc)
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = [

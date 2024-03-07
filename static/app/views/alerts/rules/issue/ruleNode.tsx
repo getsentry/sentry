@@ -13,7 +13,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {Choices, Organization, Project} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -232,7 +232,6 @@ interface Props {
   incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
   node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
-  ownership?: null | IssueOwnership;
 }
 
 function RuleNode({
@@ -245,7 +244,6 @@ function RuleNode({
   onDelete,
   onPropertyChange,
   onReset,
-  ownership,
   incompatibleRule,
   incompatibleBanner,
 }: Props) {
@@ -315,8 +313,7 @@ function RuleNode({
 
     if (
       data.id === IssueAlertActionType.NOTIFY_EMAIL &&
-      data.targetType !== MailActionTargetType.ISSUE_OWNERS &&
-      organization.features.includes('issue-alert-fallback-targeting')
+      data.targetType !== MailActionTargetType.ISSUE_OWNERS
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
@@ -340,7 +337,7 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {node.formFields && node.formFields.hasOwnProperty(key)
+          {node.formFields?.hasOwnProperty(key)
             ? getField(key, node.formFields[key])
             : part}
         </Separator>
@@ -488,70 +485,6 @@ function RuleNode({
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
-      );
-    }
-
-    if (
-      data.id === IssueAlertActionType.NOTIFY_EMAIL &&
-      data.targetType === MailActionTargetType.ISSUE_OWNERS &&
-      !organization.features.includes('issue-alert-fallback-targeting')
-    ) {
-      return (
-        <MarginlessAlert type="warning">
-          {!ownership
-            ? tct(
-                'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )
-            : ownership.fallthrough
-              ? tct(
-                  'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
-                  {
-                    issueOwners: (
-                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                        {t('issue owners')}
-                      </ExternalLink>
-                    ),
-                    ownershipSettings: (
-                      <ExternalLink
-                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                      >
-                        {t('ownership settings')}
-                      </ExternalLink>
-                    ),
-                  }
-                )
-              : tct(
-                  'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
-                  {
-                    issueOwners: (
-                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                        {t('issue owners')}
-                      </ExternalLink>
-                    ),
-                    ownershipSettings: (
-                      <ExternalLink
-                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                      >
-                        {t('ownership settings')}
-                      </ExternalLink>
-                    ),
-                  }
-                )}
         </MarginlessAlert>
       );
     }

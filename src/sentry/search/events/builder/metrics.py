@@ -30,6 +30,7 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -58,7 +59,7 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     fetch_on_demand_metric_spec,
-    should_use_on_demand_metrics,
+    should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import (
@@ -159,7 +160,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
         groupby_columns = self._get_group_bys()
 
-        if not should_use_on_demand_metrics(self.dataset, field, self.query, groupby_columns):
+        if not should_use_on_demand_metrics_for_querying(
+            Organization.objects.get_from_cache(id=self.organization_id),
+            dataset=self.dataset,
+            aggregate=field,
+            query=self.query,
+            groupbys=groupby_columns,
+        ):
             return None
 
         try:
@@ -1022,16 +1029,23 @@ class MetricsQueryBuilder(QueryBuilder):
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
-            groupbys = [Column(col) for col in self._get_group_bys()]
-        groupby_aliases = [
-            groupby.alias
-            if isinstance(groupby, (AliasedExpression, CurriedFunction))
-            else groupby.name
-            for groupby in groupbys
-            if not (
-                isinstance(groupby, CurriedFunction) and groupby.function == "team_key_transaction"
-            )
-        ]
+            groupbys = [self.resolve_column(col) for col in self._get_group_bys()]
+            # Later the query is made by passing these columns to metrics layer so we can just have the aliases be the
+            # raw groupbys
+            groupby_aliases = self._get_group_bys()
+        else:
+            groupby_aliases = [
+                (
+                    groupby.alias
+                    if isinstance(groupby, (AliasedExpression, CurriedFunction))
+                    else groupby.name
+                )
+                for groupby in groupbys
+                if not (
+                    isinstance(groupby, CurriedFunction)
+                    and groupby.function == "team_key_transaction"
+                )
+            ]
         # The typing for these are weak (all using Any) since the results from snuba can contain an assortment of types
         value_map: dict[str, Any] = defaultdict(dict)
         groupby_values: list[Any] = []
@@ -1074,9 +1088,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                     if not (
                                         isinstance(groupby, CurriedFunction)
@@ -1172,9 +1188,11 @@ class MetricsQueryBuilder(QueryBuilder):
                             Function(
                                 "tuple",
                                 [
-                                    groupby.exp
-                                    if isinstance(groupby, AliasedExpression)
-                                    else groupby
+                                    (
+                                        groupby.exp
+                                        if isinstance(groupby, AliasedExpression)
+                                        else groupby
+                                    )
                                     for groupby in self.groupby
                                 ],
                             ),
@@ -1845,9 +1863,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                             get_series(
                                 projects=self.params.projects,
                                 metrics_query=metrics_query,
-                                use_case_id=UseCaseID.TRANSACTIONS
-                                if self.is_performance
-                                else UseCaseID.SESSIONS,
+                                use_case_id=(
+                                    UseCaseID.TRANSACTIONS
+                                    if self.is_performance
+                                    else UseCaseID.SESSIONS
+                                ),
                                 include_meta=True,
                                 tenant_ids=self.tenant_ids,
                             )

@@ -1,11 +1,27 @@
+from unittest import mock
+
 from django.urls import reverse
 
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
+    DashboardWidgetTypes,
+)
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
+ONDEMAND_FEATURES = [
+    "organizations:on-demand-metrics-extraction",
+    "organizations:on-demand-metrics-extraction-widgets",
+    "organizations:on-demand-metrics-extraction-experimental",
+    "organizations:on-demand-metrics-prefill",
+]
 
 
 @region_silo_test
@@ -665,3 +681,356 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         }
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
+
+    def test_dashboard_widget_ondemand_one_field(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        # There's no data, so `sometag` should be low cardinality
+        assert len(response.data) == 1
+        assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
+        # We cache so we shouldn't call query cardinality again if all the keys are the same
+        with self.feature(ONDEMAND_FEATURES):
+            with mock.patch(
+                "sentry.tasks.on_demand_metrics._query_cardinality", return_value=([], [])
+            ) as mock_query:
+                self.client.post(f"{self.url()}?environment=mock_env", data)
+                assert len(mock_query.mock_calls) == 0
+
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["someothertag", "sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        # If there's a new key we should only query that key
+        with self.feature(ONDEMAND_FEATURES):
+            with mock.patch(
+                "sentry.tasks.on_demand_metrics._query_cardinality", return_value=([], [])
+            ) as mock_query:
+                self.client.post(f"{self.url()}?environment=mock_env", data)
+                mock_query.assert_called_once()
+                assert mock_query.mock_calls[0] == mock.call(["someothertag"], mock.ANY, "1h")
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
+        mock_query.return_value = {
+            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
+        }, [
+            "sometag",
+            "someothertag",
+        ]
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert "columns" in warnings
+        assert len(warnings["columns"]) == 1
+        assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+        # We queried sometag already, we shouldn't call the cardinality query again
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        with self.feature(ONDEMAND_FEATURES):
+            self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert len(mock_query.mock_calls) == 1
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_dashboard_hits_max_specs(self, mock_max):
+        # create another widget so we already have a widget spec
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
+            widget=self.widget_1,
+            name=self.anon_users_query["name"],
+            fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
+            conditions=self.anon_users_query["conditions"],
+            order=0,
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=self.widget_1_data_1,
+            spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
+                self.organization
+            ).version,
+            spec_hashes=["abcd"],
+            extraction_state="enabled:manual",
+        )
+
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert warnings["queries"][0] == "disabled:spec-limit"
+
+        mock_max.return_value = 100
+        # With higher max, we shouldn't hit the spec-limit
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        assert response.data == {"warnings": {"columns": {}, "queries": [None]}}
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_warnings_show_up_with_error(self, mock_query):
+        mock_query.return_value = {
+            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
+        }, [
+            "sometag",
+            "someothertag",
+        ]
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage: adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 400, response.data
+        warnings = response.data["warnings"]
+        assert "queries" in warnings
+        assert len(warnings["queries"]) == 1
+        assert warnings["queries"][0] == "disabled:not-applicable"
+        assert response.data["queries"][0]["conditions"], response.data
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_first_query_without_ondemand_but_second_with(self, mock_max):
+        # create another widget so we already have a widget spec
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
+            widget=self.widget_1,
+            name=self.anon_users_query["name"],
+            fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
+            conditions=self.anon_users_query["conditions"],
+            order=0,
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=self.widget_1_data_1,
+            spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
+                self.organization
+            ).version,
+            spec_hashes=["abcd"],
+            extraction_state="enabled:manual",
+        )
+
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
+                },
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert len(warnings["queries"]) == 2
+        assert warnings["queries"][0] is None
+        assert warnings["queries"][1] == "disabled:spec-limit"
+
+    def test_on_demand_doesnt_query(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        # There's no data, so `sometag` should be low cardinality
+
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
+                }
+            ],
+        }
+        # With extraction disabled we shouldn't check
+        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
+            self.client.post(f"{self.url()}?environment=mock_env", data)
+            assert len(mock_query.mock_calls) == 0
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_ondemand_disabled_adds_queries(self, mock_max):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionDisabled": True,
+                },
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "onDemandExtractionDisabled": True,
+                },
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert len(warnings["queries"]) == 2
+        assert response.data == {"warnings": {"columns": {}, "queries": [None, None]}}

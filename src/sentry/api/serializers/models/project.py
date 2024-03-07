@@ -3,14 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from typing import Any, Final, TypedDict, cast
 
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
 from django.utils import timezone
-from typing_extensions import TypedDict
 
 from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -35,9 +34,9 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
+from sentry.processing import realtime_metrics
 from sentry.roles import organization_roles
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
@@ -61,9 +60,27 @@ STATS_PERIOD_CHOICES = {
 _PROJECT_SCOPE_PREFIX = "projects:"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
+UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 
 
-def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+# These features are not used on the frontend,
+# and add a lot of latency ~100-300ms per flag for large organizations
+# so we exclude them from the response if the unusedFeatures collapse parameter is set
+PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
+    "profiling-ingest-unsampled-profiles",
+    "discard-transaction",
+    "span-metrics-extraction-resource",
+    "span-metrics-extraction-all-modules",
+    "race-free-group-creation",
+    "first-event-severity-new-escalation",
+    "first-event-severity-calculation",
+    "first-event-severity-alerting",
+    "alert-filters",
+    "servicehooks",
+}
+
+
+def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -80,64 +97,64 @@ def get_access_by_project(
 ) -> MutableMapping[Project, MutableMapping[str, Any]]:
     request = env.request
 
-    project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-    project_team_map = defaultdict(list)
+    project_teams = ProjectTeam.objects.filter(project__in=projects).values_list(
+        "project_id", "team_id"
+    )
 
-    for pt in project_teams:
-        project_team_map[pt.project_id].append(pt.team)
+    project_to_teams = defaultdict(list)
+    teams_list = []
+    for project_id, team_id in project_teams:
+        project_to_teams[project_id].append(team_id)
+        teams_list.append(team_id)
 
-    team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
+    team_memberships = _get_team_memberships(teams_list, user)
 
     org_ids = {i.organization_id for i in projects}
-    all_org_roles = get_org_roles(org_ids, user)
+    org_roles = get_org_roles(org_ids, user)
     is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
     result = {}
     has_team_roles_cache = {}
-    for project in projects:
-        parent_teams = [t.id for t in project_team_map.get(project.id, [])]
-        member_teams = [m for m in team_memberships if m.team_id in parent_teams]
-        is_member = any(member_teams)
-        org_roles = all_org_roles.get(project.organization_id) or []
+    with sentry_sdk.start_span(op="project.check-access"):
+        for project in projects:
+            parent_teams = [t for t in project_to_teams.get(project.id, [])]
+            member_teams = [m for m in team_memberships if m.team_id in parent_teams]
+            is_member = any(member_teams)
+            org_role = org_roles.get(project.organization_id)
 
-        has_access = bool(
-            is_member
-            or is_superuser
-            or project.organization.flags.allow_joinleave
-            or any(roles.get(org_role).is_global for org_role in org_roles)
-        )
+            has_access = bool(
+                is_member
+                or is_superuser
+                or project.organization.flags.allow_joinleave
+                or (org_role and roles.get(org_role).is_global)
+            )
 
-        team_scopes = set()
-        with sentry_sdk.start_span(
-            op="project.check-team-access", description=f"project={project.id}"
-        ) as span:
-            span.set_tag("project.member_count", len(member_teams))
+            team_scopes = set()
+
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
                 for member in member_teams:
                     team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
-                # User may have elevated team-roles from their org-role
-                top_org_role = org_roles[0] if org_roles else None
                 if is_superuser:
-                    top_org_role = organization_roles.get_top_dog().id
+                    org_role = organization_roles.get_top_dog().id
 
-                if top_org_role:
-                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                if org_role:
+                    minimum_team_role = roles.get_minimum_team_role(org_role)
                     team_scopes = team_scopes.union(minimum_team_role.scopes)
 
-        result[project] = {
-            "is_member": is_member,
-            "has_access": has_access,
-            "access": team_scopes,
-        }
+            result[project] = {
+                "is_member": is_member,
+                "has_access": has_access,
+                "access": team_scopes,
+            }
     return result
 
 
 def get_features_for_projects(
-    all_projects: Sequence[Project], user: User
+    all_projects: Sequence[Project], user: User, filter_unused_on_frontend_features: bool = False
 ) -> MutableMapping[Project, list[str]]:
     # Arrange to call features.has_for_batch rather than features.has
     # for performance's sake
@@ -151,6 +168,12 @@ def get_features_for_projects(
         for feature in features.all(feature_type=ProjectFeature).keys()
         if feature.startswith(_PROJECT_SCOPE_PREFIX)
     ]
+    if filter_unused_on_frontend_features:
+        project_features = [
+            feature
+            for feature in project_features
+            if feature[len(_PROJECT_SCOPE_PREFIX) :] not in PROJECT_FEATURES_NOT_USED_ON_FRONTEND
+        ]
 
     batch_checked = set()
     for organization, projects in projects_by_org.items():
@@ -210,8 +233,11 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
-        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues", "1")
-        == "1",
+        "sentry:feedback_user_report_notifications": bool(
+            options.get("sentry:feedback_user_report_notifications")
+        ),
+        "sentry:feedback_ai_spam_detection": bool(options.get("sentry:feedback_ai_spam_detection")),
+        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 
@@ -341,7 +367,9 @@ class ProjectSerializer(Serializer):
             result = get_access_by_project(item_list, user)
 
         with measure_span("features"):
-            features_by_project = get_features_for_projects(item_list, user)
+            features_by_project = get_features_for_projects(
+                item_list, user, self._collapse(UNUSED_ON_FRONTEND_FEATURES)
+            )
             for project, serialized in result.items():
                 serialized["features"] = features_by_project[project]
 
@@ -594,8 +622,6 @@ class OrganizationProjectResponse(
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    access: Access | None
-
     def __init__(self, access: Access | None = None, **kwargs):
         self.access = access
         super().__init__(**kwargs)
@@ -684,16 +710,23 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
+        with sentry_sdk.start_span(op="project_summary_serializer.get_lpq_projects"):
+            lpq_projects = realtime_metrics.get_lpq_projects()
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
+                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
+            )
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationProjectResponse:  # type: ignore
+    def serialize(
+        self, obj: Project, attrs: Mapping[str, Any], user: User
+    ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
@@ -707,7 +740,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             dateCreated=obj.date_added,
             environments=attrs["environments"],
             eventProcessing={
-                "symbolicationDegraded": should_demote_symbolication(obj.id),
+                "symbolicationDegraded": attrs["symbolication_degraded"],
             },
             features=attrs["features"],
             firstEvent=obj.first_event,

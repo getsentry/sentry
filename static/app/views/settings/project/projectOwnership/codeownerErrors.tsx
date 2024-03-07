@@ -124,7 +124,7 @@ export function CodeOwnerErrors({
       case 'teams_without_access':
         return (
           <ErrorMessageList
-            message={`The following team do not have access to the project: ${projectSlug}`}
+            message={`The following teams do not have access to the project: ${projectSlug}`}
             values={values}
             linkFunction={value =>
               `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`

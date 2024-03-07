@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -18,6 +17,7 @@ import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -31,7 +31,7 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onUpdate: (data?: any) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
   selectedProjectSlug?: string;
@@ -165,7 +165,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -225,7 +225,8 @@ function ActionSet({
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-              onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
+              onConfirm: () =>
+                onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });
@@ -275,21 +276,13 @@ function ActionSet({
           }}
         />
       )}
-      <GuideAnchor
-        target="issue_stream_archive_button"
-        position="bottom"
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
+        confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
+        confirmLabel={label('archive')}
         disabled={ignoreDisabled}
-      >
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
-      </GuideAnchor>
+      />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

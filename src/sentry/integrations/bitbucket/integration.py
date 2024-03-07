@@ -87,11 +87,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     repo_search = True
 
     def get_client(self):
-        org_integration_id = self.org_integration.id if self.org_integration else None
-        return BitbucketApiClient(
-            integration=self.model,
-            org_integration_id=org_integration_id,
-        )
+        return BitbucketApiClient(integration=self.model)
 
     @property
     def username(self):

@@ -113,6 +113,7 @@ def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[d
                     Condition(Column("group_id"), Op.IN, issue_list),
                     Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
+                    Condition(Column("level"), Op.NEQ, "info"),
                 ]
             )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])

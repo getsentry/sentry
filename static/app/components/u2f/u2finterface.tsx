@@ -234,7 +234,7 @@ class U2fInterface extends Component<Props, State> {
   bindChallengeElement: React.RefCallback<HTMLInputElement> = ref => {
     this.setState({
       challengeElement: ref,
-      formElement: ref && ref.form,
+      formElement: ref?.form ?? null,
     });
 
     if (ref) {

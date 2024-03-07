@@ -72,6 +72,7 @@ describe('IssueDiff', function () {
         orgId="org-slug"
         project={project}
         organization={organization}
+        shouldBeGrouped="Yes"
       />
     );
 

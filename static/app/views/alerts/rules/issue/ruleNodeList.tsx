@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueOwnership, Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
@@ -50,7 +50,6 @@ type Props = {
   project: Project;
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
-  ownership?: null | IssueOwnership;
   selectType?: 'grouped';
 };
 
@@ -244,7 +243,6 @@ class RuleNodeList extends Component<Props> {
       placeholder,
       items,
       organization,
-      ownership,
       project,
       disabled,
       error,
@@ -277,7 +275,6 @@ class RuleNodeList extends Component<Props> {
                 organization={organization}
                 project={project}
                 disabled={disabled}
-                ownership={ownership}
                 incompatibleRule={incompatibleRules?.includes(idx)}
                 incompatibleBanner={incompatibleBanner === idx}
               />

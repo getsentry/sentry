@@ -75,7 +75,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     def test_query_with_empty_results(self) -> None:
-        for aggregate, expected_identity in (
+        for aggregate, expected_total in (
             ("count", 0.0),
             ("avg", None),
             ("sum", 0.0),
@@ -94,13 +94,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 environments=[],
                 referrer="metrics.data.api",
             )
+            # Right now we are returning data since there is a weird behavior in the metrics layer that returns an
+            # aggregate value even if there is no data (grouping by something results in the right result being
+            # returned). When the layer will be updated, this test should  be asserted to have empty groups.
             groups = results["groups"]
             assert len(groups) == 1
             assert groups[0]["by"] == {}
-            assert groups[0]["series"] == {
-                field: [expected_identity, expected_identity, expected_identity]
-            }
-            assert groups[0]["totals"] == {field: expected_identity}
+            assert groups[0]["series"] == {field: [None, None, None]}
+            assert groups[0]["totals"] == {field: expected_total}
 
     def test_query_with_one_aggregation(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
@@ -119,7 +120,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 12.0, 9.0]}
+        assert groups[0]["series"] == {field: [None, 12.0, 9.0]}
         assert groups[0]["totals"] == {field: 21.0}
 
     def test_query_with_one_aggregation_and_environment(self) -> None:
@@ -139,7 +140,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 6.0, 4.0]}
+        assert groups[0]["series"] == {field: [None, 6.0, 4.0]}
         assert groups[0]["totals"] == {field: 10.0}
 
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
@@ -159,7 +160,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 6.0, 7.0]}
+        assert groups[0]["series"] == {field: [None, 6.0, 7.0]}
         assert groups[0]["totals"] == {field: 13.0}
 
     def test_query_with_percentile(self) -> None:
@@ -179,7 +180,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, pytest.approx(5.8), 3.8]}
+        assert groups[0]["series"] == {field: [None, pytest.approx(5.8), 3.8]}
         assert groups[0]["totals"] == {field: 5.5}
 
     def test_query_with_valid_percentiles(self) -> None:
@@ -236,13 +237,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 3
         assert groups[0]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field: 3.0}
         assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["series"] == {field: [None, 6.0, 3.0]}
         assert groups[1]["totals"] == {field: 9.0}
         assert groups[2]["by"] == {"platform": "windows", "transaction": "/world"}
-        assert groups[2]["series"] == {field: [0.0, 5.0, 4.0]}
+        assert groups[2]["series"] == {field: [None, 5.0, 4.0]}
         assert groups[2]["totals"] == {field: 9.0}
 
     def test_query_with_group_by_on_null_tag(self) -> None:
@@ -304,10 +305,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 2
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field: 3.0}
         assert groups[1]["by"] == {"platform": "ios"}
-        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["series"] == {field: [None, 6.0, 3.0]}
         assert groups[1]["totals"] == {field: 9.0}
 
     def test_query_with_and_filter(self) -> None:
@@ -327,7 +328,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "ios"}
-        assert groups[0]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[0]["series"] == {field: [None, 6.0, 3.0]}
         assert groups[0]["totals"] == {field: 9.0}
 
     def test_query_with_or_filter(self) -> None:
@@ -347,10 +348,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 2
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field: 3.0}
         assert groups[1]["by"] == {"platform": "ios"}
-        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["series"] == {field: [None, 6.0, 3.0]}
         assert groups[1]["totals"] == {field: 9.0}
 
     def test_query_one_negated_filter(self) -> None:
@@ -370,7 +371,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field: 3.0}
 
     def test_query_one_in_filter(self) -> None:
@@ -390,10 +391,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 2
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field: 3.0}
         assert groups[1]["by"] == {"platform": "ios"}
-        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["series"] == {field: [None, 6.0, 3.0]}
         assert groups[1]["totals"] == {field: 9.0}
 
     def test_query_one_not_in_filter(self) -> None:
@@ -413,7 +414,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "windows"}
-        assert groups[0]["series"] == {field: [0.0, 5.0, 4.0]}
+        assert groups[0]["series"] == {field: [None, 5.0, 4.0]}
         assert groups[0]["totals"] == {field: 9.0}
 
     def test_query_with_multiple_aggregations(self) -> None:
@@ -434,7 +435,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field_2: [0.0, 6.0, 4.0], field_1: [0.0, 1.0, 2.0]}
+        assert groups[0]["series"] == {field_2: [None, 6.0, 4.0], field_1: [None, 1.0, 2.0]}
         assert groups[0]["totals"] == {field_2: 6.0, field_1: 1.0}
 
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
@@ -456,8 +457,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 3
         assert groups[0]["by"] == {"platform": "android"}
         assert sorted(groups[0]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 1.0, 2.0]),
-            (field_1, [0.0, 1.0, 2.0]),
+            (field_2, [None, 1.0, 2.0]),
+            (field_1, [None, 1.0, 2.0]),
         ]
         assert sorted(groups[0]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 2.0),
@@ -465,8 +466,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert groups[1]["by"] == {"platform": "ios"}
         assert sorted(groups[1]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 6.0, 3.0]),
-            (field_1, [0.0, 6.0, 3.0]),
+            (field_2, [None, 6.0, 3.0]),
+            (field_1, [None, 6.0, 3.0]),
         ]
         assert sorted(groups[1]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 6.0),
@@ -474,8 +475,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert groups[2]["by"] == {"platform": "windows"}
         assert sorted(groups[2]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 5.0, 4.0]),
-            (field_1, [0.0, 5.0, 4.0]),
+            (field_2, [None, 5.0, 4.0]),
+            (field_1, [None, 5.0, 4.0]),
         ]
         assert sorted(groups[2]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 5.0),
@@ -502,8 +503,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 3
         assert groups[0]["by"] == {"platform": "ios"}
         assert sorted(groups[0]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 6.0, 3.0]),
-            (field_1, [0.0, 6.0, 3.0]),
+            (field_2, [None, 6.0, 3.0]),
+            (field_1, [None, 6.0, 3.0]),
         ]
         assert sorted(groups[0]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 6.0),
@@ -511,8 +512,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert groups[1]["by"] == {"platform": "windows"}
         assert sorted(groups[1]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 5.0, 4.0]),
-            (field_1, [0.0, 5.0, 4.0]),
+            (field_2, [None, 5.0, 4.0]),
+            (field_1, [None, 5.0, 4.0]),
         ]
         assert sorted(groups[1]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 5.0),
@@ -520,8 +521,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert groups[2]["by"] == {"platform": "android"}
         assert sorted(groups[2]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 1.0, 2.0]),
-            (field_1, [0.0, 1.0, 2.0]),
+            (field_2, [None, 1.0, 2.0]),
+            (field_1, [None, 1.0, 2.0]),
         ]
         assert sorted(groups[2]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 2.0),
@@ -551,8 +552,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 2
         assert groups[0]["by"] == {"platform": "android"}
         assert sorted(groups[0]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 1.0, 2.0]),
-            (field_1, [0.0, 1.0, 2.0]),
+            (field_2, [None, 1.0, 2.0]),
+            (field_1, [None, 1.0, 2.0]),
         ]
         assert sorted(groups[0]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 2.0),
@@ -560,8 +561,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
         assert groups[1]["by"] == {"platform": "ios"}
         assert sorted(groups[1]["series"].items(), key=lambda v: v[0]) == [
-            (field_2, [0.0, 6.0, 3.0]),
-            (field_1, [0.0, 6.0, 3.0]),
+            (field_2, [None, 6.0, 3.0]),
+            (field_1, [None, 6.0, 3.0]),
         ]
         assert sorted(groups[1]["totals"].items(), key=lambda v: v[0]) == [
             (field_2, 6.0),
@@ -655,7 +656,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0, 2, 0]}
+        assert groups[0]["series"] == {field: [None, 2, None]}
         assert groups[0]["totals"] == {field: 2}
 
     @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
@@ -684,13 +685,13 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
         assert len(groups) == 3
         assert groups[0]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert groups[0]["series"] == {field: [0.0, 3.0]}
+        assert groups[0]["series"] == {field: [None, 3.0]}
         assert groups[0]["totals"] == {field: 3.0}
         assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert groups[1]["series"] == {field: [0.0, 9.0]}
+        assert groups[1]["series"] == {field: [None, 9.0]}
         assert groups[1]["totals"] == {field: 9.0}
         assert groups[2]["by"] == {"platform": "windows", "transaction": "/world"}
-        assert groups[2]["series"] == {field: [0.0, 9.0]}
+        assert groups[2]["series"] == {field: [None, 9.0]}
         assert groups[2]["totals"] == {field: 9.0}
 
     @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
@@ -773,7 +774,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 15.0, 0.0]}
+        assert groups[0]["series"] == {field: [None, 15.0, None]}
         assert groups[0]["totals"] == {field: 15.0}
 
     def test_query_with_one_metric_blocked_for_all_projects(self):
@@ -848,5 +849,5 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field_2: [0.0, 10.0, 0.0]}
+        assert groups[0]["series"] == {field_2: [None, 10.0, None]}
         assert groups[0]["totals"] == {field_2: 10.0}

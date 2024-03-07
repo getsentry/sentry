@@ -3,6 +3,7 @@ import os
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
+    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_BOOL,
@@ -12,6 +13,7 @@ from sentry.options.manager import (
     FLAG_MODIFIABLE_RATE,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
+    FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_SCALAR,
 )
@@ -104,6 +106,9 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
+# See getsentry.processingstore
+register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -121,12 +126,6 @@ register(
     "releasefile.cache-limit",
     type=Int,
     default=10 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "releasefile.cache-max-archive-size",
-    type=Int,
-    default=1024 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -281,6 +280,11 @@ register(
 
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
+register(
+    "beacon.record_cpu_ram_usage",
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_REQUIRED,
+)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
@@ -531,28 +535,6 @@ register(
 register("kafka-publisher.raw-event-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("kafka-publisher.max-event-size", default=100000, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Ingest refactor
-register(
-    "store.projects-normalize-in-rust-opt-in",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "store.projects-normalize-in-rust-opt-out",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-# positive value means stable opt-in in the range 0.0 to 1.0, negative value
-# means random opt-in with the same range.
-register(
-    "store.projects-normalize-in-rust-percent-opt-in", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
-register("store.empty-interface-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Enable multiple topics for eventstream. It allows specific event types to be sent
 # to specific topic.
 register(
@@ -561,43 +543,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# if this is turned to `True` sentry will behave like relay would do with
-# regards to filter responses.
-register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Toggles between processing transactions directly in the ingest consumer
-# (``False``) and spawning a save_event task (``True``).
-register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
-
-# Symbolicator refactors
-# - Disabling minidump stackwalking in endpoints
+# The fraction of prooguard events that will be routed to the
+# separate `store.process_event_proguard` queue
 register(
-    "symbolicator.minidump-refactor-projects-opt-in",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "symbolicator.minidump-refactor-projects-opt-out",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # unused
-register(
-    "symbolicator.minidump-refactor-random-sampling", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# Enable use of Symbolicator Source Maps processing for specific projects.
-register(
-    "symbolicator.sourcemaps-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "store.separate-proguard-queue-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
-# Enable use of Symbolicator Source Maps processing for fraction of projects.
-register(
-    "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
+
 # Query and supply Bundle Indexes to Symbolicator SourceMap processing
 register(
     "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
@@ -608,23 +561,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Percentage of events that generate a random `worker_id` for symbolicator load balancing
-register(
-    "symbolicator.worker-id-randomization-sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Normalization after processors
-register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
-register(
-    "store.disable-trim-in-renormalization", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
-# Data scrubbing in Rust
-register("store.sample-rust-data-scrubber", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
-register("store.use-rust-data-scrubber", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
 # Post Process Error Hook Sampling
 register(
@@ -659,13 +595,6 @@ register(
 )
 register(
     "nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Use nodestore for eventstore.get_events
-register(
-    "eventstore.use-nodestore",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
@@ -816,6 +745,14 @@ register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
+    "store.load-shed-process-event-projects-gradual",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Applies load shedding per project gradually. 1.0 means full load shedding
+# 0.0 or no config means no load shedding.
+register(
     "store.load-shed-symbolicate-event-projects",
     type=Any,
     default=[],
@@ -851,19 +788,9 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 # Fraction of events that will pass through background grouping
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Store release files bundled as zip files
-register(
-    "processing.save-release-archives", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
-
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Try to read release artifacts from zip archives
-register(
-    "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # unused
 
 # Whether to use `zstd` instead of `zlib` for the attachment cache.
 register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -895,6 +822,15 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
 # needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Override to set a list of limits into passive mode by organization.
+#
+# In passive mode Relay's cardinality limiter is active but it does not enforce the limits.
+#
+# Example: `{1: ["transactions"]}`
+# Forces the `transactions` cardinality limit into passive mode for the organization with id `1` (Sentry).
+register(
+    "relay.cardinality-limiter.passive-limits-by-org", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 # Sample rate for Cardinality Limiter Sentry errors.
 #
 # Rate needs to be between `0.0` and `1.0`.
@@ -902,6 +838,12 @@ register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMAT
 register(
     "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
+
+# Controls the encoding used in Relay for encoding distributions and sets
+# when writing to Kafka.
+#
+# Key is the metric namespace (as used by Relay) and the value is the desired encoding.
+register("relay.metric-bucket-encodings", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -931,6 +873,9 @@ register(
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Switch to use service wrapper for reprocessing redis operations
+register("reprocessing.use_store", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -1024,6 +969,34 @@ register(
 
 register(
     "global-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.sessions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.transactions-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.spans-metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "global-abuse-quota.custom-metric-bucket-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1584,9 +1557,24 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# === Hybrid cloud subsystem options ===
+# UI rollout
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register(
+    "hybrid_cloud.use_region_specific_upload_url", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Retry controls
+register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Break glass controls
+register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1729,6 +1717,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "on_demand.max_widget_cardinality.killswitch",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1841,6 +1834,28 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "issues.sdk_crash_detection.java.project_id",
+    default=0,
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The allowlist of org IDs that the java crash detection is enabled for.
+register(
+    "issues.sdk_crash_detection.java.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.java.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # END: SDK Crash Detection
 
 register(
@@ -1854,24 +1869,6 @@ register(
     "releases_v2.single-tenant",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# sample rate for using v2 of deobfuscation that
-# uses function params when line info is missing
-register(
-    "profiling.android.deobfuscation_v2_sample_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# org IDs that will be using v2 of deobfuscation
-# regardless of the sample rate defined by:
-# "profiling.android.deobfuscation_v2_sample_rate"
-register(
-    "profiling.android.deobfuscation_v2_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # The flag disables the file io on main thread detector
@@ -1973,31 +1970,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# org IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to sentry org.
-# Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # org IDs for which we want to avoid using the unsampled profiles for function metrics.
 # This will let us selectively disable the behaviour for entire orgs that may have an
 # extremely high volume increase
 register(
     "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# project IDs for which we'll allow using profiles dropped due to DS for function metrics.
-# This is only intended to be be used initially to limit the feature to specific projects of
-# the sentry org. Once we start to gradually rollout to other orgs this option can be deprecated
-register(
-    "profiling.profile_metrics.unsampled_profiles.allowed_project_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2066,4 +2043,54 @@ register(
     "grouping.rust_enhancers.prefer_rust_result",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rate to move from outbox based webhook delivery to webhookpayload.
+register(
+    "hybridcloud.webhookpayload.rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metrics.sample-list.sample-rate",
+    type=Float,
+    default=100_000.0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rates controlling the rollout of grouping parameterization experiments
+register(
+    "grouping.experiments.parameterization.uniq_id",
+    default=0.0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+register(
+    "grouping.experiments.parameterization.json_str_val",
+    default=0.0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+
+# Sample rate for double writing to experimental dsn
+register(
+    "store.experimental-dsn-double-write.sample-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# killswitch for profiling ddm functions metrics.
+# Enable/Disable the ingestion of function metrics
+# in the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of org IDs for which we'll write the function
+# metrics to the generic metrics platform
+register(
+    "profiling.generic_metrics.functions_ingestion.allowed_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

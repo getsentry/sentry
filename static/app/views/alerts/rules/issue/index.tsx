@@ -45,14 +45,7 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Environment,
-  IssueOwnership,
-  Member,
-  Organization,
-  Project,
-  Team,
-} from 'sentry/types';
+import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
 import {OnboardingTaskKey} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
@@ -163,7 +156,6 @@ type State = DeprecatedAsyncView['state'] & {
   uuid: null | string;
   acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
-  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -282,7 +274,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${organization.slug}/${project.slug}/rules/configuration/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
@@ -784,7 +775,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule} = this.state;
     const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
+    return owner?.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value: string}) => {
@@ -1125,7 +1116,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       rule,
       detailedError,
       loading,
-      ownership,
       sendingNotification,
       incompatibleConditions,
       incompatibleFilters,
@@ -1390,7 +1380,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           organization={organization}
                           project={project}
                           disabled={disabled}
-                          ownership={ownership}
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">

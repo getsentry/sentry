@@ -44,7 +44,7 @@ export function getSpanInfoFromTransactionEvent(
     ? [...spanEntry.data]
     : [];
 
-  if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
+  if (event?.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.
     spans.push(event.contexts.trace as TraceContextSpanProxy);
   }

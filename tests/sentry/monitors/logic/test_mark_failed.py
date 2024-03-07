@@ -46,7 +46,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -66,7 +66,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -107,7 +107,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -127,7 +127,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -171,7 +171,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=last_checkin,
             next_checkin=next_checkin,
             next_checkin_latest=next_checkin + timedelta(minutes=1),
@@ -198,7 +198,7 @@ class MarkFailedTestCase(TestCase):
             **{
                 "level": "error",
                 "project": self.project.id,
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "platform": "other",
                 "contexts": {
                     "monitor": {
@@ -239,7 +239,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
 
@@ -289,7 +289,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "error", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -326,7 +326,7 @@ class MarkFailedTestCase(TestCase):
                         "span_id": None,
                     },
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",
@@ -356,7 +356,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=monitor.status,
         )
         successful_check_in = MonitorCheckIn.objects.create(
@@ -403,7 +403,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "duration", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -436,7 +436,7 @@ class MarkFailedTestCase(TestCase):
                         "slug": str(monitor.slug),
                     }
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",
@@ -469,7 +469,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             last_checkin=last_checkin,
             next_checkin=next_checkin,
             next_checkin_latest=next_checkin + timedelta(minutes=1),
@@ -513,7 +513,7 @@ class MarkFailedTestCase(TestCase):
                     {"name": "Failure reason", "value": "missed_checkin", "important": True},
                     {
                         "name": "Environment",
-                        "value": monitor_environment.environment.name,
+                        "value": monitor_environment.get_environment().name,
                         "important": False,
                     },
                     {
@@ -546,7 +546,7 @@ class MarkFailedTestCase(TestCase):
                         "slug": str(monitor.slug),
                     }
                 },
-                "environment": monitor_environment.environment.name,
+                "environment": monitor_environment.get_environment().name,
                 "event_id": occurrence["event_id"],
                 "fingerprint": [monitor_incidents[0].grouphash],
                 "platform": "other",
@@ -577,7 +577,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
         checkin = MonitorCheckIn.objects.create(
@@ -640,9 +640,8 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
-            last_state_change=None,
         )
 
         MonitorCheckIn.objects.create(
@@ -667,8 +666,6 @@ class MarkFailedTestCase(TestCase):
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
-        # check that timestamp has not updated
-        assert monitor_environment.last_state_change is None
 
         # create another OK check-in to break the chain
         MonitorCheckIn.objects.create(
@@ -694,8 +691,6 @@ class MarkFailedTestCase(TestCase):
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == monitor_environment.last_checkin
-        prior_last_state_change = monitor_environment.last_state_change
 
         # check that an incident has been created correctly
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
@@ -713,7 +708,7 @@ class MarkFailedTestCase(TestCase):
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
-        # send another check-in to make sure we don't update last_state_change
+        # send another check-in to make sure the incident does not change
         status = next(failure_statuses)
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -724,7 +719,6 @@ class MarkFailedTestCase(TestCase):
         mark_failed(checkin, ts=checkin.date_added)
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == prior_last_state_change
 
         # check that incident has not changed
         monitor_incident = MonitorIncident.objects.get(id=monitor_incident.id)
@@ -759,9 +753,8 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
-            last_state_change=None,
         )
 
         MonitorCheckIn.objects.create(
@@ -794,8 +787,6 @@ class MarkFailedTestCase(TestCase):
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
-        # check that timestamp has not updated
-        assert monitor_environment.last_state_change is None
 
         checkin = checkins.pop(0)
         checkin.update(status=CheckInStatus.TIMEOUT)
@@ -804,7 +795,6 @@ class MarkFailedTestCase(TestCase):
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert monitor_environment.last_state_change == monitor_environment.last_checkin
 
         # check that an incident has been created correctly
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
@@ -843,7 +833,7 @@ class MarkFailedTestCase(TestCase):
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
-            environment=self.environment,
+            environment_id=self.environment.id,
             status=MonitorStatus.OK,
         )
         for _ in range(0, failure_issue_threshold):

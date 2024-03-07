@@ -203,5 +203,6 @@ const DropdownTrigger = styled(Button)`
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
-  border-radius: ${p => (p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius)};
+  border-radius: ${p =>
+    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
 `;

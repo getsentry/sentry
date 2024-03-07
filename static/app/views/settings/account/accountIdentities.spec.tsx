@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
@@ -54,7 +55,9 @@ describe('AccountIdentities', function () {
 
     render(<AccountIdentities />);
 
-    expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
 
     expect(await screen.findByText('GitHub')).toBeInTheDocument();
     expect(await screen.findByText('Google')).toBeInTheDocument();

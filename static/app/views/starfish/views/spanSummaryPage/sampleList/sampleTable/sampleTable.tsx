@@ -28,6 +28,7 @@ type Props = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
+  additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
@@ -48,6 +49,7 @@ function SampleTable({
   release,
   query,
   additionalFields,
+  additionalFilters,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -63,7 +65,7 @@ function SampleTable({
   }
 
   const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
-    filters,
+    filters: {...filters, ...additionalFilters},
     fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
     referrer: 'api.starfish.span-summary-panel-samples-table-avg',
   });

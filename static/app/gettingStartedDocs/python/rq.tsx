@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk[rq]`;
+const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
 const getInitCallSnippet = (params: Params) => `
 sentry_sdk.init(

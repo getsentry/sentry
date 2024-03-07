@@ -2,6 +2,8 @@ import {type ComponentProps, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
@@ -54,10 +56,11 @@ export function StaticReplayPreview({
 
   return (
     <ReplayContextProvider
-      isFetching={isFetching}
-      replay={replay}
-      initialTimeOffsetMs={offset}
       analyticsContext={analyticsContext}
+      initialTimeOffsetMs={offset}
+      isFetching={isFetching}
+      prefsStrategy={StaticReplayPreferences}
+      replay={replay}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
@@ -89,7 +92,7 @@ const PlayerContainer = styled(FluidHeight)`
   position: relative;
   background: ${p => p.theme.background};
   gap: ${space(1)};
-  max-height: 448px;
+  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
 `;
 
 const StaticPanel = styled(FluidHeight)`

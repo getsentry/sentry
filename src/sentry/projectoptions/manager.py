@@ -76,7 +76,7 @@ class ProjectOptionsManager:
         ProjectOption.objects.set_value(
             project,
             "sentry:relay-rev-lastchange",
-            json.datetime_to_str(datetime.utcnow().replace(tzinfo=timezone.utc)),
+            json.datetime_to_str(datetime.now(timezone.utc)),
         )
 
     def register(self, key, default=None, epoch_defaults=None):

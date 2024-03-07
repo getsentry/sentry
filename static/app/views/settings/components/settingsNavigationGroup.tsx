@@ -28,7 +28,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
       if (recordAnalytics && to !== window.location.pathname && organization) {
         trackAnalytics('sidebar.item_clicked', {
           organization,
-          project_id: project && project.id,
+          project_id: project?.id,
           sidebar_item_id: id,
           dest: path,
         });

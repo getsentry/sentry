@@ -17,10 +17,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import (
-    LatestReleaseNotFoundError,
-    TooManyCodeLocationsRequestedError,
-)
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.metadata import (
     MetricCodeLocations,
     MetricCorrelations,
@@ -31,7 +28,6 @@ from sentry.sentry_metrics.querying.metadata import (
 
 class MetricMetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
-    # TODO: change name when we settled on the naming.
     CORRELATIONS = "metricSpans"
 
 
@@ -44,7 +40,7 @@ METRIC_META_TYPE_SERIALIZER = {
 @region_silo_endpoint
 class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -127,8 +123,6 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     )
             except LatestReleaseNotFoundError as e:
                 return Response(status=404, data={"detail": str(e)})
-            except TooManyCodeLocationsRequestedError as e:
-                return Response(status=400, data={"detail": str(e)})
 
             response[meta_type.value] = serialize(
                 data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.models.environment import Environment
     from sentry.models.group import Group
     from sentry.models.project import Project
-    from sentry.search.snuba.executors import PrioritySortWeights
+    from sentry.search.snuba.executors import TrendsSortWeights
     from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -40,6 +40,6 @@ class SearchBackend(Service):
         max_hits: int | None = None,
         referrer: str | None = None,
         actor: Any | None = None,
-        aggregate_kwargs: PrioritySortWeights | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> CursorResult[Group]:
         raise NotImplementedError
