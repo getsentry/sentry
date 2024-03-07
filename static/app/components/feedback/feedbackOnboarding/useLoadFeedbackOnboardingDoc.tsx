@@ -22,6 +22,10 @@ function getPlatformPath(platform: PlatformIntegration) {
         return `unreal/unreal`;
       case 'unity':
         return `unity/unity`;
+      case 'minidump':
+        return `minidump/minidump`;
+      case 'native-qt':
+        return `native/native-qt`;
       default:
         return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }

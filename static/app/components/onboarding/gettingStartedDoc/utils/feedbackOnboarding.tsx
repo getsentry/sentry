@@ -1,6 +1,7 @@
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({
@@ -66,6 +67,14 @@ export function FeedbackOnboardingWebApiBanner() {
     </Alert>
   );
 }
+
+export const CrashReportWebApiOnboarding: OnboardingConfig = {
+  introduction: () => FeedbackOnboardingWebApiBanner(),
+  install: () => [],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
 
 export const getFeedbackConfigOptions = ({
   name,
