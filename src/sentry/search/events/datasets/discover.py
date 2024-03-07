@@ -200,9 +200,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
@@ -224,9 +226,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         },
                         {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
                     ],
@@ -1017,6 +1021,18 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
                         args["interval"], alias
                     ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "column_hash",
+                    # TODO: this supports only one column, but hash functions can support arbitrary parameters
+                    required_args=[ColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
                     private=True,
                 ),
             ]
