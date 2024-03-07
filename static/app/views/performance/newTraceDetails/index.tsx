@@ -146,7 +146,7 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
-  const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>('trace_data');
+  const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
   const rootEvent = useRootEvent(props.trace);
@@ -225,16 +225,15 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [detailPanelRef, setDetailPanelRef] =
-    useState<React.MutableRefObject<HTMLDivElement | null> | null>(null);
-  const [detailNodes, setDetailNodes] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+  const [traceDrawerRef, setTraceDrawerRef] = useState<HTMLElement | null>(null);
+  const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
     []
   );
 
-  const onSetDetailNode = useCallback(
+  const onSetClickedNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      setActiveTab(node && !isTraceNode(node) ? 'node_detail' : 'trace_data');
-      setDetailNodes(node ? [node] : []);
+      setActiveTab(node && !isTraceNode(node ?? null) ? 'node' : 'trace');
+      setClickedNode(node ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -373,13 +372,13 @@ function TraceViewContent(props: TraceViewContentProps) {
           />
           <Trace
             trace={tree}
-            detailPanelRef={detailPanelRef}
+            traceDrawerRef={traceDrawerRef}
             trace_id={props.traceSlug}
             roving_dispatch={rovingTabIndexDispatch}
             roving_state={rovingTabIndexState}
             search_dispatch={searchDispatch}
             search_state={searchState}
-            setDetailNode={onSetDetailNode}
+            setClickedNode={onSetClickedNode}
             searchResultsIteratorIndex={searchState.resultIndex}
             searchResultsMap={searchState.resultsLookup}
             onTraceSearch={onTraceSearch}
@@ -388,8 +387,8 @@ function TraceViewContent(props: TraceViewContentProps) {
           <TraceDrawer
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            setDetailPanelRef={setDetailPanelRef}
-            nodes={detailNodes}
+            setTraceDrawerRef={setTraceDrawerRef}
+            nodes={clickedNode}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}

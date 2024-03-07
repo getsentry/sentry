@@ -62,6 +62,15 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
+import {
+  DetailContainer,
+  FlexBox,
+  StyledButton,
+  StyledTable,
+  Title,
+  TitleOp,
+} from './styles';
+
 function OpsBreakdown({event}: {event: EventTransaction}) {
   const [showingAll, setShowingAll] = useState(false);
   const breakdown = event && generateStats(event, {type: 'no_filter'});
@@ -168,7 +177,7 @@ type TransactionDetailProps = {
   organization: Organization;
 };
 
-export default function TransactionNodeDetails({
+export function TransactionNodeDetails({
   node,
   organization,
   location,
@@ -269,7 +278,7 @@ export default function TransactionNodeDetails({
   };
 
   return (
-    <Wrapper>
+    <DetailContainer>
       <TransactioNodeDetailHeader>
         <Title>
           <Tooltip title={node.value.project_slug}>
@@ -281,7 +290,7 @@ export default function TransactionNodeDetails({
           </Tooltip>
           <div>
             <div>{t('Event')}</div>
-            <TransactionOp> {node.value['transaction.op']}</TransactionOp>
+            <TitleOp> {node.value['transaction.op']}</TitleOp>
           </div>
         </Title>
         <Button
@@ -328,7 +337,7 @@ export default function TransactionNodeDetails({
 
       <StyledTable className="table key-value">
         <tbody>
-          <Row title={<TransactionIdTitle>{t('Event ID')}</TransactionIdTitle>}>
+          <Row title={t('Event ID')}>
             {node.value.event_id}
             <CopyToClipboardButton
               borderless
@@ -466,49 +475,12 @@ export default function TransactionNodeDetails({
           projectSlug={projectSlug}
         />
       )}
-    </Wrapper>
+    </DetailContainer>
   );
 }
 
-const StyledButton = styled(Button)`
-  position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.5)};
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)};
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const Title = styled(FlexBox)`
-  gap: ${space(1)};
-`;
-
 const TransactioNodeDetailHeader = styled(Title)`
   justify-content: space-between;
-`;
-
-const TransactionOp = styled('div')`
-  font-size: 15px;
-  font-weight: bold;
-  max-width: 600px;
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const TransactionIdTitle = styled('a')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 const Measurements = styled('div')`
@@ -516,8 +488,4 @@ const Measurements = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   padding-top: 10px;
-`;
-
-const StyledTable = styled('table')`
-  margin-bottom: 0 !important;
 `;

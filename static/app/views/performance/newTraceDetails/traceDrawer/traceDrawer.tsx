@@ -1,11 +1,4 @@
-import {
-  type Dispatch,
-  type MutableRefObject,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import {type Dispatch, type SetStateAction, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -30,19 +23,17 @@ import {
 } from '../guards';
 import type {TraceTree, TraceTreeNode} from '../traceTree';
 
-import NodeDetail from './tabs/nodeDetails';
-import {TraceLevelDetails} from './tabs/traceLevelDetails';
+import NodeDetail from './tabs/details';
+import {TraceLevelDetails} from './tabs/trace';
 
 type DrawerProps = {
-  activeTab: 'trace_data' | 'node_detail';
+  activeTab: 'trace' | 'node';
   location: Location;
   nodes: TraceTreeNode<TraceTree.NodeValue>[];
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  setActiveTab: (tab: 'trace_data' | 'node_detail') => void;
-  setDetailPanelRef: Dispatch<
-    SetStateAction<MutableRefObject<HTMLDivElement | null> | null>
-  >;
+  setActiveTab: (tab: 'trace' | 'node') => void;
+  setTraceDrawerRef: Dispatch<SetStateAction<HTMLElement | null>>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
@@ -79,8 +70,6 @@ function TraceDrawer(props: DrawerProps) {
 
   const [isResizing, setIsResizing] = useState(false);
 
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     const handleMouseMove = e => {
       if (!isResizing) return;
@@ -98,39 +87,35 @@ function TraceDrawer(props: DrawerProps) {
     };
   }, [size, isResizing]);
 
-  useEffect(() => {
-    props.setDetailPanelRef(panelRef);
-  }, [panelRef, props]);
-
   const handleMouseDown = e => {
     e.preventDefault();
     setIsResizing(true);
   };
 
   return (
-    <PanelWrapper size={size} ref={panelRef}>
+    <PanelWrapper size={size} ref={ref => props.setTraceDrawerRef(ref)}>
       <TabsContainer onMouseDown={handleMouseDown}>
         {props.nodes.map((node, index) => (
           <Tooltip title={getNodeTabTitle(node)} showOnlyOnOverflow key={index}>
             <Tab
               key={index}
-              active={props.activeTab === 'node_detail'}
-              onClick={() => props.setActiveTab('node_detail')}
+              active={props.activeTab === 'node'}
+              onClick={() => props.setActiveTab('node')}
             >
               {getNodeTabTitle(node)}
             </Tab>
           </Tooltip>
         ))}
         <Tab
-          active={props.activeTab === 'trace_data'}
-          onClick={() => props.setActiveTab('trace_data')}
+          active={props.activeTab === 'trace'}
+          onClick={() => props.setActiveTab('trace')}
         >
           {t('Trace')}
         </Tab>
       </TabsContainer>
 
       <Content>
-        {props.activeTab === 'trace_data' && (
+        {props.activeTab === 'trace' ? (
           <TraceLevelDetails
             rootEventResults={props.rootEventResults}
             organization={props.organization}
@@ -138,8 +123,7 @@ function TraceDrawer(props: DrawerProps) {
             traces={props.traces}
             traceEventView={props.traceEventView}
           />
-        )}
-        {props.activeTab === 'node_detail' &&
+        ) : (
           props.nodes.map((node, index) => (
             <NodeDetail
               key={index}
@@ -147,7 +131,8 @@ function TraceDrawer(props: DrawerProps) {
               organization={props.organization}
               location={props.location}
             />
-          ))}
+          ))
+        )}
       </Content>
     </PanelWrapper>
   );

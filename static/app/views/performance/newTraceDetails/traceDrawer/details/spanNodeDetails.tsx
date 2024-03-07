@@ -1,18 +1,11 @@
-import styled from '@emotion/styled';
-
-import NewTraceDetailsSpanDetail, {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import NewTraceDetailsSpanDetail from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   getSpanOperation,
   parseTrace,
 } from 'sentry/components/events/interfaces/spans/utils';
-import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
@@ -20,7 +13,9 @@ import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesP
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-export default function SpanNodeDetails({
+import {DetailContainer, Title, TitleOp} from './styles';
+
+export function SpanNodeDetails({
   node,
   organization,
 }: {
@@ -33,7 +28,7 @@ export default function SpanNodeDetails({
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
   return (
-    <Wrapper>
+    <DetailContainer>
       <Title>
         <Tooltip title={event.projectSlug}>
           <ProjectBadge
@@ -44,7 +39,7 @@ export default function SpanNodeDetails({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(span)}</TransactionOp>
+          <TitleOp> {getSpanOperation(span)}</TitleOp>
         </div>
       </Title>
       {event.projectSlug && (
@@ -74,41 +69,6 @@ export default function SpanNodeDetails({
           </ProfileContext.Consumer>
         </ProfilesProvider>
       )}
-    </Wrapper>
+    </DetailContainer>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)};
-
-  ${DataSection} {
-    padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none !important;
-  }
-`;
-
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const Title = styled(FlexBox)`
-  gap: ${space(1)};
-`;
-
-const TransactionOp = styled('div')`
-  font-size: 15px;
-  font-weight: bold;
-  max-width: 600px;
-  ${p => p.theme.overflowEllipsis}
-`;

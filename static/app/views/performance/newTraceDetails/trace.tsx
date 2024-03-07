@@ -98,7 +98,6 @@ function maybeFocusRow(
 }
 
 interface TraceProps {
-  detailPanelRef: React.MutableRefObject<HTMLDivElement | null> | null;
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
@@ -107,8 +106,9 @@ interface TraceProps {
   searchResultsMap: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   search_dispatch: React.Dispatch<TraceSearchAction>;
   search_state: TraceSearchState;
-  setDetailNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
+  setClickedNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
+  traceDrawerRef: HTMLElement | null;
   trace_id: string;
 }
 
@@ -119,12 +119,12 @@ function Trace({
   roving_dispatch,
   search_state,
   search_dispatch,
-  setDetailNode,
+  setClickedNode: setDetailNode,
   manager,
   searchResultsIteratorIndex,
   searchResultsMap,
   onTraceSearch,
-  detailPanelRef,
+  traceDrawerRef,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -333,16 +333,13 @@ function Trace({
         return;
       }
 
-      const traceViewElement: HTMLDivElement | null =
+      const traceElement: HTMLElement | null =
         'current' in containerRef ? containerRef.current : containerRef;
-      const detailPanelElement: HTMLDivElement | null =
-        detailPanelRef && 'current' in detailPanelRef
-          ? detailPanelRef.current
-          : detailPanelRef;
+      const traceDrawerElement: HTMLElement | null = traceDrawerRef;
 
       const clickedTraceView =
-        !traceViewElement || traceViewElement.contains(event.target as Node);
-      const clickedDetailPanel = detailPanelElement?.contains(event.target as Node);
+        !traceElement || traceElement.contains(event.target as Node);
+      const clickedDetailPanel = traceDrawerElement?.contains(event.target as Node);
       if (clickedTraceView || clickedDetailPanel) {
         return;
       }
@@ -356,7 +353,7 @@ function Trace({
       document.removeEventListener('mousedown', listener);
       document.removeEventListener('touchstart', listener);
     };
-  }, [containerRef, detailPanelRef, onOutsideClick]);
+  }, [containerRef, traceDrawerRef, onOutsideClick]);
 
   const onRowKeyDown = useCallback(
     (
