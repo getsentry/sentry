@@ -1026,7 +1026,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "column_hash",
-                    # TODO: figure out how to make this take arbitrary number of arbirary type arguemnts
+                    # TODO: this supports only one column, but hash functions can support arbitrary parameters
                     required_args=[ColumnArg("column")],
                     snql_aggregate=lambda args, alias: Function(
                         "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
