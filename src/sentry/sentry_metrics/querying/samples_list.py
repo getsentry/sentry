@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from bisect import bisect
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, TypedDict, cast
@@ -847,20 +848,16 @@ def pick_samples(
 
     samples.sort(key=metric_key)
 
-    # always take the first and last samples as they represent the extremes
-    result = [samples[0], samples[-1]]
+    keys = [metric_key(sample) for sample in samples]
 
-    # choose the sample closest to the middle
-    avg = (metric_key(samples[0]) + metric_key(samples[-1])) / 2
-    choice = None
-    min_delta = float("inf")
-    for sample in samples[1:-1]:
-        new_delta = abs(avg - metric_key(sample))
-        if new_delta < min_delta:
-            choice = sample
-            min_delta = new_delta
+    avg_m = sum(keys) / len(keys)
+    idx_m = bisect(keys, avg_m)
+    idx_m = min(max(1, idx_m), len(keys) - 2)
 
-    if choice is not None:
-        result.append(choice)
+    avg_l = sum(keys[:idx_m]) / idx_m
+    idx_l = max(0, bisect(keys, avg_l))
 
-    return result
+    avg_r = sum(keys[idx_m + 1 :]) / (len(keys) - idx_m - 1)
+    idx_r = min(bisect(keys, avg_r), len(keys) - 1)
+
+    return [samples[idx_l], samples[idx_m], samples[idx_r]]
