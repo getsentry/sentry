@@ -13,7 +13,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization, PlatformKey, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -39,7 +39,11 @@ import {
   isTransactionNode,
 } from './guards';
 import {ParentAutogroupNode, type TraceTree, type TraceTreeNode} from './traceTree';
-import {useVirtualizedList, type VirtualizedViewManager} from './virtualizedViewManager';
+import {
+  useVirtualizedList,
+  type VirtualizedRow,
+  type VirtualizedViewManager,
+} from './virtualizedViewManager';
 
 function Chevron(props: {direction: 'up' | 'down'}) {
   return (
@@ -149,7 +153,7 @@ function Trace({
   const organization = useOrganization();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [rerender, setRender] = useState(0);
+  const [_rerender, setRender] = useState(0);
 
   const previouslyFocusedIndexRef = useRef<number | null>(null);
   const treePromiseStatusRef =
@@ -436,7 +440,7 @@ function Trace({
   //   }
   // }, []);
 
-  const projectLookup = useMemo(() => {
+  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
       (acc, project) => {
         acc[project.slug] = project.platform;
@@ -447,11 +451,11 @@ function Trace({
   }, [projects]);
 
   const render = useCallback(
-    n => {
+    (n: VirtualizedRow) => {
       return trace.type === 'loading' ? (
         <RenderPlaceholderRow
-          index={n.key}
           key={n.key}
+          index={n.index}
           style={n.style}
           node={n.item}
           theme={theme}
@@ -461,7 +465,7 @@ function Trace({
       ) : (
         <RenderRow
           key={n.key}
-          index={n.key}
+          index={n.index}
           organization={organization}
           previouslyFocusedIndexRef={previouslyFocusedIndexRef}
           tabIndex={roving_state.index ?? -1}
@@ -480,8 +484,7 @@ function Trace({
         />
       );
     },
-    // The linter complains about rerender being a unnecessary dependency, but it's not
-    // because we do in fact want to rerender when it changes.
+    // we add _rerender as a dependency to trigger the virtualized list rerender
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       handleExpandNode,
@@ -490,7 +493,6 @@ function Trace({
       onRowClick,
       onRowKeyDown,
       organization,
-      previouslyFocusedIndexRef,
       projectLookup,
       roving_state.index,
       searchResultsIteratorIndex,
@@ -498,7 +500,7 @@ function Trace({
       theme,
       trace_id,
       trace.type,
-      rerender,
+      _rerender,
     ]
   );
 
@@ -538,6 +540,37 @@ function Trace({
               );
             })
           : null}
+
+        {manager.interval_bars.map((_, i) => {
+          const indicatorTimestamp = manager.intervals[i];
+          const timestamp = manager.to_origin + indicatorTimestamp ?? 0;
+
+          if (trace.type === 'loading') {
+            return null;
+          }
+
+          return (
+            <div
+              key={i}
+              ref={r => manager.registerTimelineIndicatorRef(r, i)}
+              className="TraceIndicator Timeline"
+              style={{
+                transform: `translate(${manager.computeTransformXFromTimestamp(timestamp)}px, 0)`,
+              }}
+            >
+              <div className="TraceIndicatorLabel">
+                {indicatorTimestamp > 0
+                  ? getDuration(
+                      (manager.trace_view.x + indicatorTimestamp) / 1000,
+                      2,
+                      true
+                    )
+                  : '0s'}
+              </div>
+              <div className="TraceIndicatorLine" />
+            </div>
+          );
+        })}
       </div>
       <div ref={r => setScrollContainer(r)}>
         <div>{virtualizedList.rendered}</div>
@@ -551,7 +584,6 @@ export default Trace;
 function RenderRow(props: {
   index: number;
   isSearchResult: boolean;
-  key: number;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   onExpand: (
@@ -583,6 +615,7 @@ function RenderRow(props: {
   theme: Theme;
   trace_id: string;
 }) {
+  const virtualized_index = props.index - props.manager.start_virtualized_index;
   if (!props.node.value) {
     return null;
   }
@@ -592,7 +625,7 @@ function RenderRow(props: {
   if (isAutogroupedNode(props.node)) {
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -609,7 +642,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -647,7 +682,7 @@ function RenderRow(props: {
         <div
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           style={{
             width: props.manager.columns.span_list.width * 100 + '%',
@@ -658,7 +693,7 @@ function RenderRow(props: {
           }}
         >
           <AutogroupedTraceBar
-            index={props.index}
+            virtualized_index={virtualized_index}
             manager={props.manager}
             color={props.theme.blue300}
             entire_space={props.node.space}
@@ -675,7 +710,7 @@ function RenderRow(props: {
       props.node.value.performance_issues.length > 0;
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -692,7 +727,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -746,7 +783,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -758,7 +795,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            index={props.index}
+            virtualized_index={virtualized_index}
             manager={props.manager}
             color={pickBarColor(props.node.value['transaction.op'])}
             node_space={props.node.space}
@@ -772,7 +809,7 @@ function RenderRow(props: {
     const errored = props.node.value.relatedErrors.length > 0;
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -789,7 +826,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -845,7 +884,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -857,7 +896,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            index={props.index}
+            virtualized_index={virtualized_index}
             manager={props.manager}
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
@@ -870,7 +909,7 @@ function RenderRow(props: {
   if (isMissingInstrumentationNode(props.node)) {
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -887,7 +926,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -906,7 +947,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -919,7 +960,7 @@ function RenderRow(props: {
         >
           {' '}
           <TraceBar
-            index={props.index}
+            virtualized_index={virtualized_index}
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
@@ -932,7 +973,7 @@ function RenderRow(props: {
   if (isTraceNode(props.node)) {
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -949,7 +990,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -978,7 +1021,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -990,7 +1033,7 @@ function RenderRow(props: {
           }}
         >
           <TraceBar
-            index={props.index}
+            virtualized_index={virtualized_index}
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
@@ -1003,7 +1046,7 @@ function RenderRow(props: {
   if (isTraceErrorNode(props.node)) {
     return (
       <div
-        key={props.key}
+        key={props.index}
         ref={r =>
           props.tabIndex === props.index
             ? maybeFocusRow(r, props.index, props.previouslyFocusedIndexRef)
@@ -1020,7 +1063,9 @@ function RenderRow(props: {
       >
         <div
           className="TraceLeftColumn"
-          ref={r => props.manager.registerColumnRef('list', r, props.index, props.node)}
+          ref={r =>
+            props.manager.registerColumnRef('list', r, virtualized_index, props.node)
+          }
           style={{
             width: props.manager.columns.list.width * 100 + '%',
           }}
@@ -1063,7 +1108,7 @@ function RenderRow(props: {
         </div>
         <div
           ref={r =>
-            props.manager.registerColumnRef('span_list', r, props.index, props.node)
+            props.manager.registerColumnRef('span_list', r, virtualized_index, props.node)
           }
           className={`TraceRightColumn ${props.index % 2 === 0 ? 0 : 'Odd'}`}
           style={{
@@ -1104,6 +1149,7 @@ function RenderPlaceholderRow(props: {
 }) {
   return (
     <div
+      key={props.index}
       className="TraceRow"
       style={{
         top: props.style.top,
@@ -1246,9 +1292,9 @@ function ChildrenButton(props: {
 
 interface TraceBarProps {
   color: string;
-  index: number;
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
+  virtualized_index: number;
   duration?: number;
 }
 
@@ -1267,7 +1313,9 @@ function TraceBar(props: TraceBarProps) {
   return (
     <Fragment>
       <div
-        ref={r => props.manager.registerSpanBarRef(r, props.node_space!, props.index)}
+        ref={r =>
+          props.manager.registerSpanBarRef(r, props.node_space!, props.virtualized_index)
+        }
         className="TraceBar"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
@@ -1280,7 +1328,7 @@ function TraceBar(props: TraceBarProps) {
             r,
             duration,
             props.node_space!,
-            props.index
+            props.virtualized_index
           )
         }
         className="TraceBarDuration"
@@ -1298,9 +1346,9 @@ function TraceBar(props: TraceBarProps) {
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
-  index: number;
   manager: VirtualizedViewManager;
   node_spaces: [number, number][];
+  virtualized_index: number;
   duration?: number;
 }
 
@@ -1311,7 +1359,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         color={props.color}
         node_space={props.entire_space}
         manager={props.manager}
-        index={props.index}
+        virtualized_index={props.virtualized_index}
         duration={props.duration}
       />
     );
@@ -1331,7 +1379,13 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   return (
     <Fragment>
       <div
-        ref={r => props.manager.registerSpanBarRef(r, props.entire_space!, props.index)}
+        ref={r =>
+          props.manager.registerSpanBarRef(
+            r,
+            props.entire_space!,
+            props.virtualized_index
+          )
+        }
         className="TraceBar Invisible"
         style={{
           transform: `matrix(${spanTransform.join(',')})`,
@@ -1360,7 +1414,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             r,
             duration,
             props.entire_space!,
-            props.index
+            props.virtualized_index
           )
         }
         className="TraceBarDuration"
@@ -1389,7 +1443,7 @@ const TraceStylingWrapper = styled('div')`
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: 4px;
-  padding-top: 24px;
+  padding-top: 44px;
 
   &:before {
     content: '';
@@ -1397,7 +1451,7 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 22px;
+    height: 44px;
     background-color: ${p => p.theme.backgroundSecondary};
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -1488,6 +1542,27 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    &.Timeline {
+      opacity: 1;
+      z-index: 1;
+      pointer-events: none;
+
+      .TraceIndicatorLabel {
+        font-weight: normal;
+        min-width: 0;
+        top: 26px;
+        width: auto;
+        border: none;
+        background-color: transparent;
+        color: ${p => p.theme.subText};
+      }
+
+      .TraceIndicatorLine {
+        background: ${p => p.theme.translucentGray100};
+        top: 30px;
+      }
     }
   }
 
@@ -1596,7 +1671,6 @@ const TraceStylingWrapper = styled('div')`
       align-items: center;
       will-change: transform;
       transform-origin: left center;
-      transform: translateX(var(--column-translate-x));
 
       img {
         width: 16px;
