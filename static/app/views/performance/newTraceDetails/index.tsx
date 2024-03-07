@@ -46,7 +46,8 @@ import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/v
 
 import Breadcrumb from '../breadcrumb';
 
-import BottomNodePanel from './bottomNodePanel';
+import TraceDrawer from './traceDrawer/traceDrawer';
+import {isTraceNode} from './guards';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
@@ -145,6 +146,7 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
+  const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>('trace_data');
   const {projects} = useProjects();
 
   const rootEvent = useRootEvent(props.trace);
@@ -223,13 +225,16 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
+  const [detailPanelRef, setDetailPanelRef] =
+    useState<React.MutableRefObject<HTMLDivElement | null> | null>(null);
+  const [detailNodes, setDetailNodes] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+    []
   );
 
   const onSetDetailNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      setDetailNode(node);
+      setActiveTab(node && !isTraceNode(node) ? 'node_detail' : 'trace_data');
+      setDetailNodes(node ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -368,6 +373,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           />
           <Trace
             trace={tree}
+            detailPanelRef={detailPanelRef}
             trace_id={props.traceSlug}
             roving_dispatch={rovingTabIndexDispatch}
             roving_state={rovingTabIndexState}
@@ -379,9 +385,11 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
-          <BottomNodePanel
-            traceType={traceType}
-            node={detailNode}
+          <TraceDrawer
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            setDetailPanelRef={setDetailPanelRef}
+            nodes={detailNodes}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}

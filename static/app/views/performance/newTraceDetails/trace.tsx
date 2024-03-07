@@ -16,7 +16,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -99,6 +98,7 @@ function maybeFocusRow(
 }
 
 interface TraceProps {
+  detailPanelRef: React.MutableRefObject<HTMLDivElement | null> | null;
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
@@ -124,6 +124,7 @@ function Trace({
   searchResultsIteratorIndex,
   searchResultsMap,
   onTraceSearch,
+  detailPanelRef,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -325,7 +326,37 @@ function Trace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useOnClickOutside(containerRef.current, onOutsideClick);
+  // Unhighlight the row when clicking outside of the trace or the detail panel
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const traceViewElement: HTMLDivElement | null =
+        'current' in containerRef ? containerRef.current : containerRef;
+      const detailPanelElement: HTMLDivElement | null =
+        detailPanelRef && 'current' in detailPanelRef
+          ? detailPanelRef.current
+          : detailPanelRef;
+
+      const clickedTraceView =
+        !traceViewElement || traceViewElement.contains(event.target as Node);
+      const clickedDetailPanel = detailPanelElement?.contains(event.target as Node);
+      if (clickedTraceView || clickedDetailPanel) {
+        return;
+      }
+
+      onOutsideClick();
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('touchstart', listener);
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('touchstart', listener);
+    };
+  }, [containerRef, detailPanelRef, onOutsideClick]);
 
   const onRowKeyDown = useCallback(
     (

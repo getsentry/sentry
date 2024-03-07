@@ -21,7 +21,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
 
-import {getTraceInfo} from '../traceDetails/utils';
+import {getTraceInfo} from '../../../traceDetails/utils';
 
 type TraceFooterProps = {
   location: Location;
@@ -81,7 +81,7 @@ function TraceDataLoading() {
   );
 }
 
-export function TraceData(props: TraceFooterProps) {
+export function TraceLevelDetails(props: TraceFooterProps) {
   if (!props.traces) {
     return <TraceDataLoading />;
   }

@@ -20,18 +20,9 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import NewTraceDetailsSpanDetail, {
-  SpanDetailContainer,
-  SpanDetails,
-} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import {
-  getFormattedTimeRangeWithLeadingAndTrailingZero,
-  getSpanOperation,
-  parseTrace,
-} from 'sentry/components/events/interfaces/spans/utils';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -48,8 +39,8 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconChevron, IconFire, IconGroup, IconOpen, IconSpan} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {IconChevron, IconOpen} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   type EntryBreadcrumbs,
@@ -59,51 +50,17 @@ import {
 } from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
-import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
+import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {TraceType} from '../traceDetails/newTraceDetailsContent';
-import {Row, Tags} from '../traceDetails/styles';
-import {getTraceInfo} from '../traceDetails/utils';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-
-import {
-  isMissingInstrumentationNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTraceNode,
-  isTransactionNode,
-} from './guards';
-import {TraceData} from './traceData';
-import type {
-  MissingInstrumentationNode,
-  ParentAutogroupNode,
-  SiblingAutogroupNode,
-  TraceTree,
-  TraceTreeNode,
-} from './traceTree';
-
-type EventDetailProps = {
-  location: Location;
-  node: TraceTreeNode<TraceTree.Transaction>;
-  organization: Organization;
-};
+import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
   const [showingAll, setShowingAll] = useState(false);
@@ -205,7 +162,17 @@ function BreadCrumbsSection({
   );
 }
 
-function TransactionNodeDetails({node, organization, location}: EventDetailProps) {
+type TransactionDetailProps = {
+  location: Location;
+  node: TraceTreeNode<TraceTree.Transaction>;
+  organization: Organization;
+};
+
+export default function TransactionNodeDetails({
+  node,
+  organization,
+  location,
+}: TransactionDetailProps) {
   const {projects} = useProjects();
   const {data: event} = useApiQuery<EventTransaction>(
     [
@@ -308,7 +275,7 @@ function TransactionNodeDetails({node, organization, location}: EventDetailProps
           <Tooltip title={node.value.project_slug}>
             <ProjectBadge
               project={project ? project : {slug: node.value.project_slug}}
-              avatarSize={50}
+              avatarSize={30}
               hideName
             />
           </Tooltip>
@@ -318,7 +285,7 @@ function TransactionNodeDetails({node, organization, location}: EventDetailProps
           </div>
         </Title>
         <Button
-          size="sm"
+          size="xs"
           icon={<IconOpen />}
           href={eventJsonUrl}
           external
@@ -503,393 +470,6 @@ function TransactionNodeDetails({node, organization, location}: EventDetailProps
   );
 }
 
-function SpanNodeDetails({
-  node,
-  organization,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  organization: Organization;
-}) {
-  const {projects} = useProjects();
-  const {event, relatedErrors, childTxn, ...span} = node.value;
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileId = event?.contexts?.profile?.profile_id ?? null;
-
-  return (
-    <Wrapper>
-      <Title>
-        <Tooltip title={event.projectSlug}>
-          <ProjectBadge
-            project={project ? project : {slug: event.projectSlug || ''}}
-            avatarSize={50}
-            hideName
-          />
-        </Tooltip>
-        <div>
-          <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(span)}</TransactionOp>
-        </div>
-      </Title>
-      {event.projectSlug && (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={event.projectSlug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <NewTraceDetailsSpanDetail
-                  relatedErrors={relatedErrors}
-                  childTransactions={childTxn ? [childTxn] : []}
-                  event={event}
-                  openPanel="open"
-                  organization={organization}
-                  span={span}
-                  trace={parseTrace(event)}
-                />
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      )}
-    </Wrapper>
-  );
-}
-
-function TraceNodeDetails({
-  node,
-  rootEventResults,
-  traceType,
-}: {
-  node: TraceTreeNode<TraceTree.Trace>;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traceType: TraceType | null;
-}) {
-  if (rootEventResults.isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  const {data: rootEvent} = rootEventResults;
-
-  if (!rootEvent) {
-    return null;
-  }
-
-  const traceInfo = getTraceInfo(node.value.transactions, node.value.orphan_errors);
-  const opsBreakdown = generateStats(rootEvent, {type: 'no_filter'});
-  const httpOp = opsBreakdown.find(obj => obj.name === 'http.client');
-  const hasServiceBreakdown = httpOp && traceType === TraceType.ONE_ROOT;
-
-  const totalDuration = rootEvent.endTimestamp - rootEvent.startTimestamp;
-  const httpDuration = httpOp?.totalInterval ?? 0;
-  const serverSidePct = ((httpDuration / totalDuration) * 100).toFixed();
-  const clientSidePct = 100 - Number(serverSidePct);
-
-  return (
-    <Wrapper>
-      <Title>
-        <h2>{t('Trace')}</h2>
-      </Title>
-
-      <StyledTable className="table key-value">
-        <tbody>
-          <Row title={<TransactionIdTitle>{t('Duration')}</TransactionIdTitle>}>
-            {getDuration(traceInfo.endTimestamp - traceInfo.startTimestamp, 2, true)}
-          </Row>
-          {hasServiceBreakdown && (
-            <Fragment>
-              <Row title={<TransactionIdTitle>{t('Client Side')}</TransactionIdTitle>}>
-                <Dur>{getDuration(totalDuration - httpDuration, 2, true)}</Dur> (
-                <Pct>{clientSidePct}%</Pct>)
-              </Row>
-              <Row title={<TransactionIdTitle>{t('Server Side')}</TransactionIdTitle>}>
-                <Dur>{getDuration(httpDuration, 2, true)}</Dur> (
-                <Pct>{serverSidePct}%</Pct>)
-              </Row>
-            </Fragment>
-          )}
-        </tbody>
-      </StyledTable>
-    </Wrapper>
-  );
-}
-
-function ErrorNodeDetails({
-  node,
-  organization,
-}: {
-  node: TraceTreeNode<TraceTree.TraceError>;
-  organization: Organization;
-}) {
-  return (
-    <Wrapper>
-      <IconTitleWrapper>
-        <StyledErrorIconBorder>
-          <IconFire color="errorText" size="lg" />
-        </StyledErrorIconBorder>
-        <h2>{t('Error')}</h2>
-      </IconTitleWrapper>
-
-      <StyledTable className="table key-value">
-        <tbody>
-          <Row
-            title={<TransactionIdTitle>{t('Title')}</TransactionIdTitle>}
-            extra={
-              <StyledButton
-                size="xs"
-                to={generateIssueEventTarget(node.value, organization)}
-              >
-                {t('Go to Issue')}
-              </StyledButton>
-            }
-          >
-            {node.value.title}
-          </Row>
-        </tbody>
-      </StyledTable>
-    </Wrapper>
-  );
-}
-
-function ParentAutogroupNodeDetails({node}: {node: ParentAutogroupNode}) {
-  return (
-    <Wrapper>
-      <IconTitleWrapper>
-        <StyledGroupIconBorder>
-          <IconGroup color="blue300" size="lg" />
-        </StyledGroupIconBorder>
-        <h2>{t('Auto-Group')}</h2>
-      </IconTitleWrapper>
-
-      <StyledTable className="table key-value">
-        <tbody>
-          <Row title={<TransactionIdTitle>{t('Grouping Logic')}</TransactionIdTitle>}>
-            {t(
-              'Chain of immediate and only children spans with the same operation as their parent.'
-            )}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Group Count')}</TransactionIdTitle>}>
-            {node.groupCount}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Grouping Key')}</TransactionIdTitle>}>
-            {t('Span Operation')} : {node.value.op}
-          </Row>
-        </tbody>
-      </StyledTable>
-    </Wrapper>
-  );
-}
-
-function SiblingAutogroupNodeDetails({node}: {node: SiblingAutogroupNode}) {
-  return (
-    <Wrapper>
-      <IconTitleWrapper>
-        <StyledGroupIconBorder>
-          <IconGroup color="blue300" size="lg" />
-        </StyledGroupIconBorder>
-        <h2>{t('Auto-Group')}</h2>
-      </IconTitleWrapper>
-
-      <StyledTable className="table key-value">
-        <tbody>
-          <Row title={<TransactionIdTitle>{t('Grouping Logic')}</TransactionIdTitle>}>
-            {t('5 or more sibling spans with the same operation and description.')}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Group Count')}</TransactionIdTitle>}>
-            {node.groupCount}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Grouping Key')}</TransactionIdTitle>}>
-            {tct('Span operation: [operation] and description: [description]', {
-              operation: node.value.op,
-              description: node.value.description,
-            })}
-          </Row>
-        </tbody>
-      </StyledTable>
-    </Wrapper>
-  );
-}
-
-function MissingInstrumentationNodeDetails({node}: {node: MissingInstrumentationNode}) {
-  return (
-    <Wrapper>
-      <IconTitleWrapper>
-        <StyledGroupIconBorder>
-          <IconSpan color="blue300" size="lg" />
-        </StyledGroupIconBorder>
-        <h2>{t('Missing Instrumentation Span')}</h2>
-      </IconTitleWrapper>
-
-      <StyledTable className="table key-value">
-        <tbody>
-          <Row title={<TransactionIdTitle>{t('Gap Duration')}</TransactionIdTitle>}>
-            {getDuration(node.value.timestamp - node.value.start_timestamp, 2, true)}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Previous Span')}</TransactionIdTitle>}>
-            {node.previous.value.op} - {node.previous.value.description}
-          </Row>
-          <Row title={<TransactionIdTitle>{t('Next Span')}</TransactionIdTitle>}>
-            {node.next.value.op} - {node.next.value.description}
-          </Row>
-        </tbody>
-      </StyledTable>
-    </Wrapper>
-  );
-}
-
-function NodeDetail({
-  node,
-  organization,
-  location,
-  rootEventResults,
-  traceType,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
-  organization: Organization;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traceType: TraceType | null;
-}) {
-  if (!node) {
-    return <NoDetail>{t('Click on a row in the trace view for its details')}</NoDetail>;
-  }
-
-  return isTransactionNode(node) ? (
-    <TransactionNodeDetails node={node} organization={organization} location={location} />
-  ) : isSpanNode(node) ? (
-    <SpanNodeDetails node={node} organization={organization} />
-  ) : isTraceNode(node) ? (
-    <TraceNodeDetails
-      rootEventResults={rootEventResults}
-      traceType={traceType}
-      node={node}
-    />
-  ) : isTraceErrorNode(node) ? (
-    <ErrorNodeDetails node={node} organization={organization} />
-  ) : isParentAutogroupedNode(node) ? (
-    <ParentAutogroupNodeDetails node={node} />
-  ) : isSiblingAutogroupedNode(node) ? (
-    <SiblingAutogroupNodeDetails node={node} />
-  ) : isMissingInstrumentationNode(node) ? (
-    <MissingInstrumentationNodeDetails node={node} />
-  ) : null;
-}
-
-type PanelProps = {
-  location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
-  organization: Organization;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  traceEventView: EventView;
-  traceType: TraceType | null;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
-};
-
-function BottomNodePanel(props: PanelProps) {
-  const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>(
-    props.node ? 'node_detail' : 'trace_data'
-  );
-
-  useEffect(() => {
-    if (props.node) {
-      setActiveTab('node_detail');
-    }
-  }, [props.node]);
-
-  return (
-    <PanelWrapper>
-      <TabsContainer>
-        <Tab
-          active={activeTab === 'node_detail'}
-          onClick={() => setActiveTab('node_detail')}
-        >
-          {t('Details')}
-        </Tab>
-        <Tab
-          active={activeTab === 'trace_data'}
-          onClick={() => setActiveTab('trace_data')}
-        >
-          {t('Trace Data')}
-        </Tab>
-      </TabsContainer>
-
-      <Content>
-        {activeTab === 'trace_data' && (
-          <TraceData
-            rootEventResults={props.rootEventResults}
-            organization={props.organization}
-            location={props.location}
-            traces={props.traces}
-            traceEventView={props.traceEventView}
-          />
-        )}
-        {activeTab === 'node_detail' && (
-          <NodeDetail
-            traceType={props.traceType}
-            rootEventResults={props.rootEventResults}
-            node={props.node}
-            organization={props.organization}
-            location={props.location}
-          />
-        )}
-      </Content>
-    </PanelWrapper>
-  );
-}
-
-const NoDetail = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: ${space(1)};
-  border: 2px dashed ${p => p.theme.border};
-  height: 100%;
-`;
-
-const PanelWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 50vh;
-  position: sticky;
-  border: 1px solid ${p => p.theme.border};
-  bottom: 0;
-  right: 0;
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-  text-align: left;
-  z-index: ${p => p.theme.zIndex.sidebar - 1};
-`;
-
-const TabsContainer = styled('div')`
-  width: 100%;
-  min-height: 30px;
-  border-bottom: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.backgroundSecondary};
-  display: flex;
-  align-items: center;
-  justify-content: left;
-  padding-left: ${space(2)};
-  gap: ${space(2)};
-`;
-
-const Tab = styled('div')<{active: boolean}>`
-  cursor: pointer;
-  font-size: ${p => p.theme.fontSizeSmall};
-  ${p => p.active && `font-weight: bold; border-bottom: 2px solid ${p.theme.textColor};`}
-`;
-
-const Content = styled('div')`
-  overflow: scroll;
-  padding: ${space(2)};
-  flex: 1;
-`;
-
 const StyledButton = styled(Button)`
   position: absolute;
   top: ${space(0.75)};
@@ -901,18 +481,6 @@ const Wrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
   padding: ${space(1)};
-
-  ${DataSection} {
-    padding: 0;
-  }
-
-  ${SpanDetails} {
-    padding: 0;
-  }
-
-  ${SpanDetailContainer} {
-    border-bottom: none !important;
-  }
 `;
 
 const FlexBox = styled('div')`
@@ -921,19 +489,15 @@ const FlexBox = styled('div')`
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const TransactioNodeDetailHeader = styled(Title)`
   justify-content: space-between;
 `;
 
-const IconTitleWrapper = styled(FlexBox)`
-  gap: ${space(1)};
-`;
-
 const TransactionOp = styled('div')`
-  font-size: 25px;
+  font-size: 15px;
   font-weight: bold;
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
@@ -957,30 +521,3 @@ const Measurements = styled('div')`
 const StyledTable = styled('table')`
   margin-bottom: 0 !important;
 `;
-
-const Dur = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-variant-numeric: tabular-nums;
-`;
-
-const Pct = styled('span')`
-  min-width: 40px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-`;
-
-const StyledErrorIconBorder = styled('div')`
-  border: 1px solid ${p => p.theme.error};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1)} 3px ${space(1)};
-  margin-bottom: ${space(2)};
-`;
-
-const StyledGroupIconBorder = styled('div')`
-  border: 1px solid ${p => p.theme.blue300};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1)} 3px ${space(1)};
-  margin-bottom: ${space(2)};
-`;
-
-export default BottomNodePanel;
