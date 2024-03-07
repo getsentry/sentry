@@ -195,10 +195,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "example",
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["group", "timestamp", "span_id"], alias
-                    ),
+                    "examples",
+                    required_args=[NumericColumn("column", spans=True)],
+                    snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
                 SnQLFunction(
@@ -339,4 +338,23 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 [args["column"]],
                 alias,
             )
+        )
+
+    def _resolve_random_samples(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_samples(
+            [
+                self.builder.resolve_column("span.group"),
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("id"),
+                args["column"],
+            ],
+            alias,
+            offset,
+            limit,
         )

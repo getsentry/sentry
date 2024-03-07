@@ -131,9 +131,9 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
+    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -208,8 +208,8 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_without_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -233,8 +233,8 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_complete_mock.call_count == 0
 
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_expired_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -296,9 +296,9 @@ class RetryRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_complete_mock.call_count == 0
 
-    @with_feature("auth:enterprise-staff-cookie")
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
+    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_owner_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):

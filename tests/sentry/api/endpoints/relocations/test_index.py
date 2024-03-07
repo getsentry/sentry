@@ -136,32 +136,26 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.PAUSE.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.PAUSE.name, status_code=200)
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
     def test_good_status_success(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.SUCCESS.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.SUCCESS.name, status_code=200)
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
 
     def test_good_status_failure(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.FAILURE.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.FAILURE.name, status_code=200)
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
 
     def test_good_single_query_partial_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "ccef828a",
             },
@@ -172,7 +166,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_full_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "af3d45ee-ce76-4de0-90c1-fc739da29523",
             },
@@ -184,7 +178,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_org_slug(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "foo",
             },
@@ -197,7 +191,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "alice",
             },
@@ -210,7 +204,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "b",
             },
@@ -223,7 +217,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "foo alice",
             },
@@ -255,7 +249,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_no_regular_user_with_query(self):
         self.login_as(user=self.owner, superuser=False)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "alice",
             },
@@ -268,7 +262,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_bad_unknown_status(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_error_response(status="nonexistent", status_code=400)
+        response = self.get_error_response(status="nonexistent", status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_UNKNOWN_RELOCATION_STATUS.substitute(
@@ -538,8 +532,8 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
+    @with_feature("auth:enterprise-staff-cookie")
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_staff_when_feature_disabled(
         self,
@@ -957,8 +951,8 @@ class PostRelocationsTest(APITestCase):
 
         assert relocation_link_promo_code_signal_mock.call_count == 0
 
-    @with_feature("auth:enterprise-staff-cookie")
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @with_feature("auth:enterprise-staff-cookie")
     def test_bad_staff_nonexistent_owner(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
@@ -1159,8 +1153,8 @@ class PostRelocationsTest(APITestCase):
             sender=RelocationIndexEndpoint,
         )
 
-    @with_feature("auth:enterprise-staff-cookie")
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @with_feature("auth:enterprise-staff-cookie")
     def test_good_no_throttle_for_staff(
         self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):

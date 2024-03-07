@@ -637,8 +637,12 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
 
-        def detect_performance_problems_interceptor(data: Event, project: Project):
-            perf_problems = detect_performance_problems(data, project)
+        def detect_performance_problems_interceptor(
+            data: Event, project: Project, is_standalone_spans: bool = False
+        ):
+            perf_problems = detect_performance_problems(
+                data, project, is_standalone_spans=is_standalone_spans
+            )
             if fingerprint:
                 for perf_problem in perf_problems:
                     perf_problem.fingerprint = fingerprint
@@ -1521,6 +1525,7 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction: str | None = None,
         op: str | None = None,
         duration: int = 10,
+        exclusive_time: int = 5,
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
@@ -1538,7 +1543,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
-            "exclusive_time_ms": 5,
+            "exclusive_time_ms": exclusive_time,
             "is_segment": False,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),

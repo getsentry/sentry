@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
+import sys
 from collections.abc import MutableMapping
 from typing import Any, cast
 
-from arroyo import Topic
+from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.types import Message, Value
+from confluent_kafka import KafkaException
 from django.conf import settings
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -33,7 +36,7 @@ class PayloadType(ValueEqualityEnum):
 
 
 def _get_occurrence_producer() -> KafkaProducer:
-    cluster_name = get_topic_definition(settings.KAFKA_INGEST_OCCURRENCES)["cluster"]
+    cluster_name = get_topic_definition(Topic.INGEST_OCCURRENCES)["cluster"]
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
@@ -68,7 +71,17 @@ def produce_occurrence_to_kafka(
         process_message(Message(Value(payload=payload, committable={})))
         return
 
-    _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+    try:
+        _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
+    except KafkaException:
+        logger.exception(
+            "Failed to send occurrence to issue platform",
+            extra={
+                "total_payload_size": sys.getsizeof(payload),
+                "total_payload_data_size": sys.getsizeof(payload_data),
+                "payload_data_key_sizes": {k: sys.getsizeof(v) for k, v in payload_data.items()},
+            },
+        )
 
 
 def _prepare_occurrence_message(

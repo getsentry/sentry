@@ -82,3 +82,44 @@ export const getFeedbackConfigOptions = ({
   }
   return options.join('\n');
 };
+
+export const getCrashReportModalIntroduction = () =>
+  t(
+    'Collect feedback on your errors by installing our crash-report modal. This allows users to submit feedback after they experience an error via an automatic modal that pops up after an error occurs. The default modal will prompt the user for their name, email address, and description of what occurred.'
+  );
+
+export const getCrashReportModalInstallDescriptionJavaScript = () =>
+  tct(
+    'You can collect feedback at the time the event is sent, using [code:beforeSend].',
+    {code: <code />}
+  );
+
+export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
+  tct(
+    'There are many options you can pass to the [code:Sentry.showReportDialog] call to customize your form. Learn more about configuring the modal by reading the [link:configuration docs].',
+    {code: <code />, link: <ExternalLink href={link} />}
+  );
+
+export const getCrashReportModalSnippetJavaScript = params => [
+  {
+    code: [
+      {
+        label: 'HTML',
+        value: 'html',
+        language: 'html',
+        code: `<script>
+  Sentry.init({
+    dsn: "${params.dsn}",
+    beforeSend(event, hint) {
+      // Check if it is an exception, and if so, show the report dialog
+      if (event.exception && event.event_id) {
+        Sentry.showReportDialog({ eventId: event.event_id });
+      }
+      return event;
+    },
+  });
+</script>`,
+      },
+    ],
+  },
+];
