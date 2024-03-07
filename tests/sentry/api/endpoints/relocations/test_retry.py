@@ -52,7 +52,6 @@ class RetryRelocationTest(APITestCase):
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -168,8 +167,8 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_without_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
@@ -193,8 +192,8 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_complete_mock.call_count == 0
 
-    @patch("sentry.tasks.relocation.uploading_complete.delay")
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_expired_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):

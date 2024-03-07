@@ -43,7 +43,6 @@ class GetRelocationsTest(APITestCase):
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
 
         # Add 1 relocation of each status.
         common = {
@@ -128,32 +127,26 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.PAUSE.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.PAUSE.name, status_code=200)
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
     def test_good_status_success(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.SUCCESS.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.SUCCESS.name, status_code=200)
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
 
     def test_good_status_failure(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
-            status=Relocation.Status.FAILURE.name, status_code=200
-        )
+        response = self.get_success_response(status=Relocation.Status.FAILURE.name, status_code=200)
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
 
     def test_good_single_query_partial_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "ccef828a",
             },
@@ -164,7 +157,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_full_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "af3d45ee-ce76-4de0-90c1-fc739da29523",
             },
@@ -176,7 +169,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_org_slug(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "foo",
             },
@@ -189,7 +182,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "alice",
             },
@@ -202,7 +195,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "b",
             },
@@ -215,7 +208,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "foo alice",
             },
@@ -247,7 +240,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_good_no_regular_user_with_query(self):
         self.login_as(user=self.owner, superuser=False)
-        response = response = self.get_success_response(
+        response = self.get_success_response(
             qs_params={
                 "query": "alice",
             },
@@ -260,7 +253,7 @@ class GetRelocationsTest(APITestCase):
 
     def test_bad_unknown_status(self):
         self.login_as(user=self.superuser, superuser=True)
-        response = response = self.get_error_response(status="nonexistent", status_code=400)
+        response = self.get_error_response(status="nonexistent", status_code=400)
 
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_UNKNOWN_RELOCATION_STATUS.substitute(
@@ -284,7 +277,6 @@ class PostRelocationsTest(APITestCase):
             email="owner", is_superuser=False, is_staff=False, is_active=True
         )
         self.superuser = self.create_user(is_superuser=True)
-        self.staff_user = self.create_user(is_staff=True)
 
     def tmp_keys(self, tmp_dir: str) -> tuple[Path, Path]:
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
