@@ -1126,7 +1126,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
         with metrics.timer("post_process.process_code_mappings.duration"):
             # Supported platforms
-            if event.data["platform"] not in SUPPORTED_LANGUAGES:
+            if event.data.get("platform") not in SUPPORTED_LANGUAGES:
                 return
 
             # To limit the overall number of tasks, only process one issue per project per hour. In
@@ -1409,7 +1409,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return True
 
     should_notify_on_old_feedbacks = job["event"].project.get_option(
-        "sentry:replay_rage_click_issues"
+        "sentry:feedback_user_report_notifications"
     )
 
     if (

@@ -18,8 +18,8 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
-from sentry.incidents.models import (
-    AlertRuleTriggerAction,
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
