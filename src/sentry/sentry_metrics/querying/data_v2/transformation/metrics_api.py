@@ -97,8 +97,8 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
         self._end: datetime | None = None
         self._interval: int | None = None
 
-    def _assert_transformation_preconditions(self) -> tuple[datetime, datetime, int]:
-        assert self._start is not None and self._end is not None and self._interval is not None
+    def _assert_transformation_preconditions(self) -> tuple[datetime, datetime, int | None]:
+        assert self._start is not None and self._end is not None
         return self._start, self._end, self._interval
 
     def _build_intermediate_results(
@@ -147,16 +147,17 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
                 lambda value, group: group.add_totals(value.get("aggregate_value")),
             )
 
-            # We group the series data second, which will use the already ordered dictionary entries added by the
-            # totals.
-            _add_to_query_groups(
-                query_result.series,
-                group_bys,
-                query_groups,
-                lambda value, group: group.add_series_entry(
-                    cast(str, value.get("time")), value.get("aggregate_value")
-                ),
-            )
+            if query_result.series_query is not None:
+                # We group the series data second, which will use the already ordered dictionary entries added by the
+                # totals.
+                _add_to_query_groups(
+                    query_result.series,
+                    group_bys,
+                    query_groups,
+                    lambda value, group: group.add_series_entry(
+                        cast(str, value.get("time")), value.get("aggregate_value")
+                    ),
+                )
 
             query_meta = []
 
@@ -199,23 +200,27 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
         # intermediate results.
         start, end, interval = self._assert_transformation_preconditions()
 
-        # We build the intervals that we will return to the API user.
-        intervals = _build_intervals(start, end, interval)
+        intervals = None
+        if interval is not None:
+            # We build the intervals that we will return to the API user.
+            intervals = _build_intervals(start, end, interval)
 
         # We build the transformed groups given the intermediate groups.
         transformed_queries_groups = []
         for query_groups in queries_groups:
             translated_query_groups = []
             for group_key, group_value in query_groups.items():
-                translated_query_groups.append(
-                    {
-                        "by": {name: value for name, value in group_key},
-                        "series": _generate_full_series(
-                            int(start.timestamp()), len(intervals), interval, group_value.series
-                        ),
-                        "totals": undefined_value_to_none(group_value.totals),
-                    }
-                )
+                base_group = {
+                    "by": {name: value for name, value in group_key},
+                    "totals": undefined_value_to_none(group_value.totals),
+                }
+
+                if intervals is not None:
+                    base_group["series"] = _generate_full_series(
+                        int(start.timestamp()), len(intervals), interval, group_value.series
+                    )
+
+                translated_query_groups.append(base_group)
 
             transformed_queries_groups.append(translated_query_groups)
 
@@ -224,10 +229,14 @@ class MetricsAPIQueryTransformer(QueryTransformer[Mapping[str, Any]]):
         for query_meta in queries_meta:
             transformed_queries_meta.append([meta.meta for meta in query_meta])
 
-        return {
-            "intervals": intervals,
+        base_result = {
             "data": transformed_queries_groups,
             "meta": transformed_queries_meta,
             "start": start,
             "end": end,
         }
+
+        if intervals is not None:
+            base_result["intervals"] = intervals
+
+        return base_result

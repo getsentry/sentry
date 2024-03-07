@@ -38,7 +38,7 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.querying.metadata import MetricCodeLocations, get_metric_code_locations
 from sentry.sentry_metrics.querying.samples_list import get_sample_list_executor_cls
-from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -443,6 +443,13 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
         return metrics_queries_plan
 
+    def _get_query_type_from_request(self, request: Request) -> QueryType:
+        query_type = request.GET.get("queryType")
+        if query_type is None:
+            return QueryType.TOTALS_AND_SERIES
+
+        return QueryType(query_type)
+
     def post(self, request: Request, organization) -> Response:
         try:
             start, end = get_date_range_from_params(request.GET)
@@ -458,6 +465,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
                 referrer=Referrer.API_ORGANIZATION_METRICS_QUERY.value,
+                query_type=self._get_query_type_from_request(request),
             ).apply_transformer(MetricsAPIQueryTransformer())
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
