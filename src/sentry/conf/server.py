@@ -103,6 +103,8 @@ DEFAULT_EXCEPTION_REPORTER_FILTER = (
     "sentry.debug.utils.exception_reporter_filter.NoSettingsExceptionReporterFilter"
 )
 
+ENFORCE_PAGINATION = True if DEBUG else False
+
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -2512,6 +2514,8 @@ SENTRY_SCOPE_SETS = (
     ),
     (("email", "Read email address and verification status. Requires openid scope."),),
 )
+
+SENTRY_API_PAGINATION_ALLOWLIST = SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY
 
 SENTRY_DEFAULT_ROLE = "member"
 
