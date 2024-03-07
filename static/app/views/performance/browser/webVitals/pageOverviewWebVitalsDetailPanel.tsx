@@ -30,8 +30,8 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webV
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useGoodMehAndBadInteractionsSamplesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useGoodMehAndBadInteractionsSamplesQuery';
-import {useGoodMehAndBadTransactionsSamplesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useGoodMehAndBadTransactionsSamplesQuery';
+import {useInteractionsCategorizedSamplesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInteractionsCategorizedSamplesQuery';
+import {useTransactionsCategorizedSamplesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionsCategorizedSamplesQuery';
 import type {
   InteractionSpanSampleRowWithScore,
   TransactionSampleRowWithScore,
@@ -110,14 +110,14 @@ export function PageOverviewWebVitalsDetailPanel({
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
-    useGoodMehAndBadTransactionsSamplesQuery({
+    useTransactionsCategorizedSamplesQuery({
       transaction: transaction ?? '',
       webVital,
       enabled: Boolean(webVital) && !isInp,
     });
 
   const {data: inpTableData, isLoading: isInteractionsLoading} =
-    useGoodMehAndBadInteractionsSamplesQuery({
+    useInteractionsCategorizedSamplesQuery({
       transaction: transaction ?? '',
       enabled: Boolean(webVital) && isInp,
     });

@@ -14,7 +14,7 @@ type Props = {
   webVital: WebVitals | null;
 };
 
-export function useGoodMehAndBadTransactionsSamplesQuery({
+export function useTransactionsCategorizedSamplesQuery({
   transaction,
   webVital,
   enabled,

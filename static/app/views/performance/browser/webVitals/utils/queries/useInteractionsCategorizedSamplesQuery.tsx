@@ -10,7 +10,7 @@ type Props = {
   transaction: string;
 };
 
-export function useGoodMehAndBadInteractionsSamplesQuery({transaction, enabled}: Props) {
+export function useInteractionsCategorizedSamplesQuery({transaction, enabled}: Props) {
   const {data: goodData, isFetching: isGoodDataLoading} = useInpSpanSamplesWebVitalsQuery(
     {
       transaction,
