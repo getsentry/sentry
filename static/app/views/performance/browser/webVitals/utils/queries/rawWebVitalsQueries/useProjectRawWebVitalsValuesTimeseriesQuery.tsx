@@ -36,9 +36,8 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       ],
       name: 'Web Vitals',
       query: [
-        // TODO: inp spans don't have a transaction.op.
-        // Plan to update this filter to also check span.op:ui.interaction.click once we have the ability.
         'transaction.op:[pageload,""]',
+        'span.op:[ui.interaction.click,""]',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
       ].join(' '),
       version: 2,
