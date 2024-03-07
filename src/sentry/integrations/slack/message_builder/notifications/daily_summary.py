@@ -59,34 +59,11 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
             except Project.DoesNotExist:
                 continue
 
+            if context.check_if_project_is_empty():
+                continue
+
             project_text = f"Here's what happened in the *{project.slug}* project today:"
             blocks.append(self.get_markdown_block(project_text))
-
-            # Add release info if we have it
-            if context.new_in_release:
-                fields = []
-                for release_id, errors in context.new_in_release.items():
-                    try:
-                        release = Release.objects.get(id=release_id)
-                    except Release.DoesNotExist:
-                        continue
-
-                    release_text = self.linkify_release(release, project.organization)
-                    for error in errors[0:3]:
-                        linked_issue_title = self.linkify_error_title(error)
-                        release_text += f"• :new: {linked_issue_title}\n"
-                        fields.append(
-                            {
-                                "type": "mrkdwn",
-                                "text": release_text,
-                            },
-                        )
-                blocks.append(
-                    {
-                        "type": "section",
-                        "fields": fields,
-                    }
-                )
 
             # Calculate today's event count percentage against 14 day avg
             if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
@@ -101,13 +78,30 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
                 blocks.append(self.get_markdown_block(event_count_text))
 
+            # Add release info if we have it
+            if context.new_in_release:
+                fields = []
+                for release_id, errors in context.new_in_release.items():
+                    try:
+                        release = Release.objects.get(id=release_id)
+                    except Release.DoesNotExist:
+                        continue
+
+                    release_text = self.linkify_release(release, project.organization)
+                    for error in errors[0:3]:
+                        linked_issue_title = self.linkify_error_title(error)
+                        release_text += f"• :new: {linked_issue_title}\n"
+                        fields.append(self.make_field(release_text))
+                blocks.append(self.get_section_fields_block(fields))
+
             # Add Top 3 Error Issues
+            error_issue_fields = []
             if context.key_errors:
                 top_errors_text = "*Today's Top 3 Error Issues*\n"
                 for error in context.key_errors:
                     linked_title = self.linkify_error_title(error[0])
                     top_errors_text += f"• {linked_title}\n"
-                blocks.append(self.get_markdown_block(top_errors_text))
+                error_issue_fields.append(self.make_field(top_errors_text))
 
             # Add escalated/regressed issues
             if context.escalated_today or context.regressed_today:
@@ -118,10 +112,14 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
                         issue_state_text += f"• :point_up: {linked_title}\n"
 
                 if context.regressed_today:
+                    if not context.escalated_today:
+                        issue_state_text = "*Issues that escalated or regressed today*\n"
                     for regressed_issue in context.regressed_today:
                         linked_title = self.linkify_error_title(regressed_issue)
                         issue_state_text += f"• :recycle: {linked_title}\n"
-                blocks.append(self.get_markdown_block(issue_state_text))
+
+                error_issue_fields.append(self.make_field(issue_state_text))
+            blocks.append(self.get_section_fields_block(error_issue_fields))
 
             # Add performance data
             if context.key_performance_issues:
