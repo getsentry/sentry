@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import datetime
-from typing import Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
@@ -31,6 +32,9 @@ class Summary(TypedDict):
 
 
 class AbstractSamplesListExecutor(ABC):
+    # picking 30 samples gives a decent chance to surface a few samples from the higher percentiles
+    num_samples = 30
+
     sortable_columns = {"timestamp", "span.duration"}
 
     def __init__(
@@ -307,7 +311,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             query=self.query,
             selected_columns=[
                 f"rounded_timestamp({self.rollup})",
-                f"examples({column}) AS examples",
+                f"examples({column}, {self.num_samples}) AS examples",
             ],
             limit=limit,
             offset=offset,
@@ -322,14 +326,19 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
+        metric_key = lambda example: example[2]  # sort by metric
+        for row in result["data"]:
+            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
+
         span_keys = [
             (
                 "00",  # all segments have a group of `00` currently
-                row["examples"][0][0],  # timestamp
-                row["examples"][0][1],  # span_id
+                example[0],  # timestamp
+                example[1],  # span_id
             )
             for row in result["data"]
-        ]
+            for example in row["examples"]
+        ][:limit]
 
         """
         Because transaction level measurements currently do not get
@@ -492,7 +501,7 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
             query=self.query,
             selected_columns=[
                 f"rounded_timestamp({self.rollup})",
-                f"examples({column}) AS examples",
+                f"examples({column}, {self.num_samples}) AS examples",
             ],
             limit=limit,
             offset=offset,
@@ -510,14 +519,19 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
+        metric_key = lambda example: example[3]  # sort by metric
+        for row in result["data"]:
+            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
+
         return [
             (
-                row["examples"][0][0],  # group
-                row["examples"][0][1],  # timestamp
-                row["examples"][0][2],  # span_id
+                example[0],  # group
+                example[1],  # timestamp
+                example[2],  # span_id
             )
             for row in result["data"]
-        ]
+            for example in row["examples"]
+        ][:limit]
 
     @abstractmethod
     def get_additional_conditions(self, builder: QueryBuilder) -> list[Condition]:
@@ -604,6 +618,13 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         "min": "min_metric",
         "max": "max_metric",
         "count": "count_metric",
+    }
+
+    # refer to the definition of `examples()` in the metrics summary dataset
+    EXAMPLES_SORT_KEY = {
+        "min": 3,
+        "max": 4,
+        "count": 6,
     }
 
     @classmethod
@@ -714,14 +735,15 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         offset: int,
         limit: int,
     ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
-        rounded_timestamp = f"rounded_timestamp({self.rollup})"
-
         builder = MetricsSummariesQueryBuilder(
             Dataset.MetricsSummaries,
             self.params,
             snuba_params=self.snuba_params,
             query=self.query,
-            selected_columns=[rounded_timestamp, "examples()"],
+            selected_columns=[
+                f"rounded_timestamp({self.rollup})",
+                f"examples({self.num_samples}) AS examples",
+            ],
             limit=limit,
             offset=offset,
             # This table has a poor SAMPLE BY so DO NOT use it for now
@@ -736,14 +758,23 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         query_results = builder.run_query(self.referrer.value)
         result = builder.process_results(query_results)
 
+        # 7 here refers to the avg value which is the default
+        # if the operaton doesn't have metric it should sort by
+        index = self.EXAMPLES_SORT_KEY.get(self.operation or "", 7)  # sort by metric
+        metric_key = lambda example: example[index]
+
+        for row in result["data"]:
+            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
+
         span_keys = [
             (
-                cast(str, row["examples"][0][0]),  # group
-                cast(str, row["examples"][0][1]),  # timestamp
-                cast(str, row["examples"][0][2]),  # span_id
+                cast(str, example[0]),  # group
+                cast(str, example[1]),  # timestamp
+                cast(str, example[2]),  # span_id
             )
             for row in result["data"]
-        ]
+            for example in row["examples"]
+        ][:limit]
 
         """
         The indexed spans dataset does not contain any metric related
@@ -801,3 +832,33 @@ def get_sample_list_executor_cls(mri) -> type[AbstractSamplesListExecutor] | Non
         if executor_cls.supports_mri(mri):
             return executor_cls
     return None
+
+
+def pick_samples(
+    samples: list[Any],
+    metric_key: Callable[[Any], float],
+) -> list[Any]:
+    # if there are at most 3 samples, there's no picking needed
+    # as we want to return at most 3 from the list provided
+    if len(samples) <= 3:
+        return samples
+
+    samples.sort(key=metric_key)
+
+    # always take the first and last samples as they represent the extremes
+    result = [samples[0], samples[-1]]
+
+    # choose the sample closest to the middle
+    avg = (metric_key(samples[0]) + metric_key(samples[-1])) / 2
+    choice = None
+    min_delta = float("inf")
+    for sample in samples[1:-1]:
+        new_delta = abs(avg - metric_key(sample))
+        if new_delta < min_delta:
+            choice = sample
+            min_delta = new_delta
+
+    if choice is not None:
+        result.append(choice)
+
+    return result
