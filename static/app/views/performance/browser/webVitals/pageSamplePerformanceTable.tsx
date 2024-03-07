@@ -139,14 +139,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     enabled: dataset === Dataset.PAGELOADS,
   });
 
-  const interactionsPageLinks = null;
-
-  const {data: interactionsTableData, isFetching: isInteractionsLoading} =
-    useInpSpanSamplesWebVitalsQuery({
-      transaction,
-      enabled: dataset === Dataset.INTERACTIONS,
-      limit: 9,
-    });
+  const {
+    data: interactionsTableData,
+    isFetching: isInteractionsLoading,
+    pageLinks: interactionsPageLinks,
+  } = useInpSpanSamplesWebVitalsQuery({
+    transaction,
+    enabled: dataset === Dataset.INTERACTIONS,
+    limit: 9,
+  });
 
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -325,14 +326,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
       );
     }
 
-    if (key === 'replayId' && 'id' in row) {
+    if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== undefined &&
+        (row['transaction.duration'] !== undefined ||
+          row[SpanIndexedField.SPAN_SELF_TIME] !== undefined) &&
         replayLinkGenerator(
           organization,
           {
             replayId: row[key],
-            id: row.id,
+            id: '', // id doesn't get used in replayLinkGenerator. This is just to satisfy the type.
             'transaction.duration':
               dataset === Dataset.INTERACTIONS
                 ? row[SpanIndexedField.SPAN_SELF_TIME]
