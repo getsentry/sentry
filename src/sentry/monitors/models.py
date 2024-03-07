@@ -706,7 +706,14 @@ class MonitorIncident(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
-        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
+        indexes = [
+            models.Index(fields=["monitor_environment", "resolving_checkin"]),
+            models.Index(
+                fields=["starting_timestamp"],
+                name="active_incident_idx",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
 
 
 @region_silo_only_model
