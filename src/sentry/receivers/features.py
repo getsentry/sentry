@@ -125,7 +125,7 @@ def record_event_processed(project, event, **kwargs):
     # Check to make sure more the ip address is being sent.
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    if user_context and list(user_context.keys()) != ["ip_address"]:
+    if user_context and len(user_context.keys() - {"ip_address", "sentry_user"}) > 0:
         feature_slugs.append("user_tracking")
 
     # Custom Tags

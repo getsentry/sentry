@@ -6,7 +6,8 @@ from typing import Any, TypedDict
 from django.db import router, transaction
 from django.http import Http404
 
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service

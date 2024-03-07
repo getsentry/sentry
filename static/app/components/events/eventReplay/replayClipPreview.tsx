@@ -28,6 +28,7 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -57,6 +58,7 @@ type Props = {
   replaySlug: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  issueCategory?: IssueCategory;
 };
 
 function getReplayAnalyticsStatus({
@@ -85,10 +87,12 @@ function ReplayPreviewPlayer({
   replayId,
   fullReplayButtonProps,
   replayRecord,
+  issueCategory,
 }: {
   replayId: string;
   replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  issueCategory?: IssueCategory;
 }) {
   const routes = useRoutes();
   const location = useLocation();
@@ -104,12 +108,15 @@ function ReplayPreviewPlayer({
   const isFullscreen = useIsFullscreen();
 
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
+  const isRageClickIssue = issueCategory === IssueCategory.REPLAY;
+
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: TabKey.ERRORS,
+      t_main: isRageClickIssue ? TabKey.BREADCRUMBS : TabKey.ERRORS,
       t: (currentTime + startOffsetMs) / 1000,
+      f_b_type: isRageClickIssue ? 'rageOrDead' : undefined,
     },
   };
 
@@ -169,6 +176,7 @@ function ReplayClipPreview({
   orgSlug,
   replaySlug,
   fullReplayButtonProps,
+  issueCategory,
 }: Props) {
   const clipWindow = useMemo(
     () => ({
@@ -239,6 +247,7 @@ function ReplayClipPreview({
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
             replayRecord={replayRecord}
+            issueCategory={issueCategory}
           />
         )}
       </PlayerContainer>

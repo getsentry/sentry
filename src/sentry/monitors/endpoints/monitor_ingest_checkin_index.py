@@ -39,7 +39,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from ...api.exceptions import ResourceDoesNotExist
-from .base import MonitorIngestEndpoint
+from .base import DEPRECATED_INGEST_API_MESSAGE, MonitorIngestEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
         if features.has("organizations:crons-disable-ingest-endpoints", project.organization):
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail=DEPRECATED_INGEST_API_MESSAGE)
 
         if monitor and monitor.status in [
             ObjectStatus.PENDING_DELETION,

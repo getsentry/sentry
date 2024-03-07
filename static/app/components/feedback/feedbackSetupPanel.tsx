@@ -37,7 +37,13 @@ export default function FeedbackSetupPanel() {
               )}
             </p>
             {hasNewOnboarding ? (
-              <Button external onClick={activateSidebar} priority="primary">
+              <Button
+                external
+                onClick={activateSidebar}
+                priority="primary"
+                analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
+                analyticsEventKey="feedback.index-click-onboarding-setup"
+              >
                 {t('Set Up Now')}
               </Button>
             ) : (

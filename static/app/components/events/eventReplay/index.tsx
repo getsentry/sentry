@@ -110,6 +110,7 @@ function EventReplayContent({
                 {...commonProps}
                 component={replayClipPreview}
                 clipOffsets={CLIP_OFFSETS}
+                issueCategory={group?.issueCategory}
               />
             ) : (
               <LazyLoad {...commonProps} component={replayPreview} />
