@@ -3656,6 +3656,64 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
+    @with_feature("projects:issue-priority")
+    def test_update_priority(self):
+        """
+        Bulk-setting priority successfully changes the priority of the groups
+        and also creates a GroupHistory and Activity entry for each group.
+        """
+        group1 = self.create_group(priority=PriorityLevel.HIGH.value)
+        group2 = self.create_group(priority=PriorityLevel.MEDIUM.value)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id]}, priority=PriorityLevel.LOW.to_str()
+        )
+
+        assert response.data["priority"] == PriorityLevel.LOW.to_str()
+
+        for group in (group1, group2):
+            assert Group.objects.get(id=group.id).priority == PriorityLevel.LOW.value
+            assert GroupHistory.objects.filter(
+                group=group, status=GroupHistoryStatus.PRIORITY_LOW
+            ).exists()
+            assert Activity.objects.filter(
+                group=group, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
+            ).exists()
+
+    @with_feature("projects:issue-priority")
+    def test_update_priority_no_change(self):
+        """
+        When the priority is the same as the current priority, no changes are made
+        """
+        group1 = self.create_group(priority=PriorityLevel.HIGH.value)
+        group2 = self.create_group(priority=PriorityLevel.MEDIUM.value)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            qs_params={"id": [group1.id, group2.id]}, priority=PriorityLevel.MEDIUM.to_str()
+        )
+
+        assert response.data["priority"] == PriorityLevel.MEDIUM.to_str()
+
+        # First group should have medium priority and history/activity entries
+        assert Group.objects.get(id=group1.id).priority == PriorityLevel.MEDIUM.value
+        assert GroupHistory.objects.filter(
+            group=group1, status=GroupHistoryStatus.PRIORITY_MEDIUM
+        ).exists()
+        assert Activity.objects.filter(
+            group=group1, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
+        ).exists()
+
+        # Second group should still have medium priority and no history/activity entries
+        assert Group.objects.get(id=group1.id).priority == PriorityLevel.MEDIUM
+        assert not GroupHistory.objects.filter(
+            group=group2,
+        ).exists()
+        assert not Activity.objects.filter(
+            group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
+        ).exists()
+
 
 @region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
