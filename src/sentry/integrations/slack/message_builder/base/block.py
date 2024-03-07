@@ -161,14 +161,14 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def make_field(text):
+    def make_field(text: str) -> dict[str, str]:
         return {
             "type": "mrkdwn",
             "text": text,
         }
 
     @staticmethod
-    def get_section_fields_block(fields):
+    def get_section_fields_block(fields: list[dict[str, str]]) -> SlackBlock:
         return {
             "type": "section",
             "fields": fields,
