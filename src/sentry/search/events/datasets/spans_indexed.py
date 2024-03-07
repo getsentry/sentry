@@ -197,6 +197,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "examples",
                     required_args=[NumericColumn("column", spans=True)],
+                    optional_args=[with_default(1, NumberRange("count", 1, None))],
                     snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
@@ -349,6 +350,10 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         limit = 0 if self.builder.limit is None else self.builder.limit.limit
         return function_aliases.resolve_random_samples(
             [
+                # DO NOT change the order of these columns as it
+                # changes the order of the tuple in the response
+                # which WILL cause errors where it assumes this
+                # order
                 self.builder.resolve_column("span.group"),
                 self.builder.resolve_column("timestamp"),
                 self.builder.resolve_column("id"),
@@ -357,4 +362,5 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             alias,
             offset,
             limit,
+            size=int(args["count"]),
         )
