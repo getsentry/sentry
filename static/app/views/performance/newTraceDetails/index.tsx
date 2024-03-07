@@ -46,7 +46,7 @@ import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/v
 
 import Breadcrumb from '../breadcrumb';
 
-import BottomNodePanel from './bottomNodePanel';
+import TraceDrawer from './traceDrawer/traceDrawer';
 import Trace from './trace';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
@@ -382,9 +382,8 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
-          <BottomNodePanel
+          <TraceDrawer
             setDetailPanelRef={setDetailPanelRef}
-            traceType={traceType}
             node={detailNode}
             rootEventResults={rootEvent}
             organization={props.organization}
