@@ -164,6 +164,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                     "index": 1,
                     "title": "Waiting to be picked up...",
                     "status": "PROCESSING",
+                    "progress": [],
                 }
             ],
         }
