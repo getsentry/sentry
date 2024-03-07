@@ -11,6 +11,15 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
+from sentry.dynamic_sampling.rules.utils import (
+    Condition,
+    EqCondition,
+    GlobCondition,
+    GtCondition,
+    GteCondition,
+    LtCondition,
+    LteCondition,
+)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -170,7 +179,44 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    try:
+        generic_filters = _get_generic_project_filters()
+    except Exception:
+        logger.exception(
+            "Exception while building Relay project config: error building generic filters"
+        )
+    else:
+        if generic_filters and len(generic_filters["filters"]) > 0:
+            filter_settings["generic"] = generic_filters
+
     return filter_settings
+
+
+class GenericFilter(TypedDict):
+    id: str
+    isEnabled: bool
+    condition: (
+        Condition
+        | EqCondition
+        | GteCondition
+        | GtCondition
+        | LteCondition
+        | LtCondition
+        | GlobCondition
+        | None
+    )
+
+
+class GenericFiltersConfig(TypedDict):
+    version: int
+    filters: Sequence[GenericFilter]
+
+
+def _get_generic_project_filters() -> GenericFiltersConfig:
+    return {
+        "version": 1,
+        "filters": [],
+    }
 
 
 def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:

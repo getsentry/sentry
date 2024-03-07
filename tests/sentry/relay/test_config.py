@@ -948,3 +948,30 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
         _validate_project_config(cfg["config"])
 
         insta_snapshot(cfg["config"]["metrics"])
+
+
+@patch(
+    "sentry.relay.config._get_generic_project_filters",
+    lambda *args, **kwargs: {
+        "version": 1,
+        "filters": [
+            {
+                "id": "test-id",
+                "isEnabled": True,
+                "condition": {
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+            }
+        ],
+    },
+)
+@django_db_all
+@region_silo_test
+def test_project_config_valid_with_generic_filters(default_project):
+    config = get_project_config(default_project).to_dict()
+    _validate_project_config(config["config"])
