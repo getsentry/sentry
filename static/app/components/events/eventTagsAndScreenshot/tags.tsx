@@ -5,7 +5,9 @@ import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
+  SentryDefaultTags,
   TagFilter,
+  TagFilterData,
   TAGS_DOCS_LINK,
   useHasNewTagsUI,
 } from 'sentry/components/events/eventTags/util';
@@ -14,7 +16,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
 
 import {EventTags} from '../eventTags';
 
@@ -25,11 +27,30 @@ type Props = {
 
 function Tags({event, projectSlug}: Props) {
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
-  const handleTagFilterChange = useCallback((value: TagFilter) => {
-    setTagFilter(value);
-  }, []);
+  const [tags, setTags] = useState<EventTag[]>(event.tags ?? []);
+  const handleTagFilterChange = useCallback(
+    (value: TagFilter) => {
+      setTagFilter(value);
+      setTags(() => {
+        switch (value) {
+          case TagFilter.ALL:
+            return event.tags;
+          case TagFilter.CUSTOM:
+            return event.tags.filter(tag => !SentryDefaultTags.has(tag.key));
+          default:
+            return event.tags.filter(tag => TagFilterData[value].has(tag.key));
+        }
+      });
+    },
+    [event]
+  );
 
   const hasNewTagsUI = useHasNewTagsUI();
+
+  const availableFilters = Object.keys(TagFilterData).filter(filter => {
+    return event.tags.some(tag => TagFilterData[filter].has(tag.key));
+  });
+
   const actions = !hasNewTagsUI ? null : (
     <ButtonBar gap={1}>
       <SegmentedControl
@@ -38,7 +59,7 @@ function Tags({event, projectSlug}: Props) {
         value={tagFilter}
         onChange={handleTagFilterChange}
       >
-        {Object.values(TagFilter).map(v => (
+        {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
           <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
@@ -58,7 +79,11 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewTagsUI && <EventContextSummary event={event} />}
-      <EventTags event={event} projectSlug={projectSlug} tagFilter={tagFilter} />
+      <EventTags
+        event={{...event, tags}}
+        projectSlug={projectSlug}
+        tagFilter={tagFilter}
+      />
     </StyledEventDataSection>
   );
 }
