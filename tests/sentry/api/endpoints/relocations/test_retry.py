@@ -4,8 +4,6 @@ from io import BytesIO
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from rest_framework import status
-
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.endpoints.relocations.index import (
     ERR_DUPLICATE_RELOCATION,
@@ -24,6 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_FILE_TYPE, OrderedTask
@@ -45,15 +44,14 @@ def get_test_tarball() -> BytesIO:
 @patch("sentry.analytics.record")
 class RetryRelocationTest(APITestCase):
     endpoint = "sentry-api-0-relocations-retry"
+    method = "POST"
 
     def setUp(self):
         super().setUp()
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(
-            "superuser", is_superuser=True, is_staff=True, is_active=True
-        )
+        self.superuser = self.create_user(is_superuser=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
             creator_id=self.superuser.id,
@@ -85,6 +83,7 @@ class RetryRelocationTest(APITestCase):
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
         )
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_simple(self, uploading_complete_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
@@ -92,10 +91,8 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_success_response(self.relocation.uuid, status_code=201)
 
-        assert response.status_code == status.HTTP_201_CREATED
         assert response.data["uuid"] != self.relocation.uuid
         assert self.relocation.date_added is not None
         assert response.data["dateAdded"] > self.relocation.date_added
@@ -132,8 +129,9 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_good_with_superuser_when_feature_disabled(
+    def test_good_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.superuser, superuser=True)
@@ -141,10 +139,8 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        with self.options({"relocation.enabled": False, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_success_response(self.relocation.uuid, status_code=201)
 
-        assert response.status_code == status.HTTP_201_CREATED
         assert response.data["uuid"] != self.relocation.uuid
         assert response.data["creatorId"] == str(self.superuser.id)
         assert response.data["creatorEmail"] == str(self.superuser.email)
@@ -171,6 +167,7 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_without_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
@@ -180,10 +177,8 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        with self.options({"relocation.enabled": False, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=403)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data.get("detail") == ERR_FEATURE_DISABLED
 
         assert not (
@@ -197,6 +192,7 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_complete_mock.call_count == 0
 
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_expired_superuser_when_feature_disabled(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
@@ -206,10 +202,8 @@ class RetryRelocationTest(APITestCase):
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
 
-        with self.options({"relocation.enabled": False, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=403)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data.get("detail") == ERR_FEATURE_DISABLED
 
         assert not (
@@ -224,20 +218,19 @@ class RetryRelocationTest(APITestCase):
         assert uploading_complete_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_relocation_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(uuid4().hex)}/retry/")
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        self.get_error_response(str(uuid4().hex), status_code=404)
 
         assert uploading_complete_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_relocation_file_not_found(
         self, uploading_complete_mock: Mock, analytics_record_mock: Mock
@@ -245,53 +238,46 @@ class RetryRelocationTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         RelocationFile.objects.all().delete()
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
-
         assert uploading_complete_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_file_not_found(self, uploading_complete_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
         File.objects.all().delete()
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
-
         assert uploading_complete_mock.call_count == 0
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_bad_owner_not_found(self, uploading_complete_mock: Mock, analytics_record_mock: Mock):
+    def test_bad_superuser_owner_not_found(
+        self, uploading_complete_mock: Mock, analytics_record_mock: Mock
+    ):
         self.login_as(user=self.superuser, superuser=True)
         with assume_test_silo_mode(SiloMode.CONTROL):
             User.objects.filter(id=self.owner.id).delete()
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
-
         assert uploading_complete_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_bad_throttled(self, uploading_complete_mock: Mock, analytics_record_mock: Mock):
         self.login_as(user=self.owner, superuser=False)
 
-        with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 1}):
-            response = self.client.post(f"/api/0/relocations/{str(self.relocation.uuid)}/retry/")
+        response = self.get_error_response(self.relocation.uuid, status_code=429)
 
-        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert response.data.get("detail") == ERR_THROTTLED_RELOCATION
-
         assert uploading_complete_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
@@ -300,6 +286,7 @@ class RetryRelocationTest(APITestCase):
         Relocation.Status.PAUSE,
     ]:
 
+        @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
         @patch("sentry.tasks.relocation.uploading_complete.delay")
         def test_bad_relocation_still_ongoing(
             self, uploading_complete_mock: Mock, analytics_record_mock: Mock, stat=stat
@@ -309,16 +296,11 @@ class RetryRelocationTest(APITestCase):
             self.relocation.latest_notified = Relocation.EmailKind.STARTED.value
             self.relocation.save()
 
-            with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 2}):
-                response = self.client.post(
-                    f"/api/0/relocations/{str(self.relocation.uuid)}/retry/"
-                )
+            response = self.get_error_response(self.relocation.uuid, status_code=400)
 
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert response.data.get("detail") == ERR_NOT_RETRYABLE_STATUS.substitute(
                 status=stat.name
             )
-
             assert uploading_complete_mock.call_count == 0
             analytics_record_mock.assert_not_called()
 
@@ -327,6 +309,7 @@ class RetryRelocationTest(APITestCase):
         Relocation.Status.PAUSE,
     ]:
 
+        @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 3})
         @patch("sentry.tasks.relocation.uploading_complete.delay")
         def test_bad_owner_has_another_active_relocation(
             self, uploading_complete_mock: Mock, analytics_record_mock: Mock, stat=stat
@@ -347,13 +330,8 @@ class RetryRelocationTest(APITestCase):
                 latest_task_attempts=1,
             )
 
-            with self.options({"relocation.enabled": True, "relocation.daily-limit.small": 3}):
-                response = self.client.post(
-                    f"/api/0/relocations/{str(self.relocation.uuid)}/retry/"
-                )
+            response = self.get_error_response(self.relocation.uuid, status_code=409)
 
-            assert response.status_code == status.HTTP_409_CONFLICT
             assert response.data.get("detail") == ERR_DUPLICATE_RELOCATION
-
             assert uploading_complete_mock.call_count == 0
             analytics_record_mock.assert_not_called()
