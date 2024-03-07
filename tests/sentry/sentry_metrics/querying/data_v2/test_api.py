@@ -1289,8 +1289,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for formula, expected_result, expected_unit_family in (
             # (($query_2 * 1000) + 10000.0)
             ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (10000.0 + ($query_2 * 1000))
+            ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
             # (($query_2 + 1000) + (10000.0 + 20000.0))
             ("($query_2 + (10 + 20))", 50000.0, UnitFamily.DURATION.value),
+            # ((10000.0 + 20000.0) + ($query_2 + 1000))
+            ("((10 + 20) + $query_2)", 50000.0, UnitFamily.DURATION.value),
             # ($query_2 * 1000 + 10000.0) + ($query_2 * 1000)
             ("($query_2 + 10) + $query_2", 50000.0, UnitFamily.DURATION.value),
             # ($query_2 * 1000 + 10000.0) + $query_1
