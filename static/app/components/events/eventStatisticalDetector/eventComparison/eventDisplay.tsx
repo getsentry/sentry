@@ -142,7 +142,6 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
@@ -282,12 +281,7 @@ function EventDisplay({
         </ComparisonContentWrapper>
       </div>
 
-      <EventTags
-        event={eventData}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      <EventTags event={eventData} projectSlug={project.slug} />
     </EventDisplayContainer>
   );
 }

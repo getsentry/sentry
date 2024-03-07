@@ -51,6 +51,10 @@ type Props = {
 };
 
 function ContextSummary({event}: Props) {
+  if (objectIsEmpty(event.contexts)) {
+    return null;
+  }
+
   const filteredContexts = KNOWN_CONTEXTS.filter(makeContextFilter(event));
 
   // XXX: We want to have *at least* MIN_CONTEXTS, so we first find all the

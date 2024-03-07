@@ -13,6 +13,8 @@ import {t, tn} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
@@ -29,21 +31,13 @@ const SCREENSHOT_NAMES = [
   'screenshot-2.png',
 ];
 
-type Props = Omit<
-  React.ComponentProps<typeof Tags>,
-  'projectSlug' | 'hasEventContext'
-> & {
-  projectSlug: string;
+type Props = React.ComponentProps<typeof Tags> & {
   isShare?: boolean;
 };
 
-export function EventTagsAndScreenshot({
-  projectSlug,
-  location,
-  event,
-  organization,
-  isShare = false,
-}: Props) {
+export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
   const {tags = []} = event;
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
@@ -66,8 +60,6 @@ export function EventTagsAndScreenshot({
 
   const showScreenshot = !isShare && !!screenshots.length;
   const screenshot = screenshots[screenshotInFocus];
-  // Check for context bailout condition. No context is rendered if only user is provided
-  const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
@@ -130,15 +122,7 @@ export function EventTagsAndScreenshot({
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       <TagWrapper>
-        {showTags && (
-          <Tags
-            organization={organization}
-            event={event}
-            projectSlug={projectSlug}
-            location={location}
-            hasEventContext={hasEventContext}
-          />
-        )}
+        {showTags && <Tags event={event} projectSlug={projectSlug} />}
       </TagWrapper>
       {showScreenshot && (
         <div>

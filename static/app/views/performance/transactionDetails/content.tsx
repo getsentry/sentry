@@ -253,7 +253,6 @@ function EventDetailsContent(props: Props) {
                                           event={event}
                                           project={_projects[0] as Project}
                                           showTagSummary={false}
-                                          location={location}
                                         />
                                       </ProfileGroupProvider>
                                     )}
@@ -265,7 +264,6 @@ function EventDetailsContent(props: Props) {
                                   event={event}
                                   project={_projects[0] as Project}
                                   showTagSummary={false}
-                                  location={location}
                                 />
                               )}
                             </QuickTraceContext.Provider>

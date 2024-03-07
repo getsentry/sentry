@@ -1,16 +1,17 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {AnnotatedText} from '../meta/annotatedText';
 
@@ -18,23 +19,22 @@ import EventTagsPill from './eventTagsPill';
 
 type Props = {
   event: Event;
-  location: Location;
-  organization: Organization;
   projectSlug: string;
+  tagFilter?: TagFilter;
 };
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
-export function EventTags({event, organization, projectSlug, location}: Props) {
+export function EventTags({event, projectSlug, tagFilter = TagFilter.ALL}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
   const meta = event._meta?.tags;
   const projectId = event.projectID;
 
   const tags = !organization.features.includes('device-classification')
     ? event.tags?.filter(tag => tag.key !== 'device.class')
     : event.tags;
-
-  const shouldDisplayTagTree =
-    location.query.tagsTree || organization.features.includes('event-tags-tree-ui');
 
   useEffect(() => {
     if (
@@ -101,13 +101,14 @@ export function EventTags({event, organization, projectSlug, location}: Props) {
   const streamPath = `/organizations/${orgSlug}/issues/`;
   return (
     <StyledClippedBox clipHeight={150}>
-      {shouldDisplayTagTree ? (
+      {hasNewTagsUI ? (
         <EventTagsTree
           tags={tags}
           meta={meta}
           projectSlug={projectSlug}
           projectId={projectId}
           streamPath={streamPath}
+          tagFilter={tagFilter}
         />
       ) : (
         <Pills>

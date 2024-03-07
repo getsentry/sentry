@@ -248,7 +248,6 @@ function EventDetailsContent(props: Props) {
                                       organization={organization}
                                       event={event}
                                       project={projects[0] as Project}
-                                      location={location}
                                       showTagSummary={false}
                                     />
                                   </ProfileGroupProvider>
@@ -260,7 +259,6 @@ function EventDetailsContent(props: Props) {
                               organization={organization}
                               event={event}
                               project={projects[0] as Project}
-                              location={location}
                               showTagSummary={false}
                             />
                           )}
