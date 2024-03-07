@@ -732,6 +732,34 @@ class MarkFailedTestCase(TestCase):
         occurrence = occurrence.to_dict()
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
+        # Resolve the incident with an OK check-in
+        ok_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=MonitorStatus.OK,
+        )
+        monitor_incident.resolving_checkin = ok_checkin
+        monitor_incident.resolving_timestamp = ok_checkin.date_added
+        monitor_incident.save()
+        monitor_environment.status = MonitorStatus.OK
+        monitor_environment.save()
+
+        # Cause a new incident and ensure we create a new incident
+        for _ in range(0, failure_issue_threshold):
+            status = next(failure_statuses)
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=status,
+            )
+            mark_failed(checkin, ts=checkin.date_added)
+
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 2
+        monitor_incident = monitor_incidents.last()
+
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
     @with_feature("organizations:issue-platform")

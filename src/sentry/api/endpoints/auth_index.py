@@ -19,7 +19,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -168,10 +168,10 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             else True
         )
 
-        if Superuser.org_id:
-            if not has_completed_sso(request, Superuser.org_id):
+        if SUPERUSER_ORG_ID:
+            if not has_completed_sso(request, SUPERUSER_ORG_ID):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
-                self._reauthenticate_with_sso(request, Superuser.org_id)
+                self._reauthenticate_with_sso(request, SUPERUSER_ORG_ID)
 
         return authenticated
 
@@ -247,9 +247,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             verify_authenticator = False
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
-                if Superuser.org_id:
+                if SUPERUSER_ORG_ID:
                     superuser_org = organization_service.get_organization_by_id(
-                        id=Superuser.org_id, include_teams=False, include_projects=False
+                        id=SUPERUSER_ORG_ID, include_teams=False, include_projects=False
                     )
 
                     if superuser_org is not None:
