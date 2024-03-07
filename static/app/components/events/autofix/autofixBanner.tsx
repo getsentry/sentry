@@ -7,7 +7,7 @@ import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import {AutofixContextModal} from 'sentry/components/events/aiAutofix/autofixContextModal';
+import {AutofixContextModal} from 'sentry/components/events/autofix/autofixContextModal';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -33,7 +33,7 @@ export function AutofixBanner({triggerAutofix}: Props) {
       </IllustrationContainer>
       <Body>
         <div>
-          <Title>{t('Try AI Autofix')}</Title>
+          <Title>{t('Try Autofix')}</Title>
           <SubTitle>{t('You might get lucky, but then again, maybe not...')}</SubTitle>
         </div>
         <ContextArea>

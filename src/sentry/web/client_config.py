@@ -286,9 +286,9 @@ class _ClientConfig:
         yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
-        if self._is_superuser() and superuser.ORG_ID is not None:
+        if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
             org_context = organization_service.get_organization_by_id(
-                id=superuser.ORG_ID,
+                id=superuser.SUPERUSER_ORG_ID,
                 user_id=None,
                 include_projects=False,
                 include_teams=False,

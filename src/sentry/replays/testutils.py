@@ -440,3 +440,66 @@ def mock_rrweb_div_helloworld() -> RRWebNode:
             ),
         ],
     )
+
+
+def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
+    """
+    mock a replay event for useage in our recording consumer tests
+    """
+    timestamp = datetime.datetime.now() - datetime.timedelta(minutes=10)
+    tags = kwargs.pop("tags", {})
+    tags.update({"transaction": kwargs.pop("title", "Title")})
+    tags = [[key, value] for key, value in tags.items()]
+    return {
+        "type": "replay_event",
+        "replay_id": replay_id,
+        "replay_type": kwargs.pop("replay_type", "session"),
+        "segment_id": kwargs.pop("segment_id", 0),
+        "tags": tags,
+        "urls": kwargs.pop("urls", []),
+        "is_archived": kwargs.pop("is_archived", None),
+        "error_ids": kwargs.pop("error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]),
+        "trace_ids": kwargs.pop("trace_ids", ["44916572-43ba-4dbe-bd2f-6bd62b733080"]),
+        "dist": kwargs.pop("dist", "abc123"),
+        "platform": kwargs.pop("platform", "javascript"),
+        "timestamp": sec(timestamp),
+        "replay_start_timestamp": kwargs.pop("replay_start_timestamp", sec(timestamp)),
+        "environment": kwargs.pop("environment", "production"),
+        "release": kwargs.pop("release", "version@1.3"),
+        "user": {
+            "id": kwargs.pop("user_id", "1"),
+            "username": kwargs.pop("user_name", "username"),
+            "email": kwargs.pop("user_email", "test@test.com"),
+            "ip_address": kwargs.pop("ipv4", "127.0.0.1"),
+        },
+        "sdk": {
+            "name": kwargs.pop("sdk_name", "sentry.javascript.react"),
+            "version": kwargs.pop("sdk_version", "6.18.1"),
+        },
+        "contexts": {
+            "trace": {
+                "op": "pageload",
+                "span_id": "affa5649681a1eeb",
+                "trace_id": kwargs.pop("trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"),
+            },
+            "os": {
+                "name": kwargs.pop("os_name", "iOS"),
+                "version": kwargs.pop("os_version", "16.2"),
+            },
+            "browser": {
+                "name": kwargs.pop("browser_name", "Chrome"),
+                "version": kwargs.pop("browser_version", "103.0.38"),
+            },
+            "device": {
+                "name": kwargs.pop("device_name", "iPhone 13 Pro"),
+                "brand": kwargs.pop("device_brand", "Apple"),
+                "family": kwargs.pop("device_family", "iPhone"),
+                "model": kwargs.pop("device_model", "13 Pro"),
+            },
+        },
+        "request": {
+            "url": "Doesn't matter not ingested.",
+            "headers": {"User-Agent": kwargs.pop("user_agent", "Firefox")},
+        },
+        "extra": {},
+    }
