@@ -1,3 +1,7 @@
+import {
+  PERFORMANCE_SCORE_MEDIANS,
+  PERFORMANCE_SCORE_P90S,
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import type {InteractionSpanSampleRowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 
@@ -7,12 +11,39 @@ type Props = {
 };
 
 export function useGoodMehAndBadInteractionsSamplesQuery({transaction, enabled}: Props) {
-  // TODO: Update this function to query good, meh, and bad interactions
-  const {data, isFetching} = useInpSpanSamplesWebVitalsQuery({
+  const {data: goodData, isFetching: isGoodDataLoading} = useInpSpanSamplesWebVitalsQuery(
+    {
+      transaction,
+      enabled,
+      limit: 3,
+      filters: {
+        'measurements.inp': `<${PERFORMANCE_SCORE_P90S.inp}`,
+      },
+    }
+  );
+  const {data: mehData, isFetching: isMehDataLoading} = useInpSpanSamplesWebVitalsQuery({
     transaction,
     enabled,
-    limit: 9,
+    limit: 3,
+    filters: {
+      'measurements.inp': [
+        `>=${PERFORMANCE_SCORE_P90S.inp}`,
+        `<${PERFORMANCE_SCORE_MEDIANS.inp}`,
+      ],
+    },
   });
+  const {data: poorData, isFetching: isBadDataLoading} = useInpSpanSamplesWebVitalsQuery({
+    transaction,
+    enabled,
+    limit: 3,
+    filters: {
+      'measurements.inp': `>=${PERFORMANCE_SCORE_MEDIANS.inp}`,
+    },
+  });
+
+  const data = [...goodData, ...mehData, ...poorData];
+
+  const isLoading = isGoodDataLoading || isMehDataLoading || isBadDataLoading;
 
   const interactionsTableData: InteractionSpanSampleRowWithScore[] = data.sort(
     (a, b) => a.inpScore - b.inpScore
@@ -20,6 +51,6 @@ export function useGoodMehAndBadInteractionsSamplesQuery({transaction, enabled}:
 
   return {
     data: interactionsTableData,
-    isLoading: isFetching,
+    isLoading,
   };
 }
