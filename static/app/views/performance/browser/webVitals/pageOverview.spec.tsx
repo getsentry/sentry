@@ -108,8 +108,24 @@ describe('PageOverview', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
+            dataset: 'spansIndexed',
+            field: [
+              'measurements.inp',
+              'measurements.score.inp',
+              'measurements.score.weight.inp',
+              'measurements.score.total',
+              'span_id',
+              'timestamp',
+              'profile_id',
+              'replay.id',
+              'user',
+              'origin.transaction',
+              'project',
+              'browser.name',
+              'span.self_time',
+            ],
             query:
-              'transaction.op:pageload transaction:"/" has:measurements.score.total has:measurements.fid (has:profile.id OR has:replayId) ',
+              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
           }),
         })
       )
