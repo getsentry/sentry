@@ -49,8 +49,10 @@ export const renderLinksInText = ({
   //    It includes a wide range of characters typically found in paths and query strings
   // /gi: The regex will match all occurrences in the string, not just the first one
   //    i makes the regex match both upper and lower case characters
+
   const urlRegex =
-    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
+    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(?:[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]]*[-a-zA-Z0-9@:%_\+~#?&\/=,\[\]])?/gi;
+
   const parts = exceptionText.split(urlRegex);
   const urls = exceptionText.match(urlRegex) || [];
 
