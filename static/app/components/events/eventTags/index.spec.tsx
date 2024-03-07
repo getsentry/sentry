@@ -74,7 +74,8 @@ describe('event tags', function () {
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
-  it('transacation tag links to transaction overview', function () {
+
+  it('transaction tag links to transaction overview', function () {
     const tags = [{key: 'transaction', value: 'mytransaction'}];
 
     const event = EventFixture({
