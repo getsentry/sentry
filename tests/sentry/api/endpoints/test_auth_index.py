@@ -6,7 +6,7 @@ from django.test import override_settings
 from pytest import fixture
 
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
-from sentry.auth.superuser import COOKIE_NAME, Superuser
+from sentry.auth.superuser import COOKIE_NAME
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -189,7 +189,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
             response = self.client.put(
                 self.path,
@@ -221,7 +221,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
 
             sso_session_expired = SsoSession(
@@ -272,7 +272,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
 
             sso_session_expired = SsoSession(
@@ -321,7 +321,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
             response = self.client.put(
                 self.path,
@@ -346,7 +346,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user, organization_id=self.organization.id)
             response = self.client.put(
                 self.path,
@@ -370,7 +370,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         create_authenticator(user)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -389,7 +389,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -406,7 +406,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -429,7 +429,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -446,7 +446,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -463,7 +463,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -482,7 +482,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         create_authenticator(user)
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -505,7 +505,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         create_authenticator(user)
         AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id):
+        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,
