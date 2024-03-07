@@ -1,6 +1,7 @@
 import datetime
 import logging
 from typing import Any
+from uuid import UUID
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.issues.grouptype import ReplayRageClickType
@@ -72,9 +73,11 @@ def _make_contexts(replay_id, replay_event):
 
     if replay_event.get("trace_ids"):
         if len(replay_event["trace_ids"]) > 0:
+            trace_id = replay_event["trace_ids"][0]
+            trace_id_hex = UUID(trace_id).hex
             # there could in theory be multiple traces, but generally
             # lets just use the first one. can adjust if this is not ideal
-            trace_context = {"trace_id": replay_event["trace_ids"][0]}
+            trace_context = {"trace_id": trace_id_hex}
             contexts.update({"trace": trace_context})
 
     if replay_event.get("contexts"):
