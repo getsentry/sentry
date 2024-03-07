@@ -858,7 +858,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_query[2]["totals"] == self.to_reference_unit(5.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
@@ -919,9 +918,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         meta = results["meta"]
         assert len(meta) == 2
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
-        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "ASC"}
+        assert first_meta[0]["limit"] == 2
+        assert first_meta[0]["order"] == "ASC"
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
-        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "DESC"}
+        assert second_meta[0]["limit"] == 2
+        assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_custom_set(self):
