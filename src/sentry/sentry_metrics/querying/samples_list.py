@@ -164,7 +164,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         raise NotImplementedError
 
     @classmethod
-    def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
+    def convert_sort(cls, sort: str) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
         if sort.startswith("-"):
             direction = "-"
@@ -222,6 +222,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         rethink how to fetch segment samples a little as the transactions dataset
         may not contain all the necessary data.
         """
+        assert self.sort
         sort = self.convert_sort(self.sort)
         assert sort is not None
         direction, sort_column = sort
@@ -692,6 +693,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         offset: int,
         limit: int,
     ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
+        assert self.sort
         sort = self.convert_sort(self.sort, self.operation)
         assert sort is not None
         direction, sort_column = sort
