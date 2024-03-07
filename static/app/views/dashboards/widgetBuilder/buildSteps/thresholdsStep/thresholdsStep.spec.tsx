@@ -12,7 +12,7 @@ const exampleThresholdsConfig: ThresholdsConfig = {
 };
 
 describe('Widget Builder > ThresholdsStep', function () {
-  it('renders thresholds step', function () {
+  it('renders thresholds step', async function () {
     const onChange = jest.fn();
     render(
       <ThresholdsStep
@@ -23,7 +23,7 @@ describe('Widget Builder > ThresholdsStep', function () {
       />
     );
 
-    expect(screen.getByText('Set thresholds')).toBeInTheDocument();
+    expect(await screen.findByText('Set thresholds')).toBeInTheDocument();
 
     // Check minimum value boxes are disabled
     expect(screen.getByLabelText('First Minimum')).toBeDisabled();

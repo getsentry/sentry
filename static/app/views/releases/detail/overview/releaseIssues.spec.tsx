@@ -163,7 +163,7 @@ describe('ReleaseIssues', function () {
         location={LocationFixture({query: {issuesType: 'all'}})}
       />
     );
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );

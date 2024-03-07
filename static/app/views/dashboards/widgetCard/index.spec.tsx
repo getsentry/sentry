@@ -492,9 +492,11 @@ describe('Dashboards > WidgetCard', function () {
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
-    expect(SimpleTableChart).toHaveBeenCalledWith(
-      expect.objectContaining({stickyHeaders: true}),
-      expect.anything()
+    await waitFor(() =>
+      expect(SimpleTableChart).toHaveBeenCalledWith(
+        expect.objectContaining({stickyHeaders: true}),
+        expect.anything()
+      )
     );
   });
 

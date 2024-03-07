@@ -1,4 +1,4 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -38,7 +38,7 @@ describe('PlayerDOMAlert', () => {
 
     expect(screen.getByTestId('player-dom-alert')).toBeVisible();
 
-    screen.getByLabelText('Close Alert').click();
+    await userEvent.click(screen.getByLabelText('Close Alert'));
 
     expect(screen.queryByTestId('player-dom-alert')).not.toBeInTheDocument();
     await waitFor(() =>

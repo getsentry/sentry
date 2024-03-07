@@ -114,7 +114,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByRole('button', {name: 'Recommended'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
     });
 
     it('if user default is recommended, it will show it as default', async () => {
@@ -123,7 +123,9 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Recommended')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Recommended'})
+      ).toBeInTheDocument();
     });
 
     it('if user default is latest, it will show it as default', async () => {
@@ -132,7 +134,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Latest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
     });
 
     it('if user default is oldest, it will show it as default', async () => {
@@ -141,7 +143,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
-      expect(await screen.getByText('Oldest')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
     });
   });
 

@@ -199,7 +199,7 @@ describe('OrganizationContext', function () {
     await waitFor(() => !OrganizationStore.getState().loading);
 
     // eslint-disable-next-line no-console
-    expect(console.error).toHaveBeenCalled();
+    await waitFor(() => expect(console.error).toHaveBeenCalled());
     expect(openSudo).toHaveBeenCalled();
   });
 

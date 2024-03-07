@@ -426,15 +426,17 @@ describe('Performance > Trends', function () {
     const input = await screen.findByTestId('smart-search-input');
     enterSearch(input, 'transaction.duration:>9000');
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: expect.objectContaining({
-        project: ['1'],
-        query: 'transaction.duration:>9000',
-        improvedCursor: undefined,
-        regressionCursor: undefined,
-      }),
-    });
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: undefined,
+        query: expect.objectContaining({
+          project: ['1'],
+          query: 'transaction.duration:>9000',
+          improvedCursor: undefined,
+          regressionCursor: undefined,
+        }),
+      })
+    );
   });
 
   it('exclude greater than list menu action modifies query', async function () {
@@ -733,7 +735,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', function () {
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(
@@ -744,13 +746,15 @@ describe('Performance > Trends', function () {
       }
     );
 
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: {
-          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
-        },
-      })
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          query: {
+            query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+          },
+        })
+      )
     );
   });
 

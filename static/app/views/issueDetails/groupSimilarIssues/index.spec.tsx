@@ -89,7 +89,7 @@ describe('Issues Similar View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
-    expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
+    expect(await screen.findByText('Show 3 issues below threshold')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -184,7 +184,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      screen.getByText("There don't seem to be any similar issues.")
+      await screen.findByText("There don't seem to be any similar issues.")
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -266,8 +266,8 @@ describe('Issues Similar Embeddings View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
+    expect(await screen.findByText('Would Group')).toBeInTheDocument();
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
-    expect(screen.queryByText('Would Group')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -391,7 +391,7 @@ describe('Issues Similar Embeddings View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
       )
     ).toBeInTheDocument();

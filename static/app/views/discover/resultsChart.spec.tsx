@@ -78,7 +78,7 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('does not display a chart if no y axis is selected', function () {
+  it('does not display a chart if no y axis is selected', async function () {
     render(
       <ResultsChart
         router={RouterFixture()}
@@ -96,6 +96,6 @@ describe('Discover > ResultsChart', function () {
       {context: initialData.routerContext}
     );
 
-    expect(screen.getByText(/No Y-Axis selected/)).toBeInTheDocument();
+    expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();
   });
 });
