@@ -326,12 +326,25 @@ const MetricWidgetBody = memo(
     context,
   }: MetricWidgetBodyProps) => {
     const router = useRouter();
+
+    const orderedQueries = useMemo(() => {
+      return queries.map(q => {
+        if (isMetricFormula(q)) {
+          return q;
+        }
+        return {
+          ...q,
+          orderBy: q.orderBy ? q.orderBy : q.groupBy?.length ? 'desc' : undefined,
+        };
+      });
+    }, [queries]);
+
     const {
       data: timeseriesData,
       isLoading,
       isError,
       error,
-    } = useMetricsQuery(queries, filters, {
+    } = useMetricsQuery(orderedQueries, filters, {
       intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : context,
     });
 
