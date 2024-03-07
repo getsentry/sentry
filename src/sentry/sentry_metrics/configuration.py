@@ -47,7 +47,6 @@ class IndexerStorage(Enum):
 class MetricsIngestConfiguration:
     db_backend: IndexerStorage
     db_backend_options: Mapping[str, Any]
-    input_topic: str
     output_topic: Topic
     use_case_id: UseCaseKey
     internal_metrics_tag: str | None
@@ -80,7 +79,6 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_METRICS,
                 output_topic=Topic.SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 internal_metrics_tag="release-health",
@@ -97,7 +95,6 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
                 db_backend_options={},
-                input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
                 output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
@@ -116,8 +113,7 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
                 db_backend_options={},
-                input_topic="topic",
-                output_topic="output-topic",
+                output_topic=Topic.SNUBA_METRICS,
                 use_case_id=use_case_key,
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
@@ -134,8 +130,7 @@ def get_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
                 db_backend_options={},
-                input_topic="topic",
-                output_topic="output-topic",
+                output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=use_case_key,
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options={},
