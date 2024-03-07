@@ -3444,12 +3444,6 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 }
 
 # START DEPRECATED SECTION
-KAFKA_TRANSACTIONS = "transactions"
-KAFKA_TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
-KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
-KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
-
-KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -3469,12 +3463,7 @@ KAFKA_SNUBA_SPANS = "snuba-spans"
 
 
 # Mapping of default Kafka topic name to custom names
-KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {
-    # TODO: This is temporary while we migrate between the old and new way of defining overrides.
-    # To be removed once this is defined in prod, along with KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-    # variable which will no longer be needed
-    "generic-metrics-subscription-results": KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
-}
+KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 
 
 # Mapping of default Kafka topic name to cluster name
