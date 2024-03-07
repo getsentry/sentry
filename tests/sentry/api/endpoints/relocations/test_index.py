@@ -533,8 +533,8 @@ class PostRelocationsTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
-    @with_feature("auth:enterprise-staff-cookie")
     @patch("sentry.tasks.relocation.uploading_complete.delay")
+    @with_feature("auth:enterprise-staff-cookie")
     def test_good_staff_when_feature_disabled(
         self,
         uploading_complete_mock: Mock,

@@ -16,7 +16,7 @@ from sentry.api.exceptions import (
 )
 from sentry.auth import access
 from sentry.auth.staff import is_active_staff
-from sentry.auth.superuser import Superuser, is_active_superuser
+from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -262,7 +262,7 @@ class SentryPermission(ScopedPermission):
                     "access.not-2fa-compliant",
                     extra=extra,
                 )
-                if request.user.is_superuser and extract_id_from(organization) != Superuser.org_id:
+                if request.user.is_superuser and extract_id_from(organization) != SUPERUSER_ORG_ID:
                     raise SuperuserRequired()
 
                 raise TwoFactorRequired()
