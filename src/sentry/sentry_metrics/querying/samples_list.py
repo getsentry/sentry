@@ -35,7 +35,7 @@ class AbstractSamplesListExecutor(ABC):
     # picking 30 samples gives a decent chance to surface a few samples from the higher percentiles
     num_samples = 30
 
-    sortable_columns = {"timestamp", "span.duration"}
+    sortable_columns: set[str]
 
     def __init__(
         self,
@@ -89,10 +89,10 @@ class AbstractSamplesListExecutor(ABC):
 
     def get_spans_by_key(
         self,
-        span_ids: list[tuple[str, str, str]],
+        span_keys: list[tuple[str, str, str]],
         additional_fields: list[str] | None = None,
     ):
-        if not span_ids:
+        if not span_keys:
             return {"data": []}
 
         fields = self.fields[:]
@@ -104,8 +104,7 @@ class AbstractSamplesListExecutor(ABC):
             self.params,
             snuba_params=self.snuba_params,
             selected_columns=fields,
-            orderby=self.sort,
-            limit=len(span_ids),
+            limit=len(span_keys),
             offset=0,
         )
 
@@ -124,7 +123,7 @@ class AbstractSamplesListExecutor(ABC):
                     ),
                 ]
             )
-            for (group, timestamp, _) in span_ids
+            for (group, timestamp, _) in span_keys
         ]
 
         if len(conditions) == 1:
@@ -142,7 +141,7 @@ class AbstractSamplesListExecutor(ABC):
         span_id_condition = Condition(
             builder.column("id"),
             Op.IN,
-            Function("tuple", [span_id for _, _, span_id in span_ids]),
+            Function("tuple", [span_id for _, _, span_id in span_keys]),
         )
 
         builder.add_conditions([order_by_condition, span_id_condition])
@@ -152,6 +151,8 @@ class AbstractSamplesListExecutor(ABC):
 
 
 class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
+    sortable_columns = {"timestamp", "span.duration"}
+
     SORT_MAPPING = {
         "span.duration": "transaction.duration",
         "timestamp": "timestamp",
@@ -186,6 +187,12 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             # force `id` to be one of the fields
             additional_fields=["id"],
         )
+
+        # if there is a sort, we want to preserve the result in the same
+        # order as the span keys which we can do by checking the span ids
+        if self.sort:
+            order = {span_id: i for i, (_, _, span_id) in enumerate(span_keys)}
+            result["data"].sort(key=lambda row: order[row["id"]])
 
         # if `id` wasn't initially there, we should remove it
         should_pop_id = "id" not in self.fields
@@ -417,6 +424,8 @@ class TransactionMeasurementsSamplesListExecutor(SegmentsSamplesListExecutor):
 
 
 class SpansSamplesListExecutor(AbstractSamplesListExecutor):
+    sortable_columns = {"timestamp", "span.duration", "span.self_time"}
+
     @classmethod
     @abstractmethod
     def mri_to_column(cls, mri) -> str | None:
@@ -610,12 +619,14 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
 
 
 class CustomSamplesListExecutor(AbstractSamplesListExecutor):
+    sortable_columns = {"timestamp", "span.duration", "summary"}
+
     SORT_MAPPING = {
         "span.duration": "span.duration",
         "timestamp": "timestamp",
     }
 
-    MIN_MAX_CONDITION_COLUMN = {
+    OPERATION_COLUMN_MAPPING = {
         "min": "min_metric",
         "max": "max_metric",
         "count": "count_metric",
@@ -629,13 +640,19 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
     }
 
     @classmethod
-    def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
+    def convert_sort(cls, sort: str, operation: str | None) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
+
         if sort.startswith("-"):
             direction = "-"
             sort = sort[1:]
+
         if sort in cls.SORT_MAPPING:
             return direction, cls.SORT_MAPPING[sort]
+
+        if sort == "summary":
+            return direction, cls.OPERATION_COLUMN_MAPPING.get(operation or "", "avg_metric")
+
         return None
 
     @classmethod
@@ -651,6 +668,12 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         summaries: dict[str, Summary],
     ):
         result = self.get_spans_by_key(span_keys, additional_fields=["id"])
+
+        # if there is a sort, we want to preserve the result in the same
+        # order as the span keys which we can do by checking the span ids
+        if self.sort:
+            order = {span_id: i for i, (_, _, span_id) in enumerate(span_keys)}
+            result["data"].sort(key=lambda row: order[row["id"]])
 
         should_pop_id = "id" not in self.fields
 
@@ -669,11 +692,19 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         offset: int,
         limit: int,
     ) -> tuple[list[tuple[str, str, str]], dict[str, Summary]]:
-        sort = self.convert_sort(self.sort)
+        sort = self.convert_sort(self.sort, self.operation)
         assert sort is not None
         direction, sort_column = sort
 
-        fields = ["id", "timestamp", "span.group", "min", "max", "sum", "count"]
+        fields = [
+            "id",
+            "timestamp",
+            "span.group",
+            "min_metric",
+            "max_metric",
+            "sum_metric",
+            "count_metric",
+        ]
         if sort_column not in fields:
             fields.append(sort_column)
 
@@ -683,7 +714,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             snuba_params=self.snuba_params,
             query=self.query,
             selected_columns=fields,
-            orderby=self.sort,
+            orderby=f"{direction}{sort_column}",
             limit=limit,
             offset=offset,
             # This table has a poor SAMPLE BY so DO NOT use it for now
@@ -716,10 +747,10 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             cast(str, row["id"]): cast(
                 Summary,
                 {
-                    "min": row["min"],
-                    "max": row["max"],
-                    "sum": row["sum"],
-                    "count": row["count"],
+                    "min": row["min_metric"],
+                    "max": row["max_metric"],
+                    "sum": row["sum_metric"],
+                    "count": row["count_metric"],
                 },
             )
             for row in result["data"]
@@ -809,7 +840,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         conditions = []
 
         column = builder.resolve_column(
-            self.MIN_MAX_CONDITION_COLUMN.get(self.operation or "", "avg_metric")
+            self.OPERATION_COLUMN_MAPPING.get(self.operation or "", "avg_metric")
         )
 
         if self.min is not None:
