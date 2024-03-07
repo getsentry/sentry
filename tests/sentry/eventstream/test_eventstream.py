@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from django.conf import settings
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
@@ -242,7 +241,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+        assert produce_kwargs["topic"] == "generic-events"
         assert produce_kwargs["key"] is None
         assert version == 2
         assert type_ == "insert"
