@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {
   MOCK_RESP_INCONSISTENT_INTERVALS,
   MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
@@ -8,6 +7,7 @@ import {
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 

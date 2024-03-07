@@ -16,6 +16,7 @@ import {convertToDashboardWidget, toDisplayType} from 'sentry/utils/metrics/dash
 import type {MetricQueryWidgetParams} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Order} from 'sentry/views/dashboards/metrics/types';
 import {getMetricQueries} from 'sentry/views/dashboards/metrics/utils';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {MetricDetails} from 'sentry/views/ddm/widgetDetails';
@@ -60,6 +61,15 @@ function MetricWidgetViewerModal({
     },
     [setMetricWidgetQueries]
   );
+
+  const handleOrderChange = useCallback((order: Order, index: number) => {
+    setMetricWidgetQueries(curr => {
+      return curr.map((query, i) => {
+        const orderBy = i === index ? order : undefined;
+        return {...query, orderBy};
+      });
+    });
+  }, []);
 
   const handleTitleChange = useCallback(
     (value: string) => {
@@ -150,6 +160,7 @@ function MetricWidgetViewerModal({
             queries={queriesWithName}
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
+            onOrderChange={handleOrderChange}
           />
           <MetricDetails
             mri={metricWidgetQueries[0].mri}
