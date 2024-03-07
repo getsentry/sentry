@@ -6,6 +6,7 @@ from datetime import datetime
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.incidents.models.alert_rule import AlertRule
 
@@ -25,9 +26,11 @@ class AlertRuleActivations(Model):
     This is no longer a "results" model, but more of a record of activations
     """
 
+    __relocation_scope__ = RelocationScope.Excluded
+
     objects = AlertRuleActivationsManager()
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activation_results")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activations")
     # date_added timestamp indicates when this particular run was activated
     date_added = models.DateTimeField(default=timezone.now)
     # If finished_ts is null, this indicates whether the run is ongoing or completed
