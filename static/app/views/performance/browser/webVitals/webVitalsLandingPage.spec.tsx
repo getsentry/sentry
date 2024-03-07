@@ -60,7 +60,7 @@ describe('WebVitalsLandingPage', function () {
     jest.resetAllMocks();
   });
 
-  it('renders performance score migration alert', async () => {
+  it('renders FID deprecation alert', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -71,8 +71,7 @@ describe('WebVitalsLandingPage', function () {
       key: '',
     });
     render(<WebVitalsLandingPage />);
-    await screen.findByText(
-      /We made improvements to how Performance Scores are calculated for your projects/
-    );
+    await screen.findByText(/\(Interaction to Next Paint\) will replace/);
+    await screen.findByText(/\(First Input Delay\) in Performance Score./);
   });
 });
