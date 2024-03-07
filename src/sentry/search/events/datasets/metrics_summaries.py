@@ -40,8 +40,8 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             function.name: function
             for function in [
                 SnQLFunction(
-                    "example",
-                    snql_aggregate=self._resolve_random_sample,
+                    "examples",
+                    snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
                 SnQLFunction(
@@ -89,22 +89,22 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_random_sample(
+    def _resolve_random_samples(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         offset = 0 if self.builder.offset is None else self.builder.offset.offset
         limit = 0 if self.builder.limit is None else self.builder.limit.limit
-        return function_aliases.resolve_random_sample(
+        return function_aliases.resolve_random_samples(
             [
-                "group",
-                "end_timestamp",
-                "span_id",
-                "min",
-                "max",
-                "sum",
-                "count",
+                self.builder.resolve_column("span.group"),
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("id"),
+                self.builder.resolve_column("min_metric"),
+                self.builder.resolve_column("max_metric"),
+                self.builder.resolve_column("sum_metric"),
+                self.builder.resolve_column("count_metric"),
             ],
             alias,
             offset,

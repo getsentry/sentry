@@ -9,17 +9,17 @@ import {IconAdd, IconClose, IconEllipsis, IconSettings, IconSiren} from 'sentry/
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import type {DashboardMetricsQuery} from 'sentry/views/dashboards/metrics/types';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 
 interface Props {
   addQuery: () => void;
-  handleChange: (data: Partial<MetricsQuery>, index: number) => void;
-  metricWidgetQueries: MetricsQuery[];
+  handleChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
+  metricWidgetQueries: DashboardMetricsQuery[];
   removeQuery: (index: number) => void;
 }
 
@@ -36,11 +36,8 @@ export function Queries({
       {metricWidgetQueries.map((query, index) => (
         <QueryWrapper key={index}>
           <QueryBuilder
-            // @ts-expect-error TODO: adjust query builder type
             onChange={data => handleChange(data, index)}
             metricsQuery={query}
-            // @ts-expect-error TODO: remove display type from query builder
-            displayType={'line'}
             projects={selection.projects}
           />
           <ContextMenu
@@ -60,7 +57,7 @@ export function Queries({
 
 interface ContextMenuProps {
   canRemoveQuery: boolean;
-  metricsQuery: MetricsQuery;
+  metricsQuery: DashboardMetricsQuery;
   queryIndex: number;
   removeQuery: (index: number) => void;
 }
