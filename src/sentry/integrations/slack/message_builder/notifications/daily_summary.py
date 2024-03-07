@@ -67,16 +67,22 @@ class SlackDailySummaryMessageBuilder(SlackNotificationsMessageBuilder):
 
             # Calculate today's event count percentage against 14 day avg
             if context.comparison_period_avg > 0:  # avoid a zerodivisionerror
-                event_count_text = f"*Today’s Event Count*: {context.total_today}\n"
+                fields = []
+                event_count_text = f"*Today’s Event Count*: {context.total_today}"
+                fields.append(self.make_field(event_count_text))
                 percentage_diff = context.total_today / context.comparison_period_avg
                 if context.total_today > context.comparison_period_avg:
-                    event_count_text += f"\n:warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
-                else:
-                    event_count_text += (
-                        f"\n:tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
+                    percentage_diff_text = (
+                        f":warning: {percentage_diff:.0%} higher than last {COMPARISON_PERIOD}d avg"
                     )
+                    fields.append(self.make_field(percentage_diff_text))
+                else:
+                    percentage_diff_text = (
+                        f" :tada: {percentage_diff:.0%} lower than last {COMPARISON_PERIOD}d avg"
+                    )
+                    fields.append(self.make_field(percentage_diff_text))
 
-                blocks.append(self.get_markdown_block(event_count_text))
+                blocks.append(self.get_section_fields_block(fields))
 
             # Add release info if we have it
             if context.new_in_release:
