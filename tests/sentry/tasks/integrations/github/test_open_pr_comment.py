@@ -119,7 +119,7 @@ class TestSafeForComment(GithubCommentTestCase):
         ]
 
     @responses.activate
-    @with_feature("organizations:integrations-open-pr-comment-php")
+    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
     def test_simple_with_php(self):
         data = [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
@@ -430,7 +430,7 @@ class TestGetCommentIssues(CreateEventTestCase):
         assert top_5_issue_ids == [group_id_1, group_id_2]
         assert function_names == ["other.planet", "world"]
 
-    @with_feature("organizations:integrations-open-pr-comment-php")
+    @with_feature("organizations:integrations-open-pr-comment-beta-langs")
     def test_php_simple(self):
         # should match function name exactly or namespace::functionName
         group_id_1 = [

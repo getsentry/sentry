@@ -203,7 +203,7 @@ def safe_for_comment(
 
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-php", organization):
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     for file in pr_files:
@@ -289,7 +289,7 @@ def get_top_5_issues_by_count_for_file(
 
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-php", organization):
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     # fetches the appropriate parser for formatting the snuba query given the file extension
@@ -474,7 +474,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     patch_parsers = PATCH_PARSERS
     # NOTE: if we are testing beta patch parsers, add check here
-    if features.has("organizations:integrations-open-pr-comment-php", organization):
+    if features.has("organizations:integrations-open-pr-comment-beta-langs", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
     file_extensions = set()
