@@ -268,7 +268,7 @@ class RuleProcessor:
     def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
-            action_inst = instantiate_action(rule, action, rules)
+            action_inst = instantiate_action(rule, action)
             if not action_inst:
                 continue
 

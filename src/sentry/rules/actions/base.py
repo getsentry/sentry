@@ -7,12 +7,13 @@ from collections.abc import Generator
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
-from sentry.rules.registry import RuleRegistry
 
 logger = logging.getLogger("sentry.rules")
 
 
-def instantiate_action(rule: Rule, action, rules: RuleRegistry):
+def instantiate_action(rule: Rule, action):
+    from sentry.rules import rules
+
     action_cls = rules.get(action["id"])
     if action_cls is None:
         logger.warning("Unregistered action %r", action["id"])
