@@ -3307,9 +3307,11 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
         # This tells Symbolicator to accept invalid SSL certs
-        # when connecting to this source. Currently we can't deal
-        # with this source's certs, so we ignore them for now.
-        # TODO: Remove this once the cert problem is cleared up.
+        # when connecting to this source. Currently Symbolicator can't deal
+        # with this source's certs because the `openssl` version we use
+        # lacks support for Authority Information Access (AIA),
+        # so we ignore the certs for now.
+        # TODO: Remove this once we can support AIA.
         "accept_invalid_certs": True,
     },
     "chromium": {
