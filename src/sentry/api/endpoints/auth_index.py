@@ -86,6 +86,7 @@ class BaseAuthIndexEndpoint(Endpoint):
                     extra={
                         "user": request.user.id,
                         "authenticated": authenticated,
+                        "validator": validator.validated_data,
                     },
                 )
                 if not authenticated:
