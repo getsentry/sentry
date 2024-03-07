@@ -22,8 +22,7 @@ class AlertRuleActivationsManager(models.Manager):
 @region_silo_only_model
 class AlertRuleActivations(Model):
     """
-    This model represents the monitor results for an activated Alert Rule.
-    This is no longer a "results" model, but more of a record of activations
+    This model represents the record of activations for Alert Rules with monitor_type 'activated'
     """
 
     __relocation_scope__ = RelocationScope.Excluded
