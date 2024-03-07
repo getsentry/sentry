@@ -129,6 +129,7 @@ export class VideoReplayer {
     const result = findVideoSegmentIndex(this._trackList, this._attachments, timestamp);
     const resultSegment = this.getSegment(result)!;
     const isExactSegment =
+      resultSegment &&
       timestamp >= resultSegment.timestamp &&
       timestamp <= resultSegment.timestamp + resultSegment.duration;
 
@@ -275,23 +276,33 @@ export class VideoReplayer {
     const {segment: segmentIndex, previousSegment: previousSegmentIndex} =
       this.getSegmentIndexForTime(videoOffsetMs);
 
-    let nextSegmentIndex = segmentIndex;
+    // segmentIndex can be undefined because user has seeked into a gap where
+    // there is no segment, because we have the previous index, we know what
+    // the next index will be since segments are expected to be sorted
+    const nextSegmentIndex =
+      segmentIndex !== undefined
+        ? segmentIndex
+        : previousSegmentIndex !== undefined
+          ? previousSegmentIndex + 1
+          : undefined;
 
+    // edge case where we have a gap between start of replay and first segment
+    // wait until timer reaches the first segment before starting
+    if (segmentIndex === undefined && previousSegmentIndex === -1) {
+      await this.loadSegment(nextSegmentIndex, {
+        segmentOffsetMs: 0,
+      });
+    }
     // It's possible video and segment don't exist, e.g. if we seek to a gap
     // between two replays. In this case, we load the previous segment index
     // and wait until the timer reaches the next video segment's starting
     // timestamp before playing.
-    if (segmentIndex === undefined && previousSegmentIndex !== undefined) {
+    else if (segmentIndex === undefined && previousSegmentIndex !== undefined) {
       const previousSegment = this.getSegment(previousSegmentIndex)!;
       // Load the last frame of the previous segment
       await this.loadSegment(previousSegmentIndex, {
         segmentOffsetMs: previousSegment.duration,
       });
-
-      // segmentIndex is undefined because user has seeked into a gap where
-      // there is no segment, because we have the previous index, we know what
-      // the next index will be since segments are expected to be sorted
-      nextSegmentIndex = previousSegmentIndex + 1;
     }
 
     const segment = this.getSegment(nextSegmentIndex);
@@ -331,10 +342,8 @@ export class VideoReplayer {
    * until the next video starts.
    */
   public getCurrentTime() {
-    if (this._currentIndex === undefined) {
-      return 0;
-    }
-
+    // Note that timer can be running while there is no `_currentIndex`
+    // e.g. if first segment's start timestamp does not match replay's starting timestamp
     return this._timer.getTime();
   }
 
