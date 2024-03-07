@@ -458,8 +458,8 @@ def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
         "tags": tags,
         "urls": kwargs.pop("urls", []),
         "is_archived": kwargs.pop("is_archived", None),
-        "error_ids": kwargs.pop("error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]),
-        "trace_ids": kwargs.pop("trace_ids", ["44916572-43ba-4dbe-bd2f-6bd62b733080"]),
+        "error_ids": kwargs.pop("error_ids", ["a3a62ef6ac86415b83c2416fc2f76db1"]),
+        "trace_ids": kwargs.pop("trace_ids", ["4491657243ba4dbebd2f6bd62b733080"]),
         "dist": kwargs.pop("dist", "abc123"),
         "platform": kwargs.pop("platform", "javascript"),
         "timestamp": sec(timestamp),
@@ -477,11 +477,6 @@ def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
             "version": kwargs.pop("sdk_version", "6.18.1"),
         },
         "contexts": {
-            "trace": {
-                "op": "pageload",
-                "span_id": "affa5649681a1eeb",
-                "trace_id": kwargs.pop("trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"),
-            },
             "os": {
                 "name": kwargs.pop("os_name", "iOS"),
                 "version": kwargs.pop("os_version", "16.2"),

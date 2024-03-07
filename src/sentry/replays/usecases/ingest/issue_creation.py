@@ -69,6 +69,14 @@ def report_rage_click_issue_with_replay_event(
 
 def _make_contexts(replay_id, replay_event):
     contexts = {"replay": {"replay_id": replay_id}}
+
+    if replay_event.get("trace_ids"):
+        if len(replay_event["trace_ids"]) > 0:
+            # there could in theory be multiple traces, but generally
+            # lets just use the first one. can adjust if this is not ideal
+            trace_context = {"trace_id": replay_event["trace_ids"][0]}
+            contexts.update({"trace": trace_context})
+
     if replay_event.get("contexts"):
         contexts.update(replay_event["contexts"])
 
