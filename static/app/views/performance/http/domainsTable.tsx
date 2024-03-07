@@ -25,13 +25,18 @@ type Row = Pick<
   | 'project.id'
   | 'span.domain'
   | 'spm()'
+  | 'http_error_rate()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.domain' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  | 'span.domain'
+  | 'spm()'
+  | 'http_error_rate()'
+  | 'avg(span.self_time)'
+  | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -44,6 +49,11 @@ const COLUMN_ORDER: Column[] = [
     key: 'spm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `http_error_rate()`,
+    name: t('5XXs'),
+    width: 50,
   },
   {
     key: `avg(span.self_time)`,
@@ -60,6 +70,7 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
   'spm()',
+  'http_error_rate()',
   'time_spent_percentage()',
 ] as const;
 

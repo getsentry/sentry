@@ -73,6 +73,7 @@ export function HTTPLandingPage() {
       'project.id',
       'span.domain',
       'spm()',
+      'http_error_rate()',
       'avg(span.self_time)',
       'sum(span.self_time)',
       'time_spent_percentage()',
