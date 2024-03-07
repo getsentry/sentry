@@ -3,7 +3,6 @@ from hashlib import sha1
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db.models import F
 from django.urls import reverse
 
 from sentry import options
@@ -19,7 +18,6 @@ from sentry.api.utils import generate_region_url
 from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
-from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
@@ -65,26 +63,6 @@ class ChunkUploadTest(APITestCase):
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
             assert response.data["url"] == generate_region_url() + self.url
-
-    def test_accept_with_artifact_bundles_v2_option(self):
-        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": False}):
-            response = self.client.get(
-                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
-            )
-            assert "artifact_bundles_v2" not in response.data["accept"]
-
-        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
-            response = self.client.get(
-                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
-            )
-            assert "artifact_bundles_v2" in response.data["accept"]
-
-        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": 1.0}):
-            self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
-            response = self.client.get(
-                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
-            )
-            assert "artifact_bundles_v2" not in response.data["accept"]
 
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls
