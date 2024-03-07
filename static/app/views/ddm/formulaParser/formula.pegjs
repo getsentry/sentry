@@ -7,7 +7,7 @@ term_op = multiply / divide
 coefficient = number / variable / open_paren _ expression _ close_paren
 
 
-number              = [0-9]+('.'[0-9]+)? { return { type: "number", content: text()}}
+number              = '-'?[0-9]+('.'[0-9]+)? { return { type: "number", content: text()}}
 variable            = [a-z]+ { return { type: "variable", content: text()}}
 _                   = " "* { return { type: "whitespace", content: text()}}
 
