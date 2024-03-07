@@ -287,6 +287,7 @@ class ProjectOwnership(Model):
                 issue_owner = GroupOwner.get_autoassigned_owner_cached(
                     group.id, project_id, autoassignment_types
                 )
+
             if issue_owner is False:
                 logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return

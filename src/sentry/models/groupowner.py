@@ -120,8 +120,6 @@ class GroupOwner(Model):
             issue_owner = cls.get_autoassigned_owner_no_cache(
                 group_id, project_id, autoassignment_types
             )
-            if issue_owner is None:
-                issue_owner = False
             # Store either the GroupOwner if exists or False for no owners
             cache.set(cache_key, issue_owner, READ_CACHE_DURATION)
 
@@ -132,7 +130,7 @@ class GroupOwner(Model):
         """
         Non-cached read access to find the autoassigned GroupOwner.
         """
-        return (
+        issue_owner = (
             cls.objects.filter(
                 group_id=group_id, project_id=project_id, type__in=autoassignment_types
             )
@@ -140,6 +138,10 @@ class GroupOwner(Model):
             .order_by("type")
             .first()
         )
+        # should return False if no owner
+        if issue_owner is None:
+            return False
+        return issue_owner
 
     @classmethod
     def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types, group_id=None):
