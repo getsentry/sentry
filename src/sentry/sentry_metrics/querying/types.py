@@ -52,3 +52,8 @@ class QueryOrder(Enum):
             return Direction.DESC
 
         raise InvalidMetricsQueryError(f"Ordering {self} does not exist is snuba")
+
+
+class QueryType(Enum):
+    TOTALS_AND_SERIES = 0
+    TOTALS = 1

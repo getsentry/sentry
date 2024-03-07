@@ -32,7 +32,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def test_query_simple(self):
+    def test_query_with_totals_and_series(self):
         response = self.get_success_response(
             self.project.organization.slug,
             status_code=200,
@@ -45,7 +45,38 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "environment": [],
             },
         )
+        assert len(response.data["intervals"]) == 3
         assert response.data["data"] == [[{"by": {}, "series": [3.0, 5.0, 10.0], "totals": 18.0}]]
+        assert response.data["meta"] == [
+            [
+                {"name": "aggregate_value", "type": "Float64"},
+                {
+                    "group_bys": [],
+                    "limit": 20,
+                    "order": None,
+                    "scaling_factor": None,
+                    "unit": None,
+                    "unit_family": None,
+                },
+            ]
+        ]
+
+    def test_query_with_totals(self):
+        response = self.get_success_response(
+            self.project.organization.slug,
+            status_code=200,
+            queries=[{"name": "query_1", "mql": f"sum({TransactionMRI.DURATION.value})"}],
+            formulas=[{"mql": "$query_1"}],
+            qs_params={
+                "statsPeriod": "3h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+                "includeSeries": "false",
+            },
+        )
+        assert "intervals" not in response.data
+        assert response.data["data"] == [[{"by": {}, "totals": 18.0}]]
         assert response.data["meta"] == [
             [
                 {"name": "aggregate_value", "type": "Float64"},

@@ -15,7 +15,7 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
 from sentry.sentry_metrics.querying.units import (
     MeasurementUnit,
     UnitFamily,
@@ -116,6 +116,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         projects: Sequence[Project],
         environments: Sequence[Environment],
         referrer: str,
+        query_type: QueryType = QueryType.TOTALS_AND_SERIES,
     ) -> Mapping[str, Any]:
         return run_metrics_queries_plan(
             metrics_queries_plan,
@@ -126,6 +127,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             projects,
             environments,
             referrer,
+            query_type,
         ).apply_transformer(self.query_transformer)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
@@ -208,6 +210,34 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(12.0),
             self.to_reference_unit(9.0),
         ]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] == UnitFamily.DURATION.value
+        assert meta[0][1]["unit"] is not None
+        assert meta[0][1]["scaling_factor"] is not None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_one_aggregation_and_only_totals(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+            query_type=QueryType.TOTALS,
+        )
+        assert "intervals" not in results
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert "series" not in data[0][0]
         assert data[0][0]["totals"] == self.to_reference_unit(21.0)
         meta = results["meta"]
         assert len(meta) == 1
@@ -443,6 +473,35 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(4.0),
         ]
         assert data[0][1]["totals"] == self.to_reference_unit(9.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_group_by_and_order_by_and_only_totals(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .apply_formula("$query_1", order=QueryOrder.ASC)
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+            query_type=QueryType.TOTALS,
+        )
+        assert "intervals" not in results
+        data = results["data"]
+        assert len(data) == 1
+        assert len(data[0]) == 2
+        assert data[0][0]["by"] == {"transaction": "/world"}
+        assert data[0][0]["totals"] == self.to_reference_unit(9.0)
+        assert data[0][1]["by"] == {"transaction": "/hello"}
+        assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
@@ -800,7 +859,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_query[2]["totals"] == self.to_reference_unit(5.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
@@ -861,9 +919,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         meta = results["meta"]
         assert len(meta) == 2
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
-        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "ASC"}
+        assert first_meta[0]["limit"] == 2
+        assert first_meta[0]["order"] == "ASC"
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
-        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "DESC"}
+        assert second_meta[0]["limit"] == 2
+        assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_custom_set(self):
