@@ -202,10 +202,7 @@ class ScheduledQuery:
                 replace(updated_metrics_query.rollup, orderby=self.order.to_snuba_order())
             )
 
-        if self.limit:
-            updated_metrics_query = updated_metrics_query.set_limit(self.limit)
-        else:
-            updated_metrics_query = updated_metrics_query.set_limit(SNUBA_QUERY_LIMIT)
+        updated_metrics_query = updated_metrics_query.set_limit(self.limit or SNUBA_QUERY_LIMIT)
 
         return updated_metrics_query
 
