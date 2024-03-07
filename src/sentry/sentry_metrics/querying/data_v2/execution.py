@@ -451,9 +451,9 @@ class QueryExecutor:
         self._projects = projects
         self._referrer = referrer
 
-        # List of queries scheduled for execution.
+        # List of queries scheduled for execution which will change based on the progress that the execution has.
         self._scheduled_queries: list[ScheduledQuery | None] = []
-
+        # List of query results that will be populated during query execution.
         self._query_results: list[PartialQueryResult | QueryResult | None] = []
 
         # We load the blocked metrics for the supplied projects.
@@ -502,6 +502,8 @@ class QueryExecutor:
         # `QueryResult`(s) but since we do not need this data we can leave it out.
         next_metrics_query = _push_down_group_filters(
             query,
+            # For now, we take the last result which will be the only one since we run at most two chained queries,
+            # namely totals and series.
             _extract_groups_from_seq(partial_query_result.executed_results[0]["data"]),
         )
 
@@ -519,12 +521,18 @@ class QueryExecutor:
             raise MetricsQueryExecutionError("An error occurred while executing the query") from e
 
     def _bulk_execute(self) -> bool:
+        """
+        Executes all the scheduled queries in `_scheduled_queries` and merges the results into `_query_results`.
+        """
+        # We create all the requests that can be run in bulk, by checking the scheduled queries that we can run.
         bulk_requests = []
         mappings = []
         for query_index, scheduled_query in enumerate(self._scheduled_queries):
             if scheduled_query is None:
                 continue
 
+            # If the query is empty, which can happen after the blocked projects are filtered out, we want to add an
+            # empty result and immediately put the query to `None` since we do not need to execute it.
             if scheduled_query.is_empty():
                 self._query_results[query_index] = QueryResult.empty_from(scheduled_query)
                 self._scheduled_queries[query_index] = None
@@ -541,9 +549,12 @@ class QueryExecutor:
 
             mappings.append(query_index)
 
+        # If we have no more requests to run, we can stop the execution.
         if not bulk_requests:
             return False
 
+        # We execute all the requests in bulk and for each result we decide what to do based on the next query and the
+        # previous result in the `_query_results` array.
         bulk_results = self._bulk_run_query(bulk_requests)
         for query_index, query_result in zip(mappings, bulk_results):
             scheduled_query = self._scheduled_queries[query_index]
@@ -573,9 +584,19 @@ class QueryExecutor:
                         scheduled_query, query_result
                     )
 
+            # We bump the next query after the results have been merged, so that the next call to the function will
+            # execute the next queries in the chain.
             self._scheduled_queries[query_index] = scheduled_query.next
 
         return True
+
+    def _execution_loop(self):
+        """
+        Executes the next batch of queries until no query is left.
+        """
+        continue_execution = True
+        while continue_execution:
+            continue_execution = self._bulk_execute()
 
     def execute(self) -> Sequence[QueryResult]:
         """
@@ -585,9 +606,7 @@ class QueryExecutor:
             return []
 
         with metrics.timer(key="ddm.metrics_api.execution.total_execution_time"):
-            continue_execution = True
-            while continue_execution:
-                continue_execution = self._bulk_execute()
+            self._execution_loop()
 
         metrics.distribution(
             key="ddm.metrics_api.execution.number_of_executed_queries",
