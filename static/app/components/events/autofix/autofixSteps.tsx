@@ -7,7 +7,7 @@ import type {
   AutofixData,
   AutofixProgressItem,
   AutofixStep,
-} from 'sentry/components/events/aiAutofix/types';
+} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconChevron, IconClose, IconFatal} from 'sentry/icons';
@@ -69,10 +69,10 @@ export function Step({step, isChild, stepNumber}: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const logs = step.progress.filter(isProgressLog);
+  const logs = step.progress?.filter(isProgressLog) ?? [];
 
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
-  const hasContent = step.completedMessage || step.progress.length;
+  const hasContent = step.completedMessage || step.progress?.length;
 
   return (
     <StepCard active={isActive}>
@@ -109,7 +109,7 @@ export function Step({step, isChild, stepNumber}: StepProps) {
       {isExpanded && (
         <Fragment>
           {step.completedMessage && <StepBody>{step.completedMessage}</StepBody>}
-          {step.progress.length > 0 ? (
+          {step.progress && step.progress.length > 0 ? (
             <ProgressContainer>
               {step.progress.map((progress, i) => (
                 <Progress progress={progress} key={i} />

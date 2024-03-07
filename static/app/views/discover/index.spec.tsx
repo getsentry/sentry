@@ -109,14 +109,14 @@ describe('Discover > Landing', function () {
     );
   });
 
-  it('links back to the homepage', () => {
+  it('links back to the homepage', async () => {
     const org = OrganizationFixture({features});
 
     render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />, {
       context: RouterContextFixture(),
     });
 
-    expect(screen.getByText('Discover')).toHaveAttribute(
+    expect(await screen.findByText('Discover')).toHaveAttribute(
       'href',
       '/organizations/org-slug/discover/homepage/'
     );
