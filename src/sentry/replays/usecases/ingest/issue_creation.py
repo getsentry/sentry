@@ -34,7 +34,9 @@ def report_rage_click_issue_with_replay_event(
 
     new_issue_occurrence(
         culprit=url[:MAX_CULPRIT_LENGTH],
-        environment=replay_event["environment"],
+        environment=replay_event.get(
+            "environment", "production"
+        ),  # if no environment is set, default to production
         fingerprint=[selector],
         issue_type=ReplayRageClickType,
         level=RAGE_CLICK_LEVEL,
