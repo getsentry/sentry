@@ -343,7 +343,7 @@ function TeamSelector(props: Props) {
     createTeamOutsideProjectOption,
   ]);
 
-  const handleInputCHange = useMemo(
+  const handleInputChange = useMemo(
     () => debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION),
     [onSearch]
   );
@@ -361,7 +361,7 @@ function TeamSelector(props: Props) {
     <SelectControl
       ref={selectRef}
       options={options}
-      onInputChange={handleInputCHange}
+      onInputChange={handleInputChange}
       getOptionValue={getOptionValue}
       filterOption={filterOption}
       styles={styles}
