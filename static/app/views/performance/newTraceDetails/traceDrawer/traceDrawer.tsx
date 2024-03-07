@@ -1,4 +1,4 @@
-import {type Dispatch, type SetStateAction, useEffect, useState} from 'react';
+import {type Dispatch, type SetStateAction, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -68,33 +68,29 @@ function getNodeTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 function TraceDrawer(props: DrawerProps) {
   const [size, setSize] = useState(INITIAL_PANEL_HEIGHT);
 
-  const [isResizing, setIsResizing] = useState(false);
+  // Without the ref, the handleMouseMove function accesses the size state from when it
+  // was bounded to the mousedown event.
+  const sizeRef = useRef(INITIAL_PANEL_HEIGHT);
+  sizeRef.current = size;
 
-  useEffect(() => {
-    const handleMouseMove = e => {
-      if (!isResizing) return;
-      const newSize = Math.max(MIN_PANEL_HEIGHT, size + e.movementY * -1);
-      setSize(newSize);
-    };
-
-    const handleMouseUp = () => setIsResizing(false);
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [size, isResizing]);
-
-  const handleMouseDown = e => {
+  const handleMouseMove = useCallback(e => {
     e.preventDefault();
-    setIsResizing(true);
-  };
+    e.stopPropagation();
+    const newSize = Math.max(MIN_PANEL_HEIGHT, sizeRef.current + e.movementY * -1);
+    setSize(newSize);
+  }, []);
+
+  const handleMouseDown = useCallback(() => {
+    document.addEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    document.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
 
   return (
     <PanelWrapper size={size} ref={ref => props.setTraceDrawerRef(ref)}>
-      <TabsContainer onMouseDown={handleMouseDown}>
+      <TabsContainer onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
         {props.nodes.map((node, index) => (
           <Tooltip title={getNodeTabTitle(node)} showOnlyOnOverflow key={index}>
             <Tab
