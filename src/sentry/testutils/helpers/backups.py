@@ -507,7 +507,7 @@ class BackupTestCase(TransactionTestCase):
             order=1,
             title=f"Test Widget for {slug}",
             display_type=0,
-            widget_type=DashboardWidgetTypes.TRANSACTION_MULTI,
+            widget_type=DashboardWidgetTypes.TRANSACTION_LIKE,
         )
         widget_query = DashboardWidgetQuery.objects.create(
             widget=widget, order=1, name=f"Test Query for {slug}"
