@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC
+from typing import Any
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
@@ -14,6 +15,9 @@ stackframe_function_name = lambda i: Function(
 
 
 class LanguageParser(ABC):
+    regexes: list[str]
+    function_prefix: str
+
     @classmethod
     def extract_functions_from_patch(cls, patch: str) -> set[str]:
         functions = set()
@@ -227,7 +231,7 @@ class PHPParser(LanguageParser):
     ]
 
 
-PATCH_PARSERS: dict[str, LanguageParser] = {
+PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
@@ -236,7 +240,7 @@ PATCH_PARSERS: dict[str, LanguageParser] = {
 }
 
 # for testing new parsers
-BETA_PATCH_PARSERS: dict[str, LanguageParser] = {
+BETA_PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
