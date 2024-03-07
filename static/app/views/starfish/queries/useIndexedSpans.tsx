@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-interface Filters {
+export interface Filters {
   [key: string]: string;
 }
 

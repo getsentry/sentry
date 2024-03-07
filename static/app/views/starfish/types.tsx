@@ -121,6 +121,14 @@ export enum SpanIndexedField {
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
   TRANSACTION = 'transaction',
+  ORIGIN_TRANSACTION = 'origin.transaction',
+  REPLAY_ID = 'replay.id',
+  BROWSER_NAME = 'browser.name',
+  USER = 'user',
+  INP = 'measurements.inp',
+  INP_SCORE = 'measurements.score.inp',
+  INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
+  TOTAL_SCORE = 'measurements.score.total',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -141,6 +149,14 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.PROFILE_ID]: string;
   [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
   [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
+  [SpanIndexedField.ORIGIN_TRANSACTION]: string;
+  [SpanIndexedField.REPLAY_ID]: string;
+  [SpanIndexedField.BROWSER_NAME]: string;
+  [SpanIndexedField.USER]: string;
+  [SpanIndexedField.INP]: number;
+  [SpanIndexedField.INP_SCORE]: number;
+  [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.TOTAL_SCORE]: number;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
