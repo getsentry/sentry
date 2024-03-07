@@ -403,12 +403,11 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         redis_buffer = RedisBuffer()
-        with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
-            patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
-            patch("sentry.rules.processor.rules", init_registry()) as rules,
-        ):
+        with mock.patch("sentry.buffer.backend.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.backend.incr", redis_buffer.incr
+        ), patch("sentry.constants._SENTRY_RULES", MOCK_RULES), patch(
+            "sentry.rules.rules", init_registry()
+        ) as rules:
             MockAction = mock.Mock()
             MockAction.id = "tests.sentry.tasks.post_process.tests.MockAction"
             MockAction.return_value = mock.Mock(spec=EventAction)

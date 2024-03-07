@@ -1,9 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import type {
-  AutofixData,
-  GroupWithAutofix,
-} from 'sentry/components/events/aiAutofix/types';
+import type {AutofixData, GroupWithAutofix} from 'sentry/components/events/autofix/types';
 import type {Event} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
