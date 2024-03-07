@@ -30,8 +30,8 @@ class OAuthRevokeTest(TestCase):
             redirect_uris="http://localhost:5678",
         )
 
-        self.grants: List[ApiGrant] = []
-        self.tokens: List[ApiToken] = []
+        self.grants: list[ApiGrant] = []
+        self.tokens: list[ApiToken] = []
 
         for i in range(4):
             # authorize the api application to act on behalf of the test user
