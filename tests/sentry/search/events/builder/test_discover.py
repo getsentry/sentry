@@ -843,10 +843,10 @@ class QueryBuilderTest(TestCase):
             Dataset.Discover,
             self.params,
             query="",
-            selected_columns=["salted_column_hash('salt', transaction) as sample"],
+            selected_columns=["column_hash(transaction) as sample"],
             orderby=["sample"],
             config=QueryBuilderConfig(
-                functions_acl=["salted_column_hash"],
+                functions_acl=["column_hash"],
             ),
         )
         snql_query = query.get_snql_query().query
@@ -854,7 +854,7 @@ class QueryBuilderTest(TestCase):
             snql_query.orderby,
             [
                 OrderBy(
-                    Function("farmFingerprint64", ["'salt'", Column("transaction")], "sample"),
+                    Function("farmFingerprint64", [Column("transaction")], "sample"),
                     Direction.ASC,
                 )
             ],

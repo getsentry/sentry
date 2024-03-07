@@ -1025,12 +1025,12 @@ class DiscoverDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
-                    "salted_column_hash",
+                    "column_hash",
                     # TODO: figure out how to make this take arbitrary number of arbirary type arguemnts
-                    required_args=[SnQLStringArg("salt"), ColumnArg("column")],
+                    required_args=[ColumnArg("column")],
                     snql_aggregate=lambda args, alias: Function(
                         "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
-                        [args["salt"], args["column"]],
+                        [args["column"]],
                         alias,
                     ),
                     default_result_type="integer",

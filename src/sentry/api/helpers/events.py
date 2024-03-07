@@ -67,8 +67,8 @@ def get_query_builder_for_group(
     if orderby is None:
         orderby = "-timestamp"
     elif orderby == "sample":
-        # using group id as salt for consistent sampling across paginated queries
-        selected_columns.append(f"salted_column_hash('{group.id}', id) as sample")
+        # IDs are UUIDs, so should be random, but we'll hasd them just in case
+        selected_columns.append("column_hash(id) as sample")
 
     return QueryBuilder(
         dataset=dataset,
@@ -79,6 +79,6 @@ def get_query_builder_for_group(
         limit=limit,
         offset=offset,
         config=QueryBuilderConfig(
-            functions_acl=["salted_column_hash"],
+            functions_acl=["column_hash"],
         ),
     )
