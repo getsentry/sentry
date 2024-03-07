@@ -32,8 +32,8 @@ class AlertRuleActivations(Model):
     alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activations")
     # date_added timestamp indicates when this particular run was activated
     date_added = models.DateTimeField(default=timezone.now)
-    # If finished_ts is null, this indicates whether the run is ongoing or completed
-    finished_ts = models.DateTimeField(null=True)
+    # If finished_at is null, this indicates whether the run is ongoing or completed
+    finished_at = models.DateTimeField(null=True)
     metric_value = models.FloatField()
 
     class Meta:
@@ -42,7 +42,7 @@ class AlertRuleActivations(Model):
 
     def is_complete(self) -> bool:
         # Assert alert_rule.snuba_query exists (activated alert rules MUST have an associated snuba_query)
-        # return finished_ts is not None and date_added + alert_rule.snuba_query.time_window < timezone.now()
+        # return finished_at is not None and date_added + alert_rule.snuba_query.time_window < timezone.now()
         pass
 
     def get_triggers(self):

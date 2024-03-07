@@ -950,13 +950,13 @@ def create_alert_rule_activation_condition(
 def create_alert_rule_activation(
     alert_rule: AlertRule,
     metric_value: int | None = 100,
-    finished_ts: datetime | None = None,
+    finished_at: datetime | None = None,
 ):
     with transaction.atomic(router.db_for_write(AlertRuleActivations)):
         activation = AlertRuleActivations.objects.create(
             alert_rule=alert_rule,
             metric_value=metric_value,
-            finished_ts=finished_ts,
+            finished_at=finished_at,
         )
 
     return activation

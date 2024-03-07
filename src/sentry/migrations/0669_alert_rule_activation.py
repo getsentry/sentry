@@ -37,7 +37,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-                ("finished_ts", models.DateTimeField(null=True)),
+                ("finished_at", models.DateTimeField(null=True)),
                 ("metric_value", models.FloatField()),
                 (
                     "alert_rule",
