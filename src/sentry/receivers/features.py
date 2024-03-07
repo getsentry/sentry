@@ -530,7 +530,7 @@ def record_update_priority(
     **kwargs,
 ):
     analytics.record(
-        "issue.update_priority",
+        "issue.priority_updated",
         group_id=group.id,
         new_priority=new_priority,
         organization_id=project.organization_id,

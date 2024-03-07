@@ -56,7 +56,7 @@ class SignalsTest(TestCase, SnubaTestCase):
             reason="reason",
         )
         mock_record.assert_called_once_with(
-            "issue.update_priority",
+            "issue.priority_updated",
             group_id=self.group.id,
             new_priority="high",
             organization_id=self.organization.id,

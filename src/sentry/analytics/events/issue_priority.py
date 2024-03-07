@@ -1,8 +1,8 @@
 from sentry import analytics
 
 
-class IssueUpdatePriority(analytics.Event):
-    type = "issue.update_priority"
+class IssuePriorityUpdatedEvent(analytics.Event):
+    type = "issue.priority_updated"
 
     attributes = (
         analytics.Attribute("group_id"),
@@ -17,4 +17,4 @@ class IssueUpdatePriority(analytics.Event):
     )
 
 
-analytics.register(IssueUpdatePriority)
+analytics.register(IssuePriorityUpdatedEvent)

@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 def update_priority(
     group: Group,
-    priority: PriorityLevel,
+    priority: PriorityLevel | None,
     sender: str,
     reason: PriorityChangeReason | None = None,
     actor: User | RpcUser | None = None,
@@ -44,6 +44,10 @@ def update_priority(
     """
     Update the priority of a group and record the change in the activity and group history.
     """
+
+    if priority is None or group.priority == priority:
+        return
+
     previous_priority = PriorityLevel(group.priority) if group.priority is not None else None
     group.update(priority=priority)
     Activity.objects.create_group_activity(

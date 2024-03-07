@@ -786,9 +786,6 @@ def handle_priority(
     for group in group_list:
         priority_value = PriorityLevel.from_str(priority) if priority else None
 
-        if priority_value is None or group.priority == priority_value:
-            continue
-
         update_priority(
             group=group,
             priority=priority_value,
