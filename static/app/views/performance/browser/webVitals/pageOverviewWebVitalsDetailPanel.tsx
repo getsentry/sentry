@@ -349,7 +349,7 @@ export function PageOverviewWebVitalsDetailPanel({
         <TableContainer>
           {isInp ? (
             <GridEditable
-              data={inpTableData as unknown as InteractionSpanSampleRowWithScore[]}
+              data={inpTableData}
               isLoading={isInteractionsLoading}
               columnOrder={inpColumnOrder}
               columnSortBy={[inpSort]}

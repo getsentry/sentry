@@ -454,7 +454,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             isLoading={isInteractionsLoading}
             columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
             columnSortBy={[]}
-            data={interactionsTableData as unknown as InteractionSpanSampleRowWithScore[]}
+            data={interactionsTableData}
             grid={{
               renderHeadCell,
               renderBodyCell,
