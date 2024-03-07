@@ -43,7 +43,7 @@ def new_issue_occurrence(
         level=level,
     )
 
-    event_data = {
+    event_data: dict[str, Any] = {
         "id": event_id,
         "environment": environment,
         "platform": platform,
