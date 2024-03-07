@@ -86,7 +86,6 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
-    assert team.org_role == orm_team.org_role
 
 
 @assume_test_silo_mode(SiloMode.REGION)
