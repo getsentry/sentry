@@ -145,18 +145,17 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
         starting_checkin = previous_checkins[0]
 
-        # for new incidents, generate a uuid as the fingerprint. This is
-        # not deterministic of any property of the incident and is simply
-        # used to associate the incident to it's event occurrences
-        fingerprint = uuid.uuid4().hex
-
-        MonitorIncident.objects.create(
-            monitor=monitor_env.monitor,
+        incident, _ = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
-            starting_checkin_id=starting_checkin["id"],
-            starting_timestamp=starting_checkin["date_added"],
-            grouphash=fingerprint,
+            resolving_checkin=None,
+            defaults={
+                "monitor": monitor_env.monitor,
+                "starting_checkin_id": starting_checkin["id"],
+                "starting_timestamp": starting_checkin["date_added"],
+            },
         )
+        fingerprint = incident.grouphash
+
     elif monitor_env.status in [
         MonitorStatus.ERROR,
         MonitorStatus.MISSED_CHECKIN,
