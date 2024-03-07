@@ -115,4 +115,5 @@ class MetricsSummariesDatasetConfig(DatasetConfig):
             alias,
             offset,
             limit,
+            size=int(args["count"]),
         )

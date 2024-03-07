@@ -1832,6 +1832,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             alias,
             offset,
             limit,
+            size=int(args["count"]),
         )
 
     # Query Filters
