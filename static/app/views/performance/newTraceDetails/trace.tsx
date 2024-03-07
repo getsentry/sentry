@@ -518,7 +518,7 @@ function Trace({
         containerRef.current = r;
         manager.onContainerRef(r);
       }}
-      className={trace.type === 'loading' ? 'Loading' : ''}
+      className={`${trace.indicators.length > 0 ? 'WithIndicators' : ''} ${trace.type === 'loading' ? 'Loading' : ''}`}
     >
       <div className="TraceDivider" ref={r => manager?.registerDividerRef(r)} />
       {trace.type === 'loading' ? <TraceLoading /> : null}
@@ -1443,7 +1443,26 @@ const TraceStylingWrapper = styled('div')`
   position: relative;
   box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: 4px;
-  padding-top: 44px;
+
+  padding-top: 22px;
+
+  &.WithIndicators {
+    padding-top: 44px;
+
+    &:before {
+      height: 44px;
+    }
+
+    .TraceIndicator.Timeline {
+      .TraceIndicatorLabel {
+        top: 26px;
+      }
+
+      .TraceIndicatorLine {
+        top: 30px;
+      }
+    }
+  }
 
   &:before {
     content: '';
@@ -1451,7 +1470,7 @@ const TraceStylingWrapper = styled('div')`
     left: 0;
     top: 0;
     width: 100%;
-    height: 44px;
+    height: 22px;
     background-color: ${p => p.theme.backgroundSecondary};
     border-bottom: 1px solid ${p => p.theme.border};
   }
@@ -1552,7 +1571,7 @@ const TraceStylingWrapper = styled('div')`
       .TraceIndicatorLabel {
         font-weight: normal;
         min-width: 0;
-        top: 26px;
+        top: 2px;
         width: auto;
         border: none;
         background-color: transparent;
@@ -1561,7 +1580,7 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         background: ${p => p.theme.translucentGray100};
-        top: 30px;
+        top: 4px;
       }
     }
   }
