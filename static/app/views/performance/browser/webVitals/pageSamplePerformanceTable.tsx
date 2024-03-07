@@ -52,26 +52,26 @@ type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
 
 const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Event ID')},
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
   {key: 'measurements.fcp', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
   {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
 const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   keyof InteractionSpanSampleRowWithScore
 >[] = [
-  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
+  {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: SpanMeasurements.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'inpScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
 enum Dataset {

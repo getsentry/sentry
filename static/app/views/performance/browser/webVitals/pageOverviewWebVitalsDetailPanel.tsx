@@ -45,18 +45,18 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Transaction')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
 const inpColumnOrder: GridColumnOrder[] = [
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Inp'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Inp')},
+  {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
