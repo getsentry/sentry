@@ -3,7 +3,6 @@ from unittest import mock
 from urllib.parse import urlencode
 
 from django.test import override_settings
-from pytest import fixture
 
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.superuser import COOKIE_NAME
@@ -168,11 +167,6 @@ class AuthVerifyEndpointTest(APITestCase):
 @control_silo_test
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
-
-    @fixture(autouse=True)
-    def setup_u2f_and_feature_flag(self):
-        with self.feature("organizations:u2f-superuser-form"):
-            yield
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
