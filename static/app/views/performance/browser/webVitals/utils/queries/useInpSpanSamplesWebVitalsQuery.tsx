@@ -1,5 +1,3 @@
-import type {ReactText} from 'react';
-
 import type {InteractionSpanSampleRowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
   type Filters,
@@ -47,7 +45,6 @@ export function useInpSpanSamplesWebVitalsQuery({
     limit,
     referrer: 'api.performance.browser.web-vitals.spans',
   });
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: InteractionSpanSampleRowWithScore[] =
     !isLoading && data?.length
       ? data.map(row => {
@@ -58,11 +55,11 @@ export function useInpSpanSamplesWebVitalsQuery({
             replayId: row[SpanIndexedField.REPLAY_ID],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
             inpScore: Math.round(
-              ((toNumber(row[`measurements.score.inp`]) ?? 0) /
-                (toNumber(row[`measurements.score.weight.inp`]) ?? 0)) *
+              ((row[`measurements.score.inp`] ?? 0) /
+                (row[`measurements.score.weight.inp`] ?? 0)) *
                 100
             ),
-            totalScore: Math.round(toNumber(row[`measurements.score.total`]) ?? 0),
+            totalScore: Math.round(row[`measurements.score.total`] ?? 0),
             projectSlug: row[SpanIndexedField.PROJECT],
           };
         })
