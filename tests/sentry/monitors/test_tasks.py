@@ -1189,7 +1189,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         return (monitor, monitor_environment)
 
     @with_feature("organizations:crons-broken-monitor-detection")
-    def test_creates_broken_detection(self):
+    def test_creates_broken_detection_no_duplicates(self):
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -1216,6 +1216,10 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                 date_added=django_timezone.now() - timedelta(days=i),
             )
 
+        detect_broken_monitor_envs()
+        assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
+
+        # running the task again shouldn't create duplicates
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
 
