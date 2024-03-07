@@ -6,8 +6,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AiAutofix} from 'sentry/components/events/aiAutofix';
-import type {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
+import {Autofix} from 'sentry/components/events/autofix';
+import type {EventMetadataWithAutofix} from 'sentry/components/events/autofix/types';
 
 const group = GroupFixture();
 const event = EventFixture();
@@ -21,9 +21,9 @@ describe('AiAutofix', () => {
   });
 
   it('renders the Banner component when autofixData is null', () => {
-    render(<AiAutofix event={event} group={group} />);
+    render(<Autofix event={event} group={group} />);
 
-    expect(screen.getByText('Try AI Autofix')).toBeInTheDocument();
+    expect(screen.getByText('Try Autofix')).toBeInTheDocument();
   });
 
   it('renders steps with logs', async () => {
@@ -45,7 +45,7 @@ describe('AiAutofix', () => {
     });
 
     render(
-      <AiAutofix
+      <Autofix
         event={event}
         group={{
           ...group,
@@ -69,7 +69,7 @@ describe('AiAutofix', () => {
 
   it('renders the FixResult component when autofixData is present', () => {
     render(
-      <AiAutofix
+      <Autofix
         event={event}
         group={{
           ...group,
@@ -101,7 +101,7 @@ describe('AiAutofix', () => {
 
   it('can toggle logs for completed fix', async () => {
     render(
-      <AiAutofix
+      <Autofix
         event={event}
         group={{
           ...group,

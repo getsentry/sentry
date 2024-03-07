@@ -1,4 +1,4 @@
-import {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import {AutofixData} from 'sentry/components/events/autofix/types';
 
 export function AutofixDataFixture(params: Partial<AutofixData>): AutofixData {
   return {

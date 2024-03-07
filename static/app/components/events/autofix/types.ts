@@ -31,10 +31,10 @@ export type AutofixProgressItem = {
 export type AutofixStep = {
   id: string;
   index: number;
-  progress: Array<AutofixProgressItem | AutofixStep>;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
   title: string;
   completedMessage?: string;
+  progress?: Array<AutofixProgressItem | AutofixStep>;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {
