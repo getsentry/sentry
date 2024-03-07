@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
-import type {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import type {TagFilter} from 'sentry/components/events/eventTags/util';
 import {space} from 'sentry/styles/space';
 import type {EventTag} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';

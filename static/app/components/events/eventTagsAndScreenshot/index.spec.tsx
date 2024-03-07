@@ -12,8 +12,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
-import {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import GlobalModal from 'sentry/components/globalModal';
 import type {EventAttachment} from 'sentry/types';
 

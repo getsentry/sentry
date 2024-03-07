@@ -4,8 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
-import {TagFilter} from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
 import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';

@@ -4,7 +4,11 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {TAGS_DOCS_LINK, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {
+  TagFilter,
+  TAGS_DOCS_LINK,
+  useHasNewTagsUI,
+} from 'sentry/components/events/eventTags/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
@@ -18,14 +22,6 @@ type Props = {
   event: Event;
   projectSlug: Project['slug'];
 };
-
-export enum TagFilter {
-  ALL = 'All',
-  CUSTOM = 'Custom',
-  USER = 'User',
-  SYSTEM = 'System',
-  EVENT = 'Event',
-}
 
 function Tags({event, projectSlug}: Props) {
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
