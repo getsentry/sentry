@@ -93,7 +93,7 @@ class CursorWrapper:
     @more_better_error_messages
     def executemany(self, sql, paramlist=()):
         with transaction.atomic():
-             return self.cursor.executemany(sql, paramlist)
+            return self.cursor.executemany(sql, paramlist)
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
@@ -104,7 +104,6 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         self.ops = DatabaseOperations(self)
 
     @auto_reconnect_connection
-
     def _set_isolation_level(self, level):
         return super()._set_isolation_level(level)
 
