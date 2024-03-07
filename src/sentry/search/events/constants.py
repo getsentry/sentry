@@ -316,6 +316,7 @@ DEFAULT_METRIC_TAGS = {
     "transaction.method",
     "transaction.op",
     "transaction.status",
+    "span.op",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",

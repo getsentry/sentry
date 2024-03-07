@@ -19,6 +19,11 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  MonitorSortOption,
+  MonitorSortOrder,
+  SortSelector,
+} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorListQueryKey, scheduleAsText} from 'sentry/views/monitors/utils';
 
@@ -35,10 +40,17 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cursor, setCursor] = useState<string | undefined>();
+  const [sortSelection, setSortSelection] = useState<{
+    order: MonitorSortOrder;
+    sort: MonitorSortOption;
+  }>({sort: MonitorSortOption.STATUS, order: MonitorSortOrder.ASCENDING});
+
   const queryKey = makeMonitorListQueryKey(organization, {
     ...location.query,
     query: searchQuery,
     cursor,
+    sort: sortSelection.sort,
+    asc: sortSelection.order,
   });
 
   const [selectedMonitors, setSelectedMonitors] = useState<Monitor[]>([]);
@@ -97,10 +109,14 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
   const disableEnableBtnParams = {
     operation: {status: shouldDisable ? 'disabled' : 'active'} as BulkEditOperation,
     actionText: shouldDisable ? t('Disable') : t('Enable'),
+    analyticsEventKey: 'crons_bulk_edit_modal.disable_enable_click',
+    analyticsEventName: 'Crons Bulk Edit Modal: Disable Enable Click',
   };
   const muteUnmuteBtnParams = {
     operation: {isMuted: shouldMute ? true : false},
     actionText: shouldMute ? t('Mute') : t('Unmute'),
+    analyticsEventKey: 'crons_bulk_edit_modal.mute_unmute_click',
+    analyticsEventName: 'Crons Bulk Edit Modal: Mute Unmute Click',
   };
 
   return (
@@ -112,7 +128,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
         <Actions>
           <ActionButtons gap={1}>
             {[disableEnableBtnParams, muteUnmuteBtnParams].map(
-              ({operation, actionText}, i) => (
+              ({operation, actionText, ...analyticsProps}, i) => (
                 <Button
                   key={i}
                   size="sm"
@@ -123,6 +139,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                     tct('Please select monitors to [actionText]', {actionText})
                   }
                   aria-label={actionText}
+                  {...analyticsProps}
                 >
                   {selectedMonitors.length > 0
                     ? `${actionText} ${tn(
@@ -140,6 +157,14 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
             placeholder={t('Search Monitors')}
             query={searchQuery}
             onSearch={handleSearch}
+          />
+          <SortSelector
+            size="sm"
+            onChangeOrder={({value: order}) =>
+              setSortSelection({...sortSelection, order})
+            }
+            onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
+            {...sortSelection}
           />
         </Actions>
         <StyledPanelTable headers={headers} stickyHeaders>
@@ -186,7 +211,8 @@ export const modalCss = css`
 
 const Actions = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: 1fr max-content max-content;
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
 
