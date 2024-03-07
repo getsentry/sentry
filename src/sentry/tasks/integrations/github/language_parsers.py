@@ -15,9 +15,9 @@ stackframe_function_name = lambda i: Function(
 
 class LanguageParser(ABC):
     @classmethod
-    def extract_functions_from_patch(self, patch: str) -> set[str]:
+    def extract_functions_from_patch(cls, patch: str) -> set[str]:
         functions = set()
-        for regex in self.regexes:
+        for regex in cls.regexes:
             functions.update(set(re.findall(regex, patch, flags=re.M)))
 
         return functions
