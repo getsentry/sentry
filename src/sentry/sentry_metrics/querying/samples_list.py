@@ -850,14 +850,28 @@ def pick_samples(
 
     keys = [metric_key(sample) for sample in samples]
 
+    # first element is the one near the average
+    # but must not be the first or last element
     avg_m = sum(keys) / len(keys)
     idx_m = bisect(keys, avg_m)
+    # ensure there is at least 1 element on both sides
+    # of the middle element we just picked
     idx_m = min(max(1, idx_m), len(keys) - 2)
 
+    # second element is near the average of first
+    # split, but must not be the split element
     avg_l = sum(keys[:idx_m]) / idx_m
-    idx_l = max(0, bisect(keys, avg_l))
+    idx_l = bisect(keys, avg_l, hi=idx_m - 1)
+    idx_l += 1  # push it closer to the middle
+    # ensure this is not the same as middle element
+    idx_l = min(max(0, idx_l), idx_m - 1)
 
+    # third element is near the average of second
+    # split, but must not be the split element
     avg_r = sum(keys[idx_m + 1 :]) / (len(keys) - idx_m - 1)
-    idx_r = min(bisect(keys, avg_r), len(keys) - 1)
+    idx_r = bisect(keys, avg_r, lo=idx_m + 1)
+    idx_r -= 1  # push it closer to the middle
+    # ensure this is not the same as middle element
+    idx_r = min(max(idx_m + 1, idx_r), len(keys) - 1)
 
-    return [samples[idx_l], samples[idx_m], samples[idx_r]]
+    return [samples[idx_m], samples[idx_l], samples[idx_r]]
