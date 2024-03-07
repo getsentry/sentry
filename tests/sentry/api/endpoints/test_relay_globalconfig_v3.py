@@ -89,9 +89,12 @@ def test_return_global_config_on_right_version(
                 "id": "test-id",
                 "isEnabled": True,
                 "condition": {
-                    "op": "eq",
-                    "name": "event.contexts.browser.name",
-                    "value": "Firefox",
+                    "op": "not",
+                    "inner": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
                 },
             }
         ],
