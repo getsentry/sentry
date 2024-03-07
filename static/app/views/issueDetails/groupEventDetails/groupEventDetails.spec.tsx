@@ -32,7 +32,7 @@ const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project,
-  environments?: string[]
+  query?: Record<string, string | string[]>
 ): {
   event: Event;
   group: Group;
@@ -46,9 +46,7 @@ const makeDefaultMockData = (
     group: GroupFixture(),
     router: RouterFixture({
       location: LocationFixture({
-        query: {
-          environment: environments,
-        },
+        query: query ?? {},
       }),
     }),
     event: EventFixture({
@@ -105,12 +103,12 @@ const makeDefaultMockData = (
 };
 
 function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {environments?: string[]}
+  props: Partial<GroupEventDetailsProps> & {query?: Record<string, string | string[]>}
 ) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
     props.project,
-    props.environments ?? ['dev']
+    props.query ?? {environment: ['dev']}
   );
 
   const mergedProps: GroupEventDetailsProps = {
@@ -355,7 +353,7 @@ describe('groupEventDetails', () => {
     });
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
-    rerender(<TestComponent environments={['prod']} />);
+    rerender(<TestComponent query={{environment: ['prod']}} />);
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
   });
@@ -369,7 +367,7 @@ describe('groupEventDetails', () => {
     });
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
-    rerender(<TestComponent environments={[]} />);
+    rerender(<TestComponent query={{environment: []}} />);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
@@ -496,28 +494,37 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the changes for 'event-tags-tree-ui' flag", async function () {
-    const props = makeDefaultMockData();
-    mockGroupApis(props.organization, props.project, props.group, props.event);
-    const organization = OrganizationFixture({
-      features: ['event-tags-tree-ui'],
+  describe('changes to event tags ui', () => {
+    async function assertNewTagsView() {
+      expect(await screen.findByText('Event ID:')).toBeInTheDocument();
+      const contextSummary = screen.getByTestId('context-summary');
+      const contextSummaryContainer = within(contextSummary);
+      // 3 contexts in makeDefaultMockData.event.contexts, trace is ignored
+      expect(contextSummaryContainer.queryAllByTestId('context-item')).toHaveLength(3);
+      expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+    }
+
+    it('works with the feature flag', async function () {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const organization = OrganizationFixture({
+        features: ['event-tags-tree-ui'],
+      });
+      render(<TestComponent group={props.group} event={props.event} />, {
+        organization,
+      });
+      await assertNewTagsView();
     });
-    const {routerContext} = initializeOrg({organization});
-
-    render(<TestComponent group={props.group} event={props.event} />, {
-      organization,
-      context: routerContext,
+    it('works with the query param', async function () {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const {organization} = initializeOrg();
+      render(
+        <TestComponent group={props.group} event={props.event} query={{tagsTree: '1'}} />,
+        {organization}
+      );
+      await assertNewTagsView();
     });
-    expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-    const contextSummary = screen.getByTestId('context-summary');
-
-    const contextSummaryContainer = within(contextSummary);
-    expect(contextSummaryContainer.queryAllByTestId('context-item')).toHaveLength(
-      // trace doesn't get a context item
-      Object.keys(props.event.contexts).length - 1
-    );
-
-    expect(screen.getByTestId('event-tags')).toBeInTheDocument();
   });
 });
 

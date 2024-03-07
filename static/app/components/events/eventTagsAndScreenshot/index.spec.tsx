@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -517,6 +518,11 @@ describe('EventTagsAndScreenshot', function () {
     const featuredOrganization = OrganizationFixture({
       features: ['event-attachments', 'event-tags-tree-ui'],
     });
+    const router = RouterFixture({
+      location: {
+        query: {tagsTree: '1'},
+      },
+    });
     function assertNewTagsView() {
       expect(screen.getByText('Tags')).toBeInTheDocument();
       // Ensure context isn't added in tag section
@@ -528,12 +534,9 @@ describe('EventTagsAndScreenshot', function () {
         Object.keys(TagFilter).length
       );
     }
-    it('no context, tags only', function () {
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
-        body: [],
-      });
-      const {unmount} = render(
+
+    function assertFlagAndQueryParamWork() {
+      const flaggedOrgTags = render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
           projectSlug={project.slug}
@@ -541,8 +544,9 @@ describe('EventTagsAndScreenshot', function () {
         {organization: featuredOrganization}
       );
       assertNewTagsView();
-      unmount();
-      render(
+      flaggedOrgTags.unmount();
+
+      const flaggedOrgTagsAsShare = render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
           projectSlug={project.slug}
@@ -551,6 +555,36 @@ describe('EventTagsAndScreenshot', function () {
         {organization: featuredOrganization}
       );
       assertNewTagsView();
+      flaggedOrgTagsAsShare.unmount();
+
+      const queryParamTags = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTags.unmount();
+
+      const queryParamTagsAsShare = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+          isShare
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTagsAsShare.unmount();
+    }
+
+    it('no context, tags only', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      assertFlagAndQueryParamWork();
     });
 
     it('no context, tags and screenshot', function () {
@@ -558,24 +592,7 @@ describe('EventTagsAndScreenshot', function () {
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
       });
-      const {unmount} = render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-        />,
-        {organization: featuredOrganization}
-      );
-      assertNewTagsView();
-      unmount();
-      render(
-        <EventTagsAndScreenshot
-          event={EventFixture({...event, tags, contexts})}
-          projectSlug={project.slug}
-          isShare
-        />,
-        {organization: featuredOrganization}
-      );
-      assertNewTagsView();
+      assertFlagAndQueryParamWork();
     });
   });
 });
