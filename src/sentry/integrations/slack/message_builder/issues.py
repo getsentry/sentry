@@ -89,7 +89,7 @@ def get_approx_start_time(group: Group):
 
     regression_time = occurrence.evidence_data.get("breakpoint", None)
 
-    if not regression_time:
+    if regression_time is None:
         return None
 
     # format moment into YYYY-mm-dd h:m:s
