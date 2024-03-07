@@ -1289,13 +1289,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for formula, expected_result, expected_unit_family in (
             # (($query_2 * 1000) + 10000.0)
             ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (($query_2 + 1000) + (10000.0 + 20000.0))
+            ("($query_2 + (10 + 20))", 50000.0, UnitFamily.DURATION.value),
             # ($query_2 * 1000 + 10000.0) + ($query_2 * 1000)
             ("($query_2 + 10) + $query_2", 50000.0, UnitFamily.DURATION.value),
             # ($query_2 * 1000 + 10000.0) + $query_1
             ("($query_2 + 10) + $query_1", 30015.0, UnitFamily.DURATION.value),
             # ($query_1 + 10) + ($query_2 * 1000)
             ("($query_1 + 10) + $query_2", 20025.0, UnitFamily.DURATION.value),
-            # TODO: add tests with formulas containing only numeric scalars.
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
