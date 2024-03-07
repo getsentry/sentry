@@ -9,6 +9,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportSDKInstallFirstStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
@@ -199,10 +204,56 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        getCrashReportSDKInstallFirstStep(params),
+        {
+          description: tct(
+            'If you are rendering the page from the server, for example on ASP.NET MVC, the [code:Error.cshtml] razor page can be:',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'Cshtml',
+              value: 'html',
+              language: 'html',
+              code: `@using Sentry
+@using Sentry.AspNetCore
+@inject Microsoft.Extensions.Options.IOptions<SentryAspNetCoreOptions> SentryOptions
+
+@if (SentrySdk.LastEventId != SentryId.Empty) {
+  <script>
+    Sentry.init({ dsn: "@(SentryOptions.Value.Dsn)" });
+    Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
+  </script>
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNetCore'}),
+  crashReportOnboarding,
 };
 
 export default docs;
