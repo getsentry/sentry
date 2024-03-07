@@ -50,7 +50,8 @@ export function getWidgetQuery(metricsQuery: MetricsQuery) {
     columns: metricsQuery.groupBy ?? [],
     fields: [field],
     conditions: metricsQuery.query ?? '',
-    orderby: '',
+    // @ts-expect-error TODO: change type
+    orderby: metricsQuery.orderBy,
   };
 }
 

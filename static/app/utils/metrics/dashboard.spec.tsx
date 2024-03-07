@@ -33,7 +33,7 @@ describe('convertToDashboardWidget', () => {
           columns: ['project'],
           fields: ['p95(c:custom/login@second)'],
           conditions: 'event.type:transaction',
-          orderby: '',
+          orderby: undefined,
         },
       ],
     });
@@ -64,7 +64,7 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
-          orderby: '',
+          orderby: undefined,
         },
       ],
     });
@@ -96,7 +96,7 @@ describe('getWidgetQuery', () => {
       columns: [],
       fields: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
       conditions: 'status = "success"',
-      orderby: '',
+      orderby: undefined,
     };
 
     expect(getWidgetQuery(metricsQuery)).toEqual(expectedWidgetQuery);
