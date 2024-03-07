@@ -1197,7 +1197,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
-            date_added=django_timezone.now() - timedelta(days=4),
+            date_added=django_timezone.now() - timedelta(days=14),
         )
         incident = MonitorIncident.objects.create(
             monitor=monitor,
@@ -1228,7 +1228,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
-            date_added=django_timezone.now() - timedelta(days=2),
+            date_added=django_timezone.now() - timedelta(days=10),
         )
         incident = MonitorIncident.objects.create(
             monitor=monitor,
@@ -1259,7 +1259,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
-            date_added=django_timezone.now() - timedelta(days=4),
+            date_added=django_timezone.now() - timedelta(days=14),
         )
         incident = MonitorIncident.objects.create(
             monitor=monitor,
@@ -1289,7 +1289,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor_environment=monitor_environment,
             project_id=self.project.id,
             status=CheckInStatus.ERROR,
-            date_added=django_timezone.now() - timedelta(days=4),
+            date_added=django_timezone.now() - timedelta(days=14),
         )
         incident = MonitorIncident.objects.create(
             monitor=monitor,

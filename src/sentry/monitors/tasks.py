@@ -67,7 +67,7 @@ MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
 NUM_CONSECUTIVE_BROKEN_CHECKINS = 4
 
 # The number of days a monitor env has to be failing to qualify as broken
-NUM_DAYS_BROKEN_PERIOD = 3
+NUM_DAYS_BROKEN_PERIOD = 14
 
 
 def _get_producer() -> KafkaProducer:
@@ -422,10 +422,11 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime, **kwargs):
 )
 def detect_broken_monitor_envs():
     current_time = django_timezone.now()
-    # TODO(davidenwang): When we start muting environments filter those broken detections out of this query
     open_incidents_qs = MonitorIncident.objects.select_related("monitor").filter(
         resolving_checkin=None,
         starting_timestamp__lte=(current_time - timedelta(days=NUM_DAYS_BROKEN_PERIOD)),
+        # TODO(davidenwang): When we want to email users, remove this filter
+        monitorenvbrokendetection__isnull=True,
     )
     for open_incidents in chunked(
         RangeQuerySetWrapper(
