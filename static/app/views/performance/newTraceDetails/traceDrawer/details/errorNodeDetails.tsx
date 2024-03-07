@@ -26,9 +26,9 @@ export default function ErrorNodeDetails({
     <Wrapper>
       <IconTitleWrapper>
         <StyledErrorIconBorder>
-          <IconFire color="errorText" size="lg" />
+          <IconFire color="errorText" size="md" />
         </StyledErrorIconBorder>
-        <h2>{t('Error')}</h2>
+        <div style={{fontWeight: 'bold'}}>{t('Error')}</div>
       </IconTitleWrapper>
 
       <StyledTable className="table key-value">
@@ -102,5 +102,4 @@ const StyledErrorIconBorder = styled('div')`
   border: 1px solid ${p => p.theme.error};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(1)} 3px ${space(1)};
-  margin-bottom: ${space(2)};
 `;

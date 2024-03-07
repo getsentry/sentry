@@ -38,7 +38,7 @@ export default function SpanNodeDetails({
         <Tooltip title={event.projectSlug}>
           <ProjectBadge
             project={project ? project : {slug: event.projectSlug || ''}}
-            avatarSize={50}
+            avatarSize={30}
             hideName
           />
         </Tooltip>
@@ -103,11 +103,11 @@ const FlexBox = styled('div')`
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const TransactionOp = styled('div')`
-  font-size: 25px;
+  font-size: 15px;
   font-weight: bold;
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}

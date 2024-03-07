@@ -9,6 +9,7 @@ import {
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
@@ -20,16 +21,25 @@ import type {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
+import {
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from '../guards';
 import type {TraceTree, TraceTreeNode} from '../traceTree';
 
 import NodeDetail from './tabs/nodeDetails';
 import {TraceLevelDetails} from './tabs/traceLevelDetails';
 
 type DrawerProps = {
+  activeTab: 'trace_data' | 'node_detail';
   location: Location;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  nodes: TraceTreeNode<TraceTree.NodeValue>[];
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  setActiveTab: (tab: 'trace_data' | 'node_detail') => void;
   setDetailPanelRef: Dispatch<
     SetStateAction<MutableRefObject<HTMLDivElement | null> | null>
   >;
@@ -40,11 +50,31 @@ type DrawerProps = {
 const MIN_PANEL_HEIGHT = 100;
 const INITIAL_PANEL_HEIGHT = 200;
 
-function TraceDrawer(props: DrawerProps) {
-  const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>(
-    props.node ? 'node_detail' : 'trace_data'
-  );
+function getNodeTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (isTransactionNode(node)) {
+    return node.value['transaction.op'] + ' - ' + node.value.transaction;
+  }
 
+  if (isSpanNode(node)) {
+    return node.value.op + ' - ' + node.value.description;
+  }
+
+  if (isAutogroupedNode(node)) {
+    return t('Auto-Group');
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    return t('Missing Instrumentation Span');
+  }
+
+  if (isTraceErrorNode(node)) {
+    return node.value.title;
+  }
+
+  return t('Detail');
+}
+
+function TraceDrawer(props: DrawerProps) {
   const [size, setSize] = useState(INITIAL_PANEL_HEIGHT);
 
   const [isResizing, setIsResizing] = useState(false);
@@ -69,17 +99,10 @@ function TraceDrawer(props: DrawerProps) {
   }, [size, isResizing]);
 
   useEffect(() => {
-    if (props.node) {
-      setActiveTab('node_detail');
-    }
-  }, [props.node]);
-
-  useEffect(() => {
     props.setDetailPanelRef(panelRef);
   }, [panelRef, props]);
 
   const handleMouseDown = e => {
-    e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
   };
@@ -87,22 +110,27 @@ function TraceDrawer(props: DrawerProps) {
   return (
     <PanelWrapper size={size} ref={panelRef}>
       <TabsContainer onMouseDown={handleMouseDown}>
+        {props.nodes.map((node, index) => (
+          <Tooltip title={getNodeTabTitle(node)} showOnlyOnOverflow key={index}>
+            <Tab
+              key={index}
+              active={props.activeTab === 'node_detail'}
+              onClick={() => props.setActiveTab('node_detail')}
+            >
+              {getNodeTabTitle(node)}
+            </Tab>
+          </Tooltip>
+        ))}
         <Tab
-          active={activeTab === 'node_detail'}
-          onClick={() => setActiveTab('node_detail')}
+          active={props.activeTab === 'trace_data'}
+          onClick={() => props.setActiveTab('trace_data')}
         >
-          {t('Details')}
-        </Tab>
-        <Tab
-          active={activeTab === 'trace_data'}
-          onClick={() => setActiveTab('trace_data')}
-        >
-          {t('Trace Data')}
+          {t('Trace')}
         </Tab>
       </TabsContainer>
 
       <Content>
-        {activeTab === 'trace_data' && (
+        {props.activeTab === 'trace_data' && (
           <TraceLevelDetails
             rootEventResults={props.rootEventResults}
             organization={props.organization}
@@ -111,13 +139,15 @@ function TraceDrawer(props: DrawerProps) {
             traceEventView={props.traceEventView}
           />
         )}
-        {activeTab === 'node_detail' && (
-          <NodeDetail
-            node={props.node}
-            organization={props.organization}
-            location={props.location}
-          />
-        )}
+        {props.activeTab === 'node_detail' &&
+          props.nodes.map((node, index) => (
+            <NodeDetail
+              key={index}
+              node={node}
+              organization={props.organization}
+              location={props.location}
+            />
+          ))}
       </Content>
     </PanelWrapper>
   );
@@ -152,6 +182,11 @@ const TabsContainer = styled('div')`
 `;
 
 const Tab = styled('div')<{active: boolean}>`
+  max-width: 200px;
+  white-space: nowrap;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
   font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.active && `font-weight: bold; border-bottom: 2px solid ${p.theme.textColor};`}

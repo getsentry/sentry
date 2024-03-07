@@ -17,9 +17,9 @@ export default function MissingInstrumentationNodeDetails({
     <Wrapper>
       <IconTitleWrapper>
         <StyledGroupIconBorder>
-          <IconSpan color="blue300" size="lg" />
+          <IconSpan color="blue300" size="md" />
         </StyledGroupIconBorder>
-        <h2>{t('Missing Instrumentation Span')}</h2>
+        <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation Span')}</div>
       </IconTitleWrapper>
 
       <StyledTable className="table key-value">
@@ -71,5 +71,4 @@ const StyledGroupIconBorder = styled('div')`
   border: 1px solid ${p => p.theme.blue300};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(1)} 3px ${space(1)};
-  margin-bottom: ${space(2)};
 `;

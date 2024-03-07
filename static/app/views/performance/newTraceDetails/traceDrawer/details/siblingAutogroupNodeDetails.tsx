@@ -16,9 +16,9 @@ export default function SiblingAutogroupNodeDetails({
     <Wrapper>
       <IconTitleWrapper>
         <StyledGroupIconBorder>
-          <IconGroup color="blue300" size="lg" />
+          <IconGroup color="blue300" size="md" />
         </StyledGroupIconBorder>
-        <h2>{t('Auto-Group')}</h2>
+        <div style={{fontWeight: 'bold'}}>{t('Auto-Group')}</div>
       </IconTitleWrapper>
 
       <StyledTable className="table key-value">

@@ -12,9 +12,9 @@ export default function ParentAutogroupNodeDetails({node}: {node: ParentAutogrou
     <Wrapper>
       <IconTitleWrapper>
         <StyledGroupIconBorder>
-          <IconGroup color="blue300" size="lg" />
+          <IconGroup color="blue300" size="md" />
         </StyledGroupIconBorder>
-        <h2>{t('Auto-Group')}</h2>
+        <div style={{fontWeight: 'bold'}}>{t('Auto-Group')}</div>
       </IconTitleWrapper>
 
       <StyledTable className="table key-value">
@@ -68,5 +68,4 @@ const StyledGroupIconBorder = styled('div')`
   border: 1px solid ${p => p.theme.blue300};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(1)} 3px ${space(1)};
-  margin-bottom: ${space(2)};
 `;

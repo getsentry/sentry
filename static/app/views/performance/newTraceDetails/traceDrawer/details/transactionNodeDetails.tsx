@@ -275,7 +275,7 @@ export default function TransactionNodeDetails({
           <Tooltip title={node.value.project_slug}>
             <ProjectBadge
               project={project ? project : {slug: node.value.project_slug}}
-              avatarSize={50}
+              avatarSize={30}
               hideName
             />
           </Tooltip>
@@ -285,7 +285,7 @@ export default function TransactionNodeDetails({
           </div>
         </Title>
         <Button
-          size="sm"
+          size="xs"
           icon={<IconOpen />}
           href={eventJsonUrl}
           external
@@ -489,7 +489,7 @@ const FlexBox = styled('div')`
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const TransactioNodeDetailHeader = styled(Title)`
@@ -497,7 +497,7 @@ const TransactioNodeDetailHeader = styled(Title)`
 `;
 
 const TransactionOp = styled('div')`
-  font-size: 25px;
+  font-size: 15px;
   font-weight: bold;
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
