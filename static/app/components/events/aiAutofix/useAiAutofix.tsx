@@ -51,6 +51,7 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
             index: 0,
             status: 'PROCESSING',
             title: 'Starting Autofix...',
+            progress: [],
           },
         ],
         created_at: new Date().toISOString(),
