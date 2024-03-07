@@ -13,6 +13,7 @@ from sentry.search.events import constants
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils.hashlib import fnv1a_32
 
 
 def resolve_project_threshold_config(
@@ -344,7 +345,9 @@ def resolve_rounded_timestamp(interval: int, alias: str, timestamp_column: str =
     )
 
 
-def resolve_random_sample(columns: list[str], alias: str, seed: int = 1):
+def resolve_random_sample(columns: list[str], alias: str, offset: int, limit: int):
+    seed_str = f"{offset}-{limit}"
+    seed = fnv1a_32(seed_str.encode("utf-8"))
     return Function(
         "arrayElement",
         [

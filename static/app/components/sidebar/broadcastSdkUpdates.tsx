@@ -75,7 +75,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
           return (
             <div key={sdkName}>
               <Header>
-                <SdkProjectBadge project={project} organization={organization} />
+                <SdkProjectBadge project={project} />
                 {isDeprecated && <Tag type="warning">{t('Deprecated')}</Tag>}
               </Header>
               <SdkOutdatedVersion>

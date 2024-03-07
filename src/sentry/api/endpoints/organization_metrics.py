@@ -474,6 +474,7 @@ class MetricsSamplesSerializer(serializers.Serializer):
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     max = serializers.FloatField(required=False)
     min = serializers.FloatField(required=False)
+    operation = serializers.CharField(required=False)
     query = serializers.CharField(required=False)
     referrer = serializers.CharField(required=False)
     sort = serializers.CharField(required=False)
@@ -532,6 +533,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
             params,
             snuba_params,
             serialized["field"],
+            serialized.get("operation"),
             serialized.get("query", ""),
             serialized.get("min"),
             serialized.get("max"),

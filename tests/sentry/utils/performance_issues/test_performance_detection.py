@@ -421,7 +421,7 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 8
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
@@ -432,6 +432,7 @@ class PerformanceDetectionTest(TestCase):
                     "_pi_sdk_name",
                     "",
                 ),
+                call("is_standalone_spans", False),
                 call(
                     "_pi_transaction",
                     "da78af6000a6400aaa87cf6e14ddeb40",
