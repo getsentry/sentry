@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.replays.testutils import mock_replay_event
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     _parse_classes,
@@ -17,13 +18,6 @@ from sentry.replays.usecases.ingest.dom_index import (
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
-
-
-def mock_replay_event():
-    return {
-        "user": {"id": "1", "email": "test@test.com"},
-        "environment": "production",
-    }
 
 
 @pytest.fixture(autouse=True)
