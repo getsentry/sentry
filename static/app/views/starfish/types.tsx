@@ -153,10 +153,10 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.REPLAY_ID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
-  [SpanMeasurements.INP]: number;
-  [SpanMeasurements.INP_SCORE]: number;
-  [SpanMeasurements.INP_SCORE_WEIGHT]: number;
-  [SpanMeasurements.TOTAL_SCORE]: number;
+  [SpanIndexedField.INP]: number;
+  [SpanIndexedField.INP_SCORE]: number;
+  [SpanIndexedField.INP_SCORE_WEIGHT]: number;
+  [SpanIndexedField.TOTAL_SCORE]: number;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
