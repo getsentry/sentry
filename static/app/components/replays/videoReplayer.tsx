@@ -79,6 +79,11 @@ export class VideoReplayer {
 
     // TODO: only attach these when needed
     el.addEventListener('ended', () => this.handleSegmentEnd(index));
+    el.addEventListener('play', event => {
+      if (index === this._currentIndex) {
+        this._callbacks.onLoaded(event);
+      }
+    });
     el.addEventListener('loadedmetadata', event => {
       // Only call this for current segment?
       if (index === this._currentIndex) {
