@@ -206,6 +206,7 @@
   "sentry.organizationmemberteamreplica",
   "sentry.notificationactionproject",
   "sentry.monitorincident",
+  "sentry.monitorenvbrokendetection",
   "sentry.incident",
   "sentry.dashboardwidgetquery",
   "sentry.alertruletrigger",

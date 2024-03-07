@@ -55,10 +55,15 @@ class RedisReprocessingStore(ReprocessingStore):
         `event id;datetime of event`, returns a list of event IDs, the
         earliest datetime, and the latest datetime.
         """
+        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
+        return self.pop_batched_events_by_key(key)
+
+    def pop_batched_events_by_key(
+        self, key: str
+    ) -> tuple[list[str], datetime | None, datetime | None]:
         event_ids_batch = []
         min_datetime: datetime | None = None
         max_datetime: datetime | None = None
-        key = _get_old_primary_hash_subset_key(project_id, group_id, primary_hash)
 
         for row in self.redis.lrange(key, 0, -1):
             datetime_raw, event_id = row.split(";")

@@ -1,6 +1,5 @@
 import type {PlainRoute} from 'react-router';
 import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import moment from 'moment';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -17,6 +16,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   addErrorMessage,

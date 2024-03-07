@@ -81,7 +81,7 @@ export function HTTPLandingPage() {
     sorts: [sort],
     limit: DOMAIN_TABLE_ROW_COUNT,
     cursor,
-    referrer: 'api.starfish.http-module-domains-list',
+    referrer: 'api.starfish.http-module-landing-domains-list',
   });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);

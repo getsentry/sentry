@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 

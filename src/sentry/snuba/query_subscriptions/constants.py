@@ -1,18 +1,16 @@
-from django.conf import settings
-
+from sentry.conf.types.kafka_definition import Topic
 from sentry.snuba.dataset import Dataset
+from sentry.utils.kafka_config import get_topic_definition
 
-topic_to_dataset: dict[str, Dataset] = {
-    settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
-    settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
-    settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-    settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
-    settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
-}
 dataset_to_logical_topic = {
     Dataset.Events: "events-subscription-results",
     Dataset.Transactions: "transactions-subscription-results",
     Dataset.PerformanceMetrics: "generic-metrics-subscription-results",
     Dataset.Sessions: "sessions-subscription-results",
     Dataset.Metrics: "metrics-subscription-results",
+}
+
+topic_to_dataset = {
+    get_topic_definition(Topic(logical_topic))["real_topic_name"]: dataset
+    for (dataset, logical_topic) in dataset_to_logical_topic.items()
 }
