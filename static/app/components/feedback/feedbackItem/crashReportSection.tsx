@@ -44,7 +44,6 @@ export default function CrashReportSection({
         eventId={crashReportId}
         organization={organization}
         data={groupData}
-        size="normal"
       />
       <EventOrGroupExtraDetails data={groupData} />
     </IssueDetailsContainer>

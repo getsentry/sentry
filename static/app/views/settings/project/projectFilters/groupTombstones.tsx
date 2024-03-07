@@ -37,7 +37,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
       <StyledBox>
         <EventOrGroupHeader
           hideIcons
-          size="normal"
           data={{...data, isTombstone: true}}
           source="group-tombstome"
         />

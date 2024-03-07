@@ -9,8 +9,6 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
 
-import UnhandledTag, {TagAndMessageWrapper} from '../issueDetails/unhandledTag';
-
 type Props = {
   group: Group;
 };
@@ -36,11 +34,12 @@ function SharedGroupHeader({group}: Props) {
             )}
           </ShortIdWrapper>
         </TitleWrap>
-
-        <TagAndMessageWrapper>
-          {group.isUnhandled && <UnhandledTag />}
-          <EventMessage message={group.culprit} />
-        </TagAndMessageWrapper>
+        <EventMessage
+          showUnhandled={group.isUnhandled}
+          message={group.culprit}
+          level={group.level}
+          type={group.type}
+        />
       </Details>
     </Wrapper>
   );

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
+import EventMessage from 'sentry/components/events/eventMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -14,11 +15,8 @@ import type {Event} from 'sentry/types/event';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
-
-type Size = 'small' | 'normal';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
@@ -32,7 +30,6 @@ interface EventOrGroupHeaderProps {
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
-  size?: Size;
   source?: string;
 }
 
@@ -48,17 +45,18 @@ function EventOrGroupHeader({
   hideIcons,
   hideLevel,
   eventId,
-  size = 'normal',
   grouping = false,
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
 
+  const hasIssuePriority = organization.features.includes('issue-priority-ui');
+
   function getTitleChildren() {
     const {level, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && <GroupLevel level={level} />}
+        {!hideLevel && level && !hasIssuePriority && <GroupLevel level={level} />}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
             <IconStar isSolid color="yellow400" />
@@ -127,17 +125,17 @@ function EventOrGroupHeader({
   }
 
   const eventLocation = getLocation(data);
-  const message = getMessage(data);
 
   return (
     <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
-      {eventLocation && <Location size={size}>{eventLocation}</Location>}
-      {message && (
-        <StyledTagAndMessageWrapper size={size}>
-          {message && <Message>{message}</Message>}
-        </StyledTagAndMessageWrapper>
-      )}
+      {eventLocation && <Location>{eventLocation}</Location>}
+      <StyledEventMessage
+        level={hasIssuePriority && 'level' in data ? data.level : undefined}
+        message={getMessage(data)}
+        type={data.type}
+        levelIndicatorSize="9px"
+      />
     </div>
   );
 }
@@ -148,14 +146,6 @@ const truncateStyles = css`
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
-
-const getMargin = ({size}: {size: Size}) => {
-  if (size === 'small') {
-    return 'margin: 0;';
-  }
-
-  return 'margin: 0 0 5px';
-};
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
@@ -169,7 +159,7 @@ const Title = styled('div')`
 
 const LocationWrapper = styled('div')`
   ${truncateStyles};
-  ${getMargin};
+  margin: 0 0 5px;
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -190,14 +180,9 @@ function Location(props) {
   );
 }
 
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  ${getMargin};
-  line-height: 1.2;
-`;
-
-const Message = styled('div')`
-  ${truncateStyles};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledEventMessage = styled(EventMessage)`
+  margin: 0 0 5px;
+  gap: ${space(0.5)};
 `;
 
 const IconWrapper = styled('span')`

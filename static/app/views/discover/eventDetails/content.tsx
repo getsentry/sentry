@@ -69,7 +69,7 @@ function EventHeader({event}: {event: Event}) {
       </TitleWrapper>
       {message && (
         <MessageWrapper>
-          <EventMessage message={message} />
+          <EventMessage message={message} type={event.type} />
         </MessageWrapper>
       )}
     </EventHeaderContainer>

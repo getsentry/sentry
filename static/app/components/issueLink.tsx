@@ -67,6 +67,7 @@ function IssueLink({children, orgId, issue, to, card = true}: Props) {
               ))}
             </Fragment>
           }
+          type={issue.type}
         />
       </Section>
 
