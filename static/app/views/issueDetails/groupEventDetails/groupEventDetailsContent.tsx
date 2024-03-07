@@ -23,7 +23,7 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
-import {shouldUseNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -85,6 +85,8 @@ function DefaultGroupEventDetailsContent({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
+  const hasNewTagsUI = useHasNewTagsUI();
+
   const projectSlug = project.slug;
   const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -125,7 +127,7 @@ function DefaultGroupEventDetailsContent({
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection event={event} organization={organization} />
       )}
-      {shouldUseNewTagsUI() && (
+      {hasNewTagsUI && (
         <EventDataSection
           title={t('Context Summary')}
           help={tct('A summary contexts derived from this event. [link:Learn more]', {

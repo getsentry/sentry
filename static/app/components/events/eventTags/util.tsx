@@ -3,7 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export const TAGS_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags`;
 
-export function shouldUseNewTagsUI() {
+export function useHasNewTagsUI() {
   const location = useLocation();
   const organization = useOrganization();
   return (

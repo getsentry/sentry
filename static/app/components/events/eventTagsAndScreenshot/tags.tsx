@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {
-  shouldUseNewTagsUI,
-  TAGS_DOCS_LINK,
-} from 'sentry/components/events/eventTags/util';
+import {TAGS_DOCS_LINK, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
@@ -36,8 +33,8 @@ function Tags({event, projectSlug}: Props) {
     setTagFilter(value);
   }, []);
 
-  const hasNewUI = shouldUseNewTagsUI();
-  const actions = !hasNewUI ? null : (
+  const hasNewTagsUI = useHasNewTagsUI();
+  const actions = !hasNewTagsUI ? null : (
     <ButtonBar gap={1}>
       <SegmentedControl
         size="xs"
@@ -64,7 +61,7 @@ function Tags({event, projectSlug}: Props) {
       guideTarget="tags"
       type="tags"
     >
-      {!hasNewUI && <EventContextSummary event={event} />}
+      {!hasNewTagsUI && <EventContextSummary event={event} />}
       <EventTags event={event} projectSlug={projectSlug} tagFilter={tagFilter} />
     </StyledEventDataSection>
   );

@@ -132,8 +132,8 @@ function TagTreeRow({
 
 /**
  * Function to recursively create a flat list of all rows to be rendered for a given TagTree
- * @param {TagTreeRowProps} props The props for rendering the root of the TagTree
- * @returns {React.ReactNode[]} A list of TagTreeRow components to be rendered in this tree
+ * @param props The props for rendering the root of the TagTree
+ * @returns A list of TagTreeRow components to be rendered in this tree
  */
 function getTagTreeRows({tagKey, content, spacerCount = 0, ...props}: TagTreeRowProps) {
   const subtreeTags = Object.keys(content.subtree);
@@ -161,54 +161,59 @@ function getTagTreeRows({tagKey, content, spacerCount = 0, ...props}: TagTreeRow
 }
 
 /**
- * Function to create proportional columns for rendering event tags. The columns will not separate
+ * Component to render proportional columns for event tags. The columns will not separate
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
- * @param {EventTagsTreeProps} props The props for the entire EventTagsTree
- * @returns {React.ReactNode[]} A list of TreeColumn components to be rendered for this event
  */
-function assembleTagTreeColumns({
-  meta,
-  tags,
-  ...props
-}: EventTagsTreeProps): React.ReactNode[] {
-  // Create the TagTree data structure using all the given tags
-  const tagTree = tags.reduce<TagTree>(
-    (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
-    {}
-  );
-  // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
-  // root parent so that we do not split up roots/branches when forming columns
-  const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
-    ([tagKey, content]) => getTagTreeRows({tagKey, content, ...props})
-  );
-  // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
-  const tagTreeRowTotal = tagTreeRowGroups.reduce((sum, group) => sum + group.length, 0);
-  const columnRowGoal = tagTreeRowTotal / COLUMN_COUNT;
-  // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-  const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
-    ({startIndex, runningTotal, columns}, rowList, index) => {
-      runningTotal += rowList.length;
-      // When we reach the goal size (or the last row group), wrap rows in a TreeColumn.
-      if (runningTotal > columnRowGoal || index === tagTreeRowGroups.length - 1) {
-        columns.push(
-          <TreeColumn>{tagTreeRowGroups.slice(startIndex, index)}</TreeColumn>
-        );
-        runningTotal = 0;
-        startIndex = index;
-      }
-      return {startIndex, runningTotal, columns};
-    },
-    {startIndex: 0, runningTotal: 0, columns: []}
-  );
-  return data.columns;
+function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
+  const assembledColumns = useMemo(() => {
+    // Create the TagTree data structure using all the given tags
+    const tagTree = tags.reduce<TagTree>(
+      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      {}
+    );
+    // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
+    // root parent so that we do not split up roots/branches when forming columns
+    const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
+      ([tagKey, content]) => getTagTreeRows({tagKey, content, ...props})
+    );
+    // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
+    const tagTreeRowTotal = tagTreeRowGroups.reduce(
+      (sum, group) => sum + group.length,
+      0
+    );
+    const columnRowGoal = tagTreeRowTotal / COLUMN_COUNT;
+
+    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
+    const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
+      ({startIndex, runningTotal, columns}, rowList, index) => {
+        runningTotal += rowList.length;
+        // When we reach the goal size (or the last row group), wrap rows in a TreeColumn.
+        if (runningTotal > columnRowGoal || index === tagTreeRowGroups.length - 1) {
+          columns.push(
+            <TreeColumn key={columns.length}>
+              {tagTreeRowGroups.slice(startIndex, index)}
+            </TreeColumn>
+          );
+          runningTotal = 0;
+          startIndex = index;
+        }
+        return {startIndex, runningTotal, columns};
+      },
+      {startIndex: 0, runningTotal: 0, columns: []}
+    );
+
+    return data.columns;
+  }, [meta, tags, props]);
+
+  return <Fragment>{assembledColumns}</Fragment>;
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const tagTreeColumns = useMemo(() => assembleTagTreeColumns(props), []);
   return (
     <TreeContainer>
-      <TreeGarden columnCount={COLUMN_COUNT}>{tagTreeColumns}</TreeGarden>
+      <TreeGarden columnCount={COLUMN_COUNT}>
+        <TagTreeColumns {...props} />
+      </TreeGarden>
     </TreeContainer>
   );
 }
