@@ -350,7 +350,7 @@ def resolve_random_samples(
     alias: str,
     offset: int,
     limit: int,
-    size: int = 30,
+    size: int = 1,
 ):
     seed_str = f"{offset}-{limit}"
     seed = fnv1a_32(seed_str.encode("utf-8"))

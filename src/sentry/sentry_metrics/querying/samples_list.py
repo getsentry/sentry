@@ -353,16 +353,17 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         For simplicity, all transaction based metrics use this approach.
         """
         summaries = {
-            cast(str, row["examples"][0][1]): cast(
+            cast(str, example[1]): cast(
                 Summary,
                 {
-                    "min": row["examples"][0][2],
-                    "max": row["examples"][0][2],
-                    "sum": row["examples"][0][2],
+                    "min": example[2],
+                    "max": example[2],
+                    "sum": example[2],
                     "count": 1,
                 },
             )
             for row in result["data"]
+            for example in row["examples"]
         }
 
         return span_keys, summaries
@@ -782,16 +783,17 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         summaries table, and copy them to the results in the next step.
         """
         summaries = {
-            cast(str, row["examples"][0][2]): cast(
+            cast(str, example[2]): cast(
                 Summary,
                 {
-                    "min": row["examples"][0][3],
-                    "max": row["examples"][0][4],
-                    "sum": row["examples"][0][5],
-                    "count": row["examples"][0][6],
+                    "min": example[3],
+                    "max": example[4],
+                    "sum": example[5],
+                    "count": example[6],
                 },
             )
             for row in result["data"]
+            for example in row["examples"]
         }
 
         return span_keys, summaries
