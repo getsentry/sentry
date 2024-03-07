@@ -2,8 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {AutofixSteps} from 'sentry/components/events/aiAutofix/autofixSteps';
-import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

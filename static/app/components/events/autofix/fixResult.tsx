@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import {IconOpen} from 'sentry/icons';

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {AutofixDoneLogs} from 'sentry/components/events/aiAutofix/autofixDoneLogs';
-import {AutofixSteps} from 'sentry/components/events/aiAutofix/autofixSteps';
-import {AutofixResult} from 'sentry/components/events/aiAutofix/fixResult';
-import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import {AutofixDoneLogs} from 'sentry/components/events/autofix/autofixDoneLogs';
+import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
+import {AutofixResult} from 'sentry/components/events/autofix/fixResult';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +15,7 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
 
   return (
     <AutofixPanel>
-      <Title>{t('AI Autofix')}</Title>
+      <Title>{t('Autofix')}</Title>
       <AutofixResult autofixData={data} onRetry={onRetry} />
       {hasSteps && !isDone ? <AutofixSteps data={data} /> : null}
       {hasSteps && isDone ? <AutofixDoneLogs data={data} /> : null}
