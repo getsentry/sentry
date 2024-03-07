@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
@@ -105,22 +105,13 @@ def register_event_preprocessor(register_plugin):
     return inner
 
 
-@pytest.fixture
-def cleanup_option_state():
-    yield
-
-    options.set("reprocessing.use_store", False)
-
-
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_basic(
     task_runner,
     default_project,
     change_groups,
-    use_store,
     reset_snuba,
     process_and_save,
     register_event_preprocessor,
@@ -129,8 +120,6 @@ def test_basic(
     django_cache,
 ):
     from sentry import eventstream
-
-    options.set("reprocessing.use_store", use_store)
 
     tombstone_calls = []
     old_tombstone_fn = eventstream.backend.tombstone_events_unsafe
@@ -228,7 +217,6 @@ def test_basic(
 
 @django_db_all
 @pytest.mark.snuba
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_concurrent_events_go_into_new_group(
     default_project,
     reset_snuba,
@@ -237,14 +225,12 @@ def test_concurrent_events_go_into_new_group(
     burst_task_runner,
     default_user,
     django_cache,
-    use_store,
 ):
     """
     Assert that both unmodified and concurrently inserted events go into "the
     new group", i.e. the successor of the reprocessed (old) group that
     inherited the group hashes.
     """
-    options.set("reprocessing.use_store", use_store)
 
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -297,7 +283,6 @@ def test_concurrent_events_go_into_new_group(
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 @pytest.mark.parametrize("max_events", [2, None])
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_max_events(
     default_project,
     reset_snuba,
@@ -307,7 +292,6 @@ def test_max_events(
     monkeypatch,
     remaining_events,
     max_events,
-    use_store,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -373,7 +357,6 @@ def test_max_events(
 
 @django_db_all
 @pytest.mark.snuba
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_attachments_and_userfeedback(
     default_project,
     reset_snuba,
@@ -381,10 +364,7 @@ def test_attachments_and_userfeedback(
     process_and_save,
     burst_task_runner,
     monkeypatch,
-    use_store,
 ):
-    options.set("reprocessing.use_store", use_store)
-
     @register_event_preprocessor
     def event_preprocessor(data):
         extra = data.setdefault("extra", {})
@@ -445,7 +425,6 @@ def test_attachments_and_userfeedback(
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 @mock.patch("sentry.reprocessing2.logger")
 def test_nodestore_missing(
     mock_logger,
@@ -456,9 +435,7 @@ def test_nodestore_missing(
     monkeypatch,
     remaining_events,
     django_cache,
-    use_store,
 ):
-    options.set("reprocessing.use_store", use_store)
 
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
@@ -493,20 +470,17 @@ def test_nodestore_missing(
 
 @django_db_all
 @pytest.mark.snuba
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_apply_new_fingerprinting_rules(
     default_project,
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
     burst_task_runner,
-    use_store,
 ):
     """
     Assert that after changing fingerprinting rules, the new fingerprinting config
     is respected by reprocessing.
     """
-    options.set("reprocessing.use_store", use_store)
 
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -560,20 +534,17 @@ def test_apply_new_fingerprinting_rules(
 
 @django_db_all
 @pytest.mark.snuba
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
 def test_apply_new_stack_trace_rules(
     default_project,
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
     burst_task_runner,
-    use_store,
 ):
     """
     Assert that after changing stack trace rules, the new grouping config
     is respected by reprocessing.
     """
-    options.set("reprocessing.use_store", use_store)
 
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -654,10 +625,7 @@ def test_apply_new_stack_trace_rules(
 
 
 @django_db_all
-@pytest.mark.parametrize("use_store", (True, False), ids=("use_store", "use_direct"))
-def test_finish_reprocessing(default_project, use_store):
-    options.set("reprocessing.use_store", use_store)
-
+def test_finish_reprocessing(default_project):
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
     new_group = Group.objects.create(project=default_project)

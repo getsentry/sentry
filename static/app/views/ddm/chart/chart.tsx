@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
+import isNil from 'lodash/isNil';
+import omitBy from 'lodash/omitBy';
 
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
@@ -19,6 +21,7 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
 import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
@@ -69,7 +72,6 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
     const chartRef = useRef<ReactEchartsRef>(null);
-
     const firstUnit = series.find(s => !s.hidden)?.unit || 'none';
 
     useEffect(() => {
@@ -108,6 +110,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [series, ingestionBuckets, displayType]
     );
 
+    const {selection} = usePageFilters();
+
+    const dateTimeOptions = useMemo(() => {
+      return omitBy(selection.datetime, isNil);
+    }, [selection.datetime]);
+
     const chartProps = useMemo(() => {
       const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
       const seriesUnits = seriesToShow.reduce(
@@ -137,6 +145,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       let baseChartProps: CombinedMetricChartProps = {
         ...heightOptions,
+        ...dateTimeOptions,
         displayType,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
@@ -246,6 +255,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       return baseChartProps;
     }, [
       seriesToShow,
+      dateTimeOptions,
       bucketSize,
       isSubMinuteBucket,
       height,
