@@ -3,7 +3,7 @@ import {
   type Filters,
   useIndexedSpans,
 } from 'sentry/views/starfish/queries/useIndexedSpans';
-import {SpanIndexedField, SpanMeasurements} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 export function useInpSpanSamplesWebVitalsQuery({
   transaction,
@@ -27,10 +27,10 @@ export function useInpSpanSamplesWebVitalsQuery({
     },
     sorts: [{field: SpanIndexedField.TIMESTAMP, kind: 'desc'}],
     fields: [
-      SpanMeasurements.INP,
-      SpanMeasurements.INP_SCORE,
-      SpanMeasurements.INP_SCORE_WEIGHT,
-      SpanMeasurements.TOTAL_SCORE,
+      SpanIndexedField.INP,
+      SpanIndexedField.INP_SCORE,
+      SpanIndexedField.INP_SCORE_WEIGHT,
+      SpanIndexedField.TOTAL_SCORE,
       SpanIndexedField.ID,
       SpanIndexedField.TIMESTAMP,
       SpanIndexedField.PROFILE_ID,
@@ -50,7 +50,7 @@ export function useInpSpanSamplesWebVitalsQuery({
       ? data.map(row => {
           return {
             ...row,
-            'measurements.inp': row[SpanMeasurements.INP],
+            'measurements.inp': row[SpanIndexedField.INP],
             'user.display': row[SpanIndexedField.USER],
             replayId: row[SpanIndexedField.REPLAY_ID],
             'profile.id': row[SpanIndexedField.PROFILE_ID],
