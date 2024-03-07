@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useId} from '@react-aria/utils';
 import memoize from 'lodash/memoize';
 
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
@@ -69,13 +70,15 @@ export function MetricSearchBar({
   onChange,
   query,
   projectIds,
+  id: idProp,
   ...props
 }: MetricSearchBarProps) {
   const org = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const id = useId(idProp);
   const projectIdNumbers = useMemo(
-    () => projectIds?.map(id => parseInt(id, 10)),
+    () => projectIds?.map(projectId => parseInt(projectId, 10)),
     [projectIds]
   );
 
@@ -153,6 +156,7 @@ export function MetricSearchBar({
 
   return (
     <WideSearchBar
+      id={id}
       disabled={disabled}
       maxMenuHeight={220}
       organization={org}
