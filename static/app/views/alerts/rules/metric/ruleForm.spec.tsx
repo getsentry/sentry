@@ -3,7 +3,7 @@ import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -95,31 +95,31 @@ describe('Incident Rules Form', () => {
   describe('Viewing the rule', () => {
     const rule = MetricRuleFixture();
 
-    it('is enabled without org-level alerts:write', async () => {
+    it('is enabled without org-level alerts:write', () => {
       organization.access = [];
       project.access = [];
       createWrapper({rule});
 
-      expect(await screen.findByText(permissionAlertText)).toBeInTheDocument();
+      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
       expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
     });
 
-    it('is enabled with org-level alerts:write', async () => {
+    it('is enabled with org-level alerts:write', () => {
       organization.access = ['alerts:write'];
       project.access = [];
       createWrapper({rule});
 
-      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
 
-    it('is enabled with project-level alerts:write', async () => {
+    it('is enabled with project-level alerts:write', () => {
       organization.access = [];
       project.access = ['alerts:write'];
       createWrapper({rule});
 
-      expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
     });
   });
 
@@ -448,6 +448,15 @@ describe('Incident Rules Form', () => {
   describe('Slack async lookup', () => {
     const uuid = 'xxxx-xxxx-xxxx';
 
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
+
     it('success status updates the rule', async () => {
       const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
@@ -480,6 +489,7 @@ describe('Incident Rules Form', () => {
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
+      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(onSubmitSuccess).toHaveBeenCalledWith(
@@ -494,7 +504,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', async () => {
+    it('pending status keeps loading true', () => {
       const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
@@ -516,7 +526,7 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
 
@@ -549,6 +559,7 @@ describe('Incident Rules Form', () => {
       );
       await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
 
+      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
