@@ -15,6 +15,7 @@ import useRouter from 'sentry/utils/useRouter';
 import type {DashboardMetricsQuery} from 'sentry/views/dashboards/metrics/types';
 import {getCreateAlert} from 'sentry/views/ddm/metricQueryContextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
+import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 interface Props {
   addQuery: () => void;
@@ -30,11 +31,15 @@ export function Queries({
   removeQuery,
 }: Props) {
   const {selection} = usePageFilters();
+  const showQuerySymbols = metricWidgetQueries.length > 1;
 
   return (
     <QueriesWrapper>
       {metricWidgetQueries.map((query, index) => (
-        <QueryWrapper key={index}>
+        <QueryWrapper key={index} hasQuerySymbol={showQuerySymbols}>
+          {showQuerySymbols && (
+            <StyledQuerySymbol isSelected={false} queryId={query.id} />
+          )}
           <QueryBuilder
             onChange={data => handleChange(data, index)}
             metricsQuery={query}
@@ -132,9 +137,19 @@ const QueriesWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const QueryWrapper = styled('div')`
+const QueryWrapper = styled('div')<{hasQuerySymbol: boolean}>`
   display: grid;
   gap: ${space(1)};
   padding-bottom: ${space(1)};
   grid-template-columns: 1fr max-content;
+
+  ${p =>
+    p.hasQuerySymbol &&
+    `
+  grid-template-columns: max-content 1fr max-content;
+  `}
+`;
+
+const StyledQuerySymbol = styled(QuerySymbol)`
+  margin-top: 10px;
 `;
