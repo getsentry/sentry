@@ -494,6 +494,25 @@ class ProjectOwnershipTestCase(TestCase):
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
 
+    def test_no_group_owner(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
+    @with_feature("organizations:post-process-skip-groupowner-cache")
+    def test_no_group_owner_no_cache(self):
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project2.id,
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
     def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
         self,
     ):
