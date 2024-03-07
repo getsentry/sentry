@@ -97,7 +97,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
-    expect(screen.getByText('assignee')).toBeInTheDocument();
+    expect(await screen.findByText('assignee')).toBeInTheDocument();
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getByText('issue')).toBeInTheDocument();
     expect(screen.getByText('DU')).toBeInTheDocument();
