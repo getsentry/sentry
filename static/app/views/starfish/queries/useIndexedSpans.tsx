@@ -55,9 +55,7 @@ function getEventView(
   for (const filterName in filters) {
     const filter = filters[filterName];
     if (Array.isArray(filter)) {
-      filter.forEach(value => {
-        search.addFilterValue(filterName, value);
-      });
+      search.addFilterValues(filterName, filter);
     } else {
       search.addFilterValue(filterName, filter);
     }
