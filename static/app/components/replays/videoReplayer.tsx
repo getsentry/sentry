@@ -51,7 +51,7 @@ export class VideoReplayer {
     attachments: VideoAttachment[],
     {root, start, videoApiPrefix, onFinished, onLoaded}: VideoReplayerOptions
   ) {
-    this._attachments = attachments;
+    this._attachments = attachments.filter(attachment => attachment.duration > 0);
     this._startTimestamp = start;
     this._trackList = [];
     this._videoApiPrefix = videoApiPrefix;
@@ -65,10 +65,10 @@ export class VideoReplayer {
       root.appendChild(this.wrapper);
     }
 
-    this._videos = attachments.map((attachment, index) =>
+    this._videos = this._attachments.map((attachment, index) =>
       this.createVideo(attachment, index)
     );
-    this._trackList = attachments.map(({timestamp}, i) => [timestamp, i]);
+    this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
     this.loadSegment(0);
   }
 
