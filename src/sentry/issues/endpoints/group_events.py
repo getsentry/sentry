@@ -54,6 +54,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                            include the full event body, including the stacktrace.
                            Set to 1 to enable.
 
+        :qparam bool sample: return events in pseudo-random order. This is deterministic,
+                             same query will return the same events in the same order.
+
         :pparam string issue_id: the ID of the issue to retrieve.
 
         :auth: required
