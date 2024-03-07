@@ -164,9 +164,7 @@ function MetricWidgetViewerModal({
         </Header>
         <Body>
           <Queries
-            metricWidgetQueries={metricExpressions.filter(
-              (q): q is DashboardMetricsQuery => !isMetricsFormula(q)
-            )}
+            metricWidgetQueries={metricQueries}
             handleChange={handleQueryChange}
             addQuery={addQuery}
             removeQuery={removeQuery}

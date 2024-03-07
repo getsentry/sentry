@@ -31,7 +31,7 @@ describe('getMetricExpressions function', () => {
     ]);
   });
 
-  it('should return a equation', () => {
+  it('should return an equation', () => {
     const widget = {
       queries: [
         {
