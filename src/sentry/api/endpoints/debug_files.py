@@ -388,7 +388,7 @@ class DebugFilesConfigEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                "region_url": absolute_uri(
+                "regionUrl": absolute_uri(
                     dsym_file_url,
                     generate_region_url(),
                 )

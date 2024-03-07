@@ -563,7 +563,7 @@ class DebugFilesConfigEndpointTest(APITestCase):
 
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data == {"region_url": base_url + "/api/0/projects/baz/foo/files/dsyms/"}
+        assert response.data == {"regionUrl": base_url + "/api/0/projects/baz/foo/files/dsyms/"}
 
     def test_no_auth(self):
         project = self.create_project(name="foo")
