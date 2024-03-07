@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -41,56 +40,52 @@ export default function InitializationModule() {
   }, [location]);
 
   return (
-    <Feature features="starfish-mobile-appstart" organization={organization}>
-      <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
-        <Layout.Page>
-          <PageAlertProvider>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Performance'),
-                      to: normalizeUrl(
-                        `/organizations/${organization.slug}/performance/`
-                      ),
-                      preservePageFilters: true,
-                    },
-                    {
-                      label: ROUTE_NAMES['app-startup'],
-                    },
-                  ]}
-                />
-                <Layout.Title>{ROUTE_NAMES['app-startup']}</Layout.Title>
-              </Layout.HeaderContent>
-            </Layout.Header>
+    <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
+      <Layout.Page>
+        <PageAlertProvider>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Performance'),
+                    to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
+                    preservePageFilters: true,
+                  },
+                  {
+                    label: ROUTE_NAMES['app-startup'],
+                  },
+                ]}
+              />
+              <Layout.Title>{ROUTE_NAMES['app-startup']}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
 
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                <PageAlert />
-                <PageFiltersContainer>
-                  <Container>
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter onChange={handleProjectChange} />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
-                    <ReleaseComparisonSelector />
-                    <StartTypeSelector />
-                  </Container>
-                </PageFiltersContainer>
-                <ErrorBoundary mini>
-                  {onboardingProject && (
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  )}
-                  {!onboardingProject && <AppStartup chartHeight={200} />}
-                </ErrorBoundary>
-              </Layout.Main>
-            </Layout.Body>
-          </PageAlertProvider>
-        </Layout.Page>
-      </SentryDocumentTitle>
-    </Feature>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <PageAlert />
+              <PageFiltersContainer>
+                <Container>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                  <ReleaseComparisonSelector />
+                  <StartTypeSelector />
+                </Container>
+              </PageFiltersContainer>
+              <ErrorBoundary mini>
+                {onboardingProject && (
+                  <Onboarding organization={organization} project={onboardingProject} />
+                )}
+                {!onboardingProject && <AppStartup chartHeight={200} />}
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </PageAlertProvider>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
 

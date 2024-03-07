@@ -294,16 +294,14 @@ function Sidebar() {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
-              <Feature features="starfish-mobile-appstart" organization={organization}>
-                <SidebarItem
-                  {...sidebarItemProps}
-                  label={t('App Starts')}
-                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
-                  id="performance-mobile-app-startup"
-                  icon={<SubitemDot collapsed />}
-                  isNew
-                />
-              </Feature>
+              <SidebarItem
+                {...sidebarItemProps}
+                label={t('App Starts')}
+                to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                id="performance-mobile-app-startup"
+                icon={<SubitemDot collapsed />}
+                isNew
+              />
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
