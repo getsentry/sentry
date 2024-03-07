@@ -20,7 +20,6 @@ type Props = {
   event: Event;
   organization: Organization;
   projectSlug: string;
-  isShare?: boolean;
 };
 
 export function ScreenshotSection({projectSlug, event, organization}: Props) {
