@@ -53,9 +53,11 @@ export function Queries({
           />
         </QueryWrapper>
       ))}
-      <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
-        {t('Add query')}
-      </Button>
+      <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
+        <Button size="sm" icon={<IconAdd isCircled />} onClick={addQuery}>
+          {t('Add query')}
+        </Button>
+      </ButtonBar>
     </QueriesWrapper>
   );
 }
@@ -152,4 +154,18 @@ const QueryWrapper = styled('div')<{hasQuerySymbol: boolean}>`
 
 const StyledQuerySymbol = styled(QuerySymbol)`
   margin-top: 10px;
+`;
+
+const ButtonBar = styled('div')<{addQuerySymbolSpacing: boolean}>`
+  align-items: center;
+  display: flex;
+  padding-top: ${space(0.5)};
+  gap: ${space(2)};
+
+  ${p =>
+    p.addQuerySymbolSpacing &&
+    `
+    padding-left: ${space(1)};
+    margin-left: ${space(2)};
+  `}
 `;
