@@ -190,7 +190,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "detail": ErrorDetail(string="Unsupported sort: id for MRI", code="parse_error")
         }
 
-    def test_span_duration_samples(self):
+    def test_span_exclusive_time_samples(self):
         durations = [100, 200, 300]
         span_ids = [uuid4().hex[:16] for _ in durations]
         good_span_id = span_ids[1]
@@ -204,12 +204,13 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 uuid4().hex,
                 span_id=span_id,
                 duration=duration,
+                exclusive_time=duration,
                 timestamp=ts,
                 group=uuid4().hex[:16],  # we need a non 0 group
             )
 
         query = {
-            "mri": "d:spans/duration@millisecond",
+            "mri": "d:spans/exclusive_time@millisecond",
             "field": ["id"],
             "project": [self.project.id],
             "statsPeriod": "14d",

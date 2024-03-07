@@ -345,17 +345,17 @@ def resolve_rounded_timestamp(interval: int, alias: str, timestamp_column: str =
     )
 
 
-def resolve_random_sample(columns: list[str], alias: str, offset: int, limit: int):
+def resolve_random_samples(
+    columns: list[SelectType],
+    alias: str,
+    offset: int,
+    limit: int,
+    size: int = 1,
+):
     seed_str = f"{offset}-{limit}"
     seed = fnv1a_32(seed_str.encode("utf-8"))
     return Function(
-        "arrayElement",
-        [
-            Function(
-                f"groupArraySample(1, {seed})",
-                [Function("tuple", [Column(column) for column in columns])],
-            ),
-            1,
-        ],
+        f"groupArraySample({size}, {seed})",
+        [Function("tuple", columns)],
         alias,
     )
