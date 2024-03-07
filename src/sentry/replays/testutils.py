@@ -477,11 +477,6 @@ def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
             "version": kwargs.pop("sdk_version", "6.18.1"),
         },
         "contexts": {
-            "trace": {
-                "op": "pageload",
-                "span_id": "affa5649681a1eeb",
-                "trace_id": kwargs.pop("trace_id", "23eda6cd4b174ef8a51f0096df3bfdd1"),
-            },
             "os": {
                 "name": kwargs.pop("os_name", "iOS"),
                 "version": kwargs.pop("os_version", "16.2"),

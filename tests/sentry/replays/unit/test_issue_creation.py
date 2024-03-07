@@ -65,9 +65,7 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
             "os": {"name": "iOS", "version": "16.2"},
             "replay": {"replay_id": "b58a67446c914f44a4e329763420047b"},
             "trace": {
-                "op": "pageload",
-                "span_id": "affa5649681a1eeb",
-                "trace_id": "23eda6cd4b174ef8a51f0096df3bfdd1",
+                "trace_id": "4491657243ba4dbebd2f6bd62b733080",
             },
         },
         "dist": "abc123",
@@ -135,5 +133,28 @@ def test_report_rage_click_no_environment(default_project):
             replay_event=mock_replay_event(),
         )
 
-    # test that the Issue gets created with the truncated url
+    assert Group.objects.get(message__contains="div.xyz > a")
+
+
+@pytest.mark.snuba
+@django_db_all
+def test_report_rage_click_no_trace(default_project):
+    replay_id = "b58a67446c914f44a4e329763420047b"
+    seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+    with Feature(
+        {
+            "organizations:replay-click-rage-ingest": True,
+        }
+    ):
+        report_rage_click_issue_with_replay_event(
+            project_id=default_project.id,
+            replay_id=replay_id,
+            selector="div.xyz > a",
+            timestamp=seq1_timestamp.timestamp(),
+            url="https://www.sentry.io",
+            node={"tagName": "a"},
+            replay_event=mock_replay_event(trace_ids=[]),
+        )
+
+    # test that the Issue gets created
     assert Group.objects.get(message__contains="div.xyz > a")
