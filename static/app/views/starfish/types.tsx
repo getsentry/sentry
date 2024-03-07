@@ -125,9 +125,6 @@ export enum SpanIndexedField {
   REPLAY_ID = 'replay.id',
   BROWSER_NAME = 'browser.name',
   USER = 'user',
-}
-
-export enum SpanMeasurements {
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
@@ -156,6 +153,10 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.REPLAY_ID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
+  [SpanMeasurements.INP]: number;
+  [SpanMeasurements.INP_SCORE]: number;
+  [SpanMeasurements.INP_SCORE_WEIGHT]: number;
+  [SpanMeasurements.TOTAL_SCORE]: number;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
