@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CursorHandler} from 'sentry/components/pagination';
+import ConfigStore from 'sentry/stores/configStore';
 import type {AuditLog} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -104,11 +105,11 @@ function OrganizationAuditLog({location}: Props) {
     });
   };
 
+  const {isSuperuser} = ConfigStore.get('user');
+
   return (
     <Fragment>
-      {!organization.access.includes('org:write') ? (
-        <PermissionAlert />
-      ) : (
+      {organization.access.includes('org:write') || isSuperuser ? (
         <AuditLogList
           entries={state.entryList}
           pageLinks={state.entryListPageLinks}
@@ -118,6 +119,8 @@ function OrganizationAuditLog({location}: Props) {
           isLoading={state.isLoading}
           onCursor={handleCursor}
         />
+      ) : (
+        <PermissionAlert />
       )}
     </Fragment>
   );
