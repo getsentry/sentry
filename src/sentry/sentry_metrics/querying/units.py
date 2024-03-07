@@ -48,10 +48,6 @@ class UnitFamily(Enum):
     DURATION = "duration"
     INFORMATION = "information"
 
-    # Special family used to represent a family of units that will be resolved in the future.
-    # TODO: we might want to move this directly into the UnitsNormalizationV2Visitor.
-    FUTURE = "future"
-
 
 @dataclass(frozen=True)
 class Unit:
@@ -92,6 +88,36 @@ class UnitsSpec:
 
     reference_unit: MeasurementUnit
     units: Sequence[Unit]
+
+
+@dataclass(frozen=True)
+class UnitMetadata:
+    pass
+
+
+@dataclass(frozen=True)
+class WithNoUnit(UnitMetadata):
+    pass
+
+
+@dataclass(frozen=True)
+class WithFutureUnit(UnitMetadata):
+    pass
+
+
+@dataclass(frozen=True)
+class WithUnit(UnitMetadata):
+    unit_family: UnitFamily
+    reference_unit: str
+    unit: Unit
+    from_formula: bool = False
+
+    @property
+    def scaling_factor(self) -> int | float | None:
+        if self.from_formula:
+            return None
+
+        return self.unit.scaling_factor
 
 
 FAMILY_TO_UNITS = {

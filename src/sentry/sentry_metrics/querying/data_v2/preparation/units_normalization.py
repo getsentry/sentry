@@ -1,8 +1,7 @@
 from dataclasses import replace
 
-from snuba_sdk import Formula
-
 from sentry.sentry_metrics.querying.data_v2.preparation import IntermediateQuery, PreparationStep
+from sentry.sentry_metrics.querying.units import WithUnit
 from sentry.sentry_metrics.querying.visitors import UnitsNormalizationV2Visitor
 
 
@@ -15,21 +14,16 @@ class UnitNormalizationStep(PreparationStep):
         unit_metadata, normalized_query = units_normalization.visit(
             intermediate_query.metrics_query.query
         )
-        if unit_metadata is None:
-            return intermediate_query
+        if isinstance(unit_metadata, WithUnit):
+            return replace(
+                intermediate_query,
+                metrics_query=intermediate_query.metrics_query.set_query(normalized_query),
+                unit_family=unit_metadata.unit_family,
+                unit=unit_metadata.reference_unit,
+                scaling_factor=unit_metadata.scaling_factor,
+            )
 
-        has_top_level_formula = isinstance(intermediate_query.metrics_query.query, Formula)
-
-        unit_family, reference_unit, unit = unit_metadata
-        return replace(
-            intermediate_query,
-            metrics_query=intermediate_query.metrics_query.set_query(normalized_query),
-            unit_family=unit_family,
-            unit=reference_unit,
-            scaling_factor=unit.scaling_factor
-            if unit is not None and not has_top_level_formula
-            else None,
-        )
+        return intermediate_query
 
     def run(self, intermediate_queries: list[IntermediateQuery]) -> list[IntermediateQuery]:
         normalized_intermediate_queries = []

@@ -15,9 +15,11 @@ from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
-    MeasurementUnit,
     Unit,
-    UnitFamily,
+    UnitMetadata,
+    WithFutureUnit,
+    WithNoUnit,
+    WithUnit,
     get_reference_unit_for_unit_family,
     get_unit_family_and_unit,
 )
@@ -275,12 +277,7 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
         return string_group_bys
 
 
-UnitMetadata = tuple[UnitFamily, MeasurementUnit | None, Unit | None]
-
-
-class UnitsNormalizationV2Visitor(
-    QueryExpressionVisitor[tuple[UnitMetadata | None, QueryExpression]]
-):
+class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
     """
     Visitor that recursively transforms the `QueryExpression` components to have the same unit.
     """
@@ -294,8 +291,8 @@ class UnitsNormalizationV2Visitor(
     def __init__(self):
         self._unit_family = None
 
-    def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata | None, QueryExpression]:
-        last_metadata = None
+    def _visit_formula(self, formula: Formula) -> tuple[UnitMetadata, QueryExpression]:
+        last_metadata: WithUnit | None = None
         future_units = []
 
         has_all_timeseries_params = True
@@ -307,80 +304,77 @@ class UnitsNormalizationV2Visitor(
                 has_all_timeseries_params = False
 
             unit_metadata, query_expression = self.visit(parameter)
-            # If no unit is returned, it means that we can't normalize.
-            if unit_metadata is None:
-                return None, formula
-
-            unit_family, *_ = unit_metadata
-            if unit_family == UnitFamily.FUTURE:
+            if isinstance(unit_metadata, WithNoUnit):
+                return unit_metadata, formula
+            elif isinstance(unit_metadata, WithFutureUnit):
                 future_units.append((index, query_expression))
                 parameters.append(query_expression)
-            else:
+            elif isinstance(unit_metadata, WithUnit):
                 has_all_futures = False
-                if last_metadata is not None and unit_family != last_metadata[0]:  # type:ignore
-                    return None, formula  # type:ignore
+                if (
+                    last_metadata is not None
+                    and unit_metadata.unit_family != last_metadata.unit_family
+                ):
+                    return WithNoUnit(), formula
 
                 last_metadata = unit_metadata
                 parameters.append(query_expression)
 
         # If we have only future unit types, we know that the formula will be a future itself.
-        # TODO: we might want to compress in-memory all the scalar formulas to avoid making bigger queries.
+        # TODO: we might want to execute in-memory the formulas with all scalars to avoid making bigger queries.
         if has_all_futures:
-            return (UnitFamily.FUTURE, None, None), formula
+            return WithFutureUnit(), formula
 
         # If we have no metadata here, it means that all parameters of the formula can't be normalized.
         if last_metadata is None:
-            return None, formula
+            return WithNoUnit(), formula
 
         # If we have all timeseries as parameters of a formula and the function belongs to `*` or `/` we will
         # not perform any normalization.
         if formula.function_name in self.UNITLESS_FORMULA_FUNCTIONS and has_all_timeseries_params:
-            return None, formula
-
-        last_unit_family, last_reference_unit, last_unit = last_metadata
+            return WithNoUnit(), formula
 
         # We convert all scalars in the formula using the last seen scaling factor. Since we are always working with
         # two operands, this means that if we found at least one numeric scalar, the scaling factor will belong to the
         # other operand.
-        if future_units and last_unit is not None:
+        if future_units and last_metadata.unit is not None:
             for index, future_unit in future_units:
-                parameters[index] = self._normalize_future_units(last_unit, future_unit)
+                parameters[index] = self._normalize_future_units(last_metadata.unit, future_unit)
 
         # We want to find the reference unit of the unit family in the formula.
-        formula_reference_unit = get_reference_unit_for_unit_family(last_unit_family)
+        formula_reference_unit = get_reference_unit_for_unit_family(last_metadata.unit_family)
         if formula_reference_unit is None:
-            return None, formula
+            return WithNoUnit(), formula
 
         # The new formula unit is the reference unit, since we know that all of its operands have been converted to
         # the reference unit at this point.
-        return (
-            last_unit_family,
-            formula_reference_unit.name,
-            formula_reference_unit,
+        return WithUnit(
+            unit_family=last_metadata.unit_family,
+            reference_unit=formula_reference_unit.name,
+            unit=formula_reference_unit,
+            from_formula=True,
         ), formula.set_parameters(parameters)
 
-    def _visit_timeseries(
-        self, timeseries: Timeseries
-    ) -> tuple[UnitMetadata | None, QueryExpression]:
+    def _visit_timeseries(self, timeseries: Timeseries) -> tuple[UnitMetadata, QueryExpression]:
         extracted_unit = self._extract_unit(timeseries=timeseries)
         if extracted_unit is not None:
             unit_family_and_unit = get_unit_family_and_unit(extracted_unit)
             if unit_family_and_unit is not None:
                 unit_family, reference_unit, unit = unit_family_and_unit
-                return (unit_family, reference_unit, unit), unit.apply_on_query_expression(
-                    timeseries
-                )
+                return WithUnit(
+                    unit_family=unit_family, reference_unit=reference_unit, unit=unit
+                ), unit.apply_on_query_expression(timeseries)
 
-        return None, timeseries
+        return WithNoUnit(), timeseries
 
-    def _visit_int(self, int_number: float) -> tuple[UnitMetadata | None, QueryExpression]:
-        return (UnitFamily.FUTURE, None, None), int_number
+    def _visit_int(self, int_number: float) -> tuple[UnitMetadata, QueryExpression]:
+        return WithFutureUnit(), int_number
 
-    def _visit_float(self, float_number: float) -> tuple[UnitMetadata | None, QueryExpression]:
-        return (UnitFamily.FUTURE, None, None), float_number
+    def _visit_float(self, float_number: float) -> tuple[UnitMetadata, QueryExpression]:
+        return WithFutureUnit(), float_number
 
-    def _visit_string(self, string: str) -> tuple[UnitMetadata | None, QueryExpression]:
-        return None, string
+    def _visit_string(self, string: str) -> tuple[UnitMetadata, QueryExpression]:
+        return WithNoUnit(), string
 
     def _extract_unit(self, timeseries: Timeseries) -> str | None:
         if timeseries.aggregate in self.UNITLESS_AGGREGATES:
