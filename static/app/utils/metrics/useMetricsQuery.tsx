@@ -43,7 +43,7 @@ export interface MetricsQueryApiRequestQuery {
   query?: string;
 }
 
-interface MetricsQueryApiRequestFormula {
+export interface MetricsQueryApiRequestFormula {
   formula: string;
   name: string;
   limit?: number;
