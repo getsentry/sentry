@@ -444,11 +444,11 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         return metrics_queries_plan
 
     def _get_query_type_from_request(self, request: Request) -> QueryType:
-        query_type = request.GET.get("queryType")
-        if query_type is None:
+        include_series = (request.GET.get("includeSeries") or "true") == "true"
+        if include_series:
             return QueryType.TOTALS_AND_SERIES
 
-        return QueryType(query_type)
+        return QueryType.TOTALS
 
     def post(self, request: Request, organization) -> Response:
         try:

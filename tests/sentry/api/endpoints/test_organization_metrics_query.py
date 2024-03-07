@@ -72,7 +72,7 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
                 "interval": "1h",
                 "project": [self.project.id],
                 "environment": [],
-                "queryType": "totals",
+                "includeSeries": "false",
             },
         )
         assert "intervals" not in response.data

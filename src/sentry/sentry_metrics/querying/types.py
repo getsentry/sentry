@@ -55,5 +55,5 @@ class QueryOrder(Enum):
 
 
 class QueryType(Enum):
-    TOTALS_AND_SERIES = "totals_and_series"
-    TOTALS = "totals"
+    TOTALS_AND_SERIES = 0
+    TOTALS = 1
