@@ -3302,6 +3302,7 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        "accept_invalid_certs": True,
     },
     "chromium": {
         "type": "http",
