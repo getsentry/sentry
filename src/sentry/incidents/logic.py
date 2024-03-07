@@ -31,6 +31,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -944,6 +945,21 @@ def create_alert_rule_activation_condition(
         )
 
     return condition
+
+
+def create_alert_rule_activation(
+    alert_rule: AlertRule,
+    metric_value: int | None = 100,
+    finished_ts: datetime | None = None,
+):
+    with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+        activation = AlertRuleActivations.objects.create(
+            alert_rule=alert_rule,
+            metric_value=metric_value,
+            finished_ts=finished_ts,
+        )
+
+    return activation
 
 
 def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
