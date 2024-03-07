@@ -74,6 +74,7 @@ class CursorWrapper:
         return getattr(self.cursor, attr)
 
     def __iter__(self):
+
         return iter(self.cursor)
 
     from django.db import transaction
@@ -91,7 +92,8 @@ class CursorWrapper:
     @auto_reconnect_cursor
     @more_better_error_messages
     def executemany(self, sql, paramlist=()):
-        return self.cursor.executemany(sql, paramlist)
+        with transaction.atomic():
+             return self.cursor.executemany(sql, paramlist)
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
@@ -108,6 +110,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
+
         return super()._cursor()
 
     # We're overriding this internal method that's present in Django 1.11+, because
