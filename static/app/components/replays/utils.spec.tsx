@@ -342,6 +342,20 @@ describe('findVideoSegmentIndex', () => {
     }
   );
 
+  it('returns first segment if target timestamp is before the first segment when there is only a single attachment', () => {
+    const segments2 = [
+      {
+        id: 0,
+        timestamp: 5000,
+        duration: 5000,
+      },
+    ];
+    const trackList2 = segments2.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
+  });
+
   it('returns first segment if target timestamp is before the first segment', () => {
     const segments2 = [
       {
@@ -368,6 +382,6 @@ describe('findVideoSegmentIndex', () => {
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(0);
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
   });
 });
