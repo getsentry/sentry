@@ -15,7 +15,6 @@ import {
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
@@ -44,7 +43,6 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const filteredSortableFields = shouldUseStoredScores
     ? SORTABLE_INDEXED_FIELDS
@@ -106,8 +104,6 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  // TODO: Remove this once we can query for INP.
-  const webVitalKey = shouldReplaceFidWithInp && webVital === 'fid' ? 'inp' : webVital;
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
@@ -121,7 +117,6 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'measurements.cls': toNumber(row['measurements.cls']),
             'measurements.ttfb': toNumber(row['measurements.ttfb']),
             'measurements.fid': toNumber(row['measurements.fid']),
-            'measurements.inp': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
@@ -132,12 +127,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             ),
             ...(webVital
               ? {
-                  [`${webVitalKey}Score`]: Math.round(
+                  [`${webVital}Score`]: Math.round(
                     ((toNumber(row[`measurements.score.${webVital}`]) ?? 0) /
                       (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0)) *
                       100
                   ),
-                  [`${webVitalKey}Weight`]: Math.round(
+                  [`${webVital}Weight`]: Math.round(
                     (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0) * 100
                   ),
                 }

@@ -39,6 +39,7 @@ class AbstractSamplesListExecutor(ABC):
         params: ParamsType,
         snuba_params: SnubaParams,
         fields: list[str],
+        operation: str | None,
         query: str | None,
         min: float | None,
         max: float | None,
@@ -50,6 +51,7 @@ class AbstractSamplesListExecutor(ABC):
         self.params = params
         self.snuba_params = snuba_params
         self.fields = fields
+        self.operation = operation
         self.query = query
         self.min = min
         self.max = max
@@ -305,12 +307,12 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
             query=self.query,
             selected_columns=[
                 f"rounded_timestamp({self.rollup})",
-                f"example({column}) AS example",
+                f"examples({column}) AS examples",
             ],
             limit=limit,
             offset=offset,
             sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
         )
 
         additional_conditions = self.get_additional_conditions(builder)
@@ -323,8 +325,8 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         span_keys = [
             (
                 "00",  # all segments have a group of `00` currently
-                row["example"][0],  # timestamp
-                row["example"][1],  # span_id
+                row["examples"][0][0],  # timestamp
+                row["examples"][0][1],  # span_id
             )
             for row in result["data"]
         ]
@@ -342,12 +344,12 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
         For simplicity, all transaction based metrics use this approach.
         """
         summaries = {
-            cast(str, row["example"][1]): cast(
+            cast(str, row["examples"][0][1]): cast(
                 Summary,
                 {
-                    "min": row["example"][2],
-                    "max": row["example"][2],
-                    "sum": row["example"][2],
+                    "min": row["examples"][0][2],
+                    "max": row["examples"][0][2],
+                    "sum": row["examples"][0][2],
                     "count": 1,
                 },
             )
@@ -481,23 +483,25 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
         return result
 
     def get_unsorted_span_keys(self, offset: int, limit: int) -> list[tuple[str, str, str]]:
-        rounded_timestamp = f"rounded_timestamp({self.rollup})"
+        column = self.mri_to_column(self.mri)
 
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,
             snuba_params=self.snuba_params,
             query=self.query,
-            selected_columns=[rounded_timestamp, "example()"],
+            selected_columns=[
+                f"rounded_timestamp({self.rollup})",
+                f"examples({column}) AS examples",
+            ],
             limit=limit,
             offset=offset,
             sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
         )
 
         additional_conditions = self.get_additional_conditions(builder)
 
-        column = self.mri_to_column(self.mri)
         assert column is not None
         min_max_conditions = self.get_min_max_conditions(builder.resolve_column(column))
 
@@ -508,9 +512,9 @@ class SpansSamplesListExecutor(AbstractSamplesListExecutor):
 
         return [
             (
-                row["example"][0],  # group
-                row["example"][1],  # timestamp
-                row["example"][2],  # span_id
+                row["examples"][0][0],  # group
+                row["examples"][0][1],  # timestamp
+                row["examples"][0][2],  # span_id
             )
             for row in result["data"]
         ]
@@ -596,6 +600,12 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         "timestamp": "timestamp",
     }
 
+    MIN_MAX_CONDITION_COLUMN = {
+        "min": "min_metric",
+        "max": "max_metric",
+        "count": "count_metric",
+    }
+
     @classmethod
     def convert_sort(cls, sort) -> tuple[Literal["", "-"], str] | None:
         direction: Literal["", "-"] = ""
@@ -660,7 +670,7 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         )
 
         additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions()
+        min_max_conditions = self.get_min_max_conditions(builder)
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
         query_results = builder.run_query(self.referrer.value)
@@ -711,16 +721,16 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             self.params,
             snuba_params=self.snuba_params,
             query=self.query,
-            selected_columns=[rounded_timestamp, "example()"],
+            selected_columns=[rounded_timestamp, "examples()"],
             limit=limit,
             offset=offset,
             # This table has a poor SAMPLE BY so DO NOT use it for now
             # sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
+            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
         )
 
         additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions()
+        min_max_conditions = self.get_min_max_conditions(builder)
         builder.add_conditions([*additional_conditions, *min_max_conditions])
 
         query_results = builder.run_query(self.referrer.value)
@@ -728,9 +738,9 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
 
         span_keys = [
             (
-                cast(str, row["example"][0]),  # group
-                cast(str, row["example"][1]),  # timestamp
-                cast(str, row["example"][2]),  # span_id
+                cast(str, row["examples"][0][0]),  # group
+                cast(str, row["examples"][0][1]),  # timestamp
+                cast(str, row["examples"][0][2]),  # span_id
             )
             for row in result["data"]
         ]
@@ -741,13 +751,13 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
         summaries table, and copy them to the results in the next step.
         """
         summaries = {
-            cast(str, row["example"][2]): cast(
+            cast(str, row["examples"][0][2]): cast(
                 Summary,
                 {
-                    "min": row["example"][3],
-                    "max": row["example"][4],
-                    "sum": row["example"][5],
-                    "count": row["example"][6],
+                    "min": row["examples"][0][3],
+                    "max": row["examples"][0][4],
+                    "sum": row["examples"][0][5],
+                    "count": row["examples"][0][6],
                 },
             )
             for row in result["data"]
@@ -762,13 +772,17 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             )
         ]
 
-    def get_min_max_conditions(self) -> list[Condition]:
+    def get_min_max_conditions(self, builder: QueryBuilder) -> list[Condition]:
         conditions = []
 
+        column = builder.resolve_column(
+            self.MIN_MAX_CONDITION_COLUMN.get(self.operation or "", "avg_metric")
+        )
+
         if self.min is not None:
-            conditions.append(Condition(Column("min"), Op.GTE, self.min))
+            conditions.append(Condition(column, Op.GTE, self.min))
         if self.max is not None:
-            conditions.append(Condition(Column("max"), Op.LTE, self.max))
+            conditions.append(Condition(column, Op.LTE, self.max))
 
         return conditions
 

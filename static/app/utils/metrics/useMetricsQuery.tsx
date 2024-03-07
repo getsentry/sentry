@@ -43,7 +43,7 @@ export interface MetricsQueryApiRequestQuery {
   query?: string;
 }
 
-interface MetricsQueryApiRequestFormula {
+export interface MetricsQueryApiRequestFormula {
   formula: string;
   name: string;
   limit?: number;
@@ -75,7 +75,11 @@ export function getMetricsQueryApiRequestPayload(
   {
     intervalLadder,
     interval: intervalParam,
-  }: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {}
+  }: {
+    autoOrder?: boolean;
+    interval?: string;
+    intervalLadder?: MetricsDataIntervalLadder;
+  } = {}
 ) {
   // We want to use the largest interval from all queries so none fails
   // In the future the endpoint should handle this
@@ -136,7 +140,7 @@ export function getMetricsQueryApiRequestPayload(
       requestFormulas.push({
         mql: `$${name}`,
         limit,
-        order: hasGroupBy ? orderBy ?? 'desc' : undefined,
+        order: hasGroupBy ? orderBy : undefined,
       });
     }
   });
