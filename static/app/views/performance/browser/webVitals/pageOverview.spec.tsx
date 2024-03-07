@@ -78,7 +78,9 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />);
     await screen.findByText(/\(Interaction to Next Paint\) will replace/);
-    await screen.findByText(/\(First Input Delay\) in Performance Score./);
+    await screen.findByText(
+      /\(First Input Delay\) in our performance score calculation./
+    );
   });
 
   it('renders pageload and interaction switcher', async () => {

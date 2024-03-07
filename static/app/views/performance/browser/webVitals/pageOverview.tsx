@@ -229,7 +229,7 @@ export default function PageOverview() {
                   <AlertContent>
                     <span>
                       {tct(
-                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in Performance Score.`,
+                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in our performance score calculation.`,
                         {
                           fidDeprecationTimestampString,
                           inpStrong: <strong />,

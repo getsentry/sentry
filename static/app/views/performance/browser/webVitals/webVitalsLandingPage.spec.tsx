@@ -72,6 +72,8 @@ describe('WebVitalsLandingPage', function () {
     });
     render(<WebVitalsLandingPage />);
     await screen.findByText(/\(Interaction to Next Paint\) will replace/);
-    await screen.findByText(/\(First Input Delay\) in Performance Score./);
+    await screen.findByText(
+      /\(First Input Delay\) in our performance score calculation./
+    );
   });
 });
