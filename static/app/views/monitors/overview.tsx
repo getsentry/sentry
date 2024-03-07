@@ -100,6 +100,8 @@ export default function Monitors() {
                     onClose: refetch,
                   })
                 }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
               >
                 {t('Manage Monitors')}
               </Button>

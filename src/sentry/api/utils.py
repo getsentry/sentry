@@ -421,15 +421,18 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise ParseError(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(
             error,
             (
                 RateLimitExceeded,
-                ReadTimeoutError,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
             ),
+        ) or isinstance(
+            arg,
+            ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
@@ -450,11 +453,11 @@ def handle_query_errors() -> Generator[None, None, None]:
             sentry_sdk.capture_exception(error)
             message = "Internal error. Your query failed to run."
         elif isinstance(
-            error,
+            arg,
             (MaxRetryError),
         ):
             sentry_sdk.capture_message(str(error), level="warning")
-            message = "Internal error. Your query failed to run."
+            message = "Internal error. Your query failed to run. This may be temporary please try again later."
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)

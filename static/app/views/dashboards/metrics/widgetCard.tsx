@@ -17,7 +17,8 @@ import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumbe
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
 import {
-  getMetricQueries,
+  expressionsToApiQueries,
+  getMetricExpressions,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -58,7 +59,7 @@ export function MetricWidgetCard({
   showContextMenu = true,
 }: Props) {
   const metricQueries = useMemo(
-    () => getMetricQueries(widget, dashboardFilters),
+    () => expressionsToApiQueries(getMetricExpressions(widget, dashboardFilters)),
     [widget, dashboardFilters]
   );
 

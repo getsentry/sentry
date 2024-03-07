@@ -9,7 +9,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
@@ -19,7 +18,7 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -168,10 +167,10 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             else True
         )
 
-        if Superuser.org_id:
-            if not has_completed_sso(request, Superuser.org_id):
+        if SUPERUSER_ORG_ID:
+            if not has_completed_sso(request, SUPERUSER_ORG_ID):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
-                self._reauthenticate_with_sso(request, Superuser.org_id)
+                self._reauthenticate_with_sso(request, SUPERUSER_ORG_ID)
 
         return authenticated
 
@@ -247,18 +246,10 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             verify_authenticator = False
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
-                if Superuser.org_id:
-                    superuser_org = organization_service.get_organization_by_id(
-                        id=Superuser.org_id, include_teams=False, include_projects=False
+                if SUPERUSER_ORG_ID:
+                    verify_authenticator = organization_service.check_organization_by_id(
+                        id=SUPERUSER_ORG_ID, only_visible=False
                     )
-
-                    if superuser_org is not None:
-                        has_u2f_flag = features.has(
-                            "organizations:u2f-superuser-form",
-                            superuser_org.organization,
-                            actor=request.user,
-                        )
-                        verify_authenticator = has_u2f_flag
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
@@ -270,8 +261,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 logger.info(
                     "auth-index.put",
                     extra={
-                        "organization": superuser_org,
-                        "u2f_flag": has_u2f_flag,
+                        "organization": SUPERUSER_ORG_ID,
                         "user": request.user.id,
                         "verify_authenticator": verify_authenticator,
                     },

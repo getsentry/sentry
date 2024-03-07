@@ -1005,9 +1005,9 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "example",
+                    "examples",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=self._resolve_random_sample,
+                    snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
                 SnQLFunction(
@@ -1811,15 +1811,19 @@ class DiscoverDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_random_sample(
+    def _resolve_random_samples(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         offset = 0 if self.builder.offset is None else self.builder.offset.offset
         limit = 0 if self.builder.limit is None else self.builder.limit.limit
-        return function_aliases.resolve_random_sample(
-            ["timestamp", "span_id", args["column"].name],
+        return function_aliases.resolve_random_samples(
+            [
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("span_id"),
+                args["column"],
+            ],
             alias,
             offset,
             limit,
