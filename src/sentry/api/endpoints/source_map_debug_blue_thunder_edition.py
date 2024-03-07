@@ -9,7 +9,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -151,15 +151,6 @@ class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
         """
         Return a list of source map errors for a given event.
         """
-
-        if not features.has(
-            "organizations:source-maps-debugger-blue-thunder-edition",
-            project.organization,
-            actor=request.user,
-        ):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:source-maps-debugger-blue-thunder-edition' feature flag"
-            )
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
