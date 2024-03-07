@@ -12,6 +12,7 @@ import {
   type MetricFormulaWidgetParams,
   MetricQueryType,
   type MetricQueryWidgetParams,
+  type MetricsQuery,
   type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -161,8 +162,12 @@ function Query({
   }, [index, onToggleVisibility]);
 
   const handleChange = useCallback(
-    (data: Partial<MetricWidgetQueryParams>) => {
-      onChange(index, data);
+    (data: Partial<MetricsQuery>) => {
+      const changes: Partial<MetricQueryWidgetParams> = {...data};
+      if (changes.mri || changes.groupBy) {
+        changes.focusedSeries = undefined;
+      }
+      onChange(index, changes);
     },
     [index, onChange]
   );
@@ -183,8 +188,6 @@ function Query({
       <QueryBuilder
         onChange={handleChange}
         metricsQuery={metricsQuery}
-        displayType={widget.displayType}
-        isEdit
         projects={projects}
       />
       <MetricQueryContextMenu

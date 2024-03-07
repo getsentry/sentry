@@ -166,7 +166,7 @@ export function MetricVisualization({
         displayType={displayType}
       />
     );
-  }, [displayType, isLoading, queries, timeseriesData, onOrderChange]);
+  }, [timeseriesData, displayType, isLoading, queries, onOrderChange]);
 
   if (!timeseriesData || isError) {
     return (
