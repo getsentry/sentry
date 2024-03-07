@@ -21,7 +21,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import Tags from 'sentry/views/discover/tags';
 
-import {getTraceInfo} from '../traceDetails/utils';
+import {getTraceInfo} from '../../../traceDetails/utils';
 
 type TraceFooterProps = {
   location: Location;
@@ -53,7 +53,7 @@ function NoWebVitals() {
   );
 }
 
-function TraceFooterLoading() {
+function TraceDataLoading() {
   return (
     <TraceFooterWrapper>
       <div style={{flex: 1}}>
@@ -81,9 +81,9 @@ function TraceFooterLoading() {
   );
 }
 
-export function TraceFooter(props: TraceFooterProps) {
+export function TraceLevelDetails(props: TraceFooterProps) {
   if (!props.traces) {
-    return <TraceFooterLoading />;
+    return <TraceDataLoading />;
   }
 
   const {data: rootEvent} = props.rootEventResults;
@@ -131,7 +131,6 @@ export function TraceFooter(props: TraceFooterProps) {
 const TraceFooterWrapper = styled('div')`
   display: flex;
   gap: ${space(2)};
-  margin-top: ${space(2)};
 `;
 
 const StyledPlaceholderTag = styled(Placeholder)`

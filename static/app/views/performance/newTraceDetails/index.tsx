@@ -46,9 +46,9 @@ import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/v
 
 import Breadcrumb from '../breadcrumb';
 
-import TraceDetailPanel from './newTraceDetailPanel';
+import TraceDrawer from './traceDrawer/traceDrawer';
+import {isTraceNode} from './guards';
 import Trace from './trace';
-import {TraceFooter} from './traceFooter';
 import TraceHeader from './traceHeader';
 import {TraceTree, type TraceTreeNode} from './traceTree';
 import TraceWarnings from './traceWarnings';
@@ -146,6 +146,7 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
+  const [activeTab, setActiveTab] = useState<'trace_data' | 'node_detail'>('trace_data');
   const {projects} = useProjects();
 
   const rootEvent = useRootEvent(props.trace);
@@ -224,20 +225,16 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [detailNode, setDetailNode] = useState<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
+  const [detailPanelRef, setDetailPanelRef] =
+    useState<React.MutableRefObject<HTMLDivElement | null> | null>(null);
+  const [detailNodes, setDetailNodes] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
+    []
   );
-
-  const onDetailClose = useCallback(() => {
-    setDetailNode(null);
-    maybeFocusRow();
-  }, []);
 
   const onSetDetailNode = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      setDetailNode(prevNode => {
-        return prevNode === node ? null : node;
-      });
+      setActiveTab(node && !isTraceNode(node) ? 'node_detail' : 'trace_data');
+      setDetailNodes(node ? [node] : []);
       maybeFocusRow();
     },
     []
@@ -376,6 +373,7 @@ function TraceViewContent(props: TraceViewContentProps) {
           />
           <Trace
             trace={tree}
+            detailPanelRef={detailPanelRef}
             trace_id={props.traceSlug}
             roving_dispatch={rovingTabIndexDispatch}
             roving_state={rovingTabIndexState}
@@ -387,19 +385,16 @@ function TraceViewContent(props: TraceViewContentProps) {
             onTraceSearch={onTraceSearch}
             manager={viewManager}
           />
-          <TraceFooter
+          <TraceDrawer
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            setDetailPanelRef={setDetailPanelRef}
+            nodes={detailNodes}
             rootEventResults={rootEvent}
             organization={props.organization}
             location={props.location}
             traces={props.trace}
             traceEventView={props.traceEventView}
-          />
-          <TraceDetailPanel
-            organization={props.organization}
-            rootEvent={rootEvent.data}
-            traceType={traceType}
-            node={detailNode}
-            onClose={onDetailClose}
           />
         </Layout.Main>
       </Layout.Body>
