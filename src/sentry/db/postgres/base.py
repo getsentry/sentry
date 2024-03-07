@@ -76,13 +76,16 @@ class CursorWrapper:
     def __iter__(self):
         return iter(self.cursor)
 
+    from django.db import transaction
+
     @capture_transaction_exceptions
     @auto_reconnect_cursor
     @more_better_error_messages
     def execute(self, sql, params=None):
-        if params is not None:
-            return self.cursor.execute(sql, clean_bad_params(params))
-        return self.cursor.execute(sql)
+        with transaction.atomic():
+            if params is not None:
+                return self.cursor.execute(sql, clean_bad_params(params))
+            return self.cursor.execute(sql)
 
     @capture_transaction_exceptions
     @auto_reconnect_cursor
@@ -99,6 +102,7 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         self.ops = DatabaseOperations(self)
 
     @auto_reconnect_connection
+
     def _set_isolation_level(self, level):
         return super()._set_isolation_level(level)
 
