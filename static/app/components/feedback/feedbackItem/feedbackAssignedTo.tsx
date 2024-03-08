@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {type ComponentProps, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -19,9 +19,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface Props {
   feedbackEvent: FeedbackEvent | undefined;
   feedbackIssue: FeedbackIssue;
+  showActorName: boolean;
 }
 
-export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
+export default function FeedbackAssignedTo({
+  feedbackIssue,
+  feedbackEvent,
+  showActorName,
+}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;
@@ -48,22 +53,25 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
 
   const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
-  const dropdown = (
-    <AssigneeSelectorDropdown
-      organization={organization}
-      disabled={false}
-      id={feedbackIssue.id}
-      assignedTo={feedbackIssue.assignedTo}
-      onAssign={() => {
-        assign(feedbackIssue.assignedTo);
-      }}
-      onClear={() => {
-        assign(null);
-      }}
-      owners={owners}
-      group={feedbackIssue}
-      alignMenu="left"
-    >
+  const dropdownProps: Omit<
+    ComponentProps<typeof AssigneeSelectorDropdown>,
+    'children'
+  > = {
+    organization: organization,
+    disabled: false,
+    id: feedbackIssue.id,
+    assignedTo: feedbackIssue.assignedTo,
+    onAssign: () => assign(feedbackIssue.assignedTo),
+    onClear: () => assign(null),
+    owners: owners,
+    group: feedbackIssue,
+    alignMenu: 'left',
+  };
+
+  // `<AssigneeSelectorDropdown>` won't re-render when `children` change, so we need
+  // two options for when `showActorName` changes.
+  return showActorName ? (
+    <AssigneeSelectorDropdown key="showActor" {...dropdownProps}>
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
           <ActorWrapper>
@@ -84,9 +92,26 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
         </Button>
       )}
     </AssigneeSelectorDropdown>
+  ) : (
+    <AssigneeSelectorDropdown key="hideActor" {...dropdownProps}>
+      {({isOpen, getActorProps}) => (
+        <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
+          <ActorWrapper>
+            {!feedbackIssue.assignedTo ? (
+              <IconUser size="sm" />
+            ) : (
+              <ActorAvatar
+                actor={feedbackIssue.assignedTo}
+                hasTooltip={false}
+                size={16}
+              />
+            )}
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
+          </ActorWrapper>
+        </Button>
+      )}
+    </AssigneeSelectorDropdown>
   );
-
-  return dropdown;
 }
 
 const ActorWrapper = styled('div')`
