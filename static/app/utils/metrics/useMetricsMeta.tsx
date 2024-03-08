@@ -34,6 +34,7 @@ export function useMetricsMeta(
     getMetricsMetaQueryKey(slug, pageFilters, useCases),
     {
       enabled,
+      refetchInterval: 60000,
       staleTime: 2000, // 2 seconds to cover page load
     }
   );
