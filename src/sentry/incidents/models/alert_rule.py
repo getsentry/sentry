@@ -40,6 +40,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.utils import metrics
 
+logger = logging.getLogger(__name__)
+
 alert_subscription_callback_registry: dict[
     AlertRuleMonitorType, Callable[[QuerySubscription], bool]
 ] = {}
@@ -64,9 +66,6 @@ def invoke_alert_subscription_callback(
         return False
 
     return callback(subscription)
-
-
-logger = logging.getLogger(__name__)
 
 
 class AlertRuleStatus(Enum):

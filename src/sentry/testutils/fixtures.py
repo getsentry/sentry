@@ -399,6 +399,13 @@ class Fixtures:
             alert_rule=alert_rule, *args, **kwargs
         )
 
+    def create_alert_rule_activation(self, alert_rule=None, *args, **kwargs):
+        if not alert_rule:
+            alert_rule = self.create_alert_rule(
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
+            )
+        return Factories.create_alert_rule_activation(alert_rule=alert_rule, *args, **kwargs)
+
     def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
         if not alert_rule:
             alert_rule = self.create_alert_rule()

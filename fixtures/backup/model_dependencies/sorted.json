@@ -213,6 +213,7 @@
   "sentry.alertruleprojects",
   "sentry.alertruleexcludedprojects",
   "sentry.alertruleactivity",
+  "sentry.alertruleactivations",
   "sentry.alertruleactivationcondition",
   "sentry.timeseriessnapshot",
   "sentry.servicehook",
