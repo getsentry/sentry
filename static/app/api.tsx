@@ -126,16 +126,20 @@ const ALLOWED_ANON_PAGES = [
 /**
  * Return true if we should skip calling the normal error handler
  */
-const globalErrorHandlers: ((resp: ResponseMeta) => boolean)[] = [];
+const globalErrorHandlers: ((resp: ResponseMeta, options: RequestOptions) => boolean)[] =
+  [];
 
 export const initApiClientErrorHandling = () =>
-  globalErrorHandlers.push((resp: ResponseMeta) => {
+  globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
     const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
       regex.test(window.location.pathname)
     );
 
     // Ignore error unless it is a 401
     if (!resp || resp.status !== 401 || pageAllowsAnon) {
+      return false;
+    }
+    if (resp && options.allowAuthError && resp.status === 401) {
       return false;
     }
 
@@ -251,6 +255,11 @@ export type RequestCallbacks = {
 };
 
 export type RequestOptions = RequestCallbacks & {
+  /**
+   * Set true, if an authentication required error is allowed for
+   * a request.
+   */
+  allowAuthError?: boolean;
   /**
    * Values to attach to the body of the request.
    */
@@ -529,7 +538,7 @@ export class Client {
           const {status, statusText} = response;
           let {ok} = response;
           let errorReason = 'Request not OK'; // the default error reason
-          let twoHundredErrorReason;
+          let twoHundredErrorReason: string | undefined;
 
           // Try to get text out of the response no matter the status
           try {
@@ -617,8 +626,9 @@ export class Client {
             }
 
             const shouldSkipErrorHandler =
-              globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
-                .length > 0;
+              globalErrorHandlers
+                .map(handler => handler(responseMeta, options))
+                .filter(Boolean).length > 0;
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);
