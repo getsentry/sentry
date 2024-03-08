@@ -23,6 +23,7 @@ export const APP_START_SPANS = [
   'contentprovider.load',
   'application.load',
   'activity.load',
+  'process.load'
 ];
 
 type Props = {
