@@ -67,6 +67,11 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScor
 const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   keyof InteractionSpanSampleRowWithScore
 >[] = [
+  {
+    key: SpanIndexedField.SPAN_DESCRIPTION,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('Interaction Target'),
+  },
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: t('User')},
   {key: SpanIndexedField.INP, width: COL_WIDTH_UNDEFINED, name: 'INP'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
@@ -371,6 +376,15 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         </NoOverflow>
       );
     }
+
+    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      return (
+        <NoOverflow>
+          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+        </NoOverflow>
+      );
+    }
+
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
 

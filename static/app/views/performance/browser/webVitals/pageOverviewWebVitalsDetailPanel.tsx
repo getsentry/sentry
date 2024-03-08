@@ -9,6 +9,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -53,6 +54,11 @@ const columnOrder: GridColumnOrder[] = [
 ];
 
 const inpColumnOrder: GridColumnOrder[] = [
+  {
+    key: SpanIndexedField.SPAN_DESCRIPTION,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('Interaction Target'),
+  },
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Inp')},
@@ -319,6 +325,13 @@ export function PageOverviewWebVitalsDetailPanel({
         </AlignCenter>
       );
     }
+    if (key === SpanIndexedField.SPAN_DESCRIPTION) {
+      return (
+        <NoOverflow>
+          <Tooltip title={row[key]}>{row[key]}</Tooltip>
+        </NoOverflow>
+      );
+    }
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
@@ -382,6 +395,7 @@ export function PageOverviewWebVitalsDetailPanel({
 const NoOverflow = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const AlignRight = styled('span')<{color?: string}>`
