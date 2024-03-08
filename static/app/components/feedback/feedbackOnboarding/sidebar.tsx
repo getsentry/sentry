@@ -194,7 +194,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     cdn,
     isProjKeysLoading,
   } = useLoadFeedbackOnboardingDoc({
-    platform: showJsFrameworkInstructions ? getJsFramework() : currentPlatform,
+    platform:
+      showJsFrameworkInstructions && !crashReportOnboarding
+        ? getJsFramework()
+        : currentPlatform,
     organization,
     projectSlug: currentProject.slug,
   });
