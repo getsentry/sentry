@@ -192,8 +192,6 @@ function useReplayData({
     };
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
-  const attachments = attachmentPages.flat(2);
-
   return useMemo(() => {
     const fetching =
       isFetchingReplay ||
@@ -201,7 +199,7 @@ function useReplayData({
       isFetchingErrors ||
       isFetchingExtraErrors;
     return {
-      attachments,
+      attachments: attachmentPages.flat(2),
       errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
       fetchError: fetchReplayError ?? undefined,
       fetching,
@@ -210,7 +208,7 @@ function useReplayData({
       replayRecord,
     };
   }, [
-    attachments,
+    attachmentPages,
     clearQueryCache,
     errorPages,
     extraErrorPages,
