@@ -694,10 +694,7 @@ class PHPParserTestCase(TestCase):
 @@ -184,93 +180,6 @@ public function nine() {
 
 @@ -184,93 +180,6 @@ public static function ten() {
-
 """
-
-        print(PHPParser.extract_functions_from_patch(patch))
 
         assert PHPParser.extract_functions_from_patch(patch) == {
             "one",
