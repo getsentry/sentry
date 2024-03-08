@@ -1,4 +1,4 @@
-import {type ComponentProps, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -53,25 +53,22 @@ export default function FeedbackAssignedTo({
 
   const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
-  const dropdownProps: Omit<
-    ComponentProps<typeof AssigneeSelectorDropdown>,
-    'children'
-  > = {
-    organization: organization,
-    disabled: false,
-    id: feedbackIssue.id,
-    assignedTo: feedbackIssue.assignedTo,
-    onAssign: () => assign(feedbackIssue.assignedTo),
-    onClear: () => assign(null),
-    owners: owners,
-    group: feedbackIssue,
-    alignMenu: 'left',
-  };
+  // A new `key` will make the component re-render when shwoActor changes
+  const key = showActorName ? 'showActor' : 'hideActor';
 
-  // `<AssigneeSelectorDropdown>` won't re-render when `children` change, so we need
-  // two options for when `showActorName` changes.
-  return showActorName ? (
-    <AssigneeSelectorDropdown key="showActor" {...dropdownProps}>
+  return (
+    <AssigneeSelectorDropdown
+      key={key}
+      organization={organization}
+      disabled={false}
+      id={feedbackIssue.id}
+      assignedTo={feedbackIssue.assignedTo}
+      onAssign={() => assign(feedbackIssue.assignedTo)}
+      onClear={() => assign(null)}
+      owners={owners}
+      group={feedbackIssue}
+      alignMenu={'left'}
+    >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
           <ActorWrapper>
@@ -84,28 +81,11 @@ export default function FeedbackAssignedTo({
                 size={16}
               />
             )}
-            <ActorName>
-              {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
-            </ActorName>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
-          </ActorWrapper>
-        </Button>
-      )}
-    </AssigneeSelectorDropdown>
-  ) : (
-    <AssigneeSelectorDropdown key="hideActor" {...dropdownProps}>
-      {({isOpen, getActorProps}) => (
-        <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
-          <ActorWrapper>
-            {!feedbackIssue.assignedTo ? (
-              <IconUser size="sm" />
-            ) : (
-              <ActorAvatar
-                actor={feedbackIssue.assignedTo}
-                hasTooltip={false}
-                size={16}
-              />
-            )}
+            {showActorName ? (
+              <ActorName>
+                {getAssignedToDisplayName(feedbackIssue) ?? t('Unassigned')}
+              </ActorName>
+            ) : null}
             <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
           </ActorWrapper>
         </Button>
