@@ -99,9 +99,8 @@ function TagTreeRow({
 }: TagTreeRowProps) {
   const organization = useOrganization();
   const router = useRouter();
-  const originalTag = content.originalTag;
-  const referrer = 'event-tags-tree';
   const [isVisible, setIsVisible] = useState(false);
+  const originalTag = content.originalTag;
 
   if (!originalTag) {
     return (
@@ -120,6 +119,7 @@ function TagTreeRow({
     );
   }
 
+  const referrer = 'event-tags-tree';
   const query = generateQueryWithTag({referrer}, originalTag);
   const searchQuery = `?${qs.stringify(query)}`;
 
@@ -151,6 +151,7 @@ function TagTreeRow({
           )}
         </TreeValue>
         <TreeValueDropdown
+          preventOverflowOptions={{padding: 4}}
           className={!isVisible ? 'invisible' : ''}
           position="bottom-start"
           dropdownOverlayProps={{onOpenChange: isOpen => setIsVisible(isOpen)}}
@@ -402,6 +403,7 @@ const TreeValueTrunk = styled('div')`
   grid-column: 2 / 3;
   display: grid;
   grid-template-columns: 1fr 25px;
+  grid-column-gap: ${space(0.5)};
 `;
 
 const TreeValue = styled('div')`

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import {
   SentryDefaultTags,
   TagFilter,
@@ -25,27 +26,31 @@ type Props = {
   projectSlug: Project['slug'];
 };
 
+function filterTags(tags: EventTag[], tagFilter: TagFilter): EventTag[] {
+  switch (tagFilter) {
+    case TagFilter.ALL:
+      return tags;
+    case TagFilter.CUSTOM:
+      return tags.filter(tag => !SentryDefaultTags.has(tag.key));
+    default:
+      return tags.filter(tag => TagFilterData[tagFilter].has(tag.key));
+  }
+}
+
 function Tags({event, projectSlug}: Props) {
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
-  const [tags, setTags] = useState<EventTag[]>(event.tags ?? []);
+  const [tags, setTags] = useState<EventTag[]>(filterTags(event.tags ?? [], tagFilter));
   const handleTagFilterChange = useCallback(
     (value: TagFilter) => {
       setTagFilter(value);
-      setTags(() => {
-        switch (value) {
-          case TagFilter.ALL:
-            return event.tags;
-          case TagFilter.CUSTOM:
-            return event.tags.filter(tag => !SentryDefaultTags.has(tag.key));
-          default:
-            return event.tags.filter(tag => TagFilterData[value].has(tag.key));
-        }
-      });
+      setTags(() => filterTags(event.tags, value));
     },
     [event]
   );
 
   const hasNewTagsUI = useHasNewTagsUI();
+  const hasCustomTagsBanner =
+    hasNewTagsUI && tagFilter === TagFilter.CUSTOM && tags.length === 0;
 
   const availableFilters = Object.keys(TagFilterData).filter(filter => {
     return event.tags.some(tag => TagFilterData[filter].has(tag.key));
@@ -79,6 +84,7 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewTagsUI && <EventContextSummary event={event} />}
+      {hasCustomTagsBanner && <EventTagCustomBanner />}
       <EventTags event={{...event, tags}} projectSlug={projectSlug} />
     </StyledEventDataSection>
   );
