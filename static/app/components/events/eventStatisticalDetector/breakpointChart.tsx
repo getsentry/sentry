@@ -29,7 +29,7 @@ type EventBreakpointChartProps = {
   event: Event;
 };
 
-type BreakpointChartData = {
+export type BreakpointChartData = {
   event: Event;
   eventStatsReponse:
     | {
@@ -38,7 +38,8 @@ type BreakpointChartData = {
       }
     | undefined;
 };
-function getBreakPointChartPropsFromData(chartData: BreakpointChartData) {
+
+export function getBreakPointChartPropsFromData(chartData: BreakpointChartData) {
   const event = chartData.event;
   const {breakpoint} = event?.occurrence?.evidenceData ?? {};
   const datetime = getDateTimeFromBreakPoint(breakpoint);
