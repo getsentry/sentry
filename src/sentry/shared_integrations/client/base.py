@@ -86,6 +86,8 @@ class BaseApiClient(TrackResponseMixin):
         return f"{self.integration_type}.{self.name}.client:"
 
     def build_url(self, path: str) -> str:
+        if self.base_url is None:
+            raise ValueError("base_url is not set or is invalid.")
         if path.startswith("/"):
             if not self.base_url:
                 raise ValueError(f"Invalid URL: {path}")
