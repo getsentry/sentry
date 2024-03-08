@@ -39,8 +39,8 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     extra["error"] = msg
 
     if msg is None:
-        extra["error_json"] = error.json
-        logger.warning("Unexpected json format in API error response.")
+        extra["error"] = error.json
+        logger.warning("Unexpected json format in API error response.", extra=extra)
         return
     elif msg == "Not Found":
         logger.warning("The org has uninstalled the Sentry App.", extra=extra)
