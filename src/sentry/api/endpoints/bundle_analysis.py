@@ -23,7 +23,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
 from sentry.snuba.metrics.naming_layer.mri import BundleAnalysisMRI
 
-MINUTE = 1000 * 60
+HOUR = 1000 * 60 * 60
 
 
 class ResourceSizeType(Enum):
@@ -44,6 +44,11 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectReleasePermission,)
 
     def get(self, request: Request, project: Project) -> Response:
+        self._assert_has_feature(request, project.organization)
+        serializer = GetBundleStatsSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
         result = self._get_bundle_trend(project)
         return Response({"data": self._parse_result(result)}, status=200)
 
@@ -95,7 +100,7 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
             project_ids=[project_id],
             select=select,
             groupby=groupby,
-            granularity=Granularity(MINUTE),
+            granularity=Granularity(HOUR),
             start=datetime.now() - timedelta(hours=1),
             end=datetime.now(),
             include_totals=False,
@@ -156,6 +161,25 @@ class BundleAnalysisEndpoint(ProjectEndpoint):
             tags={"type": type.value, "bundle_name": bundle_name},
             unit="byte",
         )
+
+
+class GetBundleStatsSerializer(serializers.Serializer):
+    statsPeriod = serializers.CharField(required=False)
+    start = serializers.DateTimeField(required=False)
+    end = serializers.DateTimeField(required=False)
+
+    def validate(self, data):
+        hasStatsPeriod = "statsPeriod" in data
+        hasStartAndStop = "start" in data and "end" in data
+
+        if not hasStatsPeriod and not hasStartAndStop:
+            raise serializers.ValidationError(
+                "Either both start and end should be provided or statsPeriod should be provided"
+            )
+        if hasStartAndStop and data["start"] > data["end"]:
+            raise serializers.ValidationError("start must be before end")
+
+        return data
 
 
 class BundleStatSerializer(serializers.Serializer):
