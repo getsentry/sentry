@@ -99,7 +99,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           icon={<IconChat size="xs" />}
           title={
             <Fragment>
-              {t('Activity')}
+              {t('Internal Notes')}
               <QuestionTooltip
                 size="xs"
                 title={t(
