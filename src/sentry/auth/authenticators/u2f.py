@@ -205,11 +205,11 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        if request.session.get("staff_u2f", False):
+        if request.session.get("staff_auth_flow", False):
             request.session["staff_webauthn_authentication_state"] = state
             # Remove the staff U2F flag in case we don't validate the generated
             # challenge/response and want to next use a non-staff U2F flow
-            del request.session["staff_u2f"]
+            del request.session["staff_auth_flow"]
         else:
             request.session["webauthn_authentication_state"] = state
 

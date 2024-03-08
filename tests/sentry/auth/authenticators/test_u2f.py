@@ -69,7 +69,7 @@ class U2FInterfaceTest(TestCase):
     def test_activate_staff_webauthn(self):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
-        request.session["staff_u2f"] = True
+        request.session["staff_auth_flow"] = True
 
         result = self.u2f.activate(request)
 
