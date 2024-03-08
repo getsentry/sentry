@@ -79,6 +79,14 @@ describe('parseMRI', () => {
       expect(parseMRI(mri)).toEqual(parsedMRI);
     }
   );
+
+  it.each([
+    ['d:transactions/duration@millisecond', 'transaction.duration'],
+    ['d:spans/duration@millisecond', 'span.duration'],
+    ['d:spans/exclusive_time@millisecond', 'span.self_time'],
+  ])('should remap certain mri names', (mri, name) => {
+    expect(parseMRI(mri)?.name).toEqual(name);
+  });
 });
 
 describe('getUseCaseFromMRI', () => {
