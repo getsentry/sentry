@@ -210,11 +210,18 @@ def build_summary_data(
 
             deduped_groups_by_activity_type = {"regressed": set(), "escalated": set()}
             for activity in regressed_or_escalated_groups_today:
-                if activity.type == ActivityType.SET_REGRESSION.value:
-                    deduped_groups_by_activity_type["regressed"].add(activity.group)
+                if activity.type == ActivityType.SET_ESCALATING.value:
+                    # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
+                    # this means the group regressed and then later escalated, and we only want to list it once
+                    if activity.group in deduped_groups_by_activity_type["regressed"]:
+                        deduped_groups_by_activity_type["regressed"].remove(activity.group)
+                    deduped_groups_by_activity_type["escalated"].add(activity.group)
                 else:
-                    if activity.type == ActivityType.SET_ESCALATING.value:
-                        deduped_groups_by_activity_type["escalated"].add(activity.group)
+                    if (
+                        activity.type == ActivityType.SET_REGRESSION.value
+                        and activity.group not in deduped_groups_by_activity_type["escalated"]
+                    ):
+                        deduped_groups_by_activity_type["regressed"].add(activity.group)
 
             if deduped_groups_by_activity_type:
                 for activity_type, groups in deduped_groups_by_activity_type.items():
