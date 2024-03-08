@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
 
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -1654,12 +1653,11 @@ class ActionsTest(TestCase):
 
 
 @region_silo_test
-class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
+class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     @freeze_time("2024-02-23")
     def setUp(self):
-        self.one_hour_ago = timezone.now() - timedelta(hours=1)
         self.endpoint_regression_issue = self.create_group(
-            type=PerformanceP95EndpointRegressionGroupType.type_id, active_at=self.one_hour_ago
+            type=PerformanceP95EndpointRegressionGroupType.type_id
         )
 
         self.cron_issue = self.create_group(type=MonitorCheckInFailure.type_id)
@@ -1669,10 +1667,20 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase):
 
     @freeze_time("2024-02-23")
     @with_feature("organizations:slack-block-kit-improvements")
-    def test_get_context(self):
+    @patch("sentry.models.Group.get_recommended_event_for_environments")
+    def test_get_context(self, mock_event):
+        event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        group_event = event.for_group(event.groups[0])
+        occurrence = self.build_occurrence(level="info", evidence_data={"breakpoint": 1709161200})
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        mock_event.return_value = group_event
+
         # endpoint regression should use Approx Start Time
         context = get_context(self.endpoint_regression_issue)
-        assert f"Approx. Start Time: *{self.one_hour_ago.strftime('%Y-%m-%d %H:%M:%S')}*" in context
+        breakpoint_time = datetime(2024, 2, 28, 23, 0)
+        assert f"Approx. Start Time: *{breakpoint_time.strftime('%Y-%m-%d %H:%M:%S')}*" in context
 
         # crons don't have context
         assert get_context(self.cron_issue) == ""
