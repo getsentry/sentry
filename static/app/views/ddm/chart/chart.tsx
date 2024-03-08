@@ -26,8 +26,7 @@ import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/type
 import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
 
-export const MAIN_X_AXIS_ID = 'xAxis';
-export const MAIN_Y_AXIS_ID = 'yAxis';
+const MAIN_X_AXIS_ID = 'xAxis';
 
 type ChartProps = {
   displayType: MetricDisplayType;
@@ -144,7 +143,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
         filter: (_, seriesParam) => {
-          return seriesParam?.axisId === 'xAxis';
+          return seriesParam?.axisId === MAIN_X_AXIS_ID;
         },
       };
 
@@ -235,8 +234,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           ...uniqueUnits.map((unit, index) =>
             unit === firstUnit
               ? {
-                  // used to find and convert datapoint to pixel position
-                  id: MAIN_Y_AXIS_ID,
+                  id: unit,
                   axisLabel: {
                     formatter: (value: number) => {
                       return formatMetricUsingUnit(value, unit);
@@ -247,9 +245,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
                   id: unit,
                   show: index === 1,
                   axisLabel: {
+                    show: index === 1,
                     formatter: (value: number) => {
-                      return index === 1 ? formatMetricUsingUnit(value, unit) : '';
+                      return formatMetricUsingUnit(value, unit);
                     },
+                  },
+                  splitLine: {
+                    show: false,
                   },
                   position: 'right' as const,
                   axisPointer: {
@@ -260,7 +262,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ],
         xAxes: [
           {
-            // used to find and convert datapoint to pixel position
             id: MAIN_X_AXIS_ID,
             axisPointer: {
               snap: true,
