@@ -209,14 +209,14 @@ export const MetricWidget = memo(
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
-        isHighlighted={isSelected && !!hasSiblings}
-        isHighlightable={!!hasSiblings}
+        isHighlighted={isSelected && hasSiblings}
+        isHighlightable={hasSiblings}
         onClick={() => onSelect?.(index)}
       >
         <PanelBody>
           <MetricWidgetHeader>
             {showQuerySymbols && queryId !== undefined && (
-              <QuerySymbol queryId={queryId} isSelected={isSelected} />
+              <QuerySymbol queryId={queryId} isSelected={isSelected && hasSiblings} />
             )}
             <WidgetTitle>
               <StyledTooltip
