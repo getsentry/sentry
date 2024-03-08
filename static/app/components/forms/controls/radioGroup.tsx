@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -30,6 +31,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
+  tooltipPosition?: PopperProps<any>['placement'];
 }
 
 /**
@@ -53,6 +55,7 @@ function RadioGroup<C extends string>({
   label,
   onChange,
   orientInline,
+  tooltipPosition,
   ...props
 }: RadioGroupProps<C>) {
   return (
@@ -77,6 +80,7 @@ function RadioGroup<C extends string>({
             key={index}
             disabled={!disabledChoiceReason}
             title={disabledChoiceReason}
+            position={tooltipPosition}
           >
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
