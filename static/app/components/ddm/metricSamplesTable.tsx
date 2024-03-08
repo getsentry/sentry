@@ -338,9 +338,9 @@ export function MetricSamplesTable({
 function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField> {
   return parsedMRI?.useCase === 'spans' && parsedMRI?.name === 'spans.exclusive_time'
     ? {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'}
-    : parsedMRI?.useCase === 'custom'
-      ? {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'}
-      : {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'};
+    : parsedMRI?.useCase === 'transactions' && parsedMRI?.name === 'transaction.duration'
+      ? {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'}
+      : {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'};
 }
 
 function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
