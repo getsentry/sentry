@@ -85,7 +85,7 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    title_text = f":exclamation: <{title_link}|*{formatted_title}*>"
+    title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
     blocks: list[dict[str, Any]] = [
         {
@@ -102,15 +102,14 @@ def build_test_message_blocks(
             blocks.append(text_section)
 
     tags_text = ""
-    if not tags:
-        tags = {"level": "error"}
-    for k, v in tags.items():
-        if k == "release":
-            v = format_release_tag(v, group)
-        tags_text += f"{k}: `{v}`  "
+    if tags:
+        for k, v in tags.items():
+            if k == "release":
+                v = format_release_tag(v, group)
+            tags_text += f"{k}: `{v}`  "
 
-    tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
-    blocks.append(tags_section)
+        tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
+        blocks.append(tags_section)
 
     # add event and user count, state, first seen
     counts_section = {
@@ -118,7 +117,7 @@ def build_test_message_blocks(
         "elements": [
             {
                 "type": "mrkdwn",
-                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+                "text": f"State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
             }
         ],
     }
@@ -345,15 +344,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        base_tags = {"level": "error", "release": release.version}
-        more_tags = {"foo": "bar", **base_tags}
+        more_tags = {"foo": "bar"}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            tags=base_tags,
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
@@ -375,7 +372,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             notes=notes,
             event=event,
-            tags=base_tags,
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
@@ -396,7 +392,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            tags=base_tags,
         )
 
         assert SlackIssuesMessageBuilder(
@@ -407,14 +402,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             link_to_event=True,
-            tags=base_tags,
         )
 
         test_message = build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            tags=base_tags,
         )
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
@@ -442,13 +435,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = event.group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        base_tags = {"level": "error"}
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            tags=base_tags,
         )
 
     @with_feature("organizations:slack-block-kit")
@@ -474,13 +465,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = event.group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        base_tags = {"level": "error"}
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            tags=base_tags,
         )
 
     @patch(
@@ -888,64 +877,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         occurrence.save()
         group_event.occurrence = occurrence
 
-        group_event.group.type = ProfileFileIOGroupType.type_id
-
-        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
-        assert isinstance(blocks, dict)
-        for section in blocks["blocks"]:
-            if section["type"] == "text":
-                assert occurrence.issue_title in section["text"]["text"]
-
-        assert occurrence.evidence_display[0].value in blocks["blocks"][1]["text"]["text"]
-        assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
-
-    @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:slack-block-kit-improvements")
-    def test_build_group_generic_issue_block_no_escaping(self):
-        """Test that a generic issue type's Slack alert contains the expected values"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-        group_event = event.for_group(event.groups[0])
-        # should also trim whitespace
-        text = "\n\n\n      <bye> ```asdf```      "
-        escaped_text = "<bye> `asdf`"
-
-        occurrence = self.build_occurrence(
-            level="info",
-            evidence_display=[
-                {"name": "hi", "value": text, "important": True},
-                {"name": "what", "value": "where", "important": False},
-            ],
-        )
-        occurrence.save()
-        group_event.occurrence = occurrence
-
-        group_event.group.type = ProfileFileIOGroupType.type_id
-
-        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
-
-        assert isinstance(blocks, dict)
-        for section in blocks["blocks"]:
-            if section["type"] == "text":
-                assert occurrence.issue_title in section["text"]["text"]
-
-        # no escaping
-        assert blocks["blocks"][1]["text"]["text"] == f"```{escaped_text}```"
-        assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
-
-    @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:slack-block-kit-improvements")
-    def test_build_group_generic_issue_block_title_emojis(self):
-        """Test that a generic issue type's Slack alert contains the expected values"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-        group_event = event.for_group(event.groups[0])
-        occurrence = self.build_occurrence(level="info")
-        occurrence.save()
-        group_event.occurrence = occurrence
-
         # uses CATEGORY_TO_EMOJI_V2
         group_event.group.type = ProfileFileIOGroupType.type_id
         blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
@@ -1037,7 +968,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][1]["text"]["text"]
+        assert "<https://example.com/|*Click Here*>" in ret["blocks"][1]["text"]["text"]
 
 
 @region_silo_test
@@ -1096,7 +1027,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         assert isinstance(blocks, dict)
         assert (
             f"<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][4]["elements"][0]["text"]
+            in blocks["blocks"][3]["elements"][0]["text"]
         )
 
 
@@ -1666,7 +1597,6 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         )
 
     @freeze_time("2024-02-23")
-    @with_feature("organizations:slack-block-kit-improvements")
     @patch("sentry.models.Group.get_recommended_event_for_environments")
     def test_get_context(self, mock_event):
         event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
@@ -1688,7 +1618,6 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         # feedback doesn't have context
         assert get_context(self.feedback_issue) == ""
 
-    @with_feature("organizations:slack-block-kit-improvements")
     def test_get_context_error_user_count(self):
         event = self.store_event(
             data={},
@@ -1713,7 +1642,6 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
-    @with_feature("organizations:slack-block-kit-improvements")
     def test_get_tags(self):
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
         tags = get_tags(
