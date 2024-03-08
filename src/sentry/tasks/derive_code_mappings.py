@@ -32,10 +32,11 @@ if TYPE_CHECKING:
 
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
-    msg = error.text
     if error.json:
         json_data: JSONData = error.json
         msg = json_data.get("message")
+    else:
+        msg = error.text
     extra["error"] = msg
 
     if msg is None:
