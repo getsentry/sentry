@@ -3443,10 +3443,6 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     }
 }
 
-# START DEPRECATED SECTION
-KAFKA_GROUP_ATTRIBUTES = "group-attributes"
-# END DEPRECATED SECTION
-
 
 # Mapping of default Kafka topic name to custom names
 KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
