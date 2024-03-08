@@ -10,9 +10,9 @@ interface Props {
 }
 
 const MAILBOX = {
-  unresolved: 'is:unassigned is:unresolved',
-  resolved: 'is:unassigned is:resolved',
-  ignored: 'is:unassigned is:ignored',
+  unresolved: 'issue.category:feedback is:unassigned is:unresolved',
+  resolved: 'issue.category:feedback is:unassigned is:resolved',
+  ignored: 'issue.category:feedback is:unassigned is:ignored',
 };
 
 export default function useMailboxCounts({organization}: Props) {

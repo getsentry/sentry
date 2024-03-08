@@ -21,7 +21,7 @@ export default storyBook(Badge, story => {
       <Badge type="new">New</Badge>
       <Badge type="experimental">Experimental</Badge>
       <Badge type="warning">Warning</Badge>
-      <Badge type="purple">Purple</Badge>
+      <Badge type="gray">Gray</Badge>
     </SideBySide>
   ));
 });

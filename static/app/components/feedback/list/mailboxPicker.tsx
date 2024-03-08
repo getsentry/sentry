@@ -40,11 +40,16 @@ export default function MailboxPicker({onChange, value}: Props) {
           <SegmentedControl.Item key={c.key}>
             <Flex align="center">
               {c.label}
-              {data?.[c.key] ? <Badge type="purple" text={data?.[c.key] ?? ''} /> : null}
+              {data?.[c.key] ? <CountBadge count={data?.[c.key]} /> : null}
             </Flex>
           </SegmentedControl.Item>
         ))}
       </SegmentedControl>
     </Flex>
   );
+}
+
+function CountBadge({count}: {count: number}) {
+  const display = count >= 100 ? '99+' : count;
+  return <Badge type="gray" text={display} />;
 }
