@@ -208,32 +208,40 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
 
-            deduped_groups_by_activity_type: dict[str, set] = {
-                "regressed": set(),
-                "escalated": set(),
+            deduped_groups_by_activity_type: dict[int, set] = {
+                ActivityType.SET_REGRESSION.value: set(),
+                ActivityType.SET_ESCALATING.value: set(),
             }
             for activity in regressed_or_escalated_groups_today:
                 if activity.type == ActivityType.SET_ESCALATING.value:
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
                     # this means the group regressed and then later escalated, and we only want to list it once
-                    if activity.group in deduped_groups_by_activity_type["regressed"]:
-                        deduped_groups_by_activity_type["regressed"].remove(activity.group)
-                    deduped_groups_by_activity_type["escalated"].add(activity.group)
-                else:
                     if (
-                        activity.type == ActivityType.SET_REGRESSION.value
-                        and activity.group not in deduped_groups_by_activity_type["escalated"]
+                        activity.group
+                        in deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value]
                     ):
-                        deduped_groups_by_activity_type["regressed"].add(activity.group)
+                        deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value].remove(
+                            activity.group
+                        )
+                    deduped_groups_by_activity_type[ActivityType.SET_ESCALATING.value].add(
+                        activity.group
+                    )
+                elif (
+                    activity.type == ActivityType.SET_REGRESSION.value
+                    and activity.group
+                    not in deduped_groups_by_activity_type[ActivityType.SET_ESCALATING.value]
+                ):
+                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION.value].add(
+                        activity.group
+                    )
 
-            if deduped_groups_by_activity_type:
-                for activity_type, groups in deduped_groups_by_activity_type.items():
-                    if activity_type == "regressed":
-                        for group in list(groups)[:4]:
-                            project_ctx.regressed_today.append(group)
-                    else:
-                        for group in list(groups)[:4]:
-                            project_ctx.escalated_today.append(group)
+            for activity_type, groups in deduped_groups_by_activity_type.items():
+                if activity_type == ActivityType.SET_REGRESSION.value:
+                    for group in list(groups)[:4]:
+                        project_ctx.regressed_today.append(group)
+                else:
+                    for group in list(groups)[:4]:
+                        project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
