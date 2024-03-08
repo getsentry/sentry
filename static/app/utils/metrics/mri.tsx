@@ -55,6 +55,7 @@ function parseName(name: string, useCase: UseCase): string {
     if (name === 'duration') {
       return 'span.duration';
     }
+    return name;
   }
   return `${useCase}.${name}`;
 }
