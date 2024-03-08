@@ -739,11 +739,19 @@ def post_process_group(
         for job in group_jobs:
             run_post_process_job(job)
 
+        metric_tags = {}
+        if group_events:
+            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab the
+            # first
+            group_event = group_events[0]
+            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
         if not is_reprocessed and event.data.get("received"):
             metrics.timing(
                 "events.time-to-post-process",
                 time() - event.data["received"],
                 instance=event.data["platform"],
+                tags=metric_tags,
             )
 
 
