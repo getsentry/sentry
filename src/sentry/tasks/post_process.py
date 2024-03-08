@@ -741,9 +741,9 @@ def post_process_group(
 
         metric_tags = {}
         if group_events:
-            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab the
-            # first
-            group_event = group_events[0]
+            # In practice, we only have one group here and will be removing the list of jobs. For now, just grab a
+            # random one
+            group_event = list(group_events.values())[0]
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
         if not is_reprocessed and event.data.get("received"):
