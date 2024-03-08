@@ -373,7 +373,7 @@ const MetricWidgetBody = memo(
       onClick: samples?.onClick,
       highlightedSampleId: samples?.higlightedId,
       operation: samples?.operation,
-      referencingSeries: chartSeries[0],
+      timeseries: chartSeries,
     });
 
     const samplesV2Prop = useMetricChartSamplesV2({
@@ -381,7 +381,7 @@ const MetricWidgetBody = memo(
       highlightedSampleId: samples?.higlightedId,
       operation: samplesV2?.operation,
       onSampleClick: samplesV2?.onSampleClick,
-      referencingSeries: chartSeries[0],
+      timeseries: chartSeries,
       unit: samplesV2?.unit,
     });
 

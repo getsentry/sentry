@@ -29,13 +29,20 @@ import type {Sample} from 'sentry/views/ddm/widget';
 export const SAMPLES_X_AXIS_ID = 'xAxisSamples';
 export const SAMPLES_Y_AXIS_ID = 'yAxisSamples';
 
-function getValueRectFromSeries(series?: Series) {
-  if (!series) {
+function getValueRectFromSeries(series: Series[]) {
+  const referenceSeries = series[0];
+  if (!referenceSeries) {
     return {xMin: -Infinity, xMax: Infinity, yMin: -Infinity, yMax: Infinity};
   }
-  const scalingFactor = series.scalingFactor ?? 1;
-  const xValues = series.data.map(entry => entry.name);
-  const yValues = series.data.map(entry => entry.value);
+  const seriesWithSameUnit = series.filter(
+    s => s.unit === referenceSeries.unit && !s.hidden
+  );
+  const scalingFactor = referenceSeries.scalingFactor ?? 1;
+  const xValues = referenceSeries.data.map(entry => entry.name);
+  const yValues = [referenceSeries, ...seriesWithSameUnit].flatMap(s =>
+    s.data.map(entry => entry.value)
+  );
+
   return {
     xMin: Math.min(...xValues),
     xMax: Math.max(...xValues),
@@ -45,6 +52,7 @@ function getValueRectFromSeries(series?: Series) {
 }
 
 type UseChartSamplesProps = {
+  timeseries: Series[];
   chartRef?: RefObject<ReactEchartsRef>;
   correlations?: MetricCorrelation[];
   highlightedSampleId?: string;
@@ -52,7 +60,6 @@ type UseChartSamplesProps = {
   onMouseOut?: (sample: Sample) => void;
   onMouseOver?: (sample: Sample) => void;
   operation?: string;
-  referencingSeries?: Series;
   unit?: string;
 };
 
@@ -66,14 +73,12 @@ export function useMetricChartSamples({
   highlightedSampleId,
   unit = '',
   operation,
-  referencingSeries,
+  timeseries,
 }: UseChartSamplesProps) {
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef>(null);
 
-  const [valueRect, setValueRect] = useState(() =>
-    getValueRectFromSeries(referencingSeries)
-  );
+  const [valueRect, setValueRect] = useState(() => getValueRectFromSeries(timeseries));
 
   const samples: Record<string, ChartSample> = useMemo(() => {
     return (correlations ?? [])
@@ -89,8 +94,8 @@ export function useMetricChartSamples({
   useEffect(() => {
     // Changes in timeseries change the valueRect since the timeseries yAxis auto scales
     // and scatter yAxis needs to match the scale
-    setValueRect(getValueRectFromSeries(referencingSeries));
-  }, [referencingSeries]);
+    setValueRect(getValueRectFromSeries(timeseries));
+  }, [timeseries]);
 
   const xAxis: XAXisOption = useMemo(() => {
     return {
@@ -276,16 +281,16 @@ export function useMetricChartSamples({
 }
 
 interface UseMetricChartSamplesV2Options {
+  timeseries: Series[];
   highlightedSampleId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
   operation?: string;
-  referencingSeries?: Series;
   samples?: MetricsSamplesResults<Field>['data'];
   unit?: string;
 }
 
 export function useMetricChartSamplesV2({
-  referencingSeries,
+  timeseries,
   highlightedSampleId,
   onSampleClick,
   operation,
@@ -295,9 +300,7 @@ export function useMetricChartSamplesV2({
   const theme = useTheme();
   const chartRef = useRef<ReactEchartsRef>(null);
 
-  const [valueRect, setValueRect] = useState(() =>
-    getValueRectFromSeries(referencingSeries)
-  );
+  const [valueRect, setValueRect] = useState(() => getValueRectFromSeries(timeseries));
 
   const samplesById = useMemo(() => {
     return (samples ?? []).reduce((acc, sample) => {
@@ -309,8 +312,8 @@ export function useMetricChartSamplesV2({
   useEffect(() => {
     // Changes in timeseries change the valueRect since the timeseries yAxis auto scales
     // and scatter yAxis needs to match the scale
-    setValueRect(getValueRectFromSeries(referencingSeries));
-  }, [referencingSeries]);
+    setValueRect(getValueRectFromSeries(timeseries));
+  }, [timeseries]);
 
   const xAxis: XAXisOption = useMemo(() => {
     return {
