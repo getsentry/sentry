@@ -98,7 +98,7 @@ export const getCrashReportModalIntroduction = () =>
     'Collect feedback on your errors by installing our crash-report modal. This allows users to submit feedback after they experience an error via an automatic modal that pops up after an error occurs. The default modal will prompt the user for their name, email address, and description of what occurred.'
   );
 
-const getCrashReportModalInstallDescriptionJavaScript = () =>
+export const getCrashReportModalInstallDescriptionJavaScript = () =>
   tct(
     'You can collect feedback at the time the event is sent, using [code:beforeSend].',
     {code: <code />}
