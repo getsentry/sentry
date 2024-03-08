@@ -203,15 +203,28 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        request.session["webauthn_authentication_state"] = state
+        print(request.session.get("staff_u2f", False))
+        if request.session.get("staff_u2f", False):
+            request.session["staff_webauthn_authentication_state"] = state
+            # Remove the staff U2F flag in case we don't validate the generated
+            # challenge/response and want to next use a non-staff U2F flow
+            del request.session["staff_u2f"]
+            print("set session for staff", request.session.__dict__)
+        else:
+            request.session["webauthn_authentication_state"] = state
 
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
     def validate_response(self, request: Request, challenge, response):
+        print("request session", request.session.__dict__)
         try:
             credentials = self.credentials()
+            # Only 1 U2F state should be set at a time
+            state = request.session.get("webauthn_authentication_state") or request.session.get(
+                "staff_webauthn_authentication_state"
+            )
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session["webauthn_authentication_state"],
+                state=state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
@@ -220,4 +233,9 @@ class U2fInterface(AuthenticatorInterface):
             )
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
+        finally:
+            # Cleanup the U2F state from the session
+            print("first pop", request.session.pop("webauthn_authentication_state", None))
+            print("second pop", request.session.pop("staff_webauthn_authentication_state", None))
+        print("request session", request.session.__dict__)
         return True

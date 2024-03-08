@@ -73,12 +73,17 @@ class BaseAuthIndexEndpoint(Endpoint):
     def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
+            getsentry_logger.info(
+                "verify.user.inputs.failed",
+                extra={"user": request.user.id, "validator": validator.validated_data},
+            )
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
+                print(interface.validate_response)
                 authenticated = interface.validate_response(request, challenge, response)
                 getsentry_logger.info(
                     "verify.user.inputs",
@@ -159,12 +164,13 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 "verify_authenticator": verify_authenticator,
             },
         )
+        print("DISABLE_SSO_CHECK_FOR_LOCAL_DEV", DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
         # Disable exception for missing password or u2f code if we're running locally
         validator.is_valid(raise_exception=not DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
-            if (not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and verify_authenticator) or is_self_hosted()
+            if (verify_authenticator) or is_self_hosted()
             else True
         )
 
@@ -232,6 +238,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         :auth: required
         """
+        DISABLE_SSO_CHECK_FOR_LOCAL_DEV = False  # noqa: F811
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         validator = AuthVerifyValidator(data=request.data)
@@ -247,10 +254,12 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             verify_authenticator = False
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
+                print("SUPERUSER_ORG_ID", SUPERUSER_ORG_ID)
                 if SUPERUSER_ORG_ID:
                     verify_authenticator = organization_service.check_organization_by_id(
                         id=SUPERUSER_ORG_ID, only_visible=False
                     )
+                print("verify_authenticator", verify_authenticator)
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
