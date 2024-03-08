@@ -3444,11 +3444,7 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 }
 
 # START DEPRECATED SECTION
-KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
-
-# spans
-KAFKA_SNUBA_SPANS = "snuba-spans"
 # END DEPRECATED SECTION
 
 
