@@ -291,12 +291,11 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
       (sum, group) => sum + group.length,
       0
     );
-    const columnRowGoal = tagTreeRowTotal / COLUMN_COUNT;
+    const columnRowGoal = Math.ceil(tagTreeRowTotal / COLUMN_COUNT);
 
     // Iterate through the row groups, splitting rows into columns when we exceed the goal size
     const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
       ({startIndex, runningTotal, columns}, rowList, index) => {
-        runningTotal += rowList.length;
         // If it's the last entry, create a column with the remaining rows
         if (index === tagTreeRowGroups.length - 1) {
           columns.push(
@@ -307,7 +306,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
           return {startIndex, runningTotal, columns};
         }
         // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal > columnRowGoal) {
+        if (runningTotal >= columnRowGoal) {
           columns.push(
             <TreeColumn key={columns.length}>
               {tagTreeRowGroups.slice(startIndex, index)}
@@ -316,6 +315,7 @@ function TagTreeColumns({meta, tags, ...props}: EventTagsTreeProps) {
           runningTotal = 0;
           startIndex = index;
         }
+        runningTotal += rowList.length;
         return {startIndex, runningTotal, columns};
       },
       {startIndex: 0, runningTotal: 0, columns: []}
