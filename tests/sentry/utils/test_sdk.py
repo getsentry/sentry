@@ -223,7 +223,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/dogs/{name}/"
 
-        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch is None
 
@@ -232,7 +232,7 @@ class CheckScopeTransactionTest(TestCase):
         mock_scope = Scope()
         mock_scope._transaction = "/tricks/{trick_name}/"
 
-        with patch("sentry.utils.sdk.sentry_sdk.Scope.get_current_scope", return_value=mock_scope):
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
             mismatch = check_current_scope_transaction(Request(HttpRequest()))
             assert mismatch == {
                 "scope_transaction": "/tricks/{trick_name}/",
@@ -302,7 +302,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         capture_exception_with_scope_check(Exception())
 
         passed_scope = mock_sdk_capture_exception.call_args.kwargs["scope"]
-        empty_scope = Scope(client=passed_scope.client)
+        empty_scope = Scope()
 
         for entry in empty_scope.__slots__:
             # _propagation_context is generated on __init__ for tracing without performance
