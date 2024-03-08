@@ -15,7 +15,7 @@ import {
   SectionTitle,
   SectionWrap,
 } from '../styles';
-import type {SelectSection} from '../types';
+import type {SelectKey, SelectSection} from '../types';
 import {SectionToggle} from '../utils';
 
 import {ListBoxOption} from './option';
@@ -24,7 +24,7 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
-  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
+  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**

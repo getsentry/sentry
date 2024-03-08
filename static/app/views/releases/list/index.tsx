@@ -631,7 +631,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       .some(project => project?.platform && isMobileRelease(project.platform));
     const showReleaseAdoptionStages =
       hasAnyMobileProject && selection.environments.length === 1;
-    const hasReleasesSetup = releases && releases.length > 0;
 
     return (
       <PageFiltersContainer showAbsolute={false}>
@@ -665,29 +664,23 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
-                  <GuideAnchor
-                    target="releases_search"
-                    position="bottom"
-                    disabled={!hasReleasesSetup}
-                  >
-                    <StyledSmartSearchBar
-                      searchSource="releases"
-                      query={this.getQuery()}
-                      placeholder={t('Search by version, build, package, or stage')}
-                      hasRecentSearches={false}
-                      supportedTags={{
-                        ...SEMVER_TAGS,
-                        release: {
-                          key: 'release',
-                          name: 'release',
-                        },
-                      }}
-                      maxMenuHeight={500}
-                      supportedTagType={ItemType.PROPERTY}
-                      onSearch={this.handleSearch}
-                      onGetTagValues={this.getTagValues}
-                    />
-                  </GuideAnchor>
+                  <StyledSmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    hasRecentSearches={false}
+                    supportedTags={{
+                      ...SEMVER_TAGS,
+                      release: {
+                        key: 'release',
+                        name: 'release',
+                      },
+                    }}
+                    maxMenuHeight={500}
+                    supportedTagType={ItemType.PROPERTY}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
                   <ReleasesStatusOptions
                     selected={activeStatus}
                     onSelect={this.handleStatus}

@@ -27,6 +27,7 @@ from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
+COMPARISON_PERIOD = 14
 
 
 class OrganizationReportContext:
@@ -44,7 +45,7 @@ class OrganizationReportContext:
             int, ProjectContext | DailySummaryProjectContext
         ] = {}  # { project_id: ProjectContext }
 
-        self.project_ownership: dict[str, set[int]] = {}  # { user_id: set<project_id> }
+        self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
         for project in organization.project_set.all():
             if self.daily:
@@ -99,6 +100,19 @@ class ProjectContext:
             ]
         )
 
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_transactions
+            and not self.key_performance_issues
+            and not self.accepted_error_count
+            and not self.dropped_error_count
+            and not self.accepted_transaction_count
+            and not self.dropped_transaction_count
+            and not self.accepted_replay_count
+            and not self.dropped_replay_count
+        )
+
 
 class DailySummaryProjectContext:
     total_today = 0
@@ -108,7 +122,7 @@ class DailySummaryProjectContext:
     key_performance_issues: list[tuple[Group, int]] = []
     escalated_today: list[Group] = []
     regressed_today: list[Group] = []
-    new_in_release: dict[str, list[Group]] = {}
+    new_in_release: dict[int, list[Group]] = {}
 
     def __init__(self, project: Project):
         self.project = project
@@ -117,6 +131,18 @@ class DailySummaryProjectContext:
         self.escalated_today = []
         self.regressed_today = []
         self.new_in_release = {}
+
+    def check_if_project_is_empty(self):
+        return (
+            not self.key_errors
+            and not self.key_performance_issues
+            and not self.total_today
+            and not self.comparison_period_total
+            and not self.comparison_period_avg
+            and not self.escalated_today
+            and not self.regressed_today
+            and not self.new_in_release
+        )
 
 
 def user_project_ownership(ctx: OrganizationReportContext) -> None:
@@ -136,9 +162,7 @@ def project_key_errors(
         return None
     # Take the 3 most frequently occuring events
     prefix = (
-        "daily_summary"
-        if referrer == Referrer.DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES.value
-        else "weekly_reports"
+        "daily_summary" if referrer == Referrer.DAILY_SUMMARY_KEY_ERRORS.value else "weekly_reports"
     )
     op = f"{prefix}.project_key_errors"
 
@@ -412,3 +436,16 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
         if item["substatus"] == GroupSubStatus.REGRESSED:
             project_ctx.regression_substatus_count = item["total"]
         project_ctx.total_substatus_count += item["total"]
+
+
+def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
+    """
+    Check if the context is empty. If it is, we don't want to send a notification.
+    """
+    if ctx.daily:
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
+
+    else:
+        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
+
+    return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)

@@ -13,6 +13,7 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 
 interface UseSpanMetricsOptions<Fields> {
   cursor?: string;
+  enabled?: boolean;
   fields?: Fields;
   filters?: SpanMetricsQueryFilters;
   limit?: number;
@@ -29,13 +30,11 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 
   const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
 
-  const enabled = Object.values(filters).every(value => Boolean(value));
-
   const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
     limit,
-    enabled,
+    enabled: options.enabled,
     referrer,
     cursor,
   });
@@ -47,7 +46,7 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
   return {
     ...result,
     data,
-    isEnabled: enabled,
+    isEnabled: options.enabled,
   };
 };
 

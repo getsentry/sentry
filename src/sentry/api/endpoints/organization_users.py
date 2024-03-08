@@ -15,15 +15,16 @@ from sentry.models.projectteam import ProjectTeam
 @region_silo_endpoint
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        # Removing public documentation in favor of OrganizationMemberIndexEndpoint
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Users
+        List an Organization's Projects Users
         ````````````````````````````
 
-        Return a list of users that belong to a given organization.
+        Return a list of users that belong to a given organization and are part of a project.
 
         :qparam string project: restrict results to users who have access to a given project ID
         :pparam string organization_slug: the slug of the organization for which the users

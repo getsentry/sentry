@@ -436,6 +436,7 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
+
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group

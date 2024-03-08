@@ -74,6 +74,29 @@ SUPPORTED_COMMIT_PROVIDERS = (
     "bitbucket",
     "integrations:bitbucket",
 )
+
+
+def get_approx_start_time(group: Group):
+    event = group.get_recommended_event_for_environments()
+
+    if event is None:
+        return None
+
+    occurrence = event.occurrence
+
+    if occurrence is None:
+        return None
+
+    regression_time = occurrence.evidence_data.get("breakpoint", None)
+
+    if regression_time is None:
+        return None
+
+    # format moment into YYYY-mm-dd h:m:s
+    time = datetime.fromtimestamp(regression_time)
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA = {
@@ -81,8 +104,9 @@ SUPPORTED_CONTEXT_DATA = {
     "Users Affected": lambda group: group.count_users_seen(),
     "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
     "First Seen": lambda group: time_since(group.first_seen),
-    "Approx. Start Time": lambda group: group.active_at.strftime("%Y-%m-%d %H:%M:%S"),
+    "Approx. Start Time": get_approx_start_time,
 }
+
 
 REGRESSION_PERFORMANCE_ISSUE_TYPES = [
     PerformanceP95EndpointRegressionGroupType,
@@ -590,6 +614,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+        text = text.strip(" \n")
 
         if self.use_improved_block_kit:
             text = escape_slack_markdown_text(text)

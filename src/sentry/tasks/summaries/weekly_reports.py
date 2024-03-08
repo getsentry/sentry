@@ -27,6 +27,7 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
+    check_if_ctx_is_empty,
     fetch_key_error_groups,
     fetch_key_performance_issue_groups,
     organization_project_issue_substatus_summaries,
@@ -48,34 +49,6 @@ from sentry.utils.snuba import parse_snuba_datetime
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
-
-
-def check_if_project_is_empty(project_ctx: ProjectContext) -> bool:
-    """
-    Check if this project has any content we could show in an email.
-    """
-    return (
-        not project_ctx.key_errors
-        and not project_ctx.key_transactions
-        and not project_ctx.key_performance_issues
-        and not project_ctx.accepted_error_count
-        and not project_ctx.dropped_error_count
-        and not project_ctx.accepted_transaction_count
-        and not project_ctx.dropped_transaction_count
-        and not project_ctx.accepted_replay_count
-        and not project_ctx.dropped_replay_count
-    )
-
-
-def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
-    """
-    Check if the context is empty. If it is, we don't want to send an email.
-    """
-    project_ctxs = [
-        cast(ProjectContext, project_ctx) for project_ctx in ctx.projects_context_map.values()
-    ]
-
-    return all(check_if_project_is_empty(project_ctx) for project_ctx in project_ctxs)
 
 
 # The entry point. This task is scheduled to run every week.

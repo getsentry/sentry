@@ -7,11 +7,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -364,7 +364,10 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-
+            if features.has(
+                "organizations:rule-create-edit-confirm-notification", project.organization
+            ):
+                send_confirmation_notification(rule=rule, new=False)
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

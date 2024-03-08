@@ -8,7 +8,8 @@ import sentry_sdk
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.repository import get_default_metric_alert_repository
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
@@ -98,6 +99,10 @@ def send_incident_alert_notification(
             # To reply to a thread, use the specific key in the payload as referenced by the docs
             # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
             payload["thread_ts"] = parent_notification_message.message_identifier
+
+            # If the incident is critical status, even if it's in a thread, send to main channel
+            if incident.status == IncidentStatus.CRITICAL.value:
+                payload["reply_broadcast"] = True
 
     client = SlackClient(integration_id=integration.id)
     success = False

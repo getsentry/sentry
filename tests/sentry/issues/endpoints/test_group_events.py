@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 
 from django.utils import timezone as django_timezone
 
@@ -502,7 +502,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         event_2, _, _ = self.store_search_issue(
@@ -510,7 +510,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
 
         self.login_as(user=self.user)
@@ -522,3 +522,30 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+    def test_sample(self):
+        """Test that random=true doesn't blow up. We can't really test if they're in random order."""
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "a" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "b" * 32,
+                "message": "foo",
+                "timestamp": iso_format(self.two_min_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/events/?sample=true"
+        response = self.do_request(url)
+        assert len(response.data) == 2

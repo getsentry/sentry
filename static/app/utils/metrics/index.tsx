@@ -224,7 +224,7 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-export function formatMetricsFormula(formula: string) {
+export function unescapeMetricsFormula(formula: string) {
   // Remove the $ from variable names
   return formula.replaceAll('$', '');
 }
@@ -236,7 +236,7 @@ export function getMetricsSeriesName(
 ) {
   let name = '';
   if (isMetricFormula(query)) {
-    name = formatMetricsFormula(query.formula);
+    name = unescapeMetricsFormula(query.formula);
   } else {
     name = formatMRIField(MRIToField(query.mri, query.op));
   }
@@ -358,14 +358,6 @@ export function isFormattedMQL(mql: string) {
   }
 
   return true;
-}
-
-export function getWidgetTitle(queries: MetricsQuery[]) {
-  if (queries.length === 1) {
-    return getFormattedMQL(queries[0]);
-  }
-
-  return queries.map(({mri, op}) => formatMRIField(MRIToField(mri, op ?? ''))).join(', ');
 }
 
 // TODO: consider moving this to utils/dates.tsx

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,6 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
 import type {EventAttachment} from 'sentry/types';
@@ -118,7 +121,7 @@ describe('EventTagsAndScreenshot', function () {
 
   const event = EventFixture({user});
 
-  const {organization, project, router} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {
       orgRole: 'member',
       attachmentsRole: 'member',
@@ -185,24 +188,22 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('not shared event - without attachments', function () {
+    it('not shared event - without attachments', async function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
 
-      // Screenshot Container
-      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
-
       // Tags Container
-      expect(screen.getByText('Tags')).toBeInTheDocument();
+      expect(await screen.findByText('Tags')).toBeInTheDocument();
       const contextItems = screen.getAllByTestId('context-item');
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
+
+      // Screenshot Container
+      expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
 
       // Context Item 1
       const contextItem1 = within(contextItems[0]);
@@ -236,9 +237,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />,
         {organization}
@@ -255,9 +254,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
           isShare
         />
       );
@@ -284,9 +281,7 @@ describe('EventTagsAndScreenshot', function () {
           <GlobalModal />
           <EventTagsAndScreenshot
             event={EventFixture({user: {}, contexts: {}})}
-            organization={organization}
             projectSlug={project.slug}
-            location={router.location}
           />
         </Fragment>,
         {organization}
@@ -339,9 +334,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -396,9 +389,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -413,9 +404,9 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
       );
 
-      screen.getByRole('button', {name: 'Next Screenshot'}).click();
+      await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+      expect(await screen.findByTestId('screenshot-data-section')).toHaveTextContent(
         '2 of 2'
       );
 
@@ -439,9 +430,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, tags, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -473,9 +462,7 @@ describe('EventTagsAndScreenshot', function () {
       render(
         <EventTagsAndScreenshot
           event={EventFixture({...event, contexts})}
-          organization={organization}
           projectSlug={project.slug}
-          location={router.location}
         />,
         {organization}
       );
@@ -502,12 +489,7 @@ describe('EventTagsAndScreenshot', function () {
 
     it('has tags and attachments only', async function () {
       render(
-        <EventTagsAndScreenshot
-          event={{...event, tags}}
-          organization={organization}
-          projectSlug={project.slug}
-          location={router.location}
-        />,
+        <EventTagsAndScreenshot event={{...event, tags}} projectSlug={project.slug} />,
         {organization}
       );
 
@@ -529,6 +511,88 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
+    });
+  });
+
+  describe("renders changes for 'event-tags-new-ui' flag", function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['event-attachments', 'event-tags-tree-ui'],
+    });
+    const router = RouterFixture({
+      location: {
+        query: {tagsTree: '1'},
+      },
+    });
+    function assertNewTagsView() {
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      // Ensure context isn't added in tag section
+      const contextItems = screen.queryByTestId('context-item');
+      expect(contextItems).not.toBeInTheDocument();
+      // Ensure tag filter appears
+      const tagsContainer = within(screen.getByTestId('event-tags'));
+      expect(tagsContainer.getAllByRole('radio')).toHaveLength(
+        Object.keys(TagFilter).length
+      );
+    }
+
+    function assertFlagAndQueryParamWork() {
+      const flaggedOrgTags = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+        />,
+        {organization: featuredOrganization}
+      );
+      assertNewTagsView();
+      flaggedOrgTags.unmount();
+
+      const flaggedOrgTagsAsShare = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+          isShare
+        />,
+        {organization: featuredOrganization}
+      );
+      assertNewTagsView();
+      flaggedOrgTagsAsShare.unmount();
+
+      const queryParamTags = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTags.unmount();
+
+      const queryParamTagsAsShare = render(
+        <EventTagsAndScreenshot
+          event={EventFixture({...event, tags, contexts})}
+          projectSlug={project.slug}
+          isShare
+        />,
+        {organization, router}
+      );
+      assertNewTagsView();
+      queryParamTagsAsShare.unmount();
+    }
+
+    it('no context, tags only', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: [],
+      });
+      assertFlagAndQueryParamWork();
+    });
+
+    it('no context, tags and screenshot', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+      assertFlagAndQueryParamWork();
     });
   });
 });

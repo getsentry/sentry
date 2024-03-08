@@ -25,7 +25,9 @@ from sentry.monitors.serializers import MonitorCheckInSerializer
 from sentry.monitors.utils import get_new_timeout_at, valid_duration
 from sentry.monitors.validators import MonitorCheckInValidator
 
-from .base import MonitorIngestEndpoint
+from ... import features
+from ...api.exceptions import ResourceDoesNotExist
+from .base import DEPRECATED_INGEST_API_MESSAGE, MonitorIngestEndpoint
 
 
 @region_silo_endpoint
@@ -69,6 +71,9 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         You may use `latest` for the `checkin_id` parameter in order to retrieve
         the most recent (by creation date) check-in which is still mutable (not marked as finished).
         """
+        if features.has("organizations:crons-disable-ingest-endpoints", project.organization):
+            raise ResourceDoesNotExist(detail=DEPRECATED_INGEST_API_MESSAGE)
+
         if checkin.status in CheckInStatus.FINISHED_VALUES:
             return self.respond(status=400)
 

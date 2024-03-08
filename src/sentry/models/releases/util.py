@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import namedtuple
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -16,6 +17,12 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils.numbers import validate_bigint
 
 logger = logging.getLogger(__name__)
+
+
+class SemverVersion(
+    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+):
+    pass
 
 
 @dataclass

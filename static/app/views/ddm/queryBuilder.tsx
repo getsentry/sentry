@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
-  getDefaultMetricDisplayType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
@@ -20,29 +19,20 @@ import {
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
-import type {
-  MetricDisplayType,
-  MetricsQuery,
-  MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
-import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
-  displayType: MetricDisplayType;
-  isEdit: boolean;
   metricsQuery: MetricsQuery;
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  onChange: (data: Partial<MetricsQuery>) => void;
   projects: number[];
-  fixedWidth?: boolean;
-  powerUserMode?: boolean;
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
@@ -58,23 +48,12 @@ function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
 export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects,
-  displayType,
-  powerUserMode,
   onChange,
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {data: meta} = useMetricsMeta(pageFilters.selection);
-  const mriModeKeyPressed = useKeyPress('`', undefined, true);
-  const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
   const breakpoints = useBreakpoints();
-
-  useEffect(() => {
-    if (mriModeKeyPressed && !powerUserMode) {
-      setMriMode(!mriMode);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mriModeKeyPressed, powerUserMode]);
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
@@ -88,15 +67,11 @@ export const QueryBuilder = memo(function QueryBuilder({
   }, [tagsData]);
 
   const displayedMetrics = useMemo(() => {
-    if (mriMode) {
-      return meta;
-    }
-
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
     return meta
       .filter(metric => isShownByDefault(metric) || isSelected(metric))
       .sort(metric => (isSelected(metric) ? -1 : 1));
-  }, [meta, metricsQuery.mri, mriMode]);
+  }, [meta, metricsQuery.mri]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
@@ -104,7 +79,6 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   const incrementQueryMetric = useIncrementQueryMetric({
     ...metricsQuery,
-    displayType,
   });
 
   const handleMRIChange = useCallback(
@@ -120,15 +94,11 @@ export const QueryBuilder = memo(function QueryBuilder({
         mri: value,
         op: selectedOp,
         groupBy: undefined,
-        displayType: getDefaultMetricDisplayType(value, selectedOp),
       };
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
-      onChange({
-        ...queryChanges,
-        focusedSeries: undefined,
-      });
+      onChange(queryChanges);
     },
     [incrementQueryMetric, meta, metricsQuery.op, onChange, organization]
   );
@@ -152,7 +122,6 @@ export const QueryBuilder = memo(function QueryBuilder({
       });
       onChange({
         groupBy: options.map(o => o.value),
-        focusedSeries: undefined,
       });
     },
     [incrementQueryMetric, onChange, organization]
@@ -170,18 +139,18 @@ export const QueryBuilder = memo(function QueryBuilder({
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<SelectOption<MRI>>(metric => ({
-        label: mriMode ? metric.mri : formatMRI(metric.mri),
+        label: formatMRI(metric.mri),
         // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
         textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
         value: metric.mri,
-        trailingItems: mriMode ? undefined : (
+        trailingItems: (
           <Fragment>
             <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
             <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
           </Fragment>
         ),
       })),
-    [displayedMetrics, mriMode]
+    [displayedMetrics]
   );
 
   return (
@@ -242,6 +211,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
+          blockedTags={selectedMeta?.blockingStatus?.flatMap(s => s.blockedTags) ?? []}
         />
       </SearchBarWrapper>
     </QueryBuilderWrapper>

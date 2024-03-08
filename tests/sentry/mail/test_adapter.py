@@ -2,7 +2,7 @@ import uuid
 import zoneinfo
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from functools import cached_property
 from unittest import mock
 from unittest.mock import ANY
@@ -51,7 +51,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
-from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
@@ -333,7 +332,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            datetime.now(UTC),
             "info",
             "/api/123",
         )
@@ -389,7 +388,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             {"Test": 123},
             [],  # no evidence
             MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
+            datetime.now(UTC),
             "info",
             "/api/123",
         )

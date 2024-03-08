@@ -120,7 +120,8 @@ SPAN_COLUMN_MAP = {
     "span.action": "action",
     "span.description": "description",
     "span.domain": "domain",
-    "span.duration": "duration",
+    # DO NOT directly expose span.duration, we should always use the alias
+    # "span.duration": "duration",
     "span.group": "group",
     "span.module": "module",
     "span.op": "op",
@@ -133,7 +134,8 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
-    "profile_id": "profile_id",
+    "profile_id": "profile_id",  # deprecated in favour of `profile.id`
+    "profile.id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
     "raw_domain": "sentry_tags[raw_domain]",
@@ -146,6 +148,9 @@ SPAN_COLUMN_MAP = {
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
+    "replay.id": "sentry_tags[replay_id]",
+    "browser.name": "sentry_tags[browser.name]",
+    "origin.transaction": "sentry_tags[transaction]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

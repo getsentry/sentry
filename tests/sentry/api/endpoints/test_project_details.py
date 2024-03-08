@@ -610,7 +610,8 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "sentry:replay_rage_click_issues": True,
-            "sentry:feedback_user_report_notification": True,
+            "sentry:feedback_user_report_notifications": True,
+            "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
@@ -725,7 +726,8 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert project.get_option("sentry:replay_rage_click_issues") is True
-        assert project.get_option("sentry:feedback_user_report_notification") is True
+        assert project.get_option("sentry:feedback_user_report_notifications") is True
+        assert project.get_option("sentry:feedback_ai_spam_detection") is True
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
