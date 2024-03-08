@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
+import sys
 from collections.abc import MutableMapping
 from typing import Any, cast
 
-import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.types import Message, Value
@@ -73,18 +73,15 @@ def produce_occurrence_to_kafka(
 
     try:
         _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
-    except KafkaException as e:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_context(
-                "Occurrence",
-                {
-                    "id": payload_data["id"],
-                    "type": payload_data["type"],
-                    "issue_title": payload_data["issue_title"],
-                },
-            )
-
-            sentry_sdk.capture_exception(e)
+    except KafkaException:
+        logger.exception(
+            "Failed to send occurrence to issue platform",
+            extra={
+                "total_payload_size": sys.getsizeof(payload),
+                "total_payload_data_size": sys.getsizeof(payload_data),
+                "payload_data_key_sizes": {k: sys.getsizeof(v) for k, v in payload_data.items()},
+            },
+        )
 
 
 def _prepare_occurrence_message(
