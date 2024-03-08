@@ -27,9 +27,11 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
+from sentry.sentry_metrics.querying.data import (
+    MetricsAPIQueryTransformer,
+    MetricsQueriesPlan,
+    run_metrics_queries_plan,
+)
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,

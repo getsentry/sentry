@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
+from sentry.sentry_metrics.querying.data import MetricsQueriesPlan
 
 
 @pytest.mark.parametrize(
