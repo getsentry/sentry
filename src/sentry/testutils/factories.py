@@ -811,7 +811,7 @@ class Factories:
             email = uuid4().hex + "@example.com"
 
         kwargs.setdefault("username", email)
-        kwargs.setdefault("is_staff", True)
+        kwargs.setdefault("is_staff", False)
         kwargs.setdefault("is_active", True)
         kwargs.setdefault("is_superuser", False)
 
