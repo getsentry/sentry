@@ -79,6 +79,7 @@ BACKEND = [
     "php-monolog",
     "php-symfony",
     "php",
+    "powershell",
     "python",
     "python-aiohttp",
     "python-asgi",
