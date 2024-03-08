@@ -9,12 +9,13 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
+from sentry.db.models.manager import BaseManager
 from sentry.incidents.models.alert_rule import AlertRule
 
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleActivationsManager(models.Manager):
+class AlertRuleActivationsManager(BaseManager["AlertRuleActivations"]):
     def get_activations_in_window(self, alert_rule: AlertRule, start: datetime, end: datetime):
         # Return all activations for this alert rule that were activated in the window
         pass
