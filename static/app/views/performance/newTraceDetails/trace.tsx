@@ -45,7 +45,7 @@ import {
   type VirtualizedViewManager,
 } from './virtualizedViewManager';
 
-function Chevron(props: {direction: 'up' | 'down'}) {
+function Chevron(props: {direction: 'up' | 'down' | 'left'}) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -53,7 +53,7 @@ function Chevron(props: {direction: 'up' | 'down'}) {
         fill: 'currentcolor',
         color: 'currentcolor',
         transition: 'transform 120ms ease-in-out',
-        transform: `rotate(${props.direction === 'up' ? 0 : 180}deg)`,
+        transform: `rotate(${props.direction === 'up' ? 0 : props.direction === 'down' ? 180 : -90}deg)`,
       }}
     >
       <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
@@ -699,6 +699,17 @@ function RenderRow(props: {
             entire_space={props.node.space}
             node_spaces={props.node.autogroupedSegments}
           />
+          <button
+            ref={ref =>
+              props.manager.registerArrowRef(ref, props.node.space!, virtualized_index)
+            }
+            className="TraceArrow"
+            onClick={_e => {
+              props.manager.onBringRowIntoView(props.node.space!);
+            }}
+          >
+            <Chevron direction="left" />
+          </button>
         </div>
       </div>
     );
@@ -800,6 +811,17 @@ function RenderRow(props: {
             color={pickBarColor(props.node.value['transaction.op'])}
             node_space={props.node.space}
           />
+          <button
+            ref={ref =>
+              props.manager.registerArrowRef(ref, props.node.space!, virtualized_index)
+            }
+            className="TraceArrow"
+            onClick={_e => {
+              props.manager.onBringRowIntoView(props.node.space!);
+            }}
+          >
+            <Chevron direction="left" />
+          </button>
         </div>
       </div>
     );
@@ -901,6 +923,17 @@ function RenderRow(props: {
             color={pickBarColor(props.node.value.op)}
             node_space={props.node.space}
           />
+          <button
+            ref={ref =>
+              props.manager.registerArrowRef(ref, props.node.space!, virtualized_index)
+            }
+            className="TraceArrow"
+            onClick={_e => {
+              props.manager.onBringRowIntoView(props.node.space!);
+            }}
+          >
+            <Chevron direction="left" />
+          </button>
         </div>
       </div>
     );
@@ -958,13 +991,23 @@ function RenderRow(props: {
             props.manager.onZoomIntoSpace(props.node.space!);
           }}
         >
-          {' '}
           <TraceBar
             virtualized_index={virtualized_index}
             manager={props.manager}
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
           />
+          <button
+            ref={ref =>
+              props.manager.registerArrowRef(ref, props.node.space!, virtualized_index)
+            }
+            className="TraceArrow"
+            onClick={_e => {
+              props.manager.onBringRowIntoView(props.node.space!);
+            }}
+          >
+            <Chevron direction="left" />
+          </button>
         </div>
       </div>
     );
@@ -1038,6 +1081,17 @@ function RenderRow(props: {
             color={pickBarColor('missing-instrumentation')}
             node_space={props.node.space}
           />
+          <button
+            ref={ref =>
+              props.manager.registerArrowRef(ref, props.node.space!, virtualized_index)
+            }
+            className="TraceArrow"
+            onClick={_e => {
+              props.manager.onBringRowIntoView(props.node.space!);
+            }}
+          >
+            <Chevron direction="left" />
+          </button>
         </div>
       </div>
     );
@@ -1706,6 +1760,14 @@ const TraceStylingWrapper = styled('div')`
     align-items: center;
     will-change: width;
     z-index: 1;
+
+    &:hover {
+      .TraceArrow.Visible {
+        opacity: 1;
+        transition: 300ms 300ms ease-out;
+        pointer-events: auto;
+      }
+    }
   }
 
   .TraceBar {
@@ -1721,6 +1783,31 @@ const TraceStylingWrapper = styled('div')`
       > div {
         height: 100%;
       }
+    }
+  }
+
+  .TraceArrow {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    width: 14px;
+    height: 24px;
+    opacity: 0;
+    background-color: transparent;
+    border: none;
+    transition: 60ms ease-out;
+    font-size: ${p => p.theme.fontSizeMedium};
+    color: ${p => p.theme.subText};
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+
+    &.Left {
+      left: 0;
+    }
+    &.Right {
+      right: 0;
+      transform: rotate(180deg);
     }
   }
 

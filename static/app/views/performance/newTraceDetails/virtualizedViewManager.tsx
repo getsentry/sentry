@@ -28,12 +28,6 @@ function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
 }
 
-function onPreventBackForwardNavigation(event: WheelEvent) {
-  if (event.deltaX !== 0) {
-    event.preventDefault();
-  }
-}
-
 type ViewColumn = {
   column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
   column_refs: (HTMLElement | undefined)[];
@@ -178,6 +172,15 @@ export class VirtualizedViewManager {
     [];
   timeline_indicators: (HTMLElement | undefined)[] = [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  span_arrows: (
+    | {
+        position: 0 | 1;
+        ref: HTMLElement;
+        space: [number, number];
+        visible: boolean;
+      }
+    | undefined
+  )[] = [];
   span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
     [];
 
@@ -346,6 +349,10 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
+    this.span_arrows[index] = ref ? {ref, space, visible: false, position: 0} : undefined;
+  }
+
   registerSpanBarTextRef(
     ref: HTMLElement | null,
     text: string,
@@ -474,6 +481,25 @@ export class VirtualizedViewManager {
   }
 
   zoomIntoSpaceRaf: number | null = null;
+  onBringRowIntoView(space: [number, number]) {
+    if (this.zoomIntoSpaceRaf !== null) {
+      window.cancelAnimationFrame(this.zoomIntoSpaceRaf);
+      this.zoomIntoSpaceRaf = null;
+    }
+
+    if (space[0] - this.to_origin > this.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.trace_view.width / 2,
+        this.trace_view.width,
+      ]);
+    } else if (space[0] - this.to_origin < this.trace_view.x) {
+      this.onZoomIntoSpace([
+        space[0] + space[1] / 2 - this.trace_view.width / 2,
+        this.trace_view.width,
+      ]);
+    }
+  }
+
   onZoomIntoSpace(space: [number, number]) {
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
@@ -709,9 +735,6 @@ export class VirtualizedViewManager {
     }
 
     this.container = container;
-    this.container.addEventListener('wheel', onPreventBackForwardNavigation, {
-      passive: false,
-    });
 
     this.resize_observer = new ResizeObserver(entries => {
       const entry = entries[0];
@@ -975,6 +998,8 @@ export class VirtualizedViewManager {
       if (span) span.style.width = spanWidth;
 
       const span_bar = this.span_bars[i];
+      const span_arrow = this.span_arrows[i];
+
       if (span_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
         span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
@@ -992,6 +1017,24 @@ export class VirtualizedViewManager {
 
         span_text.ref.style.color = inside ? 'white' : '';
         span_text.ref.style.transform = `translateX(${text_transform}px)`;
+        if (span_arrow && span_bar) {
+          const outside_left =
+            span_bar.space[0] - this.to_origin + span_bar.space[1] < this.trace_view.x;
+          const outside_right =
+            span_bar.space[0] - this.to_origin > this.trace_view.right;
+          const visible = outside_left || outside_right;
+
+          if (visible !== span_arrow.visible) {
+            span_arrow.visible = visible;
+            span_arrow.position = outside_left ? 0 : 1;
+
+            if (visible) {
+              span_arrow.ref.className = `TraceArrow Visible ${span_arrow.position === 0 ? 'Left' : 'Right'}`;
+            } else {
+              span_arrow.ref.className = 'TraceArrow';
+            }
+          }
+        }
       }
     }
 
@@ -1109,9 +1152,6 @@ export class VirtualizedViewManager {
   }
 
   teardown() {
-    if (this.container) {
-      this.container.removeEventListener('wheel', onPreventBackForwardNavigation);
-    }
     if (this.resize_observer) {
       this.resize_observer.disconnect();
     }
@@ -1398,6 +1438,7 @@ export const useVirtualizedList = (
     props.container.style.overflow = 'auto';
     props.container.style.position = 'relative';
     props.container.style.willChange = 'transform';
+    props.container.style.overscrollBehavior = 'none';
 
     scrollContainerRef.current!.style.overflow = 'hidden';
     scrollContainerRef.current!.style.position = 'relative';
