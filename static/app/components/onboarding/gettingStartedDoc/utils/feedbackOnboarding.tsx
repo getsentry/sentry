@@ -143,12 +143,18 @@ export const getCrashReportJavaScriptInstallStep = params => [
 ];
 
 export function getCrashReportSDKInstallFirstStep(params) {
+  const dataLoaded =
+    params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
-    params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version ?? '';
+    (dataLoaded &&
+      params.sourcePackageRegistries.data['sentry.javascript.browser'].version) ??
+    '';
   const hash =
-    params.sourcePackageRegistries.data?.['sentry.javascript.browser']?.files[
-      'bundle.min.js'
-    ].checksums['sha384-base64'] ?? '';
+    (dataLoaded &&
+      params.sourcePackageRegistries.data['sentry.javascript.browser'].files[
+        'bundle.min.js'
+      ].checksums['sha384-base64']) ??
+    '';
 
   return {
     description: t('Make sure you have the JavaScript SDK available:'),
@@ -224,12 +230,18 @@ export const getCrashReportBackendInstallStep = params => [
 ];
 
 export function getCrashReportSDKInstallFirstStepRails(params) {
+  const dataLoaded =
+    params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
-    params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version ?? '';
+    (dataLoaded &&
+      params.sourcePackageRegistries.data['sentry.javascript.browser'].version) ??
+    '';
   const hash =
-    params.sourcePackageRegistries.data?.['sentry.javascript.browser']?.files[
-      'bundle.min.js'
-    ].checksums['sha384-base64'] ?? '';
+    (dataLoaded &&
+      params.sourcePackageRegistries.data['sentry.javascript.browser'].files[
+        'bundle.min.js'
+      ].checksums['sha384-base64']) ??
+    '';
 
   return {
     description: t('Make sure you have the JavaScript SDK available:'),
