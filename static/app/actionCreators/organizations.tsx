@@ -221,6 +221,7 @@ export async function fetchOrganizations(api: Client, query?: Record<string, any
       api.requestPromise(`/organizations/`, {
         host: region.url,
         query,
+        allowAuthError: true,
       })
     )
   );

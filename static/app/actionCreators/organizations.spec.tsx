@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
@@ -41,5 +42,39 @@ describe('fetchOrganizations', function () {
     expect(organizations).toHaveLength(2);
     expect(usMock).toHaveBeenCalledTimes(1);
     expect(deMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores 401 errors from a region', async function () {
+    ConfigStore.set('regions', [
+      {name: 'us', url: 'https://us.example.org'},
+      {name: 'de', url: 'https://de.example.org'},
+    ]);
+    const usMock = MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: [usorg],
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.host === 'https://us.example.org';
+        },
+      ],
+    });
+    const deMock = MockApiClient.addMockResponse({
+      url: '/organizations/',
+      body: {detail: 'Authentication credentials required'},
+      status: 401,
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.host === 'https://de.example.org';
+        },
+      ],
+    });
+
+    const organizations = await fetchOrganizations(api);
+
+    expect(organizations).toHaveLength(2);
+    expect(usMock).toHaveBeenCalledTimes(1);
+    expect(deMock).toHaveBeenCalledTimes(1);
+    expect(window.location.reload).not.toHaveBeenCalled();
+    expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 });
