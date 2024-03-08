@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
+import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import Pills from 'sentry/components/pills';
 import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
@@ -20,12 +20,11 @@ import EventTagsPill from './eventTagsPill';
 type Props = {
   event: Event;
   projectSlug: string;
-  tagFilter?: TagFilter;
 };
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 
-export function EventTags({event, projectSlug, tagFilter = TagFilter.ALL}: Props) {
+export function EventTags({event, projectSlug}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTagsUI = useHasNewTagsUI();
@@ -97,19 +96,10 @@ export function EventTags({event, projectSlug, tagFilter = TagFilter.ALL}: Props
     return null;
   }
 
-  const orgSlug = organization.slug;
-  const streamPath = `/organizations/${orgSlug}/issues/`;
   return (
     <StyledClippedBox clipHeight={150}>
       {hasNewTagsUI ? (
-        <EventTagsTree
-          tags={tags}
-          meta={meta}
-          projectSlug={projectSlug}
-          projectId={projectId}
-          streamPath={streamPath}
-          tagFilter={tagFilter}
-        />
+        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
       ) : (
         <Pills>
           {tags.map((tag, index) => (
@@ -123,7 +113,7 @@ export function EventTags({event, projectSlug, tagFilter = TagFilter.ALL}: Props
                 {...location.query, referrer: 'event-tags'},
                 tag
               )}
-              streamPath={streamPath}
+              streamPath={`/organizations/${organization.slug}/issues/`}
               meta={meta?.[index]}
             />
           ))}

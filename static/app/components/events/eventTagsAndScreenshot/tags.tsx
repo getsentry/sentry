@@ -79,11 +79,7 @@ function Tags({event, projectSlug}: Props) {
       type="tags"
     >
       {!hasNewTagsUI && <EventContextSummary event={event} />}
-      <EventTags
-        event={{...event, tags}}
-        projectSlug={projectSlug}
-        tagFilter={tagFilter}
-      />
+      <EventTags event={{...event, tags}} projectSlug={projectSlug} />
     </StyledEventDataSection>
   );
 }

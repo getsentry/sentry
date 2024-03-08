@@ -26,6 +26,7 @@ export const TagFilterData = {
     'app.in_foreground',
     // Runtime Context
     'runtime',
+    'runtime.name',
     'runtime.context',
     'runtime.version',
     'runtime.build',

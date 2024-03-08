@@ -193,9 +193,9 @@ function DropdownMenu({
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>
