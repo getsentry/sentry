@@ -208,7 +208,10 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
 
-            deduped_groups_by_activity_type = {"regressed": set(), "escalated": set()}
+            deduped_groups_by_activity_type: dict[str, set] = {
+                "regressed": set(),
+                "escalated": set(),
+            }
             for activity in regressed_or_escalated_groups_today:
                 if activity.type == ActivityType.SET_ESCALATING.value:
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
