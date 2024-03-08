@@ -70,7 +70,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.reset();
   },
 
-reset() {
+  reset() {
     this.state = {
       orgSlug: undefined,
       release: new Map() as StoreRelease,
@@ -86,7 +86,7 @@ reset() {
   updateOrganization(org) {
     this.reset();
     // Ensure org is not null and has a slug property before assignment
-    if (org && typeof org.slug !== 'undefined') {   
+    if (org && typeof org.slug !== 'undefined') {
       this.state.orgSlug = org.slug;
     }
     this.trigger(this.state);
@@ -105,7 +105,6 @@ reset() {
     this.state = {
       ...state,
       releaseLoading: {
-
         ...releaseLoading,
         [releaseKey]: true,
       },
