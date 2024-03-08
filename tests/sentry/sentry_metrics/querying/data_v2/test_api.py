@@ -1533,7 +1533,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    def test_query_with_basic_formula_and_unitless_formula_functions(self):
+    def test_query_with_basic_formula_and_coefficient_operators(self):
         mri_1 = "d:custom/page_load@nanosecond"
         mri_2 = "d:custom/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
@@ -1556,6 +1556,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("$query_2 * 2", 30000.0, UnitFamily.DURATION.value, "nanosecond"),
             ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
             ("$query_2 / 2", 7500.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * (2 + 1)", 45000.0, UnitFamily.DURATION.value, "nanosecond"),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)

@@ -1,17 +1,10 @@
 from collections.abc import Sequence
 
-from snuba_sdk import (
-    AliasedExpression,
-    ArithmeticOperator,
-    Column,
-    Condition,
-    Formula,
-    Op,
-    Timeseries,
-)
+from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
+from sentry.sentry_metrics.querying.common import COEFFICIENT_OPERATORS
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -283,10 +276,6 @@ class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, Que
     Visitor that recursively transforms the `QueryExpression` components to have the same unit.
     """
 
-    COEFFICIENT_OPERATORS = {
-        ArithmeticOperator.DIVIDE.value,
-        ArithmeticOperator.MULTIPLY.value,
-    }
     UNITLESS_AGGREGATES = {"count", "count_unique"}
 
     def __init__(self):
@@ -330,7 +319,7 @@ class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, Que
         if last_metadata is None:
             return WithNoUnit(), formula
 
-        has_coefficient_operators = formula.function_name in self.COEFFICIENT_OPERATORS
+        has_coefficient_operators = formula.function_name in COEFFICIENT_OPERATORS
 
         # If we have all timeseries as parameters of a formula and the function belongs to `*` or `/` we will
         # not perform any normalization.
@@ -340,6 +329,10 @@ class UnitsNormalizationV2Visitor(QueryExpressionVisitor[tuple[UnitMetadata, Que
         # We convert all scalars in the formula using the last seen scaling factor. Since we are always working with
         # two operands, this means that if we found at least one numeric scalar, the scaling factor will belong to the
         # other operand.
+        # It's important to note that we are not doing any scalar normalization if we have a coefficient operator, since
+        # we don't want to scale both operands.
+        # Example:
+        #  a * 2 with a scaling factor of 1000 must become a * 1000 * 2 and not a * 1000 * 2 * 1000
         if not has_coefficient_operators and future_units and last_metadata.unit is not None:
             for index, future_unit in future_units:
                 parameters[index] = self._normalize_future_units(last_metadata.unit, future_unit)
@@ -406,16 +399,11 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
     Visitor that recursively applies a unit transformation on all the numeric scalars in a `QueryExpression`.
     """
 
-    COEFFICIENT_OPERATORS = {
-        ArithmeticOperator.DIVIDE.value,
-        ArithmeticOperator.MULTIPLY.value,
-    }
-
     def __init__(self, unit: Unit):
         self._unit = unit
 
     def _visit_formula(self, formula: Formula) -> TVisited:
-        has_coefficient_operators = formula.function_name in self.COEFFICIENT_OPERATORS
+        has_coefficient_operators = formula.function_name in COEFFICIENT_OPERATORS
 
         # In case the formula has a coefficient operator with all scalars, we want to scale the entire formula by
         # wrapping it in another formula. For all the other cases, we just want to apply the scaling to each component
