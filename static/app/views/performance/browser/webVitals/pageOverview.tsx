@@ -238,10 +238,10 @@ export default function PageOverview() {
                       )}
                       <br />
                       {tct(
-                        `Users should update their Sentry SDKs to the [link:latest version (7.105.0+)] and enable the INP option to start receiving updated Performance Scores.`,
+                        `Users should update their Sentry SDKs to the [link:latest version (7.104.0+)] and enable the INP option to start receiving updated Performance Scores.`,
                         {
                           link: (
-                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.105.0" />
+                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.104.0" />
                           ),
                         }
                       )}
