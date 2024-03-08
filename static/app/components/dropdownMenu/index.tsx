@@ -76,6 +76,10 @@ interface DropdownMenuProps
    */
   className?: string;
   /**
+   * `overlayProps` will be passed on to the usecomponent.
+   */
+  dropdownOverlayProps?: UseOverlayProps;
+  /**
    * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
@@ -131,6 +135,7 @@ function DropdownMenu({
   trigger,
   triggerLabel,
   triggerProps = {},
+  dropdownOverlayProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   renderWrapAs = 'div',
@@ -169,6 +174,7 @@ function DropdownMenu({
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
+    ...dropdownOverlayProps,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import qs from 'qs';
 
@@ -101,6 +101,7 @@ function TagTreeRow({
   const router = useRouter();
   const originalTag = content.originalTag;
   const referrer = 'event-tags-tree';
+  const [isVisible, setIsVisible] = useState(false);
 
   if (!originalTag) {
     return (
@@ -150,7 +151,9 @@ function TagTreeRow({
           )}
         </TreeValue>
         <TreeValueDropdown
-          position="bottom-end"
+          className={!isVisible ? 'invisible' : ''}
+          position="bottom-start"
+          dropdownOverlayProps={{onOpenChange: isOpen => setIsVisible(isOpen)}}
           triggerProps={{
             'aria-label': t('Tag Actions Menu'),
             icon: <IconEllipsis />,
@@ -361,6 +364,15 @@ const TreeRow = styled('div')`
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p => p.theme.backgroundSecondary};
+  }
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
   }
 `;
 
