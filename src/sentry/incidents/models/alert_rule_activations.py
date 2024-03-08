@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -27,7 +28,7 @@ class AlertRuleActivations(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    objects = AlertRuleActivationsManager()
+    objects: ClassVar[AlertRuleActivationsManager] = AlertRuleActivationsManager()
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", related_name="activations")
     # date_added timestamp indicates when this particular run was activated
