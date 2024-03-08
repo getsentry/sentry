@@ -3444,8 +3444,6 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 }
 
 # START DEPRECATED SECTION
-KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
-KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 
