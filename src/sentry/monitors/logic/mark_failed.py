@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 def mark_failed(
     failed_checkin: MonitorCheckIn,
     ts: datetime,
+    received: datetime | None = None,
 ):
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
@@ -92,12 +93,14 @@ def mark_failed(
         use_issue_platform = False
 
     if use_issue_platform:
-        return mark_failed_threshold(failed_checkin, failure_issue_threshold)
+        return mark_failed_threshold(failed_checkin, failure_issue_threshold, received)
     else:
         return mark_failed_no_threshold(failed_checkin)
 
 
-def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshold: int):
+def mark_failed_threshold(
+    failed_checkin: MonitorCheckIn, failure_issue_threshold: int, received: datetime | None
+):
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
@@ -185,7 +188,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     if fingerprint:
         checkins = MonitorCheckIn.objects.filter(id__in=[c["id"] for c in previous_checkins])
         for previous_checkin in checkins:
-            create_issue_platform_occurrence(previous_checkin, fingerprint)
+            create_issue_platform_occurrence(previous_checkin, fingerprint, received=received)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
@@ -252,6 +255,7 @@ def create_legacy_event(failed_checkin: MonitorCheckIn):
 def create_issue_platform_occurrence(
     failed_checkin: MonitorCheckIn,
     fingerprint: str,
+    received: datetime | None,
 ):
     from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
     from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -305,7 +309,8 @@ def create_issue_platform_occurrence(
         "fingerprint": [fingerprint],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        "received": current_timestamp.isoformat(),
+        # We set this to the time that the checkin that triggered the occurrence was written to the ingest topic
+        "received": received.isoformat(),
         "sdk": None,
         "tags": {
             "monitor.id": str(monitor_env.monitor.guid),
