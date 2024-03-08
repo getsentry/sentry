@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from sentry.sentry_metrics.querying.data.execution import QueryResult
+from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
 
 QueryTransformerResult = TypeVar("QueryTransformerResult")
 

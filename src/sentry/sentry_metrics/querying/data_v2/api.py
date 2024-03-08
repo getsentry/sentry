@@ -8,14 +8,14 @@ from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.data.execution import QueryExecutor, QueryResult
-from sentry.sentry_metrics.querying.data.parsing import QueryParser
-from sentry.sentry_metrics.querying.data.plan import MetricsQueriesPlan, MetricsQueriesPlanResult
-from sentry.sentry_metrics.querying.data.preparation.base import (
+from sentry.sentry_metrics.querying.data_v2.execution import QueryExecutor, QueryResult
+from sentry.sentry_metrics.querying.data_v2.parsing import QueryParser
+from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan, MetricsQueriesPlanResult
+from sentry.sentry_metrics.querying.data_v2.preparation.base import (
     IntermediateQuery,
     run_preparation_steps,
 )
-from sentry.sentry_metrics.querying.data.preparation.units_normalization import (
+from sentry.sentry_metrics.querying.data_v2.preparation.units_normalization import (
     UnitNormalizationStep,
 )
 from sentry.sentry_metrics.querying.types import QueryType
