@@ -6,7 +6,7 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 type BaseProps = {
   isKeyTransaction: boolean;
@@ -76,17 +76,17 @@ function TeamKeyTransactionField({
 
 type WrapperProps = BaseProps & {
   projectSlug: string | undefined;
-  projects: Project[];
+
   transactionName: string | undefined;
 };
 
-function TeamKeyTransactionFieldWrapper({
+export default function TeamKeyTransactionFieldWrapper({
   isKeyTransaction,
-  projects,
   projectSlug,
   transactionName,
   ...props
 }: WrapperProps) {
+  const {projects} = useProjects();
   const project = projects.find(proj => proj.slug === projectSlug);
 
   // All these fields need to be defined in order to toggle a team key
@@ -118,5 +118,3 @@ function TeamKeyTransactionFieldWrapper({
     </TeamKeyTransactionManager.Consumer>
   );
 }
-
-export default withProjects(TeamKeyTransactionFieldWrapper);

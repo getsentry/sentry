@@ -9,5 +9,5 @@ feedback: 0004_index_together
 hybridcloud: 0013_add_orgauthtokenreplica_token_index
 nodestore: 0002_nodestore_no_dictfield
 replays: 0004_index_together
-sentry: 0668_add_active_monitor_incident_index
+sentry: 0670_monitor_incident_cleanup_duplicates
 social_auth: 0002_default_auto_field
