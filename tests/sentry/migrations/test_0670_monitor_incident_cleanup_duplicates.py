@@ -1,10 +1,6 @@
 import uuid
 
-from sentry.monitors.models import (
-    CheckInStatus,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import CheckInStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
 
