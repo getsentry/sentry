@@ -1,4 +1,4 @@
-import {VideoReplayer} from './VideoReplayer';
+import {VideoReplayer} from './videoReplayer';
 
 // XXX: Not quite sure the best way to mock RAF - here we use fake timers
 // VideoReplayer uses `app/util/replays/timer` which uses RAF to count up. This

@@ -330,7 +330,7 @@ export class VideoReplayer {
    */
   protected async playSegmentAtTime(
     videoOffsetMs: number = 0
-  ): Promise<void> | undefined {
+  ): Promise<void | undefined> {
     const loadedSegmentIndex = await this.loadSegmentAtTime(videoOffsetMs);
 
     if (loadedSegmentIndex === undefined) {
