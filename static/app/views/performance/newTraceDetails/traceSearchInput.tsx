@@ -83,8 +83,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       <InputGroup.TrailingItems>
         <StyledTrailingText>
           {`${
-            props.resultIteratorIndex !== undefined ? props.resultIteratorIndex + 1 : '-'
-          }/${props.resultCount ?? 0}`}
+            props.query && !props.resultCount
+              ? '0/0'
+              : (props.resultIteratorIndex !== undefined
+                  ? props.resultIteratorIndex + 1
+                  : '-') + `/${props.resultCount ?? 0}`
+          }`}
         </StyledTrailingText>
         <StyledSearchBarTrailingButton
           size="zero"
