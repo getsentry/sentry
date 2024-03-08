@@ -1706,6 +1706,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:org-subdomains": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
+    # Enable mobile performance score calculation for transactions in relay
+    "organizations:performance-calculate-mobile-perf-score-relay": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
     # Deprecate fid from performance score calculation
@@ -1748,6 +1750,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable the UI for displaying mobile performance score
+    "organizations:performance-mobile-perf-score-ui": False,
     # Enable N+1 API Calls performance issue type
     "organizations:performance-n-plus-one-api-calls-detector": False,
     # Enable new trends
