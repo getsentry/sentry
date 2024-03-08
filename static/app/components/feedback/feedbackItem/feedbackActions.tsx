@@ -1,4 +1,5 @@
-import {type CSSProperties, Fragment} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment} from 'react';
 
 import Button from 'sentry/components/actions/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
