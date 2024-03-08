@@ -20,7 +20,7 @@ export default function EventTagCustomBanner() {
           </SubTitle>
         </div>
         <ContextArea>
-          <LinkButton href={TAGS_DOCS_LINK} size="sm">
+          <LinkButton size="sm" href={TAGS_DOCS_LINK} external>
             {t('Learn More')}
           </LinkButton>
         </ContextArea>
