@@ -233,10 +233,10 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
 
         query = {
             "mri": "d:spans/duration@millisecond",
-            "field": ["id", "span.duration"],
+            "field": ["id", "span.self_time"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-span.self_time",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -590,26 +590,28 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                     "count": 4,
                 }, operation
 
-        query = {
-            "mri": mri,
-            "field": ["id", "span.duration"],
-            "project": [self.project.id],
-            "statsPeriod": "14d",
-            "sort": "-span.duration",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-        expected = {int(span_id, 16) for span_id in span_ids}
-        actual = {int(row["id"], 16) for row in response.data["data"]}
-        assert actual == expected
-
-        for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
-            assert row["summary"] == {
-                "min": val - 1,
-                "max": val + 1,
-                "sum": val * (len(values) - i) * 2,
-                "count": (len(values) - i) * 2,
+        for operation in ["avg", "min", "max", "count"]:
+            query = {
+                "mri": mri,
+                "field": ["id", "span.duration"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "sort": "-summary",
+                "operation": operation,
             }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            expected = {int(span_id, 16) for span_id in span_ids}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected
+
+            for i, (val, row) in enumerate(zip(reversed(values), response.data["data"])):
+                assert row["summary"] == {
+                    "min": val - 1,
+                    "max": val + 1,
+                    "sum": val * (len(values) - i) * 2,
+                    "count": (len(values) - i) * 2,
+                }
 
     def test_multiple_span_sample_per_time_bucket(self):
         custom_mri = "d:custom/value@millisecond"
