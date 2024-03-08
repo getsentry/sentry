@@ -714,6 +714,15 @@ class MonitorIncident(Model):
                 condition=Q(resolving_checkin__isnull=True),
             ),
         ]
+        constraints = [
+            # Only allow for one active incident (no resolved check-in) per
+            # monitor environment
+            models.UniqueConstraint(
+                fields=["monitor_environment_id"],
+                name="unique_active_incident",
+                condition=Q(resolving_checkin__isnull=True),
+            ),
+        ]
 
 
 @region_silo_only_model
