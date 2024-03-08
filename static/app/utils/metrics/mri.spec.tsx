@@ -24,7 +24,7 @@ describe('parseMRI', () => {
     }
   );
 
-  it.each(['transactions', 'custom'])(
+  it.each(['spans', 'transactions', 'custom'])(
     'should correctly parse a valid MRI string - use case %s',
     useCase => {
       const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
@@ -38,7 +38,7 @@ describe('parseMRI', () => {
     }
   );
 
-  it.each(['sessions', 'spans'])(
+  it.each(['sessions'])(
     'should correctly parse a valid MRI string - use case %s',
     useCase => {
       const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
