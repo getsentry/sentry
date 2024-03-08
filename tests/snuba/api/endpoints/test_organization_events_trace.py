@@ -83,7 +83,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                         span.update({"event_id": event.event_id})
                         self.store_span(
                             self.create_span(
-                                span, start_ts=datetime.fromtimestamp(span["start_timestamp"])
+                                span,
+                                start_ts=datetime.fromtimestamp(span["start_timestamp"]),
+                                duration=int(span["timestamp"] - span["start_timestamp"]) * 1000,
                             )
                         )
                 self.store_span(self.convert_event_data_to_span(event))
@@ -810,7 +812,11 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
         assert len(root["performance_issues"]) == 1
-        assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
+        # The perf issue is put on the first span
+        perf_issue_span = self.root_event.data["spans"][0]
+        assert root["performance_issues"][0]["suspect_spans"][0] == perf_issue_span["span_id"]
+        assert root["performance_issues"][0]["start"] == perf_issue_span["start_timestamp"]
+        assert root["performance_issues"][0]["end"] == perf_issue_span["timestamp"]
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -1605,6 +1611,20 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
 
         assert response.status_code == 200, response.content
+
+    def test_simple(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
 
 
 @region_silo_test

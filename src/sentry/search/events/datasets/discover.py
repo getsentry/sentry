@@ -158,8 +158,12 @@ class DiscoverDatasetConfig(DatasetConfig):
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
             TOTAL_TRANSACTION_DURATION_ALIAS: self._resolve_total_sum_transaction_duration,
             DEVICE_CLASS_ALIAS: self._resolve_device_class,
-            PRECISE_FINISH_TS: self._resolve_precise_finish_ts,
-            PRECISE_START_TS: self._resolve_precise_start_ts,
+            PRECISE_FINISH_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("finish_ts"), Column("finish_ms"), alias
+            ),
+            PRECISE_START_TS: lambda alias: field_aliases.resolve_precise_timestamp(
+                Column("start_ts"), Column("start_ms"), alias
+            ),
         }
 
     @property
@@ -1406,26 +1410,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                 None,
             ],
             DEVICE_CLASS_ALIAS,
-        )
-
-    def _resolve_precise_start_ts(self, alias: str) -> SelectType:
-        return Function(
-            "plus",
-            [
-                Function("toUnixTimestamp", [Column("start_ts")]),
-                Function("divide", [Column("start_ms"), 1000]),
-            ],
-            alias,
-        )
-
-    def _resolve_precise_finish_ts(self, alias: str) -> SelectType:
-        return Function(
-            "plus",
-            [
-                Function("toUnixTimestamp", [Column("finish_ts")]),
-                Function("divide", [Column("finish_ms"), 1000]),
-            ],
-            alias,
         )
 
     # Functions
