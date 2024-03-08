@@ -15,7 +15,7 @@ import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 import {
-  BreakpointChartData,
+  type BreakpointChartData,
   getBreakPointChartPropsFromData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 
