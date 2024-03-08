@@ -142,7 +142,7 @@ export const getCrashReportJavaScriptInstallStep = params => [
   },
 ];
 
-function getCrashReportSDKInstallFirstStep(params) {
+export function getCrashReportSDKInstallFirstStep(params) {
   const version =
     params.sourcePackageRegistries.data['sentry.javascript.browser'].version;
   const hash =
