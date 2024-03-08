@@ -21,7 +21,9 @@ describe('AutofixDiff', function () {
     // Hunk section header
     expect(
       screen.getByText(
-        'def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:'
+        textWithMarkupMatcher(
+          '@@ -47,7 +47,7 @@  def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:'
+        )
       )
     ).toBeInTheDocument();
 
