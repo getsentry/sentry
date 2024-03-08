@@ -102,15 +102,21 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const seriesToShow = useMemo(
       () =>
         filteredSeries
-          .map(s => ({
-            ...s,
-            silent: true,
-            yAxisIndex: uniqueUnits.indexOf(s.unit),
-            xAxisIndex: 0,
-            ...(displayType !== MetricDisplayType.BAR
-              ? addSeriesPadding(s.data)
-              : {data: s.data}),
-          }))
+          .map(s => {
+            const mappedSeries = {
+              ...s,
+              silent: true,
+              yAxisIndex: uniqueUnits.indexOf(s.unit),
+              xAxisIndex: 0,
+              ...(displayType !== MetricDisplayType.BAR
+                ? addSeriesPadding(s.data)
+                : {data: s.data}),
+            };
+            if (displayType === MetricDisplayType.BAR) {
+              mappedSeries.stack = s.unit;
+            }
+            return mappedSeries;
+          })
           // Split series in two parts, one for the main chart and one for the fog of war
           // The order is important as the tooltip will show the first series first (for overlaps)
           .flatMap(s => createIngestionSeries(s, ingestionBuckets, displayType)),
