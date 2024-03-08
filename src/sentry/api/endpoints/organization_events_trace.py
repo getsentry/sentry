@@ -212,19 +212,16 @@ class TraceEvent:
                         offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                         if event_span.get("span_id") in offender_span_ids:
                             try:
-                                end_timestamp = float(event_span.get("timestamp"))
+                                start_timestamp = float(event_span.get("precise.start_ts"))
+                                if start is None:
+                                    start = start_timestamp
+                                else:
+                                    start = min(start, start_timestamp)
+                                end_timestamp = float(event_span.get("precise.finish_ts"))
                                 if end is None:
                                     end = end_timestamp
                                 else:
                                     end = max(end, end_timestamp)
-                                if end_timestamp is not None:
-                                    start_timestamp = float(
-                                        end_timestamp - event_span.get("span.duration")
-                                    )
-                                    if start is None:
-                                        start = start_timestamp
-                                    else:
-                                        start = min(start, start_timestamp)
                             except ValueError:
                                 pass
                             suspect_spans.append(event_span.get("span_id"))
@@ -530,9 +527,10 @@ def build_span_query(trace_id, spans_params, query_spans):
         selected_columns=[
             "transaction.id",
             "span_id",
-            "timestamp",
+            "precise.start_ts",
+            "precise.finish_ts",
         ],
-        orderby=["timestamp", "id"],
+        orderby=["precise.start_ts", "id"],
         limit=10000,
     )
     # Building the condition manually, a performance optimization since we might put thousands of span ids
@@ -666,18 +664,21 @@ def augment_transactions_with_spans(
             # not a root span), see if the indexed spans data can tell us what the parent
             # transaction id is.
             if "trace.parent_span.stripped" in transaction:
-                if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
+                parent = parent_map.get(transaction["trace.parent_span.stripped"])
+                if parent is not None:
                     transaction["trace.parent_transaction"] = parent["transaction.id"]
     with sentry_sdk.start_span(op="augment.transactions", description="linking perf issues"):
         for problem in issue_occurrences:
             for span_id in problem.evidence_data["offender_span_ids"]:
-                if parent := parent_map.get(span_id):
+                parent = parent_map.get(span_id)
+                if parent is not None:
                     transaction = transaction_problem_map[problem.event_id]
                     transaction["occurrence_spans"].append(parent)
                     transaction["issue_occurrences"].append(problem)
     with sentry_sdk.start_span(op="augment.transactions", description="linking errors"):
         for error in errors:
-            if parent := parent_map.get(error["trace.span"]):
+            parent = parent_map.get(error["trace.span"])
+            if parent is not None:
                 error["trace.transaction"] = parent["transaction.id"]
     return transactions
 
