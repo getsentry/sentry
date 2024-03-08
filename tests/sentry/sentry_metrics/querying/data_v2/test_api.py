@@ -1349,6 +1349,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for formula, expected_result, expected_unit_family in (
             # (($query_2 * 1000) + 10000.0)
             ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (($query_2 * 1000) + (10 * 2) * 1000)
+            ("($query_2 + (10 * 2))", 40000.0, UnitFamily.DURATION.value),
             # (10000.0 + ($query_2 * 1000))
             ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
             # (($query_2 + 1000) + (10000.0 + 20000.0))
@@ -1551,7 +1553,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("$query_1 * $query_2 + 25", 325.0, None, None),
             ("$query_1 * $query_2 / 1", 300.0, None, None),
             ("$query_1 * 2", 40.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 * 2", 30000.0, UnitFamily.DURATION.value, "nanosecond"),
             ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_2 / 2", 7500.0, UnitFamily.DURATION.value, "nanosecond"),
         ):
             query_1 = self.mql("avg", mri_1)
             query_2 = self.mql("sum", mri_2)
