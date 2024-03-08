@@ -11,7 +11,7 @@ export function SiblingAutogroupNodeDetails({node}: {node: SiblingAutogroupNode}
     <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.IconTitleWrapper>
         <TraceDrawerComponents.IconBorder>
-          <IconGroup color="blue300" size="md" />
+          <IconGroup color="blue300" />
         </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
       </TraceDrawerComponents.IconTitleWrapper>

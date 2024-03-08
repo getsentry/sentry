@@ -37,7 +37,6 @@ import {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Title} from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -476,7 +475,7 @@ export function TransactionNodeDetails({
   );
 }
 
-const TransactioNodeDetailHeader = styled(Title)`
+const TransactioNodeDetailHeader = styled(TraceDrawerComponents.Title)`
   justify-content: space-between;
 `;
 

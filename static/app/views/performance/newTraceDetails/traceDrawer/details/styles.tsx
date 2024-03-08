@@ -56,9 +56,20 @@ const IconTitleWrapper = styled(FlexBox)`
 `;
 
 const IconBorder = styled('div')<{errored?: boolean}>`
-  border: 1px solid ${p => (p.errored ? p.theme.error : p.theme.blue300)};
+  background-color: ${p => (p.errored ? p.theme.error : p.theme.blue300)};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1)} 3px ${space(1)};
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+
+  svg {
+    fill: ${p => p.theme.white};
+    width: 14px;
+    height: 14px;
+  }
 `;
 
 const Button = styled(CommonButton)`

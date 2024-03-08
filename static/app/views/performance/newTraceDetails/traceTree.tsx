@@ -917,6 +917,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       ];
     }
 
+    if (
+      isTraceErrorNode(this) &&
+      'timestamp' in this.value &&
+      typeof this.value.timestamp === 'number'
+    ) {
+      this.space = [this.value.timestamp * this.multiplier, 0];
+    }
+
     if (isTransactionNode(this) || isTraceNode(this) || isSpanNode(this)) {
       this.expanded = true;
     }

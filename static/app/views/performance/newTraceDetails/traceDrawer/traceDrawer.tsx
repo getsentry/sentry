@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -12,6 +12,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {
   isAutogroupedNode,
@@ -37,7 +38,7 @@ type DrawerProps = {
 };
 
 const MIN_PANEL_HEIGHT = 31;
-const INITIAL_PANEL_HEIGHT = 200;
+const DEFAULT_PANEL_HEIGHT = 200;
 
 function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -64,31 +65,28 @@ function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 }
 
 function TraceDrawer(props: DrawerProps) {
-  const [size, setSize] = useState(INITIAL_PANEL_HEIGHT);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onResize = useCallback((newSize: number, maybeOldSize: number | undefined) => {
+    if (!panelRef.current) {
+      return;
+    }
 
-  // Without the ref, the handleMouseMove function accesses the size state from when it
-  // was bounded to the mousedown event.
-  const sizeRef = useRef(INITIAL_PANEL_HEIGHT);
-  sizeRef.current = size;
-
-  const handleMouseMove = useCallback(e => {
-    e.preventDefault();
-    e.stopPropagation();
-    const newSize = Math.max(MIN_PANEL_HEIGHT, sizeRef.current + e.movementY * -1);
-    setSize(newSize);
+    panelRef.current.style.height = `${maybeOldSize ?? newSize}px`;
+    panelRef.current.style.width = `100%`;
   }, []);
 
-  const handleMouseDown = useCallback(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
-
-  const handleMouseUp = useCallback(() => {
-    document.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
+  const {onMouseDown} = useResizableDrawer({
+    direction: 'up',
+    initialSize: DEFAULT_PANEL_HEIGHT,
+    min: MIN_PANEL_HEIGHT,
+    sizeStorageKey: 'trace-drawer',
+    onResize,
+  });
 
   return (
-    <PanelWrapper style={{height: size}}>
-      <TabsContainer onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
+    <PanelWrapper ref={panelRef}>
+      <ResizeableHandle onMouseDown={onMouseDown} />
+      <TabsContainer>
         {props.nodes.map((node, index) => {
           const title = getTabTitle(node);
           return (
@@ -133,6 +131,16 @@ function TraceDrawer(props: DrawerProps) {
   );
 }
 
+const ResizeableHandle = styled('div')`
+  width: 100%;
+  height: 8px;
+  cursor: ns-resize;
+  position: absolute;
+  top: -4px;
+  left: 0;
+  z-index: 1;
+`;
+
 const PanelWrapper = styled('div')`
   display: flex;
   flex-direction: column;
@@ -158,7 +166,6 @@ const TabsContainer = styled('ul')`
   justify-content: left;
   padding-left: ${space(2)};
   gap: ${space(1)};
-  cursor: row-resize;
   margin-bottom: 0;
 `;
 
@@ -184,7 +191,7 @@ const TabButton = styled('button')`
   border-bottom: 2px solid transparent;
   border-radius: 0;
   margin: 0;
-  padding: ${space(0.25)} 0;
+  padding: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
   background: transparent;

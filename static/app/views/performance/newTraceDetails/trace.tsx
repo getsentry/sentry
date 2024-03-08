@@ -628,7 +628,7 @@ function RenderRow(props: {
         >
           <AutogroupedTraceBar
             virtualizedIndex={virtualizedIndex}
-            viewManager={props.manager}
+            manager={props.manager}
             color={props.theme.blue300}
             node_space={props.node.autogroupedSegments}
           />
@@ -993,16 +993,6 @@ function RenderRow(props: {
           >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
-              {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton
-                  icon={''}
-                  status={props.node.fetchStatus}
-                  expanded={props.node.expanded || props.node.zoomedIn}
-                  onClick={e => props.onExpand(e, props.node, !props.node.expanded)}
-                >
-                  0
-                </ChildrenButton>
-              ) : null}
             </div>
 
             <ProjectBadge project={props.projects[props.node.value.project_slug]} />
@@ -1022,18 +1012,17 @@ function RenderRow(props: {
             width: props.manager.columns.span_list.width * 100 + '%',
           }}
         >
-          {typeof props.node.value.timestamp === 'number' ? (
-            <div
-              className="ErrorIconBorder"
-              style={{
-                transform: `translateX(${props.manager.computeTransformXFromTimestamp(
-                  props.node.value.timestamp * 1000
-                )}px)`,
-              }}
-            >
-              <IconFire color="errorText" size="xs" />
-            </div>
-          ) : null}
+          <InvisibleTraceBar
+            node_space={props.node.space}
+            manager={props.manager}
+            virtualizedIndex={virtualizedIndex}
+          >
+            {typeof props.node.value.timestamp === 'number' ? (
+              <div className="TraceError">
+                <IconFire color="errorText" size="xs" />
+              </div>
+            ) : null}
+          </InvisibleTraceBar>
         </div>
       </div>
     );
@@ -1254,26 +1243,62 @@ function TraceBar(props: TraceBarProps) {
   );
 }
 
+interface InvisibleTraceBarProps {
+  children: React.ReactNode;
+  manager: VirtualizedViewManager;
+  node_space: [number, number] | null;
+  virtualizedIndex: number;
+}
+
+function InvisibleTraceBar(props: InvisibleTraceBarProps) {
+  if (!props.node_space || !props.children) {
+    return null;
+  }
+
+  const transform = `translateX(${props.manager.computeTransformXFromTimestamp(props.node_space[0])}px)`;
+  return (
+    <div
+      ref={r =>
+        props.manager.registerInvisibleBarRef(
+          r,
+          props.node_space!,
+          props.virtualizedIndex
+        )
+      }
+      className="TraceBar Invisible"
+      style={{
+        transform,
+      }}
+      onDoubleClick={e => {
+        e.stopPropagation();
+        props.manager.onZoomIntoSpace(props.node_space!);
+      }}
+    >
+      {props.children}
+    </div>
+  );
+}
+
 interface AutogroupedTraceBarProps {
   color: string;
+  manager: VirtualizedViewManager;
   node_space: [number, number][] | null;
-  viewManager: VirtualizedViewManager;
   virtualizedIndex: number;
   duration?: number;
 }
 
 function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
-  // if (props.node_space && props.node_space.length <= 1) {
-  //   return (
-  //     <TraceBar
-  //       color={props.color}
-  //       node_space={props.node_space[0]}
-  //       manager={props.manager}
-  //       virtualizedIndex={props.virtualizedIndex}
-  //       duration={props.duration}
-  //     />
-  //   );
-  // }
+  if (props.node_space && props.node_space.length <= 1) {
+    return (
+      <TraceBar
+        color={props.color}
+        node_space={props.node_space[0]}
+        manager={props.manager}
+        virtualizedIndex={props.virtualizedIndex}
+        duration={props.duration}
+      />
+    );
+  }
 
   if (!props.node_space) {
     return null;
@@ -1285,8 +1310,8 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   ];
 
   const duration = getDuration(entire_space[1] / 1000, 2, true);
-  const spanTransform = props.viewManager.computeSpanCSSMatrixTransform(entire_space);
-  const [inside, textTransform] = props.viewManager.computeSpanTextPlacement(
+  const spanTransform = props.manager.computeSpanCSSMatrixTransform(entire_space);
+  const [inside, textTransform] = props.manager.computeSpanTextPlacement(
     entire_space,
     duration
   );
@@ -1295,7 +1320,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
     <Fragment>
       <div
         ref={r =>
-          props.viewManager.registerSpanBarRef(r, entire_space, props.virtualizedIndex)
+          props.manager.registerSpanBarRef(r, entire_space, props.virtualizedIndex)
         }
         className="TraceBar Invisible"
         style={{
@@ -1304,7 +1329,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         }}
         onDoubleClick={e => {
           e.stopPropagation();
-          props.viewManager.onZoomIntoSpace(entire_space);
+          props.manager.onZoomIntoSpace(entire_space);
         }}
       >
         {props.node_space.map((node_space, i) => {
@@ -1325,7 +1350,7 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
       </div>
       <div
         ref={r =>
-          props.viewManager.registerSpanBarTextRef(
+          props.manager.registerSpanBarTextRef(
             r,
             duration,
             entire_space,
@@ -1447,18 +1472,21 @@ const TraceStylingWrapper = styled('div')`
       color: ${p => p.theme.error};
     }
 
-    .ErrorIconBorder {
+    .TraceError {
       position: absolute;
-      margin: ${space(0.25)};
-      left: -12px;
+      transform: translate(-50%, 0);
       background: ${p => p.theme.background};
-      width: ${space(3)};
-      height: ${space(3)};
-      border: 1px solid ${p => p.theme.error};
+      width: 16px !important;
+      height: 16px !important;
+      background-color: ${p => p.theme.error};
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+
+      svg {
+        fill: ${p => p.theme.white};
+      }
     }
 
     .TraceRightColumn.Odd {

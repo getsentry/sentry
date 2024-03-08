@@ -141,6 +141,7 @@ export class VirtualizedViewManager {
   indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
     [];
   span_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
+  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
   span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
     [];
 
@@ -299,6 +300,14 @@ export class VirtualizedViewManager {
     this.span_bars[index] = ref ? {ref, space} : undefined;
   }
 
+  registerInvisibleBarRef(
+    ref: HTMLElement | null,
+    space: [number, number],
+    index: number
+  ) {
+    this.invisible_bars[index] = ref ? {ref, space} : undefined;
+  }
+
   registerSpanBarTextRef(
     ref: HTMLElement | null,
     text: string,
@@ -428,6 +437,11 @@ export class VirtualizedViewManager {
 
   zoomIntoSpaceRaf: number | null = null;
   onZoomIntoSpace(space: [number, number]) {
+    if (space[1] <= 0) {
+      // @TODO implement scrolling to 0 width spaces
+      return;
+    }
+
     const distance_x = space[0] - this.to_origin - this.trace_view.x;
     const distance_width = this.trace_view.width - space[1];
 
@@ -696,6 +710,7 @@ export class VirtualizedViewManager {
   readonly span_matrix: [number, number, number, number, number, number] = [
     1, 0, 0, 1, 0, 0,
   ];
+
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
@@ -938,6 +953,13 @@ export class VirtualizedViewManager {
 
         span_text.ref.style.color = inside ? 'white' : '';
         span_text.ref.style.transform = `translateX(${text_transform}px)`;
+      }
+    }
+
+    for (let i = 0; i < this.invisible_bars.length; i++) {
+      const invisible_bar = this.invisible_bars[i];
+      if (invisible_bar) {
+        invisible_bar.ref.style.transform = `translateX(${this.computeTransformXFromTimestamp(invisible_bar.space[0])}px)`;
       }
     }
 
