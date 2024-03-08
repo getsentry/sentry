@@ -51,12 +51,12 @@ class TelegramPlugin(CorePluginMixin, NotificationPlugin):
     resource_links = [
         (
             "Documentation",
-            "https://github.com/tianci-sh/sentry-telegram/blob/master/Telegram_Instructions.md",
+            "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/telegram/Telegram_Instructions.md",
         ),
-        ("Report Issue", "https://github.com/tianci-sh/sentry-telegram/issues"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
         (
             "View Source",
-            "https://github.com/tianci-sh/sentry-telegram",
+            "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/telegram",
         ),
         ("Telegram", "https://www.telegram.com/"),
         ("Telegram Document", "https://core.telegram.org/bots#3-how-do-i-create-a-bot"),
