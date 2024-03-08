@@ -16,10 +16,10 @@ type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  opportunityWebVital?: WebVitals | 'total';
   query?: string;
   sortName?: string;
   transaction?: string | null;
+  webVital?: WebVitals | 'total';
 };
 
 export const useTransactionWebVitalsScoresQuery = ({
@@ -28,7 +28,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   defaultSort,
   sortName = 'sort',
   enabled = true,
-  opportunityWebVital = 'total',
+  webVital = 'total',
   query,
 }: Props) => {
   const organization = useOrganization();
@@ -47,22 +47,24 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'p75(measurements.inp)',
-        'performance_score(measurements.score.lcp)',
-        'performance_score(measurements.score.fcp)',
-        'performance_score(measurements.score.cls)',
-        'performance_score(measurements.score.fid)',
-        'performance_score(measurements.score.inp)',
-        'performance_score(measurements.score.ttfb)',
+        ...(webVital !== 'total'
+          ? [`performance_score(measurements.score.${webVital})`]
+          : []),
+        `opportunity_score(measurements.score.${webVital})`,
         'avg(measurements.score.total)',
         'count()',
-        `opportunity_score(measurements.score.${opportunityWebVital})`,
-        `count_scores(measurements.score.${opportunityWebVital})`,
+        `count_scores(measurements.score.lcp)`,
+        `count_scores(measurements.score.fcp)`,
+        `count_scores(measurements.score.cls)`,
+        `count_scores(measurements.score.fid)`,
+        `count_scores(measurements.score.inp)`,
+        `count_scores(measurements.score.ttfb)`,
       ],
       name: 'Web Vitals',
       query: [
         'transaction.op:[pageload,""]',
         'span.op:[ui.interaction.click,""]',
-        'has:measurements.score.total',
+        'avg(measurements.score.total):>=0',
         ...(transaction ? [`transaction:"${transaction}"`] : []),
         ...(query ? [query] : []),
       ].join(' '),
@@ -107,8 +109,23 @@ export const useTransactionWebVitalsScoresQuery = ({
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'p75(measurements.inp)': row['p75(measurements.inp)'] as number,
             'count()': row['count()'] as number,
-            [`count_scores(measurements.score.${opportunityWebVital})`]: row[
-              `count_scores(measurements.score.${opportunityWebVital})`
+            'count_scores(measurements.score.lcp)': row[
+              'count_scores(measurements.score.lcp)'
+            ] as number,
+            'count_scores(measurements.score.fcp)': row[
+              'count_scores(measurements.score.fcp)'
+            ] as number,
+            'count_scores(measurements.score.cls)': row[
+              'count_scores(measurements.score.cls)'
+            ] as number,
+            'count_scores(measurements.score.fid)': row[
+              'count_scores(measurements.score.fid)'
+            ] as number,
+            'count_scores(measurements.score.inp)': row[
+              'count_scores(measurements.score.inp)'
+            ] as number,
+            'count_scores(measurements.score.ttfb)': row[
+              'count_scores(measurements.score.ttfb)'
             ] as number,
             totalScore: totalScore ?? 0,
             clsScore: clsScore ?? 0,
@@ -118,7 +135,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             fidScore: fidScore ?? 0,
             inpScore: inpScore ?? 0,
             opportunity: row[
-              `opportunity_score(measurements.score.${opportunityWebVital})`
+              `opportunity_score(measurements.score.${webVital})`
             ] as number,
           };
         })
