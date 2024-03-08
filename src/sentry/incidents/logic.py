@@ -20,7 +20,6 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivationCondition,
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
@@ -31,7 +30,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
+)
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
