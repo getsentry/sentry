@@ -8,6 +8,7 @@ export type ReleaseRegistrySdk = Record<
   string,
   {
     canonical: string;
+    files: Record<string, {checksums: Record<string, string>}>;
     main_docs_url: string;
     name: string;
     package_url: string;

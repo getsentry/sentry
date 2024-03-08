@@ -12,7 +12,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
+  getCrashReportGenericInstallStep,
   getCrashReportInstallDescription,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
@@ -244,10 +247,26 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
+  crashReportOnboarding,
 };
 
 export default docs;
