@@ -220,7 +220,7 @@ class PHPParser(LanguageParser):
     Anonymous Function:             $hello = function(argument1, argument2)
     Arrow function:                 $arrowFunc = fn($parameter) => $parameter + 1;
     """
-    function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>\S+)\s*\("
+    function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>\w+)\s*\("
     anonymous_function_regex = r"^@@.*@@.*\s+\$(?P<fnc>\w+)\s*=\s*\w*\s*function\s*\(.*$"
     arrow_function_regex = r"^@@.*@@.*\s+\$(?P<fnc>\w+)\s*=\s*\w*\s*fn\([^)]*\)\s*=>.*$"
 
