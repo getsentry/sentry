@@ -8,16 +8,12 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
-type Props = {
-  organization: Organization;
-  projects: Project[];
-};
-
-function IntegrationAlertRules({projects, organization}: Props) {
+export default function IntegrationAlertRules() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
   return (
     <Panel>
       <PanelHeader>{t('Project Configuration')}</PanelHeader>
@@ -47,5 +43,3 @@ const ProjectItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
 `;
-
-export default withOrganization(withProjects(IntegrationAlertRules));
