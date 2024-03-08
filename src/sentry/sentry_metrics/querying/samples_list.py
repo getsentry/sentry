@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from bisect import bisect
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal, TypedDict, cast
@@ -847,20 +848,37 @@ def pick_samples(
 
     samples.sort(key=metric_key)
 
-    # always take the first and last samples as they represent the extremes
-    result = [samples[0], samples[-1]]
+    keys = [metric_key(sample) for sample in samples]
 
-    # choose the sample closest to the middle
-    avg = (metric_key(samples[0]) + metric_key(samples[-1])) / 2
-    choice = None
-    min_delta = float("inf")
-    for sample in samples[1:-1]:
-        new_delta = abs(avg - metric_key(sample))
-        if new_delta < min_delta:
-            choice = sample
-            min_delta = new_delta
+    # first element is the one near the average
+    # but must not be the first or last element
+    avg_m = sum(keys) / len(keys)
+    idx_m = bisect(keys, avg_m)
+    # ensure there is at least 1 element on both sides
+    # of the middle element we just picked
+    # i.e. should not pick index 0 and len(keys) - 1
+    idx_m = _clip(idx_m, 1, len(keys) - 2)
 
-    if choice is not None:
-        result.append(choice)
+    # second element is near the average of first
+    # split, but must not be the split element
+    avg_l = sum(keys[:idx_m]) / idx_m
+    idx_l = bisect(keys, avg_l, hi=idx_m - 1)
+    idx_l += 1  # push it closer to the middle
+    # ensure this is not the same as middle element
+    idx_l = _clip(idx_l, 0, idx_m - 1)
 
-    return result
+    # third element is near the average of second
+    # split, but must not be the split element
+    avg_r = sum(keys[idx_m + 1 :]) / (len(keys) - idx_m - 1)
+    idx_r = bisect(keys, avg_r, lo=idx_m + 1)
+    idx_r -= 1  # push it closer to the middle
+    # ensure this is not the same as middle element
+    idx_r = _clip(idx_r, idx_m + 1, len(keys) - 1)
+
+    return [samples[idx_m], samples[idx_l], samples[idx_r]]
+
+
+def _clip(val: int, left: int, right: int) -> int:
+    val = max(left, val)
+    val = min(val, right)
+    return val

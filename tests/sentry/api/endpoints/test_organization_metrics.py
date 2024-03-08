@@ -654,7 +654,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
-            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            expected = {int(span_ids[i], 16) for i in [2, 3, 4]}
             actual = {int(row["id"], 16) for row in response.data["data"]}
             assert actual == expected
 
@@ -698,6 +698,6 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
-            expected = {int(span_ids[i], 16) for i in [0, 2, 4]}
+            expected = {int(span_ids[i], 16) for i in [2, 3, 4]}
             actual = {int(row["id"], 16) for row in response.data["data"]}
             assert actual == expected
