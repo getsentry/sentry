@@ -257,6 +257,43 @@ class DailySummaryTest(
         assert project_context_map2.regressed_today == []
         assert project_context_map2.new_in_release == {}
 
+    def test_build_summary_data_dedupes_groups(self):
+        """
+        Test that if a group has multiple escalated and/or regressed activity rows, we only use the group once
+        """
+        self.populate_event_data()
+        self.group2.status = GroupStatus.UNRESOLVED
+        self.group2.substatus = GroupSubStatus.REGRESSED
+        self.group2.save()
+        Activity.objects.create_group_activity(
+            self.group2,
+            ActivityType.SET_REGRESSION,
+            data={
+                "event_id": self.group2.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        Activity.objects.create_group_activity(
+            self.group3,
+            ActivityType.SET_ESCALATING,
+            data={
+                "event_id": self.group3.get_latest_event().event_id,
+                "version": self.release.version,
+            },
+        )
+        summary = build_summary_data(
+            timestamp=to_timestamp(self.now),
+            duration=ONE_DAY,
+            organization=self.organization,
+            daily=True,
+        )
+        project_id = self.project.id
+        project_context_map = cast(
+            DailySummaryProjectContext, summary.projects_context_map[project_id]
+        )
+        assert project_context_map.escalated_today == [self.group3]
+        assert project_context_map.regressed_today == [self.group2]
+
     @mock.patch("sentry.tasks.summaries.daily_summary.deliver_summary")
     def test_prepare_summary_data(self, mock_deliver_summary):
         """Test that if the summary has data in it, we pass it along to be sent"""

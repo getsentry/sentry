@@ -207,12 +207,23 @@ def build_summary_data(
                 group__in=([group for group in regressed_or_escalated_groups]),
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
             )
-            if regressed_or_escalated_groups_today:
-                for activity in regressed_or_escalated_groups_today[:4]:
-                    if activity.type == ActivityType.SET_REGRESSION.value:
-                        project_ctx.regressed_today.append(activity.group)
+
+            deduped_groups_by_activity_type = {"regressed": set(), "escalated": set()}
+            for activity in regressed_or_escalated_groups_today:
+                if activity.type == ActivityType.SET_REGRESSION.value:
+                    deduped_groups_by_activity_type["regressed"].add(activity.group)
+                else:
+                    if activity.type == ActivityType.SET_ESCALATING.value:
+                        deduped_groups_by_activity_type["escalated"].add(activity.group)
+
+            if deduped_groups_by_activity_type:
+                for activity_type, groups in deduped_groups_by_activity_type.items():
+                    if activity_type == "regressed":
+                        for group in list(groups)[:4]:
+                            project_ctx.regressed_today.append(group)
                     else:
-                        project_ctx.escalated_today.append(activity.group)
+                        for group in list(groups)[:4]:
+                            project_ctx.escalated_today.append(group)
 
             # The project's releases and the (max) top 3 new errors e.g. release - group1, group2
             release_projects = ReleaseProject.objects.filter(project_id=project_id).values_list(
