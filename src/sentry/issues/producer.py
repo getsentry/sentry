@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 from collections.abc import MutableMapping
 from typing import Any, cast
 
@@ -74,14 +73,7 @@ def produce_occurrence_to_kafka(
     try:
         _occurrence_producer.produce(ArroyoTopic(settings.KAFKA_INGEST_OCCURRENCES), payload)
     except KafkaException:
-        logger.exception(
-            "Failed to send occurrence to issue platform",
-            extra={
-                "total_payload_size": sys.getsizeof(payload),
-                "total_payload_data_size": sys.getsizeof(payload_data),
-                "payload_data_key_sizes": {k: sys.getsizeof(v) for k, v in payload_data.items()},
-            },
-        )
+        logger.exception("Failed to send occurrence to issue platform")
 
 
 def _prepare_occurrence_message(
