@@ -74,9 +74,9 @@ function DiffLineCode({line}: {line: DiffLineWithChanges}) {
 function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: string}) {
   const {sourceStart, sourceLength, targetStart, targetLength} = useMemo(
     () => ({
-      sourceStart: lines[0].source_line_no ?? 0,
+      sourceStart: lines.at(0)?.source_line_no ?? 0,
       sourceLength: lines.filter(line => line.line_type !== DiffLineType.ADDED).length,
-      targetStart: lines[0].target_line_no ?? 0,
+      targetStart: lines.at(0)?.target_line_no ?? 0,
       targetLength: lines.filter(line => line.line_type !== DiffLineType.REMOVED).length,
     }),
     [lines]
