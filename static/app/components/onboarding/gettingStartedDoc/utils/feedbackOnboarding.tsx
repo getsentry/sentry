@@ -1,7 +1,10 @@
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({
@@ -142,16 +145,16 @@ export const getCrashReportJavaScriptInstallStep = params => [
   },
 ];
 
-export function getCrashReportSDKInstallFirstStep(params) {
+export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
   const dataLoaded =
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
         'bundle.min.js'
       ].checksums['sha384-base64']) ??
     '';
@@ -229,16 +232,16 @@ export const getCrashReportBackendInstallStep = params => [
   },
 ];
 
-export function getCrashReportSDKInstallFirstStepRails(params) {
+export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
   const dataLoaded =
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
         'bundle.min.js'
       ].checksums['sha384-base64']) ??
     '';
