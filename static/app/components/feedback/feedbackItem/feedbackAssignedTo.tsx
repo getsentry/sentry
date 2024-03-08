@@ -63,11 +63,15 @@ export default function FeedbackAssignedTo({
       disabled={false}
       id={feedbackIssue.id}
       assignedTo={feedbackIssue.assignedTo}
-      onAssign={() => assign(feedbackIssue.assignedTo)}
-      onClear={() => assign(null)}
+      onAssign={() => {
+        assign(feedbackIssue.assignedTo);
+      }}
+      onClear={() => {
+        assign(null);
+      }}
       owners={owners}
       group={feedbackIssue}
-      alignMenu={'left'}
+      alignMenu="left"
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
