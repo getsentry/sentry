@@ -2,16 +2,21 @@ import {useMemo} from 'react';
 
 import type {MRI} from 'sentry/types';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {parseField} from 'sentry/utils/metrics/mri';
+import {MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiRequestQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import type {
+  DashboardMetricsEquation,
   DashboardMetricsExpression,
-  DashboardMetricsFormula,
   DashboardMetricsQuery,
-  Order,
 } from 'sentry/views/dashboards/metrics/types';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  type DashboardFilters,
+  type DisplayType,
+  type Widget,
+  type WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {getQuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/ddm/utils/uniqueQueryId';
 
@@ -41,7 +46,7 @@ function getReleaseQuery(dashboardFilters: DashboardFilters) {
 
 export function isMetricsFormula(
   query: DashboardMetricsExpression
-): query is DashboardMetricsFormula {
+): query is DashboardMetricsEquation {
   return query.type === MetricQueryType.FORMULA;
 }
 
@@ -66,7 +71,7 @@ export function getMetricExpressions(
         id: id,
         type: MetricQueryType.FORMULA,
         formula: query.aggregates[0].slice(9),
-      } satisfies DashboardMetricsFormula;
+      } satisfies DashboardMetricsEquation;
     }
 
     const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
@@ -78,7 +83,7 @@ export function getMetricExpressions(
       op: parsed.op,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
-      orderBy: orderBy as Order,
+      orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
     } satisfies DashboardMetricsQuery;
   });
 
@@ -115,4 +120,50 @@ export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
     return displayType as MetricDisplayType;
   }
   return MetricDisplayType.LINE;
+}
+
+function getWidgetQuery(metricsQuery: DashboardMetricsQuery): WidgetQuery {
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
+
+  return {
+    name: `${metricsQuery.id}`,
+    aggregates: [field],
+    columns: metricsQuery.groupBy ?? [],
+    fields: [field],
+    conditions: metricsQuery.query ?? '',
+    orderby: metricsQuery.orderBy ?? '',
+  };
+}
+
+function getWidgetEquation(metricsFormula: DashboardMetricsEquation): WidgetQuery {
+  return {
+    name: `${metricsFormula.id}`,
+    aggregates: [`equation|${metricsFormula.formula}`],
+    columns: [],
+    fields: [`equation|${metricsFormula.formula}`],
+    // Not used for equations
+    conditions: '',
+    orderby: '',
+  };
+}
+
+export function expressionsToWidget(
+  expressions: DashboardMetricsExpression[],
+  title: string,
+  displayType: DisplayType
+): Widget {
+  return {
+    title,
+    // The interval has no effect on metrics widgets but the BE requires it
+    interval: '5m',
+    displayType: displayType,
+    widgetType: WidgetType.METRICS,
+    limit: 10,
+    queries: expressions.map(e => {
+      if (isMetricsFormula(e)) {
+        return getWidgetEquation(e);
+      }
+      return getWidgetQuery(e);
+    }),
+  };
 }

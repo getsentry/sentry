@@ -11,7 +11,7 @@ import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetView
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
 import {getDdmUrl, unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {convertToDashboardWidget, toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
@@ -21,6 +21,7 @@ import type {
 } from 'sentry/views/dashboards/metrics/types';
 import {
   expressionsToApiQueries,
+  expressionsToWidget,
   getMetricExpressions,
   isMetricsFormula,
   useGenerateExpressionId,
@@ -128,27 +129,16 @@ function MetricWidgetViewerModal({
   );
 
   const handleSubmit = useCallback(() => {
-    // TODO: check saving id
-    const convertedWidget = convertToDashboardWidget(metricQueries);
+    const convertedWidget = expressionsToWidget(
+      metricQueries,
+      titleToDisplay,
+      toDisplayType(displayType)
+    );
 
-    const updatedWidget = {
-      ...widget,
-      title: titleToDisplay,
-      queries: convertedWidget.queries,
-      displayType: toDisplayType(displayType),
-    };
-
-    onMetricWidgetEdit?.(updatedWidget);
+    onMetricWidgetEdit?.(convertedWidget);
 
     closeModal();
-  }, [
-    metricQueries,
-    widget,
-    titleToDisplay,
-    displayType,
-    onMetricWidgetEdit,
-    closeModal,
-  ]);
+  }, [metricQueries, titleToDisplay, displayType, onMetricWidgetEdit, closeModal]);
 
   return (
     <Fragment>

@@ -1,9 +1,9 @@
 import {MetricDisplayType, MetricQueryType} from 'sentry/utils/metrics/types';
 import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import {getMetricExpressions, toMetricDisplayType} from './utils';
+import {expressionsToWidget, getMetricExpressions, toMetricDisplayType} from './utils';
 
 describe('getMetricExpressions function', () => {
   it('should return a query', () => {
@@ -14,6 +14,7 @@ describe('getMetricExpressions function', () => {
           conditions: 'foo:bar',
           columns: ['release'],
           name: 'query_1',
+          orderby: 'asc',
         },
       ],
     } as Widget;
@@ -27,6 +28,7 @@ describe('getMetricExpressions function', () => {
         op: 'avg',
         query: 'foo:bar',
         type: MetricQueryType.QUERY,
+        orderBy: 'asc',
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -61,12 +63,14 @@ describe('getMetricExpressions function', () => {
           conditions: 'foo:bar',
           columns: ['release'],
           name: '0',
+          orderby: 'desc',
         },
         {
           aggregates: ['avg(d:transactions/duration@milisecond)'],
           conditions: 'foo:baz',
           columns: [],
           name: '1',
+          orderby: '',
         },
       ],
     } as Widget;
@@ -81,6 +85,7 @@ describe('getMetricExpressions function', () => {
         op: 'avg',
         query: 'foo:bar release:1.0',
         type: MetricQueryType.QUERY,
+        orderBy: 'desc',
       } satisfies DashboardMetricsExpression,
       {
         groupBy: [],
@@ -89,6 +94,7 @@ describe('getMetricExpressions function', () => {
         op: 'avg',
         query: 'foo:baz release:1.0',
         type: MetricQueryType.QUERY,
+        orderBy: undefined,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -115,6 +121,7 @@ describe('getMetricExpressions function', () => {
         op: 'avg',
         query: 'release:[1.0,2.0]',
         type: MetricQueryType.QUERY,
+        orderBy: undefined,
       } satisfies DashboardMetricsExpression,
     ]);
   });
@@ -133,5 +140,94 @@ describe('toMetricDisplayType', () => {
     expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.TOP_N));
     expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(undefined));
     expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(''));
+  });
+});
+
+describe('expressionsToWidget', () => {
+  it('should return a widget with queries', () => {
+    const metricExpressions = [
+      {
+        groupBy: ['release'],
+        id: 0,
+        mri: 'd:transactions/duration@milisecond',
+        op: 'avg',
+        query: 'foo:bar',
+        type: MetricQueryType.QUERY,
+        orderBy: 'asc',
+      } satisfies DashboardMetricsExpression,
+    ];
+
+    const widget = expressionsToWidget(metricExpressions, 'title', DisplayType.LINE);
+
+    expect(widget).toEqual({
+      title: 'title',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      limit: 10,
+      widgetType: WidgetType.METRICS,
+      queries: [
+        {
+          aggregates: ['avg(d:transactions/duration@milisecond)'],
+          fields: ['avg(d:transactions/duration@milisecond)'],
+          conditions: 'foo:bar',
+          columns: ['release'],
+          name: '0',
+          orderby: 'asc',
+        },
+      ],
+    } satisfies Widget);
+  });
+
+  it('should return a widget with equations', () => {
+    const metricExpressions = [
+      {
+        id: 1,
+        formula: '$a + $b',
+        type: MetricQueryType.FORMULA,
+      } satisfies DashboardMetricsExpression,
+    ];
+
+    const widget = expressionsToWidget(metricExpressions, 'title', DisplayType.LINE);
+
+    expect(widget).toEqual({
+      title: 'title',
+      displayType: DisplayType.LINE,
+      interval: '5m',
+      limit: 10,
+      widgetType: WidgetType.METRICS,
+      queries: [
+        {
+          aggregates: ['equation|$a + $b'],
+          fields: ['equation|$a + $b'],
+          conditions: '',
+          columns: [],
+          name: '1',
+          orderby: '',
+        },
+      ],
+    } satisfies Widget);
+  });
+
+  it('should should be reversible by getMetricExpressions', () => {
+    const metricExpressions = [
+      {
+        groupBy: ['release'],
+        id: 0,
+        mri: 'd:transactions/duration@milisecond',
+        op: 'avg',
+        query: 'foo:bar',
+        type: MetricQueryType.QUERY,
+        orderBy: 'asc',
+      } satisfies DashboardMetricsExpression,
+      {
+        id: 1,
+        formula: '$a + $b',
+        type: MetricQueryType.FORMULA,
+      } satisfies DashboardMetricsExpression,
+    ];
+
+    const widget = expressionsToWidget(metricExpressions, 'title', DisplayType.LINE);
+
+    expect(getMetricExpressions(widget)).toEqual(metricExpressions);
   });
 });

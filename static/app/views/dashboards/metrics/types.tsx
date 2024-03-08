@@ -7,20 +7,18 @@ export interface DashboardMetricsQuery {
   id: number;
   mri: MRI;
   op: string;
+  orderBy: Order;
   type: MetricQueryType.QUERY;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
-  orderBy?: 'asc' | 'desc';
   query?: string;
 }
 
-export interface DashboardMetricsFormula {
+export interface DashboardMetricsEquation {
   formula: string;
   id: number;
   type: MetricQueryType.FORMULA;
-  limit?: number;
-  orderBy?: 'asc' | 'desc';
 }
 
-export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsFormula;
+export type DashboardMetricsExpression = DashboardMetricsQuery | DashboardMetricsEquation;
