@@ -4,7 +4,7 @@
 export class Timer extends EventTarget {
   private _id: number | null = null;
   private _active: boolean = false;
-  private _start: number = -1;
+  private _start: number = 0;
   private _time: number = 0;
   private _additionalTime: number = 0;
   private _callbacks: [offset: number, callback: () => void][] = [];
@@ -53,7 +53,7 @@ export class Timer extends EventTarget {
 
   reset() {
     this.stop();
-    this._start = -1;
+    this._start = 0;
     this._time = 0;
   }
 
