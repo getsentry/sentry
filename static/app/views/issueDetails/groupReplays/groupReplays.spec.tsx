@@ -349,7 +349,7 @@ describe('GroupReplays', () => {
       });
 
       // Expect the table to have 2 rows
-      expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
+      expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
       const expectedQuery =
         'query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
