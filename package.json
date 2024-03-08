@@ -267,9 +267,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"
