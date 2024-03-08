@@ -1144,14 +1144,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
 
-            extra: dict[str, Any] = {
-                "organization.slug": org_slug,
-                "project.slug": project.slug,
-                "group_id": group_id,
-                "next_time": next_time,
-            }
-
             if features.has("organizations:derive-code-mappings", org):
+                extra: dict[str, Any] = {
+                    "organization.slug": org_slug,
+                    "project.slug": project.slug,
+                    "group_id": group_id,
+                    "next_time": next_time,
+                }
                 logger.info(
                     "derive_code_mappings: Queuing code mapping derivation",
                     extra=extra,
