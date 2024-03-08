@@ -976,9 +976,9 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
 
         parent_api: str = "<missing>"
-        scope = sentry_sdk.Scope.get_current_scope()
-        if scope.transaction:
-            parent_api = scope.transaction.name
+        with sentry_sdk.configure_scope() as scope:
+            if scope.transaction:
+                parent_api = scope.transaction.name
 
         if len(snuba_param_list) > 1:
             query_results = list(
