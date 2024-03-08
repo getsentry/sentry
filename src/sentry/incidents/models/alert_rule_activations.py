@@ -34,6 +34,9 @@ class AlertRuleActivations(Model):
     date_added = models.DateTimeField(default=timezone.now)
     # If finished_at is null, this indicates whether the run is ongoing or completed
     finished_at = models.DateTimeField(null=True)
+    # metric value represents the query results at the end of the activated time window.
+    # since activated alerts are not run on a continuously shifting time window, the value
+    # of this metric value will only continually tick upwards until the monitor window has expired.
     metric_value = models.FloatField()
 
     class Meta:
