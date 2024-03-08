@@ -1,14 +1,23 @@
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export const getFeedbackConfigureDescription = ({link}: {link: string}) =>
+export const getFeedbackConfigureDescription = ({
+  linkConfig,
+  linkButton,
+}: {
+  linkButton: string;
+  linkConfig: string;
+}) =>
   tct(
-    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even link the widget to a custom button if you don’t want to use our autoinjected floating button. Learn more about configuring User Feedback by reading the [link:configuration docs].',
+    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:link the widget to a custom button] if you don’t want to use our auto-injected floating button. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
     {
       code: <code />,
       break: <br />,
-      link: <ExternalLink href={link} />,
+      linkConfig: <ExternalLink href={linkConfig} />,
+      linkButton: <ExternalLink href={linkButton} />,
     }
   );
 
@@ -28,7 +37,7 @@ export const getFeedbackSDKSetupSnippet = ({
     integrations: [
       Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
-colorScheme: "light",
+colorScheme: "system",
 ${getFeedbackConfigOptions(feedbackOptions)}}),
     ],
   });`;
@@ -59,6 +68,14 @@ export function FeedbackOnboardingWebApiBanner() {
   );
 }
 
+export const CrashReportWebApiOnboarding: OnboardingConfig = {
+  introduction: () => FeedbackOnboardingWebApiBanner(),
+  install: () => [],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 export const getFeedbackConfigOptions = ({
   name,
   email,
@@ -75,3 +92,52 @@ export const getFeedbackConfigOptions = ({
   }
   return options.join('\n');
 };
+
+export const getCrashReportModalIntroduction = () =>
+  t(
+    'Collect feedback on your errors by installing our crash-report modal. This allows users to submit feedback after they experience an error via an automatic modal that pops up after an error occurs. The default modal will prompt the user for their name, email address, and description of what occurred.'
+  );
+
+export const getCrashReportModalInstallDescriptionJavaScript = () =>
+  tct(
+    'You can collect feedback at the time the event is sent, using [code:beforeSend].',
+    {code: <code />}
+  );
+
+export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
+  tct(
+    'There are many options you can pass to the [code:Sentry.showReportDialog] call to customize your form. Learn more about configuring the modal by reading the [link:configuration docs].',
+    {code: <code />, link: <ExternalLink href={link} />}
+  );
+
+export const getCrashReportModalSnippetJavaScript = params => [
+  {
+    code: [
+      {
+        label: 'HTML',
+        value: 'html',
+        language: 'html',
+        code: `<script>
+  Sentry.init({
+    dsn: "${params.dsn}",
+    beforeSend(event, hint) {
+      // Check if it is an exception, and if so, show the report dialog
+      if (event.exception && event.event_id) {
+        Sentry.showReportDialog({ eventId: event.event_id });
+      }
+      return event;
+    },
+  });
+</script>`,
+      },
+    ],
+  },
+];
+
+export const getCrashReportJavaScriptInstallStep = params => [
+  {
+    type: StepType.INSTALL,
+    description: getCrashReportModalInstallDescriptionJavaScript(),
+    configurations: getCrashReportModalSnippetJavaScript(params),
+  },
+];

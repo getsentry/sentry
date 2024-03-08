@@ -282,6 +282,9 @@ METRICS_MAP = {
     "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
     "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
     "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
+    "measurements.inp": "d:spans/webvital.inp@millisecond",
+    "measurements.score.inp": "d:spans/webvital.score.inp@ratio",
+    "measurements.score.weight.inp": "d:spans/webvital.score.weight.inp@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
@@ -313,6 +316,7 @@ DEFAULT_METRIC_TAGS = {
     "transaction.method",
     "transaction.op",
     "transaction.status",
+    "span.op",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",

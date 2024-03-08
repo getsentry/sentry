@@ -1,12 +1,13 @@
+import math
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import TooManyCodeLocationsRequestedError
-from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_metrics_meta
+from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.utils import json, metrics
+from sentry.utils.hashlib import fnv1a_32
 
 DAY_IN_SECONDS = 86400
 
@@ -99,26 +100,28 @@ class CodeLocationsFetcher:
 
         self._redis_client = get_redis_client_for_metrics_meta()
 
-        self._validate()
-
-    def _validate(self):
-        total_combinations = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
-        if total_combinations > self.MAXIMUM_KEYS:
-            raise TooManyCodeLocationsRequestedError(
-                "The request results in too many code locations to be fetched, try to reduce the number of "
-                "metrics, projects or the time interval"
-            )
-
     def _code_location_queries(self) -> Generator[CodeLocationQuery, None, None]:
+        total_count = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
+        step_size = (
+            1 if total_count <= self.MAXIMUM_KEYS else math.ceil(total_count / self.MAXIMUM_KEYS)
+        )
+
+        # We want to distribute evenly and deterministically the elements in the set of combinations. For example, if
+        # the total count of code locations queries you made is 100 and our maximum is 50, then we will sample 1 out of
+        # 2 elements out of the 100 queries, to be within the 50.
+        current_step = 0
         for project in self._projects:
             for metric_mri in self._metric_mris:
                 for timestamp in self._timestamps:
-                    yield CodeLocationQuery(
-                        organization_id=self._organization.id,
-                        project_id=project.id,
-                        metric_mri=metric_mri,
-                        timestamp=timestamp,
-                    )
+                    if current_step % step_size == 0:
+                        yield CodeLocationQuery(
+                            organization_id=self._organization.id,
+                            project_id=project.id,
+                            metric_mri=metric_mri,
+                            timestamp=timestamp,
+                        )
+
+                    current_step += 1
 
     def _parse_code_location_payload(self, encoded_location: str) -> CodeLocationPayload:
         decoded_location = json.loads(encoded_location)

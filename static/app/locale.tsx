@@ -300,7 +300,8 @@ function mark<T extends React.ReactNode>(node: T): T {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as T;
+  // TODO(TS): Should proxy be created using `React.createElement`?
+  return proxy as any as T;
 }
 
 /**

@@ -285,6 +285,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
   platformOptions,
 };
 

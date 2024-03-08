@@ -85,7 +85,9 @@ class Pipeline(abc.ABC):
 
         organization: RpcOrganization | None = None
         if state.org_id:
-            org_context = organization_service.get_organization_by_id(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(
+                id=state.org_id, include_teams=False
+            )
             if org_context:
                 organization = org_context.organization
 

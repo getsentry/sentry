@@ -22,11 +22,14 @@ from sentry.incidents.logic import (
     deduplicate_trigger_actions,
     update_incident_status,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    invoke_alert_subscription_callback,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -34,7 +37,6 @@ from sentry.incidents.models import (
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
-    invoke_alert_subscription_callback,
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
@@ -902,4 +904,4 @@ def update_alert_rule_stats(
 
 def get_redis_client() -> RetryingRedisCluster:
     cluster_key = settings.SENTRY_INCIDENT_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

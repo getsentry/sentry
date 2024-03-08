@@ -235,7 +235,7 @@ export function HybridFilter<Value extends SelectKey>({
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
-              <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+              <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
               {showModifierTip && (
                 <FooterTip>
                   <IconInfo size="xs" />

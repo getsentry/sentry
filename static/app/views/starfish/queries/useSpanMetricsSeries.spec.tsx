@@ -53,6 +53,34 @@ describe('useSpanMetricsSeries', () => {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
+  it('respects the `enabled` prop', () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = reactHooks.renderHook(
+      ({filters, enabled}) =>
+        useSpanMetricsSeries({
+          filters,
+          enabled,
+        }),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          filters: {
+            'span.group': '221aa7ebd216',
+          },
+          enabled: false,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toEqual(false);
+    expect(eventsRequest).not.toHaveBeenCalled();
+  });
+
   it('queries for current selection', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,

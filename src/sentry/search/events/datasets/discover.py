@@ -200,9 +200,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         }
                     ],
                     snql_aggregate=self._resolve_count_miserable_function,
@@ -224,9 +226,11 @@ class DiscoverDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "tolerated",
-                            "fn": lambda args: args["satisfaction"] * 4.0
-                            if args["satisfaction"] is not None
-                            else None,
+                            "fn": lambda args: (
+                                args["satisfaction"] * 4.0
+                                if args["satisfaction"] is not None
+                                else None
+                            ),
                         },
                         {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
                     ],
@@ -1005,11 +1009,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "example",
+                    "examples",
                     required_args=[NumericColumn("column")],
-                    snql_aggregate=lambda args, alias: function_aliases.resolve_random_sample(
-                        ["timestamp", "span_id", args["column"].name], alias
-                    ),
+                    optional_args=[with_default(1, NumberRange("count", 1, None))],
+                    snql_aggregate=self._resolve_random_samples,
                     private=True,
                 ),
                 SnQLFunction(
@@ -1018,6 +1021,18 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_column=lambda args, alias: function_aliases.resolve_rounded_timestamp(
                         args["interval"], alias
                     ),
+                    private=True,
+                ),
+                SnQLFunction(
+                    "column_hash",
+                    # TODO: this supports only one column, but hash functions can support arbitrary parameters
+                    required_args=[ColumnArg("column")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "farmFingerprint64",  # farmFingerprint64 aka farmHash64 is a newer, faster replacement for cityHash64
+                        [args["column"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
                     private=True,
                 ),
             ]
@@ -1811,6 +1826,29 @@ class DiscoverDatasetConfig(DatasetConfig):
                 )
             ],
             alias,
+        )
+
+    def _resolve_random_samples(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        offset = 0 if self.builder.offset is None else self.builder.offset.offset
+        limit = 0 if self.builder.limit is None else self.builder.limit.limit
+        return function_aliases.resolve_random_samples(
+            [
+                # DO NOT change the order of these columns as it
+                # changes the order of the tuple in the response
+                # which WILL cause errors where it assumes this
+                # order
+                self.builder.resolve_column("timestamp"),
+                self.builder.resolve_column("span_id"),
+                args["column"],
+            ],
+            alias,
+            offset,
+            limit,
+            size=int(args["count"]),
         )
 
     # Query Filters

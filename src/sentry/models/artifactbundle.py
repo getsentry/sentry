@@ -135,40 +135,6 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
 @region_silo_only_model
-class ArtifactBundleFlatFileIndex(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    project_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_artifactbundleflatfileindex"
-
-        unique_together = (("project_id", "release_name", "dist_name"),)
-
-
-@region_silo_only_model
-class FlatFileIndexState(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex", db_constraint=False)
-    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle", db_constraint=False)
-    indexing_state = models.IntegerField(
-        choices=ArtifactBundleIndexingState.choices(), db_index=True
-    )
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_flatfileindexstate"
-
-        unique_together = (("flat_file_index", "artifact_bundle"),)
-
-
-@region_silo_only_model
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -176,13 +142,6 @@ class ArtifactBundleIndex(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
-
-    # TODO: legacy fields:
-    # These will eventually be removed in a migration, as they can be joined
-    # via the `{Release,}ArtifactBundle` tables.
-    release_name = models.CharField(max_length=250, null=True)
-    dist_name = models.CharField(max_length=64, null=True, default=NULL_STRING)
-    date_last_modified = models.DateTimeField(null=True, default=timezone.now)
 
     class Meta:
         app_label = "sentry"

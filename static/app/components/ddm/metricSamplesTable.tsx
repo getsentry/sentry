@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
+import {Button, LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -13,6 +14,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, MRI, PageFilters, ParsedMRI} from 'sentry/types';
@@ -67,6 +69,7 @@ interface MetricsSamplesTableProps {
 }
 
 export function SearchableMetricSamplesTable({
+  mri,
   query: primaryQuery,
   ...props
 }: MetricsSamplesTableProps) {
@@ -85,8 +88,12 @@ export function SearchableMetricSamplesTable({
 
   return (
     <Fragment>
-      <MetricsSamplesSearchBar query={secondaryQuery} handleSearch={handleSearch} />
-      <MetricSamplesTable query={query} {...props} />
+      <MetricsSamplesSearchBar
+        mri={mri}
+        query={secondaryQuery}
+        handleSearch={handleSearch}
+      />
+      <MetricSamplesTable mri={mri} query={query} {...props} />
     </Fragment>
   );
 }
@@ -180,8 +187,9 @@ export function MetricSamplesTable({
     max: focusArea?.max,
     min: focusArea?.min,
     mri,
+    op,
     query,
-    referrer: 'foo',
+    referrer: 'api.organization.metrics-samples',
     enabled,
     sort: sortQuery,
     limit: 20,
@@ -213,10 +221,9 @@ export function MetricSamplesTable({
     return null;
   }, [mri]);
 
-  const _renderBodyCell = useMemo(
-    () => renderBodyCell(op, parsedMRI?.unit),
-    [op, parsedMRI?.unit]
-  );
+  const _renderPrependColumn = useMemo(() => {
+    return renderPrependColumn();
+  }, []);
 
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
@@ -243,6 +250,11 @@ export function MetricSamplesTable({
     };
     return renderHeadCell(currentSort, generateSortLink);
   }, [currentSort, location]);
+
+  const _renderBodyCell = useMemo(
+    () => renderBodyCell(op, parsedMRI?.unit),
+    [op, parsedMRI?.unit]
+  );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -289,9 +301,15 @@ export function MetricSamplesTable({
         data={result.data?.data ?? []}
         columnOrder={getColumnOrder(parsedMRI)}
         columnSortBy={[]}
-        grid={{renderBodyCell: _renderBodyCell, renderHeadCell: _renderHeadCell}}
+        grid={{
+          prependColumnWidths,
+          renderPrependColumns: _renderPrependColumn,
+          renderBodyCell: _renderBodyCell,
+          renderHeadCell: _renderHeadCell,
+        }}
         location={location}
         emptyMessage={emptyMessage}
+        minimumColWidth={60}
       />
     </div>
   );
@@ -299,7 +317,6 @@ export function MetricSamplesTable({
 
 function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
-    {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Op'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
@@ -326,6 +343,21 @@ const RIGHT_ALIGNED_COLUMNS = new Set<ResultField>([
   'summary',
 ]);
 const SORTABLE_COLUMNS = new Set<ResultField>(['span.duration', 'timestamp']);
+
+const prependColumnWidths = ['40px'];
+
+function renderPrependColumn() {
+  return function (
+    isHeader: boolean,
+    dataRow?: MetricsSamplesResults<SelectedField>['data'][number],
+    _rowIndex?: number
+  ) {
+    if (isHeader) {
+      return [null];
+    }
+    return [dataRow ? <ProjectRenderer projectSlug={dataRow.project} /> : null];
+  };
+}
 
 function renderHeadCell(
   currentSort: {direction: 'asc' | 'desc'; key: string} | undefined,
@@ -357,10 +389,6 @@ function renderBodyCell(op?: string, unit?: string) {
           transactionId={dataRow['transaction.id']}
         />
       );
-    }
-
-    if (col.key === 'project') {
-      return <ProjectRenderer projectSlug={dataRow.project} />;
     }
 
     if (col.key === 'span.self_time' || col.key === 'span.duration') {
@@ -399,6 +427,7 @@ function ProjectRenderer({projectSlug}: {projectSlug: string}) {
             <ProjectBadge
               project={project ? project : {slug: projectSlug}}
               avatarSize={16}
+              hideName
             />
           );
         }}
@@ -496,7 +525,13 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
   const organization = useOrganization();
 
   if (!defined(profileId)) {
-    return <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
+    return (
+      <Container>
+        <Button href={undefined} disabled size="xs">
+          <IconProfiling size="xs" />
+        </Button>
+      </Container>
+    );
   }
 
   const target = generateProfileFlamechartRoute({
@@ -507,14 +542,12 @@ function ProfileId({projectSlug, profileId}: {projectSlug: string; profileId?: s
 
   return (
     <Container>
-      <Link to={target}>{getShortEventId(profileId)}</Link>
+      <LinkButton to={target} size="xs">
+        <IconProfiling size="xs" />
+      </LinkButton>
     </Container>
   );
 }
-
-const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
-`;
 
 const SearchBar = styled(SmartSearchBar)`
   margin-bottom: ${space(2)};

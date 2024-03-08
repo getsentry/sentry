@@ -34,7 +34,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.processing import realtime_metrics
@@ -81,7 +80,7 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
 }
 
 
-def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
+def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -98,13 +97,17 @@ def get_access_by_project(
 ) -> MutableMapping[Project, MutableMapping[str, Any]]:
     request = env.request
 
-    project_teams = list(ProjectTeam.objects.filter(project__in=projects).select_related("team"))
-    project_team_map = defaultdict(list)
+    project_teams = ProjectTeam.objects.filter(project__in=projects).values_list(
+        "project_id", "team_id"
+    )
 
-    for pt in project_teams:
-        project_team_map[pt.project_id].append(pt.team)
+    project_to_teams = defaultdict(list)
+    teams_list = []
+    for project_id, team_id in project_teams:
+        project_to_teams[project_id].append(team_id)
+        teams_list.append(team_id)
 
-    team_memberships = _get_team_memberships([pt.team for pt in project_teams], user)
+    team_memberships = _get_team_memberships(teams_list, user)
 
     org_ids = {i.organization_id for i in projects}
     org_roles = get_org_roles(org_ids, user)
@@ -115,7 +118,7 @@ def get_access_by_project(
     has_team_roles_cache = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
-            parent_teams = [t.id for t in project_team_map.get(project.id, [])]
+            parent_teams = [t for t in project_to_teams.get(project.id, [])]
             member_teams = [m for m in team_memberships if m.team_id in parent_teams]
             is_member = any(member_teams)
             org_role = org_roles.get(project.organization_id)
@@ -230,8 +233,8 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
-        "sentry:feedback_user_report_notification": bool(
-            options.get("sentry:feedback_user_report_notification")
+        "sentry:feedback_user_report_notifications": bool(
+            options.get("sentry:feedback_user_report_notifications")
         ),
         "sentry:feedback_ai_spam_detection": bool(options.get("sentry:feedback_ai_spam_detection")),
         "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues"),
@@ -716,7 +719,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, lpq_projects=lpq_projects
+                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
             )
 
         return attrs

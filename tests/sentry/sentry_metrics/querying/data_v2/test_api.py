@@ -11,12 +11,16 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.plan import MetricsQueriesPlan
 from sentry.sentry_metrics.querying.data_v2.transformation import MetricsAPIQueryTransformer
-from sentry.sentry_metrics.querying.data_v2.units import MeasurementUnit, get_unit_family_and_unit
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.types import QueryOrder
+from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
+from sentry.sentry_metrics.querying.units import (
+    MeasurementUnit,
+    UnitFamily,
+    get_unit_family_and_unit,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
@@ -112,6 +116,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         projects: Sequence[Project],
         environments: Sequence[Environment],
         referrer: str,
+        query_type: QueryType = QueryType.TOTALS_AND_SERIES,
     ) -> Mapping[str, Any]:
         return run_metrics_queries_plan(
             metrics_queries_plan,
@@ -122,6 +127,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             projects,
             environments,
             referrer,
+            query_type,
         ).apply_transformer(self.query_transformer)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
@@ -157,6 +163,31 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert data[0][0]["totals"] == expected_identity_totals
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_infinite_value(self) -> None:
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1 / 0")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            None,
+            None,
+        ]
+        assert data[0][0]["totals"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation(self) -> None:
         query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
@@ -180,12 +211,69 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(9.0),
         ]
         assert data[0][0]["totals"] == self.to_reference_unit(21.0)
-        # We also want to test the meta.
         meta = results["meta"]
         assert len(meta) == 1
-        assert meta[0][1]["unit_family"] is not None
+        assert meta[0][1]["unit_family"] == UnitFamily.DURATION.value
         assert meta[0][1]["unit"] is not None
         assert meta[0][1]["scaling_factor"] is not None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_one_aggregation_and_only_totals(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+            query_type=QueryType.TOTALS,
+        )
+        assert "intervals" not in results
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert "series" not in data[0][0]
+        assert data[0][0]["totals"] == self.to_reference_unit(21.0)
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] == UnitFamily.DURATION.value
+        assert meta[0][1]["unit"] is not None
+        assert meta[0][1]["scaling_factor"] is not None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_one_aggregation_and_unitless_aggregate(self) -> None:
+        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [
+            None,
+            3,
+            3,
+        ]
+        assert data[0][0]["totals"] == 6
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] is None
+        assert meta[0][1]["unit"] is None
+        assert meta[0][1]["scaling_factor"] is None
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_one_aggregation_and_environment(self) -> None:
@@ -261,7 +349,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(3.8),
         ]
         assert data[0][0]["totals"] == self.to_reference_unit(5.5)
-        # We want to test that the `Array(x)` is stripped away from the `type` of the aggregate.
         meta = results["meta"]
         assert len(meta) == 1
         assert meta[0][0] == {"name": "aggregate_value", "type": "Float64"}
@@ -345,7 +432,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(4.0),
         ]
         assert first_query[2]["totals"] == self.to_reference_unit(9.0)
-        # We want to test that the `group_bys` are shown in the meta.
         meta = results["meta"]
         assert len(meta) == 1
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
@@ -387,6 +473,35 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(4.0),
         ]
         assert data[0][1]["totals"] == self.to_reference_unit(9.0)
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_group_by_and_order_by_and_only_totals(self) -> None:
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .apply_formula("$query_1", order=QueryOrder.ASC)
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+            query_type=QueryType.TOTALS,
+        )
+        assert "intervals" not in results
+        data = results["data"]
+        assert len(data) == 1
+        assert len(data[0]) == 2
+        assert data[0][0]["by"] == {"transaction": "/world"}
+        assert data[0][0]["totals"] == self.to_reference_unit(9.0)
+        assert data[0][1]["by"] == {"transaction": "/hello"}
+        assert data[0][1]["totals"] == self.to_reference_unit(12.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
@@ -744,7 +859,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_query[2]["totals"] == self.to_reference_unit(5.0)
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
-    @pytest.mark.skip("Bug on Snuba that returns the wrong results, removed when fixed")
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
@@ -802,13 +916,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.to_reference_unit(4.0),
         ]
         assert second_query[1]["totals"] == self.to_reference_unit(5.0)
-        # We want to test that the correct order and limit are in the meta.
         meta = results["meta"]
         assert len(meta) == 2
         first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
-        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "ASC"}
+        assert first_meta[0]["limit"] == 2
+        assert first_meta[0]["order"] == "ASC"
         second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
-        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "DESC"}
+        assert second_meta[0]["limit"] == 2
+        assert second_meta[0]["order"] == "DESC"
 
     @with_feature("organizations:ddm-metrics-api-unit-normalization")
     def test_query_with_custom_set(self):
@@ -1141,6 +1256,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         data = results["data"]
         assert len(data) == 3
         assert data[0][0]["by"] == {}
+        # Units normalization is not performed if a `count` is in the formula.
         assert data[0][0]["series"] == [None, 136.0, 127.0]
         assert data[0][0]["totals"] == 226.0
 
@@ -1213,3 +1329,256 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][2]["by"] == {"platform": "windows", "transaction": "/world"}
         assert data[0][2]["series"] == [None, 0.0, 0.0]
         assert data[0][2]["totals"] == 0.0
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_coercible_units(self):
+        mri_1 = "d:custom/page_load@nanosecond"
+        mri_2 = "d:custom/image_load@microsecond"
+        for mri, value in ((mri_1, 20), (mri_1, 10), (mri_2, 15), (mri_2, 5)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        for formula, expected_result, expected_unit_family in (
+            # (($query_2 * 1000) + 10000.0)
+            ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
+            # (10000.0 + ($query_2 * 1000))
+            ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
+            # (($query_2 + 1000) + (10000.0 + 20000.0))
+            ("($query_2 + (10 + 20))", 50000.0, UnitFamily.DURATION.value),
+            # ((10000.0 + 20000.0) + ($query_2 + 1000))
+            ("((10 + 20) + $query_2)", 50000.0, UnitFamily.DURATION.value),
+            # ($query_2 * 1000 + 10000.0) + ($query_2 * 1000)
+            ("($query_2 + 10) + $query_2", 50000.0, UnitFamily.DURATION.value),
+            # ($query_2 * 1000 + 10000.0) + $query_1
+            ("($query_2 + 10) + $query_1", 30015.0, UnitFamily.DURATION.value),
+            # ($query_1 + 10) + ($query_2 * 1000)
+            ("($query_1 + 10) + $query_2", 20025.0, UnitFamily.DURATION.value),
+        ):
+            query_1 = self.mql("avg", mri_1)
+            query_2 = self.mql("sum", mri_2)
+            plan = (
+                MetricsQueriesPlan()
+                .declare_query("query_1", query_1)
+                .declare_query("query_2", query_2)
+                .apply_formula(formula)
+            )
+
+            results = self.run_query(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {}
+            assert data[0][0]["series"] == [None, expected_result, None]
+            assert data[0][0]["totals"] == expected_result
+            meta = results["meta"]
+            assert len(meta) == 1
+            assert meta[0][1]["unit_family"] == expected_unit_family
+            assert meta[0][1]["unit"] == "nanosecond"
+            assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_non_coercible_units(self):
+        mri_1 = "d:custom/page_load@nanosecond"
+        mri_2 = "d:custom/page_size@byte"
+        for mri, value in ((mri_1, 20), (mri_2, 15)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("avg", mri_1)
+        query_2 = self.mql("sum", mri_2)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 + $query_2")
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 35.0, None]
+        assert data[0][0]["totals"] == 35.0
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] is None
+        assert meta[0][1]["unit"] is None
+        assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_unitless_aggregates(self):
+        mri_1 = "d:custom/page_load@nanosecond"
+        mri_2 = "d:custom/load_time@microsecond"
+        for mri, value in ((mri_1, 20), (mri_2, 15)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("avg", mri_1)
+        query_2 = self.mql("count", mri_2)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 + $query_2")
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 21.0, None]
+        assert data[0][0]["totals"] == 21.0
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] is None
+        assert meta[0][1]["unit"] is None
+        assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_unknown_units(self):
+        mri_1 = "d:custom/cost@bananas"
+        mri_2 = "d:custom/speed@mangos"
+        for mri, value in ((mri_1, 20), (mri_2, 15)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("avg", mri_1)
+        query_2 = self.mql("sum", mri_2)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 + $query_2")
+        )
+
+        results = self.run_query(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [None, 35.0, None]
+        assert data[0][0]["totals"] == 35.0
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][1]["unit_family"] is None
+        assert meta[0][1]["unit"] is None
+        assert meta[0][1]["scaling_factor"] is None
+
+    @with_feature("organizations:ddm-metrics-api-unit-normalization")
+    def test_query_with_basic_formula_and_unitless_formula_functions(self):
+        mri_1 = "d:custom/page_load@nanosecond"
+        mri_2 = "d:custom/load_time@microsecond"
+        for mri, value in ((mri_1, 20), (mri_2, 15)):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        for formula, expected_result, expected_unit_family, expected_unit in (
+            ("$query_1 * $query_2", 300.0, None, None),
+            ("$query_1 * $query_2 + 25", 325.0, None, None),
+            ("$query_1 * $query_2 / 1", 300.0, None, None),
+            ("$query_1 * 2", 40.0, UnitFamily.DURATION.value, "nanosecond"),
+            ("$query_1 / 2", 10.0, UnitFamily.DURATION.value, "nanosecond"),
+        ):
+            query_1 = self.mql("avg", mri_1)
+            query_2 = self.mql("sum", mri_2)
+            plan = (
+                MetricsQueriesPlan()
+                .declare_query("query_1", query_1)
+                .declare_query("query_2", query_2)
+                .apply_formula(formula)
+            )
+
+            results = self.run_query(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {}
+            assert data[0][0]["series"] == [None, expected_result, None]
+            assert data[0][0]["totals"] == expected_result
+            meta = results["meta"]
+            assert len(meta) == 1
+            assert meta[0][1]["unit_family"] == expected_unit_family
+            assert meta[0][1]["unit"] == expected_unit
+            assert meta[0][1]["scaling_factor"] is None
