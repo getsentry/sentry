@@ -1,16 +1,15 @@
+from unittest.mock import Mock
+
 from fido2 import cbor
 from fido2.ctap2 import AuthenticatorData
 from fido2.server import Fido2Server
 from fido2.webauthn import PublicKeyCredentialRpEntity
+from pytest import raises
 
 from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-
-
-def verifiy_origin(origin):
-    return True
 
 
 @control_silo_test
@@ -19,7 +18,7 @@ class U2FInterfaceTest(TestCase):
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
-        self.test_registration_server = Fido2Server(rp, verify_origin=verifiy_origin)
+        self.test_registration_server = Fido2Server(rp, verify_origin=lambda origin: True)
 
     def test_start_enrollment_webauthn(self):
         self.u2f.webauthn_registration_server = self.test_registration_server
@@ -62,6 +61,74 @@ class U2FInterfaceTest(TestCase):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
         result = self.u2f.activate(request)
+
         assert isinstance(result, ActivationChallengeResult)
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert request.session["webauthn_authentication_state"]["user_verification"] is None
+
+    def test_activate_staff_webauthn(self):
+        self.test_try_enroll_webauthn()
+        request = self.make_request(user=self.user)
+        request.session["staff_u2f"] = True
+
+        result = self.u2f.activate(request)
+
+        assert isinstance(result, ActivationChallengeResult)
+        assert "webauthn_authentication_state" not in request.session
+        assert len(request.session["staff_webauthn_authentication_state"]["challenge"]) == 43
+        assert request.session["staff_webauthn_authentication_state"]["user_verification"] is None
+
+    def test_validate_response_normal_state(self):
+        self.test_try_enroll_webauthn()
+        mock_state = Mock()
+        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
+        request = self.make_request(user=self.user)
+        request.session["webauthn_authentication_state"] = "normal state"
+        response = {
+            "keyHandle": "F5MKBNqJMnHX-g0jee03d0slMyvz0FMWAf1YzF9mjZhA6ePDEwt8QT2zNR-ungcffGGxpGtp4yXRC5gz8t1Lww",
+            "clientData": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRjJYS0tyZ19FY1h6OEljUjBUX3BzcUJqenc5X1VIYTFIU2premtFbTUzQSIsIm9yaWdpbiI6Imh0dHBzOi8vc2VudHJ5LmlvIiwiY3Jvc3NPcmlnaW4iOmZhbHNlLCJvdGhlcl9rZXlzX2Nhbl9iZV9hZGRlZF9oZXJlIjoiZG8gbm90IGNvbXBhcmUgY2xpZW50RGF0YUpTT04gYWdhaW5zdCBhIHRlbXBsYXRlLiBTZWUgaHR0cHM6Ly9nb28uZ2wveWFiUGV4In0",
+            "signatureData": "MEUCIDe2DPI7E3tWa31JN_FG5m9rhc2v2lDRsWY-Yy7jgdT0AiEA5hkw8UGEfu-d_H5CEHuGC1Cj1wvFPqiRu-c_q50R6NM",
+            "authenticatorData": "ss7JfEqyMJeXvxXeO3AXn9tPTh1R4bNVGkMcr6WH-08BAAAD_A",
+        }
+
+        assert self.u2f.validate_response(request, None, response)
+        _, kwargs = mock_state.call_args
+        assert kwargs.get("state") == "normal state"
+        assert "webauthn_authentication_state" not in request.session
+
+    def test_validate_response_staff_state(self):
+        self.test_try_enroll_webauthn()
+        mock_state = Mock()
+        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
+        request = self.make_request(user=self.user)
+        request.session["staff_webauthn_authentication_state"] = "staff state"
+        response = {
+            "keyHandle": "F5MKBNqJMnHX-g0jee03d0slMyvz0FMWAf1YzF9mjZhA6ePDEwt8QT2zNR-ungcffGGxpGtp4yXRC5gz8t1Lww",
+            "clientData": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRjJYS0tyZ19FY1h6OEljUjBUX3BzcUJqenc5X1VIYTFIU2premtFbTUzQSIsIm9yaWdpbiI6Imh0dHBzOi8vc2VudHJ5LmlvIiwiY3Jvc3NPcmlnaW4iOmZhbHNlLCJvdGhlcl9rZXlzX2Nhbl9iZV9hZGRlZF9oZXJlIjoiZG8gbm90IGNvbXBhcmUgY2xpZW50RGF0YUpTT04gYWdhaW5zdCBhIHRlbXBsYXRlLiBTZWUgaHR0cHM6Ly9nb28uZ2wveWFiUGV4In0",
+            "signatureData": "MEUCIDe2DPI7E3tWa31JN_FG5m9rhc2v2lDRsWY-Yy7jgdT0AiEA5hkw8UGEfu-d_H5CEHuGC1Cj1wvFPqiRu-c_q50R6NM",
+            "authenticatorData": "ss7JfEqyMJeXvxXeO3AXn9tPTh1R4bNVGkMcr6WH-08BAAAD_A",
+        }
+
+        assert self.u2f.validate_response(request, None, response)
+        _, kwargs = mock_state.call_args
+        assert kwargs.get("state") == "staff state"
+        assert "staff_webauthn_authentication_state" not in request.session
+
+    def test_validate_response_failing_still_clears_all_states(self):
+        self.test_try_enroll_webauthn()
+        mock_state = Mock(side_effect=ValueError("test"))
+        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
+        request = self.make_request(user=self.user)
+        request.session["webauthn_authentication_state"] = "normal state"
+        request.session["staff_webauthn_authentication_state"] = "staff state"
+        response = {
+            "keyHandle": "F5MKBNqJMnHX-g0jee03d0slMyvz0FMWAf1YzF9mjZhA6ePDEwt8QT2zNR-ungcffGGxpGtp4yXRC5gz8t1Lww",
+            "clientData": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRjJYS0tyZ19FY1h6OEljUjBUX3BzcUJqenc5X1VIYTFIU2premtFbTUzQSIsIm9yaWdpbiI6Imh0dHBzOi8vc2VudHJ5LmlvIiwiY3Jvc3NPcmlnaW4iOmZhbHNlLCJvdGhlcl9rZXlzX2Nhbl9iZV9hZGRlZF9oZXJlIjoiZG8gbm90IGNvbXBhcmUgY2xpZW50RGF0YUpTT04gYWdhaW5zdCBhIHRlbXBsYXRlLiBTZWUgaHR0cHM6Ly9nb28uZ2wveWFiUGV4In0",
+            "signatureData": "MEUCIDe2DPI7E3tWa31JN_FG5m9rhc2v2lDRsWY-Yy7jgdT0AiEA5hkw8UGEfu-d_H5CEHuGC1Cj1wvFPqiRu-c_q50R6NM",
+            "authenticatorData": "ss7JfEqyMJeXvxXeO3AXn9tPTh1R4bNVGkMcr6WH-08BAAAD_A",
+        }
+
+        with raises(ValueError):
+            self.u2f.validate_response(request, None, response)
+        assert "webauthn_authentication_state" not in request.session
+        assert "staff_webauthn_authentication_state" not in request.session
