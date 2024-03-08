@@ -28,6 +28,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
     project.features.includes('ai-autofix') &&
+    organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project);
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
