@@ -236,7 +236,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "span.self_time"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.self_time",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -329,7 +329,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                 "field": ["id", "span.duration"],
                 "project": [self.project.id],
                 "statsPeriod": "14d",
-                "sort": "-span.duration",
+                "sort": "-summary",
             }
             response = self.do_request(query)
             assert response.status_code == 200, response.data
@@ -399,7 +399,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "span.duration"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
@@ -493,7 +493,7 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             "field": ["id", "span.duration"],
             "project": [self.project.id],
             "statsPeriod": "14d",
-            "sort": "-span.duration",
+            "sort": "-summary",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.data
