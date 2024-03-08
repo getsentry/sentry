@@ -19,7 +19,6 @@ from sentry.sentry_metrics.querying.units import (
 from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
-    TVisited,
 )
 from sentry.snuba.metrics import parse_mri
 
@@ -402,7 +401,7 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
     def __init__(self, unit: Unit):
         self._unit = unit
 
-    def _visit_formula(self, formula: Formula) -> TVisited:
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
         has_coefficient_operators = formula.function_name in COEFFICIENT_OPERATORS
 
         # In case the formula has a coefficient operator with all scalars, we want to scale the entire formula by
