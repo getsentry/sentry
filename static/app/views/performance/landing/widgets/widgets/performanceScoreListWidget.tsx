@@ -17,6 +17,10 @@ import {
   PerformanceBadge,
 } from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {
+  ORDER,
+  ORDER_WITH_INP_WITHOUT_FID,
+} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -25,6 +29,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/w
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart from 'sentry/views/starfish/components/chart';
 
@@ -50,6 +55,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle} = props;
   const theme = useTheme();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
     useProjectRawWebVitalsQuery();
@@ -71,6 +77,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
+  const order = shouldReplaceFidWithInp ? ORDER_WITH_INP_WITHOUT_FID : ORDER;
+
   const getAreaChart = _ =>
     function () {
       const segmentColors = theme.charts.getColorPalette(3);
@@ -81,7 +89,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
           data={formatTimeSeriesResultsToChartData(
             timeseriesData,
             segmentColors,
-            !shouldUseStoredScores
+            !shouldUseStoredScores,
+            order
           )}
           disableXAxis
           loading={false}
