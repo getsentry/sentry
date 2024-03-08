@@ -225,5 +225,10 @@ export async function fetchOrganizations(api: Client, query?: Record<string, any
       })
     )
   );
-  return results.reduce((acc, response) => acc.concat(response), []);
+  return results.reduce((acc, response) => {
+    if (response[0]) {
+      acc = acc.concat(response);
+    }
+    return acc;
+  }, []);
 }

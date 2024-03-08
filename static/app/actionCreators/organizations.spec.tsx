@@ -71,7 +71,8 @@ describe('fetchOrganizations', function () {
 
     const organizations = await fetchOrganizations(api);
 
-    expect(organizations).toHaveLength(2);
+    expect(organizations).toHaveLength(1);
+    expect(organizations[0].slug).toEqual(usorg.slug);
     expect(usMock).toHaveBeenCalledTimes(1);
     expect(deMock).toHaveBeenCalledTimes(1);
     expect(window.location.reload).not.toHaveBeenCalled();
