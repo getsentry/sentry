@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -1144,14 +1144,17 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
 
+            extra: dict[str, Any] = {
+                "organization.slug": org_slug,
+                "project.slug": project.slug,
+                "group_id": group_id,
+                "next_time": next_time,
+            }
+
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
-                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
-                    project.slug,
-                    group_id,
-                    org_slug,
-                    next_time,
+                    "derive_code_mappings: Queuing code mapping derivation",
+                    extra=extra,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 

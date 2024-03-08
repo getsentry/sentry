@@ -70,7 +70,6 @@ def process_error(error: ApiError, extra: dict[str, str]) -> None:
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,
-    autoretry_for=(UnableToAcquireLock,),
     max_retries=3,
 )
 def derive_code_mappings(
@@ -128,13 +127,13 @@ def derive_code_mappings(
         extra["error"] = error
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
-        raise
+        return
     except Exception:
         logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
         return
 
     if not trees:
-        logger.warning("The trees are empty.")
+        logger.warning("The trees are empty.", extra=extra)
         return
 
     trees_helper = CodeMappingTreesHelper(trees)
