@@ -1,7 +1,6 @@
 import React, {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -81,7 +80,7 @@ export function DatabaseLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const queryListResponse = useSpanMetrics({
-    filters: pickBy(tableFilters, value => value !== undefined),
+    filters: tableFilters,
     fields: [
       'project.id',
       'span.group',

@@ -65,6 +65,7 @@ function SpanSummaryPage({params, location}: Props) {
   const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics({
     filters,
     fields: ['span.op', 'span.group', 'project.id', 'sps()'],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 

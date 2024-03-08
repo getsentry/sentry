@@ -52,6 +52,7 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
+    enabled: Object.values(filters).every(value => Boolean(value)),
     referrer: 'api.starfish.span-summary-panel-metrics',
   });
 

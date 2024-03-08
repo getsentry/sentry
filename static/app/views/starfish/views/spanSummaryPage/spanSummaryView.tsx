@@ -64,6 +64,7 @@ export function SpanSummaryView({groupId}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    enabled: Boolean(groupId),
     referrer: 'api.starfish.span-summary-page-metrics',
   });
 
@@ -93,6 +94,7 @@ export function SpanSummaryView({groupId}: Props) {
     useSpanMetricsSeries({
       filters: {'span.group': groupId, ...seriesQueryFilter},
       yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      enabled: Boolean(groupId),
       referrer: 'api.starfish.span-summary-page-metrics-chart',
     });
 

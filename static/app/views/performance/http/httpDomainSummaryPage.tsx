@@ -53,6 +53,7 @@ export function HTTPDomainSummaryPage() {
       `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
     ],
+    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
   });
 
@@ -63,6 +64,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     filters,
     yAxis: ['spm()'],
+    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
   });
 
@@ -73,6 +75,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries({
     filters,
     yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    enabled: Boolean(domain),
     referrer: 'api.starfish.http-module-domain-summary-duration-chart',
   });
 

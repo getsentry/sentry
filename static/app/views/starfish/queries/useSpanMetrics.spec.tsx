@@ -97,6 +97,7 @@ describe('useSpanMetrics', () => {
             'span.group': '221aa7ebd216',
             transaction: '/api/details',
             release: '0.0.1',
+            environment: undefined,
           },
           fields: ['spm()'] as MetricsProperty[],
           sorts: [{field: 'spm()', kind: 'desc' as const}],
