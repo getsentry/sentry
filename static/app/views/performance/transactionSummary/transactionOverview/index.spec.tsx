@@ -17,7 +17,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -25,8 +25,13 @@ import {
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 import {RouteContext} from 'sentry/views/routeContext';
+
+jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useProjects');
 
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -65,6 +70,15 @@ function initializeData({
   });
 
   ProjectsStore.loadInitialData(initialData.organization.projects);
+  jest.mocked(useProjects).mockReturnValue({
+    projects: initialData.organization.projects,
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: true,
+  });
   TeamStore.loadInitialData(teams, false, null);
 
   return initialData;
@@ -72,21 +86,21 @@ function initializeData({
 
 function TestComponent({
   router,
+  organization,
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
+  organization: Organization;
   router: InjectedRouter<Record<string, string>, any>;
 }) {
-  if (!props.organization) {
+  if (!organization) {
     throw new Error('Missing organization');
   }
+  jest.mocked(useOrganization).mockReturnValue(organization);
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
       <RouteContext.Provider value={{router, ...router}}>
-        <MetricsCardinalityProvider
-          organization={props.organization}
-          location={props.location}
-        >
+        <MetricsCardinalityProvider organization={organization} location={props.location}>
           <TransactionSummary {...props} />
         </MetricsCardinalityProvider>
       </RouteContext.Provider>

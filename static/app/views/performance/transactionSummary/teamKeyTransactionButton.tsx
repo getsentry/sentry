@@ -7,8 +7,8 @@ import {t, tn} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
+import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import withProjects from 'sentry/utils/withProjects';
 
 type BaseProps = {
   organization: Organization;
@@ -77,15 +77,14 @@ function TeamKeyTransactionButton({
 
 type WrapperProps = BaseProps & {
   eventView: EventView;
-  projects: Project[];
 };
 
-function TeamKeyTransactionButtonWrapper({
+export default function TeamKeyTransactionButtonWrapper({
   eventView,
   organization,
-  projects,
   ...props
 }: WrapperProps) {
+  const {projects} = useProjects();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
 
   if (eventView.project.length !== 1) {
@@ -127,5 +126,3 @@ function TeamKeyTransactionButtonWrapper({
     </TeamKeyTransactionManager.Provider>
   );
 }
-
-export default withProjects(TeamKeyTransactionButtonWrapper);

@@ -11,7 +11,10 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+
+jest.mock('sentry/utils/useOrganization');
 
 type Data = {
   features?: string[];
@@ -93,6 +96,7 @@ describe('Performance GridEditable Table', function () {
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = OrganizationFixture();
+  jest.mocked(useOrganization).mockReturnValue(organization);
   const transactionName = 'transactionName';
   let data;
 

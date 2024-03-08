@@ -17,8 +17,10 @@ import {
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
+jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', function () {
@@ -26,7 +28,6 @@ describe('OrganizationGeneralSettings', function () {
   const {organization, router} = initializeOrg();
 
   const defaultProps = {
-    organization,
     router,
     location: router.location,
     params: {orgId: organization.slug},
@@ -36,6 +37,7 @@ describe('OrganizationGeneralSettings', function () {
   };
 
   beforeEach(function () {
+    jest.mocked(useOrganization).mockReturnValue(organization);
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,

@@ -1,10 +1,9 @@
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -14,12 +13,11 @@ import {generateAnomaliesEventView} from './utils';
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
 };
 
-function TransactionAnomalies(props: Props) {
-  const {location, organization, projects} = props;
+export default function TransactionAnomalies({location}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   return (
     <MEPSettingProvider>
@@ -46,5 +44,3 @@ function getDocumentTitle(transactionName: string): string {
 
   return [t('Summary'), t('Performance')].join(' - ');
 }
-
-export default withProjects(withOrganization(TransactionAnomalies));

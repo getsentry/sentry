@@ -19,7 +19,6 @@ import {CrumbLink} from '.';
 type Props = RouteComponentProps<{projectId?: string}, {}> & {
   organization: Organization;
   project: Project;
-  projects: Project[];
 };
 
 function ProjectCrumb({

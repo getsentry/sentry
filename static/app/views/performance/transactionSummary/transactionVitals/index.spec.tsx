@@ -68,7 +68,7 @@ function WrappedComponent({
 }) {
   return (
     <OrganizationContext.Provider value={organization}>
-      <TransactionVitals location={location} organization={organization} />
+      <TransactionVitals location={location} />
     </OrganizationContext.Provider>
   );
 }

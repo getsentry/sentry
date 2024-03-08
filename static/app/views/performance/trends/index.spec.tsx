@@ -19,6 +19,8 @@ import {
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
 import {
@@ -26,6 +28,9 @@ import {
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
 } from 'sentry/views/performance/trends/utils';
+
+jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useProjects');
 
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
@@ -111,6 +116,15 @@ function _initializeData(
   }
 
   act(() => ProjectsStore.loadInitialData(data.projects));
+  jest.mocked(useProjects).mockReturnValue({
+    projects: data.projects,
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
   return data;
 }
 
@@ -148,6 +162,16 @@ function initializeTrendsData(
   });
 
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  jest.mocked(useOrganization).mockReturnValue(initialData.organization);
+  jest.mocked(useProjects).mockReturnValue({
+    projects: initialData.organization.projects,
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
 
   return initialData;
 }
