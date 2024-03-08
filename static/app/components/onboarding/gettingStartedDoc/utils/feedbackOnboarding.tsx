@@ -141,3 +141,61 @@ export const getCrashReportJavaScriptInstallStep = params => [
     configurations: getCrashReportModalSnippetJavaScript(params),
   },
 ];
+
+export function getCrashReportSDKInstallFirstStep(params) {
+  const version =
+    params.sourcePackageRegistries.data['sentry.javascript.browser'].version;
+  const hash =
+    params.sourcePackageRegistries.data['sentry.javascript.browser'].files[
+      'bundle.min.js'
+    ].checksums['sha384-base64'];
+
+  return {
+    description: t('Make sure you have the JavaScript SDK available:'),
+    code: [
+      {
+        label: 'HTML',
+        value: 'html',
+        language: 'html',
+        code: `<script
+  src="https://browser.sentry-cdn.com/${version}/bundle.min.js"
+  integrity="sha384-${hash}"
+  crossorigin="anonymous"
+></script>`,
+      },
+    ],
+  };
+}
+
+export const getCrashReportGenericInstallStep = params => [
+  {
+    type: StepType.INSTALL,
+    configurations: [
+      getCrashReportSDKInstallFirstStep(params),
+      {
+        description: tct(
+          'You will then need to call [codeShow:showReportDialog] and pass in the generated event ID. This event ID is returned from all calls to [codeEvent:CaptureEvent] and [codeException:CaptureException]. There is also a function called [codeLast:LastEventId] that returns the ID of the most recently sent event.',
+          {
+            codeShow: <code />,
+            codeEvent: <code />,
+            codeException: <code />,
+            codeLast: <code />,
+          }
+        ),
+        code: [
+          {
+            label: 'HTML',
+            value: 'html',
+            language: 'html',
+            code: `<script>
+  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.showReportDialog({
+    eventId: "{{ event_id }}",
+  });
+</script>`,
+          },
+        ],
+      },
+    ],
+  },
+];
