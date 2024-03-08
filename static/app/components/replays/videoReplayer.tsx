@@ -314,7 +314,13 @@ export class VideoReplayer {
 
     // We are given an offset based on all videos combined, so we have to
     // calculate the individual video segment's offset
-    const segmentOffsetMs = this._startTimestamp + videoOffsetMs - segment.timestamp;
+    //
+    // This can be negative if videoOffsetMs is in a gap because `segment` will
+    // represent the next video to be played
+    const segmentOffsetMs = Math.max(
+      this._startTimestamp + videoOffsetMs - segment.timestamp,
+      0
+    );
 
     return this.loadSegment(nextSegmentIndex, {segmentOffsetMs});
   }
@@ -322,16 +328,18 @@ export class VideoReplayer {
   /**
    * Plays the video segment at a time (offset), e.g. starting at 20 seconds
    */
-  protected async playSegmentAtTime(videoOffsetMs: number = 0) {
+  protected async playSegmentAtTime(
+    videoOffsetMs: number = 0
+  ): Promise<void> | undefined {
     const loadedSegmentIndex = await this.loadSegmentAtTime(videoOffsetMs);
 
     if (loadedSegmentIndex === undefined) {
       // TODO: this shouldn't happen, loadSegment should load the previous
       // segment until it's time to start the next segment
-      return;
+      return undefined;
     }
 
-    this.playVideo(this.getVideo(loadedSegmentIndex));
+    return this.playVideo(this.getVideo(loadedSegmentIndex));
   }
 
   /**
@@ -350,9 +358,9 @@ export class VideoReplayer {
   /**
    * @param videoOffsetMs The time within the entire video, to start playing at
    */
-  public play(videoOffsetMs: number) {
+  public play(videoOffsetMs: number): Promise<void> | undefined {
     this._timer.start(videoOffsetMs);
-    this.playSegmentAtTime(videoOffsetMs);
+    return this.playSegmentAtTime(videoOffsetMs);
   }
 
   /**
