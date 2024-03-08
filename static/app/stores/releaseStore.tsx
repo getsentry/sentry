@@ -85,7 +85,9 @@ const storeConfig: ReleaseStoreDefinition = {
 
   updateOrganization(org) {
     this.reset();
-    this.state.orgSlug = org.slug;
+    if (org) {
+        this.state.orgSlug = org.slug;
+    }
     this.trigger(this.state);
   },
 
