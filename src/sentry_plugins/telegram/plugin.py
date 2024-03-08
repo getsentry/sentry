@@ -24,17 +24,18 @@ class TelegramConfigurationForm(forms.Form):
         widget=forms.PasswordInput(render_value=True, attrs={"class": "span6"}),
     )
     group_id = forms.CharField(
-        label=_("Group ID"), required=True,
-        widget=forms.TextInput(attrs={"class": "span6", "placeholder": "e.g. -100174934319"})
+        label=_("Group ID"),
+        required=True,
+        widget=forms.TextInput(attrs={"class": "span6", "placeholder": "e.g. -100174934319"}),
     )
     topic_id = forms.CharField(
-        label=_("Topic ID"), required=False, widget=forms.TextInput(attrs={"class": "span6", "placeholder": "e.g. 65"})
+        label=_("Topic ID"),
+        required=False,
+        widget=forms.TextInput(attrs={"class": "span6", "placeholder": "e.g. 65"}),
     )
     silent = forms.BooleanField(
         label=_("silent"),
-        help_text=_(
-            "By default, silent enable."
-        ),
+        help_text=_("By default, silent enable."),
         widget=forms.CheckboxInput(),
         required=False,
         initial=True,
@@ -78,12 +79,7 @@ class TelegramPlugin(CorePluginMixin, NotificationPlugin):
     ]
 
     def is_configured(self, project, **kwargs):
-        return all(
-            [
-                self.get_option(o, project)
-                for o in ("api_key", "group_id")
-            ]
-        )
+        return all([self.get_option(o, project) for o in ("api_key", "group_id")])
 
     def get_send_to(self, *args, **kwargs):
         # This doesn't depend on email permission... stuff.
@@ -110,7 +106,7 @@ class TelegramPlugin(CorePluginMixin, NotificationPlugin):
             level=event.group.get_level_display().upper(),
             title=event.title.splitlines()[0],
             message=event.message,
-            url=group.get_absolute_url()
+            url=group.get_absolute_url(),
         )
 
         payload = {
@@ -118,7 +114,7 @@ class TelegramPlugin(CorePluginMixin, NotificationPlugin):
             "text": body,
             "chat_id": client.group_id,
             "parse_mode": "markdown",
-            "disable_notification": client.silent
+            "disable_notification": client.silent,
         }
 
         try:
@@ -132,4 +128,6 @@ class TelegramPlugin(CorePluginMixin, NotificationPlugin):
         topic_id = self.get_option("topic_id", project)
         silent = self.get_option("silent", project)
 
-        return TelegramApiClient(api_key=api_key, group_id=group_id, topic_id=topic_id, silent=silent)
+        return TelegramApiClient(
+            api_key=api_key, group_id=group_id, topic_id=topic_id, silent=silent
+        )
