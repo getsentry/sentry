@@ -17,11 +17,10 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import withProjects from 'sentry/utils/withProjects';
 
 import type SidebarMenuItemLink from '../sidebarMenuItemLink';
 import type {CommonSidebarProps} from '../types';
@@ -30,19 +29,19 @@ import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
-  projects: Project[];
   /**
    * Set to true to hide links within the organization
    */
   hideOrgLinks?: boolean;
 };
 
-function SidebarDropdown({projects, orientation, collapsed, hideOrgLinks}: Props) {
+export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: Props) {
   const api = useApi();
 
   const config = useLegacyStore(ConfigStore);
   const org = useOrganization({allowNull: true});
   const user = useUser();
+  const {projects} = useProjects();
 
   const handleLogout = async () => {
     await logout(api);
@@ -180,8 +179,6 @@ function SidebarDropdown({projects, orientation, collapsed, hideOrgLinks}: Props
     </DeprecatedDropdownMenu>
   );
 }
-
-export default withProjects(SidebarDropdown);
 
 const SentryLink = styled(Link)`
   color: ${p => p.theme.white};

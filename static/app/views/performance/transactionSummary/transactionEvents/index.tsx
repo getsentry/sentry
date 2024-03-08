@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,8 +17,8 @@ import {WebVital} from 'sentry/utils/fields';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import {
   decodeFilterFromLocation,
@@ -44,12 +44,11 @@ type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
 };
 
-function TransactionEvents(props: Props) {
-  const {location, organization, projects} = props;
+export default function TransactionEvents({location}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   return (
     <PageLayout
@@ -268,5 +267,3 @@ function generateEventView({
     location
   );
 }
-
-export default withProjects(withOrganization(TransactionEvents));

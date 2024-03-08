@@ -1,15 +1,14 @@
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -19,12 +18,11 @@ import VitalsContent from './content';
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
 };
 
-function TransactionVitals(props: Props) {
-  const {location, organization, projects} = props;
+export default function TransactionVitals({location}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   return (
     <PageLayout
@@ -91,5 +89,3 @@ function generateEventView({
     location
   );
 }
-
-export default withProjects(withOrganization(TransactionVitals));

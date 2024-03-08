@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -25,9 +25,9 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
 import {
   getTransactionMEPParamsIfApplicable,
   getUnfilteredTotalsEventView,
@@ -56,15 +56,13 @@ type TotalValues = Record<string, number>;
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
   selection: PageFilters;
 };
 
-function TransactionOverview(props: Props) {
+function TransactionOverview({location, selection}: Props) {
   const api = useApi();
-
-  const {location, selection, organization, projects} = props;
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
@@ -341,4 +339,4 @@ function getTotalsEventView(
   ]);
 }
 
-export default withPageFilters(withProjects(withOrganization(TransactionOverview)));
+export default withPageFilters(TransactionOverview);

@@ -6,17 +6,19 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
+jest.mock('sentry/utils/useOrganization');
+jest.mock('sentry/utils/useProjects');
+
 function WrappedComponent({data}) {
   return (
     <MEPSettingProvider>
-      <TransactionEvents
-        organization={data.organization}
-        location={data.router.location}
-      />
+      <TransactionEvents location={data.router.location} />
     </MEPSettingProvider>
   );
 }
@@ -132,6 +134,16 @@ const initializeData = (settings?: InitializeDataSettings) => {
   };
   const data = _initializeData(settings);
   act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  jest.mocked(useOrganization).mockReturnValue(data.organization);
+  jest.mocked(useProjects).mockReturnValue({
+    projects: data.organization.projects,
+    onSearch: jest.fn(),
+    placeholders: [],
+    fetching: false,
+    hasMore: null,
+    fetchError: null,
+    initiallyLoaded: false,
+  });
   return data;
 };
 
@@ -164,11 +176,12 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
     const data = initializeData();
 
     render(<WrappedComponent data={data} />, {context: data.routerContext});
-    const percentileButton = await screen.findByRole('button', {
-      name: /percentile p100/i,
+    act(async () => {
+      const percentileButton = await screen.findByRole('button', {
+        name: /percentile p100/i,
+      });
+      await userEvent.click(percentileButton);
     });
-
-    await userEvent.click(percentileButton);
 
     const p50 = screen.getByRole('option', {name: 'p50'});
     expect(p50).toBeInTheDocument();

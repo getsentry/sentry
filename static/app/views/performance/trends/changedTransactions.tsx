@@ -33,8 +33,8 @@ import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQ
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -67,8 +67,6 @@ import {
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
   trendChangeType: TrendChangeType;
   trendView: TrendView;
@@ -206,18 +204,18 @@ function handleFilterDuration(
   });
 }
 
-function ChangedTransactions(props: Props) {
+export default function ChangedTransactions(props: Props) {
   const {
     location,
     trendChangeType,
     previousTrendFunction,
     previousTrendColumn,
-    organization,
-    projects,
     setError,
     withBreakpoint,
   } = props;
   const api = useApi();
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
@@ -306,6 +304,8 @@ function ChangedTransactions(props: Props) {
                           statsPeriod={trendView.statsPeriod}
                           transaction={selectedTransaction}
                           isLoading={isLoading}
+                          projects={projects}
+                          organization={organization}
                           {...props}
                         />
                       </ChartContainer>
@@ -742,5 +742,3 @@ const TooltipContent = styled('div')`
 const StyledIconArrow = styled(IconArrow)`
   margin: 0 ${space(1)};
 `;
-
-export default withProjects(withOrganization(ChangedTransactions));

@@ -1,9 +1,8 @@
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
@@ -13,13 +12,11 @@ import {generateSpansEventView} from './utils';
 
 type Props = {
   location: Location;
-  organization: Organization;
-  projects: Project[];
 };
 
-function TransactionSpans(props: Props) {
-  const {location, organization, projects} = props;
-
+export default function TransactionSpans({location}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
   return (
     <PageLayout
       location={location}
@@ -43,5 +40,3 @@ function getDocumentTitle(transactionName: string): string {
 
   return [t('Summary'), t('Performance')].join(' - ');
 }
-
-export default withProjects(withOrganization(TransactionSpans));

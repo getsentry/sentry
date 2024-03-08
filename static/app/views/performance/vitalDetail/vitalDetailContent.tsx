@@ -25,7 +25,7 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -34,7 +34,7 @@ import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
@@ -57,7 +57,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   router: InjectedRouter;
   vitalName: WebVital;
 };
@@ -69,7 +68,8 @@ function getSummaryConditions(query: string) {
   return parsed.formatString();
 }
 
-function VitalDetailContent(props: Props) {
+export default function VitalDetailContent(props: Props) {
+  const {projects} = useProjects();
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSearch(query: string) {
@@ -90,7 +90,7 @@ function VitalDetailContent(props: Props) {
   }
 
   function renderCreateAlertButton() {
-    const {eventView, organization, projects, vitalName} = props;
+    const {eventView, organization, vitalName} = props;
 
     return (
       <CreateAlertFromViewButton
@@ -173,7 +173,7 @@ function VitalDetailContent(props: Props) {
   }
 
   function renderContent(vital: WebVital) {
-    const {location, organization, eventView, projects} = props;
+    const {location, organization, eventView} = props;
 
     const {fields, start, end, statsPeriod, environment, project} = eventView;
 
@@ -297,8 +297,6 @@ function VitalDetailContent(props: Props) {
     </Fragment>
   );
 }
-
-export default withProjects(VitalDetailContent);
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
