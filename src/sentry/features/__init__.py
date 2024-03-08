@@ -273,6 +273,7 @@ default_manager.add("organizations:starfish-browser-webvitals-use-backend-scores
 default_manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-webvitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-wsv-chart-dropdown", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

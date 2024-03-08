@@ -1919,6 +1919,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-replace-fid-with-inp": False,
     # Enable mobile starfish app start module view
     "organizations:starfish-mobile-appstart": False,
+    # Enable mobile starfish ui module view
+    "organizations:starfish-mobile-ui-module": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
