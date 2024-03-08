@@ -15,7 +15,7 @@ def backfill_ukraine_timezone_name(apps, schema_editor):
     user_options = UserOption.objects.filter(key="timezone", value=OLD_NAME)
     for user_option in RangeQuerySetWrapperWithProgressBar(user_options):
         user_option.value = NEW_NAME
-        user_option.save()
+        user_option.save(update_fields=['value'])
 
 
 class Migration(CheckedMigration):
