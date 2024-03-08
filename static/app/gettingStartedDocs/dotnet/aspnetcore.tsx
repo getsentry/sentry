@@ -218,7 +218,7 @@ const crashReportOnboarding: OnboardingConfig = {
           ),
           code: [
             {
-              label: 'Cshtml',
+              label: 'cshtml',
               value: 'html',
               language: 'html',
               code: `@using Sentry
