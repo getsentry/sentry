@@ -3,6 +3,7 @@ import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,20 +37,23 @@ export default function MailboxPicker({onChange, value}: Props) {
         value={value}
         onChange={onChange}
       >
-        {filteredMailboxes.map(c => (
-          <SegmentedControl.Item key={c.key}>
-            <Flex align="center">
-              {c.label}
-              {data?.[c.key] ? <CountBadge count={data?.[c.key]} /> : null}
-            </Flex>
-          </SegmentedControl.Item>
-        ))}
+        {filteredMailboxes.map(c => {
+          const count = data?.[c.key];
+          const display = count && count >= 100 ? '99+' : count;
+          const title =
+            count === 1 ? t('1 unassigned item') : t('%s unassigned items', display);
+          return (
+            <SegmentedControl.Item key={c.key}>
+              <Tooltip disabled={!count} title={title}>
+                <Flex align="center">
+                  {c.label}
+                  {display ? <Badge type="gray" text={display} /> : null}
+                </Flex>
+              </Tooltip>
+            </SegmentedControl.Item>
+          );
+        })}
       </SegmentedControl>
     </Flex>
   );
-}
-
-function CountBadge({count}: {count: number}) {
-  const display = count >= 100 ? '99+' : count;
-  return <Badge type="gray" text={display} />;
 }
