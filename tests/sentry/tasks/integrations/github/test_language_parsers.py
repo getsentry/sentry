@@ -673,3 +673,41 @@ class PHPParserTestCase(TestCase):
             "up",
             "down",
         }
+
+        patch = """
+@@ -184,93 +180,6 @@ function one() {
+
+@@ -184,93 +180,6 @@ function two () {
+
+@@ -184,93 +180,6 @@ $three = function() {
+
+@@ -184,93 +180,6 @@ $four = static function() {
+
+@@ -184,93 +180,6 @@ $five = fn() => 1 + 1;
+
+@@ -184,93 +180,6 @@ $six = static fn() => 1 + 1;
+
+@@ -184,93 +180,6 @@ function seven() {
+
+@@ -184,93 +180,6 @@ static function eight() {
+
+@@ -184,93 +180,6 @@ public function nine() {
+
+@@ -184,93 +180,6 @@ public static function ten() {
+
+"""
+
+        print(PHPParser.extract_functions_from_patch(patch))
+
+        assert PHPParser.extract_functions_from_patch(patch) == {
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+            "eight",
+            "nine",
+            "ten",
+        }
