@@ -6,13 +6,7 @@ import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import {
-  DetailContainer,
-  IconTitleWrapper,
-  StyledButton,
-  StyledIconBorder,
-  StyledTable,
-} from './styles';
+import {TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails({
   node,
@@ -22,31 +16,31 @@ export function ErrorNodeDetails({
   organization: Organization;
 }) {
   return (
-    <DetailContainer>
-      <IconTitleWrapper>
-        <StyledIconBorder errored>
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.IconTitleWrapper>
+        <TraceDrawerComponents.IconBorder errored>
           <IconFire color="errorText" size="md" />
-        </StyledIconBorder>
+        </TraceDrawerComponents.IconBorder>
         <div style={{fontWeight: 'bold'}}>{t('Error')}</div>
-      </IconTitleWrapper>
+      </TraceDrawerComponents.IconTitleWrapper>
 
-      <StyledTable className="table key-value">
+      <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           <Row
             title={t('Title')}
             extra={
-              <StyledButton
+              <TraceDrawerComponents.Button
                 size="xs"
                 to={generateIssueEventTarget(node.value, organization)}
               >
                 {t('Go to Issue')}
-              </StyledButton>
+              </TraceDrawerComponents.Button>
             }
           >
             {node.value.title}
           </Row>
         </tbody>
-      </StyledTable>
-    </DetailContainer>
+      </TraceDrawerComponents.Table>
+    </TraceDrawerComponents.DetailContainer>
   );
 }

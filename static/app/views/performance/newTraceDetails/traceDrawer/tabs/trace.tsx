@@ -23,6 +23,14 @@ import Tags from 'sentry/views/discover/tags';
 
 import {getTraceInfo} from '../../../traceDetails/utils';
 
+const WEB_VITALS = [
+  WEB_VITAL_DETAILS['measurements.cls'],
+  WEB_VITAL_DETAILS['measurements.lcp'],
+  WEB_VITAL_DETAILS['measurements.ttfb'],
+  WEB_VITAL_DETAILS['measurements.fcp'],
+  WEB_VITAL_DETAILS['measurements.fid'],
+];
+
 type TraceFooterProps = {
   location: Location;
   organization: Organization;
@@ -36,13 +44,7 @@ function NoWebVitals() {
     <div style={{flex: 1}}>
       <SectionHeading>{t('WebVitals')}</SectionHeading>
       <WebVitalsWrapper>
-        {[
-          WEB_VITAL_DETAILS['measurements.cls'],
-          WEB_VITAL_DETAILS['measurements.lcp'],
-          WEB_VITAL_DETAILS['measurements.ttfb'],
-          WEB_VITAL_DETAILS['measurements.fcp'],
-          WEB_VITAL_DETAILS['measurements.fid'],
-        ].map(detail => (
+        {WEB_VITALS.map(detail => (
           <StyledPanel key={detail.name}>
             <div>{detail.name}</div>
             <div>{' \u2014 '}</div>

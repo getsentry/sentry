@@ -1,8 +1,7 @@
-import {type Dispatch, type SetStateAction, useCallback, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
@@ -33,15 +32,14 @@ type DrawerProps = {
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   setActiveTab: (tab: 'trace' | 'node') => void;
-  setTraceDrawerRef: Dispatch<SetStateAction<HTMLElement | null>>;
   traceEventView: EventView;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
-const MIN_PANEL_HEIGHT = 100;
+const MIN_PANEL_HEIGHT = 31;
 const INITIAL_PANEL_HEIGHT = 200;
 
-function getNodeTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
+function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
     return node.value['transaction.op'] + ' - ' + node.value.transaction;
   }
@@ -89,24 +87,25 @@ function TraceDrawer(props: DrawerProps) {
   }, [handleMouseMove]);
 
   return (
-    <PanelWrapper size={size} ref={ref => props.setTraceDrawerRef(ref)}>
+    <PanelWrapper style={{height: size}}>
       <TabsContainer onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
-        {props.nodes.map((node, index) => (
-          <Tooltip title={getNodeTabTitle(node)} showOnlyOnOverflow key={index}>
+        {props.nodes.map((node, index) => {
+          const title = getTabTitle(node);
+          return (
             <Tab
               key={index}
               active={props.activeTab === 'node'}
               onClick={() => props.setActiveTab('node')}
             >
-              {getNodeTabTitle(node)}
+              <TabButton title={title}>{title}</TabButton>
             </Tab>
-          </Tooltip>
-        ))}
+          );
+        })}
         <Tab
           active={props.activeTab === 'trace'}
           onClick={() => props.setActiveTab('trace')}
         >
-          {t('Trace')}
+          <TabButton>{t('Trace')}</TabButton>
         </Tab>
       </TabsContainer>
 
@@ -134,13 +133,12 @@ function TraceDrawer(props: DrawerProps) {
   );
 }
 
-const PanelWrapper = styled('div')<{size: number}>`
+const PanelWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: ${p => p.size}px;
   position: sticky;
-  border: 1px solid ${p => p.theme.border};
+  border-top: 1px solid ${p => p.theme.border};
   bottom: 0;
   right: 0;
   background: ${p => p.theme.background};
@@ -149,7 +147,8 @@ const PanelWrapper = styled('div')<{size: number}>`
   z-index: ${p => p.theme.zIndex.sidebar - 1};
 `;
 
-const TabsContainer = styled('div')`
+const TabsContainer = styled('ul')`
+  list-style-type: none;
   width: 100%;
   min-height: 30px;
   border-bottom: 1px solid ${p => p.theme.border};
@@ -158,24 +157,42 @@ const TabsContainer = styled('div')`
   align-items: center;
   justify-content: left;
   padding-left: ${space(2)};
-  gap: ${space(2)};
+  gap: ${space(1)};
   cursor: row-resize;
+  margin-bottom: 0;
 `;
 
-const Tab = styled('div')<{active: boolean}>`
-  max-width: 200px;
-  white-space: nowrap;
-  display: block;
+const Tab = styled('li')<{active: boolean}>`
+  height: 100%;
+
+  button {
+    border-bottom: 2px solid ${p => (p.active ? p.theme.blue400 : 'transparent')};
+    font-weight: ${p => (p.active ? 'bold' : 'normal')};
+  }
+`;
+
+const TabButton = styled('button')`
+  height: 100%;
+  border: none;
+  max-width: 160px;
+
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: pointer;
+  white-space: nowrap;
+
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin: 0;
+  padding: ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  ${p => p.active && `font-weight: bold; border-bottom: 2px solid ${p.theme.textColor};`}
+  color: ${p => p.theme.textColor};
+  background: transparent;
 `;
 
 const Content = styled('div')`
   overflow: scroll;
-  padding: ${space(2)};
+  padding: ${space(1)};
   flex: 1;
 `;
 

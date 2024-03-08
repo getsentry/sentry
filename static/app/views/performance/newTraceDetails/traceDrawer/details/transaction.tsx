@@ -37,6 +37,7 @@ import {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {Title} from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -62,14 +63,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import {
-  DetailContainer,
-  FlexBox,
-  StyledButton,
-  StyledTable,
-  Title,
-  TitleOp,
-} from './styles';
+import {TraceDrawerComponents} from './styles';
 
 function OpsBreakdown({event}: {event: EventTransaction}) {
   const [showingAll, setShowingAll] = useState(false);
@@ -84,13 +78,13 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
     breakdown && (
       <Row
         title={
-          <FlexBox style={{gap: '5px'}}>
+          <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
             {t('Ops Breakdown')}
             <QuestionTooltip
               title={t('Applicable to the children of this event only')}
               size="xs"
             />
-          </FlexBox>
+          </TraceDrawerComponents.FlexBox>
         }
       >
         <div style={{display: 'flex', flexDirection: 'column', gap: space(0.25)}}>
@@ -271,16 +265,16 @@ export function TransactionNodeDetails({
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <TraceDrawerComponents.Button size="xs" to={target} onClick={handleOnClick}>
         {t('View Profile')}
-      </StyledButton>
+      </TraceDrawerComponents.Button>
     );
   };
 
   return (
-    <DetailContainer>
+    <TraceDrawerComponents.DetailContainer>
       <TransactioNodeDetailHeader>
-        <Title>
+        <TraceDrawerComponents.Title>
           <Tooltip title={node.value.project_slug}>
             <ProjectBadge
               project={project ? project : {slug: node.value.project_slug}}
@@ -289,10 +283,13 @@ export function TransactionNodeDetails({
             />
           </Tooltip>
           <div>
-            <div>{t('Event')}</div>
-            <TitleOp> {node.value['transaction.op']}</TitleOp>
+            <div>{t('transaction')}</div>
+            <TraceDrawerComponents.TitleOp>
+              {' '}
+              {node.value['transaction.op']}
+            </TraceDrawerComponents.TitleOp>
           </div>
-        </Title>
+        </TraceDrawerComponents.Title>
         <Button
           size="xs"
           icon={<IconOpen />}
@@ -335,7 +332,7 @@ export function TransactionNodeDetails({
         </Alert>
       )}
 
-      <StyledTable className="table key-value">
+      <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           <Row title={t('Event ID')}>
             {node.value.event_id}
@@ -424,7 +421,7 @@ export function TransactionNodeDetails({
             </tr>
           )}
         </tbody>
-      </StyledTable>
+      </TraceDrawerComponents.Table>
       {project && <EventEvidence event={event} project={project} />}
       {projectSlug && (
         <Entries
@@ -475,7 +472,7 @@ export function TransactionNodeDetails({
           projectSlug={projectSlug}
         />
       )}
-    </DetailContainer>
+    </TraceDrawerComponents.DetailContainer>
   );
 }
 

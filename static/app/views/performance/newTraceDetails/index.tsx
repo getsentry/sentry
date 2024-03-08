@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -33,6 +34,7 @@ import type {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -225,7 +227,6 @@ function TraceViewContent(props: TraceViewContentProps) {
     resultsLookup: new Map(),
   });
 
-  const [traceDrawerRef, setTraceDrawerRef] = useState<HTMLElement | null>(null);
   const [clickedNode, setClickedNode] = useState<TraceTreeNode<TraceTree.NodeValue>[]>(
     []
   );
@@ -324,6 +325,20 @@ function TraceViewContent(props: TraceViewContentProps) {
 
   useQueryParamSync(syncQuery);
 
+  const onOutsideClick = useCallback(() => {
+    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: queryParamsWithoutNode,
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const traceContainerRef = useRef<HTMLElement | null>(null);
+  useOnClickOutside(traceContainerRef, onOutsideClick);
+
   return (
     <Fragment>
       <Layout.Header>
@@ -370,31 +385,31 @@ function TraceViewContent(props: TraceViewContentProps) {
             resultCount={searchState.results?.length}
             resultIteratorIndex={searchState.resultIteratorIndex}
           />
-          <Trace
-            trace={tree}
-            traceDrawerRef={traceDrawerRef}
-            trace_id={props.traceSlug}
-            roving_dispatch={rovingTabIndexDispatch}
-            roving_state={rovingTabIndexState}
-            search_dispatch={searchDispatch}
-            search_state={searchState}
-            setClickedNode={onSetClickedNode}
-            searchResultsIteratorIndex={searchState.resultIndex}
-            searchResultsMap={searchState.resultsLookup}
-            onTraceSearch={onTraceSearch}
-            manager={viewManager}
-          />
-          <TraceDrawer
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            setTraceDrawerRef={setTraceDrawerRef}
-            nodes={clickedNode}
-            rootEventResults={rootEvent}
-            organization={props.organization}
-            location={props.location}
-            traces={props.trace}
-            traceEventView={props.traceEventView}
-          />
+          <TraceContainer ref={r => (traceContainerRef.current = r)}>
+            <Trace
+              trace={tree}
+              trace_id={props.traceSlug}
+              roving_dispatch={rovingTabIndexDispatch}
+              roving_state={rovingTabIndexState}
+              search_dispatch={searchDispatch}
+              search_state={searchState}
+              setClickedNode={onSetClickedNode}
+              searchResultsIteratorIndex={searchState.resultIndex}
+              searchResultsMap={searchState.resultsLookup}
+              onTraceSearch={onTraceSearch}
+              manager={viewManager}
+            />
+            <TraceDrawer
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              nodes={clickedNode}
+              rootEventResults={rootEvent}
+              organization={props.organization}
+              location={props.location}
+              traces={props.trace}
+              traceEventView={props.traceEventView}
+            />
+          </TraceContainer>
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -455,3 +470,7 @@ function useRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
     }
   );
 }
+
+const TraceContainer = styled('div')`
+  box-shadow: 0 0 0 1px ${p => p.theme.border};
+`;

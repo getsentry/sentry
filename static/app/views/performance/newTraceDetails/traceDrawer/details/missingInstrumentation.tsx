@@ -5,7 +5,7 @@ import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import type {MissingInstrumentationNode} from '../../traceTree';
 
-import {DetailContainer, IconTitleWrapper, StyledIconBorder, StyledTable} from './styles';
+import {TraceDrawerComponents} from './styles';
 
 export function MissingInstrumentationNodeDetails({
   node,
@@ -13,15 +13,15 @@ export function MissingInstrumentationNodeDetails({
   node: MissingInstrumentationNode;
 }) {
   return (
-    <DetailContainer>
-      <IconTitleWrapper>
-        <StyledIconBorder>
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.IconTitleWrapper>
+        <TraceDrawerComponents.IconBorder>
           <IconSpan color="blue300" size="md" />
-        </StyledIconBorder>
-        <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation Span')}</div>
-      </IconTitleWrapper>
+        </TraceDrawerComponents.IconBorder>
+        <div style={{fontWeight: 'bold'}}>{t('Missing Instrumentation')}</div>
+      </TraceDrawerComponents.IconTitleWrapper>
 
-      <StyledTable className="table key-value">
+      <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           <Row title={t('Gap Duration')}>
             {getDuration(node.value.timestamp - node.value.start_timestamp, 2, true)}
@@ -33,7 +33,7 @@ export function MissingInstrumentationNodeDetails({
             {node.next.value.op} - {node.next.value.description}
           </Row>
         </tbody>
-      </StyledTable>
-    </DetailContainer>
+      </TraceDrawerComponents.Table>
+    </TraceDrawerComponents.DetailContainer>
   );
 }

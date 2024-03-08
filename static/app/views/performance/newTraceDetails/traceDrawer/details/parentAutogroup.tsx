@@ -4,19 +4,19 @@ import {Row} from 'sentry/views/performance/traceDetails/styles';
 
 import type {ParentAutogroupNode} from '../../traceTree';
 
-import {DetailContainer, IconTitleWrapper, StyledIconBorder, StyledTable} from './styles';
+import {TraceDrawerComponents} from './styles';
 
 export function ParentAutogroupNodeDetails({node}: {node: ParentAutogroupNode}) {
   return (
-    <DetailContainer>
-      <IconTitleWrapper>
-        <StyledIconBorder>
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.IconTitleWrapper>
+        <TraceDrawerComponents.IconBorder>
           <IconGroup color="blue300" size="md" />
-        </StyledIconBorder>
-        <div style={{fontWeight: 'bold'}}>{t('Auto-Group')}</div>
-      </IconTitleWrapper>
+        </TraceDrawerComponents.IconBorder>
+        <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
+      </TraceDrawerComponents.IconTitleWrapper>
 
-      <StyledTable className="table key-value">
+      <TraceDrawerComponents.Table className="table key-value">
         <tbody>
           <Row title={t('Grouping Logic')}>
             {t(
@@ -28,7 +28,7 @@ export function ParentAutogroupNodeDetails({node}: {node: ParentAutogroupNode}) 
             {t('Span Operation')} : {node.value.op}
           </Row>
         </tbody>
-      </StyledTable>
-    </DetailContainer>
+      </TraceDrawerComponents.Table>
+    </TraceDrawerComponents.DetailContainer>
   );
 }

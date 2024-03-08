@@ -11,12 +11,12 @@ import {
   isTransactionNode,
 } from '../../guards';
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
-import {ErrorNodeDetails} from '../details/errorNodeDetails';
-import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentaionNodeDetails';
-import {ParentAutogroupNodeDetails} from '../details/parentAutogroupNodeDetails';
-import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroupNodeDetails';
-import {SpanNodeDetails} from '../details/spanNodeDetails';
-import {TransactionNodeDetails} from '../details/transactionNodeDetails';
+import {ErrorNodeDetails} from '../details/error';
+import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
+import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
+import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
+import {SpanNodeDetails} from '../details/span';
+import {TransactionNodeDetails} from '../details/transaction';
 
 export default function NodeDetail({
   node,

@@ -13,7 +13,7 @@ import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesP
 
 import type {TraceTree, TraceTreeNode} from '../../traceTree';
 
-import {DetailContainer, Title, TitleOp} from './styles';
+import {TraceDrawerComponents} from './styles';
 
 export function SpanNodeDetails({
   node,
@@ -28,8 +28,8 @@ export function SpanNodeDetails({
   const profileId = event?.contexts?.profile?.profile_id ?? null;
 
   return (
-    <DetailContainer>
-      <Title>
+    <TraceDrawerComponents.DetailContainer>
+      <TraceDrawerComponents.Title>
         <Tooltip title={event.projectSlug}>
           <ProjectBadge
             project={project ? project : {slug: event.projectSlug || ''}}
@@ -38,10 +38,13 @@ export function SpanNodeDetails({
           />
         </Tooltip>
         <div>
-          <div>{t('Span')}</div>
-          <TitleOp> {getSpanOperation(span)}</TitleOp>
+          <div>{t('span')}</div>
+          <TraceDrawerComponents.TitleOp>
+            {' '}
+            {getSpanOperation(span)}
+          </TraceDrawerComponents.TitleOp>
         </div>
-      </Title>
+      </TraceDrawerComponents.Title>
       {event.projectSlug && (
         <ProfilesProvider
           orgSlug={organization.slug}
@@ -69,6 +72,6 @@ export function SpanNodeDetails({
           </ProfileContext.Consumer>
         </ProfilesProvider>
       )}
-    </DetailContainer>
+    </TraceDrawerComponents.DetailContainer>
   );
 }

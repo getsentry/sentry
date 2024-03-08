@@ -108,7 +108,6 @@ interface TraceProps {
   search_state: TraceSearchState;
   setClickedNode: (node: TraceTreeNode<TraceTree.NodeValue> | null) => void;
   trace: TraceTree;
-  traceDrawerRef: HTMLElement | null;
   trace_id: string;
 }
 
@@ -124,7 +123,6 @@ function Trace({
   searchResultsIteratorIndex,
   searchResultsMap,
   onTraceSearch,
-  traceDrawerRef,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -313,47 +311,6 @@ function Trace({
     },
     [roving_dispatch, setDetailNode, search_state, search_dispatch]
   );
-
-  const onOutsideClick = useCallback(() => {
-    const {node: _node, ...queryParamsWithoutNode} = qs.parse(location.search);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: queryParamsWithoutNode,
-    });
-
-    setDetailNode(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Unhighlight the row when clicking outside of the trace or the detail panel
-  useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      if (!containerRef.current) {
-        return;
-      }
-
-      const traceElement: HTMLElement | null =
-        'current' in containerRef ? containerRef.current : containerRef;
-      const traceDrawerElement: HTMLElement | null = traceDrawerRef;
-
-      const clickedTraceView =
-        !traceElement || traceElement.contains(event.target as Node);
-      const clickedDetailPanel = traceDrawerElement?.contains(event.target as Node);
-      if (clickedTraceView || clickedDetailPanel) {
-        return;
-      }
-
-      onOutsideClick();
-    };
-
-    document.addEventListener('mousedown', listener);
-    document.addEventListener('touchstart', listener);
-    return () => {
-      document.removeEventListener('mousedown', listener);
-      document.removeEventListener('touchstart', listener);
-    };
-  }, [containerRef, traceDrawerRef, onOutsideClick]);
 
   const onRowKeyDown = useCallback(
     (
@@ -1399,7 +1356,6 @@ const TraceStylingWrapper = styled('div')`
   margin: auto;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
   border-radius: ${space(0.5)};
   padding-top: 24px;
 
