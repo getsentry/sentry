@@ -14,11 +14,11 @@ export enum DiffLineType {
 
 export type AutofixResult = {
   description: string;
-  diff: FilePatch[];
   pr_number: number;
   pr_url: string;
   repo_name: string;
   title: string;
+  diff?: FilePatch[];
 };
 
 export type AutofixData = {
