@@ -3,6 +3,7 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
@@ -18,7 +19,7 @@ import {ListBoxSection} from './section';
 interface ListBoxProps
   extends Omit<
       React.HTMLAttributes<HTMLUListElement>,
-      'onBlur' | 'onFocus' | 'autoFocus'
+      'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
     Omit<
       AriaListBoxOptions<any>,
@@ -42,6 +43,7 @@ interface ListBoxProps
    * `useListBox()`.
    */
   listState: ListState<any>;
+  children?: CollectionChildren<any>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */

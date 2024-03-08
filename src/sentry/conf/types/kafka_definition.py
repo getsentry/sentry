@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import Any, Required, TypedDict
 
@@ -48,11 +48,8 @@ class Topic(Enum):
 
 class ConsumerDefinition(TypedDict, total=False):
 
-    # XXX: Eventually only Topic will be accepted here.
-    # For backward compatibility with getsentry, we must also
-    # support the physical override topic name (str, Callable[str], str)
-    # while the migration is taking place
-    topic: Required[Topic | str | Callable[[], str]]
+    # Default topic
+    topic: Required[Topic]
 
     # Schema validation will be run if true
     validate_schema: bool | None
@@ -70,7 +67,7 @@ class ConsumerDefinition(TypedDict, total=False):
     synchronize_commit_group_default: str
     synchronize_commit_log_topic_default: str
 
-    dlq_topic: str
+    dlq_topic: Topic
     dlq_max_invalid_ratio: float | None
     dlq_max_consecutive_count: int | None
 

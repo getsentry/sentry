@@ -12,6 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   ORDER,
   ORDER_WITH_INP,
+  ORDER_WITH_INP_WITHOUT_FID,
 } from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
@@ -56,7 +57,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const shouldUseStoredScores = useStoredScoresSetting();
   const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const theme = useTheme();
-  const segmentColors = theme.charts.getColorPalette(3);
+  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5), theme.gray200];
 
   const pageFilters = usePageFilters();
 
@@ -91,7 +92,15 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const chartSeriesOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
+  const hasFid =
+    timeseriesData?.fid?.find(({value}) => value > 0) !== undefined ||
+    preMigrationTimeseriesData?.fid?.find(({value}) => value > 0) !== undefined;
+
+  const chartSeriesOrder = shouldReplaceFidWithInp
+    ? hasFid
+      ? ORDER_WITH_INP
+      : ORDER_WITH_INP_WITHOUT_FID
+    : ORDER;
 
   const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,
@@ -234,6 +243,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         preserveIncompletePoints
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
+            if (shouldReplaceFidWithInp && name === 'FID') {
+              return `${name} Score </strong>(${t('Deprecated')})</strong>`;
+            }
             const timestamp = seriesParams?.data[0];
             const weights = weightsSeries.find(
               series => series.name === timestamp

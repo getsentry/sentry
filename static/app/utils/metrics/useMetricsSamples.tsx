@@ -44,6 +44,7 @@ interface UseMetricSamplesOptions<F extends Field> {
   max?: number;
   min?: number;
   mri?: MRI;
+  op?: string;
   query?: string;
   sort?: string;
 }
@@ -61,6 +62,7 @@ export function useMetricsSamples<F extends Field>({
   max,
   min,
   mri,
+  op,
   referrer,
   query,
   sort,
@@ -79,6 +81,7 @@ export function useMetricsSamples<F extends Field>({
       max,
       min,
       mri,
+      operation: op,
       query,
       referrer,
       per_page: limit,

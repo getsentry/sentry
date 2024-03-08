@@ -1,10 +1,10 @@
 import type {ComponentProps} from 'react';
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';

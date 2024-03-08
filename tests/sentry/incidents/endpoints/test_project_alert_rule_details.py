@@ -3,7 +3,7 @@ from __future__ import annotations
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions

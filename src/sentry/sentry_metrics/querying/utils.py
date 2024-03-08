@@ -14,22 +14,6 @@ def get_redis_client_for_metrics_meta() -> RedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
-def fnv1a_32(data: bytes) -> int:
-    """
-    Fowler–Noll–Vo hash function 32 bit implementation.
-    """
-    fnv_init = 0x811C9DC5
-    fnv_prime = 0x01000193
-    fnv_size = 2**32
-
-    result_hash = fnv_init
-    for byte in data:
-        result_hash ^= byte
-        result_hash = (result_hash * fnv_prime) % fnv_size
-
-    return result_hash
-
-
 def remove_if_match(pattern, string: str) -> str:
     """
     Removes a pattern from a string.

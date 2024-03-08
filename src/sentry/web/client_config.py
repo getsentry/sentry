@@ -32,7 +32,12 @@ from sentry.services.hybrid_cloud.user import UserSerializeType
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_multitenant_region_names, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionCategory,
+    find_all_multitenant_region_names,
+    get_region_by_name,
+)
 from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
@@ -286,9 +291,9 @@ class _ClientConfig:
         yield "regionUrl", region_url
         yield "sentryUrl", options.get("system.url-prefix")
 
-        if self._is_superuser() and superuser.ORG_ID is not None:
+        if self._is_superuser() and superuser.SUPERUSER_ORG_ID is not None:
             org_context = organization_service.get_organization_by_id(
-                id=superuser.ORG_ID,
+                id=superuser.SUPERUSER_ORG_ID,
                 user_id=None,
                 include_projects=False,
                 include_teams=False,
@@ -328,20 +333,36 @@ class _ClientConfig:
         has membership on any single-tenant regions those will also be included.
         """
         user = self.user
+
+        # Only expose visible regions.
+        # When new regions are added they can take some work to get working correctly.
+        # Before they are working we need ways to bring parts of the region online without
+        # exposing the region to customers.
         region_names = find_all_multitenant_region_names()
+
         if not region_names:
             return [{"name": "default", "url": options.get("system.url-prefix")}]
 
-        # No logged in user.
+        # Show all visible multi-tenant regions to unauthenticated users as they could
+        # create a new account
         if not user or not user.id:
-            return [get_region_by_name(region).api_serialize() for region in region_names]
+            return [get_region_by_name(name).api_serialize() for name in region_names]
 
         # Ensure all regions the current user is in are included as there
-        # could be single tenants as well.
+        # could be single tenants or hidden regions
         memberships = user_service.get_organizations(user_id=user.id)
         unique_regions = set(region_names) | {membership.region_name for membership in memberships}
 
-        return [get_region_by_name(name).api_serialize() for name in unique_regions]
+        def region_display_order(region: Region) -> tuple[bool, bool, str]:
+            return (
+                not region.is_historic_monolith_region(),  # default region comes first
+                region.category != RegionCategory.MULTI_TENANT,  # multi-tenants before single
+                region.name,  # then sort alphabetically
+            )
+
+        regions = [get_region_by_name(name) for name in unique_regions]
+        regions.sort(key=region_display_order)
+        return [region.api_serialize() for region in regions]
 
     def get_context(self) -> Mapping[str, Any]:
         return {

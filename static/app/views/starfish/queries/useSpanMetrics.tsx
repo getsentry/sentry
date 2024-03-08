@@ -30,15 +30,11 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 
   const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
 
-  // TODO: Checking that every filter has a value might not be a good choice, since this API is not convenient. Instead, it's probably fine to omit keys with blank values
-  const enabled =
-    options.enabled && Object.values(filters).every(value => Boolean(value));
-
   const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
     limit,
-    enabled,
+    enabled: options.enabled,
     referrer,
     cursor,
   });
@@ -50,7 +46,7 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
   return {
     ...result,
     data,
-    isEnabled: enabled,
+    isEnabled: options.enabled,
   };
 };
 

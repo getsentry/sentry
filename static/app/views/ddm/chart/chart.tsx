@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
+import isNil from 'lodash/isNil';
+import omitBy from 'lodash/omitBy';
 
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
@@ -17,8 +19,9 @@ import {isChartHovered} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {CombinedMetricChartProps, Series} from 'sentry/views/ddm/chart/types';
 import type {UseFocusAreaResult} from 'sentry/views/ddm/chart/useFocusArea';
 import type {UseMetricSamplesResult} from 'sentry/views/ddm/chart/useMetricChartSamples';
@@ -69,10 +72,7 @@ function addSeriesPadding(data: Series['data']) {
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   ({series, displayType, height, group, samples, focusArea}, forwardedRef) => {
     const chartRef = useRef<ReactEchartsRef>(null);
-
-    const firstUnit = series.find(s => !s.hidden)?.unit || series[0]?.unit || 'none';
-    const firstOperation =
-      series.find(s => !s.hidden)?.operation || series[0]?.operation || '';
+    const firstUnit = series.find(s => !s.hidden)?.unit || 'none';
 
     useEffect(() => {
       if (!group) {
@@ -110,25 +110,26 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [series, ingestionBuckets, displayType]
     );
 
+    const {selection} = usePageFilters();
+
+    const dateTimeOptions = useMemo(() => {
+      return omitBy(selection.datetime, isNil);
+    }, [selection.datetime]);
+
     const chartProps = useMemo(() => {
       const hasMultipleUnits = new Set(seriesToShow.map(s => s.unit)).size > 1;
-      const seriesMeta = seriesToShow.reduce(
+      const seriesUnits = seriesToShow.reduce(
         (acc, s) => {
-          acc[s.seriesName] = {
-            unit: s.unit,
-            operation: s.operation,
-          };
+          acc[s.seriesName] = s.unit;
           return acc;
         },
-        {} as Record<string, {operation: string; unit: string}>
+        {} as Record<string, string>
       );
 
       const timeseriesFormatters = {
         valueFormatter: (value: number, seriesName?: string) => {
-          const meta = seriesName
-            ? seriesMeta[seriesName]
-            : {unit: firstUnit, operation: undefined};
-          return formatMetricsUsingUnitAndOp(value, meta.unit, meta.operation);
+          const unit = (seriesName && seriesUnits[seriesName]) ?? 'none';
+          return formatMetricUsingUnit(value, unit);
         },
         isGroupedByDate: true,
         bucketSize,
@@ -144,6 +145,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       let baseChartProps: CombinedMetricChartProps = {
         ...heightOptions,
+        ...dateTimeOptions,
         displayType,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
@@ -223,10 +225,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             id: MAIN_Y_AXIS_ID,
             axisLabel: {
               formatter: (value: number) => {
-                return formatMetricsUsingUnitAndOp(
+                return formatMetricUsingUnit(
                   value,
-                  hasMultipleUnits ? 'none' : firstUnit,
-                  firstOperation
+                  hasMultipleUnits ? 'none' : firstUnit
                 );
               },
             },
@@ -254,6 +255,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       return baseChartProps;
     }, [
       seriesToShow,
+      dateTimeOptions,
       bucketSize,
       isSubMinuteBucket,
       height,
@@ -262,7 +264,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       samples,
       focusArea,
       firstUnit,
-      firstOperation,
     ]);
 
     return (

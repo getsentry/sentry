@@ -1,9 +1,10 @@
 /* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import MockDate from 'mockdate';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
+
+import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
@@ -30,8 +31,7 @@ configureRtl({testIdAttribute: 'data-test-id'});
  * Mock (current) date to always be National Pasta Day
  * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000);
-MockDate.set(constantDate);
+resetMockDate();
 
 /**
  * Global testing configuration
@@ -122,8 +122,8 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    BrowserTracing: jest.fn().mockReturnValue({}),
     reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),
     BrowserClient: jest.fn().mockReturnValue({
@@ -150,12 +150,10 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // biome-ignore lint/style/noVar: Not required
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // biome-ignore lint/style/noVar: Not required
   var MockApiClient: typeof Client;
 }
 

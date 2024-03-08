@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -118,6 +118,8 @@ export const SummaryTable = memo(function SummaryTable({
         ...getValues(s.data),
       };
     })
+    // Filter series with no data
+    .filter(s => s.min !== Infinity)
     .sort((a, b) => {
       const {name, order} = sort;
       if (!name) {
@@ -172,7 +174,6 @@ export const SummaryTable = memo(function SummaryTable({
             color,
             hidden,
             unit,
-            operation,
             transaction,
             release,
             avg,
@@ -229,18 +230,10 @@ export const SummaryTable = memo(function SummaryTable({
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(avg, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(min, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(max, unit, operation)}
-                  </NumberCell>
-                  <NumberCell>
-                    {formatMetricsUsingUnitAndOp(sum, unit, operation)}
-                  </NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
+                  <NumberCell>{formatMetricUsingUnit(sum, unit)}</NumberCell>
 
                   {hasActions && (
                     <CenterCell>

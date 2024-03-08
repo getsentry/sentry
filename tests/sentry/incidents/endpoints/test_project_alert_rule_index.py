@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -96,8 +96,9 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -120,12 +121,15 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
 
     def test_status_filter(self):
-        with outbox_runner(), self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:metric-alert-ignore-archived",
-            ]
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:metric-alert-ignore-archived",
+                ]
+            ),
         ):
             data = deepcopy(self.valid_alert_rule)
             data["query"] = "is:unresolved"
@@ -144,8 +148,9 @@ class AlertRuleCreateEndpointTest(APITestCase):
         """Test that if you don't provide the project data in the request, we grab it from the URL"""
         data = deepcopy(self.valid_alert_rule)
         del data["projects"]
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_success_response(
                 self.organization.slug,

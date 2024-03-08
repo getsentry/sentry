@@ -196,7 +196,7 @@ class ClientConfigViewTest(TestCase):
 
         other_org = self.create_organization()
 
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 200
@@ -224,9 +224,11 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
         # Induce last active organization
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
-        ), assume_test_silo_mode(SiloMode.MONOLITH):
+        with (
+            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
+            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            assume_test_silo_mode(SiloMode.MONOLITH),
+        ):
             response = self.client.get(
                 "/",
                 HTTP_HOST=f"{other_org.slug}.testserver",
@@ -245,7 +247,7 @@ class ClientConfigViewTest(TestCase):
                 assert "activeorg" not in self.client.session
 
         # lastOrganization is set
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"

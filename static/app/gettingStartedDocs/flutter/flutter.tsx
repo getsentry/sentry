@@ -178,6 +178,7 @@ const onboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  crashReportOnboarding: feedbackOnboardingCrashApiDart,
 };
 
 export default docs;
