@@ -13,6 +13,7 @@ import type {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {
   isAutogroupedNode,
@@ -25,17 +26,6 @@ import type {TraceTree, TraceTreeNode} from '../traceTree';
 
 import NodeDetail from './tabs/details';
 import {TraceLevelDetails} from './tabs/trace';
-
-type DrawerProps = {
-  activeTab: 'trace' | 'node';
-  location: Location;
-  nodes: TraceTreeNode<TraceTree.NodeValue>[];
-  organization: Organization;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  setActiveTab: (tab: 'trace' | 'node') => void;
-  traceEventView: EventView;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
-};
 
 const MIN_PANEL_HEIGHT = 31;
 const DEFAULT_PANEL_HEIGHT = 200;
@@ -64,7 +54,20 @@ function getTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   return t('Detail');
 }
 
-function TraceDrawer(props: DrawerProps) {
+type TraceDrawerProps = {
+  activeTab: 'trace' | 'node';
+  location: Location;
+  manager: VirtualizedViewManager;
+  nodes: TraceTreeNode<TraceTree.NodeValue>[];
+  organization: Organization;
+  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  setActiveTab: (tab: 'trace' | 'node') => void;
+  traceEventView: EventView;
+  traces: TraceSplitResults<TraceFullDetailed> | null;
+};
+
+function TraceDrawer(props: TraceDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const onResize = useCallback((newSize: number, maybeOldSize: number | undefined) => {
     if (!panelRef.current) {
@@ -106,7 +109,6 @@ function TraceDrawer(props: DrawerProps) {
           <TabButton>{t('Trace')}</TabButton>
         </Tab>
       </TabsContainer>
-
       <Content>
         {props.activeTab === 'trace' ? (
           <TraceLevelDetails
@@ -123,6 +125,8 @@ function TraceDrawer(props: DrawerProps) {
               node={node}
               organization={props.organization}
               location={props.location}
+              manager={props.manager}
+              scrollToNode={props.scrollToNode}
             />
           ))
         )}

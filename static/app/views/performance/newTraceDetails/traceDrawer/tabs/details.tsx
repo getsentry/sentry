@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 
 import {
   isMissingInstrumentationNode,
@@ -22,10 +23,14 @@ export default function NodeDetail({
   node,
   organization,
   location,
+  manager,
+  scrollToNode,
 }: {
   location: Location;
+  manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   if (isTransactionNode(node)) {
     return (
@@ -33,12 +38,20 @@ export default function NodeDetail({
         node={node}
         organization={organization}
         location={location}
+        manager={manager}
+        scrollToNode={scrollToNode}
       />
     );
   }
 
   if (isSpanNode(node)) {
-    return <SpanNodeDetails node={node} organization={organization} />;
+    return (
+      <SpanNodeDetails
+        node={node}
+        organization={organization}
+        scrollToNode={scrollToNode}
+      />
+    );
   }
 
   if (isTraceErrorNode(node)) {

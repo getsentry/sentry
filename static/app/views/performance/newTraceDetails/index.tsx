@@ -33,6 +33,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -148,6 +149,7 @@ type TraceViewContentProps = {
 };
 
 function TraceViewContent(props: TraceViewContentProps) {
+  const api = useApi();
   const [activeTab, setActiveTab] = useState<'trace' | 'node'>('trace');
   const {projects} = useProjects();
 
@@ -339,6 +341,35 @@ function TraceViewContent(props: TraceViewContentProps) {
   const traceContainerRef = useRef<HTMLElement | null>(null);
   useOnClickOutside(traceContainerRef, onOutsideClick);
 
+  const previouslyFocusedIndexRef = useRef<number | null>(null);
+  const scrollToNode = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      previouslyFocusedIndexRef.current = null;
+      viewManager
+        .scrollToPath(tree, [...node.path], () => void 0, {
+          api,
+          organization: props.organization,
+        })
+        .then(maybeNode => {
+          if (!maybeNode) {
+            return;
+          }
+
+          viewManager.onScrollEndOutOfBoundsCheck();
+          rovingTabIndexDispatch({
+            type: 'set index',
+            index: maybeNode.index,
+            node: maybeNode.node,
+          });
+
+          if (searchState.query) {
+            onTraceSearch(searchState.query);
+          }
+        });
+    },
+    [api, props.organization, tree, viewManager, searchState, onTraceSearch]
+  );
+
   return (
     <Fragment>
       <Layout.Header>
@@ -397,9 +428,12 @@ function TraceViewContent(props: TraceViewContentProps) {
               searchResultsIteratorIndex={searchState.resultIndex}
               searchResultsMap={searchState.resultsLookup}
               onTraceSearch={onTraceSearch}
+              previouslyFocusedIndexRef={previouslyFocusedIndexRef}
               manager={viewManager}
             />
             <TraceDrawer
+              scrollToNode={scrollToNode}
+              manager={viewManager}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               nodes={clickedNode}

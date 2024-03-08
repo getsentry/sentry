@@ -37,6 +37,7 @@ import {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
+import {Title} from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -57,6 +58,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/virtualizedViewManager';
 import {Row, Tags} from 'sentry/views/performance/traceDetails/styles';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -166,14 +168,17 @@ function BreadCrumbsSection({
 
 type TransactionDetailProps = {
   location: Location;
+  manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.Transaction>;
   organization: Organization;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 };
 
 export function TransactionNodeDetails({
   node,
   organization,
   location,
+  scrollToNode,
 }: TransactionDetailProps) {
   const {projects} = useProjects();
   const {data: event} = useApiQuery<EventTransaction>(
@@ -282,6 +287,7 @@ export function TransactionNodeDetails({
             />
           </Tooltip>
           <div>
+            <button onClick={_e => scrollToNode(node)}>Go to row</button>
             <div>{t('transaction')}</div>
             <TraceDrawerComponents.TitleOp>
               {' '}
@@ -475,7 +481,7 @@ export function TransactionNodeDetails({
   );
 }
 
-const TransactioNodeDetailHeader = styled(TraceDrawerComponents.Title)`
+const TransactioNodeDetailHeader = styled(Title)`
   justify-content: space-between;
 `;
 

@@ -18,9 +18,11 @@ import {TraceDrawerComponents} from './styles';
 export function SpanNodeDetails({
   node,
   organization,
+  scrollToNode,
 }: {
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
+  scrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
 }) {
   const {projects} = useProjects();
   const {event, relatedErrors, childTxn, ...span} = node.value;
@@ -45,6 +47,7 @@ export function SpanNodeDetails({
           </TraceDrawerComponents.TitleOp>
         </div>
       </TraceDrawerComponents.Title>
+      <button onClick={_e => scrollToNode(node)}>Go to row</button>
       {event.projectSlug && (
         <ProfilesProvider
           orgSlug={organization.slug}

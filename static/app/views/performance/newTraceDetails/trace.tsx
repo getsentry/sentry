@@ -100,6 +100,7 @@ function maybeFocusRow(
 interface TraceProps {
   manager: VirtualizedViewManager;
   onTraceSearch: (query: string) => void;
+  previouslyFocusedIndexRef: React.MutableRefObject<number | null>;
   roving_dispatch: React.Dispatch<RovingTabIndexAction>;
   roving_state: RovingTabIndexState;
   searchResultsIteratorIndex: number | undefined;
@@ -122,6 +123,7 @@ function Trace({
   manager,
   searchResultsIteratorIndex,
   searchResultsMap,
+  previouslyFocusedIndexRef,
   onTraceSearch,
 }: TraceProps) {
   const theme = useTheme();
@@ -132,7 +134,6 @@ function Trace({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [_rerender, setRender] = useState(0);
 
-  const previouslyFocusedIndexRef = useRef<number | null>(null);
   const treePromiseStatusRef =
     useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
 
