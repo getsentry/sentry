@@ -80,7 +80,7 @@ export function Queries() {
                 index={index}
                 projects={selection.projects}
                 showQuerySymbols={showQuerySymbols}
-                isSelected={index === selectedWidgetIndex}
+                isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
               />
             ) : (
@@ -92,7 +92,7 @@ export function Queries() {
                 index={index}
                 widget={widget}
                 showQuerySymbols={showQuerySymbols}
-                isSelected={index === selectedWidgetIndex}
+                isSelected={isMultiChartMode && index === selectedWidgetIndex}
                 canBeHidden={visibleWidgets.length > 1}
               />
             )}

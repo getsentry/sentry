@@ -2,7 +2,6 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {useDDMContext} from 'sentry/views/ddm/context';
 
 const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -16,7 +15,7 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-const Symbol = styled('span')<{isSelected: boolean; isHidden?: boolean}>`
+const Symbol = styled('span')<{isHidden?: boolean; isSelected?: boolean}>`
   display: flex;
   width: 16px;
   height: 16px;
@@ -52,13 +51,12 @@ interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
 }
 
 export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
-  function QuerySymbol({queryId, isSelected, ...props}, ref) {
-    const {showQuerySymbols, isMultiChartMode} = useDDMContext();
-    if (!showQuerySymbols || queryId < 0) {
+  function QuerySymbol({queryId, ...props}, ref) {
+    if (queryId < 0) {
       return null;
     }
     return (
-      <Symbol ref={ref} isSelected={isMultiChartMode && isSelected} {...props}>
+      <Symbol ref={ref} {...props}>
         <span>{getQuerySymbol(queryId)}</span>
       </Symbol>
     );
