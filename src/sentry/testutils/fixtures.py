@@ -45,7 +45,7 @@ class Fixtures:
 
     @cached_property
     def user(self):
-        return self.create_user("admin@localhost", is_superuser=True)
+        return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
     def organization(self):
