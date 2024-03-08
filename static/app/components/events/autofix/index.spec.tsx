@@ -128,7 +128,7 @@ describe('AiAutofix', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle log details'}));
 
-    expect(screen.getByText('1. I am processing')).toBeInTheDocument();
+    expect(screen.getByText('I am processing')).toBeInTheDocument();
     expect(screen.getByText('oh yes I am')).toBeInTheDocument();
   });
 });
